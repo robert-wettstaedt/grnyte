@@ -1,11 +1,11 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-  import FileViewer from '$lib/components/FileViewer/FileViewer.svelte'
-  import RouteName from '$lib/components/RouteName/RouteName.svelte'
-  import type { FileDTO } from '$lib/nextcloud'
+  import { DELETE_PERMISSION } from '$lib/auth'
+  import ObjectViewer from '$lib/components/ObjectViewer'
+  import RouteName from '$lib/components/RouteName'
   import type { Pagination } from '$lib/pagination.server'
+  import type { ObjectDTO } from '$lib/storage.server'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
   import type { ActivityDTO, ActivityGroup } from '.'
@@ -18,6 +18,8 @@
   }
 
   const { activities, pagination, ...rest }: Props = $props()
+
+  console.log(activities)
 
   let activityPages = $state<(typeof activities)[]>([])
   let prevPage = $state(1)
@@ -40,7 +42,7 @@
     activityType = $page.url.searchParams.get('type') ?? 'all'
   })
 
-  function getUniqueFiles(group: ActivityGroup): FileDTO[] {
+  function getUniqueFiles(group: ActivityGroup): ObjectDTO[] {
     return group.items
       .filter(
         (
@@ -49,7 +51,7 @@
           entity: {
             type: 'ascent'
             object: {
-              files: FileDTO[]
+              files: ObjectDTO[]
               createdBy: number
             }
           }
@@ -60,7 +62,7 @@
           Array.isArray(activity.entity.object.files),
       )
       .flatMap((activity) => activity.entity.object.files)
-      .filter((file, index, self) => index === self.findIndex((f: FileDTO) => f.id === file.id))
+      .filter((file, index, self) => index === self.findIndex((f) => f.id === file.id))
   }
 
   function findAscentForFile(group: ActivityGroup, fileId: number) {
@@ -71,7 +73,7 @@
         entity: {
           type: 'ascent'
           object: {
-            files: FileDTO[]
+            files: ObjectDTO[]
             createdBy: number
           }
         }
@@ -80,7 +82,7 @@
         activity.entity.object != null &&
         'files' in activity.entity.object &&
         Array.isArray(activity.entity.object.files) &&
-        activity.entity.object.files.some((f: FileDTO) => f.id === fileId),
+        activity.entity.object.files.some((f) => f.id === fileId),
     )
     return activity
   }
@@ -180,19 +182,18 @@
                     {#if group.items.some((activity) => activity.entity.type === 'ascent' && activity.entity.object?.files != null && activity.entity.object.files.length > 0)}
                       <div class="mt-4">
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {#each getUniqueFiles(group) as file}
-                            {#if file.stat != null}
-                              {@const ascentActivity = findAscentForFile(group, file.id)}
+                          {#each getUniqueFiles(group) as object}
+                            {#if object.stat != null}
+                              {@const ascentActivity = findAscentForFile(group, object.id)}
 
-                              <FileViewer
-                                {file}
-                                stat={file.stat}
+                              <ObjectViewer
+                                {object}
                                 readOnly={!$page.data.userPermissions?.includes(DELETE_PERMISSION) ||
                                   ascentActivity?.entity.object?.createdBy !== $page.data.user?.id}
-                                on:delete={() => {
+                                onDelete={() => {
                                   if (ascentActivity?.entity.object != null) {
                                     ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(
-                                      (f) => f.id !== file.id,
+                                      (f) => f.id !== object.id,
                                     )
                                   }
                                 }}

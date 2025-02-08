@@ -10,7 +10,7 @@
   import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
   import ActivityFeed from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
-  import FileViewer from '$lib/components/FileViewer'
+  import ObjectViewer from '$lib/components/ObjectViewer'
   import References from '$lib/components/References'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { highlightedRouteStore, selectedRouteStore } from '$lib/components/TopoViewer'
@@ -367,21 +367,20 @@
                 <span class="flex-auto">
                   <dt>Files</dt>
                   <dd class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                    {#each files as file}
-                      {#if file.stat != null}
-                        <FileViewer
-                          {file}
+                    {#each files as object}
+                      {#if object.stat != null}
+                        <ObjectViewer
+                          {object}
                           readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
-                          stat={file.stat}
-                          on:delete={() => {
-                            files = files.filter((_file) => file.id !== _file.id)
+                          onDelete={() => {
+                            files = files.filter((_file) => object.id !== _file.id)
                           }}
                         />
-                      {:else if file.error != null}
+                      {:else if object.error != null}
                         <aside class="alert variant-filled-error">
                           <div class="alert-message">
                             <h3 class="h3">Error</h3>
-                            <p>{file.error}</p>
+                            <p>{object.error}</p>
                           </div>
                         </aside>
                       {/if}

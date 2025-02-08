@@ -1,21 +1,18 @@
 <script lang="ts">
   import { page } from '$app/stores'
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
-  import type { FileUploadProps } from '$lib/components/FileUpload'
-  import FileUpload from '$lib/components/FileUpload'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { Ascent } from '$lib/db/schema'
   import { DateTime } from 'luxon'
 
   interface Props {
     dateTime: Ascent['dateTime']
-    fileUploadProps: FileUploadProps
     gradeFk: Ascent['gradeFk']
     notes: Ascent['notes']
     type: Ascent['type'] | null
   }
 
-  let { dateTime, gradeFk, notes, type, fileUploadProps }: Props = $props()
+  let { dateTime, gradeFk, notes, type }: Props = $props()
 </script>
 
 <label class="label mt-4">
@@ -50,8 +47,6 @@
     value={DateTime.fromSQL(dateTime).toISODate()}
   />
 </label>
-
-<FileUpload {...fileUploadProps} />
 
 <label class="label mt-4">
   <span>Notes</span>

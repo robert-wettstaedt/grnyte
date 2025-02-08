@@ -2,9 +2,10 @@ import { calcMiddlePoint } from '$lib/components/TopoViewer/components/Route/lib
 import type { db } from '$lib/db/db.server'
 import type { Route } from '$lib/db/schema'
 import type { InferResultType, NestedArea, NestedAscent, NestedBlock, NestedRoute } from '$lib/db/types'
-import { loadFiles } from '$lib/nextcloud/nextcloud.server'
+import { loadObject, loadObjects } from '$lib/storage.server'
 import { convertPathToPoints, type TopoDTO, type TopoRouteDTO } from '$lib/topo'
-
+import type { TransformOptions } from '@supabase/storage-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 /**
  * The maximum depth for nesting areas.
  *
@@ -120,14 +121,15 @@ export const enrichAscent = (ascent: NestedAscent): EnrichedAscent => {
 }
 
 export const enrichTopo = async (
-  topo: InferResultType<'topos', { file: true; routes: true }>,
-  withFile = true,
+  topo: InferResultType<'topos', { routes: true; storageObject: { with: { storageObject: true } } }>,
+  supabase: SupabaseClient,
+  transform?: TransformOptions,
 ): Promise<TopoDTO> => {
-  if (topo.file == null) {
+  if (topo.storageObject == null) {
     throw new Error('Topo file is required')
   }
 
-  const [file] = withFile ? await loadFiles([topo.file]) : [topo.file]
+  const file = await loadObject(supabase, topo.storageObject, transform)
 
   const routes = topo.routes
     .map(({ path, ...route }): TopoRouteDTO => {

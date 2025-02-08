@@ -1,6 +1,5 @@
 import { EDIT_PERMISSION } from '$lib/auth'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, areas, blocks, generateSlug, topos, type Block } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -110,18 +109,13 @@ export const actions = {
         return fail(400, { ...values, error: convertException(exception) })
       }
 
-      if (values.folderName != null && block != null) {
+      if (values.filenames != null && block != null) {
         try {
-          const results = await handleFileUpload(db, locals.supabase, values.folderName!, config.files.folders.topos, {
-            blockFk: block.id,
-          })
-
-          const fileBuffers = results.map((result) => result.fileBuffer)
-
-          await createGeolocationFromFiles(db, block, fileBuffers)
-          await Promise.all(
-            results.map((result) => db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id })),
-          )
+          const createdFiles = await handleFileUpload(db, values.filenames, { blockFk: block.id })
+          await createGeolocationFromFiles(db, locals.supabase, block, createdFiles)
+          await db
+            .insert(topos)
+            .values(createdFiles.map((result) => ({ blockFk: block.id, storageObjectFk: result.id })))
         } catch (exception) {
           return fail(400, {
             error: `The block was successfully created but an error occurred while creating topos: ${convertException(exception)}`,

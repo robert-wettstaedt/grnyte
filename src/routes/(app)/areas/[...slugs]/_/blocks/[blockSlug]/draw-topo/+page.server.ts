@@ -1,6 +1,6 @@
 import { EDIT_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks, files, routes, topoRoutes, topos } from '$lib/db/schema'
+import { activities, ascents, blocks, entityToStorageObjects, routes, topoRoutes, topos } from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import {
@@ -13,9 +13,9 @@ import {
 } from '$lib/forms.server'
 import { convertAreaSlug, getUser } from '$lib/helper.server'
 import { load as loadServerLayout } from '$lib/layout/layout.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteObject } from '$lib/storage.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async (event) => {
@@ -43,8 +43,12 @@ export const load = (async (event) => {
         },
         topos: {
           with: {
-            file: true,
             routes: true,
+            storageObject: {
+              with: {
+                storageObject: true,
+              },
+            },
           },
         },
       },
@@ -59,7 +63,7 @@ export const load = (async (event) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
-    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo, locals.supabase)))
 
     const enrichedRoutes = block.routes.map((route) => {
       return {
@@ -237,10 +241,23 @@ export const actions = {
         await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
         await db.delete(topos).where(eq(topos.id, id))
 
+        // TODO
         const filesToDelete =
-          topo.fileFk == null ? [] : await db.delete(files).where(eq(files.id, topo.fileFk)).returning()
+          topo.storageObjectFk == null
+            ? []
+            : await db.query.entityToStorageObjects.findMany({
+                where: eq(entityToStorageObjects.id, topo.storageObjectFk),
+                with: { storageObject: true },
+              })
 
-        await Promise.all([...filesToDelete.map((file) => deleteFile(file))])
+        await db.delete(entityToStorageObjects).where(
+          inArray(
+            entityToStorageObjects.id,
+            filesToDelete.map((file) => file.id),
+          ),
+        )
+
+        await deleteObject(filesToDelete, locals.supabase)
 
         await db.insert(activities).values({
           type: 'deleted',

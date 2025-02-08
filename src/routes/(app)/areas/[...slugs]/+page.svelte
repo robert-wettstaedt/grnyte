@@ -5,10 +5,10 @@
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
-  import FileViewer from '$lib/components/FileViewer'
   import GenericList from '$lib/components/GenericList'
   import GradeHistogram from '$lib/components/GradeHistogram'
   import Image from '$lib/components/Image'
+  import ObjectViewer from '$lib/components/ObjectViewer'
   import References from '$lib/components/References'
   import RouteName from '$lib/components/RouteName'
   import type { Block } from '$lib/db/schema'
@@ -246,21 +246,20 @@
                   <span class="flex-auto">
                     <dt>Files</dt>
                     <dd class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                      {#each files as file}
-                        {#if file.stat != null}
-                          <FileViewer
-                            {file}
+                      {#each files as object}
+                        {#if object.stat != null}
+                          <ObjectViewer
+                            {object}
                             readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
-                            stat={file.stat}
-                            on:delete={() => {
-                              files = files.filter((_file) => file.id !== _file.id)
+                            onDelete={() => {
+                              files = files.filter((_file) => object.id !== _file.id)
                             }}
                           />
-                        {:else if file.error != null}
+                        {:else if object.error != null}
                           <aside class="alert variant-filled-error">
                             <div class="alert-message">
                               <h3 class="h3">Error</h3>
-                              <p>{file.error}</p>
+                              <p>{object.error}</p>
                             </div>
                           </aside>
                         {/if}
@@ -345,8 +344,8 @@
                     {#if !orderMode}
                       {#if item.routes.length === 0}
                         <div class="flex items-center gap-2 px-2 md:px-4 py-3">
-                          {#if item.topos?.[0]?.file?.path != null}
-                            <Image path={item.topos?.[0]?.file?.path} size={32} />
+                          {#if item.topos?.[0]?.file.stat?.url != null}
+                            <Image url={item.topos?.[0]?.file.stat?.url} size={32} />
                           {/if}
 
                           <div class="w-[calc(100%-64px)]">No routes yet</div>
@@ -363,7 +362,7 @@
                         >
                           {#snippet left(route)}
                             <div class="flex items-center gap-2">
-                              <Image path={route.topo?.file?.path} size={32} />
+                              <Image url={route.topo?.file?.stat?.url} size={32} />
 
                               <div class="w-[calc(100%-64px)]">
                                 <RouteName {route} />

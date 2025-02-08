@@ -1,8 +1,7 @@
 import { EDIT_PERMISSION } from '$lib/auth'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks } from '$lib/db/schema'
+import { activities, ascents, blocks, type InsertActivity } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { addFileActionSchema, validateFormData, type ActionFailure, type AddFileActionValues } from '$lib/forms.server'
 import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
@@ -107,20 +106,13 @@ export const actions = {
       }
 
       try {
-        const createdFiles = await handleFileUpload(
-          db,
-          locals.supabase,
-          values.folderName,
-          config.files.folders.topos,
-          { routeFk: route.id },
-        )
-
-        await Promise.all(
-          createdFiles.map(({ file }) =>
-            db.insert(activities).values({
+        const createdFiles = await handleFileUpload(db, values.filenames, { routeFk: route.id })
+        await db.insert(activities).values(
+          createdFiles.map(
+            (file): InsertActivity => ({
               type: 'uploaded',
               userFk: user.id,
-              entityId: file.id,
+              entityId: file!.id,
               entityType: 'file',
               parentEntityId: route.id,
               parentEntityType: 'route',

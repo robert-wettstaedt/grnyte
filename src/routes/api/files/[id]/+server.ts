@@ -1,16 +1,16 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, files } from '$lib/db/schema'
+import { activities, entityToStorageObjects } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import { getUser } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteObject } from '$lib/storage.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 
 export async function DELETE({ locals, params }) {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-  return await rls(async (db) => {
+  const file = await rls(async (db) => {
     const user = await getUser(locals.user, db)
     if (user == null) {
       error(404)
@@ -20,17 +20,23 @@ export async function DELETE({ locals, params }) {
     const fileId = Number(params.id)
 
     // Initialize variables for file and user
-    let file: InferResultType<'files', { area: true; ascent: true; block: true; route: true }> | undefined = undefined
+    let file:
+      | InferResultType<
+          'entityToStorageObjects',
+          { area: true; ascent: true; block: true; route: true; storageObject: true }
+        >
+      | undefined = undefined
 
     // Attempt to find the file in the database
     try {
-      file = await db.query.files.findFirst({
-        where: eq(files.id, fileId),
+      file = await db.query.entityToStorageObjects.findFirst({
+        where: eq(entityToStorageObjects.id, fileId),
         with: {
           area: true,
           ascent: true,
           block: true,
           route: true,
+          storageObject: true,
         },
       })
     } catch (exception) {
@@ -52,10 +58,7 @@ export async function DELETE({ locals, params }) {
     }
 
     // Delete the file from the database
-    await db.delete(files).where(eq(files.id, fileId))
-    if (file != null) {
-      await deleteFile(file)
-    }
+    await db.delete(entityToStorageObjects).where(eq(entityToStorageObjects.id, fileId))
 
     if (entityId != null) {
       await db.insert(activities).values({
@@ -67,7 +70,13 @@ export async function DELETE({ locals, params }) {
       })
     }
 
-    // Return a successful response
-    return new Response(null, { status: 200 })
+    return file
   })
+
+  if (file != null) {
+    await deleteObject(file, locals.supabase)
+  }
+
+  // Return a successful response
+  return new Response(null, { status: 200 })
 }

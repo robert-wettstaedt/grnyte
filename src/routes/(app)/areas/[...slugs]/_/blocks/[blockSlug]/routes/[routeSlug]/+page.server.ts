@@ -7,8 +7,8 @@ import { convertException } from '$lib/errors'
 import { insertExternalResources } from '$lib/external-resources/index.server'
 import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
-import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
+import { loadObjects } from '$lib/storage.server'
 import { error, fail } from '@sveltejs/kit'
 import { and, desc, eq, or } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -36,7 +36,6 @@ export const load = (async ({ locals, params, parent, url }) => {
                 route: true,
               },
             },
-            files: true,
             firstAscents: {
               with: {
                 firstAscensionist: {
@@ -54,14 +53,23 @@ export const load = (async ({ locals, params, parent, url }) => {
                 externalResourceTheCrag: true,
               },
             },
+            storageObjects: {
+              with: {
+                storageObject: true,
+              },
+            },
           },
         },
         topos: {
           with: {
-            file: true,
             routes: {
               with: {
                 route: true,
+              },
+            },
+            storageObject: {
+              with: {
+                storageObject: true,
               },
             },
           },
@@ -83,9 +91,9 @@ export const load = (async ({ locals, params, parent, url }) => {
     }
 
     // Fetch and enrich files associated with the route
-    const routeFiles = await loadFiles(route.files)
+    const files = await loadObjects(locals.supabase, route.storageObjects)
 
-    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo, locals.supabase)))
 
     // Process route description from markdown to HTML if description is present
     const description = route.description == null ? null : await convertMarkdownToHtml(route.description, db)
@@ -101,7 +109,7 @@ export const load = (async ({ locals, params, parent, url }) => {
     return {
       block,
       route: { ...route, description },
-      files: routeFiles,
+      files,
       references: getReferences(route.id, 'routes'),
       topos,
       feed,

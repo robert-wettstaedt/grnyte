@@ -66,42 +66,6 @@ export const searchNextcloudFile = async (file: schema.File): Promise<FileStat> 
   }
 }
 
-/**
- * Loads file information from Nextcloud for a given list of files.
- *
- * @param {schema.File[]} files - The list of files to load information for.
- * @returns {Promise<FileDTO[]>} A promise that resolves to an array of FileDTO objects containing file information.
- */
-export const loadFiles = (files: schema.File[]): Promise<FileDTO[]> => {
-  return Promise.all(
-    files.map(async (file) => {
-      try {
-        const stat = await searchNextcloudFile(file)
-        return { ...file, error: undefined, stat }
-      } catch (exception) {
-        return { ...file, error: convertException(exception), stat: undefined }
-      }
-    }),
-  )
-}
-
-export const mkDir = async (path: string): Promise<string> => {
-  const nextcloud = getNextcloud()
-
-  const segments = path.split('/')
-
-  for (let i = 1; i <= segments.length; i++) {
-    const segment = segments.slice(0, i).join('/')
-
-    if (!(await nextcloud.exists(NEXTCLOUD_USER_NAME + segment))) {
-      await nextcloud.createDirectory(NEXTCLOUD_USER_NAME + segment)
-      await new Promise((r) => setTimeout(r, 100))
-    }
-  }
-
-  return path
-}
-
 export const deleteFile = async (file: schema.File) => {
   const nextcloud = getNextcloud()
 

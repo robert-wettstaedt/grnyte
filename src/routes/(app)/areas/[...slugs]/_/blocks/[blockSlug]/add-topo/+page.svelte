@@ -2,15 +2,13 @@
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
-  import FileUpload, { enhanceWithFile } from '$lib/components/FileUpload'
+  import FileUploadForm from '$lib/components/FileUploadForm'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
-  let { data, form } = $props()
+  let { data } = $props()
   let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
 
   let loading = $state(false)
-  let uploadProgress = $state<number | null>(null)
-  let uploadError = $state<string | null>(null)
 </script>
 
 <svelte:head>
@@ -24,42 +22,19 @@
   {/snippet}
 </AppBar>
 
-<form
-  class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900"
-  enctype="multipart/form-data"
-  method="POST"
-  use:enhanceWithFile={{
-    session: data.session,
-    supabase: data.supabase,
-    user: data.authUser,
-    onSubmit: async () => {
-      loading = true
+<FileUploadForm accept="image/*" bind:loading className="card mt-8 p-2 md:p-4 preset-filled-surface-100-900">
+  {#snippet childrenAfter()}
+    <div class="flex justify-between mt-8">
+      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+      <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
+        {#if loading}
+          <span class="me-2">
+            <ProgressRing size="size-4" value={null} />
+          </span>
+        {/if}
 
-      return async ({ update }) => {
-        const returnValue = await update()
-        loading = false
-        return returnValue
-      }
-    },
-    onError: (error) => {
-      uploadError = error
-      loading = false
-    },
-    onProgress: (percentage) => (uploadProgress = percentage),
-  }}
->
-  <FileUpload error={uploadError} progress={uploadProgress} folderName={form?.folderName} {loading} accept="image/*" />
-
-  <div class="flex justify-between mt-8">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-    <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
-      {#if loading}
-        <span class="me-2">
-          <ProgressRing size="size-4" value={null} />
-        </span>
-      {/if}
-
-      Add file
-    </button>
-  </div>
-</form>
+        Add file
+      </button>
+    </div>
+  {/snippet}
+</FileUploadForm>

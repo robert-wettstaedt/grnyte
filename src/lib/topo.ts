@@ -1,5 +1,5 @@
 import type { InferResultType } from '$lib/db/types'
-import type { FileDTO } from '$lib/nextcloud'
+import type { ObjectDTO } from '$lib/storage.server'
 
 export interface PointDTO {
   id: string
@@ -13,7 +13,7 @@ export interface TopoRouteDTO extends Omit<InferResultType<'topoRoutes', { route
 }
 
 export interface TopoDTO extends InferResultType<'topos'> {
-  file: FileDTO
+  file: ObjectDTO
   routes: TopoRouteDTO[]
 }
 

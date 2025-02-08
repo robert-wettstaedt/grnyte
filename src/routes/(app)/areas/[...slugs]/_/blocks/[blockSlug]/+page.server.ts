@@ -27,10 +27,14 @@ export const load = (async ({ locals, params, parent }) => {
         },
         topos: {
           with: {
-            file: true,
             routes: {
               with: {
                 route: true,
+              },
+            },
+            storageObject: {
+              with: {
+                storageObject: true,
               },
             },
           },
@@ -51,7 +55,7 @@ export const load = (async ({ locals, params, parent }) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
-    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo, locals.supabase)))
     const sortedRoutes = sortRoutesByTopo(block.routes, topos)
 
     // Return the block, enriched geolocation blocks, and processed files

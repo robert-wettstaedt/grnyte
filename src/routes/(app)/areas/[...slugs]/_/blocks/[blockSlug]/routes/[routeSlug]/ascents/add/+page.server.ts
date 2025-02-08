@@ -1,5 +1,4 @@
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, blocks, type Ascent } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -127,10 +126,9 @@ export const actions = {
         return fail(400, { ...values, error: convertException(exception) })
       }
 
-      if (values.folderName != null) {
+      if (values.filenames != null) {
         try {
-          const dstFolder = `${config.files.folders.userContent}/${user.authUserFk}`
-          await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, { ascentFk: ascent.id })
+          await handleFileUpload(db, values.filenames, { ascentFk: ascent.id })
         } catch (exception) {
           // Return a 400 failure if file insertion fails
           return fail(400, { ...values, error: convertException(exception) })

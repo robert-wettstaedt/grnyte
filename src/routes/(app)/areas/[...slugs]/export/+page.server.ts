@@ -25,8 +25,12 @@ const blocksQuery: {
   }
   topos: {
     with: {
-      file: true
       routes: true
+      storageObject: {
+        with: {
+          storageObject: true
+        }
+      }
     }
   }
 } = {
@@ -44,8 +48,12 @@ const blocksQuery: {
   },
   topos: {
     with: {
-      file: true,
       routes: true,
+      storageObject: {
+        with: {
+          storageObject: true,
+        },
+      },
     },
   },
 }
@@ -112,7 +120,7 @@ export const load = (async ({ locals, params }) => {
 
     const enrichedBlocks = await Promise.all(
       allBlocks.map(async (block): Promise<NestedBlock & Block> => {
-        const toposResult = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+        const toposResult = await Promise.all(block.topos.map((topo) => enrichTopo(topo, locals.supabase)))
         const enrichedBlock = enrichBlock(block)
 
         const enrichedRoutes = await Promise.all(

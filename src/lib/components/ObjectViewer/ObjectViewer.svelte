@@ -1,31 +1,25 @@
 <script lang="ts">
-  import type { File } from '$lib/db/schema'
+  import type { ObjectDTO } from '$lib/storage.server'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { createEventDispatcher } from 'svelte'
-  import type { FileStat } from 'webdav'
-
-  const dispatcher = createEventDispatcher<{ delete: void }>()
 
   interface Props {
     children?: import('svelte').Snippet
-    file: File
+    object: ObjectDTO
+    onDelete?: () => void
     readOnly?: boolean
-    stat: FileStat
   }
 
-  let { children, file, readOnly = true, stat }: Props = $props()
+  let { children, object, onDelete, readOnly = true }: Props = $props()
 
   let isFullscreen = $state(false)
 
-  const resourcePath = $derived(`/nextcloud${stat.filename}`)
-
-  const onDelete = async () => {
-    await fetch(`/api/files/${file.id}`, { method: 'DELETE' })
+  const onClickDelete = async () => {
+    await fetch(`/api/files/${object.id}`, { method: 'DELETE' })
     isFullscreen = false
-    dispatcher('delete')
+    onDelete?.()
   }
 
-  let mediaIsLoading = $state(stat.mime?.includes('image') ?? false)
+  let mediaIsLoading = $state(object.stat?.mimetype?.includes('image') ?? false)
   let mediaHasError = $state(false)
   const mediaAction = (el: HTMLElement) => {
     const onError = () => (mediaHasError = true)
@@ -62,7 +56,7 @@
       <aside class="alert variant-filled-error">
         <div class="alert-message">
           <h3 class="h3">Unable to play video</h3>
-          <p>{stat.basename}</p>
+          <p>{object.storageObject.name}</p>
         </div>
       </aside>
     {:else}
@@ -71,11 +65,24 @@
           <ProgressRing size="size-20 md:size-40" value={null} />
         </div>
       {/if}
-      {#if stat.mime?.includes('image')}
-        <img alt="" class="h-40 md:h-80 w-full object-cover" src={resourcePath} use:mediaAction />
-      {:else if stat.mime?.includes('video')}
+      {#if object.stat?.mimetype.includes('image')}
+        <img
+          alt=""
+          class="h-40 md:h-80 w-full object-cover"
+          src="/storage?resource={object.stat.url}"
+          use:mediaAction
+        />
+      {:else if object.stat?.mimetype.includes('video')}
+        {#if object.thumbnail != null}
+          <img
+            alt=""
+            class="absolute top-0 left-0 h-40 md:h-80 w-full object-cover opacity-75"
+            src="/storage?resource={object.thumbnail.url}"
+          />
+        {/if}
+
         <i
-          class="fa-solid fa-circle-play h-40 md:h-80 w-full text-[48px] md:text-[96px] flex justify-center items-center"
+          class="fa-solid fa-circle-play relative h-40 md:h-80 w-full text-[48px] md:text-[96px] flex justify-center items-center"
         ></i>
       {/if}
     {/if}
@@ -94,7 +101,7 @@
       <aside class="alert variant-filled-error">
         <div class="alert-message">
           <h3 class="h3">Unable to play video</h3>
-          <p>{stat.filename}</p>
+          <p>{object.storageObject.name}</p>
         </div>
       </aside>
     {:else}
@@ -103,9 +110,9 @@
           <ProgressRing value={null} />
         </div>
       {/if}
-      {#if stat.mime?.includes('image')}
-        <img alt="" class="h-full w-full object-contain" src={resourcePath} use:mediaAction />
-      {:else if stat.mime?.includes('video')}
+      {#if object.stat?.mimetype.includes('image')}
+        <img alt="" class="h-full w-full object-contain" src="/storage?resource={object.stat.url}" use:mediaAction />
+      {:else if object.stat?.mimetype.includes('video')}
         <video
           autoplay
           controls
@@ -117,7 +124,7 @@
           preload="metadata"
           use:mediaAction
         >
-          <source src={resourcePath} type={stat.mime} />
+          <source src="/storage?resource={object.stat.url}" type={object.stat.mimetype} />
           <track kind="captions" />
         </video>
       {/if}
@@ -127,7 +134,7 @@
       <button
         aria-label="Delete"
         class="btn btn-icon preset-filled-error-500 fixed top-8 right-20 !text-white"
-        onclick={onDelete}
+        onclick={onClickDelete}
         title="Delete"
       >
         <i class="fa-solid fa-trash"></i>

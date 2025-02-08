@@ -4,13 +4,16 @@ import {
   bigint,
   index,
   integer,
+  jsonb,
   pgEnum,
+  pgSchema,
   pgPolicy as policy,
   primaryKey,
   real,
   serial,
   pgTable as table,
   text,
+  timestamp,
   uuid,
   type AnyPgColumn as AnyColumn,
   type PgPolicyConfig,
@@ -187,6 +190,7 @@ export const areasRelations = relations(areas, ({ one, many }) => ({
   blocks: many(blocks),
   files: many(files),
   parkingLocations: many(geolocations),
+  storageObjects: many(entityToStorageObjects),
 }))
 
 export const blocks = table(
@@ -218,6 +222,7 @@ export const blocksRelations = relations(blocks, ({ one, many }) => ({
 
   files: many(files),
   routes: many(routes),
+  storageObjects: many(entityToStorageObjects),
   topos: many(topos),
 }))
 
@@ -256,9 +261,10 @@ export const RoutesRelations = relations(routes, ({ one, many }) => ({
   }),
   grade: one(grades, { fields: [routes.gradeFk], references: [grades.id] }),
 
-  firstAscents: many(routesToFirstAscensionists),
   ascents: many(ascents),
   files: many(files),
+  firstAscents: many(routesToFirstAscensionists),
+  storageObjects: many(entityToStorageObjects),
   tags: many(routesToTags),
 }))
 
@@ -554,6 +560,7 @@ export const ascentsRelations = relations(ascents, ({ one, many }) => ({
   route: one(routes, { fields: [ascents.routeFk], references: [routes.id] }),
 
   files: many(files),
+  storageObjects: many(entityToStorageObjects),
 }))
 
 export const files = table(
@@ -625,6 +632,112 @@ export const filesRelations = relations(files, ({ one }) => ({
   route: one(routes, { fields: [files.routeFk], references: [routes.id] }),
 }))
 
+const storage = pgSchema('storage')
+export const storageObjects = storage.table('objects', {
+  bucketId: text('bucket_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }),
+  id: uuid('id').primaryKey().notNull(),
+  lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }),
+  metadata: jsonb(),
+  name: text(),
+  owner: uuid(),
+  pathTokens: text('path_tokens').array(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }),
+  userMetadata: jsonb('user_metadata'),
+  version: text(),
+})
+export type StorageObject = InferSelectModel<typeof storageObjects>
+export type InsertStorageObject = InferInsertModel<typeof storageObjects>
+
+export const entityToStorageObjects = table(
+  'entity_to_storage_objects',
+  {
+    id: baseFields.id,
+    areaFk: integer('area_fk').references((): AnyColumn => areas.id),
+    ascentFk: integer('ascent_fk').references((): AnyColumn => ascents.id),
+    routeFk: integer('route_fk').references((): AnyColumn => routes.id),
+    blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
+    storageObjectId: uuid('storage_object_id')
+      .notNull()
+      .references((): AnyColumn => storageObjects.id),
+  },
+  (table) => [
+    policy(
+      `${READ_PERMISSION} can insert entity_to_storage_objects`,
+      getAuthorizedPolicyConfig('insert', READ_PERMISSION),
+    ),
+    policy(
+      `${READ_PERMISSION} can read entity_to_storage_objects`,
+      getAuthorizedPolicyConfig('select', READ_PERMISSION),
+    ),
+    policy(
+      `${READ_PERMISSION} can update entity_to_storage_objects belonging to their own ascents`,
+      getPolicyConfig(
+        'update',
+        sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.ascents a
+              JOIN public.users u ON a.created_by = u.id
+            WHERE
+              a.id = ascent_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+        `),
+      ),
+    ),
+    policy(
+      `${READ_PERMISSION} can delete entity_to_storage_objects belonging to their own ascents`,
+      getPolicyConfig(
+        'delete',
+        sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.ascents a
+              JOIN public.users u ON a.created_by = u.id
+            WHERE
+              a.id = ascent_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+        `),
+      ),
+    ),
+    policy(
+      `${EDIT_PERMISSION} can update entity_to_storage_objects`,
+      getAuthorizedPolicyConfig('update', EDIT_PERMISSION),
+    ),
+    policy(
+      `${DELETE_PERMISSION} can delete entity_to_storage_objects`,
+      getAuthorizedPolicyConfig('delete', DELETE_PERMISSION),
+    ),
+    policy(
+      `${READ_PERMISSION} can fully access entity_to_storage_objects`,
+      getAuthorizedPolicyConfig('all', READ_PERMISSION),
+    ),
+    index('entity_to_storage_objects_area_fk_idx').on(table.areaFk),
+    index('entity_to_storage_objects_ascent_fk_idx').on(table.ascentFk),
+    index('entity_to_storage_objects_block_fk_idx').on(table.blockFk),
+    index('entity_to_storage_objects_route_fk_idx').on(table.routeFk),
+  ],
+).enableRLS()
+export type EntityToStorageObject = InferSelectModel<typeof entityToStorageObjects>
+export type InsertEntityToStorageObject = InferInsertModel<typeof entityToStorageObjects>
+
+export const entityToStorageObjectsRelations = relations(entityToStorageObjects, ({ one }) => ({
+  area: one(areas, { fields: [entityToStorageObjects.areaFk], references: [areas.id] }),
+  ascent: one(ascents, { fields: [entityToStorageObjects.ascentFk], references: [ascents.id] }),
+  block: one(blocks, { fields: [entityToStorageObjects.blockFk], references: [blocks.id] }),
+  route: one(routes, { fields: [entityToStorageObjects.routeFk], references: [routes.id] }),
+  storageObject: one(storageObjects, {
+    fields: [entityToStorageObjects.storageObjectId],
+    references: [storageObjects.id],
+  }),
+}))
+
 export const topos = table(
   'topos',
   {
@@ -632,6 +745,7 @@ export const topos = table(
 
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
     fileFk: integer('file_fk').references((): AnyColumn => files.id),
+    storageObjectFk: integer('storage_object_fk').references((): AnyColumn => entityToStorageObjects.id),
   },
   (table) => [...createBasicTablePolicies('topos'), index('topos_block_fk_idx').on(table.blockFk)],
 ).enableRLS()
@@ -641,6 +755,10 @@ export type InsertTopo = InferInsertModel<typeof topos>
 export const toposRelations = relations(topos, ({ one, many }) => ({
   block: one(blocks, { fields: [topos.blockFk], references: [blocks.id] }),
   file: one(files, { fields: [topos.fileFk], references: [files.id] }),
+  storageObject: one(entityToStorageObjects, {
+    fields: [topos.storageObjectFk],
+    references: [entityToStorageObjects.id],
+  }),
 
   routes: many(topoRoutes),
 }))

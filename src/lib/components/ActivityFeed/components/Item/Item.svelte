@@ -11,7 +11,7 @@
   import { page } from '$app/stores'
   import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
   import type { ActivityDTO } from '$lib/components/ActivityFeed'
-  import FileViewer from '$lib/components/FileViewer'
+  import ObjectViewer from '$lib/components/ObjectViewer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import RouteName from '$lib/components/RouteName'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
@@ -239,7 +239,7 @@
 
     {#if activity.entity.type == 'file' && activity.entity.object?.stat != null}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-        <FileViewer file={activity.entity.object} stat={activity.entity.object.stat} />
+        <ObjectViewer object={activity.entity.object} />
       </div>
     {/if}
 
@@ -256,16 +256,17 @@
             ? 'grid-cols-1 md:grid-cols-2'
             : 'grid-cols-2 md:grid-cols-4'} gap-3 mt-4"
         >
-          {#each activity.entity.object.files as file}
-            {#if file.stat != null}
-              <FileViewer
-                {file}
-                stat={file.stat}
+          {#each activity.entity.object.files as object}
+            {#if object.stat != null}
+              <ObjectViewer
+                {object}
                 readOnly={!$page.data.userPermissions?.includes(DELETE_PERMISSION) ||
                   activity.entity.object.createdBy !== $page.data.user.id}
-                on:delete={() => {
+                onDelete={() => {
                   if (activity.entity.type == 'ascent' && activity.entity.object != null) {
-                    activity.entity.object.files = activity.entity.object!.files.filter((_file) => file.id !== _file.id)
+                    activity.entity.object.files = activity.entity.object!.files.filter(
+                      (_file) => object.id !== _file.id,
+                    )
                   }
                 }}
               />

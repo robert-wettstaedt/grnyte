@@ -40,8 +40,12 @@ export const load = (async (event) => {
         },
         topos: {
           with: {
-            file: true,
             routes: true,
+            storageObject: {
+              with: {
+                storageObject: true,
+              },
+            },
           },
         },
       },
@@ -60,7 +64,7 @@ export const load = (async (event) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
-    const toposResult = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+    const toposResult = await Promise.all(block.topos.map((topo) => enrichTopo(topo, locals.supabase)))
     const enrichedBlock = enrichBlock(block)
 
     const enrichedRoutes = await Promise.all(

@@ -314,20 +314,20 @@
     {#if index === selectedTopoIndex}
       {#if topo.file.error == null}
         <img
-          alt={topo.file.stat?.filename}
+          alt={topo.file.storageObject.name}
           bind:this={img}
           class="absolute top-0 left-0 w-full h-full object-cover blur pointer-events-none touch-none"
           onload={getDimensions}
-          src={`/nextcloud${topo.file.stat?.filename}`}
+          src="/storage?resource={topo.file.stat?.url}"
         />
 
         <img
-          alt={topo.file.stat?.filename}
+          alt={topo.file.storageObject.name}
           bind:this={img}
           class="m-auto relative max-h-full z-10 pointer-events-none touch-none origin-top-left"
           id={limitImgHeight ? 'img' : undefined}
           onload={onLoadImage}
-          src={`/nextcloud${topo.file.stat?.filename}`}
+          src="/storage?resource={topo.file.stat?.url}"
           style={zoomTransform == null
             ? undefined
             : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
