@@ -216,7 +216,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -258,9 +258,15 @@ export const actions = {
       if (topo.blockFk != null) {
         const remainingTopos = await db.query.topos.findMany({ where: eq(topos.blockFk, topo.blockFk!) })
         if (remainingTopos.length === 0) {
-          redirect(303, `/areas/${params.slugs}/_/blocks/${params.blockSlug}`)
+          return `/areas/${params.slugs}/_/blocks/${params.blockSlug}`
         }
       }
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

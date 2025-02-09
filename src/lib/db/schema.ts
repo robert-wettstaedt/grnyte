@@ -608,7 +608,7 @@ export const files = table(
       ),
     ),
     policy(`${EDIT_PERMISSION} can update files`, getAuthorizedPolicyConfig('update', EDIT_PERMISSION)),
-    policy(`${DELETE_PERMISSION} can delete files`, getAuthorizedPolicyConfig('delete', DELETE_PERMISSION)),
+    policy(`${EDIT_PERMISSION} can delete files`, getAuthorizedPolicyConfig('delete', EDIT_PERMISSION)),
     index('files_area_fk_idx').on(table.areaFk),
     index('files_ascent_fk_idx').on(table.ascentFk),
     index('files_block_fk_idx').on(table.blockFk),
@@ -633,7 +633,11 @@ export const topos = table(
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
     fileFk: integer('file_fk').references((): AnyColumn => files.id),
   },
-  (table) => [...createBasicTablePolicies('topos'), index('topos_block_fk_idx').on(table.blockFk)],
+  (table) => [
+    ...createBasicTablePolicies('topos'),
+    policy(`${EDIT_PERMISSION} can delete topos`, getAuthorizedPolicyConfig('delete', EDIT_PERMISSION)),
+    index('topos_block_fk_idx').on(table.blockFk),
+  ],
 ).enableRLS()
 export type Topo = InferSelectModel<typeof topos>
 export type InsertTopo = InferInsertModel<typeof topos>
@@ -659,6 +663,7 @@ export const topoRoutes = table(
   },
   (table) => [
     ...createBasicTablePolicies('topo_routes'),
+    policy(`${EDIT_PERMISSION} can delete topo_routes`, getAuthorizedPolicyConfig('delete', EDIT_PERMISSION)),
     index('topo_routes_route_fk_idx').on(table.routeFk),
     index('topo_routes_topo_fk_idx').on(table.topoFk),
   ],
