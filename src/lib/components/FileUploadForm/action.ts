@@ -3,6 +3,12 @@ import { config } from '$lib/config'
 import * as tus from 'tus-js-client'
 import { compress, getMetadata, getThumbnail, transcode } from './video'
 
+interface PageData {
+  session: App.PageData['session']
+  user: App.PageData['user']
+  supabase: App.Locals['supabase']
+}
+
 export interface Progress {
   percentage: number
   step: string
@@ -10,7 +16,7 @@ export interface Progress {
 
 export const uploadData = async (
   formData: FormData,
-  pageData: App.PageData,
+  pageData: PageData,
   signal: AbortSignal | undefined | null,
   onProgress?: (progress: Progress) => void,
 ) => {
@@ -138,7 +144,7 @@ const processFiles = async (
 
 const uploadFiles = async (
   files: ProcessedFile[],
-  pageData: App.PageData,
+  pageData: PageData,
   formData: FormData,
   onProgress?: (bytesUploaded: number, index: number) => void,
 ) => {

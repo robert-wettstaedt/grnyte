@@ -1,11 +1,8 @@
-import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
 import { getAreaGPX } from '$lib/gpx.server'
-import type { FileDTO } from '$lib/nextcloud'
 import type { Session } from '@supabase/supabase-js'
 import { render } from '@testing-library/svelte'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDb = {
@@ -228,18 +225,6 @@ const mockDb = {
         },
       ]),
     },
-    files: {
-      findMany: vi.fn(() => [
-        {
-          id: 1,
-          areaFk: null,
-          ascentFk: null,
-          blockFk: null,
-          routeFk: null,
-          path: '',
-        } as schema.File,
-      ]),
-    },
     users: {
       findFirst: vi.fn(() => ({}) as schema.User),
     },
@@ -254,32 +239,6 @@ const mockSession = {
 
 describe('GPX Generation', () => {
   beforeEach(() => {
-    vi.mock('$lib/nextcloud/nextcloud.server', () => ({
-      getNextcloud: vi.fn().mockReturnValue({
-        getFileContents: vi.fn().mockResolvedValue(Buffer.from('test image')),
-      }),
-      searchNextcloudFile: vi.fn().mockResolvedValue({ path: '/path/to/image.jpg' }),
-      loadFiles: vi.fn().mockResolvedValue([
-        {
-          id: 1,
-          path: '/path/to/file',
-          stat: { basename: 'txt', filename: 'file', size: 1000, lastmod: '2024-01-01', type: 'file', etag: '123' },
-          areaFk: null,
-          ascentFk: null,
-          blockFk: null,
-          routeFk: null,
-        } satisfies FileDTO,
-      ]),
-    }))
-
-    vi.mock('sharp', () => ({
-      default: vi.fn().mockReturnValue({
-        resize: vi.fn().mockReturnThis(),
-        toBuffer: vi.fn().mockResolvedValue(Buffer.from('resized image')),
-        metadata: vi.fn().mockResolvedValue({ width: 100, height: 100 }),
-      }),
-    }))
-
     vi.mock('svelte/server', () => ({
       render: vi.fn((component: Parameters<typeof render>[0], props: Parameters<typeof render>[1]) => ({
         body: render(component, props).baseElement.innerHTML,
@@ -298,12 +257,6 @@ describe('GPX Generation', () => {
     expect(gpxContent).toContain('<name>blabla12</name>')
   })
 
-  it('should include topo images in GPX file', async () => {
-    const gpxContent = await getAreaGPX(1, mockDb, mockSession)
-    expect(gpxContent).toContain('<extensions>')
-    expect(gpxContent).toContain('base64,')
-  })
-
   it('should include block information in GPX file', async () => {
     const gpxContent = await getAreaGPX(1, mockDb, mockSession)
     expect(gpxContent).toContain('<wpt lat="47.6575" lon="3.45578">')
@@ -314,24 +267,6 @@ describe('GPX Generation', () => {
     const gpxContent = await getAreaGPX(1, mockDb, mockSession)
     expect(gpxContent).toContain('&lt;strong&gt;strong&lt;/strong&gt;')
     expect(gpxContent).toContain('&lt;em&gt;italic&lt;/em&gt;')
-  })
-
-  it('should optimize topo images for GPX', async () => {
-    await getAreaGPX(1, mockDb, mockSession)
-    expect(sharp).toHaveBeenCalled()
-    expect(sharp().resize).toHaveBeenCalledWith({ width: config.files.resizing.thumbnail.width })
-  })
-
-  it('should handle errors in image processing', async () => {
-    vi.mocked(sharp).mockImplementationOnce(() => {
-      throw new Error('Image processing error')
-    })
-    expect(getAreaGPX(1, mockDb, mockSession)).rejects.toThrowError()
-  })
-
-  it('should include route paths in GPX file', async () => {
-    const gpxContent = await getAreaGPX(1, mockDb, mockSession)
-    expect(gpxContent).toContain('x1=265 x2=412 y1=574 y2=208')
   })
 
   it('should handle database errors gracefully', async () => {

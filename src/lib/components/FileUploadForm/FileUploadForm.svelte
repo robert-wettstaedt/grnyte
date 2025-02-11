@@ -21,6 +21,7 @@
   import { onDestroy, onMount, type Snippet } from 'svelte'
   import { uploadData, type Progress as FileUploadProgress } from './action'
   import { getThumbnail } from './video'
+  import { SupabaseClient } from '@supabase/supabase-js'
 
   let {
     action,
@@ -70,8 +71,11 @@
     loading = true
     progress = null
 
+    const supabase = $page.data.supabase as SupabaseClient
+    const pageData = { ...$page.data, supabase }
+
     try {
-      await uploadData(formData, $page.data, controller?.signal, (_progress) => (progress = _progress))
+      await uploadData(formData, pageData, controller?.signal, (_progress) => (progress = _progress))
 
       return async ({ update }) => {
         const returnValue = await update()

@@ -1,6 +1,7 @@
 import { EDIT_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, blocks, entityToStorageObjects, routes, topoRoutes, topos } from '$lib/db/schema'
+import type { NestedEntityToStorageObject } from '$lib/db/types'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import {
@@ -237,18 +238,17 @@ export const actions = {
         return fail(404, { error: `Topo with id ${id} not found` })
       }
 
+      const filesToDelete =
+        topo.storageObjectFk == null
+          ? []
+          : await db.query.entityToStorageObjects.findMany({
+              where: eq(entityToStorageObjects.id, topo.storageObjectFk),
+              with: { storageObject: true },
+            })
+
       try {
         await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
         await db.delete(topos).where(eq(topos.id, id))
-
-        // TODO
-        const filesToDelete =
-          topo.storageObjectFk == null
-            ? []
-            : await db.query.entityToStorageObjects.findMany({
-                where: eq(entityToStorageObjects.id, topo.storageObjectFk),
-                with: { storageObject: true },
-              })
 
         await db.delete(entityToStorageObjects).where(
           inArray(
@@ -256,8 +256,6 @@ export const actions = {
             filesToDelete.map((file) => file.id),
           ),
         )
-
-        await deleteObject(filesToDelete, locals.supabase)
 
         await db.insert(activities).values({
           type: 'deleted',
@@ -275,15 +273,31 @@ export const actions = {
       if (topo.blockFk != null) {
         const remainingTopos = await db.query.topos.findMany({ where: eq(topos.blockFk, topo.blockFk!) })
         if (remainingTopos.length === 0) {
-          return `/areas/${params.slugs}/_/blocks/${params.blockSlug}`
+          return {
+            filesToDelete,
+            redirect: `/areas/${params.slugs}/_/blocks/${params.blockSlug}`,
+          } satisfies RemoveTopoReturnValue
         }
       }
+
+      return { filesToDelete } satisfies RemoveTopoReturnValue
     })
 
-    if (typeof returnValue === 'string') {
-      redirect(303, returnValue)
+    const removeTopoReturnValue = returnValue as RemoveTopoReturnValue
+
+    if (removeTopoReturnValue.filesToDelete != null && removeTopoReturnValue.filesToDelete.length > 0) {
+      await deleteObject(removeTopoReturnValue.filesToDelete, locals.supabase)
+    }
+
+    if (removeTopoReturnValue.redirect != null) {
+      redirect(303, removeTopoReturnValue.redirect)
     }
 
     return returnValue
   },
+}
+
+interface RemoveTopoReturnValue {
+  filesToDelete: NestedEntityToStorageObject[]
+  redirect?: string
 }

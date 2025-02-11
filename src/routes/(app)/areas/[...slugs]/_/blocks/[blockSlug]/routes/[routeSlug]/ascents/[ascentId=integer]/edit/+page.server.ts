@@ -1,12 +1,13 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
-import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
+import { handleFileUpload } from '$lib/components/FileUploadForm/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, files, type InsertActivity } from '$lib/db/schema'
+import { activities, ascents, entityToStorageObjects, type InsertActivity } from '$lib/db/schema'
+import type { NestedEntityToStorageObject } from '$lib/db/types'
 import { convertException } from '$lib/errors'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
 import { getUser } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteObject } from '$lib/storage.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -160,10 +161,14 @@ export const actions = {
         return fail(404)
       }
 
+      const filesToDelete = await db.query.entityToStorageObjects.findMany({
+        where: eq(entityToStorageObjects.ascentFk, ascent.id),
+        with: { storageObject: true },
+      })
+
       try {
         await db.delete(ascents).where(eq(ascents.id, ascent.id))
-        const filesToDelete = await db.delete(files).where(eq(files.ascentFk, ascent.id)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+        await db.delete(entityToStorageObjects).where(eq(entityToStorageObjects.ascentFk, ascent.id))
 
         await db.insert(activities).values({
           type: 'deleted',
@@ -179,13 +184,27 @@ export const actions = {
       }
 
       // Redirect to the merged path
-      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${params.routeSlug}#activity`
+      return {
+        filesToDelete,
+        redirect: `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${params.routeSlug}#activity`,
+      } satisfies RemoveAscentReturnValue
     })
 
-    if (typeof returnValue === 'string') {
-      redirect(303, returnValue)
+    const removeAscentReturnValue = returnValue as RemoveAscentReturnValue
+
+    if (removeAscentReturnValue.filesToDelete != null && removeAscentReturnValue.filesToDelete.length > 0) {
+      await deleteObject(removeAscentReturnValue.filesToDelete, locals.supabase)
+    }
+
+    if (removeAscentReturnValue.redirect != null) {
+      redirect(303, removeAscentReturnValue.redirect)
     }
 
     return returnValue
   },
+}
+
+interface RemoveAscentReturnValue {
+  filesToDelete: NestedEntityToStorageObject[]
+  redirect: string
 }

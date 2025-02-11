@@ -30,7 +30,6 @@ declare global {
       grades: Grade[]
       gradingScale: 'FB' | 'V'
       session: Session | null
-      supabase: SupabaseClient
       user: User
       userPermissions: Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION> | undefined
       userRole: string | undefined

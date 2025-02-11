@@ -1,5 +1,5 @@
 import { EDIT_PERMISSION } from '$lib/auth'
-import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
+import { handleFileUpload } from '$lib/components/FileUploadForm/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, blocks, type InsertActivity } from '$lib/db/schema'
 import { convertException } from '$lib/errors'

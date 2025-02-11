@@ -1,4 +1,4 @@
-import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
+import { handleFileUpload } from '$lib/components/FileUploadForm/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, blocks, type Ascent } from '$lib/db/schema'
 import { convertException } from '$lib/errors'

@@ -1,9 +1,9 @@
 import { config } from '$lib/config'
 import type { NestedEntityToStorageObject } from '$lib/db/types'
 import { convertException } from '$lib/errors'
+import type { TransformOptions } from '@supabase/storage-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
-import type { TransformOptions } from '@supabase/storage-js'
 
 export const metadataSchema = z.object({
   cacheControl: z.string(),

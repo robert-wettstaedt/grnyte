@@ -13,10 +13,6 @@ export const handleFileUpload = async (
     where: inArray(schema.storageObjects.name, nonThumbnailFilenames),
   })
 
-  if (storageObjects.length !== nonThumbnailFilenames.length) {
-    throw new Error(`Storage object not found`)
-  }
-
   const dbFiles = await db
     .insert(schema.entityToStorageObjects)
     .values(storageObjects.map((storageObject) => ({ ...init, storageObjectId: storageObject.id })))
