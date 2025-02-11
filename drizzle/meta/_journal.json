@@ -120,6 +120,20 @@
       "when": 1739210147118,
       "tag": "0017_slim_morbius",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1739091950494,
+      "tag": "0018_right_masked_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1739093561543,
+      "tag": "0019_natural_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

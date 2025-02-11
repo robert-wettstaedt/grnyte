@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
+  import { applyAction, enhance } from '$app/forms'
   import { invalidate } from '$app/navigation'
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -95,15 +95,17 @@
                     method="POST"
                     action="?/removeTopo"
                     use:enhance={() => {
-                      return ({ update }) => {
+                      return async ({ update, result }) => {
                         selectedTopoIndex = 0
                         $selectedRouteStore = null
                         invalidate($page.url)
-                        return update()
+
+                        await update()
+                        return applyAction(result)
                       }
                     }}
                   >
-                    <input hidden name="id" value={topos[selectedTopoIndex].id} />
+                    <input hidden name="id" value={topos[selectedTopoIndex]?.id} />
                     <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
                   </form>
                 </footer>
