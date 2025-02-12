@@ -68,21 +68,42 @@ export const compress = async (
 
   signal?.addEventListener('abort', abort)
 
+  // prettier-ignore
   await ffmpeg.exec([
     '-i',
     'input.mp4',
-    '-b:a',
-    settings.audioBitrate,
-    '-c:a',
-    settings.audioCodec,
-    '-r',
-    settings.frameRate,
-    '-b:v',
-    settings.videoBitrate,
-    '-c:v',
-    settings.videoCodec,
-    '-vf',
-    settings.videoFilter,
+
+    // ===== Video Settings =====
+    '-c:v', 'libx264',        // Use H.264 codec - most compatible
+    '-preset', 'ultrafast',   // Fastest encoding speed, sacrifices compression efficiency
+    // '-tune', 'zerolatency',   // Optimize for fast encoding and low latency
+    '-crf', '35',             // Constant Rate Factor: 0-51, higher = more compression, lower quality
+                              // 35 is quite aggressive compression but still acceptable for mobile
+
+    // Speed Optimizations
+    '-rc-lookahead', '10',    // Reduce lookahead buffer (default 40-50) for faster encoding
+    '-refs', '1',             // Use only 1 reference frame (default 3) - speeds up encoding
+    '-g', '30',               // Keyframe every 30 frames (1 second at 30fps)
+    '-keyint_min', '30',      // Force minimum keyframe interval
+    '-sc_threshold', '0',     // Disable scene change detection for speed
+
+    // Resolution Control
+    '-vf', "scale='max(720,720*dar)':'max(720,720/dar)':force_original_aspect_ratio=1",
+                              // Scale to max 960x540 (qHD) - good balance of quality and size
+
+    // Frame Rate
+    '-r', '30',               // Target 30fps - good for web/mobile playback
+
+    // ===== Audio Settings =====
+    '-c:a', 'aac',            // AAC codec - good quality, widely compatible
+    '-b:a', '96k',            // Audio bitrate - decent quality for voice/music
+    '-ac', '2',               // Force stereo output
+    '-ar', '44100',           // Audio sample rate - standard for web
+
+    // ===== Output Settings =====
+    '-movflags', '+faststart',// Enable streaming playback before download complete
+    '-f', 'mp4',              // Force MP4 format
+
     'output.mp4',
   ])
   const output = await ffmpeg.readFile('output.mp4')

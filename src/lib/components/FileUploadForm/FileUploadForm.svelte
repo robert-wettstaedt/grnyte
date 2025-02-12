@@ -18,10 +18,10 @@
   import { config } from '$lib/config'
   import { convertException } from '$lib/errors'
   import { Progress } from '@skeletonlabs/skeleton-svelte'
+  import type { SupabaseClient } from '@supabase/supabase-js'
   import { onDestroy, onMount, type Snippet } from 'svelte'
   import { uploadData, type Progress as FileUploadProgress } from './action'
   import { getThumbnail } from './video'
-  import { SupabaseClient } from '@supabase/supabase-js'
 
   let {
     action,
