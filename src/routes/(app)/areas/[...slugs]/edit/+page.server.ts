@@ -2,12 +2,13 @@ import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache.server'
 import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, areas, files, generateSlug, geolocations } from '$lib/db/schema'
+import { activities, areas, entityToStorageObjects, generateSlug, geolocations } from '$lib/db/schema'
+import type { NestedEntityToStorageObject } from '$lib/db/types'
 import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
 import { convertAreaSlug, getUser } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
+import { deleteObject } from '$lib/storage.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, not } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -162,10 +163,12 @@ export const actions = {
         return fail(400, { error: 'Area is referenced by other entities. Delete references first.' })
       }
 
-      try {
-        const filesToDelete = await db.delete(files).where(eq(files.areaFk, areaId)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+      const filesToDelete = await db.query.entityToStorageObjects.findMany({
+        where: eq(entityToStorageObjects.areaFk, areaId),
+        with: { storageObject: true },
+      })
 
+      try {
         await db.delete(geolocations).where(eq(geolocations.areaFk, areaId))
         await db.update(areas).set({ parentFk: null }).where(eq(areas.parentFk, areaId))
         await db.delete(areas).where(eq(areas.id, areaId))
@@ -186,13 +189,24 @@ export const actions = {
       }
 
       const slugs = params.slugs.split('/').slice(0, -1).join('/')
-      return `/areas/${slugs}`
+      return { filesToDelete, redirect: `/areas/${slugs}` } satisfies RemoveAreaReturnValue
     })
 
-    if (typeof returnValue === 'string') {
-      redirect(303, returnValue)
+    const removeAreaReturnValue = returnValue as RemoveAreaReturnValue
+
+    if (removeAreaReturnValue.filesToDelete != null && removeAreaReturnValue.filesToDelete.length > 0) {
+      await deleteObject(removeAreaReturnValue.filesToDelete, locals.supabase)
+    }
+
+    if (removeAreaReturnValue.redirect != null) {
+      redirect(303, removeAreaReturnValue.redirect)
     }
 
     return returnValue
   },
+}
+
+interface RemoveAreaReturnValue {
+  filesToDelete: NestedEntityToStorageObject[]
+  redirect?: string
 }

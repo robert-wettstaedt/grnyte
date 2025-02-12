@@ -4,7 +4,7 @@ import type { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, blocks } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
-import { buildNestedAreaQuery, enrichBlock, enrichTopo } from '$lib/db/utils'
+import { buildNestedAreaQuery, enrichBlock } from '$lib/db/utils'
 import { error } from '@sveltejs/kit'
 import { eq, isNotNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -99,12 +99,6 @@ export const getToposOfArea = async (areaId: number, db: PostgresJsDatabase<type
         tags: true
       }
     }
-    topos: {
-      with: {
-        file: true
-        routes: true
-      }
-    }
   } = {
     area: buildNestedAreaQuery(2),
     geolocation: true,
@@ -116,12 +110,6 @@ export const getToposOfArea = async (areaId: number, db: PostgresJsDatabase<type
           },
         },
         tags: true,
-      },
-    },
-    topos: {
-      with: {
-        file: true,
-        routes: true,
       },
     },
   }
@@ -177,14 +165,9 @@ export const getToposOfArea = async (areaId: number, db: PostgresJsDatabase<type
 
   const enrichedBlocks = await Promise.all(
     allBlocks.map(async (block) => {
-      const toposResult = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
       const enrichedBlock = enrichBlock(block)
 
-      return {
-        ...block,
-        ...enrichedBlock,
-        topos: toposResult,
-      }
+      return { ...block, ...enrichedBlock }
     }),
   )
 

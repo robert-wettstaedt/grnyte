@@ -2,12 +2,21 @@ import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache.server'
 import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, blocks, files, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
+import {
+  activities,
+  blocks,
+  entityToStorageObjects,
+  generateSlug,
+  geolocations,
+  topoRoutes,
+  topos,
+} from '$lib/db/schema'
+import type { NestedEntityToStorageObject } from '$lib/db/types'
 import { convertException } from '$lib/errors'
 import { blockActionSchema, validateFormData, type ActionFailure, type BlockActionValues } from '$lib/forms.server'
 import { convertAreaSlug, getUser } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
+import { deleteObject } from '$lib/storage.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -184,6 +193,11 @@ export const actions = {
         return fail(400, { error: 'Block is referenced by other entities. Delete references first.' })
       }
 
+      const filesToDelete = await db.query.entityToStorageObjects.findMany({
+        where: eq(entityToStorageObjects.blockFk, block.id),
+        with: { storageObject: true },
+      })
+
       try {
         const toposToDelete = await db.query.topos.findMany({ where: eq(topos.blockFk, block.id) })
         await db.delete(topoRoutes).where(
@@ -194,13 +208,9 @@ export const actions = {
         )
 
         await db.delete(topos).where(eq(topos.blockFk, block.id))
-
-        const filesToDelete = await db.delete(files).where(eq(files.blockFk, block.id)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
-
+        await db.delete(entityToStorageObjects).where(eq(entityToStorageObjects.blockFk, block.id))
         await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
         await db.delete(geolocations).where(eq(geolocations.blockFk, block.id))
-
         await db.delete(blocks).where(eq(blocks.id, block.id))
 
         await db.insert(activities).values({
@@ -219,13 +229,24 @@ export const actions = {
         return fail(400, { error: convertException(error) })
       }
 
-      return `/areas/${params.slugs}`
+      return { filesToDelete, redirect: `/areas/${params.slugs}` } satisfies RemoveBlockReturnValue
     })
 
-    if (typeof returnValue === 'string') {
-      redirect(303, returnValue)
+    const removeBlockReturnValue = returnValue as RemoveBlockReturnValue
+
+    if (removeBlockReturnValue.filesToDelete != null && removeBlockReturnValue.filesToDelete.length > 0) {
+      await deleteObject(removeBlockReturnValue.filesToDelete, locals.supabase)
+    }
+
+    if (removeBlockReturnValue.redirect != null) {
+      redirect(303, removeBlockReturnValue.redirect)
     }
 
     return returnValue
   },
+}
+
+interface RemoveBlockReturnValue {
+  filesToDelete: NestedEntityToStorageObject[]
+  redirect: string
 }

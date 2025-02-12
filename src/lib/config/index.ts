@@ -4,10 +4,19 @@ export const config = {
     connectionTimeout: 30000,
     debug: process.env.NODE_ENV === 'development',
   },
+  cors: {
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+  },
   files: {
     maxSize: {
       number: 50 * 1024 * 1024,
       human: '50MB',
+    },
+    buckets: {
+      files: 'files',
     },
     folders: {
       topos: '/topos',

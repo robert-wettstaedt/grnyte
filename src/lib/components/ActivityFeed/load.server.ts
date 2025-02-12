@@ -7,8 +7,9 @@ import type { IncludeRelation, InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { validateObject } from '$lib/forms.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
-import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
+import { loadObjects } from '$lib/storage.server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { and, asc, count, desc, eq, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
@@ -22,7 +23,7 @@ const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Acti
     case 'route':
       return db.query.routes
     case 'file':
-      return db.query.files
+      return db.query.entityToStorageObjects
     case 'ascent':
       return db.query.ascents
     case 'user':
@@ -32,10 +33,12 @@ const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Acti
 
 const getWith = (
   entityType: schema.Activity['entityType'],
-): IncludeRelation<'ascents' | 'routes' | 'blocks' | 'areas'> => {
+): IncludeRelation<'ascents' | 'routes' | 'blocks' | 'areas' | 'entityToStorageObjects'> => {
   switch (entityType) {
     case 'ascent':
-      return { author: true, files: true } as IncludeRelation<'ascents'>
+      return { author: true, storageObjects: { with: { storageObject: true } } } as IncludeRelation<'ascents'>
+    case 'file':
+      return { storageObject: true } as IncludeRelation<'entityToStorageObjects'>
     default:
       return {}
   }
@@ -61,19 +64,23 @@ const getParentWith = (
 
 const postProcessEntity = async (
   db: PostgresJsDatabase<typeof schema>,
+  supabase: SupabaseClient,
   entityType: schema.Activity['entityType'],
   object: unknown,
 ): Promise<Entity> => {
   if (entityType === 'ascent' && object != null) {
-    const ascent = object as InferResultType<'ascents', { author: true; files: true }>
-    ascent.files = await loadFiles(ascent.files ?? [])
+    const ascent = object as InferResultType<
+      'ascents',
+      { author: true; storageObjects: { with: { storageObject: true } } }
+    >
+    const files = await loadObjects(supabase, ascent.storageObjects ?? [])
     const notes = await convertMarkdownToHtml(ascent.notes ?? '', db)
-    return { type: 'ascent', object: { ...ascent, notes } }
+    return { type: 'ascent', object: { ...ascent, files, notes } }
   }
 
   if (entityType === 'file' && object != null) {
-    const file = object as InferResultType<'files'>
-    const [fileDTO] = await loadFiles([file])
+    const file = object as InferResultType<'entityToStorageObjects', { storageObject: true }>
+    const [fileDTO] = await loadObjects(supabase, [file])
     return { type: 'file', object: fileDTO }
   }
 
@@ -230,12 +237,12 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
 
         return {
           ...activity,
-          entity: await postProcessEntity(db, activity.entityType, entity),
+          entity: await postProcessEntity(db, locals.supabase, activity.entityType, entity),
           entityName: entity?.name,
           parentEntity:
             activity.parentEntityType == null || parentEntity == null
               ? undefined
-              : await postProcessEntity(db, activity.parentEntityType, parentEntity),
+              : await postProcessEntity(db, locals.supabase, activity.parentEntityType, parentEntity),
           parentEntityName: parentEntity?.name,
         }
       }),

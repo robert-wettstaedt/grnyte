@@ -3,8 +3,8 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, ascents, blocks, routes } from '$lib/db/schema'
 import { enrichTopo, sortRoutesByTopo } from '$lib/db/utils'
 import { convertMarkdownToHtml } from '$lib/markdown'
-import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
+import { loadObjects } from '$lib/storage.server'
 import { error, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -33,7 +33,11 @@ export const load = (async ({ locals, parent }) => {
             topos: {
               with: {
                 routes: true,
-                file: true,
+                storageObject: {
+                  with: {
+                    storageObject: true,
+                  },
+                },
               },
             },
           },
@@ -42,7 +46,11 @@ export const load = (async ({ locals, parent }) => {
           ...nestedAreaQuery,
           orderBy: areas.name, // Order nested areas by name
         },
-        files: true, // Include files associated with the area
+        storageObjects: {
+          with: {
+            storageObject: true,
+          },
+        },
         parkingLocations: true,
       },
     })
@@ -65,7 +73,9 @@ export const load = (async ({ locals, parent }) => {
 
     const blocksWithTopos = await Promise.all(
       area.blocks.map(async (block) => {
-        const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo, false)))
+        const topos = await Promise.all(
+          block.topos.map((topo) => enrichTopo(topo, locals.supabase, { width: 48, height: 48, resize: 'cover' })),
+        )
 
         const sortedRoutes = sortRoutesByTopo(block.routes, topos).map((route) => {
           const topo = topos.find((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === route.id))
@@ -76,7 +86,7 @@ export const load = (async ({ locals, parent }) => {
       }),
     )
 
-    const files = await loadFiles(area.files)
+    const files = await loadObjects(locals.supabase, area.storageObjects)
 
     // Return the area, enriched blocks, and processed files
     return {

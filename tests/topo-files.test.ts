@@ -2,36 +2,10 @@ import type { Block, InsertGeolocation } from '$lib/db/schema'
 import * as schema from '$lib/db/schema'
 import { blocks, geolocations } from '$lib/db/schema'
 import { createGeolocationFromFiles, createOrUpdateGeolocation } from '$lib/topo-files.server'
+import { SupabaseClient } from '@supabase/supabase-js'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import exif from 'exifr'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-// Mock modules
-vi.mock('$env/static/private', () => ({
-  NEXTCLOUD_USER_NAME: 'test-user',
-}))
-
-vi.mock('$lib/nextcloud/nextcloud.server', () => {
-  const exists = vi.fn().mockResolvedValue(true)
-  const createDirectory = vi.fn().mockResolvedValue(undefined)
-  const putFileContents = vi.fn().mockResolvedValue(true)
-  const moveFile = vi.fn().mockResolvedValue(undefined)
-  const mkDir = vi.fn((path: string) => path)
-
-  return {
-    getNextcloud: vi.fn(() => ({
-      exists,
-      createDirectory,
-      putFileContents,
-      moveFile,
-    })),
-    mkDir,
-  }
-})
-
-vi.mock('sharp', () => ({
-  default: vi.fn(),
-}))
 
 vi.mock('exifr', () => ({
   default: {
@@ -49,6 +23,22 @@ const mockBlock = {
   createdBy: 1,
   geolocationFk: null,
 } as Block
+
+// Create test data for the Blob
+const testData = new Uint8Array([0, 1, 2, 3, 4, 5])
+
+// Mock Supabase client
+const mockSupabase = {
+  storage: {
+    from: () => ({
+      download: vi.fn().mockResolvedValue({
+        data: {
+          arrayBuffer: () => Promise.resolve(testData.buffer),
+        },
+      }),
+    }),
+  },
+} as unknown as SupabaseClient
 
 // Mock database with minimal implementation needed for tests
 const mockDb = {
@@ -70,6 +60,12 @@ const mockDb = {
       findMany: vi.fn().mockResolvedValue([
         { id: 1, path: '/topos/old-area/sector/block.1.jpg' },
         { id: 2, path: '/topos/old-area/sector/block.2.jpg' },
+      ]),
+    },
+    storageObjects: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: 1, name: 'test-image-1.jpg' },
+        { id: 2, name: 'test-image-2.jpg' },
       ]),
     },
   },
@@ -132,28 +128,39 @@ describe('Topo Files', () => {
 
   describe('createGeolocationFromFiles', () => {
     it('should extract GPS data and create geolocation', async () => {
-      const buffers = [Buffer.from('test-image-1').buffer, Buffer.from('test-image-2').buffer]
-      await createGeolocationFromFiles(mockDb, mockBlock, buffers)
+      const files = [
+        { id: 1, storageObjectId: '1', areaFk: null, routeFk: null, blockFk: 1, ascentFk: null },
+        { id: 2, storageObjectId: '2', areaFk: null, routeFk: null, blockFk: 1, ascentFk: null },
+      ] as schema.EntityToStorageObject[]
+
+      await createGeolocationFromFiles(mockDb, mockSupabase, mockBlock, files)
 
       expect(exif.gps).toHaveBeenCalledTimes(2)
       expect(mockDb.insert).toHaveBeenCalled()
     })
 
     it('should handle files without GPS data', async () => {
+      // Mock exif.gps to return undefined for all files
       // @ts-expect-error - We want to test the null case
-      vi.mocked(exif.gps).mockResolvedValueOnce(undefined)
-      const buffers = [Buffer.from('test-image').buffer]
-      await createGeolocationFromFiles(mockDb, mockBlock, buffers)
+      vi.mocked(exif.gps).mockResolvedValue(undefined)
+      const files = [
+        { id: 1, storageObjectId: '1', areaFk: null, routeFk: null, blockFk: 1, ascentFk: null },
+        { id: 2, storageObjectId: '2', areaFk: null, routeFk: null, blockFk: 1, ascentFk: null },
+      ] as schema.EntityToStorageObject[]
+
+      await createGeolocationFromFiles(mockDb, mockSupabase, mockBlock, files)
 
       expect(mockDb.insert).not.toHaveBeenCalled()
     })
 
     it('should pass operation parameter to createOrUpdateGeolocation', async () => {
       const blockWithGeo = { ...mockBlock, geolocationFk: 1 }
-      const buffers = [Buffer.from('test-image').buffer]
+      const files = [
+        { id: 1, storageObjectId: '1', areaFk: null, routeFk: null, blockFk: 1, ascentFk: null },
+      ] as schema.EntityToStorageObject[]
       vi.mocked(exif.gps).mockResolvedValueOnce({ latitude: 47.123, longitude: 8.456 })
 
-      await createGeolocationFromFiles(mockDb, blockWithGeo, buffers, 'update')
+      await createGeolocationFromFiles(mockDb, mockSupabase, blockWithGeo, files, 'update')
 
       expect(mockDb.update).toHaveBeenCalledWith(geolocations)
       expect(mockDb.insert).not.toHaveBeenCalled()

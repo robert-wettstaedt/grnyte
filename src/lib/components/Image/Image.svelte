@@ -2,11 +2,11 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    path: string | undefined | null
+    url: string | undefined | null
     size: number
   }
 
-  const { path, size }: Props = $props()
+  const { url, size }: Props = $props()
 
   let mediaHasError = $state(false)
 
@@ -23,7 +23,7 @@
   }
 </script>
 
-{#if path == null || mediaHasError}
+{#if url == null || mediaHasError}
   <i class="fa-solid fa-image w-12 h-12 flex items-center justify-center text-white text-[3rem]"></i>
 {:else}
   <div class="relative">
@@ -31,12 +31,6 @@
       <ProgressRing size="size-12" value={null} />
     </div>
 
-    <img
-      alt=""
-      class="w-12 h-12 z-0 relative"
-      loading="lazy"
-      src="/nextcloud{path}/preview?x={size}&y={size}&mimeFallback=true&a=0"
-      use:mediaAction
-    />
+    <img alt="" class="w-12 h-12 z-0 relative" loading="lazy" src="/storage?resource={url}" use:mediaAction />
   </div>
 {/if}

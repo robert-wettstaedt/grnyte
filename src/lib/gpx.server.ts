@@ -1,32 +1,16 @@
-import { NEXTCLOUD_USER_NAME } from '$env/static/private'
 import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
 import { getToposOfArea } from '$lib/blocks.server'
-import Labels from '$lib/components/TopoViewer/components/Labels'
-import Route from '$lib/components/TopoViewer/components/Route'
-import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
 import type { InferResultType, NestedArea } from '$lib/db/types'
 import { convertMarkdownToHtml } from '$lib/markdown'
-import { getNextcloud, searchNextcloudFile } from '$lib/nextcloud/nextcloud.server'
-import { type TopoRouteDTO } from '$lib/topo'
 import type { Session } from '@supabase/supabase-js'
 import { error } from '@sveltejs/kit'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { encode as encodeHtml } from 'html-entities'
 import { minify, type Options } from 'html-minifier'
 import { DateTime } from 'luxon'
-import sharp from 'sharp'
 import stringToColor from 'string-to-color'
-import { render } from 'svelte/server'
-import type { BufferLike, FileStat, ResponseDataDetailed } from 'webdav'
-
-interface TopoFile {
-  base64: string
-  width?: number
-  height?: number
-  scale: number
-}
 
 export const getAreaGPX = async (areaId: number, db: PostgresJsDatabase<typeof schema>, session?: Session | null) => {
   if (session == null) {
@@ -131,59 +115,10 @@ const loadBlockFiles = async (
   blocks: Awaited<ReturnType<typeof getToposOfArea>>['blocks'],
   db: PostgresJsDatabase<typeof schema>,
 ) => {
-  async function getTopoFile(stat: FileStat) {
-    const content = await nextcloud?.getFileContents(`${NEXTCLOUD_USER_NAME}/${stat.filename}`, { details: true })
-    const { data } = content as ResponseDataDetailed<BufferLike>
-
-    const image = sharp(data)
-    const rawMetadata = await image.metadata()
-    const resized = await image.resize({ width: config.files.resizing.thumbnail.width }).toBuffer()
-    const resizedMetadata = await sharp(resized).metadata()
-
-    if (resizedMetadata.width === undefined || rawMetadata.width === undefined) {
-      throw new Error('Metadata width is undefined')
-    }
-
-    const scale = resizedMetadata.width / rawMetadata.width
-    const base64 = resized.toString('base64')
-
-    return {
-      base64,
-      width: resizedMetadata.width,
-      height: resizedMetadata.height,
-      scale,
-    } satisfies TopoFile
-  }
-
-  const nextcloud = getNextcloud()
-
-  const allRoutes = blocks.flatMap((block) => block.routes)
-  const routeFiles = await db.query.files.findMany({
-    where: inArray(
-      schema.files.routeFk,
-      allRoutes.map((route) => route.id),
-    ),
-  })
-
   return await Promise.all(
     blocks.map(async (block) => {
-      const topos = await Promise.all(
-        block.topos.map(async (topo) => {
-          const stat = await searchNextcloudFile(topo.file)
-          const topoFile = await getTopoFile(stat)
-          return { ...topo, file: topoFile }
-        }),
-      )
-
       const routes = await Promise.all(
         block.routes.map(async (route) => {
-          const files = routeFiles.filter((file) => file.routeFk === route.id)
-
-          const stats = await Promise.all(files.flatMap((file) => searchNextcloudFile(file)))
-          const topoFiles = await Promise.all(
-            stats.filter((stat) => stat.mime?.includes('image')).map((stat) => getTopoFile(stat)),
-          )
-
           const description =
             route.description == null ? null : await convertMarkdownToHtml(route.description, db, 'strong')
 
@@ -193,14 +128,13 @@ const loadBlockFiles = async (
               { firstAscents: { with: { firstAscensionist: true } }; tags: true }
             >),
             description,
-            files: topoFiles,
           }
         }),
       )
 
       const color = stringToColor(block.area.type === 'crag' ? block.area.id : block.area.parentFk)
 
-      return { ...block, color, routes, topos }
+      return { ...block, color, routes }
     }),
   )
 }
@@ -210,37 +144,7 @@ const renderBlockHtml = (
   grades: schema.Grade[],
   gradingScale: schema.UserSettings['gradingScale'],
 ): string => {
-  return [
-    block.topos
-      .map(
-        (topo) => `
-        <div style="margin-top: 16px; position: relative;">
-          ${renderTopo(topo)}
-
-          ${topo.routes
-            .map((topoRoute, index) => {
-              const route = block.routes.find((route) => route.id === topoRoute.routeFk)
-
-              if (route == null) {
-                return ''
-              }
-
-              return renderRoute(route, grades, gradingScale, index)
-            })
-            .join('')}
-        </div>`,
-      )
-      .join('\n'),
-
-    '<hr />',
-
-    block.routes
-      .filter(
-        (route) => !block.topos.flatMap((topo) => topo.routes).some((topoRoute) => topoRoute.routeFk === route.id),
-      )
-      .map((route) => renderRoute(route, grades, gradingScale))
-      .join(''),
-  ].join('\n')
+  return [block.routes.map((route) => renderRoute(route, grades, gradingScale)).join('')].join('\n')
 }
 
 const renderRouteHtml = (
@@ -252,34 +156,7 @@ const renderRouteHtml = (
   return `
     <h4>${[(block.area as NestedArea).parent?.name, block.area.name, block.name].join(' / ')}</h4>
     <h3>${renderRouteName(route, grades, gradingScale)}</h3>
-    <div style="margin-top: 16px; position: relative;">
-      ${block.topos
-        .map((topo) => {
-          if (topo.blockFk !== route.blockFk) {
-            return ''
-          }
-
-          const topoRoute = topo.routes.find((topoRoute) => topoRoute.routeFk === route.id)
-
-          if (topoRoute == null) {
-            return ''
-          }
-
-          return renderTopo({ ...topo, routes: [topoRoute] })
-        })
-        .join('\n')}
-    </div>
-
     ${renderRouteDescription(route)}
-
-    ${route.files
-      .map(({ base64, height, width }) => {
-        return `
-        <div style="margin-top: 16px;">
-          <img src="data:image/jpeg;base64,${base64}" width="${width}" height="${height}" />
-        </div>`
-      })
-      .join('\n')}
   `
 }
 
@@ -338,46 +215,6 @@ const renderRoute = (
 
       ${renderRouteDescription(route)}
     </div>`
-}
-
-const renderTopo = (topo: InferResultType<'topos'> & { file: TopoFile; routes: TopoRouteDTO[] }): string => {
-  const { base64, scale, height = 0, width = 0 } = topo.file
-
-  return `
-    <div style="position: relative;">
-      <img src="data:image/jpeg;base64,${base64}" width="${width}" height="${height}" />
-
-      <svg
-        height="${height}"
-        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
-        viewBox="0 0 ${width} ${height}"
-        width="${width}"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        ${topo.routes.map(
-          (route) =>
-            render(Route, {
-              props: {
-                height,
-                route,
-                scale,
-                width,
-              },
-            }).body,
-        )}
-      </svg>
-
-      ${
-        render(Labels, {
-          props: {
-            routes: topo.routes,
-            scale,
-            getRouteKey: (_, index) => index + 1,
-          },
-        }).body
-      }
-    </div>
-  `
 }
 
 const prepareHtml = (str: string): string => {

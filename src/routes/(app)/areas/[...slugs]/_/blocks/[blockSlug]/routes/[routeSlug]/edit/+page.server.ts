@@ -5,7 +5,7 @@ import {
   activities,
   ascents,
   blocks,
-  files,
+  entityToStorageObjects,
   generateSlug,
   routeExternalResource27crags,
   routeExternalResource8a,
@@ -16,14 +16,15 @@ import {
   routesToTags,
   topoRoutes,
 } from '$lib/db/schema'
+import type { NestedEntityToStorageObject } from '$lib/db/types'
 import { convertException } from '$lib/errors'
 import { routeActionSchema, validateFormData, type ActionFailure, type RouteActionValues } from '$lib/forms.server'
 import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
+import { deleteObject } from '$lib/storage.server'
 
 export const load = (async ({ locals, params, parent }) => {
   if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
@@ -263,23 +264,20 @@ export const actions = {
         return fail(400, { error: 'Route is referenced by other entities. Delete references first.' })
       }
 
+      const filesToDelete = await db.query.entityToStorageObjects.findMany({
+        where: eq(entityToStorageObjects.routeFk, route.id),
+        with: { storageObject: true },
+      })
+      const ascentsFiles = await db.query.entityToStorageObjects.findMany({
+        where: inArray(
+          entityToStorageObjects.ascentFk,
+          route.ascents.map((ascent) => ascent.id),
+        ),
+        with: { storageObject: true },
+      })
+      filesToDelete.push(...ascentsFiles)
+
       try {
-        const filesToDelete = await db.delete(files).where(eq(files.routeFk, route.id)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
-
-        if (route.ascents.length > 0) {
-          const filesToDelete = await db
-            .delete(files)
-            .where(
-              inArray(
-                files.ascentFk,
-                route.ascents.map((ascent) => ascent.id),
-              ),
-            )
-            .returning()
-          await Promise.all(filesToDelete.map((file) => deleteFile(file)))
-        }
-
         await db.delete(ascents).where(eq(ascents.routeFk, route.id))
         await db.delete(routesToFirstAscensionists).where(eq(routesToFirstAscensionists.routeFk, route.id))
         await db.delete(routesToTags).where(eq(routesToTags.routeFk, route.id))
@@ -320,13 +318,27 @@ export const actions = {
         return fail(400, { error: convertException(exception) })
       }
 
-      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}`
+      return {
+        filesToDelete,
+        redirect: `/areas/${params.slugs}/_/blocks/${params.blockSlug}`,
+      } satisfies RemoveRouteReturnValue
     })
 
-    if (typeof returnValue === 'string') {
-      redirect(303, returnValue)
+    const removeRouteReturnValue = returnValue as RemoveRouteReturnValue
+
+    if (removeRouteReturnValue.filesToDelete != null && removeRouteReturnValue.filesToDelete.length > 0) {
+      await deleteObject(removeRouteReturnValue.filesToDelete, locals.supabase)
+    }
+
+    if (removeRouteReturnValue.redirect != null) {
+      redirect(303, removeRouteReturnValue.redirect)
     }
 
     return returnValue
   },
+}
+
+interface RemoveRouteReturnValue {
+  filesToDelete: NestedEntityToStorageObject[]
+  redirect?: string
 }

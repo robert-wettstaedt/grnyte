@@ -1,5 +1,5 @@
 {
-  "id": "80a73788-e354-4c57-b773-e8d333b5cf6c",
+  "id": "4aacf3f3-8bce-4fad-af50-73b385f23603",
   "prevId": "cc6f82ca-1bdd-4a8a-810b-d4a01162b724",
   "version": "7",
   "dialect": "postgresql",
@@ -703,6 +703,250 @@
           "name": "data.read can update blocks",
           "as": "PERMISSIVE",
           "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('data.read'))",
+          "withCheck": "(SELECT authorize('data.read'))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.entity_to_storage_objects": {
+      "name": "entity_to_storage_objects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "area_fk": {
+          "name": "area_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ascent_fk": {
+          "name": "ascent_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "block_fk": {
+          "name": "block_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_object_id": {
+          "name": "storage_object_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "entity_to_storage_objects_area_fk_idx": {
+          "name": "entity_to_storage_objects_area_fk_idx",
+          "columns": [
+            {
+              "expression": "area_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "entity_to_storage_objects_ascent_fk_idx": {
+          "name": "entity_to_storage_objects_ascent_fk_idx",
+          "columns": [
+            {
+              "expression": "ascent_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "entity_to_storage_objects_block_fk_idx": {
+          "name": "entity_to_storage_objects_block_fk_idx",
+          "columns": [
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "entity_to_storage_objects_route_fk_idx": {
+          "name": "entity_to_storage_objects_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "entity_to_storage_objects_area_fk_areas_id_fk": {
+          "name": "entity_to_storage_objects_area_fk_areas_id_fk",
+          "tableFrom": "entity_to_storage_objects",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entity_to_storage_objects_ascent_fk_ascents_id_fk": {
+          "name": "entity_to_storage_objects_ascent_fk_ascents_id_fk",
+          "tableFrom": "entity_to_storage_objects",
+          "tableTo": "ascents",
+          "columnsFrom": [
+            "ascent_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entity_to_storage_objects_route_fk_routes_id_fk": {
+          "name": "entity_to_storage_objects_route_fk_routes_id_fk",
+          "tableFrom": "entity_to_storage_objects",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entity_to_storage_objects_block_fk_blocks_id_fk": {
+          "name": "entity_to_storage_objects_block_fk_blocks_id_fk",
+          "tableFrom": "entity_to_storage_objects",
+          "tableTo": "blocks",
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entity_to_storage_objects_storage_object_id_objects_id_fk": {
+          "name": "entity_to_storage_objects_storage_object_id_objects_id_fk",
+          "tableFrom": "entity_to_storage_objects",
+          "tableTo": "objects",
+          "schemaTo": "storage",
+          "columnsFrom": [
+            "storage_object_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "data.read can insert entity_to_storage_objects": {
+          "name": "data.read can insert entity_to_storage_objects",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize('data.read'))"
+        },
+        "data.read can read entity_to_storage_objects": {
+          "name": "data.read can read entity_to_storage_objects",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('data.read'))"
+        },
+        "data.read can update entity_to_storage_objects belonging to their own ascents": {
+          "name": "data.read can update entity_to_storage_objects belonging to their own ascents",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+        },
+        "data.read can delete entity_to_storage_objects belonging to their own ascents": {
+          "name": "data.read can delete entity_to_storage_objects belonging to their own ascents",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+        },
+        "data.edit can update entity_to_storage_objects": {
+          "name": "data.edit can update entity_to_storage_objects",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('data.edit'))",
+          "withCheck": "(SELECT authorize('data.edit'))"
+        },
+        "data.delete can delete entity_to_storage_objects": {
+          "name": "data.delete can delete entity_to_storage_objects",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('data.delete'))"
+        },
+        "data.read can fully access entity_to_storage_objects": {
+          "name": "data.read can fully access entity_to_storage_objects",
+          "as": "PERMISSIVE",
+          "for": "ALL",
           "to": [
             "authenticated"
           ],
@@ -2255,6 +2499,85 @@
       "checkConstraints": {},
       "isRLSEnabled": true
     },
+    "storage.objects": {
+      "name": "objects",
+      "schema": "storage",
+      "columns": {
+        "bucket_id": {
+          "name": "bucket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_accessed_at": {
+          "name": "last_accessed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "owner": {
+          "name": "owner",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path_tokens": {
+          "name": "path_tokens",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_metadata": {
+          "name": "user_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.tags": {
       "name": "tags",
       "schema": "",
@@ -2446,15 +2769,6 @@
             "authenticated"
           ],
           "using": "(SELECT authorize('data.delete'))"
-        },
-        "data.edit can delete topo_routes": {
-          "name": "data.edit can delete topo_routes",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(SELECT authorize('data.edit'))"
         }
       },
       "checkConstraints": {},
@@ -2478,6 +2792,12 @@
         },
         "file_fk": {
           "name": "file_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_object_fk": {
+          "name": "storage_object_fk",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -2526,6 +2846,19 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "topos_storage_object_fk_entity_to_storage_objects_id_fk": {
+          "name": "topos_storage_object_fk_entity_to_storage_objects_id_fk",
+          "tableFrom": "topos",
+          "tableTo": "entity_to_storage_objects",
+          "columnsFrom": [
+            "storage_object_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2567,15 +2900,6 @@
             "authenticated"
           ],
           "using": "(SELECT authorize('data.delete'))"
-        },
-        "data.edit can delete topos": {
-          "name": "data.edit can delete topos",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(SELECT authorize('data.edit'))"
         }
       },
       "checkConstraints": {},

@@ -110,12 +110,12 @@ export async function validateFormData<Output = unknown, Def extends z.ZodTypeDe
 export type ActionFailure<T> = T & { error: string }
 
 export const addFileActionSchema = z.object({
-  folderName: z.string(),
+  filenames: z.array(z.string()),
 })
 export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 
 export const addOptionalFileActionSchema = z.object({
-  folderName: z.string().optional(),
+  filenames: z.array(z.string()).optional(),
 })
 export type AddOptionalFileActionValues = z.infer<typeof addOptionalFileActionSchema>
 

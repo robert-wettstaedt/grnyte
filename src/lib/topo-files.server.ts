@@ -1,7 +1,9 @@
 import * as schema from '$lib/db/schema'
-import { eq } from 'drizzle-orm'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { eq, inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import exif from 'exifr'
+import { config } from '$lib/config'
 
 export const createOrUpdateGeolocation = async (
   db: PostgresJsDatabase<typeof schema>,
@@ -27,10 +29,27 @@ export const createOrUpdateGeolocation = async (
 
 export const createGeolocationFromFiles = async (
   db: PostgresJsDatabase<typeof schema>,
+  supabase: SupabaseClient,
   block: schema.Block,
-  buffers: ArrayBuffer[],
+  files: schema.EntityToStorageObject[],
   operation: 'create' | 'update' | 'all' = 'all',
 ) => {
+  const storageObjectIds = files.map((file) => file.storageObjectId)
+  const storageObjects = await db.query.storageObjects.findMany({
+    where: inArray(schema.storageObjects.id, storageObjectIds),
+  })
+
+  const allBuffers = await Promise.all(
+    storageObjects.map(async (storageObject) => {
+      if (storageObject?.name != null) {
+        const { data } = await supabase.storage.from(config.files.buckets.files).download(storageObject.name)
+        return data?.arrayBuffer()
+      }
+    }),
+  )
+
+  const buffers = allBuffers.filter(Boolean) as ArrayBuffer[]
+
   const allGps = await Promise.all(buffers.map((buffer) => exif.gps(buffer)))
   const nonNullGps = allGps.filter((d) => d != null)
 

@@ -1,6 +1,6 @@
 {
-  "id": "80a73788-e354-4c57-b773-e8d333b5cf6c",
-  "prevId": "4aacf3f3-8bce-4fad-af50-73b385f23603",
+  "id": "821b0418-f350-4f4d-8eb3-dec674184b05",
+  "prevId": "80a73788-e354-4c57-b773-e8d333b5cf6c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -180,8 +180,12 @@
           "name": "activities_user_fk_users_id_fk",
           "tableFrom": "activities",
           "tableTo": "users",
-          "columnsFrom": ["user_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -193,14 +197,18 @@
           "name": "authenticated users can read activities",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "true"
         },
         "users can insert activities": {
           "name": "users can insert activities",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "true"
         }
       },
@@ -305,8 +313,12 @@
           "name": "areas_parent_fk_areas_id_fk",
           "tableFrom": "areas",
           "tableTo": "areas",
-          "columnsFrom": ["parent_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -318,21 +330,27 @@
           "name": "data.read can read areas",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert areas": {
           "name": "data.edit can insert areas",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update areas": {
           "name": "data.edit can update areas",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -340,7 +358,9 @@
           "name": "data.delete can delete areas",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -454,8 +474,12 @@
           "name": "ascents_grade_fk_grades_id_fk",
           "tableFrom": "ascents",
           "tableTo": "grades",
-          "columnsFrom": ["grade_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "grade_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -463,8 +487,12 @@
           "name": "ascents_route_fk_routes_id_fk",
           "tableFrom": "ascents",
           "tableTo": "routes",
-          "columnsFrom": ["route_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -476,21 +504,27 @@
           "name": "data.read can insert ascents",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.read'))"
         },
         "data.read can read ascents": {
           "name": "data.read can read ascents",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.read can update their own ascents": {
           "name": "data.read can update their own ascents",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        ",
           "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
         },
@@ -498,14 +532,18 @@
           "name": "data.read can delete their own ascents",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
         },
         "data.edit can update ascents": {
           "name": "data.edit can update ascents",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -513,7 +551,9 @@
           "name": "data.delete can delete ascents",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -596,8 +636,12 @@
           "name": "blocks_area_fk_areas_id_fk",
           "tableFrom": "blocks",
           "tableTo": "areas",
-          "columnsFrom": ["area_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -605,8 +649,12 @@
           "name": "blocks_geolocation_fk_geolocations_id_fk",
           "tableFrom": "blocks",
           "tableTo": "geolocations",
-          "columnsFrom": ["geolocation_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "geolocation_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -618,21 +666,27 @@
           "name": "data.read can read blocks",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert blocks": {
           "name": "data.edit can insert blocks",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update blocks": {
           "name": "data.edit can update blocks",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -640,14 +694,18 @@
           "name": "data.delete can delete blocks",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         },
         "data.read can update blocks": {
           "name": "data.read can update blocks",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))",
           "withCheck": "(SELECT authorize('data.read'))"
         }
@@ -763,8 +821,12 @@
           "name": "files_area_fk_areas_id_fk",
           "tableFrom": "files",
           "tableTo": "areas",
-          "columnsFrom": ["area_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -772,8 +834,12 @@
           "name": "files_ascent_fk_ascents_id_fk",
           "tableFrom": "files",
           "tableTo": "ascents",
-          "columnsFrom": ["ascent_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "ascent_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -781,8 +847,12 @@
           "name": "files_route_fk_routes_id_fk",
           "tableFrom": "files",
           "tableTo": "routes",
-          "columnsFrom": ["route_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -790,8 +860,12 @@
           "name": "files_block_fk_blocks_id_fk",
           "tableFrom": "files",
           "tableTo": "blocks",
-          "columnsFrom": ["block_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -803,21 +877,27 @@
           "name": "data.read can insert files",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.read'))"
         },
         "data.read can read files": {
           "name": "data.read can read files",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.read can update files belonging to their own ascents": {
           "name": "data.read can update files belonging to their own ascents",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        ",
           "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
         },
@@ -825,23 +905,29 @@
           "name": "data.read can delete files belonging to their own ascents",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
         },
         "data.edit can update files": {
           "name": "data.edit can update files",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
-        "data.delete can delete files": {
-          "name": "data.delete can delete files",
+        "data.edit can delete files": {
+          "name": "data.edit can delete files",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
-          "using": "(SELECT authorize('data.delete'))"
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('data.edit'))"
         }
       },
       "checkConstraints": {},
@@ -907,8 +993,12 @@
           "name": "first_ascensionists_user_fk_users_id_fk",
           "tableFrom": "first_ascensionists",
           "tableTo": "users",
-          "columnsFrom": ["user_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -920,7 +1010,9 @@
           "name": "data.read can fully access first_ascensionists",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))",
           "withCheck": "(SELECT authorize('data.read'))"
         }
@@ -1000,8 +1092,12 @@
           "name": "geolocations_area_fk_areas_id_fk",
           "tableFrom": "geolocations",
           "tableTo": "areas",
-          "columnsFrom": ["area_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1009,8 +1105,12 @@
           "name": "geolocations_block_fk_blocks_id_fk",
           "tableFrom": "geolocations",
           "tableTo": "blocks",
-          "columnsFrom": ["block_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1022,21 +1122,27 @@
           "name": "data.read can read geolocations",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert geolocations": {
           "name": "data.edit can insert geolocations",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update geolocations": {
           "name": "data.edit can update geolocations",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -1044,14 +1150,18 @@
           "name": "data.delete can delete geolocations",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         },
         "data.read can insert geolocations": {
           "name": "data.read can insert geolocations",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.read'))"
         }
       },
@@ -1090,7 +1200,9 @@
           "name": "authenticated users can fully access grades",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "true",
           "withCheck": "true"
         }
@@ -1132,7 +1244,9 @@
           "name": "authenticated users can read role_permissions",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "true"
         }
       },
@@ -1228,8 +1342,12 @@
           "name": "route_external_resource_27crags_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "route_external_resource_27crags",
           "tableTo": "route_external_resources",
-          "columnsFrom": ["external_resources_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1241,21 +1359,27 @@
           "name": "data.read can read route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert route_external_resource_27crags": {
           "name": "data.edit can insert route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update route_external_resource_27crags": {
           "name": "data.edit can update route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -1263,7 +1387,9 @@
           "name": "data.delete can delete route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -1395,8 +1521,12 @@
           "name": "route_external_resource_8a_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "route_external_resource_8a",
           "tableTo": "route_external_resources",
-          "columnsFrom": ["external_resources_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1408,21 +1538,27 @@
           "name": "data.read can read route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert route_external_resource_8a": {
           "name": "data.edit can insert route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update route_external_resource_8a": {
           "name": "data.edit can update route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -1430,7 +1566,9 @@
           "name": "data.delete can delete route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -1502,8 +1640,12 @@
           "name": "route_external_resource_the_crag_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "route_external_resource_the_crag",
           "tableTo": "route_external_resources",
-          "columnsFrom": ["external_resources_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1515,21 +1657,27 @@
           "name": "data.read can read route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert route_external_resource_the_crag": {
           "name": "data.edit can insert route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update route_external_resource_the_crag": {
           "name": "data.edit can update route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -1537,7 +1685,9 @@
           "name": "data.delete can delete route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -1601,8 +1751,12 @@
           "name": "route_external_resources_route_fk_routes_id_fk",
           "tableFrom": "route_external_resources",
           "tableTo": "routes",
-          "columnsFrom": ["route_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1610,8 +1764,12 @@
           "name": "route_external_resources_external_resource_8a_fk_route_external_resource_8a_id_fk",
           "tableFrom": "route_external_resources",
           "tableTo": "route_external_resource_8a",
-          "columnsFrom": ["external_resource_8a_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resource_8a_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1619,8 +1777,12 @@
           "name": "route_external_resources_external_resource_27crags_fk_route_external_resource_27crags_id_fk",
           "tableFrom": "route_external_resources",
           "tableTo": "route_external_resource_27crags",
-          "columnsFrom": ["external_resource_27crags_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resource_27crags_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1628,8 +1790,12 @@
           "name": "route_external_resources_external_resource_the_crag_fk_route_external_resource_the_crag_id_fk",
           "tableFrom": "route_external_resources",
           "tableTo": "route_external_resource_the_crag",
-          "columnsFrom": ["external_resource_the_crag_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resource_the_crag_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1641,21 +1807,27 @@
           "name": "data.read can read route_external_resources",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert route_external_resources": {
           "name": "data.edit can insert route_external_resources",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update route_external_resources": {
           "name": "data.edit can update route_external_resources",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -1663,7 +1835,9 @@
           "name": "data.delete can delete route_external_resources",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -1794,8 +1968,12 @@
           "name": "routes_block_fk_blocks_id_fk",
           "tableFrom": "routes",
           "tableTo": "blocks",
-          "columnsFrom": ["block_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1803,8 +1981,12 @@
           "name": "routes_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "routes",
           "tableTo": "route_external_resources",
-          "columnsFrom": ["external_resources_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1812,8 +1994,12 @@
           "name": "routes_grade_fk_grades_id_fk",
           "tableFrom": "routes",
           "tableTo": "grades",
-          "columnsFrom": ["grade_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "grade_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1825,21 +2011,27 @@
           "name": "data.read can read routes",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert routes": {
           "name": "data.edit can insert routes",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update routes": {
           "name": "data.edit can update routes",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -1847,7 +2039,9 @@
           "name": "data.delete can delete routes",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -1914,8 +2108,12 @@
           "name": "routes_to_first_ascensionists_route_fk_routes_id_fk",
           "tableFrom": "routes_to_first_ascensionists",
           "tableTo": "routes",
-          "columnsFrom": ["route_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1923,8 +2121,12 @@
           "name": "routes_to_first_ascensionists_first_ascensionist_fk_first_ascensionists_id_fk",
           "tableFrom": "routes_to_first_ascensionists",
           "tableTo": "first_ascensionists",
-          "columnsFrom": ["first_ascensionist_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "first_ascensionist_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1936,7 +2138,9 @@
           "name": "data.read can fully access routes_to_first_ascensionists",
           "as": "PERMISSIVE",
           "for": "ALL",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))",
           "withCheck": "(SELECT authorize('data.read'))"
         }
@@ -1967,8 +2171,12 @@
           "name": "routes_to_tags_route_fk_routes_id_fk",
           "tableFrom": "routes_to_tags",
           "tableTo": "routes",
-          "columnsFrom": ["route_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1976,8 +2184,12 @@
           "name": "routes_to_tags_tag_fk_tags_id_fk",
           "tableFrom": "routes_to_tags",
           "tableTo": "tags",
-          "columnsFrom": ["tag_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tag_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1985,7 +2197,10 @@
       "compositePrimaryKeys": {
         "routes_to_tags_route_fk_tag_fk_pk": {
           "name": "routes_to_tags_route_fk_tag_fk_pk",
-          "columns": ["route_fk", "tag_fk"]
+          "columns": [
+            "route_fk",
+            "tag_fk"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -1994,21 +2209,27 @@
           "name": "data.read can read routes_to_tags",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert routes_to_tags": {
           "name": "data.edit can insert routes_to_tags",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update routes_to_tags": {
           "name": "data.edit can update routes_to_tags",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -2016,14 +2237,18 @@
           "name": "data.delete can delete routes_to_tags",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         },
         "data.edit can delete routes_to_tags": {
           "name": "data.edit can delete routes_to_tags",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))"
         }
       },
@@ -2050,21 +2275,27 @@
           "name": "data.read can read tags",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert tags": {
           "name": "data.edit can insert tags",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update tags": {
           "name": "data.edit can update tags",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -2072,7 +2303,9 @@
           "name": "data.delete can delete tags",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         }
       },
@@ -2151,8 +2384,12 @@
           "name": "topo_routes_route_fk_routes_id_fk",
           "tableFrom": "topo_routes",
           "tableTo": "routes",
-          "columnsFrom": ["route_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2160,8 +2397,12 @@
           "name": "topo_routes_topo_fk_topos_id_fk",
           "tableFrom": "topo_routes",
           "tableTo": "topos",
-          "columnsFrom": ["topo_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "topo_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2173,21 +2414,27 @@
           "name": "data.read can read topo_routes",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert topo_routes": {
           "name": "data.edit can insert topo_routes",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update topo_routes": {
           "name": "data.edit can update topo_routes",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -2195,14 +2442,18 @@
           "name": "data.delete can delete topo_routes",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         },
         "data.edit can delete topo_routes": {
           "name": "data.edit can delete topo_routes",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))"
         }
       },
@@ -2254,8 +2505,12 @@
           "name": "topos_block_fk_blocks_id_fk",
           "tableFrom": "topos",
           "tableTo": "blocks",
-          "columnsFrom": ["block_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2263,8 +2518,12 @@
           "name": "topos_file_fk_files_id_fk",
           "tableFrom": "topos",
           "tableTo": "files",
-          "columnsFrom": ["file_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "file_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2276,21 +2535,27 @@
           "name": "data.read can read topos",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "data.edit can insert topos": {
           "name": "data.edit can insert topos",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT authorize('data.edit'))"
         },
         "data.edit can update topos": {
           "name": "data.edit can update topos",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))",
           "withCheck": "(SELECT authorize('data.edit'))"
         },
@@ -2298,14 +2563,18 @@
           "name": "data.delete can delete topos",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.delete'))"
         },
         "data.edit can delete topos": {
           "name": "data.edit can delete topos",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.edit'))"
         }
       },
@@ -2343,8 +2612,12 @@
           "tableFrom": "user_roles",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": ["auth_user_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2356,14 +2629,18 @@
           "name": "auth admins can read user_roles",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["supabase_auth_admin"],
+          "to": [
+            "supabase_auth_admin"
+          ],
           "using": "true"
         },
         "users can read own user_roles": {
           "name": "users can read own user_roles",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT auth.uid()) = auth_user_fk"
         }
       },
@@ -2456,8 +2733,12 @@
           "tableFrom": "user_settings",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": ["auth_user_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2465,8 +2746,12 @@
           "name": "user_settings_user_fk_users_id_fk",
           "tableFrom": "user_settings",
           "tableTo": "users",
-          "columnsFrom": ["user_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2478,21 +2763,27 @@
           "name": "users can insert own users_settings",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "withCheck": "(SELECT auth.uid()) = auth_user_fk"
         },
         "users can read own users_settings": {
           "name": "users can read own users_settings",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT auth.uid()) = auth_user_fk"
         },
         "users can update own users_settings": {
           "name": "users can update own users_settings",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT auth.uid()) = auth_user_fk",
           "withCheck": "(SELECT auth.uid()) = auth_user_fk"
         }
@@ -2595,8 +2886,12 @@
           "tableFrom": "users",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": ["auth_user_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2604,8 +2899,12 @@
           "name": "users_first_ascentionist_fk_first_ascensionists_id_fk",
           "tableFrom": "users",
           "tableTo": "first_ascensionists",
-          "columnsFrom": ["first_ascentionist_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "first_ascentionist_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2613,8 +2912,12 @@
           "name": "users_user_settings_fk_user_settings_id_fk",
           "tableFrom": "users",
           "tableTo": "user_settings",
-          "columnsFrom": ["user_settings_fk"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_settings_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2626,14 +2929,18 @@
           "name": "data.read can read users",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT authorize('data.read'))"
         },
         "users can update own users": {
           "name": "users can update own users",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": ["authenticated"],
+          "to": [
+            "authenticated"
+          ],
           "using": "(SELECT auth.uid()) = auth_user_fk",
           "withCheck": "(SELECT auth.uid()) = auth_user_fk"
         }
@@ -2646,17 +2953,31 @@
     "public.activity_type": {
       "name": "activity_type",
       "schema": "public",
-      "values": ["created", "updated", "deleted", "uploaded"]
+      "values": [
+        "created",
+        "updated",
+        "deleted",
+        "uploaded"
+      ]
     },
     "public.app_permission": {
       "name": "app_permission",
       "schema": "public",
-      "values": ["data.read", "data.edit", "data.delete", "data.export"]
+      "values": [
+        "data.read",
+        "data.edit",
+        "data.delete",
+        "data.export"
+      ]
     },
     "public.app_role": {
       "name": "app_role",
       "schema": "public",
-      "values": ["user", "maintainer", "admin"]
+      "values": [
+        "user",
+        "maintainer",
+        "admin"
+      ]
     }
   },
   "schemas": {},

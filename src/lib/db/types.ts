@@ -30,3 +30,4 @@ export type NestedArea = InferResultType<'areas', { parent: true }>
 export type NestedBlock = InferResultType<'blocks', { area: true; geolocation: true; routes: true }>
 export type NestedRoute = InferResultType<'routes', { block: { with: { area: true } } }>
 export type NestedAscent = InferResultType<'ascents', { author: true; route: true }>
+export type NestedEntityToStorageObject = InferResultType<'entityToStorageObjects', { storageObject: true }>

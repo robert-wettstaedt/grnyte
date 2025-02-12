@@ -1,6 +1,6 @@
 import type { Area, Block, Route, User } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
-import type { FileDTO } from '$lib/nextcloud'
+import type { ObjectDTO } from '$lib/storage.server'
 
 export { default } from './ActivityFeed.svelte'
 
@@ -25,12 +25,12 @@ export interface RouteEntity extends BaseEntity {
 
 export interface AscentEntity extends BaseEntity {
   type: 'ascent'
-  object?: (InferResultType<'ascents', { author: true }> & { files: FileDTO[] }) | null
+  object?: (InferResultType<'ascents', { author: true }> & { files: ObjectDTO[] }) | null
 }
 
 export interface FileEntity extends BaseEntity {
   type: 'file'
-  object?: FileDTO | null
+  object?: ObjectDTO | null
 }
 
 export interface UserEntity extends BaseEntity {

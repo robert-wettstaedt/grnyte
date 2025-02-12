@@ -3,7 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/svelte'
 import * as d3 from 'd3'
 import { get } from 'svelte/store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FileStat } from 'webdav'
 import TopoViewer from './TopoViewer.svelte'
 import { highlightedRouteStore, selectedPointTypeStore, selectedRouteStore } from './stores'
 
@@ -42,21 +41,46 @@ describe('TopoViewer Component', () => {
       id: 1,
       blockFk: 1,
       fileFk: 1,
+      storageObjectFk: 1,
       file: {
         id: 1,
-        path: '/test/path1.jpg',
+        storageObjectId: 'test-1',
         areaFk: 1,
         ascentFk: 1,
         routeFk: 1,
         blockFk: 1,
+        storageObject: {
+          name: 'test-image-1.jpg',
+          id: 'test-1',
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          bucketId: 'files',
+          lastAccessedAt: new Date('2024-01-01'),
+          metadata: {
+            cacheControl: '3600',
+            contentLength: 1000,
+            eTag: 'test-etag',
+            httpStatusCode: 200,
+            lastModified: '2024-01-01',
+            mimetype: 'image/jpeg',
+            size: 1000,
+            url: 'test-image-1.jpg',
+          },
+          owner: 'test-user',
+          pathTokens: ['test-image-1.jpg'],
+          userMetadata: null,
+          version: '1',
+        },
         stat: {
-          filename: '/test/path1.jpg',
-          basename: 'path1.jpg',
+          cacheControl: '3600',
+          contentLength: 1000,
+          eTag: 'test-etag',
+          httpStatusCode: 200,
+          lastModified: '2024-01-01',
+          mimetype: 'image/jpeg',
           size: 1000,
-          lastmod: '2024-01-01',
-          type: 'file',
-          etag: 'test-etag',
-        } as FileStat,
+          url: 'test-image-1.jpg',
+        },
       },
       routes: [
         {
@@ -65,9 +89,9 @@ describe('TopoViewer Component', () => {
           routeFk: 1,
           topoFk: 1,
           points: [
-            { id: '1', type: 'start' as const, x: 100, y: 200 },
-            { id: '2', type: 'middle' as const, x: 150, y: 150 },
-            { id: '3', type: 'top' as const, x: 200, y: 100 },
+            { id: '1', type: 'start', x: 100, y: 200 },
+            { id: '2', type: 'middle', x: 150, y: 150 },
+            { id: '3', type: 'top', x: 200, y: 100 },
           ],
         } as TopoRouteDTO,
       ],
@@ -76,21 +100,46 @@ describe('TopoViewer Component', () => {
       id: 2,
       blockFk: 1,
       fileFk: 2,
+      storageObjectFk: 2,
       file: {
         id: 2,
-        path: '/test/path2.jpg',
+        storageObjectId: 'test-2',
         areaFk: 1,
         ascentFk: 1,
         routeFk: 1,
         blockFk: 1,
+        storageObject: {
+          name: 'test-image-2.jpg',
+          id: 'test-2',
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          bucketId: 'files',
+          lastAccessedAt: new Date('2024-01-01'),
+          metadata: {
+            cacheControl: '3600',
+            contentLength: 1000,
+            eTag: 'test-etag',
+            httpStatusCode: 200,
+            lastModified: '2024-01-01',
+            mimetype: 'image/jpeg',
+            size: 1000,
+            url: 'test-image-2.jpg',
+          },
+          owner: 'test-user',
+          pathTokens: ['test-image-2.jpg'],
+          userMetadata: null,
+          version: '1',
+        },
         stat: {
-          filename: '/test/path2.jpg',
-          basename: 'path2.jpg',
+          cacheControl: '3600',
+          contentLength: 1000,
+          eTag: 'test-etag',
+          httpStatusCode: 200,
+          lastModified: '2024-01-01',
+          mimetype: 'image/jpeg',
           size: 1000,
-          lastmod: '2024-01-01',
-          type: 'file',
-          etag: 'test-etag',
-        } as FileStat,
+          url: 'test-image-2.jpg',
+        },
       },
       routes: [],
     },
@@ -115,7 +164,7 @@ describe('TopoViewer Component', () => {
 
       const images = container.querySelectorAll('img')
       expect(images).toHaveLength(2) // Main image and blurred background
-      expect(images[1]).toHaveAttribute('src', '/nextcloud/test/path1.jpg')
+      expect(images[1]).toHaveAttribute('src', '/storage?resource=test-image-1.jpg')
     })
 
     it('should highlight route on hover', async () => {
@@ -298,7 +347,7 @@ describe('TopoViewer Component', () => {
       })
 
       // Initial state should show first topo
-      const mainImage = container.querySelector('img#img[alt="/test/path1.jpg"]')
+      const mainImage = container.querySelector('img[alt="test-image-1.jpg"]')
       expect(mainImage).toBeInTheDocument()
 
       // Click next button
@@ -306,7 +355,7 @@ describe('TopoViewer Component', () => {
       await fireEvent.click(nextButton)
 
       // Should show second topo
-      const nextImage = container.querySelector('img#img[alt="/test/path2.jpg"]')
+      const nextImage = container.querySelector('img[alt="test-image-2.jpg"]')
       expect(nextImage).toBeInTheDocument()
 
       // Click prev button
@@ -314,7 +363,7 @@ describe('TopoViewer Component', () => {
       await fireEvent.click(prevButton)
 
       // Should show first topo again
-      const firstImageAgain = container.querySelector('img#img[alt="/test/path1.jpg"]')
+      const firstImageAgain = container.querySelector('img[alt="test-image-1.jpg"]')
       expect(firstImageAgain).toBeInTheDocument()
     })
 
