@@ -10,19 +10,6 @@ const handle1: Handle = async ({ event, resolve }) => {
 
   Object.entries(config.cors.headers).forEach(([key, value]) => response.headers.set(key, value))
 
-  response.headers.set(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      "worker-src 'self' blob:",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
-      "connect-src 'self' https: wss:",
-      "img-src 'self' blob: data:",
-      "style-src 'self' 'unsafe-inline'",
-      "frame-ancestors 'none'",
-    ].join('; '),
-  )
-
   return response
 }
 

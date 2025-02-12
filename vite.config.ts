@@ -28,4 +28,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.js'],
   },
+  build: {
+    sourcemap: true,
+  },
 })
