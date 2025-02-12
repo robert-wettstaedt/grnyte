@@ -21,7 +21,6 @@
   import type { SupabaseClient } from '@supabase/supabase-js'
   import { onDestroy, onMount, type Snippet } from 'svelte'
   import { uploadData, type Progress as FileUploadProgress } from './action'
-  import { getThumbnail } from './video'
 
   let {
     action,
@@ -39,17 +38,13 @@
   let controller = $state<AbortController | null>(null)
 
   let thumbnail: string | undefined = $state(undefined)
+  let type: 'image' | 'video' | undefined = $state(undefined)
 
   const handleChange = async (event: Event) => {
+    event.preventDefault()
     const file = (event.target as HTMLInputElement).files?.[0]
-    thumbnail = undefined
-
-    if (file?.type.startsWith('image/')) {
-      thumbnail = URL.createObjectURL(file)
-    } else if (file?.type.startsWith('video/')) {
-      const result = await getThumbnail(file)
-      thumbnail = URL.createObjectURL(new Blob([result], { type: file.type }))
-    }
+    thumbnail = file == null ? undefined : URL.createObjectURL(file)
+    type = file?.type.startsWith('image/') ? 'image' : 'video'
   }
 
   onMount(() => {
@@ -86,6 +81,8 @@
       error = convertException(exception)
       loading = false
       progress = null
+      thumbnail = undefined
+      type = undefined
     }
   }}
 >
@@ -111,13 +108,28 @@
       {#if loading}
         <Progress max={100} meterBg="bg-primary-500" value={progress?.percentage} />
       {/if}
-    {:else}
+    {:else if type == 'image'}
       <img
         alt="Thumbnail"
         class="w-full h-[200px] object-contain bg-surface-50-950"
         onerror={() => (thumbnail = undefined)}
         src={thumbnail}
       />
+    {:else if type == 'video'}
+      <video
+        autoplay
+        class="w-full h-[200px] bg-surface-50-950"
+        disablepictureinpicture
+        disableremoteplayback
+        loop
+        muted
+        onerror={() => (thumbnail = undefined)}
+        playsinline
+        preload="metadata"
+      >
+        <track kind="captions" />
+        <source src={thumbnail} type="video/mp4" />
+      </video>
     {/if}
 
     {#if progress != null}

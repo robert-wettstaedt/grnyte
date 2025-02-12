@@ -61,8 +61,6 @@
         Math.pow(event.clientX - longPressCoords.x, 2) + Math.pow(event.clientY - longPressCoords.y, 2),
       )
 
-      console.log(distance)
-
       if (distance > 8) {
         handleTouchEnd()
       }

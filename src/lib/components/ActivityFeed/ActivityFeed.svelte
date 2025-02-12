@@ -19,8 +19,6 @@
 
   const { activities, pagination, ...rest }: Props = $props()
 
-  console.log(activities)
-
   let activityPages = $state<(typeof activities)[]>([])
   let prevPage = $state(1)
   let activityType = $state('all')

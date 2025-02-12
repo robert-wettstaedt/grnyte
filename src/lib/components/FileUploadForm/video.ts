@@ -1,16 +1,10 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 
-const baseURL = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm'
-
-const settings = {
-  audioBitrate: '128k',
-  audioCodec: 'aac',
-  frameRate: '30',
-  videoBitrate: '2500k',
-  videoCodec: 'libx264',
-  videoFilter: "scale='max(720,720*dar)':'max(720,720/dar)':force_original_aspect_ratio=1",
-}
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+const baseURL = isSafari
+  ? 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'
+  : 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm'
 
 const createFFmpeg = async (file: File | Blob, onProgress?: (progress: number) => void) => {
   const ffmpeg = new FFmpeg()
@@ -75,8 +69,8 @@ export const compress = async (
 
     // ===== Video Settings =====
     '-c:v', 'libx264',        // Use H.264 codec - most compatible
+    '-b:v', '2500k',          // Video bitrate
     '-preset', 'ultrafast',   // Fastest encoding speed, sacrifices compression efficiency
-    // '-tune', 'zerolatency',   // Optimize for fast encoding and low latency
     '-crf', '35',             // Constant Rate Factor: 0-51, higher = more compression, lower quality
                               // 35 is quite aggressive compression but still acceptable for mobile
 
