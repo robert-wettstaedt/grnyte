@@ -60,14 +60,14 @@ export default defineConfig({
           },
         ],
       },
+      pwaAssets: {
+        config: true,
+      },
       injectManifest: {
-        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-        globFollow: true,
-        injectionPoint: 'self.__WB_MANIFEST',
+        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
       },
       workbox: {
-        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-        globFollow: true,
+        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
       },
       devOptions: {
         enabled: true,
