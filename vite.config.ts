@@ -22,9 +22,6 @@ export default defineConfig({
       base: '/',
       useCredentials: true,
       selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
-      pwaAssets: {
-        config: true,
-      },
       manifest: {
         name: 'grnyte',
         short_name: 'grnyte',
@@ -64,25 +61,11 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}', 'manifest.webmanifest'],
-        maximumFileSizeToCacheInBytes: 3000000,
+        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+        rollupFormat: 'iife',
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}', 'manifest.webmanifest'],
-        maximumFileSizeToCacheInBytes: 3000000,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/grnyterocks-.*\.vercel\.app\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'app-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours
-              },
-            },
-          },
-        ],
+        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
       },
       devOptions: {
         enabled: true,
