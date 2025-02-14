@@ -22,9 +22,13 @@
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { AppBar, Navigation, Popover, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount, type Snippet } from 'svelte'
+  import { pwaAssetsHead } from 'virtual:pwa-assets/head'
+  import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.postcss'
 
   let { data, form, children }: LayoutProps = $props()
+
+  let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
 
   onMount(() => {
     const value = data.supabase.auth.onAuthStateChange((_, newSession) => {
@@ -51,11 +55,22 @@
 
 <svelte:head>
   <title>{PUBLIC_APPLICATION_NAME}</title>
+  <meta name="description" content="Secure boulder topo and session tracker." />
   <meta property="og:title" content={PUBLIC_APPLICATION_NAME} />
   <meta property="og:description" content="Secure boulder topo and session tracker." />
   <meta property="og:image" content={Logo} />
   <meta property="og:url" content={$page.url.toString()} />
   <meta property="og:type" content="website" />
+
+  {#if pwaAssetsHead.themeColor}
+    <meta name="theme-color" content={pwaAssetsHead.themeColor.content} />
+  {/if}
+
+  {#each pwaAssetsHead.links as link}
+    <link {...link} />
+  {/each}
+
+  {@html webManifest}
 </svelte:head>
 
 <div>
@@ -172,3 +187,7 @@
     </Navigation.Rail>
   {/if}
 </div>
+
+{#await import('$lib/components/ReloadPrompt') then { default: ReloadPrompt }}
+  <ReloadPrompt />
+{/await}
