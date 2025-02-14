@@ -64,10 +64,25 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}', 'manifest.webmanifest'],
+        maximumFileSizeToCacheInBytes: 3000000,
       },
       workbox: {
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}', 'manifest.webmanifest'],
+        maximumFileSizeToCacheInBytes: 3000000,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/grnyterocks-.*\.vercel\.app\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 24 * 60 * 60, // 24 hours
+              },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: true,
@@ -75,7 +90,6 @@ export default defineConfig({
         type: 'module',
         navigateFallback: '/',
       },
-      // if you have shared info in svelte config file put in a separate module and use it also here
       kit: {
         includeVersionFile: true,
       },

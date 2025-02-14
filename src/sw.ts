@@ -4,6 +4,7 @@
 /// <reference lib="esnext" />
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { NetworkFirst } from 'workbox-strategies'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -17,8 +18,18 @@ precacheAndRoute(self.__WB_MANIFEST)
 // clean old assets
 cleanupOutdatedCaches()
 
-let allowlist: undefined | RegExp[]
-if (import.meta.env.DEV) allowlist = [/^\/$/]
-
 // to allow work offline
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), { allowlist }))
+const navigationHandler = createHandlerBoundToURL('/')
+const navigationRoute = new NavigationRoute(navigationHandler, {
+  allowlist: [/^\/$/],
+  denylist: [/\.[^.]+$/], // Deny URLs with file extensions
+})
+registerRoute(navigationRoute)
+
+// Fallback to network-first strategy for other routes
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new NetworkFirst({
+    cacheName: 'pages-cache',
+  }),
+)
