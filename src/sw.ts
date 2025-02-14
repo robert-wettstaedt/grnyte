@@ -2,21 +2,23 @@
 /// <reference types="vite/client" />
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
-import { clientsClaim } from 'workbox-core'
+import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 declare let self: ServiceWorkerGlobalScope
 
-// Use with precache injection
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
+// self.__WB_MANIFEST is default injection point
 precacheAndRoute(self.__WB_MANIFEST)
 
+// clean old assets
 cleanupOutdatedCaches()
 
-self.skipWaiting()
-clientsClaim()
+let allowlist: undefined | RegExp[]
+if (import.meta.env.DEV) allowlist = [/^\/$/]
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
-  }
-})
+// to allow work offline
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), { allowlist }))
