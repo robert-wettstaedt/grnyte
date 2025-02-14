@@ -64,10 +64,10 @@ export default defineConfig({
         config: true,
       },
       injectManifest: {
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
+        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}', '_app/**/*', '**/*.html'],
       },
       workbox: {
-        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
+        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
       },
       devOptions: {
         enabled: true,
