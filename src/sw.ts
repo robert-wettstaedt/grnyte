@@ -13,14 +13,18 @@ self.addEventListener('message', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url)
+  try {
+    const url = new URL(event.request.url)
 
-  if (url.hostname === 'tile.openstreetmap.org' || url.hostname === 'geoservices.bayern.de') {
-    event.respondWith(cacheResponse(event.request, 'tiles'))
-  } else if (url.pathname.startsWith('/nextcloud/')) {
-    event.respondWith(cacheResponse(event.request, 'nextcloud'))
-  } else {
-    console.log(event)
+    if (url.hostname === 'tile.openstreetmap.org' || url.hostname === 'geoservices.bayern.de') {
+      event.respondWith(cacheResponse(event.request, 'tiles'))
+    } else if (url.pathname.startsWith('/nextcloud/')) {
+      event.respondWith(cacheResponse(event.request, 'nextcloud'))
+    } else {
+      event.respondWith(fetch(event.request))
+    }
+  } catch (error) {
+    console.error('Service Worker fetch error:', error)
     event.respondWith(fetch(event.request))
   }
 })
@@ -38,15 +42,24 @@ if (import.meta.env.DEV) allowlist = [/^\/$/]
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), { allowlist }))
 
 async function cacheResponse(request: Request, cacheName: string) {
-  let response = await caches.match(request)
+  try {
+    const cache = await caches.open(cacheName)
+    const cachedResponse = await cache.match(request)
 
-  if (response) {
-    return response
+    if (cachedResponse) {
+      return cachedResponse
+    }
+
+    const networkResponse = await fetch(request.clone())
+
+    if (!networkResponse.ok) {
+      throw new Error(`Network response was not ok: ${networkResponse.status}`)
+    }
+
+    await cache.put(request, networkResponse.clone())
+    return networkResponse
+  } catch (error) {
+    console.error(`Cache response error for ${cacheName}:`, error)
+    return fetch(request)
   }
-
-  response = await fetch(request)
-  const cache = await caches.open(cacheName)
-  const clonedResponse = response.clone()
-  await cache.put(request, clonedResponse)
-  return response
 }
