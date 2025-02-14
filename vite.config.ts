@@ -62,10 +62,12 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-        rollupFormat: 'iife',
+        globFollow: true,
+        injectionPoint: 'self.__WB_MANIFEST',
       },
       workbox: {
         globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+        globFollow: true,
       },
       devOptions: {
         enabled: true,
