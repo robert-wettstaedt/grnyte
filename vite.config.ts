@@ -20,6 +20,7 @@ export default defineConfig({
       filename: 'sw.ts',
       scope: '/',
       base: '/',
+      useCredentials: true,
       selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
       pwaAssets: {
         config: true,
