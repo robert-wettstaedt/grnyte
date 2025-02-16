@@ -1,8 +1,9 @@
 import { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD } from '$env/static/private'
+import { READ_PERMISSION } from '$lib/auth'
 import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { error } from '@sveltejs/kit'
-import { createClient, type FileStat, type ResponseDataDetailed, type WebDAVClient } from 'webdav'
+import { error, type RequestEvent } from '@sveltejs/kit'
+import { createClient, type FileStat, type Headers, type ResponseDataDetailed, type WebDAVClient } from 'webdav'
 import type { FileDTO } from '.'
 
 /**
@@ -114,4 +115,53 @@ export const deleteFile = async (file: schema.File) => {
   if (Array.isArray(contents)) {
     await Promise.all(contents.map((content) => nextcloud.deleteFile(content.filename)))
   }
+}
+
+export const imagePreviewHandler = async (path: string, event: RequestEvent) => {
+  const { locals, request, url } = event
+
+  if (!locals.userPermissions?.includes(READ_PERMISSION)) {
+    return new Response(null, { status: 404 })
+  }
+
+  // Extract relevant headers from the request
+  const reqHeaders = Array.from(request.headers.entries()).reduce(
+    (headers, [key, value]) => {
+      // Include only 'accept' and 'range' headers
+      if (['accept', 'range'].includes(key.toLowerCase())) {
+        return { ...headers, [key]: value }
+      }
+      return headers
+    },
+    { Authorization: `Basic ${btoa(`${NEXTCLOUD_USER_NAME}:${NEXTCLOUD_USER_PASSWORD}`)}` } as Headers,
+  )
+
+  const file = await searchNextcloudFile({
+    areaFk: null,
+    ascentFk: null,
+    blockFk: null,
+    id: 0,
+    path,
+    routeFk: null,
+  })
+
+  const searchParams = new URLSearchParams(url.searchParams)
+  searchParams.set('fileId', String(file.props?.fileid ?? ''))
+
+  const result = await fetch(`${NEXTCLOUD_URL}/core/preview?${searchParams}`, {
+    headers: reqHeaders,
+    signal: request.signal,
+  })
+
+  const resHeaders = new Headers(result.headers)
+  // eslint-disable-next-line drizzle/enforce-delete-with-where
+  resHeaders.delete('Set-Cookie')
+  // eslint-disable-next-line drizzle/enforce-delete-with-where
+  resHeaders.delete('Content-Encoding')
+
+  return new Response(result.body, {
+    headers: resHeaders,
+    status: result.status,
+    statusText: result.statusText,
+  })
 }

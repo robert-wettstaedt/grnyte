@@ -1,9 +1,21 @@
+<script lang="ts" module>
+  export interface FeatureData {
+    avatar?: { src?: string; icon?: string }
+    block?: NestedBlock
+    className?: string
+    geolocation?: Geolocation
+    name: string
+    pathname?: string
+    priority: number
+    subtitle?: string
+  }
+</script>
+
 <script lang="ts">
   import type { Area, Block, Geolocation } from '$lib/db/schema'
   import type { NestedArea } from '$lib/db/types'
-  import Feature from 'ol/Feature.js'
+  import Feature, { type FeatureLike } from 'ol/Feature.js'
   import OlMap from 'ol/Map.js'
-  import Overlay from 'ol/Overlay.js'
   import View from 'ol/View.js'
   import { Attribution, FullScreen, defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
@@ -14,13 +26,15 @@
   import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
   import 'ol/ol.css'
   import { fromLonLat } from 'ol/proj.js'
-  import { Vector as VectorSource } from 'ol/source.js'
+  import { Cluster, Vector as VectorSource } from 'ol/source.js'
   import OSM, { ATTRIBUTION } from 'ol/source/OSM'
   import TileWMS from 'ol/source/TileWMS.js'
-  import { Fill, Style, Text } from 'ol/style.js'
+  import { Fill, Stroke, Style, Text } from 'ol/style.js'
+  import CircleStyle from 'ol/style/Circle'
   import { createEventDispatcher } from 'svelte'
   import type { GetBlockKey, NestedBlock } from '.'
-  import Layers, { type Layer } from './Layers'
+  import Layers, { type Layer } from './components/Layers'
+  import Popup from './components/Popup'
 
   const DEFAULT_ZOOM = 19
 
@@ -29,7 +43,6 @@
     blocks: NestedBlock[]
     selectedArea?: Area | null
     selectedBlock?: Block | null
-    heightSubtrahend?: number
     height?: number | string | null
     zoom?: number | null
     showRelief?: boolean
@@ -37,7 +50,6 @@
     showAreas?: boolean
     declutter?: boolean
     getBlockKey?: GetBlockKey
-    paddingBottom?: number
     parkingLocations?: Geolocation[]
   }
 
@@ -46,7 +58,6 @@
     blocks,
     selectedArea = null,
     selectedBlock = null,
-    heightSubtrahend = 0,
     height = null,
     zoom = DEFAULT_ZOOM,
     showRelief = $bindable(true),
@@ -55,20 +66,14 @@
     declutter = true,
     getBlockKey = null,
     parkingLocations = [],
-    paddingBottom = 32,
   }: Props = $props()
-
-  interface FeatureData {
-    className?: string
-    label: string
-    pathname: string
-    priority: number
-  }
 
   const dispatch = createEventDispatcher<{ action: OlMap; rendercomplete: void }>()
 
   let mapElement: HTMLDivElement | null = null
   let map: OlMap | null = null
+
+  let selectedFeatures: FeatureData[] = $state([])
 
   let layersIsVisible = $state(false)
   const layers: Layer[] = [
@@ -142,7 +147,11 @@
     if (block.geolocation?.lat != null && block.geolocation?.long != null) {
       const iconFeature = new Feature({
         data: {
-          label: parents.map((parent) => parent.name).join(' / ') + (parents.length === 0 ? '' : ' / ') + block.name,
+          avatar: { src: `/blocks/${block.id}/preview-image` },
+          block,
+          geolocation: block.geolocation,
+          subtitle: parents.map((parent) => parent.name).join(' / '),
+          name: block.name,
           pathname: `/blocks/${block.id}`,
           priority: 1,
         } satisfies FeatureData,
@@ -150,60 +159,43 @@
       })
 
       const iconStyle = new Style({
-        text: new Text({
-          font: `400 ${block.id === selectedBlock?.id ? 2.25 : 1.875}rem 'Font Awesome 6 Free'`,
-          text: '\uf111',
-          fill: new Fill({ color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444' }),
+        image: new CircleStyle({
+          fill: new Fill({ color: getBlockKey == null ? 'transparent' : '#ffffffaa' }),
+          radius: selectedBlock?.id === block.id ? 12 : 10,
+          stroke: new Stroke({
+            color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444',
+            width: selectedBlock?.id === block.id ? 3 : 2,
+          }),
         }),
-        zIndex: showBlocks ? 0 : -1,
-      })
-
-      const backgroundStyle = new Style({
-        text: new Text({
-          font: `900 ${block.id === selectedBlock?.id ? 2.25 : 1.875}rem 'Font Awesome 6 Free'`,
-          text: '\uf111',
-          fill: new Fill({ color: getBlockKey == null ? '#ffffff00' : '#ffffff88' }),
-        }),
-        zIndex: showBlocks ? 0 : -1,
-      })
-
-      const keyStyle = new Style(
-        getBlockKey == null
-          ? {}
-          : {
-              text: new Text({
+        text: new Text(
+          getBlockKey == null
+            ? {
+                backgroundFill: new Fill({ color: '#ffffff88' }),
+                fill: new Fill({ color: '#000' }),
+                offsetY: 25,
+                padding: [4, 2, 2, 4],
+                text: block.name,
+              }
+            : {
                 fill: new Fill({ color: '#ef4444' }),
-                font: '1.5rem system-ui',
                 text: String(getBlockKey(block, index)),
-              }),
-            },
-      )
+              },
+        ),
+        zIndex: showBlocks ? 0 : -1,
+      })
 
-      iconFeature.setStyle([iconStyle, backgroundStyle, keyStyle])
+      iconFeature.setStyle(iconStyle)
 
       return iconFeature
     }
   }
 
   const createParkingMarker = (parkingLocation: Geolocation) => {
-    // Create fallback URLs for different platforms
-    const coords = `${parkingLocation.lat},${parkingLocation.long}`
-    const geoUrl = `geo:${coords}`
-    const googleMapsUrl = `https://www.google.com/maps?q=${coords}`
-    const appleMapsUrl = `maps://maps.apple.com/?q=${coords}`
-
-    // Detect platform
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isAndroid = /Android/.test(navigator.userAgent)
-
-    // Choose appropriate URL
-    const navigationUrl = isIOS ? appleMapsUrl : isAndroid ? geoUrl : googleMapsUrl
-
     const iconFeature = new Feature({
       data: {
-        className: 'btn preset-filled-primary-500',
-        label: '<i class="fa-solid fa-diamond-turn-right"></i>Directions',
-        pathname: navigationUrl,
+        avatar: { icon: 'fa-solid fa-parking' },
+        geolocation: parkingLocation,
+        name: 'Parking',
         priority: 1,
       } satisfies FeatureData,
       geometry: new Point(fromLonLat([parkingLocation.long, parkingLocation.lat])),
@@ -211,7 +203,8 @@
 
     const iconStyle = new Style({
       text: new Text({
-        font: '900 2.25rem "Font Awesome 6 Free"',
+        backgroundFill: new Fill({ color: 'transparent' }),
+        font: '900 1.75rem "Font Awesome 6 Free"',
         text: '\uf540',
         fill: new Fill({ color: '#1e40af' }),
       }),
@@ -222,10 +215,46 @@
     return iconFeature
   }
 
-  const createSectorLayer = (
-    cragBlocks: NestedBlock[],
-    cragSource: VectorSource<Feature<Geometry>>,
-  ): Feature<Point>[] => {
+  const createSectorGeometry = (iconFeatures: Feature<Point>[]) => {
+    const sectorSource = new VectorSource<Feature<Geometry>>({ features: iconFeatures })
+    const extent = sectorSource.getExtent()
+    let geometry = fromExtent(extent)
+    let area = geometry.getArea()
+
+    if (area < 100) {
+      geometry = fromExtent([extent[0] - 10, extent[1] - 10, extent[2] + 10, extent[3] + 10])
+    }
+
+    geometry.scale(geometry.getArea() > 1000 ? 1.5 : 3)
+    return geometry
+  }
+
+  const createClusterStyle = (feature: FeatureLike) => {
+    const features = feature.get('features') as Feature[]
+
+    if (features.length === 1) {
+      const feature = features[0]
+      const style = feature.getStyle()
+      return typeof style === 'function' ? style(feature, 1) : style
+    }
+
+    const selected = features.some((feature) => feature.get('data')?.block?.id === selectedBlock?.id)
+
+    return new Style({
+      image: new CircleStyle({
+        fill: new Fill({ color: selected ? '#60a5fa' : '#ef4444' }),
+        radius: selected ? 12 : 10,
+        stroke: new Stroke({ color: '#fff' }),
+      }),
+      text: new Text({
+        fill: new Fill({ color: '#fff' }),
+        font: selected ? 'bold 14px sans-serif' : '12px sans-serif',
+        text: String(features.length),
+      }),
+    })
+  }
+
+  const createSectorMarkers = (cragBlocks: NestedBlock[]) => {
     const allSectors = cragBlocks
       .map((block) => findArea(block.area, 'sector').at(0))
       .filter((area) => area?.type === 'sector') as NestedBlock['area'][]
@@ -234,82 +263,120 @@
 
     if (sectors.length === 0) {
       return cragBlocks.map(createMarker).filter((d) => d != null) as Feature<Point>[]
-    } else {
-      return sectors.flatMap((sector) => {
-        const sectorBlocks = cragBlocks.filter((block) => findArea(block.area, 'sector').at(0)?.id === sector.id)
-        const iconFeatures = sectorBlocks.map(createMarker).filter((d) => d != null) as Feature<Point>[]
-        if (iconFeatures.length > 0) {
-          const parents = findArea(sector)
-
-          const sectorSource = new VectorSource<Feature<Geometry>>({ features: iconFeatures })
-          const extent = sectorSource.getExtent()
-          let geometry = fromExtent(extent)
-          let area = geometry.getArea()
-
-          if (area < 100) {
-            geometry = fromExtent([extent[0] - 10, extent[1] - 10, extent[2] + 10, extent[3] + 10])
-            area = geometry.getArea()
-          }
-
-          geometry.scale(geometry.getArea() > 1000 ? 1.5 : 3)
-
-          cragSource.addFeature(
-            new Feature({
-              data: {
-                label: parents.map((parent) => parent.name).join(' / '),
-                pathname: `/areas/${sector.id}`,
-                priority: 2,
-              } satisfies FeatureData,
-              geometry,
-              text: sector.name,
-            }),
-          )
-        }
-        return iconFeatures
-      })
     }
+
+    return sectors.flatMap((sector) => {
+      const sectorBlocks = cragBlocks.filter((block) => findArea(block.area, 'sector').at(0)?.id === sector.id)
+      return sectorBlocks.map(createMarker).filter((d) => d != null) as Feature<Point>[]
+    })
+  }
+
+  const createSectorBoundaries = (markers: Feature<Point>[], cragBlocks: NestedBlock[]) => {
+    const allSectors = cragBlocks
+      .map((block) => findArea(block.area, 'sector').at(0))
+      .filter((area) => area?.type === 'sector') as NestedBlock['area'][]
+    const sectorsMap = new Map(allSectors.map((area) => [area.id, area]))
+    const sectors = Array.from(sectorsMap.values())
+
+    if (sectors.length === 0) {
+      return []
+    }
+
+    return sectors.flatMap((sector) => {
+      // Get all blocks for this sector
+      const sectorBlocks = cragBlocks.filter((block) => findArea(block.area, 'sector').at(0)?.id === sector.id)
+
+      // Find markers that belong to this sector's blocks
+      const sectorMarkers = markers.filter((marker) => {
+        const markerData = marker.get('data') as FeatureData
+        return sectorBlocks.some((block) => markerData.pathname === `/blocks/${block.id}`)
+      })
+
+      if (sectorMarkers.length === 0) {
+        return []
+      }
+
+      const parents = findArea(sector)
+      const geometry = createSectorGeometry(sectorMarkers)
+
+      return [
+        new Feature({
+          data: {
+            name: sector.name,
+            pathname: `/areas/${sector.id}`,
+            priority: 2,
+            subtitle: parents
+              .map((parent) => parent.name)
+              .slice(0, -1)
+              .join(' / '),
+          } satisfies FeatureData,
+          geometry,
+          text: sector.name,
+        }),
+      ]
+    })
   }
 
   const createCragLayer = (map: OlMap, crag: NestedBlock['area']) => {
     const cragBlocks = blocks.filter((block) => findArea(block.area, 'crag').at(0)?.id === crag.id)
-    const vectorSource = new VectorSource<Feature<Geometry>>()
+    const markers = createSectorMarkers(cragBlocks)
 
-    const iconFeatures = createSectorLayer(cragBlocks, vectorSource)
-    vectorSource.addFeatures(iconFeatures)
-
-    if (iconFeatures.length > 0) {
-      const geometry = fromExtent(vectorSource.getExtent())
-      geometry.scale(geometry.getArea() > 1000 ? 1.5 : 3)
-      vectorSource.addFeature(
-        new Feature({
-          geometry,
-          text: crag.name,
-        }),
-      )
-
-      const vectorLayer = new VectorLayer({
-        properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
-        declutter: declutter ? crag.id : false,
-        source: vectorSource,
-
-        style: showAreas
-          ? {
-              'stroke-color': 'rgba(49, 57, 68, 1)',
-              'stroke-width': 1,
-              'fill-color': 'rgba(255, 255, 255, 0.2)',
-              'text-value': ['get', 'text'],
-              'text-font': 'bold 14px sans-serif',
-              'text-offset-y': -12,
-              'text-overflow': true,
-            }
-          : {
-              'stroke-color': 'transparent',
-              'fill-color': 'transparent',
-            },
-      })
-
-      map.addLayer(vectorLayer)
+    if (markers.length === 0) {
+      return
     }
+
+    // Create clustered markers layer
+    const vectorSource = new VectorSource<Feature<Geometry>>()
+    vectorSource.addFeatures(markers)
+
+    const clusterSource = new Cluster({
+      distance: 40,
+      minDistance: 20,
+      source: vectorSource,
+    })
+
+    const markersLayer = new VectorLayer({
+      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
+      source: declutter ? clusterSource : vectorSource,
+      style: declutter ? createClusterStyle : undefined,
+    })
+
+    // Create sector boundaries layer
+    const sectorFeatures = createSectorBoundaries(markers, cragBlocks)
+    const sectorsSource = new VectorSource<Feature<Geometry>>()
+    sectorsSource.addFeatures(sectorFeatures)
+
+    // Add crag boundary
+    const cragGeometry = createSectorGeometry(markers)
+    sectorsSource.addFeature(
+      new Feature({
+        geometry: cragGeometry,
+        text: crag.name,
+      }),
+    )
+
+    const sectorsLayer = new VectorLayer({
+      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
+      declutter,
+      source: sectorsSource,
+      style: showAreas
+        ? {
+            'stroke-color': 'rgba(49, 57, 68, 1)',
+            'stroke-width': 1,
+            'fill-color': 'rgba(255, 255, 255, 0.2)',
+            'text-value': ['get', 'text'],
+            'text-font': 'bold 14px sans-serif',
+            'text-offset-y': -12,
+            'text-overflow': true,
+          }
+        : {
+            'stroke-color': 'transparent',
+            'fill-color': 'transparent',
+          },
+    })
+
+    map.addLayer(sectorsLayer)
+    map.addLayer(markersLayer)
   }
 
   const createMarkers = (map: OlMap) => {
@@ -331,43 +398,19 @@
   }
 
   const createPopup = (map: OlMap) => {
-    const element = document.createElement('div')
-    element.className = 'bg-white rounded p-2 anchor z-10'
-    map.getTargetElement().appendChild(element)
-
-    const popup = new Overlay({
-      autoPan: {
-        animation: {
-          duration: 250,
-        },
-      },
-      element,
-      positioning: 'bottom-center',
-      stopEvent: false,
-    })
-
-    map.addOverlay(popup)
-
     map.on('click', function (event) {
       if (((event.originalEvent as Event).target as HTMLElement).tagName.toLowerCase() === 'a') {
         return
       }
 
-      const features = map
+      selectedFeatures = map
         .getFeaturesAtPixel(event.pixel)
+        .flatMap((feature) => (feature.get('features') as FeatureLike[] | undefined) ?? feature)
         .filter((feature) => feature.get('data')?.priority != null)
         .toSorted((a, b) => Number(a.get('data')?.priority) - Number(b.get('data')?.priority))
-      const feature = features.at(0)
-      const data = feature?.get('data') as FeatureData | undefined
-
-      if (data == null) {
-        popup.setPosition(undefined)
-      } else {
-        popup.setPosition(event.coordinate)
-        const target = data.pathname.startsWith('/') ? '_self' : '_blank'
-        const className = data.className ?? 'anchor'
-        element.innerHTML = `<a class="${className}" href="${data.pathname}" target="${target}">${data.label}</a>`
-      }
+        .map((feature) => feature.get('data') as FeatureData)
+        .filter(Boolean)
+        .slice(0, 5)
     })
 
     map.on('pointermove', function (event) {
@@ -378,13 +421,18 @@
       }
 
       const pixel = map.getEventPixel(event.originalEvent)
-      const features = map.getFeaturesAtPixel(pixel)
+      const features = map
+        .getFeaturesAtPixel(pixel)
+        .flatMap((feature) => (feature.get('features') as FeatureLike[] | undefined) ?? feature)
       const hit = features.some((feature) => feature.get('data')?.priority != null)
 
       target.style.cursor = hit ? 'pointer' : ''
     })
 
-    map.on('movestart', () => popup.setPosition(undefined))
+    map.on('movestart', () => {
+      layersIsVisible = false
+      selectedFeatures = []
+    })
   }
 
   const centerMap = (map: OlMap) => {
@@ -512,6 +560,8 @@
         {/if}
       </div>
     </div>
+
+    <Popup features={selectedFeatures} />
   </div>
 </div>
 
