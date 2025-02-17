@@ -127,6 +127,13 @@
       "when": 1739093561543,
       "tag": "0018_natural_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1739803457451,
+      "tag": "0019_harsh_maelstrom",
+      "breakpoints": true
     }
   ]
 }

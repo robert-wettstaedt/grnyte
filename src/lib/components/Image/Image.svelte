@@ -10,6 +10,8 @@
 
   let mediaHasError = $state(false)
 
+  let progressSize = $derived(size - size * 0.2)
+
   const mediaAction = (el: HTMLElement) => {
     const onError = () => (mediaHasError = true)
 
@@ -31,8 +33,8 @@
 {:else}
   <div class="relative">
     <div
-      class="absolute top-[8px] right-[8px] left-[8px] bottom-[8px]"
-      style="width: {size - 16}px; height: {size - 16}px;"
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      style="width: {progressSize}px; height: {progressSize}px;"
     >
       <ProgressRing size="size-full" value={null} />
     </div>

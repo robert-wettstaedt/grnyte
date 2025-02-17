@@ -11,9 +11,11 @@
   import Image from '$lib/components/Image'
   import References from '$lib/components/References'
   import RouteName from '$lib/components/RouteName'
+  import RoutesFilter from '$lib/components/RoutesFilter'
   import type { Block } from '$lib/db/schema'
+  import type { EnrichedBlock } from '$lib/db/utils'
   import { convertException } from '$lib/errors'
-  import { ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
   let { data } = $props()
@@ -193,6 +195,8 @@
         {/if}
 
         <Tabs.Control value="#map">Map</Tabs.Control>
+
+        <Tabs.Control value="#routes">Routes</Tabs.Control>
       {/snippet}
 
       {#snippet content()}
@@ -427,6 +431,46 @@
             </section>
           </Tabs.Panel>
         {/if}
+
+        <Tabs.Panel value="#routes">
+          <div class="mt-8">
+            <RoutesFilter />
+          </div>
+
+          <div class="mt-8 preset-filled-surface-100-900">
+            <GenericList items={data.routes.routes}>
+              {#snippet left(item)}
+                <div class="flex gap-2">
+                  <Image path="/blocks/{item.block.id}/preview-image" size={48} />
+
+                  <div class="flex flex-col gap-1">
+                    <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+                      {item.block.area.name} / {item.block.name}
+                    </p>
+
+                    <RouteName route={item} />
+                  </div>
+                </div>
+              {/snippet}
+            </GenericList>
+          </div>
+
+          <div class="my-8 flex justify-center">
+            <Pagination
+              buttonClasses="btn-sm md:btn-md px-3"
+              count={data.routes.pagination.total}
+              data={[]}
+              page={data.routes.pagination.page}
+              pageSize={data.routes.pagination.pageSize}
+              siblingCount={0}
+              onPageChange={(detail) => {
+                const url = new URL($page.url)
+                url.searchParams.set('page', String(detail.page))
+                goto(url)
+              }}
+            />
+          </div>
+        </Tabs.Panel>
       {/snippet}
     </Tabs>
   {/snippet}

@@ -231,6 +231,7 @@ export const routes = table(
     rating: integer('rating'),
     firstAscentYear: integer('first_ascent_year'),
 
+    areaFks: integer('area_fks').array(),
     blockFk: integer('block_fk')
       .notNull()
       .references((): AnyColumn => blocks.id),

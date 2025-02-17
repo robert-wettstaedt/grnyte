@@ -61,7 +61,7 @@
   <div class="flex justify-between mt-8">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 
-    <div>
+    <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
       <button class="btn preset-outlined-primary-500" formaction="?create-more=true" type="submit" disabled={loading}>
         {#if loading}
           <span class="me-2">
