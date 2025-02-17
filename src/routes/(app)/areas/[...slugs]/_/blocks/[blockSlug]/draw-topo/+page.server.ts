@@ -149,6 +149,14 @@ export const actions = {
         return exception as ActionFailure<AddTopoActionValues>
       }
 
+      const existingTopoRoute = await db.query.topoRoutes.findFirst({
+        where: and(eq(topoRoutes.routeFk, Number(values.routeFk)), eq(topoRoutes.topoFk, Number(values.topoFk))),
+      })
+
+      if (existingTopoRoute != null) {
+        return fail(400, { error: 'Topo for this route already exists' })
+      }
+
       await db
         .insert(topoRoutes)
         .values({ topType: 'topout', routeFk: Number(values.routeFk), topoFk: Number(values.topoFk) })
@@ -208,7 +216,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -250,9 +258,15 @@ export const actions = {
       if (topo.blockFk != null) {
         const remainingTopos = await db.query.topos.findMany({ where: eq(topos.blockFk, topo.blockFk!) })
         if (remainingTopos.length === 0) {
-          redirect(303, `/areas/${params.slugs}/_/blocks/${params.blockSlug}`)
+          return `/areas/${params.slugs}/_/blocks/${params.blockSlug}`
         }
       }
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

@@ -55,7 +55,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
 
       if (user == null) {
@@ -150,7 +150,8 @@ export const actions = {
       }
 
       // Construct the merged path for redirection
-      const mergedPath = [
+      return [
+        '',
         'areas',
         ...path,
         '_',
@@ -159,8 +160,12 @@ export const actions = {
         'routes',
         slug.length === 0 ? route.id : slug,
       ].join('/')
-      // Redirect to the new route's page
-      redirect(303, '/' + mergedPath)
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

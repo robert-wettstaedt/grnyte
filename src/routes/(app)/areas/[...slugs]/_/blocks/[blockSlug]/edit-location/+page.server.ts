@@ -53,7 +53,7 @@ export const actions = {
   updateLocation: async ({ locals, params, request }) => {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -128,8 +128,14 @@ export const actions = {
       }
 
       // Redirect to the block's page after a successful update
-      redirect(303, `/areas/${params.slugs}/_/blocks/${params.blockSlug}`)
+      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 
   removeGeolocation: async ({ locals, params }) => {
@@ -139,7 +145,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -186,7 +192,13 @@ export const actions = {
       }
 
       // Redirect to the block's page after a successful update
-      redirect(303, `/areas/${params.slugs}/_/blocks/${params.blockSlug}#map`)
+      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}#map`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

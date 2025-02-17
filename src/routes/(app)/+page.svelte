@@ -76,7 +76,7 @@
 {:else if data.userPermissions?.includes('data.read')}
   <div class="-m-[0.5rem] md:-m-[1rem]" use:fitHeightAction={{ paddingBottom: 0 }}>
     {#await import('$lib/components/BlocksMap') then BlocksMap}
-      <BlocksMap.default blocks={data.blocks} paddingBottom={0} />
+      <BlocksMap.default blocks={data.blocks} />
     {/await}
   </div>
 {:else}

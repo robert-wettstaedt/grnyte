@@ -88,7 +88,7 @@ export const load = (async ({ locals, params, parent, url }) => {
     const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
 
     // Process route description from markdown to HTML if description is present
-    const description = route.description == null ? null : await convertMarkdownToHtml(route.description)
+    const description = route.description == null ? null : await convertMarkdownToHtml(route.description, db)
 
     const feed = await loadFeed({ locals, url }, [
       or(

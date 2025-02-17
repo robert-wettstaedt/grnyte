@@ -82,7 +82,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -185,8 +185,14 @@ export const actions = {
       }
 
       // Redirect to the route edit page
-      redirect(303, `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${params.routeSlug}#info`)
+      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${params.routeSlug}#info`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 
   removeFirstAscent: async ({ locals, params }) => {
@@ -196,7 +202,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -263,7 +269,13 @@ export const actions = {
         return fail(400, { error: convertException(error) })
       }
 
-      redirect(303, `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${params.routeSlug}#info`)
+      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${params.routeSlug}#info`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

@@ -1,0 +1,2 @@
+CREATE POLICY "data.edit can delete topo_routes" ON "topo_routes" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize('data.edit')));--> statement-breakpoint
+CREATE POLICY "data.edit can delete topos" ON "topos" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize('data.edit')));

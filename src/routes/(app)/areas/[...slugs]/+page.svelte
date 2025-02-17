@@ -350,7 +350,7 @@
                       {#if item.routes.length === 0}
                         <div class="flex items-center gap-2 px-2 md:px-4 py-3">
                           {#if item.topos?.[0]?.file?.path != null}
-                            <Image path={item.topos?.[0]?.file?.path} size={32} />
+                            <Image path="/nextcloud{item.topos?.[0]?.file?.path}/preview" size={48} />
                           {/if}
 
                           <div class="w-[calc(100%-64px)]">No routes yet</div>
@@ -367,7 +367,7 @@
                         >
                           {#snippet left(route)}
                             <div class="flex items-center gap-2">
-                              <Image path={route.topo?.file?.path} size={32} />
+                              <Image path="/nextcloud{route.topo?.file?.path}/preview" size={48} />
 
                               <div class="w-[calc(100%-64px)]">
                                 <RouteName {route} />

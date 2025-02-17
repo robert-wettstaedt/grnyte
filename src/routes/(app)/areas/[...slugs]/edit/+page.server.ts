@@ -44,7 +44,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       // Convert the area slug to get the areaId
       const { areaId } = convertAreaSlug(params)
 
@@ -110,8 +110,14 @@ export const actions = {
       }
 
       // Redirect to the updated area page
-      redirect(303, `/areas/${params.slugs}`)
+      return `/areas/${params.slugs}`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 
   removeArea: async ({ locals, params }) => {
@@ -121,7 +127,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -180,7 +186,13 @@ export const actions = {
       }
 
       const slugs = params.slugs.split('/').slice(0, -1).join('/')
-      redirect(303, `/areas/${slugs}`)
+      return `/areas/${slugs}`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

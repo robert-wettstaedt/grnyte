@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
+  import { applyAction, enhance } from '$app/forms'
   import { invalidate } from '$app/navigation'
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -95,15 +95,17 @@
                     method="POST"
                     action="?/removeTopo"
                     use:enhance={() => {
-                      return ({ update }) => {
+                      return async ({ update, result }) => {
                         selectedTopoIndex = 0
                         $selectedRouteStore = null
                         invalidate($page.url)
-                        return update()
+
+                        await update()
+                        return applyAction(result)
                       }
                     }}
                   >
-                    <input hidden name="id" value={topos[selectedTopoIndex].id} />
+                    <input hidden name="id" value={topos[selectedTopoIndex]?.id} />
                     <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
                   </form>
                 </footer>
@@ -167,31 +169,29 @@
                   }
                 }}
               >
-                <input hidden name="routeFk" value={form?.routeFk ?? $selectedRouteStore} />
-                <input hidden name="topoFk" value={form?.topoFk ?? topos[selectedTopoIndex].id} />
+                <input hidden name="routeFk" value={$selectedRouteStore} />
+                <input hidden name="topoFk" value={topos[selectedTopoIndex].id} />
                 <input
                   hidden
                   name="id"
-                  value={form?.id ??
-                    topos.flatMap((topo) => topo.routes).find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)
-                      ?.id}
+                  value={topos
+                    .flatMap((topo) => topo.routes)
+                    .find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)?.id}
                 />
                 <input
                   hidden
                   name="topType"
-                  value={form?.topType ??
-                    topos.flatMap((topo) => topo.routes).find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)
-                      ?.topType}
+                  value={topos
+                    .flatMap((topo) => topo.routes)
+                    .find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)?.topType}
                 />
                 <input
                   hidden
                   name="path"
-                  value={form?.path ??
-                    convertPointsToPath(
-                      topos
-                        .flatMap((topo) => topo.routes)
-                        .find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)?.points ?? [],
-                    )}
+                  value={convertPointsToPath(
+                    topos.flatMap((topo) => topo.routes).find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)
+                      ?.points ?? [],
+                  )}
                 />
 
                 <button aria-label="Save" class="btn variant-soft-primary" disabled={isSaving} type="submit">
@@ -258,8 +258,8 @@
                 }
               }}
             >
-              <input hidden name="routeFk" value={form?.routeFk ?? $selectedRouteStore} />
-              <input hidden name="topoFk" value={form?.topoFk ?? topos[selectedTopoIndex].id} />
+              <input hidden name="routeFk" value={$selectedRouteStore} />
+              <input hidden name="topoFk" value={topos[selectedTopoIndex].id} />
 
               <button aria-label="Add topo" class="btn" disabled={isAdding} type="submit">
                 {#if isAdding}

@@ -25,17 +25,19 @@ export const actions = {
       return fail(400, { email: data.email, username: data.username, error: 'User with username already exists' })
     }
 
-    const usernameRegex = /[\\da-z][-\\da-z_]{0,38}/
+    const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
     const match = data.username.match(usernameRegex)
     if (match?.[0] == null) {
       return fail(400, { email: data.email, username: data.username, error: 'Invalid username' })
     }
 
     if (match[0].length !== data.username.length) {
+      const character = match[0][0] === data.username[0] ? data.username[match[0].length] : data.username[0]
+
       return fail(400, {
         email: data.email,
         username: data.username,
-        error: `Username cannot contain character "${data.username[match[0].length]}"`,
+        error: `Username cannot contain character "${character}"`,
       })
     }
 

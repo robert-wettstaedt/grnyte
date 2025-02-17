@@ -40,7 +40,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -108,8 +108,14 @@ export const actions = {
         return fail(404, { ...values, error: convertException(exception) })
       }
 
-      redirect(303, `/areas/${params.slugs}`)
+      return `/areas/${params.slugs}`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 
   removeParkingLocation: async ({ locals, params }) => {
@@ -119,7 +125,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -152,7 +158,13 @@ export const actions = {
         return fail(404, { error: convertException(error) })
       }
 
-      redirect(303, `/areas/${params.slugs}`)
+      return `/areas/${params.slugs}`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

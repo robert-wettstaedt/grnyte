@@ -48,4 +48,4 @@
   }
 </script>
 
-<BlocksMap {blocks} heightSubtrahend={74} {selectedArea} {selectedBlock} on:action={onAction} />
+<BlocksMap {blocks} {selectedArea} {selectedBlock} on:action={onAction} />

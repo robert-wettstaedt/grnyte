@@ -48,7 +48,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -130,8 +130,13 @@ export const actions = {
       }
 
       // Redirect to the newly created block's page
-      const mergedPath = ['areas', ...path, '_', 'blocks', slug].join('/')
-      redirect(303, '/' + mergedPath)
+      return ['', 'areas', ...path, '_', 'blocks', slug].join('/')
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

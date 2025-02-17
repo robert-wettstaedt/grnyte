@@ -24,18 +24,25 @@
 </script>
 
 {#if path == null || mediaHasError}
-  <i class="fa-solid fa-image w-12 h-12 flex items-center justify-center text-white text-[3rem]"></i>
+  <i
+    class="fa-solid fa-image flex items-center justify-center text-white text-[3rem]"
+    style="width: {size}px; height: {size}px;"
+  ></i>
 {:else}
   <div class="relative">
-    <div class="absolute top-0 right-0">
-      <ProgressRing size="size-12" value={null} />
+    <div
+      class="absolute top-[8px] right-[8px] left-[8px] bottom-[8px]"
+      style="width: {size - 16}px; height: {size - 16}px;"
+    >
+      <ProgressRing size="size-full" value={null} />
     </div>
 
     <img
       alt=""
-      class="w-12 h-12 z-0 relative"
+      class="z-0 relative"
       loading="lazy"
-      src="/nextcloud{path}/preview?x={size}&y={size}&mimeFallback=true&a=0"
+      src="{path}?x={size}&y={size}&mimeFallback=true&a=0"
+      style="width: {size}px; height: {size}px;"
       use:mediaAction
     />
   </div>

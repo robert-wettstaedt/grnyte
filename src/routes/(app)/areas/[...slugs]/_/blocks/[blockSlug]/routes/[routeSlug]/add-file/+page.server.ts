@@ -62,7 +62,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
@@ -133,10 +133,13 @@ export const actions = {
       }
 
       // Redirect to the specified URL after successful insertion
-      redirect(
-        303,
-        `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${route.slug.length === 0 ? route.id : route.slug}#info`,
-      )
+      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${route.slug.length === 0 ? route.id : route.slug}#info`
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

@@ -43,7 +43,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       // Get the form data from the request
       const data = await request.formData()
       let values: AreaActionValues
@@ -112,9 +112,13 @@ export const actions = {
       }
 
       // Construct the merged path for the new area
-      const mergedPath = ['areas', ...path, `${slug}-${createdArea?.id}`].join('/')
-      // Redirect to the new area path
-      redirect(303, '/' + mergedPath)
+      return ['', 'areas', ...path, `${slug}-${createdArea?.id}`].join('/')
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

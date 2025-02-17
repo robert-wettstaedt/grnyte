@@ -35,7 +35,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       // Get the form data from the request
       const data = await request.formData()
       let values: TagActionValues
@@ -66,7 +66,13 @@ export const actions = {
       }
 
       // Redirect to the new area path
-      redirect(303, '/tags')
+      return '/tags'
     })
+
+    if (typeof returnValue === 'string') {
+      redirect(303, returnValue)
+    }
+
+    return returnValue
   },
 }

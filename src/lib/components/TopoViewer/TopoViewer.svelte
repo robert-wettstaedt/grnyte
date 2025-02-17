@@ -20,6 +20,7 @@
   import * as d3 from 'd3'
   import { onMount, type Snippet } from 'svelte'
   import type { ChangeEventHandler, MouseEventHandler } from 'svelte/elements'
+  import { slide } from 'svelte/transition'
   import Labels from './components/Labels'
   import RouteView from './components/Route'
   import { highlightedRouteStore, selectedPointTypeStore, selectedRouteStore } from './stores'
@@ -426,9 +427,10 @@
 
   {#if selectedTopoRoute?.route != null && selectedTopoRoute.route.id !== initialRouteId}
     <a
-      class="anchor absolute z-20 bg-primary-50 px-3 py-2 rounded shadow top-1 z-30 text-overflow-ellipsis whitespace-nowrap overflow-hidden max-w-full topo-controls"
+      class="absolute z-30 bg-primary-50-950 p-2 rounded shadow bottom-1 left-1 right-1 text-overflow-ellipsis whitespace-nowrap overflow-hidden topo-controls"
       href={`/routes/${selectedTopoRoute.route.id}`}
       onclick={() => (isFullscreen ? onToggleFullscreen() : undefined)}
+      transition:slide={{ duration: 100 }}
     >
       <RouteName route={selectedTopoRoute.route} />
     </a>
