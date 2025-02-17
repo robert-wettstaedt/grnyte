@@ -12,6 +12,7 @@
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
   import References from '$lib/components/References'
+  import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { highlightedRouteStore, selectedRouteStore } from '$lib/components/TopoViewer'
   import { Popover, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
@@ -51,6 +52,16 @@
   }
 
   const hasActions = $derived(data.userPermissions?.includes(EDIT_PERMISSION) || data.route.externalResources != null)
+
+  const gradeMap = $derived.by(() => {
+    return data.route.ascents
+      .filter((ascent) => ascent.gradeFk != null)
+      .reduce((map, ascent) => {
+        const count = map.get(ascent.gradeFk!) ?? 0
+        map.set(ascent.gradeFk!, count + 1)
+        return map
+      }, new Map<number, number>())
+  })
 </script>
 
 <svelte:head>
@@ -342,6 +353,39 @@
                         <i class="fa-solid fa-tag me-2"></i>
                         {tag.tagFk}
                       </span>
+                    {/each}
+                  </dd>
+                </span>
+              </div>
+            {/if}
+
+            {#if gradeMap.size > 0}
+              <div class="flex p-2">
+                <span class="flex-auto">
+                  <dt>Grade opinions</dt>
+                  <dd class="flex flex-col gap-2 mt-1">
+                    {#if data.route.gradeFk != null}
+                      <div class="flex items-center w-full">
+                        <div class="w-28">
+                          <CorrectedGrade oldGrade={data.route.gradeFk} newGrade={null} />
+                        </div>
+
+                        <span class="text-sm text-surface-500"> Original grade </span>
+                      </div>
+                    {/if}
+
+                    {#each gradeMap.entries() as [grade, count]}
+                      {#if count != null}
+                        <div class="flex items-center w-full">
+                          <div class="w-28">
+                            <CorrectedGrade oldGrade={grade} newGrade={null} />
+                          </div>
+
+                          <span class="text-sm text-surface-500">
+                            {count}x
+                          </span>
+                        </div>
+                      {/if}
                     {/each}
                   </dd>
                 </span>

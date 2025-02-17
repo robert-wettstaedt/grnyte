@@ -3,7 +3,7 @@ import type { InferResultType } from '$lib/db/types'
 import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import { error } from '@sveltejs/kit'
-import { eq, SQL } from 'drizzle-orm'
+import { eq, isNotNull, or, SQL } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 /**
@@ -60,5 +60,45 @@ export const getUser = async (
         },
       },
     })
+  }
+}
+
+export const updateRoutesUserData = async (routeFk: number, db: PostgresJsDatabase<typeof schema>) => {
+  const route = await db.query.routes.findFirst({
+    where: eq(schema.routes.id, routeFk),
+    with: {
+      ascents: {
+        where: or(isNotNull(schema.ascents.gradeFk), isNotNull(schema.ascents.rating)),
+      },
+    },
+  })
+
+  if (route == null) {
+    return null
+  }
+
+  const getMean = (key: 'gradeFk' | 'rating') => {
+    const ascents = route.ascents.filter((ascent) => ascent[key] != null)
+
+    let sum = ascents.reduce((sum, ascent) => sum + ascent[key]!, 0)
+    let length = ascents.length
+
+    if (route[key] != null) {
+      sum += route[key]
+      length += 1
+    }
+
+    if (length === 0) {
+      return null
+    }
+
+    return Math.round(sum / length)
+  }
+
+  const userGradeFk = getMean('gradeFk')
+  const userRating = getMean('rating')
+
+  if (userGradeFk !== route.userGradeFk || userRating !== route.userRating) {
+    await db.update(schema.routes).set({ userGradeFk, userRating }).where(eq(schema.routes.id, route.id))
   }
 }

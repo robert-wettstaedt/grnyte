@@ -230,6 +230,7 @@ export const routes = table(
     description: text('description'),
     rating: integer('rating'),
     firstAscentYear: integer('first_ascent_year'),
+    userRating: integer('user_rating'),
 
     areaFks: integer('area_fks').array(),
     blockFk: integer('block_fk')
@@ -237,6 +238,7 @@ export const routes = table(
       .references((): AnyColumn => blocks.id),
     externalResourcesFk: integer('external_resources_fk').references((): AnyColumn => routeExternalResources.id),
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),
+    userGradeFk: integer('user_grade_fk').references((): AnyColumn => grades.id),
   },
   (table) => [
     ...createBasicTablePolicies('routes'),
@@ -495,6 +497,7 @@ export const ascents = table(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
     notes: text('notes'),
+    rating: integer('rating'),
     type: text('type', { enum: ascentTypeEnum }).notNull(),
 
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),

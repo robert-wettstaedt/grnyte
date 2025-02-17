@@ -6,7 +6,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, files } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
-import { getUser } from '$lib/helper.server'
+import { getUser, updateRoutesUserData } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
@@ -89,6 +89,8 @@ export const actions = {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { folderName, ...rest } = values
 
+        await updateRoutesUserData(ascent.route.id, db)
+
         await createUpdateActivity({
           db,
           entityId: ascent.id,
@@ -169,6 +171,8 @@ export const actions = {
         await db.delete(ascents).where(eq(ascents.id, ascent.id))
         const filesToDelete = await db.delete(files).where(eq(files.ascentFk, ascent.id)).returning()
         await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+
+        await updateRoutesUserData(ascent.routeFk, db)
 
         await db.insert(activities).values({
           type: 'deleted',

@@ -158,6 +158,7 @@ export const ascentActionSchema = z.intersection(
     filePaths: z.array(z.string()).optional(),
     gradeFk: z.number().optional(),
     notes: z.string().optional(),
+    rating: z.number().min(1).max(3).optional(),
     type: z.enum(ascentTypeEnum),
   }),
   addOptionalFileActionSchema,

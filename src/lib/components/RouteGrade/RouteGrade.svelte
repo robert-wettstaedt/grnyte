@@ -6,19 +6,18 @@
   type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
   interface Props {
-    route: Partial<Pick<RouteWithAscents, 'ascents' | 'gradeFk'>> | undefined
+    route: Partial<Pick<RouteWithAscents, 'ascents' | 'gradeFk' | 'userGradeFk'>> | undefined
   }
 
   let { route }: Props = $props()
 
-  const send = $derived(route?.ascents?.find((ascent) => ascent.type === 'send'))
-
-  const routeGradeConfig = $derived(
-    $page.data.grades.find((grade) => (route == null ? false : grade.id === route?.gradeFk)),
-  )
-  const ascentGradeConfig = $derived(
-    $page.data.grades.find((grade) => (route == null || route.ascents == null ? false : grade.id === send?.gradeFk)),
+  const send = $derived(
+    route?.ascents
+      ?.filter((ascent) => String(ascent.createdBy) === String($page.data.user!.id))
+      .find((ascent) => ascent.type === 'send'),
   )
 </script>
 
-<CorrectedGrade oldGrade={route?.gradeFk} newGrade={send?.gradeFk} />
+{#if (route?.userGradeFk ?? route?.gradeFk ?? send?.gradeFk) != null}
+  <CorrectedGrade oldGrade={route?.userGradeFk ?? route?.gradeFk} newGrade={send?.gradeFk} />
+{/if}
