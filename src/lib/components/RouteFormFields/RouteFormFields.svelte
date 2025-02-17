@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { page } from '$app/stores'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
-  import RouteExternalResourceLinks from '$lib/components/RouteExternalResourceLinks'
-  import type { InsertRoute, Route, Tag } from '$lib/db/schema'
-  import type { InferResultType } from '$lib/db/types'
-  import { Rating } from '@skeletonlabs/skeleton-svelte'
-  import type { ChangeEventHandler } from 'svelte/elements'
+  import RatingFormField from '$lib/components/RatingFormField'
+  import type { Route, Tag } from '$lib/db/schema'
+  import GradeFormField from './components/GradeFormField'
+  import RouteNameFormField from './components/RouteNameFormField'
 
   interface Props {
     blockId: number
@@ -18,7 +16,6 @@
   }
 
   let {
-    blockId,
     description = $bindable(),
     gradeFk = $bindable(),
     name = $bindable(),
@@ -26,68 +23,13 @@
     routeTags,
     tags,
   }: Props = $props()
-
-  let routeExternalResources:
-    | InferResultType<
-        'routeExternalResources',
-        { externalResource8a: true; externalResource27crags: true; externalResourceTheCrag: true }
-      >
-    | undefined = $state()
-
-  let loading = $state(false)
-
-  const onChangeName: ChangeEventHandler<HTMLInputElement> = async (event) => {
-    loading = true
-    const searchParams = new URLSearchParams({
-      blockId: blockId.toString(),
-      query: event.currentTarget.value,
-    })
-    const response = await fetch(`/api/search-external?${searchParams.toString()}`)
-    const { route, ...rest } = (await response.json()) as {
-      route: InsertRoute
-      routeExternalResources: InferResultType<
-        'routeExternalResources',
-        { externalResource8a: true; externalResource27crags: true; externalResourceTheCrag: true }
-      >
-    }
-
-    name = route.name ?? null
-    gradeFk = route.gradeFk ?? null
-    rating = route.rating ?? undefined
-    description = route.description ?? null
-
-    routeExternalResources = rest.routeExternalResources
-    loading = false
-  }
 </script>
 
-<p>Name</p>
-<div class="input-group input-group-divider grid-cols-[1fr_auto]">
-  <input class="input" name="name" type="text" placeholder="Enter name..." value={name} />
+<RouteNameFormField bind:value={name} />
 
-  {#if loading}
-    <div class="btn-icon">
-      <i class="fa-solid fa-spinner fa-spin"></i>
-    </div>
-  {/if}
-</div>
+<GradeFormField bind:value={gradeFk} />
 
-{#if routeExternalResources != null}
-  <div class="mt-4">
-    <RouteExternalResourceLinks iconSize={24} {routeExternalResources} />
-  </div>
-{/if}
-
-<label class="label mt-4">
-  <span>Grade</span>
-  <select class="select" name="gradeFk" value={gradeFk ?? ''}>
-    <option disabled value="">-- Select grade --</option>
-
-    {#each $page.data.grades as grade}
-      <option value={grade.id}>{grade[$page.data.gradingScale]}</option>
-    {/each}
-  </select>
-</label>
+<RatingFormField bind:value={rating} />
 
 <label class="label mt-4">
   <span>Description</span>
@@ -95,20 +37,6 @@
 
   <MarkdownEditor bind:value={description} />
 </label>
-
-<label class="label mt-4">
-  <span>Rating</span>
-  <input name="rating" type="hidden" value={rating} />
-</label>
-
-<Rating bind:value={rating} count={3}>
-  {#snippet iconEmpty()}
-    <i class="fa-regular fa-star text-3xl text-warning-500"></i>
-  {/snippet}
-  {#snippet iconFull()}
-    <i class="fa-solid fa-star text-3xl text-warning-500"></i>
-  {/snippet}
-</Rating>
 
 <label class="label mt-4">
   <span>Tags</span>

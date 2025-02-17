@@ -5,7 +5,7 @@ import { activities, ascents, blocks, type Ascent } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { checkExternalSessions, logExternalAscent } from '$lib/external-resources/index.server'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
+import { convertAreaSlug, getRouteDbFilter, getUser, updateRoutesUserData } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -113,6 +113,10 @@ export const actions = {
           .values({ ...values, routeFk: route.id, createdBy: user.id })
           .returning()
         ascent = results[0]
+
+        if (values.gradeFk != null || values.rating != null) {
+          await updateRoutesUserData(route.id, db)
+        }
 
         await db.insert(activities).values({
           type: 'created',

@@ -40,13 +40,16 @@
       <AscentTypeLabel includeText={false} type={lastAscent.type} />
     {/if}
 
-    {#if route.gradeFk != null}
-      <RouteGrade {route} />
-    {/if}
+    <RouteGrade {route} />
 
-    {#if route.rating != null}
+    {#if (route.userRating ?? route.rating) != null}
       <div>
-        <Rating count={3} readOnly value={route.rating} controlClasses="!gap-0  text-xs md:text-sm">
+        <Rating
+          count={3}
+          readOnly
+          value={(route.userRating ?? route.rating)!}
+          controlClasses="!gap-0 text-xs md:text-sm"
+        >
           {#snippet iconFull()}
             <i class="fa-solid fa-star text-warning-500"></i>
           {/snippet}

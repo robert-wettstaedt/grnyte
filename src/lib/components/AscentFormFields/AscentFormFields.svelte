@@ -4,6 +4,7 @@
   import type { FileUploadProps } from '$lib/components/FileUpload'
   import FileUpload from '$lib/components/FileUpload'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
+  import RatingFormField from '$lib/components/RatingFormField'
   import type { Ascent } from '$lib/db/schema'
   import { DateTime } from 'luxon'
 
@@ -12,11 +13,22 @@
     fileUploadProps: FileUploadProps
     gradeFk: Ascent['gradeFk']
     notes: Ascent['notes']
+    rating: NonNullable<Ascent['rating']> | undefined
     type: Ascent['type'] | null
   }
 
-  let { dateTime, gradeFk, notes, type, fileUploadProps }: Props = $props()
+  let { dateTime, gradeFk, notes, rating, type, fileUploadProps }: Props = $props()
 </script>
+
+<label class="label mt-4">
+  <span>Type</span>
+  <select class="select max-h-[300px] overflow-auto" name="type" size="4" bind:value={type}>
+    <option value="flash"><AscentTypeLabel type="flash" /></option>
+    <option value="send"><AscentTypeLabel type="send" /></option>
+    <option value="repeat"><AscentTypeLabel type="repeat" /></option>
+    <option value="attempt"><AscentTypeLabel type="attempt" /></option>
+  </select>
+</label>
 
 <label class="label mt-4">
   <span>Grade</span>
@@ -29,15 +41,7 @@
   </select>
 </label>
 
-<label class="label mt-4">
-  <span>Type</span>
-  <select class="select max-h-[300px] overflow-auto" name="type" size="4" value={type}>
-    <option value="flash"><AscentTypeLabel type="flash" /></option>
-    <option value="send"><AscentTypeLabel type="send" /></option>
-    <option value="repeat"><AscentTypeLabel type="repeat" /></option>
-    <option value="attempt"><AscentTypeLabel type="attempt" /></option>
-  </select>
-</label>
+<RatingFormField bind:value={rating} />
 
 <label class="label mt-4">
   <span>Date</span>
