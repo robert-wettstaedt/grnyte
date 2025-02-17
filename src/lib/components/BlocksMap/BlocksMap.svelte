@@ -1,7 +1,6 @@
 <script lang="ts" module>
   export interface FeatureData {
     avatar?: { src?: string; icon?: string }
-    block?: NestedBlock
     className?: string
     geolocation?: Geolocation
     name: string
@@ -33,6 +32,7 @@
   import CircleStyle from 'ol/style/Circle'
   import { createEventDispatcher } from 'svelte'
   import type { GetBlockKey, NestedBlock } from '.'
+  import Geolocate from './components/Geolocate'
   import Layers, { type Layer } from './components/Layers'
   import Popup from './components/Popup'
 
@@ -71,7 +71,7 @@
   const dispatch = createEventDispatcher<{ action: OlMap; rendercomplete: void }>()
 
   let mapElement: HTMLDivElement | null = null
-  let map: OlMap | null = null
+  let map: OlMap | null = $state(null)
 
   let selectedFeatures: FeatureData[] = $state([])
 
@@ -148,7 +148,6 @@
       const iconFeature = new Feature({
         data: {
           avatar: { src: `/blocks/${block.id}/preview-image` },
-          block,
           geolocation: block.geolocation,
           subtitle: parents.map((parent) => parent.name).join(' / '),
           name: block.name,
@@ -238,7 +237,9 @@
       return typeof style === 'function' ? style(feature, 1) : style
     }
 
-    const selected = features.some((feature) => feature.get('data')?.block?.id === selectedBlock?.id)
+    const selected = features.some(
+      (feature) => (feature.get('data') as FeatureData | undefined)?.pathname === `/blocks/${selectedBlock?.id}`,
+    )
 
     return new Style({
       image: new CircleStyle({
@@ -559,6 +560,10 @@
           <Layers {layers} onChange={onChangeRelief} />
         {/if}
       </div>
+
+      <div class="ol-control ol-geolocate">
+        <Geolocate {map} />
+      </div>
     </div>
 
     <Popup features={selectedFeatures} />
@@ -608,8 +613,18 @@
     );
   }
 
+  .ol-geolocate {
+    right: var(--ol-control-margin);
+    top: calc(
+      var(--ol-control-margin) + var(--ol-control-height) + var(--ol-control-height) + var(--ol-control-margin) +
+        var(--ol-control-height) + var(--ol-control-margin) + var(--ol-control-height) + var(--ol-control-margin) +
+        var(--ol-control-height) + var(--ol-control-margin)
+    );
+  }
+
   @media print {
     .ol-layers,
+    .ol-geolocate,
     :global(.ol-zoom),
     :global(.ol-full-screen),
     :global(.ol-rotate) {

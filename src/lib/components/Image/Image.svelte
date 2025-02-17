@@ -30,7 +30,10 @@
   ></i>
 {:else}
   <div class="relative">
-    <div class="absolute top-0 right-0" style="width: {size}px; height: {size}px;">
+    <div
+      class="absolute top-[8px] right-[8px] left-[8px] bottom-[8px]"
+      style="width: {size - 16}px; height: {size - 16}px;"
+    >
       <ProgressRing size="size-full" value={null} />
     </div>
 

@@ -23,8 +23,6 @@
 
     return isIOS ? appleMapsUrl : isAndroid ? geoUrl : googleMapsUrl
   })
-
-  console.log(feature)
 </script>
 
 <div class="h-20 bg-primary-50-950 overflow-hidden text-primary-50 shadow-lg rounded">
