@@ -437,21 +437,27 @@
             <RoutesFilter />
           </div>
 
-          <div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900">
-            <GenericList
-              items={data.routes.routes}
-              rightContent={(item) => item.block.name}
-              rightPathname={(item) => (item.block as EnrichedBlock).pathname}
-            >
+          <div class="mt-8 preset-filled-surface-100-900">
+            <GenericList items={data.routes.routes}>
               {#snippet left(item)}
-                <RouteName route={item} />
+                <div class="flex gap-2">
+                  <Image path="/blocks/{item.block.id}/preview-image" size={48} />
+
+                  <div class="flex flex-col gap-1">
+                    <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+                      {item.block.area.name} / {item.block.name}
+                    </p>
+
+                    <RouteName route={item} />
+                  </div>
+                </div>
               {/snippet}
             </GenericList>
           </div>
 
-          <div class="my-8 flex justify-end">
+          <div class="my-8 flex justify-center">
             <Pagination
-              buttonClasses="btn-sm md:btn-md"
+              buttonClasses="btn-sm md:btn-md px-3"
               count={data.routes.pagination.total}
               data={[]}
               page={data.routes.pagination.page}

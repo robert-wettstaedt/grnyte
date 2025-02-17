@@ -1,4 +1,5 @@
 import { getStatsOfArea, nestedAreaQuery } from '$lib/blocks.server'
+import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, ascents, blocks, routes } from '$lib/db/schema'
 import { enrichTopo, sortRoutesByTopo } from '$lib/db/utils'
@@ -8,11 +9,8 @@ import { getReferences } from '$lib/references.server'
 import { error, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
-import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
 
 export const load = (async (event) => {
-  const filteredRoutes = await routesFilterLoad(event)
-
   const { locals, parent } = event
 
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -20,6 +18,8 @@ export const load = (async (event) => {
   return await rls(async (db) => {
     // Retrieve the areaId from the parent context
     const { areaSlug, areaId, grades, path, user } = await parent()
+
+    const filteredRoutes = await routesFilterLoad(event, areaId)
 
     // Query the database for areas with the specified areaId
     const areasResult = await db.query.areas.findMany({

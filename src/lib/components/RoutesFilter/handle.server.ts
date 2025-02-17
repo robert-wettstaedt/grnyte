@@ -5,7 +5,7 @@ import { validateObject } from '$lib/forms.server'
 import { getUser } from '$lib/helper.server'
 import { getPaginationQuery, paginationParamsSchema, type PaginatedData } from '$lib/pagination.server'
 import type { RequestEvent } from '@sveltejs/kit'
-import { and, asc, count, eq, gte, lte, sql } from 'drizzle-orm'
+import { and, asc, count, eq, gte, arrayContains, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 const searchParamsSchema = z.intersection(
@@ -18,11 +18,12 @@ const searchParamsSchema = z.intersection(
   paginationParamsSchema,
 )
 
-const getQueryOpts = (searchParams: z.infer<typeof searchParamsSchema>) => {
+const getQueryOpts = (searchParams: z.infer<typeof searchParamsSchema>, areaId?: number) => {
   let orderBy = [asc(routes.id)]
   const where = [
-    searchParams.minGrade != null ? gte(routes.gradeFk, searchParams.minGrade) : undefined,
-    searchParams.maxGrade != null ? lte(routes.gradeFk, searchParams.maxGrade) : undefined,
+    searchParams.minGrade == null ? undefined : gte(routes.gradeFk, searchParams.minGrade),
+    searchParams.maxGrade == null ? undefined : lte(routes.gradeFk, searchParams.maxGrade),
+    areaId == null ? undefined : arrayContains(routes.areaFks, [areaId]),
   ]
 
   switch (searchParams.sort) {
@@ -61,7 +62,10 @@ const getQueryOpts = (searchParams: z.infer<typeof searchParamsSchema>) => {
 
 type Route = EnrichedRoute & { ascents: Ascent[] }
 
-export const load = async ({ locals, url }: RequestEvent): Promise<PaginatedData<{ routes: Route[] }>> => {
+export const load = async (
+  { locals, url }: RequestEvent,
+  areaId?: number,
+): Promise<PaginatedData<{ routes: Route[] }>> => {
   const db = await createDrizzleSupabaseClient(locals.supabase)
 
   return await db(async (db) => {
@@ -70,7 +74,7 @@ export const load = async ({ locals, url }: RequestEvent): Promise<PaginatedData
     const searchParamsObj = Object.fromEntries(url.searchParams.entries())
     const searchParams = await validateObject(searchParamsSchema, searchParamsObj)
 
-    const opts = getQueryOpts(searchParams)
+    const opts = getQueryOpts(searchParams, areaId)
 
     const routesResult = await db.query.routes.findMany({
       ...getPaginationQuery(searchParams),

@@ -2,6 +2,8 @@ import { EDIT_PERMISSION } from '$lib/auth'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, generateSlug, routes, routesToTags, type Route } from '$lib/db/schema'
+import type { InferResultType } from '$lib/db/types'
+import { buildNestedAreaQuery } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { routeActionSchema, validateFormData, type ActionFailure, type RouteActionValues } from '$lib/forms.server'
 import { convertAreaSlug, getUser } from '$lib/helper.server'
@@ -81,12 +83,23 @@ export const actions = {
       // Query the database to find the first block matching the given slug and areaId
       const block = await db.query.blocks.findFirst({
         where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
+        with: {
+          area: buildNestedAreaQuery(),
+        },
       })
 
       // If no block is found, return a 400 error with a message
       if (block == null) {
         return fail(400, { ...values, error: `Parent not found ${params.blockSlug}` })
       }
+
+      const areaFks: number[] = [block.areaFk]
+      let current = block.area as InferResultType<'areas', { parent: true }> | null
+      while (current?.parent != null) {
+        areaFks.push(current.parent.id)
+        current = current.parent as InferResultType<'areas', { parent: true }> | null
+      }
+      areaFks.reverse()
 
       values.rating = values.rating == null || String(values.rating).length === 0 ? undefined : values.rating
 
@@ -115,7 +128,7 @@ export const actions = {
         // Insert the new route into the database
         const result = await db
           .insert(routes)
-          .values({ ...values, createdBy: user.id, blockFk: block.id, slug })
+          .values({ ...values, areaFks, createdBy: user.id, blockFk: block.id, slug })
           .returning()
         route = result[0]
 
