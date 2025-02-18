@@ -82,7 +82,7 @@
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if $page.data.session?.user?.id === data.ascent.author.authUserFk || data.userPermissions?.includes(DELETE_PERMISSION)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

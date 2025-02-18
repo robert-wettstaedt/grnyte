@@ -1,8 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { updateRoutesUserData } from '$lib/helper.server'
 import * as schema from '$lib/db/schema'
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { updateRoutesUserData } from '$lib/routes.server'
 import { eq } from 'drizzle-orm'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the database query and update functions
 const mockFindFirst = vi.fn()
