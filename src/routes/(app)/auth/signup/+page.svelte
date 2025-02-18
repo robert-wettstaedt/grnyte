@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
   let { form } = $props()
@@ -24,7 +23,7 @@
         <p class="opacity-75">Sign up to continue to {PUBLIC_APPLICATION_NAME}</p>
       </header>
 
-      <form method="POST" class="space-y-4" use:enhance>
+      <form method="POST" class="space-y-4">
         <label class="label">
           <span>Email</span>
           <input name="email" type="email" placeholder="you@example.com" class="input" required value={form?.email} />
@@ -49,13 +48,7 @@
 
         <label class="label">
           <span>Password confirmation</span>
-          <input
-            name="password-confirmation"
-            type="password"
-            placeholder="Enter your password"
-            class="input"
-            required
-          />
+          <input name="passwordConfirmation" type="password" placeholder="Enter your password" class="input" required />
         </label>
 
         <div class="flex justify-between items-center mt-8">

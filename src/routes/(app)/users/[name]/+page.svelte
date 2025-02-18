@@ -2,9 +2,6 @@
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Logo27crags from '$lib/assets/27crags-logo.png'
-  import Logo8a from '$lib/assets/8a-logo.png'
-  import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import AppBar from '$lib/components/AppBar'
   import AscentsTable from '$lib/components/AscentsTable'
   import type { PaginatedAscents } from '$lib/components/AscentsTable/load.server'
@@ -12,15 +9,17 @@
   import GradeHistogram from '$lib/components/GradeHistogram'
   import RouteName from '$lib/components/RouteName'
   import type { EnrichedArea, EnrichedBlock } from '$lib/db/utils'
-  import { ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { ProgressRing, Segment, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
   import { onMount } from 'svelte'
 
-  let { data, form } = $props()
+  let { data } = $props()
 
   let loadedData: PaginatedAscents | null = $state(null)
   let loadError: string | null = $state(null)
   let loadOpts: Record<string, string> = $state({})
+
+  let projectsMode: 'open' | 'finished' = $state('open')
 
   let tabValue: string | undefined = $state(undefined)
   afterNavigate(() => {
@@ -67,9 +66,21 @@
   <title>Profile of {data.requestedUser?.username ?? data.firstAscensionist?.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<AppBar>
+<AppBar hasActions={$page.data.session?.user?.id === data.requestedUser?.authUserFk}>
   {#snippet lead()}
     {data.requestedUser?.username ?? data.firstAscensionist?.name}
+  {/snippet}
+
+  {#snippet actions()}
+    {#if $page.data.session?.user?.id === data.requestedUser?.authUserFk}
+      <a class="btn btn-sm preset-outlined-primary-500" href="/profile/edit">
+        <i class="fa-solid fa-pen"></i>Edit profile
+      </a>
+
+      <a class="btn btn-sm preset-outlined-primary-500" href="/profile/change-password">
+        <i class="fa-solid fa-key"></i>Change password
+      </a>
+    {/if}
   {/snippet}
 </AppBar>
 
@@ -84,14 +95,9 @@
     {#snippet list()}
       {#if data.requestedUser != null}
         <Tabs.Control value="#sends">Ascents</Tabs.Control>
-        <Tabs.Control value="#open-projects">Open projects</Tabs.Control>
-        <Tabs.Control value="#finished-projects">Finished projects</Tabs.Control>
+        <Tabs.Control value="#projects">Projects</Tabs.Control>
       {/if}
       <Tabs.Control value="#first-ascents">First ascents</Tabs.Control>
-
-      {#if $page.data.session?.user?.id === data.requestedUser?.authUserFk}
-        <Tabs.Control value="#settings">Settings</Tabs.Control>
-      {/if}
     {/snippet}
 
     {#snippet content()}
@@ -178,50 +184,15 @@
           {/if}
         </Tabs.Panel>
 
-        <Tabs.Panel value="#open-projects">
+        <Tabs.Panel value="#projects">
+          <Segment name="projectsMode" bind:value={projectsMode}>
+            <Segment.Item value="open">Open projects</Segment.Item>
+            <Segment.Item value="finished">Finished projects</Segment.Item>
+          </Segment>
+
           <GenericList
-            items={data.openProjects.map((item) => ({
-              ...item,
-              id: item.route.id,
-              name: item.route.name,
-              pathname: item.route.pathname,
-            }))}
-            leftClasses=""
-          >
-            {#snippet left(item)}
-              <dt>
-                <RouteName route={item.route} />
-              </dt>
-
-              <dd class="text-sm opacity-50">Sessions: {item.ascents.length}</dd>
-              <dd class="text-sm opacity-50">
-                Last session: {DateTime.fromSQL(item.ascents[0].dateTime).toLocaleString(DateTime.DATE_FULL)}
-              </dd>
-            {/snippet}
-
-            {#snippet right(item)}
-              <ol class="flex items-center gap-2 w-auto p-2">
-                <li>
-                  <a class="anchor" href={(item.route.block.area as EnrichedArea).pathname}>
-                    {item.route.block.area.name}
-                  </a>
-                </li>
-
-                <li class="opacity-50" aria-hidden={true}>&rsaquo;</li>
-
-                <li>
-                  <a class="anchor" href={(item.route.block as EnrichedBlock).pathname}>
-                    {item.route.block.name}
-                  </a>
-                </li>
-              </ol>
-            {/snippet}
-          </GenericList>
-        </Tabs.Panel>
-
-        <Tabs.Panel value="#finished-projects">
-          <GenericList
-            items={data.finishedProjects.map((item) => ({
+            classes="mt-4"
+            items={(projectsMode === 'finished' ? data.finishedProjects : data.openProjects).map((item) => ({
               ...item,
               id: item.route.id,
               name: item.route.name,
@@ -288,61 +259,6 @@
           {/snippet}
         </GenericList>
       </Tabs.Panel>
-
-      {#if $page.data.session?.user?.id === data.requestedUser?.authUserFk}
-        <Tabs.Panel value="#settings">
-          <form method="POST">
-            <label class="label mt-4">
-              <span class="flex items-center gap-x-2">
-                <img class="h-4 w-4" src={Logo8a} alt="8a" width={16} height={16} />
-                Cookie
-              </span>
-              <input
-                class="input"
-                name="cookie8a"
-                type="text"
-                placeholder="Enter value..."
-                value={form?.cookie8a ?? data.externalResources?.cookie8a ?? ''}
-              />
-            </label>
-
-            <label class="label mt-4">
-              <span class="flex items-center gap-x-2">
-                <img class="h-4 w-4" src={Logo27crags} alt="27crags" width={16} height={16} />
-                Cookie
-              </span>
-              <input
-                class="input"
-                name="cookie27crags"
-                type="text"
-                placeholder="Enter value..."
-                value={form?.cookie27crags ?? data.externalResources?.cookie27crags ?? ''}
-              />
-            </label>
-
-            <label class="label mt-4">
-              <span class="flex items-center gap-x-2">
-                <img class="h-4 w-4" src={LogoTheCrag} alt="TheCrag" width={16} height={16} />
-                Cookie
-              </span>
-              <input
-                class="input"
-                name="cookieTheCrag"
-                type="text"
-                placeholder="Enter value..."
-                value={form?.cookieTheCrag ?? data.externalResources?.cookieTheCrag ?? ''}
-              />
-            </label>
-
-            <div class="flex justify-end mt-8">
-              <button class="btn preset-filled-primary-500" type="submit">
-                <i class="fa-solid fa-floppy-disk"></i>
-                Save settings
-              </button>
-            </div>
-          </form>
-        </Tabs.Panel>
-      {/if}
     {/snippet}
   </Tabs>
 </div>

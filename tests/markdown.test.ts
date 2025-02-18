@@ -1,5 +1,5 @@
 import * as schema from '$lib/db/schema'
-import { convertMarkdownToHtml } from '$lib/markdown'
+import { convertMarkdownToHtml, replaceMention } from '$lib/markdown'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -126,5 +126,70 @@ describe('Markdown Conversion', () => {
 
     const markdown = '!routes:123!!'
     expect(convertMarkdownToHtml(markdown, mockDb)).rejects.toThrowError()
+  })
+})
+
+describe('replaceMention', () => {
+  it('should replace a single mention', () => {
+    const markdown = '@olduser wrote something'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('@newuser wrote something')
+  })
+
+  it('should replace multiple mentions of the same user', () => {
+    const markdown = '@olduser wrote something and then @olduser wrote again'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('@newuser wrote something and then @newuser wrote again')
+  })
+
+  it('should only replace exact username matches', () => {
+    const markdown = '@olduser @olduser123 @old_user'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('@newuser @olduser123 @old_user')
+  })
+
+  it('should handle mentions within formatted text', () => {
+    const markdown = '**@olduser** wrote in *@olduser*'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('**@newuser** wrote in *@newuser*')
+  })
+
+  it('should handle mentions at the end of text', () => {
+    const markdown = 'Message from @olduser'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('Message from @newuser')
+  })
+
+  it('should handle null input', () => {
+    const result = replaceMention(null, 'olduser', 'newuser')
+    expect(result).toBeUndefined()
+  })
+
+  it('should handle undefined input', () => {
+    const result = replaceMention(undefined, 'olduser', 'newuser')
+    expect(result).toBeUndefined()
+  })
+
+  it('should handle empty string input', () => {
+    const result = replaceMention('', 'olduser', 'newuser')
+    expect(result).toBe('')
+  })
+
+  it('should handle text without mentions', () => {
+    const markdown = 'Just some regular text without mentions'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('Just some regular text without mentions')
+  })
+
+  it('should handle text with similar but not exact mentions', () => {
+    const markdown = '@oldusertest @testolduser @olduser_test'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('@oldusertest @testolduser @olduser_test')
+  })
+
+  it('should preserve surrounding punctuation', () => {
+    const markdown = 'Hey @olduser! How are you? (@olduser)'
+    const result = replaceMention(markdown, 'olduser', 'newuser')
+    expect(result).toBe('Hey @newuser! How are you? (@newuser)')
   })
 })

@@ -9,6 +9,9 @@ import remarkMentions from 'remark-mentions'
 import remarkParse from 'remark-parse'
 import { unified, type Plugin } from 'unified'
 
+export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
+export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
+
 type EncloseOptions = 'anchor' | 'strong'
 
 export const convertMarkdownToHtml = async (
@@ -125,4 +128,19 @@ const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ encloseRef
   return (tree) => {
     findAndReplace(tree, [[new RegExp(referenceRegexWithBase64, 'gi'), replaceReferences]])
   }
+}
+
+export const replaceMention = (markdown: string | null | undefined, oldUsername: string, newUsername: string) => {
+  const matchesIterator = markdown?.matchAll(new RegExp(usernameRegexWithAt, 'gi'))
+  const matches = Array.from(matchesIterator ?? []).toReversed()
+
+  return matches
+    .reduce((desc, match) => {
+      if (match[0] === `@${oldUsername}`) {
+        return desc?.toSpliced(match.index, oldUsername.length + 1, `@${newUsername}`)
+      }
+
+      return desc
+    }, markdown?.split(''))
+    ?.join('')
 }

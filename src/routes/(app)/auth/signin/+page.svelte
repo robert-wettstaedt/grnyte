@@ -16,7 +16,7 @@
       <p class="opacity-75">Sign in to continue to {PUBLIC_APPLICATION_NAME}</p>
     </header>
 
-    <form method="POST" class="space-y-4" use:enhance>
+    <form method="POST" class="flex flex-col gap-4" use:enhance>
       <label class="label">
         <span>Email</span>
         <input
@@ -41,21 +41,19 @@
         />
       </label>
 
-      <div class="flex justify-between items-center mt-8">
-        <button type="submit" class="btn preset-filled-primary-500 w-full">
-          <i class="fa-solid fa-right-to-bracket"></i>
-          Login
-        </button>
-      </div>
+      <button type="submit" class="btn preset-filled-primary-500 w-full">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Login
+      </button>
 
-      <div class="divider my-8"></div>
+      <a href="/auth/forgot-password" class="anchor w-full text-right"> Forgot Password? </a>
 
-      <div class="flex flex-col gap-4">
-        <a href="/auth/signup" class="btn preset-outlined-primary-500">
-          <i class="fa-solid fa-user-plus"></i>
-          Create Account
-        </a>
-      </div>
+      <hr class="my-4" />
+
+      <a href="/auth/signup" class="btn preset-outlined-primary-500 w-full">
+        <i class="fa-solid fa-user-plus"></i>
+        Create Account
+      </a>
     </form>
   </div>
 </div>

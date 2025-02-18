@@ -2,56 +2,51 @@ import { RESEND_API_KEY, RESEND_RECIPIENT_EMAIL, RESEND_SENDER_EMAIL } from '$en
 import { db } from '$lib/db/db.server'
 import { activities, users, userSettings } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { fail } from '@sveltejs/kit'
+import {
+  createUserActionSchema,
+  validateFormData,
+  validatePassword,
+  validateUsername,
+  type CreateUserActionValues,
+} from '$lib/forms.server'
+import { fail, type ActionFailure } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 
 export const actions = {
   default: async ({ request, locals: { supabase } }) => {
-    const formData = await request.formData()
-    const data = {
-      email: formData.get('email') as string,
-      username: formData.get('username') as string,
-      password: formData.get('password') as string,
-      passwordConfirmation: formData.get('password-confirmation') as string,
+    const data = await request.formData()
+    let values: CreateUserActionValues
+
+    try {
+      // Validate the form data
+      values = await validateFormData(createUserActionSchema, data)
+    } catch (exception) {
+      // Return the validation failure
+      return exception as ActionFailure<CreateUserActionValues>
     }
 
-    if (data.password !== data.passwordConfirmation) {
-      return fail(400, { email: data.email, username: data.username, error: 'Passwords must match' })
+    const passwordError = validatePassword(values)
+    if (passwordError != null) {
+      return fail(400, { email: values.email, username: values.username, error: passwordError })
     }
 
-    const userWithUsername = await db.query.users.findFirst({ where: eq(users.username, data.username) })
-    if (userWithUsername != null) {
-      return fail(400, { email: data.email, username: data.username, error: 'User with username already exists' })
+    const usernameError = await validateUsername(values.username, db)
+    if (usernameError != null) {
+      return fail(400, { email: values.email, username: values.username, error: usernameError })
     }
 
-    const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
-    const match = data.username.match(usernameRegex)
-    if (match?.[0] == null) {
-      return fail(400, { email: data.email, username: data.username, error: 'Invalid username' })
-    }
-
-    if (match[0].length !== data.username.length) {
-      const character = match[0][0] === data.username[0] ? data.username[match[0].length] : data.username[0]
-
-      return fail(400, {
-        email: data.email,
-        username: data.username,
-        error: `Username cannot contain character "${character}"`,
-      })
-    }
-
-    const signUpData = await supabase.auth.signUp({ email: data.email, password: data.password })
+    const signUpData = await supabase.auth.signUp({ email: values.email, password: values.password })
 
     if (signUpData.error != null) {
-      return fail(400, { email: data.email, username: data.username, error: signUpData.error.message })
+      return fail(400, { email: values.email, username: values.username, error: signUpData.error.message })
     }
 
     if (signUpData.data.user != null) {
       try {
         const [createdUser] = await db
           .insert(users)
-          .values({ authUserFk: signUpData.data.user.id, username: data.username })
+          .values({ authUserFk: signUpData.data.user.id, username: values.username })
           .returning()
         const [createdUserSettings] = await db
           .insert(userSettings)
@@ -67,7 +62,7 @@ export const actions = {
           newValue: createdUser.username,
         })
       } catch (exception) {
-        return fail(400, { email: data.email, username: data.username, error: convertException(exception) })
+        return fail(400, { email: values.email, username: values.username, error: convertException(exception) })
       }
 
       if (RESEND_API_KEY && RESEND_RECIPIENT_EMAIL && RESEND_SENDER_EMAIL) {
@@ -77,11 +72,11 @@ export const actions = {
           from: RESEND_SENDER_EMAIL,
           to: [RESEND_RECIPIENT_EMAIL],
           subject: 'New user',
-          html: `A new user just signed up: ${data.username} - ${data.email}`,
+          html: `A new user just signed up: ${values.username} - ${values.email}`,
         })
       }
 
-      return { email: data.email, username: data.username, success: true }
+      return { email: values.email, username: values.username, success: true }
     }
   },
 }

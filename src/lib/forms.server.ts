@@ -1,6 +1,9 @@
+import * as schema from '$lib/db/schema'
 import { areaTypeEnum, areaVisibilityEnum, ascentTypeEnum, topoRouteTopTypeEnum } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
+import { usernameRegex } from '$lib/markdown'
 import { fail } from '@sveltejs/kit'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
 
 function getSchemaShape<Output = unknown, Def extends z.ZodTypeDef = z.ZodObjectDef, Input = Output>(
@@ -196,3 +199,51 @@ export const addRoleActionSchema = z.object({
   authUserFk: z.string(),
 })
 export type AddRoleActionValues = z.infer<typeof addRoleActionSchema>
+
+export const profileActionSchema = z.object({
+  email: z.string().email(),
+  username: z.string().trim(),
+})
+export type ProfileActionValues = z.infer<typeof profileActionSchema>
+
+export const passwordActionSchema = z.object({
+  password: z.string(),
+  passwordConfirmation: z.string(),
+})
+export type PasswordActionValues = z.infer<typeof passwordActionSchema>
+
+export const changePasswordActionSchema = z.intersection(
+  z.object({
+    currentPassword: z.string(),
+  }),
+  passwordActionSchema,
+)
+export type ChangePasswordActionValues = z.infer<typeof changePasswordActionSchema>
+
+export const createUserActionSchema = z.intersection(profileActionSchema, passwordActionSchema)
+export type CreateUserActionValues = z.infer<typeof createUserActionSchema>
+
+export const validateUsername = async (username: string, db: PostgresJsDatabase<typeof schema>) => {
+  const userWithUsername = await db.query.users.findFirst({ where: (table, { eq }) => eq(table.username, username) })
+
+  if (userWithUsername != null) {
+    return 'User with username already exists'
+  }
+
+  const match = username.match(usernameRegex)
+  if (match?.[0] == null) {
+    return 'Invalid username'
+  }
+
+  if (match[0].length !== username.length) {
+    const character = match[0][0] === username[0] ? username[match[0].length] : username[0]
+
+    return `Username cannot contain character "${character}"`
+  }
+}
+
+export const validatePassword = (data: PasswordActionValues) => {
+  if (data.password !== data.passwordConfirmation) {
+    return 'Passwords must match'
+  }
+}
