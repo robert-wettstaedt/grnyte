@@ -34,7 +34,7 @@
 
   <label class="label">
     <span>New password confirmation</span>
-    <input name="passwordConfirmation" type="password" placeholder="Enter your new password" class="input" required />
+    <input name="passwordConfirmation" type="password" placeholder="Confirm your new password" class="input" required />
   </label>
 
   <div class="flex justify-between mt-4">
