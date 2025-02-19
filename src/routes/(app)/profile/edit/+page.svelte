@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
 
@@ -17,7 +18,25 @@
 
 {#if form?.success}
   <aside class="card preset-tonal-success my-8 p-2 md:p-4 whitespace-pre-line">
-    <p>Your profile has been updated successfully.</p>
+    <p>{form.success}</p>
+  </aside>
+{/if}
+
+{#if $page.url.searchParams.get('message') != null}
+  <aside class="card preset-tonal-success my-8 p-2 md:p-4 whitespace-pre-line">
+    <p>{$page.url.searchParams.get('message')}</p>
+  </aside>
+{/if}
+
+{#if $page.url.searchParams.get('error_description') != null}
+  <aside class="card preset-tonal-error my-8 p-2 md:p-4 whitespace-pre-line">
+    <p>{$page.url.searchParams.get('error_description')}</p>
+  </aside>
+{/if}
+
+{#if $page.data.session?.user.email_confirmed_at == null}
+  <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">
+    <p>Your email address is not confirmed. Please check your email for a confirmation link.</p>
   </aside>
 {/if}
 

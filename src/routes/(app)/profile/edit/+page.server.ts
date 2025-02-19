@@ -8,7 +8,7 @@ import { fail } from '@sveltejs/kit'
 import { eq, ilike } from 'drizzle-orm'
 
 export const actions = {
-  default: async ({ request, locals }) => {
+  default: async ({ request, locals, url }) => {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -79,14 +79,19 @@ export const actions = {
       }
 
       if (values.email !== locals.user?.email) {
-        const { error } = await locals.supabase.auth.updateUser({ email: values.email })
+        const { error } = await locals.supabase.auth.updateUser(
+          { email: values.email },
+          { emailRedirectTo: `${url.origin}/profile/edit` },
+        )
 
         if (error != null) {
           return fail(400, { ...values, error: error.message })
         }
+
+        return { success: 'An email has been sent to you to confirm your new email address.' }
       }
 
-      return { success: true }
+      return { success: 'Your profile has been updated successfully.' }
     })
 
     return returnValue
