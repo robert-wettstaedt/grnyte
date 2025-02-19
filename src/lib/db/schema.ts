@@ -172,6 +172,7 @@ export const areas = table(
   },
   (table) => [
     ...createBasicTablePolicies('areas'),
+    policy(`${READ_PERMISSION} can update areas`, getAuthorizedPolicyConfig('update', READ_PERMISSION)),
     index('areas_description_idx').on(table.description),
     index('areas_slug_idx').on(table.slug),
   ],
@@ -509,23 +510,7 @@ export const ascents = table(
   (table) => [
     policy(`${READ_PERMISSION} can insert ascents`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
     policy(`${READ_PERMISSION} can read ascents`, getAuthorizedPolicyConfig('select', READ_PERMISSION)),
-    policy(
-      `${READ_PERMISSION} can update their own ascents`,
-      getPolicyConfig(
-        'update',
-        sql.raw(`
-          EXISTS (
-            SELECT
-              1
-            FROM
-              public.users u
-            WHERE
-              u.id = created_by
-              AND u.auth_user_fk = (SELECT auth.uid())
-          )
-        `),
-      ),
-    ),
+    policy(`${READ_PERMISSION} can update ascents`, getAuthorizedPolicyConfig('update', READ_PERMISSION)),
     policy(
       `${READ_PERMISSION} can delete their own ascents`,
       getPolicyConfig(

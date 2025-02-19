@@ -1,0 +1,3 @@
+DROP POLICY "data.read can update their own ascents" ON "ascents" CASCADE;--> statement-breakpoint
+CREATE POLICY "data.read can update areas" ON "areas" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((SELECT authorize('data.read'))) WITH CHECK ((SELECT authorize('data.read')));--> statement-breakpoint
+CREATE POLICY "data.read can update ascents" ON "ascents" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((SELECT authorize('data.read'))) WITH CHECK ((SELECT authorize('data.read')));

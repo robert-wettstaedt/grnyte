@@ -148,6 +148,13 @@
       "when": 1739910933491,
       "tag": "0021_previous_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1739914454099,
+      "tag": "0022_lame_butterfly",
+      "breakpoints": true
     }
   ]
 }
