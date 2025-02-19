@@ -1,33 +1,23 @@
-import type { ActionFailure, ResetPasswordActionValues } from '$lib/forms.server'
-import { resetPasswordActionSchema, validateFormData, validatePassword } from '$lib/forms.server'
+import type { ActionFailure, PasswordActionValues } from '$lib/forms.server'
+import { passwordActionSchema, validateFormData, validatePassword } from '$lib/forms.server'
 import { fail } from '@sveltejs/kit'
 
 export const actions = {
-  default: async ({ request, locals, url }) => {
-    const code = url.searchParams.get('code')
-    if (code == null) {
-      return fail(400, { error: 'Invalid or expired token' })
-    }
-
+  default: async ({ request, locals }) => {
     const data = await request.formData()
-    let values: ResetPasswordActionValues
+    let values: PasswordActionValues
 
     try {
       // Validate the form data
-      values = await validateFormData(resetPasswordActionSchema, data)
+      values = await validateFormData(passwordActionSchema, data)
     } catch (exception) {
       // Return the validation failure
-      return exception as ActionFailure<ResetPasswordActionValues>
+      return exception as ActionFailure<PasswordActionValues>
     }
 
     const passwordError = validatePassword(values)
     if (passwordError != null) {
       return fail(400, { error: passwordError })
-    }
-
-    const verifyResponse = await locals.supabase.auth.verifyOtp({ type: 'recovery', email: values.email, token: code })
-    if (verifyResponse.error != null) {
-      return fail(400, { error: verifyResponse.error.message })
     }
 
     const updateResponse = await locals.supabase.auth.updateUser({ password: values.password })

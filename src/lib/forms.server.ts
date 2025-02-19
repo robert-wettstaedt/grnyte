@@ -220,14 +220,6 @@ export const changePasswordActionSchema = z.intersection(
 )
 export type ChangePasswordActionValues = z.infer<typeof changePasswordActionSchema>
 
-export const resetPasswordActionSchema = z.intersection(
-  z.object({
-    email: z.string().email(),
-  }),
-  passwordActionSchema,
-)
-export type ResetPasswordActionValues = z.infer<typeof resetPasswordActionSchema>
-
 export const createUserActionSchema = z.intersection(profileActionSchema, passwordActionSchema)
 export type CreateUserActionValues = z.infer<typeof createUserActionSchema>
 

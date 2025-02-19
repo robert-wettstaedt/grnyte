@@ -5,17 +5,7 @@
 
   let { form } = $props()
 
-  const error = $derived.by(() => {
-    const errorDescription = $page.url.searchParams.get('error_description')
-    if (errorDescription != null) {
-      return errorDescription
-    }
-
-    const code = $page.url.searchParams.get('code')
-    if (code == null) {
-      return 'Invalid or expired token'
-    }
-  })
+  const error = $derived($page.url.searchParams.get('error_description'))
 </script>
 
 <svelte:head>
@@ -36,11 +26,6 @@
 
 {#if error == null}
   <form class="card mt-4 flex flex-col gap-4" method="post">
-    <label class="label">
-      <span>Enter your email</span>
-      <input class="input" name="email" placeholder="you@example.com" required type="email" />
-    </label>
-
     <label class="label">
       <span>New password</span>
       <input name="password" type="password" placeholder="Enter your new password" class="input" required />
