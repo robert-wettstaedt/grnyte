@@ -23,6 +23,9 @@ const config = {
     files: {
       serviceWorker: 'src/sw.ts',
     },
+    version: {
+      name: Date.now().toString(),
+    },
   },
 }
 export default config
