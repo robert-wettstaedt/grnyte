@@ -169,9 +169,10 @@ export const actions = {
       }
 
       try {
-        await db.delete(ascents).where(eq(ascents.id, ascent.id))
         const filesToDelete = await db.delete(files).where(eq(files.ascentFk, ascent.id)).returning()
         await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+
+        await db.delete(ascents).where(eq(ascents.id, ascent.id))
 
         await updateRoutesUserData(ascent.routeFk, db)
 
