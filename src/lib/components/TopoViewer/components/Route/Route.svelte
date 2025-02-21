@@ -14,6 +14,7 @@
   import { onMount } from 'svelte'
   import { highlightedRouteStore, selectedPointTypeStore, selectedRouteStore } from '../../stores'
   import { calcLines } from './lib'
+  import type { MouseEventHandler } from 'svelte/elements'
 
   interface Props {
     editable?: boolean
@@ -45,54 +46,30 @@
   let lines = $derived(calcLines(route.points))
 
   let longPressTimer: ReturnType<typeof setTimeout> | undefined = $state()
-  let longPressCoords: Coordinates | undefined = $state()
-  const LONG_PRESS_DURATION = 500
+  let longPressPoint: PointDTO | undefined = $state()
+  const LONG_PRESS_DURATION = 1000
 
-  function handleTouchStart(event: PointerEvent) {
-    longPressTimer = setTimeout(() => {
-      onContextMenu(event)
-    }, LONG_PRESS_DURATION)
-    longPressCoords = { x: event.clientX, y: event.clientY }
+  selectedRouteStore.subscribe(() => {
+    clearTimeout(longPressTimer)
+    longPressTimer = undefined
+    longPressPoint = undefined
+  })
+
+  const clearLongPress = () => {
+    clearTimeout(longPressTimer)
+    longPressTimer = undefined
+    longPressPoint = undefined
   }
 
-  function handleTouchMove(event: PointerEvent) {
-    if (longPressCoords) {
-      const distance = Math.sqrt(
-        Math.pow(event.clientX - longPressCoords.x, 2) + Math.pow(event.clientY - longPressCoords.y, 2),
-      )
-
-      console.log(distance)
-
-      if (distance > 8) {
-        handleTouchEnd()
-      }
-    }
-  }
-
-  function handleTouchEnd() {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer)
-      longPressTimer = undefined
-      longPressCoords = undefined
-    }
-  }
-
-  const onContextMenu = (event: MouseEvent | PointerEvent) => {
+  const onDeletePoint: MouseEventHandler<Element> = (event) => {
     event.preventDefault()
 
-    const target = event.target as HTMLElement
-    const targetId = target.attributes.getNamedItem('data-id')?.value
-    const point = route.points.find((point) => point.id === targetId)
-
-    if (!selected || point == null || !editable) {
-      return
-    }
-
-    route.points = route.points.filter((_point) => _point.id !== point.id)
+    route.points = route.points.filter((_point) => _point.id !== longPressPoint?.id)
     selectedPoint = undefined
     onChange?.(route)
-  }
 
+    clearLongPress()
+  }
   onMount(() => {
     if (group != null) {
       const drag = d3
@@ -105,17 +82,30 @@
           }
 
           const targetId = (sourceEvent.target as Element).attributes.getNamedItem('data-id')?.value
-          selectedPoint = route.points.find((point) => point.id === targetId)
+          const point = route.points.find((point) => point.id === targetId)
+          selectedPoint = point
 
           if (!selected && $selectedPointTypeStore == null) {
             selectedRouteStore.set(route.routeFk)
             highlightedRouteStore.set(null)
+          }
+
+          clearLongPress()
+
+          if (selected && editable && point != null) {
+            longPressTimer = setTimeout(() => {
+              if ($selectedRouteStore === route.routeFk) {
+                longPressPoint = point
+              }
+            }, LONG_PRESS_DURATION)
           }
         })
         .on('drag', (event) => {
           if (!editable) {
             return
           }
+
+          clearLongPress()
 
           const points = selectedPoint == null ? route.points : [selectedPoint]
 
@@ -159,16 +149,20 @@
   })
 </script>
 
-<g
-  bind:this={group}
-  class="cursor-pointer select-none"
-  oncontextmenu={onContextMenu}
-  onpointerdown={handleTouchStart}
-  onpointermove={handleTouchMove}
-  onpointerup={handleTouchEnd}
-  role="presentation"
->
+<g bind:this={group} class="cursor-pointer select-none" role="presentation">
   {#each lines as line}
+    <line
+      data-id="line"
+      data-route-id={route.routeFk}
+      opacity={bgOpacity}
+      stroke-width={20}
+      stroke="transparent"
+      x1={line.from.x * scale}
+      x2={line.to.x * scale}
+      y1={line.from.y * scale}
+      y2={line.to.y * scale}
+    />
+
     <line
       data-id="line"
       data-route-id={route.routeFk}
@@ -195,6 +189,19 @@
 
   {#each route.points as point}
     {#if point.type === 'start'}
+      <circle
+        class={cursorClass}
+        cx={point.x * scale}
+        cy={point.y * scale}
+        data-id={point.id}
+        data-route-id={route.routeFk}
+        fill="transparent"
+        id="start-touch-area"
+        opacity={bgOpacity}
+        r={20}
+        role="presentation"
+      />
+
       <circle
         class={cursorClass}
         cx={point.x * scale}
@@ -243,6 +250,18 @@
         cy={point.y * scale}
         data-id={point.id}
         data-route-id={route.routeFk}
+        fill="transparent"
+        id="middle-touch-area"
+        r={20}
+        role="presentation"
+      />
+
+      <circle
+        class={cursorClass}
+        cx={point.x * scale}
+        cy={point.y * scale}
+        data-id={point.id}
+        data-route-id={route.routeFk}
         fill={bgColor}
         id="middle-bg"
         opacity={bgOpacity}
@@ -266,6 +285,18 @@
           data-id={point.id}
           data-route-id={route.routeFk}
           fill="transparent"
+          id="topout-touch-area"
+          opacity={bgOpacity}
+          points={`${point.x * scale - 20},${point.y * scale + 20} ${point.x * scale},${point.y * scale}, ${point.x * scale + 20},${point.y * scale + 20}`}
+          stroke-width={20}
+          stroke="transparent"
+        />
+
+        <polyline
+          class={cursorClass}
+          data-id={point.id}
+          data-route-id={route.routeFk}
+          fill="transparent"
           id="topout-bg"
           opacity={bgOpacity}
           points={`${point.x * scale - 20},${point.y * scale + 20} ${point.x * scale},${point.y * scale}, ${point.x * scale + 20},${point.y * scale + 20}`}
@@ -284,6 +315,21 @@
           stroke={color}
         />
       {:else}
+        <line
+          class={cursorClass}
+          data-id={point.id}
+          data-route-id={route.routeFk}
+          fill="transparent"
+          id="top-touch-area"
+          role="presentation"
+          stroke-width={20}
+          stroke="transparent"
+          x1={point.x * scale - 30}
+          x2={point.x * scale + 30}
+          y1={point.y * scale}
+          y2={point.y * scale}
+        />
+
         <line
           class={cursorClass}
           data-id={point.id}
@@ -316,3 +362,17 @@
     {/if}
   {/each}
 </g>
+
+{#if longPressPoint != null}
+  <foreignObject
+    x={longPressPoint.x * scale + 130 > width ? longPressPoint.x * scale - 130 : longPressPoint.x * scale}
+    y={longPressPoint.y * scale + 28 > height ? longPressPoint.y * scale - 28 : longPressPoint.y * scale}
+    width={130}
+    height={28}
+  >
+    <button class="btn btn-sm preset-filled-error-500" onclick={onDeletePoint}>
+      <i class="fa-solid fa-trash"></i>
+      Delete point
+    </button>
+  </foreignObject>
+{/if}

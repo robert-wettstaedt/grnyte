@@ -49,6 +49,7 @@
   let translateY = $state(0)
   let selectedPoint: PointDTO | undefined = undefined
   let svg: SVGSVGElement | undefined = $state()
+  let rect: SVGRectElement | undefined = $state()
   let clicked = false
   let linesVisible = $state(true)
   let isFullscreen = $state(false)
@@ -91,6 +92,8 @@
       initZoom()
     }
 
+    const [x, y] = d3.pointer(event, rect)
+
     if ($selectedRouteStore != null && $selectedPointTypeStore != null) {
       if (selectedTopoRoute == null) {
         return
@@ -99,17 +102,19 @@
       const point: PointDTO = {
         id: crypto.randomUUID?.() ?? String(Math.random()),
         type: $selectedPointTypeStore,
-        x: Math.ceil((event.layerX - (zoomTransform?.x ?? 0)) / scale / (zoomTransform?.k ?? 1)),
-        y: Math.ceil((event.layerY - (zoomTransform?.y ?? 0)) / scale / (zoomTransform?.k ?? 1)),
+        x: x / scale,
+        y: y / scale,
       }
 
       const closePoint = topos
         .flatMap((topo) => topo.routes.flatMap((route) => route.points))
-        .find((p) => Math.abs(p.x - point.x) < 30 && Math.abs(p.y - point.y) < 30)
+        .map((p) => ({ point: p, distance: Math.sqrt(Math.pow(p.x - point.x, 2) + Math.pow(p.y - point.y, 2)) }))
+        .sort((a, b) => a.distance - b.distance)
+        .at(0)
 
-      if (closePoint != null) {
-        point.x = closePoint.x
-        point.y = closePoint.y
+      if (closePoint != null && closePoint.distance < 40) {
+        point.x = closePoint.point.x
+        point.y = closePoint.point.y
       }
 
       selectedTopoRoute.points = [...selectedTopoRoute.points, point]
@@ -339,20 +344,30 @@
     {/if}
   {/each}
 
-  <div
-    class="absolute z-20 {linesVisible ? 'opacity-100' : 'opacity-0'}"
-    style={`left: ${translateX}px; right: ${translateX}px; top: ${translateY}px; bottom: ${translateY}px`}
-  >
+  <div class="absolute z-20 left-0 right-0 top-0 bottom-0 {linesVisible ? 'opacity-100' : 'opacity-0'}">
     {#if selectedTopo != null}
       <svg
         bind:this={svg}
+        class="w-full h-full"
         onclick={onClickSvg}
         onmousemove={onMouseMoveSvg}
         role="presentation"
         viewBox={`0 0 ${width} ${height}`}
         xmlns="http://www.w3.org/2000/svg"
       >
-        <g transform={zoomTransform?.toString()}>
+        <rect
+          {height}
+          {width}
+          bind:this={rect}
+          fill="transparent"
+          role="presentation"
+          transform={zoomTransform?.toString()}
+          x={0}
+          y={0}
+          style="pointer-events: none; touch-action: none;"
+        />
+
+        <g role="presentation" transform={zoomTransform?.toString()}>
           {#each selectedTopo.routes as _, index}
             <RouteView
               {editable}

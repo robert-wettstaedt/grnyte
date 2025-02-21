@@ -53,7 +53,7 @@
     contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
     positionerZIndex="!z-50"
     positioning={{ placement: 'bottom-end' }}
-    triggerBase="btn preset-outlined-surface-500"
+    triggerBase="btn preset-outlined-surface-500 w-9 h-9"
   >
     {#snippet trigger()}
       <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -117,7 +117,7 @@
     {/snippet}
   </Popover>
 
-  <a aria-label="Close" class="btn preset-outlined-surface-500" href={basePath}>
+  <a aria-label="Close" class="btn preset-outlined-surface-500 w-9 h-9" href={basePath}>
     <i class="fa-solid fa-x"></i>
   </a>
 </div>
