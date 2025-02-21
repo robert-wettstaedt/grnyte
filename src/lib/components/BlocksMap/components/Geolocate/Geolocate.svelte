@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Modal } from '@skeletonlabs/skeleton-svelte'
   import OlGeolocation from 'ol/Geolocation.js'
   import type Map from 'ol/Map'
   import OlMap from 'ol/Map.js'
@@ -16,6 +17,7 @@
 
   let isTrackingGeolocation = $state(false)
   let isGeolocationError = $state(false)
+  let modalOpen = $state(false)
   const geolocation = $derived.by(() => new OlGeolocation({ trackingOptions: { enableHighAccuracy: true } }))
 
   const createGeolocation = (map: OlMap) => {
@@ -51,7 +53,6 @@
         if (isTrackingGeolocation) {
           map?.getView().animate({
             center: fromLonLat(position),
-            zoom: 18,
             duration: 100,
           })
         }
@@ -60,6 +61,7 @@
 
     geolocation.on('error', () => {
       isGeolocationError = true
+      modalOpen = true
       isTrackingGeolocation = false
     })
 
@@ -101,3 +103,35 @@
         : ''}"
   ></i>
 </button>
+
+<Modal
+  bind:open={modalOpen}
+  triggerBase="!hidden"
+  contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+  backdropClasses="backdrop-blur-sm"
+>
+  {#snippet content()}
+    <button
+      aria-label="Close"
+      class="fixed top-4 right-2 btn preset-filled-primary-500 w-12 h-12 rounded-full z-10"
+      onclick={() => (modalOpen = false)}
+    >
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <header>
+      <h4 class="h4">Geolocation error</h4>
+    </header>
+
+    <article class="opacity-60">
+      <p>The geolocation service is not working. Please check your browser settings and try again.</p>
+
+      <ul class="list-disc list-inside mt-4">
+        <li>Check if location services are enabled in your browser</li>
+        <li>Ensure you have permission to share your location</li>
+        <li>Check if you have a GPS signal</li>
+        <li>Try a different browser or device</li>
+      </ul>
+    </article>
+  {/snippet}
+</Modal>

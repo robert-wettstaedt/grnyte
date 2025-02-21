@@ -336,6 +336,18 @@
       source: vectorSource,
     })
 
+    map.on('moveend', () => {
+      const zoom = map.getView().getZoom()
+
+      if (zoom != null && zoom > 17) {
+        clusterSource.setDistance(0)
+        clusterSource.setMinDistance(0)
+      } else {
+        clusterSource.setDistance(40)
+        clusterSource.setMinDistance(20)
+      }
+    })
+
     const markersLayer = new VectorLayer({
       properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
       source: declutter ? clusterSource : vectorSource,
@@ -430,7 +442,7 @@
       target.style.cursor = hit ? 'pointer' : ''
     })
 
-    map.on('movestart', () => {
+    map.on('pointerdrag', () => {
       layersIsVisible = false
       selectedFeatures = []
     })
