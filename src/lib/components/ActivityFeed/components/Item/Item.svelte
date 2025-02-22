@@ -76,7 +76,7 @@
               href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}
             >
               {#if activity.parentEntity.type === 'route' && activity.parentEntity.object != null}
-                <RouteName route={activity.parentEntity.object} />
+                <RouteName gradeFk={activity.entity.object?.gradeFk} route={activity.parentEntity.object} />
               {:else}
                 {activity.parentEntityName}
               {/if}
