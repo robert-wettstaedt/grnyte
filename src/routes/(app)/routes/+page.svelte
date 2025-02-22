@@ -30,7 +30,7 @@
   <GenericList items={data.routes}>
     {#snippet left(item)}
       <div class="flex gap-2">
-        <Image path="/blocks/{item.block.id}/preview-image" size={48} />
+        <Image path="/blocks/{item.block.id}/preview-image" size={64} />
 
         <div class="flex flex-col gap-1">
           <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">

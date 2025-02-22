@@ -350,7 +350,7 @@
                       {#if item.routes.length === 0}
                         <div class="flex items-center gap-2 px-2 md:px-4 py-3">
                           {#if item.topos?.[0]?.file?.path != null}
-                            <Image path="/nextcloud{item.topos?.[0]?.file?.path}/preview" size={48} />
+                            <Image path="/nextcloud{item.topos?.[0]?.file?.path}/preview" size={64} />
                           {/if}
 
                           <div class="w-[calc(100%-64px)]">No routes yet</div>
@@ -367,7 +367,7 @@
                         >
                           {#snippet left(route)}
                             <div class="flex items-center gap-2">
-                              <Image path="/nextcloud{route.topo?.file?.path}/preview" size={48} />
+                              <Image path="/nextcloud{route.topo?.file?.path}/preview" size={64} />
 
                               <div class="w-[calc(100%-64px)]">
                                 <RouteName {route} />
@@ -441,7 +441,7 @@
             <GenericList items={data.routes.routes}>
               {#snippet left(item)}
                 <div class="flex gap-2">
-                  <Image path="/blocks/{item.block.id}/preview-image" size={48} />
+                  <Image path="/blocks/{item.block.id}/preview-image" size={64} />
 
                   <div class="flex flex-col gap-1">
                     <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">

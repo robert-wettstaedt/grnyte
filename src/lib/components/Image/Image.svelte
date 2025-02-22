@@ -11,6 +11,7 @@
   let mediaHasError = $state(false)
 
   let progressSize = $derived(size - size * 0.2)
+  let fontSize = $derived(size * 0.8)
 
   const mediaAction = (el: HTMLElement) => {
     const onError = () => (mediaHasError = true)
@@ -27,8 +28,8 @@
 
 {#if path == null || mediaHasError}
   <i
-    class="fa-solid fa-image flex items-center justify-center text-white text-[3rem]"
-    style="width: {size}px; height: {size}px;"
+    class="fa-solid fa-image flex items-center justify-center text-white"
+    style="width: {size}px; height: {size}px; font-size: {fontSize}px"
   ></i>
 {:else}
   <div class="relative">
