@@ -92,14 +92,8 @@
     class="select select-bordered w-full sm:w-auto"
     onchange={(event) => {
       const url = new URL($page.url)
-
       const activityType = (event.target as HTMLSelectElement).value
-      if (activityType === 'ascents') {
-        url.searchParams.set('type', activityType)
-      } else {
-        url.searchParams.delete('type')
-      }
-
+      url.searchParams.set('type', activityType)
       url.searchParams.delete('page')
       goto(url)
     }}
