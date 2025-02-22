@@ -11,11 +11,10 @@
 
   interface Props {
     classes?: string
-    gradeFk?: number | null
     route: (Omit<RouteWithAscents, 'ascents'> & Partial<Pick<RouteWithAscents, 'ascents'>>) | undefined
   }
 
-  let { classes, gradeFk, route }: Props = $props()
+  let { classes, route }: Props = $props()
 
   const lastAscent = $derived.by(() => {
     if (route?.ascents == null || $page.data.user == null) {
@@ -41,7 +40,7 @@
       <AscentTypeLabel includeText={false} type={lastAscent.type} />
     {/if}
 
-    <RouteGrade {gradeFk} {route} />
+    <RouteGrade {route} />
 
     {#if (route.userRating ?? route.rating) != null}
       <div>

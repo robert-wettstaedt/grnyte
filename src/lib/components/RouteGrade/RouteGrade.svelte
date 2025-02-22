@@ -6,11 +6,10 @@
   type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
   interface Props {
-    gradeFk?: number | null
     route: Partial<Pick<RouteWithAscents, 'ascents' | 'gradeFk' | 'userGradeFk'>> | undefined
   }
 
-  let { gradeFk, route }: Props = $props()
+  let { route }: Props = $props()
 
   const send = $derived(
     route?.ascents
@@ -19,6 +18,6 @@
   )
 </script>
 
-{#if (gradeFk ?? route?.userGradeFk ?? route?.gradeFk ?? send?.gradeFk) != null}
-  <CorrectedGrade oldGrade={route?.userGradeFk ?? route?.gradeFk} newGrade={gradeFk ?? send?.gradeFk} />
+{#if (route?.userGradeFk ?? route?.gradeFk ?? send?.gradeFk) != null}
+  <CorrectedGrade oldGrade={route?.userGradeFk ?? route?.gradeFk} newGrade={send?.gradeFk} />
 {/if}

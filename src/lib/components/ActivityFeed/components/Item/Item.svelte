@@ -76,7 +76,7 @@
               href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}
             >
               {#if activity.parentEntity.type === 'route' && activity.parentEntity.object != null}
-                <RouteName gradeFk={activity.entity.object?.gradeFk} route={activity.parentEntity.object} />
+                <RouteName route={activity.parentEntity.object} />
               {:else}
                 {activity.parentEntityName}
               {/if}
@@ -93,6 +93,33 @@
                 <span class="text-surface-500 mx-1 text-sm" aria-hidden="true">&gt;</span>
               {/if}
             {/each}
+          {/if}
+
+          {#if (activity.entity.object?.gradeFk ?? activity.entity.object?.rating) != null}
+            <div class="flex gap-x-1 md:gap-x-2 items-center my-2">
+              <span class="opacity-80"> Personal opinion: </span>
+
+              {#if activity.entity.object?.gradeFk != null}
+                <CorrectedGrade oldGrade={activity.entity.object?.gradeFk} newGrade={undefined} />
+              {/if}
+
+              {#if activity.entity.object?.rating != null}
+                <Rating
+                  count={3}
+                  readOnly
+                  value={activity.entity.object.rating}
+                  controlClasses="!gap-0 text-xs md:text-sm"
+                >
+                  {#snippet iconFull()}
+                    <i class="fa-solid fa-star text-warning-500"></i>
+                  {/snippet}
+
+                  {#snippet iconEmpty()}
+                    <i class="fa-regular fa-star"></i>
+                  {/snippet}
+                </Rating>
+              {/if}
+            </div>
           {/if}
 
           {#if activity.entity.object != null && compareAsc(format(new Date(activity.createdAt), 'yyyy-MM-dd'), new Date(activity.entity.object.dateTime)) !== 0}
