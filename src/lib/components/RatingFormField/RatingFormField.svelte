@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { Route } from '$lib/db/schema'
-  import { Modal, Rating } from '@skeletonlabs/skeleton-svelte'
+  import { Modal } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    value: NonNullable<Route['rating']> | undefined
+    value: Route['rating']
   }
 
   let { value = $bindable() }: Props = $props()
@@ -52,11 +52,28 @@
   <input name="rating" type="hidden" {value} />
 </label>
 
-<Rating bind:value count={3}>
-  {#snippet iconEmpty()}
-    <i class="fa-regular fa-star text-3xl text-warning-500"></i>
-  {/snippet}
-  {#snippet iconFull()}
-    <i class="fa-solid fa-star text-3xl text-warning-500"></i>
-  {/snippet}
-</Rating>
+<div class="flex items-center justify-between h-10">
+  <div class="flex gap-1">
+    {#each [1, 2, 3] as rating}
+      <button
+        aria-label={`Rating ${rating}`}
+        onclick={(event) => {
+          event.preventDefault()
+          value = rating
+        }}
+      >
+        {#if value != null && value >= rating}
+          <i class="fa-solid fa-star text-3xl text-warning-500"></i>
+        {:else}
+          <i class="fa-regular fa-star text-3xl text-warning-500"></i>
+        {/if}
+      </button>
+    {/each}
+  </div>
+
+  {#if value != null}
+    <button aria-label="Clear" class="btn preset-outlined-surface-500 h-10 w-10" onclick={() => (value = null)}>
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  {/if}
+</div>

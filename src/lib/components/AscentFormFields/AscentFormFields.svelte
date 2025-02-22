@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { page } from '$app/stores'
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
   import type { FileUploadProps } from '$lib/components/FileUpload'
   import FileUpload from '$lib/components/FileUpload'
+  import GradeFormField from '$lib/components/GradeFormField'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
   import type { Ascent } from '$lib/db/schema'
@@ -13,7 +13,7 @@
     fileUploadProps: FileUploadProps
     gradeFk: Ascent['gradeFk']
     notes: Ascent['notes']
-    rating: NonNullable<Ascent['rating']> | undefined
+    rating: Ascent['rating']
     type: Ascent['type'] | null
   }
 
@@ -30,16 +30,7 @@
   </select>
 </label>
 
-<label class="label mt-4">
-  <span>Grade</span>
-  <select class="select" name="gradeFk" value={gradeFk ?? ''}>
-    <option disabled value="">-- Select grade --</option>
-
-    {#each $page.data.grades as grade}
-      <option value={grade.id}>{grade[$page.data.gradingScale]}</option>
-    {/each}
-  </select>
-</label>
+<GradeFormField bind:value={gradeFk} />
 
 <RatingFormField bind:value={rating} />
 

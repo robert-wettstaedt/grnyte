@@ -172,6 +172,7 @@ describe('27crags Handler', () => {
       dateTime: new Date().toISOString(),
       gradeFk: 1,
       notes: null,
+      rating: null,
     }
     const mockSession = { username: 'test-user' }
 
@@ -233,6 +234,7 @@ describe('8a Handler', () => {
       dateTime: new Date().toISOString(),
       gradeFk: 1,
       notes: null,
+      rating: null,
     }
 
     await expect(handler8a.logAscent(mockAscent, 1, mockUserSettings, true, mockLocals)).resolves.not.toThrow()
@@ -299,6 +301,7 @@ describe('TheCrag Handler', () => {
       dateTime: new Date().toISOString(),
       gradeFk: 1,
       notes: null,
+      rating: null,
     }
     const mockSession = { account: 'test-user' }
 

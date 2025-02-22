@@ -27,22 +27,34 @@ function getSchemaShape<Output = unknown, Def extends z.ZodTypeDef = z.ZodObject
   }
 }
 
-function getItemDef(shape: z.ZodRawShape, itemName: string): z.ZodFirstPartyTypeKind | undefined {
-  const def = shape[itemName]?._def
+function getItemDef(shape: z.ZodRawShape, itemName: string): { typeName: z.ZodFirstPartyTypeKind; nullable: boolean } {
+  let def = shape[itemName]?._def
+  let nullable = false
+  let defaultable = false
 
   if (def == null) {
-    return undefined
+    return { nullable, typeName: z.ZodFirstPartyTypeKind.ZodUndefined }
   }
 
-  if ((def as z.ZodOptionalDef).typeName === z.ZodFirstPartyTypeKind.ZodOptional) {
-    return (def as z.ZodOptionalDef).innerType._def.typeName
+  const nestedTypes = [
+    z.ZodFirstPartyTypeKind.ZodOptional,
+    z.ZodFirstPartyTypeKind.ZodNullable,
+    z.ZodFirstPartyTypeKind.ZodDefault,
+  ]
+
+  while (nestedTypes.includes(def.typeName)) {
+    if (def.typeName === z.ZodFirstPartyTypeKind.ZodNullable) {
+      nullable = true
+    }
+
+    if (def.typeName === z.ZodFirstPartyTypeKind.ZodDefault) {
+      defaultable = true
+    }
+
+    def = (def as z.ZodOptionalDef | z.ZodNullableDef | z.ZodDefaultDef).innerType._def
   }
 
-  if ((def as z.ZodDefaultDef).typeName === z.ZodFirstPartyTypeKind.ZodDefault) {
-    return (def as z.ZodDefaultDef).innerType._def.typeName
-  }
-
-  return def.typeName
+  return { nullable: defaultable ? false : nullable, typeName: def.typeName }
 }
 
 export async function validateObject<Output = unknown, Def extends z.ZodTypeDef = z.ZodObjectDef, Input = Output>(
@@ -57,7 +69,7 @@ export async function validateObject<Output = unknown, Def extends z.ZodTypeDef 
         return obj
       }
 
-      const typeName = getItemDef(shape, key)
+      const { nullable, typeName } = getItemDef(shape, key)
 
       const value = (() => {
         if (typeName === z.ZodFirstPartyTypeKind.ZodArray && Array.isArray(rawValue)) {
@@ -72,7 +84,7 @@ export async function validateObject<Output = unknown, Def extends z.ZodTypeDef 
       })()
 
       if (typeof value === 'string' && value.trim().length === 0) {
-        return obj
+        return { ...obj, [key]: nullable ? null : undefined }
       }
 
       if (typeName === z.ZodFirstPartyTypeKind.ZodNumber) {
@@ -118,7 +130,7 @@ export const addFileActionSchema = z.object({
 export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 
 export const addOptionalFileActionSchema = z.object({
-  folderName: z.string().optional(),
+  folderName: z.string().nullable().optional(),
 })
 export type AddOptionalFileActionValues = z.infer<typeof addOptionalFileActionSchema>
 
@@ -140,10 +152,10 @@ export const blockActionSchema = z.intersection(
 
 export const routeActionSchema = z.object({
   description: z.string().nullable().default(''),
-  gradeFk: z.number().optional(),
+  gradeFk: z.number().nullable().optional(),
   name: z.string().trim().default(''),
-  rating: z.number().min(1).max(3).optional(),
-  tags: z.array(z.string()).optional(),
+  rating: z.number().min(1).max(3).nullable().optional(),
+  tags: z.array(z.string()).nullable().optional(),
 })
 export type RouteActionValues = z.infer<typeof routeActionSchema>
 
@@ -158,10 +170,10 @@ export type FirstAscentActionValues = z.infer<typeof firstAscentActionSchema>
 export const ascentActionSchema = z.intersection(
   z.object({
     dateTime: z.string().date(),
-    filePaths: z.array(z.string()).optional(),
-    gradeFk: z.number().optional(),
-    notes: z.string().optional(),
-    rating: z.number().min(1).max(3).optional(),
+    filePaths: z.array(z.string()).nullable().optional(),
+    gradeFk: z.number().nullable().optional(),
+    notes: z.string().nullable().optional(),
+    rating: z.number().min(1).max(3).nullable().optional(),
     type: z.enum(ascentTypeEnum),
   }),
   addOptionalFileActionSchema,

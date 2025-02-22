@@ -22,6 +22,9 @@ describe('Labels Component', () => {
         firstAscentYear: 2021,
         blockFk: 1,
         externalResourcesFk: 1,
+        areaFks: [],
+        userRating: null,
+        userGradeFk: null,
       },
       points: [
         { id: '1', type: 'start', x: 100, y: 200 },
@@ -46,6 +49,9 @@ describe('Labels Component', () => {
         firstAscentYear: 2021,
         blockFk: 1,
         externalResourcesFk: 1,
+        areaFks: [],
+        userRating: null,
+        userGradeFk: null,
       },
       points: [
         { id: '4', type: 'start', x: 300, y: 200 },

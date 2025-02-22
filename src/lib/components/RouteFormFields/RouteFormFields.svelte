@@ -1,8 +1,8 @@
 <script lang="ts">
+  import GradeFormField from '$lib/components/GradeFormField'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
   import type { Route, Tag } from '$lib/db/schema'
-  import GradeFormField from './components/GradeFormField'
   import RouteNameFormField from './components/RouteNameFormField'
 
   interface Props {
@@ -10,7 +10,7 @@
     description: Route['description']
     gradeFk: Route['gradeFk']
     name: Route['name']
-    rating: NonNullable<Route['rating']> | undefined
+    rating: Route['rating']
     routeTags: string[]
     tags: Tag[]
   }

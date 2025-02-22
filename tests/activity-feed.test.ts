@@ -388,6 +388,9 @@ describe('Activity Feed', () => {
         firstAscentYear: null,
         blockFk: 1,
         externalResourcesFk: null,
+        areaFks: [],
+        userRating: null,
+        userGradeFk: null,
       },
     })
 

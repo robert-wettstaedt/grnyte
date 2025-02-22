@@ -98,6 +98,22 @@ describe('validateRouteForm', () => {
 
     await expect(validateFormData(routeActionSchema, formData)).rejects.toThrowError()
   })
+
+  it('should handle setting null values', async () => {
+    const formData = new FormData()
+    formData.set('description', '')
+    formData.set('gradeFk', '')
+    formData.set('name', '')
+    formData.set('rating', '')
+
+    const result = await validateFormData(routeActionSchema, formData)
+    expect(result).toEqual({
+      description: '',
+      gradeFk: null,
+      name: '',
+      rating: null,
+    })
+  })
 })
 
 describe('validateFirstAscentForm', () => {
@@ -148,8 +164,7 @@ describe('validateAscentForm', () => {
     formData.set('gradeFk', '1')
     formData.set('notes', 'Test notes')
     formData.set('type', 'flash')
-    formData.append('filePaths', 'path/to/file1')
-    formData.append('filePaths', 'path/to/file2')
+    formData.set('folderName', 'path/to/file1')
 
     const result = await validateFormData(ascentActionSchema, formData)
     expect(result).toEqual({
@@ -157,7 +172,7 @@ describe('validateAscentForm', () => {
       gradeFk: 1,
       notes: 'Test notes',
       type: 'flash',
-      filePaths: ['path/to/file1', 'path/to/file2'],
+      folderName: 'path/to/file1',
     })
   })
 
@@ -194,6 +209,24 @@ describe('validateAscentForm', () => {
     expect(result).toEqual({
       dateTime: '2023-01-01',
       type: 'flash',
+    })
+  })
+
+  it('should handle setting null values', async () => {
+    const formData = new FormData()
+    formData.set('dateTime', '2023-01-01')
+    formData.set('type', 'flash')
+    formData.set('rating', '')
+    formData.set('notes', '')
+    formData.set('gradeFk', '')
+
+    const result = await validateFormData(ascentActionSchema, formData)
+    expect(result).toEqual({
+      dateTime: '2023-01-01',
+      type: 'flash',
+      gradeFk: null,
+      notes: null,
+      rating: null,
     })
   })
 })

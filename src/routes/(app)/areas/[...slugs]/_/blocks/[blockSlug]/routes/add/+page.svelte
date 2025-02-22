@@ -53,7 +53,7 @@
     description={form?.description ?? ''}
     gradeFk={form?.gradeFk ?? null}
     name={form?.name ?? ''}
-    rating={form?.rating ?? undefined}
+    rating={form?.rating ?? null}
     routeTags={form?.tags ?? []}
     tags={data.tags}
   />

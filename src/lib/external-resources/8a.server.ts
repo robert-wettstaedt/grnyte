@@ -129,6 +129,9 @@ export default {
       name: data.zlaggableName ?? '',
       rating: Math.round(((data.averageRating ?? 0) / 5) * 3),
       slug: data.zlaggableSlug ?? '',
+      userRating: null,
+      userGradeFk: null,
+      areaFks: [],
     }
   },
 
