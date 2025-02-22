@@ -193,5 +193,3 @@
 {#await import('$lib/components/ReloadPrompt') then { default: ReloadPrompt }}
   <ReloadPrompt />
 {/await}
-
-<EmailVerification />
