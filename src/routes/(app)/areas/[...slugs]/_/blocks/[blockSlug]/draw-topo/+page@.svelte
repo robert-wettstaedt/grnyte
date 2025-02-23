@@ -6,38 +6,117 @@
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
-  import { convertPointsToPath, type TopoDTO, type TopoRouteDTO } from '$lib/topo'
+  import { type TopoDTO } from '$lib/topo'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { onMount } from 'svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
   import '../../../../../../../../app.postcss'
 
   let { form, data } = $props()
+
+  interface UndoHistory {
+    topos: TopoDTO[]
+    selectedRouteStore: number | null
+    selectedTopoIndex: number
+  }
 
   // https://github.com/sveltejs/kit/issues/12999
   let topos = $state(data.topos)
   $effect(() => {
     topos = data.topos
   })
+  let undoHistory = $state<UndoHistory[]>([
+    $state.snapshot({
+      topos: data.topos,
+      selectedRouteStore: null,
+      selectedTopoIndex: 0,
+    }),
+  ])
+  $effect(() => {
+    undoHistory = [
+      $state.snapshot({
+        topos: data.topos,
+        selectedRouteStore: null,
+        selectedTopoIndex: 0,
+      }),
+    ]
+  })
 
   let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
 
-  let dirtyRoutes: number[] = $state([])
   let selectedTopoIndex = $state(0)
 
   let isAdding = $state(false)
   let isDeleting = $state(false)
   let isSaving = $state(false)
 
-  const onChangeTopo = (value: TopoDTO[], changedRoute: TopoRouteDTO) => {
-    if (changedRoute.routeFk != null) {
-      dirtyRoutes = Array.from(new Set([...dirtyRoutes, changedRoute.routeFk]))
+  let selectedRoute = $derived(topos[selectedTopoIndex].routes.find((route) => route.routeFk === $selectedRouteStore))
+
+  const onChangeTopo = (value: TopoDTO[]) => {
+    const lastItem = undoHistory.at(-1)
+
+    if (lastItem != null) {
+      lastItem.selectedRouteStore = $selectedRouteStore
+      lastItem.selectedTopoIndex = selectedTopoIndex
     }
+
+    undoHistory = [
+      ...undoHistory,
+      {
+        topos: $state.snapshot(value),
+        selectedRouteStore: null,
+        selectedTopoIndex: 0,
+      },
+    ]
   }
 
   const onChangeSelect: ChangeEventHandler<HTMLSelectElement> = (event) => {
     selectedRouteStore.set(Number(event.currentTarget.value))
   }
+
+  const onUndo = () => {
+    const lastItem = undoHistory.at(-2)
+    if (lastItem != null) {
+      const timeout = selectedTopoIndex === lastItem.selectedTopoIndex ? 0 : 400
+
+      selectedTopoIndex = lastItem.selectedTopoIndex
+      setTimeout(() => {
+        topos = lastItem.topos
+        selectedRouteStore.set(lastItem.selectedRouteStore)
+      }, timeout)
+
+      undoHistory = undoHistory.slice(0, -1)
+    }
+  }
+
+  function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+    let timeout: ReturnType<typeof setTimeout> | undefined
+
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => func(...args), wait)
+    }
+  }
+
+  // TODO
+  onMount(() => {
+    selectedRouteStore.set(null)
+
+    const beforeUnload = () => {
+      if (undoHistory.length <= 1) {
+        return undefined
+      }
+
+      return `It looks like you have been editing something. If you leave before saving, your changes will be lost.`
+    }
+
+    window.addEventListener('beforeunload', beforeUnload)
+
+    return () => {
+      // window.removeEventListener('beforeunload', beforeUnload)
+    }
+  })
 </script>
 
 <svelte:head>
@@ -46,80 +125,128 @@
 
 <div class="fixed top-0 left-0 w-screen h-screen -z-10 preset-filled-surface-100-900"></div>
 
-<div class="flex gap-2 justify-end m-2 md:m-4">
-  <Popover
-    arrow
-    arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-    contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-    positionerZIndex="!z-50"
-    positioning={{ placement: 'bottom-end' }}
-    triggerBase="btn preset-outlined-surface-500 w-9 h-9"
-  >
-    {#snippet trigger()}
-      <i class="fa-solid fa-ellipsis-vertical"></i>
-    {/snippet}
+<div class="flex justify-between m-2 md:m-4">
+  <div class="flex gap-2">
+    <form
+      method="POST"
+      action="?/saveTopos"
+      use:enhance={() => {
+        isSaving = true
 
-    {#snippet content()}
-      <nav class="list-nav">
-        <ul>
-          <li
-            class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
-          >
-            <a class="p-2 md:p-4" href="{basePath}/add-topo">
-              <i class="fa-solid fa-plus me-2"></i>Add image
-            </a>
-          </li>
+        return async ({ update }) => {
+          isSaving = false
 
-          <li
-            class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
-          >
-            <Popover
-              arrow
-              arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-              contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
-              positioning={{ placement: 'top' }}
-              positionerZIndex="!z-50"
-              triggerBase="px-2 md:px-4 py-3"
+          return update()
+        }
+      }}
+    >
+      <button
+        aria-label="Save"
+        class="btn-icon preset-filled-primary-500"
+        disabled={isSaving || undoHistory.length <= 1}
+      >
+        {#if isSaving}
+          <ProgressRing size="size-4" value={null} />
+        {:else}
+          <i class="fa-solid fa-floppy-disk"></i>
+        {/if}
+      </button>
+
+      <input type="hidden" name="topos" value={JSON.stringify(topos)} />
+    </form>
+
+    <button
+      aria-label="Undo"
+      class="btn-icon preset-outlined-primary-500"
+      disabled={undoHistory.length <= 1}
+      onclick={onUndo}
+    >
+      <i class="fa-solid fa-undo"></i>
+    </button>
+  </div>
+  <div class="flex gap-2">
+    <Popover
+      arrow
+      arrowBackground="!bg-surface-200 dark:!bg-surface-800"
+      contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
+      positionerZIndex="!z-50"
+      positioning={{ placement: 'bottom-end' }}
+      triggerBase="btn-icon preset-outlined-surface-500"
+    >
+      {#snippet trigger()}
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      {/snippet}
+
+      {#snippet content()}
+        <nav class="list-nav">
+          <ul>
+            <li
+              class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
             >
-              {#snippet trigger()}
-                <i class="fa-solid fa-trash me-2"></i>Remove image
-              {/snippet}
+              <a class="p-2 md:p-4" href="{basePath}/add-topo">
+                <i class="fa-solid fa-cloud-arrow-up w-5 me-2"></i>Upload topo image
+              </a>
+            </li>
 
-              {#snippet content()}
-                <article>
-                  <p>Are you sure you want to delete this image?</p>
-                </article>
+            <li
+              class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+            >
+              <Popover
+                arrow
+                arrowBackground="!bg-surface-200 dark:!bg-surface-800"
+                contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+                positioning={{ placement: 'top' }}
+                positionerZIndex="!z-50"
+                triggerBase="px-2 md:px-4 py-3"
+              >
+                {#snippet trigger()}
+                  <i class="fa-solid fa-trash w-5 me-2"></i>Remove topo image
+                {/snippet}
 
-                <footer class="flex justify-end">
-                  <form
-                    method="POST"
-                    action="?/removeTopo"
-                    use:enhance={() => {
-                      return async ({ update, result }) => {
+                {#snippet content()}
+                  <article>
+                    <p>Are you sure you want to delete this image?</p>
+                  </article>
+
+                  <footer class="flex justify-end">
+                    <form
+                      method="POST"
+                      action="?/removeTopo"
+                      use:enhance={() => {
                         selectedTopoIndex = 0
                         $selectedRouteStore = null
                         invalidate($page.url)
 
-                        await update()
-                        return applyAction(result)
-                      }
-                    }}
-                  >
-                    <input hidden name="id" value={topos[selectedTopoIndex]?.id} />
-                    <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
-                  </form>
-                </footer>
-              {/snippet}
-            </Popover>
-          </li>
-        </ul>
-      </nav>
-    {/snippet}
-  </Popover>
+                        return async ({ update, result }) => {
+                          await update()
+                          return applyAction(result)
+                        }
+                      }}
+                    >
+                      <input hidden name="id" value={topos[selectedTopoIndex]?.id} />
+                      <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
+                    </form>
+                  </footer>
+                {/snippet}
+              </Popover>
+            </li>
 
-  <a aria-label="Close" class="btn preset-outlined-surface-500 w-9 h-9" href={basePath}>
-    <i class="fa-solid fa-x"></i>
-  </a>
+            <li
+              class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+            >
+              <a class="p-2 md:p-4" href="{basePath}/routes/add">
+                <i class="fa-solid fa-plus w-5 me-2"></i>Create new route
+              </a>
+            </li>
+          </ul>
+        </nav>
+      {/snippet}
+    </Popover>
+
+    <a aria-label="Close" class="btn-icon preset-outlined-surface-500" href={basePath}>
+      <i class="fa-solid fa-x"></i>
+    </a>
+  </div>
 </div>
 
 {#if form?.error}
@@ -149,133 +276,26 @@
 
       <div>
         {#if $selectedRouteStore != null}
-          {#if data.block.routes.find((route) => route.id === $selectedRouteStore)?.hasTopo}
-            <div></div>
-            {#if dirtyRoutes.includes($selectedRouteStore)}
-              <form
-                method="POST"
-                action="?/saveRoute"
-                use:enhance={() => {
-                  isSaving = true
+          <button
+            aria-label="Delete route's topo"
+            class="btn"
+            disabled={isSaving || selectedRoute?.points.length === 0}
+            onclick={() => {
+              if (selectedRoute != null) {
+                selectedRoute.points = []
+              }
 
-                  return async ({ result, update }) => {
-                    isSaving = false
-
-                    if (result.type === 'success') {
-                      dirtyRoutes = dirtyRoutes.filter((routeId) => routeId !== result.data?.routeFk)
-                    }
-
-                    return update()
-                  }
-                }}
-              >
-                <input hidden name="routeFk" value={$selectedRouteStore} />
-                <input hidden name="topoFk" value={topos[selectedTopoIndex].id} />
-                <input
-                  hidden
-                  name="id"
-                  value={topos
-                    .flatMap((topo) => topo.routes)
-                    .find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)?.id}
-                />
-                <input
-                  hidden
-                  name="topType"
-                  value={topos
-                    .flatMap((topo) => topo.routes)
-                    .find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)?.topType}
-                />
-                <input
-                  hidden
-                  name="path"
-                  value={convertPointsToPath(
-                    topos.flatMap((topo) => topo.routes).find((topoRoute) => topoRoute.routeFk === $selectedRouteStore)
-                      ?.points ?? [],
-                  )}
-                />
-
-                <button aria-label="Save" class="btn variant-soft-primary" disabled={isSaving} type="submit">
-                  {#if isSaving}
-                    <ProgressRing size="size-4" value={null} />
-                  {:else}
-                    <i class="fa-solid fa-floppy-disk"></i>
-                  {/if}
-                </button>
-              </form>
-            {:else}
-              <Popover
-                arrow
-                arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-                contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
-                positioning={{ placement: 'top' }}
-                positionerZIndex="!z-50"
-                triggerBase="btn"
-              >
-                {#snippet trigger()}
-                  {#if isDeleting}
-                    <ProgressRing size="size-4" value={null} />
-                  {:else}
-                    <i class="fa-solid fa-trash"></i>
-                  {/if}
-                {/snippet}
-
-                {#snippet content()}
-                  <article>
-                    <p>Are you sure you want to delete this route's topo?</p>
-                  </article>
-
-                  <footer class="flex justify-end">
-                    <form
-                      method="POST"
-                      action="?/removeRoute"
-                      use:enhance={() => {
-                        isDeleting = true
-
-                        return ({ update }) => {
-                          isDeleting = false
-                          return update()
-                        }
-                      }}
-                    >
-                      <input hidden name="routeFk" value={$selectedRouteStore} />
-                      <input hidden name="topoFk" value={topos[selectedTopoIndex].id} />
-                      <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
-                    </form>
-                  </footer>
-                {/snippet}
-              </Popover>
-            {/if}
-          {:else}
-            <form
-              method="POST"
-              action="?/addRoute"
-              use:enhance={() => {
-                isAdding = true
-
-                return ({ update }) => {
-                  isAdding = false
-                  return update()
-                }
-              }}
-            >
-              <input hidden name="routeFk" value={$selectedRouteStore} />
-              <input hidden name="topoFk" value={topos[selectedTopoIndex].id} />
-
-              <button aria-label="Add topo" class="btn" disabled={isAdding} type="submit">
-                {#if isAdding}
-                  <ProgressRing size="size-4" value={null} />
-                {:else}
-                  <i class="fa-solid fa-plus"></i>
-                {/if}
-              </button>
-            </form>
-          {/if}
+              onChangeTopo(topos)
+            }}
+          >
+            <i class="fa-solid fa-trash"></i>
+          </button>
         {/if}
       </div>
     </div>
   </div>
 
   <section class="w-full" use:fitHeightAction>
-    <TopoViewer editable={true} bind:selectedTopoIndex bind:topos onChange={onChangeTopo} />
+    <TopoViewer editable={true} bind:selectedTopoIndex bind:topos onChange={debounce(onChangeTopo, 250)} />
   </section>
 </div>

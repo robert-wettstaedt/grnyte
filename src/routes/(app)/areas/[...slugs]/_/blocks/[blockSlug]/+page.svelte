@@ -3,10 +3,10 @@
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { EDIT_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import RouteName from '$lib/components/RouteName'
-  import TopoViewer, { highlightedRouteStore, selectedRouteStore } from '$lib/components/TopoViewer'
+  import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
@@ -118,18 +118,16 @@
                     {#each data.block.routes as route}
                       <li
                         class={`p-2 whitespace-nowrap ${
-                          [$selectedRouteStore, $highlightedRouteStore, ...highlightedRoutes].includes(route.id)
+                          [$selectedRouteStore, ...highlightedRoutes].includes(route.id)
                             ? 'preset-filled-primary-100-900'
                             : ''
                         }`}
                       >
                         <a
-                          class={[$selectedRouteStore, $highlightedRouteStore, ...highlightedRoutes].includes(route.id)
+                          class={[$selectedRouteStore, ...highlightedRoutes].includes(route.id)
                             ? 'text-white'
                             : 'text-primary-500'}
                           href={`${basePath}/routes/${route.slug.length === 0 ? route.id : route.slug}`}
-                          onmouseenter={() => highlightedRouteStore.set(route.id)}
-                          onmouseleave={() => highlightedRouteStore.set(null)}
                           onclick={() => selectedRouteStore.set(route.id)}
                           onkeydown={(event) => event.key === 'Enter' && selectedRouteStore.set(route.id)}
                         >

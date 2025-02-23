@@ -8,7 +8,8 @@ export interface PointDTO {
   y: number
 }
 
-export interface TopoRouteDTO extends Omit<InferResultType<'topoRoutes', { route: true }>, 'path'> {
+export interface TopoRouteDTO extends Omit<InferResultType<'topoRoutes', { route: true }>, 'id' | 'path'> {
+  id?: InferResultType<'topoRoutes'>['id']
   points: PointDTO[]
 }
 
@@ -63,16 +64,15 @@ export const convertPathToPoints = (path: string): PointDTO[] => {
 
 export const convertPointsToPath = (points: PointDTO[]): string => {
   const path = points
-    .toSorted((a) => {
-      if (a.type === 'start') {
-        return -1
+    .toSorted((a, b) => {
+      const aOrder = a.type === 'start' ? -1 : a.type === 'top' ? 1 : 0
+      const bOrder = b.type === 'start' ? -1 : b.type === 'top' ? 1 : 0
+
+      if (aOrder === bOrder) {
+        return a.x + a.y - (b.x + b.y)
       }
 
-      if (a.type === 'top') {
-        return 1
-      }
-
-      return 0
+      return aOrder - bOrder
     })
     .map((point) => {
       const command = (() => {

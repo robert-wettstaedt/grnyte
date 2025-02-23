@@ -20,10 +20,11 @@
   import * as d3 from 'd3'
   import { onMount, type Snippet } from 'svelte'
   import type { ChangeEventHandler, MouseEventHandler } from 'svelte/elements'
-  import { slide } from 'svelte/transition'
+  import { fade, slide } from 'svelte/transition'
   import Labels from './components/Labels'
   import RouteView from './components/Route'
-  import { highlightedRouteStore, selectedPointTypeStore, selectedRouteStore } from './stores'
+  import { selectedPointTypeStore, selectedRouteStore } from './stores'
+  import Magnifier from './components/Magnifier'
 
   let {
     actions,
@@ -41,6 +42,10 @@
 
   let img: HTMLImageElement | undefined = $state()
   let imgWrapper: HTMLDivElement | undefined = $state()
+
+  let magnifierImagePosition = $state({ x: 0, y: 0 })
+  let magnifierPosition = $state<{ x: number; y: number } | null>(null)
+  let magnifierScale = $state({ x: 0, y: 0 })
 
   let height = $state(0)
   let width = $state(0)
@@ -61,8 +66,8 @@
     const topo = topos.at(selectedTopoIndex)
     if (topo != null) {
       const routes = topo.routes.toSorted((a, b) => {
-        const prioA = $highlightedRouteStore === a.routeFk ? 2 : $selectedRouteStore === a.routeFk ? 1 : 0
-        const prioB = $highlightedRouteStore === b.routeFk ? 2 : $selectedRouteStore === b.routeFk ? 1 : 0
+        const prioA = $selectedRouteStore === a.routeFk ? 1 : 0
+        const prioB = $selectedRouteStore === b.routeFk ? 1 : 0
 
         return prioA - prioB
       })
@@ -73,16 +78,18 @@
     return topo
   })
 
-  let selectedTopoRoute = $derived(
-    topos.flatMap((topo) => topo.routes).find((route) => route.routeFk === $selectedRouteStore),
-  )
+  let selectedTopoRoute = $derived(selectedTopo?.routes.find((route) => route.routeFk === $selectedRouteStore))
 
   selectedRouteStore.subscribe((newSelectedRoute) => {
     $selectedPointTypeStore = null
     selectedPoint = undefined
 
-    const index = topos.findIndex((topo) => topo.routes.some((route) => route.routeFk === $selectedRouteStore))
-    selectedTopoIndex = index < 0 ? selectedTopoIndex : index
+    const toposWithRoute = topos.filter((topo) => topo.routes.some((route) => route.routeFk === $selectedRouteStore))
+
+    if (toposWithRoute.length === 1) {
+      const index = topos.findIndex((topo) => topo.id === toposWithRoute.at(0)?.id)
+      selectedTopoIndex = index < 0 ? selectedTopoIndex : index
+    }
   })
 
   const onClickSvg: MouseEventHandler<SVGElement> = (event) => {
@@ -102,8 +109,8 @@
       const point: PointDTO = {
         id: crypto.randomUUID?.() ?? String(Math.random()),
         type: $selectedPointTypeStore,
-        x: x / scale,
-        y: y / scale,
+        x: Math.round(x / scale),
+        y: Math.round(y / scale),
       }
 
       const closePoint = topos
@@ -133,15 +140,6 @@
     }
   }
 
-  const onMouseMoveSvg: MouseEventHandler<SVGElement> = (event) => {
-    const routeIdStr = (event.target as HTMLElement).attributes.getNamedItem('data-route-id')?.value
-    const routeId = Number(routeIdStr)
-
-    if ($selectedRouteStore !== routeId) {
-      highlightedRouteStore.set(Number.isNaN(routeId) ? null : routeId)
-    }
-  }
-
   const onChangeTopType: ChangeEventHandler<HTMLInputElement> = (event) => {
     if (selectedTopoRoute != null) {
       selectedTopoRoute.topType = event.currentTarget.checked ? 'topout' : 'top'
@@ -153,11 +151,7 @@
     $selectedPointTypeStore = $selectedPointTypeStore === type ? null : type
   }
 
-  const onChangeRoute = (index: number) => (value: TopoRouteDTO) => {
-    if (selectedTopo != null) {
-      selectedTopo.routes[index] = value
-    }
-
+  const onChangeRoute = (value: TopoRouteDTO) => {
     onChange?.(topos, value)
   }
 
@@ -267,7 +261,7 @@
 
 {#if editable}
   <div class="flex justify-between p-2 preset-filled-surface-100-900">
-    {#if $selectedRouteStore == null || selectedTopoRoute == null}
+    {#if $selectedRouteStore == null}
       <p>&nbsp;</p>
     {:else}
       <label class="flex items-center space-x-2">
@@ -316,33 +310,33 @@
     : ''}"
   style={elementHeight == null ? undefined : `min-height: ${elementHeight}px`}
 >
-  {#each topos as topo, index}
-    {#if index === selectedTopoIndex}
-      {#if topo.file.error == null}
-        <img
-          alt={topo.file.stat?.filename}
-          bind:this={img}
-          class="absolute top-0 left-0 w-full h-full object-cover blur pointer-events-none touch-none"
-          onload={getDimensions}
-          src={`/nextcloud${topo.file.stat?.filename}`}
-        />
+  {#if selectedTopo != null}
+    {#if selectedTopo.file.error == null}
+      <img
+        alt={selectedTopo.file.stat?.filename}
+        bind:this={img}
+        class="absolute top-0 left-0 w-full h-full object-cover blur pointer-events-none touch-none"
+        onload={getDimensions}
+        src={`/nextcloud${selectedTopo.file.stat?.filename}`}
+      />
 
-        <img
-          alt={topo.file.stat?.filename}
-          bind:this={img}
-          class="m-auto relative max-h-full z-10 pointer-events-none touch-none origin-top-left"
-          id={limitImgHeight ? 'img' : undefined}
-          onload={onLoadImage}
-          src={`/nextcloud${topo.file.stat?.filename}`}
-          style={zoomTransform == null
-            ? undefined
-            : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
-        />
-      {:else}
-        <p>Error loading image</p>
-      {/if}
+      <img
+        alt={selectedTopo.file.stat?.filename}
+        bind:this={img}
+        class="m-auto relative max-h-full z-10 pointer-events-none touch-none origin-top-left"
+        id={limitImgHeight ? 'img' : undefined}
+        onload={onLoadImage}
+        src={`/nextcloud${selectedTopo.file.stat?.filename}`}
+        style={zoomTransform == null
+          ? undefined
+          : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
+      />
+
+      <Magnifier file={selectedTopo.file} {rect} {width} {height} />
+    {:else}
+      <p>Error loading image</p>
     {/if}
-  {/each}
+  {/if}
 
   <div class="absolute z-20 left-0 right-0 top-0 bottom-0 {linesVisible ? 'opacity-100' : 'opacity-0'}">
     {#if selectedTopo != null}
@@ -350,7 +344,6 @@
         bind:this={svg}
         class="w-full h-full"
         onclick={onClickSvg}
-        onmousemove={onMouseMoveSvg}
         role="presentation"
         viewBox={`0 0 ${width} ${height}`}
         xmlns="http://www.w3.org/2000/svg"
@@ -372,10 +365,11 @@
             <RouteView
               {editable}
               {height}
+              {index}
               {scale}
               {width}
-              bind:route={selectedTopo.routes[index]}
-              onChange={onChangeRoute(index)}
+              bind:routes={selectedTopo.routes}
+              onChange={onChangeRoute}
             />
           {/each}
         </g>
@@ -415,7 +409,7 @@
         disabled={zoomTransform == null}
         onclick={onResetZoom}
       >
-        <i class="fa-solid fa-rotate-right"></i>
+        <i class="fa-solid fa-arrows-to-dot"></i>
       </button>
 
       <button

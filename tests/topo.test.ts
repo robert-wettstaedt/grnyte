@@ -58,7 +58,7 @@ describe('convertPointsToPath', () => {
       { id: '2', type: 'start', x: 30, y: 40 },
     ]
     const result = convertPointsToPath(points)
-    expect(result).toEqual('M30,40 M10,20')
+    expect(result).toEqual('M10,20 M30,40')
   })
 
   it('should correctly parse a path with only middle points', () => {
@@ -94,7 +94,7 @@ describe('convertPointsToPath', () => {
       { id: '5', type: 'middle', x: 90, y: 100 },
     ]
     const result = convertPointsToPath(points)
-    expect(result).toEqual('M50,60 M10,20 L30,40 L70,80 L90,100 Z')
+    expect(result).toEqual('M10,20 M50,60 L30,40 L90,100 L70,80 Z')
   })
 
   it('should handle decimal coordinates', () => {

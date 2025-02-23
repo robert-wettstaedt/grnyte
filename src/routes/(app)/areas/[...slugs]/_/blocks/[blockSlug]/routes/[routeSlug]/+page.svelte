@@ -14,7 +14,7 @@
   import References from '$lib/components/References'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import RouteName from '$lib/components/RouteName'
-  import TopoViewer, { highlightedRouteStore, selectedRouteStore } from '$lib/components/TopoViewer'
+  import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
   import { Popover, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
@@ -37,7 +37,6 @@
   afterNavigate(() => {
     tabValue = $page.url.hash.length > 0 ? $page.url.hash : '#info'
     selectedRouteStore.set(data.route.id)
-    highlightedRouteStore.set(null)
 
     const index = data.topos.findIndex((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === data.route.id))
     selectedTopoIndex = index === -1 ? undefined : index
@@ -45,7 +44,6 @@
   onMount(() => {
     tabValue = $page.url.hash.length > 0 ? $page.url.hash : '#info'
     selectedRouteStore.set(data.route.id)
-    highlightedRouteStore.set(null)
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onFocusChange'] = (event) => {
     goto($page.url.pathname + event.focusedValue, { replaceState: true })
@@ -61,6 +59,14 @@
         map.set(ascent.gradeFk!, count + 1)
         return map
       }, new Map<number, number>())
+  })
+
+  onMount(() => {
+    return selectedRouteStore.subscribe((value) => {
+      if (value == null && data.route != null) {
+        selectedRouteStore.set(data.route.id)
+      }
+    })
   })
 </script>
 

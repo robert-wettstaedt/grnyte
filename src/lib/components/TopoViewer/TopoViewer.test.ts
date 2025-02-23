@@ -5,7 +5,7 @@ import { get } from 'svelte/store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileStat } from 'webdav'
 import TopoViewer from './TopoViewer.svelte'
-import { highlightedRouteStore, selectedPointTypeStore, selectedRouteStore } from './stores'
+import { selectedPointTypeStore, selectedRouteStore } from './stores'
 
 // Mock ResizeObserver
 class ResizeObserverMock {
@@ -99,7 +99,6 @@ describe('TopoViewer Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset stores
-    highlightedRouteStore.set(null)
     selectedPointTypeStore.set(null)
     selectedRouteStore.set(null)
   })
@@ -116,22 +115,6 @@ describe('TopoViewer Component', () => {
       const images = container.querySelectorAll('img')
       expect(images).toHaveLength(2) // Main image and blurred background
       expect(images[1]).toHaveAttribute('src', '/nextcloud/test/path1.jpg')
-    })
-
-    it('should highlight route on hover', async () => {
-      const { container } = render(TopoViewer, {
-        props: {
-          topos: mockTopos,
-          editable: false,
-        },
-      })
-
-      const route = container.querySelector('[data-route-id="1"]')
-      expect(route).toBeInTheDocument()
-      await fireEvent.mouseMove(route!)
-
-      const highlightedRoute = get(highlightedRouteStore)
-      expect(highlightedRoute).toBe(1)
     })
 
     it('should handle zoom interactions', async () => {
