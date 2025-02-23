@@ -96,16 +96,35 @@ const mockSupabase = {
   functions: {},
 } as unknown as SupabaseClient
 
+const mockSupabaseUser = {
+  id: 'auth0|123',
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+  role: 'authenticated',
+  email: 'test@example.com',
+} as AuthUser
+
+const mockSchemaUser = {
+  id: 1,
+  username: 'testuser',
+  authUserFk: mockSupabaseUser.id,
+  firstAscensionistFk: null,
+  userSettingsFk: null,
+  createdAt: new Date().toISOString(),
+}
+
 const mockLocals = {
   supabase: mockSupabase,
   safeGetSession: async () => ({
     session: null as Session | null,
-    user: null as AuthUser | null,
+    user: mockSupabaseUser,
     userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION>,
     userRole: 'anonymous' as string | undefined,
   }),
   session: null as Session | null,
-  user: null as AuthUser | null,
+  user: mockSupabaseUser,
   userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION>,
   userRole: 'anonymous' as string | undefined,
 }
@@ -125,6 +144,9 @@ type MockDb = {
       findFirst: ReturnType<typeof vi.fn>
     }
     ascents: {
+      findFirst: ReturnType<typeof vi.fn>
+    }
+    users: {
       findFirst: ReturnType<typeof vi.fn>
     }
   }
@@ -147,7 +169,7 @@ describe('Activity Feed', () => {
     mockDb = {
       query: {
         activities: {
-          findMany: vi.fn().mockResolvedValue([{ ...mockActivity, user: { id: 1, name: 'Test User' } }]),
+          findMany: vi.fn().mockResolvedValue([{ ...mockActivity, user: mockSchemaUser }]),
         },
         areas: {
           findFirst: vi.fn().mockResolvedValue(mockArea),
@@ -160,6 +182,9 @@ describe('Activity Feed', () => {
         },
         ascents: {
           findFirst: vi.fn().mockResolvedValue(mockAscent),
+        },
+        users: {
+          findFirst: vi.fn().mockResolvedValue({ ...mockSchemaUser, userSettings: { gradingScale: 'FB' } }),
         },
       },
       select: vi.fn().mockReturnValue(fromMock),
@@ -356,15 +381,6 @@ describe('Activity Feed', () => {
   })
 
   describe('groupActivities', () => {
-    const mockUser = {
-      id: 1,
-      authUserFk: 'auth0|123',
-      username: 'Test User',
-      firstAscensionistFk: null,
-      userSettingsFk: null,
-      createdAt: new Date().toISOString(),
-    }
-
     const mockOtherUser = {
       id: 2,
       authUserFk: 'auth0|456',
@@ -436,7 +452,7 @@ describe('Activity Feed', () => {
           entityId: 1,
           userFk: 1,
           createdAt: now.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntityId: 1, // Same parent block
           parentEntityType: 'block',
@@ -453,7 +469,7 @@ describe('Activity Feed', () => {
           entityId: 2,
           userFk: 1,
           createdAt: oneHourAgo.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(2),
           parentEntityId: 1, // Same parent block
           parentEntityType: 'block',
@@ -470,7 +486,7 @@ describe('Activity Feed', () => {
           entityId: 3,
           userFk: 1,
           createdAt: fourHoursAgo.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(3),
           parentEntityId: 2, // Different parent block
           parentEntityType: 'block',
@@ -530,7 +546,7 @@ describe('Activity Feed', () => {
           parentEntityId: 100,
           userFk: 1,
           createdAt: now.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockBlock(1),
           parentEntity: mockArea(100),
           columnName: null,
@@ -547,7 +563,7 @@ describe('Activity Feed', () => {
           parentEntityId: 1,
           userFk: 1,
           createdAt: fiveMinutesAgo.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntity: mockBlock(1),
           columnName: null,
@@ -574,7 +590,7 @@ describe('Activity Feed', () => {
           entityId: 1,
           userFk: 1,
           createdAt: now.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntityId: null,
           parentEntityType: null,
@@ -626,7 +642,7 @@ describe('Activity Feed', () => {
           parentEntityId: 100,
           userFk: 1,
           createdAt: now.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntity: mockBlock(100),
           columnName: null,
@@ -643,7 +659,7 @@ describe('Activity Feed', () => {
           parentEntityId: 100,
           userFk: 1,
           createdAt: fiveMinutesAgo.toISOString(),
-          user: mockUser,
+          user: mockSchemaUser,
           entity: mockRoute(2),
           parentEntity: mockBlock(100),
           columnName: null,
