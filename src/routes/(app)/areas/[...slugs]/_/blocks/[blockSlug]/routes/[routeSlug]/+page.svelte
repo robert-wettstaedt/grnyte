@@ -51,8 +51,6 @@
     goto($page.url.pathname + event.focusedValue, { replaceState: true })
   }
 
-  const hasActions = $derived(data.userPermissions?.includes(EDIT_PERMISSION) || data.route.externalResources != null)
-
   const gradeMap = $derived.by(() => {
     return data.route.ascents
       .filter((ascent) => ascent.gradeFk != null)
@@ -73,12 +71,17 @@
   </title>
 </svelte:head>
 
-<AppBar {hasActions}>
+<AppBar hasActions>
   {#snippet lead()}
     <RouteName classes="flex-wrap" route={data.route} />
   {/snippet}
 
   {#snippet actions()}
+    <a class="btn btn-sm preset-filled-primary-500" href={`${basePath}/ascents/add`}>
+      <i class="fa-solid fa-check"></i>
+      Log ascent
+    </a>
+
     {#if data.route.externalResources?.externalResource8a?.url != null}
       <a
         class="btn btn-sm preset-outlined-primary-500"
@@ -201,7 +204,10 @@
         <Tabs.Panel value="#activity">
           <section class="p-2">
             <div class="flex justify-center mb-4">
-              <a class="btn preset-filled-primary-500" href={`${basePath}/ascents/add`}>Log ascent</a>
+              <a class="btn preset-filled-primary-500" href={`${basePath}/ascents/add`}>
+                <i class="fa-solid fa-check"></i>
+                Log ascent
+              </a>
             </div>
 
             <ActivityFeed activities={data.feed.activities} pagination={data.feed.pagination} />
