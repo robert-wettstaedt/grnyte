@@ -17,7 +17,6 @@
   import Logo from '$lib/assets/logo.png'
   import { READ_PERMISSION } from '$lib/auth'
   import Breadcrumb from '$lib/components/Breadcrumb'
-  import EmailVerification from '$lib/components/EmailVerification'
   import NavTiles from '$lib/components/NavTiles'
   import type { InferResultType } from '$lib/db/types'
   import '@fortawesome/fontawesome-free/css/all.css'
