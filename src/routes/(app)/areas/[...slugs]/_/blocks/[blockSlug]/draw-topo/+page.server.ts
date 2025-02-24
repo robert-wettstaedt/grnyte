@@ -3,14 +3,6 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, blocks, files, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
-import {
-  addTopoActionSchema,
-  saveTopoActionSchema,
-  validateFormData,
-  type ActionFailure,
-  type AddTopoActionValues,
-  type SaveTopoActionValues,
-} from '$lib/forms.server'
 import { convertAreaSlug, getUser } from '$lib/helper.server'
 import { load as loadServerLayout } from '$lib/layout/layout.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
@@ -100,138 +92,6 @@ export const load = (async (event) => {
 }) satisfies PageServerLoad
 
 export const actions = {
-  saveRoute: async ({ locals, request, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
-    const rls = await createDrizzleSupabaseClient(locals.supabase)
-
-    return await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
-        return fail(404)
-      }
-
-      const { areaId } = convertAreaSlug(params)
-
-      const block = await db.query.blocks.findFirst({
-        where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
-      })
-
-      const data = await request.formData()
-
-      let values: SaveTopoActionValues
-
-      try {
-        values = await validateFormData(saveTopoActionSchema, data)
-      } catch (exception) {
-        return exception as ActionFailure<SaveTopoActionValues>
-      }
-
-      await db
-        .update(topoRoutes)
-        .set({
-          path: values.path,
-          routeFk: Number(values.routeFk),
-          topoFk: Number(values.topoFk),
-          topType: values.topType,
-        })
-        .where(eq(topoRoutes.id, Number(values.id)))
-
-      await db.insert(activities).values({
-        type: 'updated',
-        userFk: user.id,
-        entityId: values.routeFk,
-        entityType: 'route',
-        columnName: 'topo',
-        parentEntityId: block?.id,
-        parentEntityType: 'block',
-      })
-
-      return { routeFk: values.routeFk }
-    })
-  },
-
-  addRoute: async ({ locals, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
-    const rls = await createDrizzleSupabaseClient(locals.supabase)
-
-    return await rls(async (db) => {
-      // Get form data from the request
-      const data = await request.formData()
-      let values: AddTopoActionValues
-
-      // Validate the ascent form data
-      try {
-        values = await validateFormData(addTopoActionSchema, data)
-      } catch (exception) {
-        return exception as ActionFailure<AddTopoActionValues>
-      }
-
-      const existingTopoRoute = await db.query.topoRoutes.findFirst({
-        where: and(eq(topoRoutes.routeFk, Number(values.routeFk)), eq(topoRoutes.topoFk, Number(values.topoFk))),
-      })
-
-      if (existingTopoRoute != null) {
-        return fail(400, { error: 'Topo for this route already exists' })
-      }
-
-      await db
-        .insert(topoRoutes)
-        .values({ topType: 'topout', routeFk: Number(values.routeFk), topoFk: Number(values.topoFk) })
-    })
-  },
-
-  removeRoute: async ({ locals, request, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
-    const rls = await createDrizzleSupabaseClient(locals.supabase)
-
-    return await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
-        return fail(404)
-      }
-
-      const { areaId } = convertAreaSlug(params)
-
-      const block = await db.query.blocks.findFirst({
-        where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
-      })
-
-      // Get form data from the request
-      const data = await request.formData()
-      let values: AddTopoActionValues
-
-      // Validate the ascent form data
-      try {
-        values = await validateFormData(addTopoActionSchema, data)
-      } catch (exception) {
-        return exception as ActionFailure<AddTopoActionValues>
-      }
-
-      await db
-        .delete(topoRoutes)
-        .where(and(eq(topoRoutes.routeFk, Number(values.routeFk)), eq(topoRoutes.topoFk, Number(values.topoFk))))
-
-      await db.insert(activities).values({
-        type: 'deleted',
-        userFk: user.id,
-        entityId: values.routeFk,
-        entityType: 'route',
-        columnName: 'topo',
-        parentEntityId: block?.id,
-        parentEntityType: 'block',
-      })
-    })
-  },
-
   removeTopo: async ({ locals, params, request }) => {
     if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
       error(404)
@@ -309,20 +169,25 @@ export const actions = {
       }
 
       const data = await request.formData()
-      const topos = JSON.parse(data.get('topos') as string) as TopoDTO[]
+      const parsedTopos = JSON.parse(data.get('topos') as string) as TopoDTO[]
 
-      if (topos.length === 0 || topos[0].blockFk == null) {
+      if (parsedTopos.length === 0 || parsedTopos[0].blockFk == null) {
         return fail(400)
       }
 
-      await db.delete(topoRoutes).where(
-        inArray(
-          topoRoutes.topoFk,
-          topos.map((topo) => topo.id),
-        ),
-      )
+      // Verify that all topos exist before proceeding with any deletions
+      const topoIds = parsedTopos.map((topo) => topo.id)
+      const existingTopos = await db.query.topos.findMany({ where: inArray(topos.id, topoIds) })
 
-      const toposToUpdate = topos.flatMap((topo) => topo.routes.filter((topoRoute) => topoRoute.points.length > 0))
+      if (existingTopos.length !== topoIds.length) {
+        return fail(400, { error: 'One or more topos do not exist' })
+      }
+
+      await db.delete(topoRoutes).where(inArray(topoRoutes.topoFk, topoIds))
+
+      const toposToUpdate = parsedTopos.flatMap((topo) =>
+        topo.routes.filter((topoRoute) => topoRoute.points.length > 0),
+      )
 
       if (toposToUpdate.length > 0) {
         await db.insert(topoRoutes).values(
@@ -341,7 +206,7 @@ export const actions = {
       await db.insert(activities).values({
         type: 'updated',
         userFk: user.id,
-        entityId: topos[0].blockFk,
+        entityId: parsedTopos[0].blockFk,
         entityType: 'block',
         columnName: 'topo',
         parentEntityId: areaId,

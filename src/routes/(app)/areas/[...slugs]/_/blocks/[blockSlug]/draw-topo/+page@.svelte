@@ -1,6 +1,6 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { invalidate } from '$app/navigation'
+  import { beforeNavigate, invalidate } from '$app/navigation'
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
@@ -21,26 +21,22 @@
     selectedTopoIndex: number
   }
 
+  const getNewHistoryEntry = () => {
+    return {
+      topos: $state.snapshot(data.topos),
+      selectedRouteStore: null,
+      selectedTopoIndex: 0,
+    }
+  }
+
   // https://github.com/sveltejs/kit/issues/12999
   let topos = $state(data.topos)
   $effect(() => {
     topos = data.topos
   })
-  let undoHistory = $state<UndoHistory[]>([
-    $state.snapshot({
-      topos: data.topos,
-      selectedRouteStore: null,
-      selectedTopoIndex: 0,
-    }),
-  ])
+  let undoHistory = $state<UndoHistory[]>([getNewHistoryEntry()])
   $effect(() => {
-    undoHistory = [
-      $state.snapshot({
-        topos: data.topos,
-        selectedRouteStore: null,
-        selectedTopoIndex: 0,
-      }),
-    ]
+    undoHistory = [getNewHistoryEntry()]
   })
 
   let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
@@ -99,23 +95,18 @@
     }
   }
 
-  // TODO
   onMount(() => {
     selectedRouteStore.set(null)
 
-    const beforeUnload = () => {
+    beforeNavigate(({ cancel }) => {
       if (undoHistory.length <= 1) {
-        return undefined
+        return
       }
 
-      return `It looks like you have been editing something. If you leave before saving, your changes will be lost.`
-    }
-
-    window.addEventListener('beforeunload', beforeUnload)
-
-    return () => {
-      // window.removeEventListener('beforeunload', beforeUnload)
-    }
+      if (!window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+        cancel()
+      }
+    })
   })
 </script>
 

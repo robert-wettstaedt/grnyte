@@ -64,6 +64,10 @@
   const onDeletePoint: MouseEventHandler<Element> = (event) => {
     event.preventDefault()
 
+    if (longPressPoint == null) {
+      return
+    }
+
     routes[index].points = routes[index].points.filter((_point) => _point.id !== longPressPoint?.id)
     selectedPoint = undefined
     onChange?.(routes[index])
@@ -103,8 +107,6 @@
           if (!editable) {
             return
           }
-
-          dragStore.set(event)
 
           clearLongPress()
 
@@ -154,6 +156,10 @@
               points[0].x = closePoint.point.x
               points[0].y = closePoint.point.y
             }
+
+            dragStore.set({ ...event, x: points[0].x * scale, y: points[0].y * scale })
+          } else {
+            dragStore.set(event)
           }
 
           onChange?.(routes[index])

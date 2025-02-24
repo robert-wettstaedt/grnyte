@@ -1,5 +1,5 @@
 import * as schema from '$lib/db/schema'
-import { areaTypeEnum, areaVisibilityEnum, ascentTypeEnum, topoRouteTopTypeEnum } from '$lib/db/schema'
+import { areaTypeEnum, areaVisibilityEnum, ascentTypeEnum } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { usernameRegex } from '$lib/markdown'
 import { fail } from '@sveltejs/kit'
@@ -179,21 +179,6 @@ export const ascentActionSchema = z.intersection(
   addOptionalFileActionSchema,
 )
 export type AscentActionValues = z.infer<typeof ascentActionSchema>
-
-export const saveTopoActionSchema = z.object({
-  id: z.number(),
-  path: z.string(),
-  routeFk: z.number(),
-  topoFk: z.number(),
-  topType: z.enum(topoRouteTopTypeEnum),
-})
-export type SaveTopoActionValues = z.infer<typeof saveTopoActionSchema>
-
-export const addTopoActionSchema = z.object({
-  routeFk: z.number(),
-  topoFk: z.number(),
-})
-export type AddTopoActionValues = z.infer<typeof addTopoActionSchema>
 
 export const tagActionSchema = z.object({
   id: z.string(),

@@ -20,11 +20,11 @@
   import * as d3 from 'd3'
   import { onMount, type Snippet } from 'svelte'
   import type { ChangeEventHandler, MouseEventHandler } from 'svelte/elements'
-  import { fade, slide } from 'svelte/transition'
+  import { slide } from 'svelte/transition'
   import Labels from './components/Labels'
+  import Magnifier from './components/Magnifier'
   import RouteView from './components/Route'
   import { selectedPointTypeStore, selectedRouteStore } from './stores'
-  import Magnifier from './components/Magnifier'
 
   let {
     actions,
@@ -42,10 +42,6 @@
 
   let img: HTMLImageElement | undefined = $state()
   let imgWrapper: HTMLDivElement | undefined = $state()
-
-  let magnifierImagePosition = $state({ x: 0, y: 0 })
-  let magnifierPosition = $state<{ x: number; y: number } | null>(null)
-  let magnifierScale = $state({ x: 0, y: 0 })
 
   let height = $state(0)
   let width = $state(0)
