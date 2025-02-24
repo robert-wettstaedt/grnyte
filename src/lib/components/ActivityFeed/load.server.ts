@@ -6,9 +6,11 @@ import * as schema from '$lib/db/schema'
 import type { IncludeRelation, InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { validateObject } from '$lib/forms.server'
+import { getUser } from '$lib/helper.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
+import { error } from '@sveltejs/kit'
 import { and, asc, count, desc, eq, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
@@ -104,7 +106,8 @@ const postProcessEntity = async (
 
 const searchParamsSchema = z.intersection(
   z.object({
-    type: z.string().optional(),
+    type: z.enum(['all', 'ascents']).optional(),
+    user: z.enum(['all', 'me']).optional(),
   }),
   paginationParamsSchema,
 )
@@ -192,15 +195,25 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
+    const user = await getUser(locals.user, db)
+    if (user == null) {
+      error(404)
+    }
+
     const searchParamsObj = Object.fromEntries(url.searchParams.entries())
     const searchParams = await validateObject(searchParamsSchema, searchParamsObj)
 
-    const where =
-      searchParams.type === 'ascents'
-        ? and(eq(schema.activities.entityType, 'ascent'), eq(schema.activities.type, 'created'), ...(queries ?? []))
-        : queries == null
-          ? undefined
-          : and(...queries)
+    const allQueries = [...(queries ?? [])]
+
+    if (searchParams.user === 'me') {
+      allQueries.push(eq(schema.activities.userFk, user.id))
+    }
+
+    if (searchParams.type === 'ascents') {
+      allQueries.push(eq(schema.activities.entityType, 'ascent'), eq(schema.activities.type, 'created'))
+    }
+
+    const where = and(...allQueries)
 
     const activities = await db.query.activities.findMany({
       ...getPaginationQuery(searchParams),

@@ -97,6 +97,9 @@ export default {
       name: data.name ?? '',
       rating: null,
       slug: data.path ?? '',
+      userGradeFk: null,
+      userRating: null,
+      areaFks: [],
     }
 
     return route

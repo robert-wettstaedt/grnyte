@@ -10,7 +10,7 @@ import { getUser } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params }) => {
@@ -173,9 +173,9 @@ export const actions = {
         await Promise.all(filesToDelete.map((file) => deleteFile(file)))
 
         await db.delete(ascents).where(eq(ascents.id, ascent.id))
-
         await updateRoutesUserData(ascent.routeFk, db)
 
+        await db.delete(activities).where(and(eq(activities.entityType, 'ascent'), eq(activities.entityId, ascent.id)))
         await db.insert(activities).values({
           type: 'deleted',
           userFk: user.id,

@@ -21,6 +21,7 @@ import { routeActionSchema, validateFormData, type ActionFailure, type RouteActi
 import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
+import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -153,8 +154,6 @@ export const actions = {
         }
       }
 
-      values.rating = values.rating == null || String(values.rating).length === 0 ? undefined : values.rating
-
       try {
         const { tags, ...rest } = values
 
@@ -171,6 +170,8 @@ export const actions = {
           // Insert new route-to-tag associations for the route
           await db.insert(routesToTags).values(tags.map((tag) => ({ routeFk: route.id, tagFk: tag })))
         }
+
+        await updateRoutesUserData(route.id, db)
 
         const oldRoute = { ...route, tags: route.tags.map((tag) => tag.tagFk).toSorted((a, b) => a.localeCompare(b)) }
 

@@ -9,11 +9,15 @@ import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
-import { error, fail } from '@sveltejs/kit'
+import { error, fail, redirect } from '@sveltejs/kit'
 import { and, desc, eq, or } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params, parent, url }) => {
+  if (url.searchParams.get('type') == null) {
+    redirect(302, `${url.pathname}?type=ascents`)
+  }
+
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {

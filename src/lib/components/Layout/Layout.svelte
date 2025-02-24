@@ -15,6 +15,7 @@
   import { page } from '$app/stores'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
+  import { READ_PERMISSION } from '$lib/auth'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import type { InferResultType } from '$lib/db/types'
@@ -169,7 +170,7 @@
     {@render children?.()}
   </main>
 
-  {#if data.userPermissions?.includes('data.read')}
+  {#if data.userPermissions?.includes(READ_PERMISSION)}
     <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
       <NavTiles userPermissions={data.userPermissions} />
     </Navigation.Bar>

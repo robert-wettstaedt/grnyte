@@ -25,16 +25,16 @@
   })
 </script>
 
-<div class="h-20 bg-primary-50-950 overflow-hidden text-primary-50 shadow-lg rounded">
+<div class="h-24 bg-primary-50-950 overflow-hidden text-primary-50 shadow-lg rounded">
   <div class="flex gap-2">
     {#if feature.avatar != null}
-      <div class="min-w-20 w-20 h-20">
+      <a class="min-w-24 w-24 h-24" href={feature.pathname}>
         {#if feature.avatar.src != null}
-          <Image path={feature.avatar.src} size={80} />
+          <Image path={feature.avatar.src} size={96} />
         {:else if feature.avatar.icon != null}
-          <i class="{feature.avatar.icon} h-full w-full flex items-center justify-center text-[3rem]"></i>
+          <i class="{feature.avatar.icon} h-full w-full flex items-center justify-center text-[4rem]"></i>
         {/if}
-      </div>
+      </a>
     {/if}
 
     <div class="flex flex-col min-w-0 grow p-1">
@@ -55,7 +55,7 @@
       </a>
 
       {#if navigationUrl != null}
-        <div class="mt-auto">
+        <div class="mt-auto flex justify-end">
           <a href={navigationUrl} class="btn btn-sm preset-outlined-primary-500">
             <i class="fa-solid fa-diamond-turn-right"></i>Directions
           </a>

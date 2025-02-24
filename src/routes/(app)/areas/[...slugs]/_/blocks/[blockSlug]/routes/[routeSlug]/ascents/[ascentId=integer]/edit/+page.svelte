@@ -74,7 +74,7 @@
     dateTime={form?.dateTime ?? data.ascent.dateTime}
     gradeFk={form?.gradeFk ?? data.ascent.gradeFk}
     notes={form?.notes ?? data.ascent.notes}
-    rating={form?.rating ?? data.ascent.rating ?? undefined}
+    rating={form?.rating ?? data.ascent.rating ?? null}
     type={form?.type ?? data.ascent.type}
   />
 

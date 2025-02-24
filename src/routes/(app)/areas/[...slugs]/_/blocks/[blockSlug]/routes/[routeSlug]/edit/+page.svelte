@@ -41,7 +41,7 @@
     description={form?.description ?? data.route.description}
     gradeFk={form?.gradeFk ?? data.route.gradeFk}
     name={form?.name ?? data.route.name}
-    rating={form?.rating ?? data.route.rating ?? undefined}
+    rating={form?.rating ?? data.route.rating ?? null}
     routeTags={form?.tags ?? data.route.tags.map((tag) => tag.tagFk)}
     tags={data.tags}
   />

@@ -8,10 +8,21 @@
   }
 
   const { features }: Props = $props()
+
+  let container: HTMLDivElement | undefined = $state(undefined)
+
+  $effect(() => {
+    if (features.length === 0) {
+      return
+    }
+
+    container?.scrollTo({ left: 0, behavior: 'instant' })
+  })
 </script>
 
 {#if features.length > 0}
   <div
+    bind:this={container}
     class="absolute bottom-1 left-1 right-1 z-10 snap-x snap-mandatory scroll-smooth flex gap-4 overflow-x-auto"
     transition:slide={{ duration: 100 }}
   >

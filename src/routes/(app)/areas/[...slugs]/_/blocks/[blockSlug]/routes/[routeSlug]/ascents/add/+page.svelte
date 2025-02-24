@@ -72,7 +72,7 @@
     dateTime={form?.dateTime ?? DateTime.now().toSQLDate()}
     gradeFk={form?.gradeFk ?? null}
     notes={form?.notes ?? null}
-    rating={form?.rating}
+    rating={form?.rating ?? null}
     type={form?.type ?? null}
   />
 

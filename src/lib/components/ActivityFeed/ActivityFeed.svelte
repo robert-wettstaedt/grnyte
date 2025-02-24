@@ -1,7 +1,7 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/stores'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { DELETE_PERMISSION } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer/FileViewer.svelte'
   import RouteName from '$lib/components/RouteName/RouteName.svelte'
   import type { FileDTO } from '$lib/nextcloud'
@@ -21,7 +21,7 @@
 
   let activityPages = $state<(typeof activities)[]>([])
   let prevPage = $state(1)
-  let activityType = $state('all')
+  let filterValue = $state<string[]>([])
 
   afterNavigate(() => {
     if (pagination.page === prevPage + 1) {
@@ -37,7 +37,7 @@
     }
 
     prevPage = pagination.page
-    activityType = $page.url.searchParams.get('type') ?? 'all'
+    filterValue = Array.from($page.url.searchParams.entries()).map(([key, value]) => `${key}=${value}`)
   })
 
   function getUniqueFiles(group: ActivityGroup): FileDTO[] {
@@ -90,23 +90,25 @@
   <span class="label-text font-medium">Filter activity feed:</span>
   <select
     class="select select-bordered w-full sm:w-auto"
+    multiple
     onchange={(event) => {
+      const selectedOptions = (event.target as HTMLSelectElement).selectedOptions
+      const selectedValues = Array.from(selectedOptions).map((option) => option.value)
+
       const url = new URL($page.url)
-
-      const activityType = (event.target as HTMLSelectElement).value
-      if (activityType === 'ascents') {
-        url.searchParams.set('type', activityType)
-      } else {
-        url.searchParams.delete('type')
-      }
-
-      url.searchParams.delete('page')
+      url.searchParams.delete('type')
+      url.searchParams.delete('user')
+      selectedValues.forEach((selectedValue) => {
+        const [key, value] = selectedValue.split('=')
+        url.searchParams.append(key, value)
+      })
       goto(url)
     }}
-    value={activityType}
+    size="2"
+    value={filterValue}
   >
-    <option value="all">Show all activity</option>
-    <option value="ascents">Show ascents only</option>
+    <option value="type=ascents">Show ascents only</option>
+    <option value="user=me">Show my activity only</option>
   </select>
 </label>
 
