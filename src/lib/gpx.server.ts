@@ -355,11 +355,12 @@ const renderTopo = (topo: InferResultType<'topos'> & { file: TopoFile; routes: T
         xmlns="http://www.w3.org/2000/svg"
       >
         ${topo.routes.map(
-          (route) =>
+          (_, index, routes) =>
             render(Route, {
               props: {
                 height,
-                route,
+                index,
+                routes,
                 scale,
                 width,
               },
