@@ -147,8 +147,10 @@ export const actions = {
         return fail(404, { ...values, error: convertException(exception) })
       }
 
+      const redirect = String(data.get('redirect'))
+
       // Redirect to the block page after successful insertion
-      return data.get('redirect') ?? `/areas/${params.slugs}/_/blocks/${params.blockSlug}#topo`
+      return redirect.length > 0 ? redirect : `/areas/${params.slugs}/_/blocks/${params.blockSlug}#topo`
     })
 
     if (typeof returnValue === 'string') {

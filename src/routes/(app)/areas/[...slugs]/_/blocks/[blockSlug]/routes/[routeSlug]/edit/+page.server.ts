@@ -174,11 +174,12 @@ export const actions = {
         return fail(404, { ...values, error: convertException(exception) })
       }
 
+      const redirect = String(data.get('redirect'))
+
       // Redirect to the updated route's page
-      return (
-        data.get('redirect') ??
-        `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${slug.length === 0 ? route.id : slug}`
-      )
+      return redirect.length > 0
+        ? redirect
+        : `/areas/${params.slugs}/_/blocks/${params.blockSlug}/routes/${slug.length === 0 ? route.id : slug}`
     })
 
     if (typeof returnValue === 'string') {
