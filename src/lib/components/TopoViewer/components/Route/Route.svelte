@@ -49,12 +49,6 @@
   let longPressPoint: PointDTO | undefined = $state()
   const LONG_PRESS_DURATION = 1000
 
-  selectedRouteStore.subscribe(() => {
-    clearTimeout(longPressTimer)
-    longPressTimer = undefined
-    longPressPoint = undefined
-  })
-
   const clearLongPress = () => {
     clearTimeout(longPressTimer)
     longPressTimer = undefined
@@ -170,6 +164,16 @@
         })
 
       d3.select(group).call(drag as any)
+    }
+
+    const unsubscribe = selectedRouteStore.subscribe(() => {
+      clearTimeout(longPressTimer)
+      longPressTimer = undefined
+      longPressPoint = undefined
+    })
+
+    return () => {
+      unsubscribe()
     }
   })
 </script>

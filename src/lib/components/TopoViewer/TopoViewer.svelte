@@ -76,18 +76,6 @@
 
   let selectedTopoRoute = $derived(selectedTopo?.routes.find((route) => route.routeFk === $selectedRouteStore))
 
-  selectedRouteStore.subscribe((newSelectedRoute) => {
-    $selectedPointTypeStore = null
-    selectedPoint = undefined
-
-    const toposWithRoute = topos.filter((topo) => topo.routes.some((route) => route.routeFk === $selectedRouteStore))
-
-    if (toposWithRoute.length === 1) {
-      const index = topos.findIndex((topo) => topo.id === toposWithRoute.at(0)?.id)
-      selectedTopoIndex = index < 0 ? selectedTopoIndex : index
-    }
-  })
-
   const onClickSvg: MouseEventHandler<SVGElement> = (event) => {
     let updated = false
     if (!editable && !clicked) {
@@ -250,11 +238,7 @@
   }
 
   onMount(() => {
-    if (imgWrapper == null) {
-      return
-    }
-
-    new ResizeObserver(() => {
+    const observer = new ResizeObserver(() => {
       if (zoomTransform != null) {
         zoomTransform = undefined
       }
@@ -262,7 +246,25 @@
       requestAnimationFrame(() => {
         getDimensions()
       })
-    }).observe(imgWrapper)
+    })
+    imgWrapper != null && observer.observe(imgWrapper)
+
+    const unsubscribe = selectedRouteStore.subscribe(() => {
+      $selectedPointTypeStore = null
+      selectedPoint = undefined
+
+      const toposWithRoute = topos.filter((topo) => topo.routes.some((route) => route.routeFk === $selectedRouteStore))
+
+      if (toposWithRoute.length === 1) {
+        const index = topos.findIndex((topo) => topo.id === toposWithRoute.at(0)?.id)
+        selectedTopoIndex = index < 0 ? selectedTopoIndex : index
+      }
+    })
+
+    return () => {
+      unsubscribe()
+      imgWrapper != null && observer.unobserve(imgWrapper)
+    }
   })
 </script>
 
