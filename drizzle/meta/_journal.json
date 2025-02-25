@@ -155,6 +155,13 @@
       "when": 1739914454099,
       "tag": "0022_lame_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1740491728781,
+      "tag": "0023_tiresome_kid_colt",
+      "breakpoints": true
     }
   ]
 }

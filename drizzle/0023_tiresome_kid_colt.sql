@@ -1,0 +1,1 @@
+CREATE POLICY "data.edit can delete routes" ON "routes" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize('data.edit')));

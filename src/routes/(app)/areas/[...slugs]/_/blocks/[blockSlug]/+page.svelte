@@ -90,7 +90,7 @@
                 <TopoViewer topos={data.topos}>
                   {#snippet actions()}
                     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-                      <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${basePath}/draw-topo`}>
+                      <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${basePath}/topos/draw`}>
                         <i class="fa-solid fa-pen"></i>
                       </a>
                     {/if}
@@ -99,7 +99,7 @@
               </section>
             {:else if data.userPermissions?.includes(EDIT_PERMISSION)}
               <div class="flex w-full justify-center mt-4">
-                <a class="btn preset-filled-primary-500" href={`${basePath}/add-topo`}>Add topos</a>
+                <a class="btn preset-filled-primary-500" href={`${basePath}/topos/add`}>Add topos</a>
               </div>
             {/if}
 

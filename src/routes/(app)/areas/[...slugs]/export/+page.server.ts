@@ -2,7 +2,7 @@ import { EXPORT_PERMISSION } from '$lib/auth'
 import type { Block } from '$lib/components/AreaBlockListing/components/BlockEntry'
 import type { NestedBlock } from '$lib/components/BlocksMap'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
-import { areas, blocks, users, type UserSettings } from '$lib/db/schema'
+import { areas, blocks, topos, users, type UserSettings } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichBlock, enrichTopo } from '$lib/db/utils'
 import { convertAreaSlug } from '$lib/helper.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
@@ -24,6 +24,7 @@ const blocksQuery: {
     }
   }
   topos: {
+    orderBy: typeof topos.id
     with: {
       file: true
       routes: true
@@ -43,6 +44,7 @@ const blocksQuery: {
     },
   },
   topos: {
+    orderBy: topos.id,
     with: {
       file: true,
       routes: true,

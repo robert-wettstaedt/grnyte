@@ -58,6 +58,8 @@
     tags={data.tags}
   />
 
+  <input type="hidden" name="redirect" value={$page.url.searchParams.get('redirect') ?? ''} />
+
   <div class="flex justify-between mt-8">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 

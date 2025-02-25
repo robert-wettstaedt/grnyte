@@ -244,6 +244,7 @@ export const routes = table(
   (table) => [
     ...createBasicTablePolicies('routes'),
     policy(`${READ_PERMISSION} can update routes`, getAuthorizedPolicyConfig('update', READ_PERMISSION)),
+    policy(`${EDIT_PERMISSION} can delete routes`, getAuthorizedPolicyConfig('delete', EDIT_PERMISSION)),
     index('routes_block_fk_idx').on(table.blockFk),
     index('routes_description_idx').on(table.description),
     index('routes_slug_idx').on(table.slug),

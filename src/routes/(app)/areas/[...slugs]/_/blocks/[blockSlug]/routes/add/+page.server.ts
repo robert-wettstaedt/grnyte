@@ -163,16 +163,10 @@ export const actions = {
       }
 
       // Construct the merged path for redirection
-      return [
-        '',
-        'areas',
-        ...path,
-        '_',
-        'blocks',
-        params.blockSlug,
-        'routes',
-        slug.length === 0 ? route.id : slug,
-      ].join('/')
+      return (
+        data.get('redirect') ??
+        ['', 'areas', ...path, '_', 'blocks', params.blockSlug, 'routes', slug.length === 0 ? route.id : slug].join('/')
+      )
     })
 
     if (typeof returnValue === 'string') {

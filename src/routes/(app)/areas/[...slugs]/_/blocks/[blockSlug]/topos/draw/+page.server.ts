@@ -10,6 +10,7 @@ import { convertPointsToPath, type TopoDTO, type TopoRouteDTO } from '$lib/topo'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
+import { deleteRoute } from '$lib/routes.server'
 
 export const load = (async (event) => {
   const layoutData = await loadServerLayout(event)
@@ -35,6 +36,7 @@ export const load = (async (event) => {
           },
         },
         topos: {
+          orderBy: topos.id,
           with: {
             file: true,
             routes: true,
@@ -52,7 +54,7 @@ export const load = (async (event) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
-    const topos = await Promise.all(
+    const enrichedTopos = await Promise.all(
       block.topos.map(async (topo) => {
         const enrichedTopo = await enrichTopo(topo)
         const routes = block.routes.map((route): TopoRouteDTO => {
@@ -79,19 +81,81 @@ export const load = (async (event) => {
     const enrichedRoutes = block.routes.map((route) => {
       return {
         ...route,
-        hasTopo: topos.flatMap((topo) => topo.routes).some((topoRoute) => topoRoute.routeFk === route.id),
+        hasTopo: enrichedTopos.flatMap((topo) => topo.routes).some((topoRoute) => topoRoute.routeFk === route.id),
       }
     })
 
     return {
       ...layoutData,
       block: { ...block, routes: enrichedRoutes },
-      topos,
+      topos: enrichedTopos,
     }
   })
 }) satisfies PageServerLoad
 
 export const actions = {
+  saveTopos: async ({ locals, params, request }) => {
+    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
+      error(404)
+    }
+
+    const { areaId } = convertAreaSlug(params)
+
+    const rls = await createDrizzleSupabaseClient(locals.supabase)
+
+    return await rls(async (db) => {
+      const user = await getUser(locals.user, db)
+      if (user == null) {
+        return fail(404)
+      }
+
+      const data = await request.formData()
+      const parsedTopos = JSON.parse(data.get('topos') as string) as TopoDTO[]
+
+      if (parsedTopos.length === 0 || parsedTopos[0].blockFk == null) {
+        return fail(400)
+      }
+
+      // Verify that all topos exist before proceeding with any deletions
+      const topoIds = parsedTopos.map((topo) => topo.id)
+      const existingTopos = await db.query.topos.findMany({ where: inArray(topos.id, topoIds) })
+
+      if (existingTopos.length !== topoIds.length) {
+        return fail(400, { error: 'One or more topos do not exist' })
+      }
+
+      await db.delete(topoRoutes).where(inArray(topoRoutes.topoFk, topoIds))
+
+      const toposToUpdate = parsedTopos.flatMap((topo) =>
+        topo.routes.filter((topoRoute) => topoRoute.points.length > 0),
+      )
+
+      if (toposToUpdate.length > 0) {
+        await db.insert(topoRoutes).values(
+          toposToUpdate.map(
+            (topoRoute): InsertTopoRoute => ({
+              id: topoRoute.id,
+              path: convertPointsToPath(topoRoute.points),
+              routeFk: topoRoute.routeFk,
+              topoFk: topoRoute.topoFk,
+              topType: topoRoute.topType,
+            }),
+          ),
+        )
+      }
+
+      await db.insert(activities).values({
+        type: 'updated',
+        userFk: user.id,
+        entityId: parsedTopos[0].blockFk,
+        entityType: 'block',
+        columnName: 'topo',
+        parentEntityId: areaId,
+        parentEntityType: 'area',
+      })
+    })
+  },
+
   removeTopo: async ({ locals, params, request }) => {
     if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
       error(404)
@@ -153,65 +217,31 @@ export const actions = {
     return returnValue
   },
 
-  saveTopos: async ({ locals, params, request }) => {
+  removeRoute: async ({ locals, params, request }) => {
     if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
       error(404)
     }
 
-    const { areaId } = convertAreaSlug(params)
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    const returnValue = await rls(async (db) => {
       const user = await getUser(locals.user, db)
       if (user == null) {
         return fail(404)
       }
 
+      const { areaId } = convertAreaSlug(params)
+
       const data = await request.formData()
-      const parsedTopos = JSON.parse(data.get('topos') as string) as TopoDTO[]
+      const routeId = Number(data.get('routeId'))
 
-      if (parsedTopos.length === 0 || parsedTopos[0].blockFk == null) {
-        return fail(400)
+      try {
+        return deleteRoute({ areaId, blockSlug: params.blockSlug, routeId, userId: user.id }, db)
+      } catch (error) {
+        return fail(400, { error: convertException(error) })
       }
-
-      // Verify that all topos exist before proceeding with any deletions
-      const topoIds = parsedTopos.map((topo) => topo.id)
-      const existingTopos = await db.query.topos.findMany({ where: inArray(topos.id, topoIds) })
-
-      if (existingTopos.length !== topoIds.length) {
-        return fail(400, { error: 'One or more topos do not exist' })
-      }
-
-      await db.delete(topoRoutes).where(inArray(topoRoutes.topoFk, topoIds))
-
-      const toposToUpdate = parsedTopos.flatMap((topo) =>
-        topo.routes.filter((topoRoute) => topoRoute.points.length > 0),
-      )
-
-      if (toposToUpdate.length > 0) {
-        await db.insert(topoRoutes).values(
-          toposToUpdate.map(
-            (topoRoute): InsertTopoRoute => ({
-              id: topoRoute.id,
-              path: convertPointsToPath(topoRoute.points),
-              routeFk: topoRoute.routeFk,
-              topoFk: topoRoute.topoFk,
-              topType: topoRoute.topType,
-            }),
-          ),
-        )
-      }
-
-      await db.insert(activities).values({
-        type: 'updated',
-        userFk: user.id,
-        entityId: parsedTopos[0].blockFk,
-        entityType: 'block',
-        columnName: 'topo',
-        parentEntityId: areaId,
-        parentEntityType: 'area',
-      })
     })
+
+    return returnValue
   },
 }

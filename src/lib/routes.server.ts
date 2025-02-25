@@ -1,5 +1,23 @@
 import * as schema from '$lib/db/schema'
-import { eq, isNotNull, or } from 'drizzle-orm'
+import {
+  activities,
+  ascents,
+  blocks,
+  files,
+  routeExternalResource27crags,
+  routeExternalResource8a,
+  routeExternalResources,
+  routeExternalResourceTheCrag,
+  routes,
+  routesToFirstAscensionists,
+  routesToTags,
+  topoRoutes,
+} from '$lib/db/schema'
+import { getRouteDbFilter } from '$lib/helper.server'
+import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { getReferences } from '$lib/references.server'
+import { fail } from '@sveltejs/kit'
+import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 export const updateRoutesUserData = async (routeFk: number, db: PostgresJsDatabase<typeof schema>) => {
@@ -40,4 +58,117 @@ export const updateRoutesUserData = async (routeFk: number, db: PostgresJsDataba
   if (userGradeFk !== route.userGradeFk || userRating !== route.userRating) {
     await db.update(schema.routes).set({ userGradeFk, userRating }).where(eq(schema.routes.id, route.id))
   }
+}
+
+type RouteId = { routeSlug: string } | { routeId: number }
+
+interface DeleteRouteParams {
+  areaId: number
+  blockSlug: string
+  userId: number
+}
+
+export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: PostgresJsDatabase<typeof schema>) => {
+  const routeId = 'routeId' in params ? params.routeId : params.routeSlug
+
+  // Query the database to find the block with the given slug and areaId
+  const block = await db.query.blocks.findFirst({
+    where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, params.areaId)),
+    with: {
+      routes: {
+        where: getRouteDbFilter(String(routeId)),
+        with: {
+          ascents: {
+            with: {
+              files: true,
+            },
+          },
+          externalResources: true,
+          files: true,
+          firstAscents: {
+            with: {
+              firstAscensionist: true,
+            },
+          },
+          tags: true,
+        },
+      },
+    },
+  })
+
+  // Get the first route from the block's routes
+  const route = block?.routes?.at(0)
+
+  // Return a 404 failure if the route is not found
+  if (route == null) {
+    return fail(404, { error: `Route not found ${routeId}` })
+  }
+
+  // If no block is found, return a 400 error with a message
+  if (block == null) {
+    return fail(400, { error: `Parent not found ${params.blockSlug}` })
+  }
+
+  // Return a 400 failure if multiple routes with the same slug are found
+  if (block.routes.length > 1) {
+    return fail(400, { error: `Multiple routes with slug ${routeId} found` })
+  }
+
+  const references = await getReferences(route.id, 'routes')
+  if (references.areas.length + references.ascents.length + references.routes.length > 0) {
+    return fail(400, { error: 'Route is referenced by other entities. Delete references first.' })
+  }
+
+  const filesToDelete = await db.delete(files).where(eq(files.routeFk, route.id)).returning()
+  await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+
+  if (route.ascents.length > 0) {
+    const filesToDelete = await db
+      .delete(files)
+      .where(
+        inArray(
+          files.ascentFk,
+          route.ascents.map((ascent) => ascent.id),
+        ),
+      )
+      .returning()
+    await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+  }
+
+  await db.delete(ascents).where(eq(ascents.routeFk, route.id))
+  await db.delete(routesToFirstAscensionists).where(eq(routesToFirstAscensionists.routeFk, route.id))
+  await db.delete(routesToTags).where(eq(routesToTags.routeFk, route.id))
+  await db.delete(topoRoutes).where(eq(topoRoutes.routeFk, route.id))
+
+  const externalResources = await db
+    .delete(routeExternalResources)
+    .where(eq(routeExternalResources.routeFk, route.id))
+    .returning()
+
+  const ex8aIds = externalResources.map((er) => er.externalResource8aFk).filter((id) => id != null)
+  if (ex8aIds.length > 0) {
+    await db.delete(routeExternalResource8a).where(inArray(routeExternalResource8a.id, ex8aIds))
+  }
+
+  const ex27cragsIds = externalResources.map((er) => er.externalResource27cragsFk).filter((id) => id != null)
+  if (ex27cragsIds.length > 0) {
+    await db.delete(routeExternalResource27crags).where(inArray(routeExternalResource27crags.id, ex27cragsIds))
+  }
+
+  const exTheCragIds = externalResources.map((er) => er.externalResourceTheCragFk).filter((id) => id != null)
+  if (exTheCragIds.length > 0) {
+    await db.delete(routeExternalResourceTheCrag).where(inArray(routeExternalResourceTheCrag.id, exTheCragIds))
+  }
+
+  await db.delete(routes).where(eq(routes.id, route.id))
+
+  await db.insert(activities).values({
+    type: 'deleted',
+    userFk: params.userId,
+    entityId: route.id,
+    entityType: 'route',
+    oldValue: route.name,
+    parentEntityId: block.id,
+    parentEntityType: 'block',
+  })
 }

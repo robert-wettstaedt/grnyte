@@ -42,7 +42,7 @@
 
     <img
       alt=""
-      class="z-0 relative"
+      class="z-0 relative object-cover"
       loading="lazy"
       src="{path}?x={size}&y={size}&mimeFallback=true&a=0"
       style="width: {size}px; height: {size}px;"

@@ -1,5 +1,5 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { ascents, blocks, routes } from '$lib/db/schema'
+import { ascents, blocks, routes, topos } from '$lib/db/schema'
 import { enrichTopo, sortRoutesByTopo } from '$lib/db/utils'
 import { getReferences } from '$lib/references.server'
 import { error } from '@sveltejs/kit'
@@ -26,6 +26,7 @@ export const load = (async ({ locals, params, parent }) => {
           },
         },
         topos: {
+          orderBy: topos.id,
           with: {
             file: true,
             routes: {
@@ -51,14 +52,14 @@ export const load = (async ({ locals, params, parent }) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
-    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
-    const sortedRoutes = sortRoutesByTopo(block.routes, topos)
+    const enrichedTopos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+    const sortedRoutes = sortRoutesByTopo(block.routes, enrichedTopos)
 
     // Return the block, enriched geolocation blocks, and processed files
     return {
       block: { ...block, routes: sortedRoutes },
       references: getReferences(block.id, 'blocks'),
-      topos,
+      topos: enrichedTopos,
     }
   })
 }) satisfies PageServerLoad

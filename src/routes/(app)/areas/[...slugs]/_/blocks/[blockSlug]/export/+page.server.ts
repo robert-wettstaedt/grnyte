@@ -1,5 +1,5 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { blocks } from '$lib/db/schema'
+import { blocks, topos } from '$lib/db/schema'
 import { enrichBlock, enrichTopo } from '$lib/db/utils'
 import { convertAreaSlug } from '$lib/helper.server'
 import { load as loadServerLayout } from '$lib/layout/layout.server'
@@ -39,6 +39,7 @@ export const load = (async (event) => {
           },
         },
         topos: {
+          orderBy: topos.id,
           with: {
             file: true,
             routes: true,

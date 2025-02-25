@@ -1,7 +1,15 @@
 import { EDIT_PERMISSION } from '$lib/auth'
 import { loadFeed } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks, firstAscensionists, routesToFirstAscensionists, users } from '$lib/db/schema'
+import {
+  activities,
+  ascents,
+  blocks,
+  firstAscensionists,
+  routesToFirstAscensionists,
+  topos,
+  users,
+} from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { insertExternalResources } from '$lib/external-resources/index.server'
@@ -61,6 +69,7 @@ export const load = (async ({ locals, params, parent, url }) => {
           },
         },
         topos: {
+          orderBy: topos.id,
           with: {
             file: true,
             routes: {
@@ -89,7 +98,7 @@ export const load = (async ({ locals, params, parent, url }) => {
     // Fetch and enrich files associated with the route
     const routeFiles = await loadFiles(route.files)
 
-    const topos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+    const enrichedTopos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
 
     // Process route description from markdown to HTML if description is present
     const description = route.description == null ? null : await convertMarkdownToHtml(route.description, db)
@@ -107,7 +116,7 @@ export const load = (async ({ locals, params, parent, url }) => {
       route: { ...route, description },
       files: routeFiles,
       references: getReferences(route.id, 'routes'),
-      topos,
+      topos: enrichedTopos,
       feed,
     }
   })

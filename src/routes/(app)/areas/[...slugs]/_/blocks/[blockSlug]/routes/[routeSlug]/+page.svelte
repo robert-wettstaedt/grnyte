@@ -196,7 +196,7 @@
                 <TopoViewer {selectedTopoIndex} initialRouteId={data.route.id} topos={data.topos}>
                   {#snippet actions()}
                     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-                      <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/draw-topo`}>
+                      <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/topos/draw`}>
                         <i class="fa-solid fa-pen"></i>
                       </a>
                     {/if}

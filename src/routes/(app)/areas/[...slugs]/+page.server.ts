@@ -1,7 +1,7 @@
 import { getStatsOfArea, nestedAreaQuery } from '$lib/blocks.server'
 import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { areas, ascents, blocks, routes } from '$lib/db/schema'
+import { areas, ascents, blocks, routes, topos } from '$lib/db/schema'
 import { enrichTopo, sortRoutesByTopo } from '$lib/db/utils'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
@@ -36,6 +36,7 @@ export const load = (async (event) => {
               },
             },
             topos: {
+              orderBy: topos.id,
               with: {
                 routes: true,
                 file: true,

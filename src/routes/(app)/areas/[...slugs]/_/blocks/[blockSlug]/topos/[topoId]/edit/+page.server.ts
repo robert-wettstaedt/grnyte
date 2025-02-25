@@ -10,6 +10,7 @@ import { createGeolocationFromFiles } from '$lib/topo-files.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
+import { deleteFile, loadFiles } from '$lib/nextcloud/nextcloud.server'
 
 export const load = (async ({ locals, params, parent }) => {
   if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
@@ -25,12 +26,20 @@ export const load = (async ({ locals, params, parent }) => {
     // Query the database to find blocks matching the given slug and areaId
     const blocksResult = await db.query.blocks.findMany({
       where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
+      with: {
+        topos: {
+          where: eq(topos.id, Number(params.topoId)),
+          with: {
+            file: true,
+          },
+        },
+      },
     })
     // Get the first block from the result
     const block = blocksResult.at(0)
 
     // If no block is found, throw a 404 error
-    if (block == null) {
+    if (block?.topos[0]?.file == null) {
       error(404)
     }
 
@@ -39,9 +48,13 @@ export const load = (async ({ locals, params, parent }) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
+    const [file] = await loadFiles([block.topos[0].file])
+
     // Return the block data
     return {
-      block: block,
+      block,
+      topo: block.topos[0],
+      file,
     }
   })
 }) satisfies PageServerLoad
@@ -66,10 +79,18 @@ export const actions = {
       // Query the database to find the first block matching the given slug and areaId
       const block = await db.query.blocks.findFirst({
         where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
+        with: {
+          topos: {
+            where: eq(topos.id, Number(params.topoId)),
+            with: {
+              file: true,
+            },
+          },
+        },
       })
 
       // If no block is found, throw a 404 error
-      if (block == null) {
+      if (block?.topos[0]?.file == null) {
         error(404)
       }
 
@@ -98,8 +119,15 @@ export const actions = {
 
         await createGeolocationFromFiles(db, block, fileBuffers, 'create')
         await Promise.all(
-          createdFiles.map((result) => db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id })),
+          createdFiles.map((result) =>
+            db
+              .update(topos)
+              .set({ fileFk: result.file.id })
+              .where(eq(topos.id, Number(params.topoId))),
+          ),
         )
+
+        await deleteFile(block.topos[0].file)
 
         await Promise.all(
           createdFiles.map(({ file }) =>
@@ -120,7 +148,7 @@ export const actions = {
       }
 
       // Redirect to the block page after successful insertion
-      return `/areas/${params.slugs}/_/blocks/${params.blockSlug}#topo`
+      return data.get('redirect') ?? `/areas/${params.slugs}/_/blocks/${params.blockSlug}#topo`
     })
 
     if (typeof returnValue === 'string') {
