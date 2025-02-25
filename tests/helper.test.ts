@@ -4,6 +4,17 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('$lib/db/db.server', () => ({
+  db: {
+    query: {
+      routes: {
+        findFirst: vi.fn(),
+      },
+    },
+    update: vi.fn(),
+  },
+}))
+
 // Mock the database query and update functions
 const mockFindFirst = vi.fn()
 const mockSet = vi.fn()
