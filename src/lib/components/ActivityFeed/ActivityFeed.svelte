@@ -86,10 +86,10 @@
   }
 </script>
 
-<label class="label flex flex-col sm:flex-row sm:items-center gap-2">
+<label class="label flex flex-col gap-2">
   <span class="label-text font-medium">Filter activity feed:</span>
   <select
-    class="select select-bordered w-full sm:w-auto"
+    class="select select-bordered w-full sm:w-60"
     multiple
     onchange={(event) => {
       const selectedOptions = (event.target as HTMLSelectElement).selectedOptions
