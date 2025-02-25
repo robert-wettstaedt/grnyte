@@ -166,11 +166,30 @@
       return
     }
 
+    const imgBcr = img.getBoundingClientRect()
+    const wrapperBcr = imgWrapper.getBoundingClientRect()
+
+    if (wrapperBcr.height > img.naturalHeight && wrapperBcr.width > img.naturalWidth) {
+      const widthDiff = wrapperBcr.width - img.naturalWidth
+      const heightDiff = wrapperBcr.height - img.naturalHeight
+
+      if (widthDiff > heightDiff) {
+        img.style.width = ''
+        img.style.height = '100%'
+      } else {
+        img.style.width = '100%'
+        img.style.height = ''
+      }
+    } else {
+      img.style.width = ''
+      img.style.height = ''
+    }
+
     scale = img.width / img.naturalWidth
     height = img.height
     width = img.width
-    translateX = img.getBoundingClientRect().x - imgWrapper.getBoundingClientRect().x
-    translateY = img.getBoundingClientRect().y - imgWrapper.getBoundingClientRect().y
+    translateX = imgBcr.x - wrapperBcr.x
+    translateY = imgBcr.y - wrapperBcr.y
   }
 
   const initZoom = () => {
