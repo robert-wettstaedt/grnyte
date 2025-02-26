@@ -553,11 +553,13 @@ export const files = table(
     id: baseFields.id,
 
     path: text('path').notNull(),
+    visibility: text('visibility', { enum: areaVisibilityEnum }),
 
     areaFk: integer('area_fk').references((): AnyColumn => areas.id),
     ascentFk: integer('ascent_fk').references((): AnyColumn => ascents.id),
-    routeFk: integer('route_fk').references((): AnyColumn => routes.id),
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
+    bunnyStreamFk: uuid('bunny_stream_fk').references((): AnyColumn => bunnyStreams.id),
+    routeFk: integer('route_fk').references((): AnyColumn => routes.id),
   },
   (table) => [
     policy(`${READ_PERMISSION} can insert files`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
@@ -613,7 +615,28 @@ export const filesRelations = relations(files, ({ one }) => ({
   area: one(areas, { fields: [files.areaFk], references: [areas.id] }),
   ascent: one(ascents, { fields: [files.ascentFk], references: [ascents.id] }),
   block: one(blocks, { fields: [files.blockFk], references: [blocks.id] }),
+  bunnyStream: one(bunnyStreams, { fields: [files.bunnyStreamFk], references: [bunnyStreams.id] }),
   route: one(routes, { fields: [files.routeFk], references: [routes.id] }),
+}))
+
+export const bunnyStreams = table(
+  'bunny_streams',
+  {
+    id: uuid('id').primaryKey(),
+    fileFk: integer('file_fk').references((): AnyColumn => files.id),
+  },
+  () => [
+    policy(`${READ_PERMISSION} can insert bunny_streams`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
+    policy(`${READ_PERMISSION} can read bunny_streams`, getAuthorizedPolicyConfig('select', READ_PERMISSION)),
+    policy(`${EDIT_PERMISSION} can update bunny_streams`, getAuthorizedPolicyConfig('update', EDIT_PERMISSION)),
+    policy(`${EDIT_PERMISSION} can delete bunny_streams`, getAuthorizedPolicyConfig('delete', EDIT_PERMISSION)),
+  ],
+).enableRLS()
+export type BunnyStream = InferSelectModel<typeof bunnyStreams>
+export type InsertBunnyStream = InferInsertModel<typeof bunnyStreams>
+
+export const bunnyStreamsRelations = relations(bunnyStreams, ({ one }) => ({
+  file: one(files, { fields: [bunnyStreams.fileFk], references: [files.id] }),
 }))
 
 export const topos = table(
