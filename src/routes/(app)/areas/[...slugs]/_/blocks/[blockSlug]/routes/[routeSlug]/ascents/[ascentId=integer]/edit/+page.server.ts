@@ -109,9 +109,14 @@ export const actions = {
       if (values.folderName != null) {
         try {
           const dstFolder = `${config.files.folders.userContent}/${locals.user?.id}`
-          const createdFiles = await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, {
-            ascentFk: ascent.id,
-          })
+          const createdFiles = await handleFileUpload(
+            db,
+            locals.supabase,
+            values.folderName!,
+            dstFolder,
+            values.bunnyVideoIds,
+            { ascentFk: ascent.id },
+          )
 
           await Promise.all(
             createdFiles.map(({ file }) =>

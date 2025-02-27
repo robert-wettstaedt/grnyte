@@ -135,7 +135,9 @@ export const actions = {
       if (values.folderName != null) {
         try {
           const dstFolder = `${config.files.folders.userContent}/${user.authUserFk}`
-          await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, { ascentFk: ascent.id })
+          await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, values.bunnyVideoIds, {
+            ascentFk: ascent.id,
+          })
         } catch (exception) {
           // Return a 400 failure if file insertion fails
           return fail(400, { ...values, error: convertException(exception) })

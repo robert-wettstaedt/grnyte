@@ -8,11 +8,12 @@ import * as schema from '../schema'
 import cliProgress from 'cli-progress'
 
 dotenv.config()
-const { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD, BUNNY_API_KEY, BUNNY_LIBRARY_ID } = process.env
+const { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD, BUNNY_API_KEY, PUBLIC_BUNNY_LIBRARY_ID } =
+  process.env
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
-  if (BUNNY_API_KEY == null || BUNNY_LIBRARY_ID == null) {
-    throw new Error('BUNNY_API_KEY and BUNNY_LIBRARY_ID must be set')
+  if (BUNNY_API_KEY == null || PUBLIC_BUNNY_LIBRARY_ID == null) {
+    throw new Error('BUNNY_API_KEY and PUBLIC_BUNNY_LIBRARY_ID must be set')
   }
 
   const nextcloud = createClient(NEXTCLOUD_URL + '/remote.php/dav/files', {
@@ -33,7 +34,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
 
   const collections = await getCollections({
     apiKey: BUNNY_API_KEY,
-    libraryId: BUNNY_LIBRARY_ID,
+    libraryId: PUBLIC_BUNNY_LIBRARY_ID,
   })
 
   for await (const file of files.slice(0, 1)) {
@@ -77,7 +78,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     if (collection == null) {
       collection = await createCollection({
         apiKey: BUNNY_API_KEY,
-        libraryId: BUNNY_LIBRARY_ID,
+        libraryId: PUBLIC_BUNNY_LIBRARY_ID,
         name: authorFk,
       })
 
@@ -89,7 +90,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     const video = await createVideo({
       apiKey: BUNNY_API_KEY,
       collectionId: collection.guid,
-      libraryId: BUNNY_LIBRARY_ID,
+      libraryId: PUBLIC_BUNNY_LIBRARY_ID,
       title,
     })
 
@@ -112,7 +113,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       fileSize: fileBuffer.length,
       fileName: title,
       fileType: `video/${ext}`,
-      libraryId: BUNNY_LIBRARY_ID,
+      libraryId: PUBLIC_BUNNY_LIBRARY_ID,
       videoId: video.guid,
       onProgress: (bytesUploaded) => {
         uploadBar.update(bytesUploaded)

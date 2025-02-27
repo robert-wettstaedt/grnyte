@@ -112,6 +112,7 @@ export const actions = {
           locals.supabase,
           values.folderName,
           config.files.folders.topos,
+          values.bunnyVideoIds,
           { routeFk: route.id },
         )
 

@@ -1,3 +1,5 @@
+import { up } from 'up-fetch'
+
 export const config = {
   database: {
     maxPoolSize: 10,
@@ -41,3 +43,5 @@ export const config = {
 } as const
 
 export type Config = typeof config
+
+export const upfetch = up(fetch)

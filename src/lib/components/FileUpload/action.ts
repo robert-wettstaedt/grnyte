@@ -1,8 +1,10 @@
 import { enhance } from '$app/forms'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { config } from '$lib/config'
+import { uploadVideo } from '$lib/bunny'
+import { upfetch } from '$lib/config'
 import type { Action } from 'svelte/action'
 import * as tus from 'tus-js-client'
+import { CreateVideoResponseSchema } from '../../../routes/api/files/videos/lib'
 
 interface EnhanceFileUploadOptions extends Pick<App.Locals, 'session' | 'supabase' | 'user'> {
   onError?: (error: string) => void
@@ -24,12 +26,6 @@ export const enhanceWithFile: Action<HTMLFormElement, EnhanceFileUploadOptions> 
       .filter((file) => file instanceof File)
       .filter((file) => file.size > 0)
 
-    if (files.some((file) => file.size > config.files.maxSize.number)) {
-      const error = `File size exceeds the maximum allowed size (${config.files.maxSize.human})`
-      onError?.(error)
-      throw error
-    }
-
     // eslint-disable-next-line drizzle/enforce-delete-with-where
     event.formData.delete('files')
 
@@ -47,18 +43,16 @@ export const enhanceWithFile: Action<HTMLFormElement, EnhanceFileUploadOptions> 
     event.formData.set('folderName', folderName)
 
     await Promise.all(
-      files.map(async (file) => {
-        try {
-          await uploadTus(file, session.access_token, folderName, onProgress)
-        } catch (exception) {
-          const { error } = await supabase.storage.from('uploads').upload(`${folderName}/${file.name}`, file)
-
-          if (error != null) {
-            onError?.(error.message)
-            throw error
-          }
-        }
-      }),
+      files.map((file) =>
+        uploadFile(file, {
+          accessToken: session.access_token,
+          folderName,
+          formData: event.formData,
+          onError,
+          onProgress,
+          supabase,
+        }),
+      ),
     )
 
     return returnValue
@@ -71,18 +65,42 @@ export const enhanceWithFile: Action<HTMLFormElement, EnhanceFileUploadOptions> 
   }
 }
 
-const uploadTus = async (
-  file: File,
-  token: string,
-  folderName: string,
-  onProgress?: EnhanceFileUploadOptions['onProgress'],
-) => {
+const uploadFile = async (file: File, opts: SupabaseUploadOptions & BunnyUploadOptions) => {
+  if (file.type.startsWith('image/')) {
+    await uploadFileToSupabase(file, opts)
+  } else if (file.type.startsWith('video/')) {
+    await uploadVideoToBunny(file, opts)
+  }
+}
+
+interface SupabaseUploadOptions {
+  accessToken: string
+  folderName: string
+  onError: EnhanceFileUploadOptions['onError']
+  onProgress: EnhanceFileUploadOptions['onProgress']
+  supabase: App.Locals['supabase']
+}
+
+const uploadFileToSupabase = async (file: File, opts: SupabaseUploadOptions) => {
+  try {
+    await uploadTus(file, opts)
+  } catch (exception) {
+    const { error } = await opts.supabase.storage.from('uploads').upload(`${opts.folderName}/${file.name}`, file)
+
+    if (error != null) {
+      opts.onError?.(error.message)
+      throw error
+    }
+  }
+}
+
+const uploadTus = async (file: File, { accessToken, folderName, onProgress }: SupabaseUploadOptions) => {
   await new Promise((resolve, reject) => {
     const upload = new tus.Upload(file, {
       endpoint: `${PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
-        authorization: `Bearer ${token}`,
+        authorization: `Bearer ${accessToken}`,
       },
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true, // Important if you want to allow re-uploading the same file https://github.com/tus/tus-js-client/blob/main/docs/api.md#removefingerprintonsuccess
@@ -115,5 +133,38 @@ const uploadTus = async (
       // Start the upload
       upload.start()
     })
+  })
+}
+
+interface BunnyUploadOptions {
+  formData: FormData
+  onProgress: EnhanceFileUploadOptions['onProgress']
+}
+
+const uploadVideoToBunny = async (file: File, { formData, onProgress }: BunnyUploadOptions) => {
+  const { expirationTime, signature, video } = await upfetch('/api/files/videos', {
+    method: 'POST',
+    schema: CreateVideoResponseSchema,
+  })
+
+  if (video.guid == null) {
+    throw new Error('Video guid is null')
+  }
+
+  formData.append('bunnyVideoIds', video.guid)
+
+  await uploadVideo({
+    collectionId: video.collectionId,
+    expirationTime,
+    file,
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    libraryId: video.videoLibraryId,
+    signature,
+    videoId: video.guid,
+    onProgress(bytesSent, bytesTotal) {
+      onProgress?.((bytesSent / bytesTotal) * 100)
+    },
   })
 }

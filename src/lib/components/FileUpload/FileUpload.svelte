@@ -10,14 +10,13 @@
 </script>
 
 <script lang="ts">
-  import { config } from '$lib/config'
   import { Progress } from '@skeletonlabs/skeleton-svelte'
 
   let {
     accept = 'image/*,video/*',
     error,
     folderName,
-    label = 'File Input',
+    label = 'Upload file',
     loading,
     progress: fileProgress,
   }: FileUploadProps = $props()
@@ -30,7 +29,7 @@
 {/if}
 
 <label class="label mt-4">
-  <span class="label">{label} (max {config.files.maxSize.human})</span>
+  <span class="label">{label}</span>
   <input class="input" name="files" type="file" {accept} />
 
   {#if loading}

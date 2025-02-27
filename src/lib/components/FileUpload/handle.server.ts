@@ -8,13 +8,37 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import convert from 'heic-convert'
 import sharp from 'sharp'
 
+interface FileUploadResult {
+  file: schema.File
+  fileBuffer?: ArrayBuffer
+}
+
 export const handleFileUpload = async (
   db: PostgresJsDatabase<typeof schema>,
   supabase: SupabaseClient,
   srcFolder: string,
   dstFolder: string,
+  bunnyVideoIds?: string[] | null,
   fileInit?: Partial<schema.InsertFile>,
-) => {
+): Promise<FileUploadResult[]> => {
+  const files: FileUploadResult[] = []
+
+  if (bunnyVideoIds != null) {
+    files.push(...(await handleBunnyVideoUpload(db, bunnyVideoIds, fileInit)))
+  } else {
+    files.push(...(await handleSupabaseFileUpload(db, supabase, srcFolder, dstFolder, fileInit)))
+  }
+
+  return files
+}
+
+export const handleSupabaseFileUpload = async (
+  db: PostgresJsDatabase<typeof schema>,
+  supabase: SupabaseClient,
+  srcFolder: string,
+  dstFolder: string,
+  fileInit?: Partial<schema.InsertFile>,
+): Promise<FileUploadResult[]> => {
   const nextcloud = getNextcloud()
 
   const listResult = await supabase.storage.from('uploads').list(srcFolder)
@@ -107,4 +131,24 @@ export const handleFileUpload = async (
   } finally {
     await supabase.storage.from('uploads').remove(listResult.data.map((file) => `${srcFolder}/${file.name}`))
   }
+}
+
+export const handleBunnyVideoUpload = async (
+  db: PostgresJsDatabase<typeof schema>,
+  bunnyVideoIds: string[],
+  fileInit?: Partial<schema.InsertFile>,
+): Promise<FileUploadResult[]> => {
+  return Promise.all(
+    bunnyVideoIds.map(async (bunnyVideoId) => {
+      const [dbFile] = await db
+        .insert(schema.files)
+        .values({ ...fileInit, path: '' })
+        .returning()
+
+      await db.insert(schema.bunnyStreams).values({ id: bunnyVideoId, fileFk: dbFile.id })
+      await db.update(schema.files).set({ bunnyStreamFk: bunnyVideoId }).where(eq(schema.files.id, dbFile.id))
+
+      return { file: dbFile }
+    }),
+  )
 }

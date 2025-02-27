@@ -1,0 +1,250 @@
+<script lang="ts">
+  import { page } from '$app/stores'
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_LIBRARY_ID } from '$env/static/public'
+  import { getVideoIframeUrl } from '$lib/bunny'
+  import type { File } from '$lib/db/schema'
+  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import type { MouseEventHandler } from 'svelte/elements'
+  import type { FileStat } from 'webdav'
+
+  interface Props {
+    file: File
+    onClose?: () => void
+    onDelete?: () => void
+    readOnly?: boolean
+    stat: FileStat
+  }
+
+  let { file, onClose, readOnly = true, stat }: Props = $props()
+
+  let isFullscreen = $state(false)
+  let shareData = $derived({
+    text: $page.data.user?.username
+      ? `${$page.data.user?.username} wants to share a file with you`
+      : 'I want to share a file with you',
+    title: PUBLIC_APPLICATION_NAME,
+    url: `${$page.url.origin}/f/${file.id}`,
+  } satisfies ShareData)
+
+  const resourcePath = $derived(`/nextcloud${stat.filename}`)
+
+  const onDelete = async () => {
+    await fetch(`/api/files/${file.id}`, { method: 'DELETE' })
+    isFullscreen = false
+    onDelete?.()
+  }
+
+  const updateVisibility = async (visibility: File['visibility']) => {
+    try {
+      const res = await fetch(`/api/files/${file.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ visibility }),
+      })
+      if (res.ok) {
+        file.visibility = visibility
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  let mediaIsLoading = $state(stat.mime?.includes('image') ?? false)
+  let mediaHasError = $state(false)
+  const mediaAction = (el: HTMLElement) => {
+    const onError = () => (mediaHasError = true)
+    const onLoad = () => (mediaIsLoading = false)
+    const onLoadStart = () => (mediaIsLoading = true)
+
+    const errorEl = el.tagName === 'VIDEO' ? el.querySelector('source') : el
+
+    errorEl?.addEventListener('error', onError)
+    el.addEventListener('load', onLoad)
+    el.addEventListener('loadeddata', onLoad)
+    el.addEventListener('loadstart', onLoadStart)
+
+    return {
+      destroy: () => {
+        errorEl?.removeEventListener('error', onError)
+        el.removeEventListener('load', onLoad)
+        el.removeEventListener('loadeddata', onLoad)
+        el.removeEventListener('loadstart', onLoadStart)
+      },
+    }
+  }
+
+  const onCopyUrl: MouseEventHandler<HTMLElement> = async (event) => {
+    const target = event.target as HTMLElement
+    const text = target.innerHTML
+
+    await navigator.clipboard.writeText(shareData.url)
+
+    target.innerHTML = 'Copied'
+    setTimeout(() => {
+      target.innerHTML = text
+    }, 2000)
+  }
+</script>
+
+<div class="relative w-full h-full">
+  {#if mediaHasError}
+    <aside class="alert variant-filled-error">
+      <div class="alert-message">
+        <h3 class="h3">Unable to play video</h3>
+        <p>{stat.filename}</p>
+      </div>
+    </aside>
+  {:else}
+    {#if mediaIsLoading}
+      <div class="absolute w-full h-full flex justify-center items-center bg-black/80">
+        <ProgressRing value={null} />
+      </div>
+    {/if}
+    {#if stat.mime?.includes('image')}
+      <img alt="" class="h-full w-full object-contain" src={resourcePath} use:mediaAction />
+    {:else if stat.mime?.includes('video')}
+      <video
+        autoplay
+        controls
+        class="h-full w-full"
+        disablepictureinpicture
+        disableremoteplayback
+        loop
+        playsinline
+        preload="metadata"
+        use:mediaAction
+      >
+        <source src={resourcePath} type={stat.mime} />
+        <track kind="captions" />
+      </video>
+    {:else if file.bunnyStreamFk != null}
+      <iframe
+        allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
+        allowfullscreen
+        class="w-full h-full border-none absolute top-0 left-0"
+        loading="lazy"
+        src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_LIBRARY_ID, videoId: file.bunnyStreamFk })}
+        title=""
+      ></iframe>
+    {/if}
+  {/if}
+
+  <div class="absolute top-4 flex items-center justify-between w-full">
+    {#if onClose}
+      <button aria-label="Close" class="btn-icon text-xl" onclick={onClose}>
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    {:else}
+      <div></div>
+    {/if}
+
+    <div class="flex items-center gap-1">
+      <Popover
+        arrow
+        arrowBackground="!bg-surface-200 dark:!bg-surface-800"
+        contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
+        positionerZIndex="!z-[5000]"
+        positioning={{ placement: 'bottom' }}
+        triggerBase="btn-icon"
+      >
+        {#snippet trigger()}
+          <i class={`fa-solid ${file.visibility === 'public' ? 'fa-globe' : 'fa-lock'}`}></i>
+        {/snippet}
+
+        {#snippet content()}
+          {#if file.visibility === 'public'}
+            <p class="text-sm">The file is publicly accessible.</p>
+
+            <footer class="flex gap-2 justify-between">
+              {#if navigator.canShare?.(shareData) && navigator.share != null}
+                <button class="btn btn-sm preset-tonal-primary" onclick={() => navigator.share(shareData)}>
+                  <i class="fa-solid fa-share"></i> Share
+                </button>
+              {:else}
+                <button class="btn btn-sm preset-tonal-primary" onclick={onCopyUrl}>
+                  <i class="fa-solid fa-copy"></i> Copy
+                </button>
+              {/if}
+
+              {#if !readOnly}
+                <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'private')}>
+                  <i class="fa-solid fa-lock"></i> Make private
+                </button>
+              {/if}
+            </footer>
+          {:else}
+            <p class="text-sm">The file is private and cannot be shared with others.</p>
+
+            <footer class="flex justify-end">
+              {#if !readOnly}
+                {#if file.bunnyStreamFk == null}
+                  Only videos can be made public and shared.
+                {:else}
+                  <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'public')}>
+                    <i class="fa-solid fa-globe"></i> Make public
+                  </button>
+                {/if}
+              {/if}
+            </footer>
+          {/if}
+        {/snippet}
+      </Popover>
+
+      {#if !readOnly}
+        <Popover
+          arrow
+          arrowBackground="!bg-surface-200 dark:!bg-surface-800"
+          contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
+          positionerZIndex="!z-[5000]"
+          positioning={{ placement: 'bottom' }}
+          triggerBase="btn-icon"
+        >
+          {#snippet trigger()}
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          {/snippet}
+
+          {#snippet content()}
+            <nav class="list-nav w-48">
+              <ul>
+                <li
+                  class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                >
+                  <!-- <a class="p-2 md:p-4 w-full" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
+                  <i class="fa-solid fa-cloud-arrow-up w-5 me-2"></i>Upload
+                </a> -->
+                </li>
+
+                <li
+                  class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                >
+                  <Popover
+                    arrow
+                    arrowBackground="!bg-surface-300 dark:!bg-surface-700"
+                    contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px]"
+                    positioning={{ placement: 'bottom' }}
+                    positionerZIndex="!z-[5000]"
+                    triggerClasses="p-2 md:p-4 w-full text-left"
+                    classes="w-full"
+                  >
+                    {#snippet trigger()}
+                      <i class="fa-solid fa-trash w-5 me-2"></i>Delete
+                    {/snippet}
+
+                    {#snippet content()}
+                      <article>
+                        <p>Are you sure you want to delete this file?</p>
+                      </article>
+
+                      <footer class="flex justify-end">
+                        <button class="btn btn-sm preset-filled-error-500 !text-white" onclick={onDelete}> Yes </button>
+                      </footer>
+                    {/snippet}
+                  </Popover>
+                </li>
+              </ul>
+            </nav>
+          {/snippet}
+        </Popover>
+      {/if}
+    </div>
+  </div>
+</div>

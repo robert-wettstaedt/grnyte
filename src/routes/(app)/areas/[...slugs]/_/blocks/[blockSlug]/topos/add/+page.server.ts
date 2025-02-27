@@ -91,10 +91,11 @@ export const actions = {
           locals.supabase,
           values.folderName,
           config.files.folders.topos,
+          values.bunnyVideoIds,
           { blockFk: block.id },
         )
 
-        const fileBuffers = createdFiles.map((result) => result.fileBuffer)
+        const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
         await createGeolocationFromFiles(db, block, fileBuffers, 'create')
         await Promise.all(

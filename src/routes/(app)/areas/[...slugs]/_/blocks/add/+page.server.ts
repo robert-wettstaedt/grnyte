@@ -112,11 +112,16 @@ export const actions = {
 
       if (values.folderName != null && block != null) {
         try {
-          const results = await handleFileUpload(db, locals.supabase, values.folderName!, config.files.folders.topos, {
-            blockFk: block.id,
-          })
+          const results = await handleFileUpload(
+            db,
+            locals.supabase,
+            values.folderName!,
+            config.files.folders.topos,
+            values.bunnyVideoIds,
+            { blockFk: block.id },
+          )
 
-          const fileBuffers = results.map((result) => result.fileBuffer)
+          const fileBuffers = results.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
           await createGeolocationFromFiles(db, block, fileBuffers)
           await Promise.all(
