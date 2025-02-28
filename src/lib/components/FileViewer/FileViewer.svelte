@@ -13,14 +13,13 @@
     stat: FileStat
   }
 
-  let { file, readOnly = true, stat }: Props = $props()
+  let { file, readOnly = true, stat, ...props }: Props = $props()
 
   let isFullscreen = $state(false)
 
-  const onDelete = async () => {
-    await fetch(`/api/files/${file.id}`, { method: 'DELETE' })
+  const onDelete = () => {
     isFullscreen = false
-    onDelete?.()
+    props.onDelete?.()
   }
 
   const onOpenFullscreen = () => {
@@ -51,6 +50,12 @@
 
 {#if isFullscreen}
   <div class="fixed top-0 left-0 right-0 bottom-0 z-[5000] bg-black/90 backdrop-blur">
-    <Full {file} {readOnly} {stat} onClose={onCloseFullscreen} />
+    <Full {file} {onDelete} {readOnly} {stat}>
+      {#snippet topLeft()}
+        <button aria-label="Close" class="btn-icon text-xl bg-black/20 backdrop-blur-sm" onclick={onCloseFullscreen}>
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      {/snippet}
+    </Full>
   </div>
 {/if}

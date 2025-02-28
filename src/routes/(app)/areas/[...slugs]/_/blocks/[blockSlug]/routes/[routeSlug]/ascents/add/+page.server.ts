@@ -122,9 +122,9 @@ export const actions = {
         await db.insert(activities).values({
           type: 'created',
           userFk: user.id,
-          entityId: ascent.id,
+          entityId: String(ascent.id),
           entityType: 'ascent',
-          parentEntityId: route.id,
+          parentEntityId: String(route.id),
           parentEntityType: 'route',
         })
       } catch (exception) {

@@ -107,10 +107,10 @@ export const actions = {
             db.insert(activities).values({
               type: 'uploaded',
               userFk: user.id,
-              entityId: file.id,
+              entityId: String(file.id),
               entityType: 'file',
               columnName: 'topo image',
-              parentEntityId: block.id,
+              parentEntityId: String(block.id),
               parentEntityType: 'block',
             }),
           ),

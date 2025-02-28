@@ -1,19 +1,24 @@
-import { createCollection, createVideo, getCollections, uploadVideo } from '$lib/bunny'
+import { createCollection, createVideo, createVideoUploadSignature, getCollections, uploadVideo } from '$lib/bunny'
+import cliProgress from 'cli-progress'
 import dotenv from 'dotenv'
-import { eq, ilike, or } from 'drizzle-orm'
+import { and, eq, ilike, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { Readable } from 'stream'
 import { createClient, type BufferLike, type FileStat, type ResponseDataDetailed, type WebDAVClient } from 'webdav'
 import * as schema from '../schema'
-import cliProgress from 'cli-progress'
 
 dotenv.config()
-const { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD, BUNNY_API_KEY, PUBLIC_BUNNY_LIBRARY_ID } =
-  process.env
+const {
+  NEXTCLOUD_URL,
+  NEXTCLOUD_USER_NAME,
+  NEXTCLOUD_USER_PASSWORD,
+  BUNNY_STREAM_API_KEY,
+  PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+} = process.env
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
-  if (BUNNY_API_KEY == null || PUBLIC_BUNNY_LIBRARY_ID == null) {
-    throw new Error('BUNNY_API_KEY and PUBLIC_BUNNY_LIBRARY_ID must be set')
+  if (BUNNY_STREAM_API_KEY == null || PUBLIC_BUNNY_STREAM_LIBRARY_ID == null) {
+    throw new Error('BUNNY_STREAM_API_KEY and PUBLIC_BUNNY_STREAM_LIBRARY_ID must be set')
   }
 
   const nextcloud = createClient(NEXTCLOUD_URL + '/remote.php/dav/files', {
@@ -23,7 +28,10 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
 
   const files = await db.query.files.findMany({
     orderBy: (files, { asc }) => [asc(files.id)],
-    where: or(ilike(schema.files.path, '%.mp4%'), ilike(schema.files.path, '%.mov%')),
+    where: and(
+      or(ilike(schema.files.path, '%.mp4%'), ilike(schema.files.path, '%.mov%')),
+      isNull(schema.files.bunnyStreamFk),
+    ),
     with: {
       area: { with: { author: true } },
       ascent: { with: { author: true } },
@@ -33,8 +41,8 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   })
 
   const collections = await getCollections({
-    apiKey: BUNNY_API_KEY,
-    libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+    apiKey: BUNNY_STREAM_API_KEY,
+    libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
   })
 
   for await (const file of files.slice(0, 1)) {
@@ -44,17 +52,8 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
 
     console.log('Found nextcloud file:', stat.filename)
 
-    const downloadBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
-    downloadBar.start(stat.size, 0)
-
-    const content = await nextcloud?.getFileContents(`${NEXTCLOUD_USER_NAME}/${stat.filename}`, {
-      details: true,
-      onDownloadProgress: (event) => {
-        downloadBar.update(event.loaded)
-      },
-    })
+    const content = await nextcloud?.getFileContents(`${NEXTCLOUD_USER_NAME}/${stat.filename}`, { details: true })
     const { data } = content as ResponseDataDetailed<BufferLike>
-    downloadBar.stop()
 
     const authorFk =
       file.area?.author.authUserFk ??
@@ -77,21 +76,19 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
 
     if (collection == null) {
       collection = await createCollection({
-        apiKey: BUNNY_API_KEY,
-        libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+        apiKey: BUNNY_STREAM_API_KEY,
+        libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
         name: authorFk,
       })
 
       collections.items?.push(collection)
     }
 
-    const title = String(file.id).padStart(6, '0')
-
     const video = await createVideo({
-      apiKey: BUNNY_API_KEY,
+      apiKey: BUNNY_STREAM_API_KEY,
       collectionId: collection.guid,
-      libraryId: PUBLIC_BUNNY_LIBRARY_ID,
-      title,
+      libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+      title: file.id,
     })
 
     console.log('Video created:', video.guid)
@@ -106,14 +103,23 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     const uploadBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
     uploadBar.start(fileBuffer.length, 0)
 
+    const expirationTime = new Date().getTime() + 1000 * 60 * 60
+    const signature = await createVideoUploadSignature({
+      apiKey: BUNNY_STREAM_API_KEY,
+      expirationTime,
+      libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+      videoId: video.guid,
+    })
+
     await uploadVideo({
-      apiKey: BUNNY_API_KEY,
       collectionId: collection.guid,
+      expirationTime,
       file: fileStream,
+      fileName: file.id,
       fileSize: fileBuffer.length,
-      fileName: title,
       fileType: `video/${ext}`,
-      libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+      libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+      signature,
       videoId: video.guid,
       onProgress: (bytesUploaded) => {
         uploadBar.update(bytesUploaded)

@@ -56,7 +56,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'created',
-          entityId: createdUser.id,
+          entityId: String(createdUser.id),
           entityType: 'user',
           userFk: createdUser.id,
           newValue: createdUser.username,

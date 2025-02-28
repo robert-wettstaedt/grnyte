@@ -1,5 +1,5 @@
-import { BUNNY_API_KEY } from '$env/static/private'
-import { PUBLIC_BUNNY_LIBRARY_ID } from '$env/static/public'
+import { BUNNY_STREAM_API_KEY } from '$env/static/private'
+import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { deleteVideo } from '$lib/bunny'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
@@ -19,9 +19,8 @@ const updateFileSchema = z.object({
 const getFile = async ({ locals, params }: RequestEvent, db: PostgresJsDatabase<typeof schema>) => {
   const user = await getUser(locals.user, db)
 
-  const fileId = Number(params.id)
   const file = await db.query.files.findFirst({
-    where: eq(schema.files.id, fileId),
+    where: eq(schema.files.id, params.id),
     with: {
       area: true,
       ascent: true,
@@ -82,7 +81,11 @@ export async function DELETE(event) {
         .set({ bunnyStreamFk: null })
         .where(eq(schema.files.bunnyStreamFk, file.bunnyStreamFk))
       await db.delete(schema.bunnyStreams).where(eq(schema.bunnyStreams.id, file.bunnyStreamFk))
-      await deleteVideo({ apiKey: BUNNY_API_KEY, libraryId: PUBLIC_BUNNY_LIBRARY_ID, videoId: file.bunnyStreamFk })
+      await deleteVideo({
+        apiKey: BUNNY_STREAM_API_KEY,
+        libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+        videoId: file.bunnyStreamFk,
+      })
     }
 
     await db.delete(schema.files).where(eq(schema.files.id, file.id))
@@ -91,7 +94,7 @@ export async function DELETE(event) {
       await db.insert(schema.activities).values({
         type: 'deleted',
         userFk: user.id,
-        entityId: entityId,
+        entityId: String(entityId),
         entityType: entityType,
         columnName: 'file',
       })

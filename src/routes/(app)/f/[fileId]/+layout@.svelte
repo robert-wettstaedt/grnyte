@@ -3,7 +3,11 @@
   import '@fortawesome/fontawesome-free/css/all.css'
   import '../../../../app.postcss'
 
-  let { data }: LayoutProps = $props()
+  let { data, children }: LayoutProps = $props()
 </script>
 
 <HeaderBar {data} />
+
+<main>
+  {@render children?.()}
+</main>

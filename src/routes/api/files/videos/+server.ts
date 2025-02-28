@@ -1,5 +1,5 @@
-import { BUNNY_API_KEY } from '$env/static/private'
-import { PUBLIC_BUNNY_LIBRARY_ID } from '$env/static/public'
+import { BUNNY_STREAM_API_KEY } from '$env/static/private'
+import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
 import { createCollection, createVideo, createVideoUploadSignature, getCollections } from '$lib/bunny'
 import { z } from 'zod'
 import { CreateVideoResponseSchema } from './lib'
@@ -12,24 +12,24 @@ export const POST = async ({ locals }) => {
   const expirationTime = new Date().getTime() + 1000 * 60 * 60
 
   const collections = await getCollections({
-    apiKey: BUNNY_API_KEY,
-    libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+    apiKey: BUNNY_STREAM_API_KEY,
+    libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
     search: locals.session.user.id,
   })
   let collection = (collections.items ?? []).find((item) => item.name === locals.session?.user.id)
 
   if (collection == null) {
     collection = await createCollection({
-      apiKey: BUNNY_API_KEY,
-      libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+      apiKey: BUNNY_STREAM_API_KEY,
+      libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
       name: locals.session.user.id,
     })
   }
 
   const video = await createVideo({
-    apiKey: BUNNY_API_KEY,
+    apiKey: BUNNY_STREAM_API_KEY,
     collectionId: collection.guid,
-    libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+    libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
     title: `prepared-${new Date().toISOString()}`,
   })
 
@@ -38,9 +38,9 @@ export const POST = async ({ locals }) => {
   }
 
   const signature = await createVideoUploadSignature({
-    apiKey: BUNNY_API_KEY,
+    apiKey: BUNNY_STREAM_API_KEY,
     expirationTime,
-    libraryId: PUBLIC_BUNNY_LIBRARY_ID,
+    libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
     videoId: video.guid,
   })
 

@@ -140,9 +140,11 @@ export const imagePreviewHandler = async (path: string, event: RequestEvent) => 
     areaFk: null,
     ascentFk: null,
     blockFk: null,
-    id: 0,
+    bunnyStreamFk: null,
+    id: '0',
     path,
     routeFk: null,
+    visibility: null,
   })
 
   const searchParams = new URLSearchParams(url.searchParams)

@@ -18,6 +18,7 @@ import {
 import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
 import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '../auth'
 import { createBasicTablePolicies, getAuthorizedPolicyConfig, getOwnEntryPolicyConfig, getPolicyConfig } from './policy'
+import { createId as createCuid2 } from '@paralleldrive/cuid2'
 
 export const generateSlug = (name: string): string =>
   name
@@ -550,7 +551,9 @@ export const ascentsRelations = relations(ascents, ({ one, many }) => ({
 export const files = table(
   'files',
   {
-    id: baseFields.id,
+    id: text('id')
+      .$defaultFn(() => createCuid2())
+      .primaryKey(),
 
     path: text('path').notNull(),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
@@ -623,7 +626,7 @@ export const bunnyStreams = table(
   'bunny_streams',
   {
     id: uuid('id').primaryKey(),
-    fileFk: integer('file_fk').references((): AnyColumn => files.id),
+    fileFk: text('file_fk').references((): AnyColumn => files.id),
   },
   () => [
     policy(`${READ_PERMISSION} can insert bunny_streams`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
@@ -645,7 +648,7 @@ export const topos = table(
     id: baseFields.id,
 
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
-    fileFk: integer('file_fk').references((): AnyColumn => files.id),
+    fileFk: text('file_fk').references((): AnyColumn => files.id),
   },
   (table) => [
     ...createBasicTablePolicies('topos'),
@@ -762,9 +765,9 @@ export const activities = table(
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),
-    entityId: integer('entity_id').notNull(),
+    entityId: text('entity_id').notNull(),
     entityType: text('entity_type', { enum: ['block', 'route', 'area', 'ascent', 'file', 'user'] }).notNull(),
-    parentEntityId: integer('parent_entity_id'),
+    parentEntityId: text('parent_entity_id'),
     parentEntityType: text('parent_entity_type', { enum: ['block', 'route', 'area', 'ascent'] }),
     columnName: text('column_name'), // Only populated for 'updated' activities
     metadata: text('metadata'), // JSON string containing relevant changes

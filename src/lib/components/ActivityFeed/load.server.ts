@@ -32,6 +32,23 @@ const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Acti
   }
 }
 
+const getWhere = (entityType: schema.Activity['entityType'], entityId: schema.Activity['entityId']) => {
+  switch (entityType) {
+    case 'area':
+      return eq(schema.areas.id, Number(entityId))
+    case 'block':
+      return eq(schema.blocks.id, Number(entityId))
+    case 'route':
+      return eq(schema.routes.id, Number(entityId))
+    case 'file':
+      return eq(schema.files.id, entityId)
+    case 'ascent':
+      return eq(schema.ascents.id, Number(entityId))
+    case 'user':
+      return eq(schema.users.id, Number(entityId))
+  }
+}
+
 const getWith = (
   entityType: schema.Activity['entityType'],
 ): IncludeRelation<'ascents' | 'routes' | 'blocks' | 'areas'> => {
@@ -230,14 +247,14 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
         const parentQuery = activity.parentEntityType == null ? null : getQuery(db, activity.parentEntityType)
 
         const entity = await query.findFirst({
-          where: (table) => eq(table.id, activity.entityId),
+          where: getWhere(activity.entityType, activity.entityId),
           with: getWith(activity.entityType),
         })
         const parentEntity =
-          activity.parentEntityId == null && activity.parentEntityType == null
+          activity.parentEntityId == null || activity.parentEntityType == null
             ? null
             : await parentQuery?.findFirst({
-                where: (table) => eq(table.id, activity.parentEntityId!),
+                where: getWhere(activity.parentEntityType, activity.parentEntityId),
                 with: getParentWith(activity.parentEntityType),
               })
 

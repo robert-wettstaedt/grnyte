@@ -506,10 +506,15 @@ export const getVideo = async ({ apiKey, libraryId, videoId }: GetVideoOptions) 
 }
 
 interface GetVideoThumbnailUrlOptions {
+  format?: 'webp' | 'jpg'
+  hostname: string
   videoId: string
 }
-export const getVideoThumbnailUrl = ({ videoId }: GetVideoThumbnailUrlOptions) => {
-  return `https://vz-4b704334-804.b-cdn.net/${videoId}/preview.webp`
+export const getVideoThumbnailUrl = ({ format = 'webp', hostname, videoId }: GetVideoThumbnailUrlOptions) => {
+  if (format === 'webp') {
+    return `https://${hostname}/${videoId}/preview.webp`
+  }
+  return `https://${hostname}/${videoId}/thumbnail.jpg`
 }
 
 interface GetVideoIframeUrlOptions extends Pick<BunnyOptions, 'libraryId'> {

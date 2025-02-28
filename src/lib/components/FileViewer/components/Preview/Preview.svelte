@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
   import { getVideoThumbnailUrl } from '$lib/bunny'
   import type { File } from '$lib/db/schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
@@ -68,7 +69,7 @@
         <img
           alt=""
           class="h-40 md:h-80 w-full object-cover"
-          src={getVideoThumbnailUrl({ videoId: file.bunnyStreamFk })}
+          src={getVideoThumbnailUrl({ hostname: PUBLIC_BUNNY_STREAM_HOSTNAME, videoId: file.bunnyStreamFk })}
           use:mediaAction
         />
       {/if}

@@ -294,7 +294,7 @@
                   $page.data.userPermissions?.includes(DELETE_PERMISSION) ||
                   activity.entity.object.createdBy === $page.data.user.id
                 )}
-                on:delete={() => {
+                onDelete={() => {
                   if (activity.entity.type == 'ascent' && activity.entity.object != null) {
                     activity.entity.object.files = activity.entity.object!.files.filter((_file) => file.id !== _file.id)
                   }

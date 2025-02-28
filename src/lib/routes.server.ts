@@ -165,10 +165,10 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
   await db.insert(activities).values({
     type: 'deleted',
     userFk: params.userId,
-    entityId: route.id,
+    entityId: String(route.id),
     entityType: 'route',
     oldValue: route.name,
-    parentEntityId: block.id,
+    parentEntityId: String(block.id),
     parentEntityType: 'block',
   })
 }

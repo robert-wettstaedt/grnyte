@@ -1,23 +1,24 @@
 <script lang="ts">
   import { page } from '$app/stores'
-  import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_LIBRARY_ID } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
   import { getVideoIframeUrl } from '$lib/bunny'
   import type { File } from '$lib/db/schema'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import type { Snippet } from 'svelte'
   import type { MouseEventHandler } from 'svelte/elements'
   import type { FileStat } from 'webdav'
 
   interface Props {
     file: File
-    onClose?: () => void
     onDelete?: () => void
     readOnly?: boolean
     stat: FileStat
+
+    topLeft?: Snippet
   }
 
-  let { file, onClose, readOnly = true, stat }: Props = $props()
+  let { file, readOnly = true, stat, topLeft, ...props }: Props = $props()
 
-  let isFullscreen = $state(false)
   let shareData = $derived({
     text: $page.data.user?.username
       ? `${$page.data.user?.username} wants to share a file with you`
@@ -30,8 +31,7 @@
 
   const onDelete = async () => {
     await fetch(`/api/files/${file.id}`, { method: 'DELETE' })
-    isFullscreen = false
-    onDelete?.()
+    props.onDelete?.()
   }
 
   const updateVisibility = async (visibility: File['visibility']) => {
@@ -41,7 +41,7 @@
         body: JSON.stringify({ visibility }),
       })
       if (res.ok) {
-        file.visibility = visibility
+        file = { ...file, visibility }
       }
     } catch (error) {
       console.error(error)
@@ -122,17 +122,15 @@
         allowfullscreen
         class="w-full h-full border-none absolute top-0 left-0"
         loading="lazy"
-        src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_LIBRARY_ID, videoId: file.bunnyStreamFk })}
+        src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID, videoId: file.bunnyStreamFk })}
         title=""
       ></iframe>
     {/if}
   {/if}
 
-  <div class="absolute top-4 flex items-center justify-between w-full">
-    {#if onClose}
-      <button aria-label="Close" class="btn-icon text-xl" onclick={onClose}>
-        <i class="fa-solid fa-arrow-left"></i>
-      </button>
+  <div class="absolute top-4 flex items-center justify-between w-full px-2">
+    {#if topLeft}
+      {@render topLeft?.()}
     {:else}
       <div></div>
     {/if}
@@ -144,17 +142,25 @@
         contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
         positionerZIndex="!z-[5000]"
         positioning={{ placement: 'bottom' }}
-        triggerBase="btn-icon"
+        triggerBase="btn-icon bg-black/20 backdrop-blur-sm"
       >
         {#snippet trigger()}
           <i class={`fa-solid ${file.visibility === 'public' ? 'fa-globe' : 'fa-lock'}`}></i>
         {/snippet}
 
         {#snippet content()}
-          {#if file.visibility === 'public'}
-            <p class="text-sm">The file is publicly accessible.</p>
+          <p class="text-sm">
+            {#if file.visibility === 'public'}
+              The file is publicly accessible and can be viewed by everyone who has the link.
+            {:else}
+              The file is private and only accessible by authenticated users.
+            {/if}
+          </p>
 
-            <footer class="flex gap-2 justify-between">
+          <footer class="flex gap-2 justify-between">
+            {#if file.bunnyStreamFk == null}
+              <p class="text-error-500">Only videos can be made public and shared.</p>
+            {:else}
               {#if navigator.canShare?.(shareData) && navigator.share != null}
                 <button class="btn btn-sm preset-tonal-primary" onclick={() => navigator.share(shareData)}>
                   <i class="fa-solid fa-share"></i> Share
@@ -166,26 +172,18 @@
               {/if}
 
               {#if !readOnly}
-                <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'private')}>
-                  <i class="fa-solid fa-lock"></i> Make private
-                </button>
-              {/if}
-            </footer>
-          {:else}
-            <p class="text-sm">The file is private and cannot be shared with others.</p>
-
-            <footer class="flex justify-end">
-              {#if !readOnly}
-                {#if file.bunnyStreamFk == null}
-                  Only videos can be made public and shared.
+                {#if file.visibility === 'public'}
+                  <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'private')}>
+                    <i class="fa-solid fa-lock"></i> Make private
+                  </button>
                 {:else}
                   <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'public')}>
                     <i class="fa-solid fa-globe"></i> Make public
                   </button>
                 {/if}
               {/if}
-            </footer>
-          {/if}
+            {/if}
+          </footer>
         {/snippet}
       </Popover>
 
@@ -196,7 +194,7 @@
           contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
           positionerZIndex="!z-[5000]"
           positioning={{ placement: 'bottom' }}
-          triggerBase="btn-icon"
+          triggerBase="btn-icon bg-black/20 backdrop-blur-sm"
         >
           {#snippet trigger()}
             <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -205,14 +203,6 @@
           {#snippet content()}
             <nav class="list-nav w-48">
               <ul>
-                <li
-                  class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
-                >
-                  <!-- <a class="p-2 md:p-4 w-full" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
-                  <i class="fa-solid fa-cloud-arrow-up w-5 me-2"></i>Upload
-                </a> -->
-                </li>
-
                 <li
                   class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
                 >

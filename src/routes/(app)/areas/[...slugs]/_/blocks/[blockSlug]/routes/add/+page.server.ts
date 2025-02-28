@@ -135,10 +135,10 @@ export const actions = {
         await db.insert(activities).values({
           type: 'created',
           userFk: user.id,
-          entityId: route.id,
+          entityId: String(route.id),
           entityType: 'route',
           newValue: route.name.length > 0 ? route.name : config.routes.defaultName,
-          parentEntityId: block.id,
+          parentEntityId: String(block.id),
           parentEntityType: 'block',
         })
       } catch (exception) {

@@ -41,14 +41,16 @@ describe('TopoViewer Component', () => {
     {
       id: 1,
       blockFk: 1,
-      fileFk: 1,
+      fileFk: '1',
       file: {
-        id: 1,
+        id: '1',
         path: '/test/path1.jpg',
         areaFk: 1,
         ascentFk: 1,
         routeFk: 1,
         blockFk: 1,
+        bunnyStreamFk: null,
+        visibility: null,
         stat: {
           filename: '/test/path1.jpg',
           basename: 'path1.jpg',
@@ -75,14 +77,16 @@ describe('TopoViewer Component', () => {
     {
       id: 2,
       blockFk: 1,
-      fileFk: 2,
+      fileFk: '2',
       file: {
-        id: 2,
+        id: '2',
         path: '/test/path2.jpg',
         areaFk: 1,
         ascentFk: 1,
         routeFk: 1,
         blockFk: 1,
+        bunnyStreamFk: null,
+        visibility: null,
         stat: {
           filename: '/test/path2.jpg',
           basename: 'path2.jpg',

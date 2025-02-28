@@ -161,12 +161,12 @@ export const actions = {
 
         await createUpdateActivity({
           db,
-          entityId: route.id,
+          entityId: String(route.id),
           entityType: 'route',
           newEntity: values,
           oldEntity: oldRoute,
           userFk: user?.id,
-          parentEntityId: block.id,
+          parentEntityId: String(block.id),
           parentEntityType: 'block',
         })
       } catch (exception) {

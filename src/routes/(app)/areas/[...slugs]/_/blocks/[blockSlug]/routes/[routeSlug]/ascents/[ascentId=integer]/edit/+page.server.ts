@@ -94,12 +94,12 @@ export const actions = {
 
         await createUpdateActivity({
           db,
-          entityId: ascent.id,
+          entityId: String(ascent.id),
           entityType: 'ascent',
           newEntity: rest,
           oldEntity: ascent,
           userFk: user?.id,
-          parentEntityId: ascent.route.id,
+          parentEntityId: String(ascent.route.id),
           parentEntityType: 'route',
         })
       } catch (exception) {
@@ -123,10 +123,10 @@ export const actions = {
               db.insert(activities).values({
                 type: 'uploaded',
                 userFk: user.id,
-                entityId: file.id,
+                entityId: String(file.id),
                 entityType: 'file',
                 columnName: 'file',
-                parentEntityId: ascent.routeFk,
+                parentEntityId: String(ascent.routeFk),
                 parentEntityType: 'route',
               }),
             ),
@@ -180,14 +180,16 @@ export const actions = {
         await db.delete(ascents).where(eq(ascents.id, ascent.id))
         await updateRoutesUserData(ascent.routeFk, db)
 
-        await db.delete(activities).where(and(eq(activities.entityType, 'ascent'), eq(activities.entityId, ascent.id)))
+        await db
+          .delete(activities)
+          .where(and(eq(activities.entityType, 'ascent'), eq(activities.entityId, String(ascent.id))))
         await db.insert(activities).values({
           type: 'deleted',
           userFk: user.id,
-          entityId: ascent.id,
+          entityId: String(ascent.id),
           entityType: 'ascent',
           oldValue: ascent.type,
-          parentEntityId: ascent.routeFk,
+          parentEntityId: String(ascent.routeFk),
           parentEntityType: 'route',
         })
       } catch (error) {

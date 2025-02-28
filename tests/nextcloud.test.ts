@@ -56,12 +56,14 @@ describe('NextCloud Integration', () => {
   describe('searchNextcloudFile', () => {
     it('should find a file by path', async () => {
       const result = await searchNextcloudFile({
-        id: 1,
+        id: '1',
         path: '/test/image.jpg',
         areaFk: null,
         ascentFk: null,
         blockFk: null,
         routeFk: null,
+        bunnyStreamFk: null,
+        visibility: null,
       })
       expect(result).toEqual({ ...mockFileStat, filename: mockFileStat.filename })
     })
@@ -69,12 +71,14 @@ describe('NextCloud Integration', () => {
     it('should throw for non-existent file', async () => {
       await expect(
         searchNextcloudFile({
-          id: 1,
+          id: '1',
           path: '/non-existent.jpg',
           areaFk: null,
           ascentFk: null,
           blockFk: null,
           routeFk: null,
+          bunnyStreamFk: null,
+          visibility: null,
         }),
       ).rejects.toThrowError()
     })
@@ -83,8 +87,26 @@ describe('NextCloud Integration', () => {
   describe('loadFiles', () => {
     it('should load multiple files', async () => {
       const paths = [
-        { id: 1, path: '/test/image.jpg', areaFk: null, ascentFk: null, blockFk: null, routeFk: null },
-        { id: 2, path: '/test/image2.jpg', areaFk: null, ascentFk: null, blockFk: null, routeFk: null },
+        {
+          id: '1',
+          path: '/test/image.jpg',
+          areaFk: null,
+          ascentFk: null,
+          blockFk: null,
+          routeFk: null,
+          visibility: null,
+          bunnyStreamFk: null,
+        },
+        {
+          id: '2',
+          path: '/test/image2.jpg',
+          areaFk: null,
+          ascentFk: null,
+          blockFk: null,
+          routeFk: null,
+          visibility: null,
+          bunnyStreamFk: null,
+        },
       ]
       const results = await loadFiles(paths)
       expect(results).toHaveLength(2)
@@ -98,8 +120,26 @@ describe('NextCloud Integration', () => {
     it('should handle missing files', async () => {
       vi.mocked(getNextcloud()).exists.mockResolvedValueOnce(false)
       const paths = [
-        { id: 1, path: '/test/image.jpg', areaFk: null, ascentFk: null, blockFk: null, routeFk: null },
-        { id: 1, path: '/non-existent.jpg', areaFk: null, ascentFk: null, blockFk: null, routeFk: null },
+        {
+          id: '1',
+          path: '/test/image.jpg',
+          areaFk: null,
+          ascentFk: null,
+          blockFk: null,
+          routeFk: null,
+          bunnyStreamFk: null,
+          visibility: null,
+        },
+        {
+          id: '1',
+          path: '/non-existent.jpg',
+          areaFk: null,
+          ascentFk: null,
+          blockFk: null,
+          routeFk: null,
+          bunnyStreamFk: null,
+          visibility: null,
+        },
       ]
       const results = await loadFiles(paths)
       expect(results).toHaveLength(2)
