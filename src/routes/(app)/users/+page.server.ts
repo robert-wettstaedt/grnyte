@@ -96,7 +96,7 @@ export const actions = {
       await db.insert(userRoles).values({ authUserFk: values.authUserFk, role: 'user' })
       await tx.insert(activities).values({
         type: 'updated',
-        entityId: formUser.id,
+        entityId: String(formUser.id),
         entityType: 'user',
         userFk: user.id,
         columnName: 'role',

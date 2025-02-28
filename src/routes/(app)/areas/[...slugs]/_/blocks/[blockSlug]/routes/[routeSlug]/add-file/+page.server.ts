@@ -112,6 +112,7 @@ export const actions = {
           locals.supabase,
           values.folderName,
           config.files.folders.topos,
+          values.bunnyVideoIds,
           { routeFk: route.id },
         )
 
@@ -120,9 +121,9 @@ export const actions = {
             db.insert(activities).values({
               type: 'uploaded',
               userFk: user.id,
-              entityId: file.id,
+              entityId: String(file.id),
               entityType: 'file',
-              parentEntityId: route.id,
+              parentEntityId: String(route.id),
               parentEntityType: 'route',
             }),
           ),

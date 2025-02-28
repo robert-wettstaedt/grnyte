@@ -113,12 +113,12 @@ export const actions = {
 
         await createUpdateActivity({
           db,
-          entityId: block.id,
+          entityId: String(block.id),
           entityType: 'block',
           newEntity: values,
           oldEntity: block,
           userFk: user?.id,
-          parentEntityId: areaId,
+          parentEntityId: String(areaId),
           parentEntityType: 'area',
         })
 
@@ -206,10 +206,10 @@ export const actions = {
         await db.insert(activities).values({
           type: 'deleted',
           userFk: user.id,
-          entityId: block.id,
+          entityId: String(block.id),
           entityType: 'block',
           oldValue: block.name,
-          parentEntityId: areaId,
+          parentEntityId: String(areaId),
           parentEntityType: 'area',
         })
 

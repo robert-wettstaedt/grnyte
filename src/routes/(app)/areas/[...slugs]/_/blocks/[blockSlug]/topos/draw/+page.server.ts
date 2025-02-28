@@ -147,10 +147,10 @@ export const actions = {
       await db.insert(activities).values({
         type: 'updated',
         userFk: user.id,
-        entityId: parsedTopos[0].blockFk,
+        entityId: String(parsedTopos[0].blockFk),
         entityType: 'block',
         columnName: 'topo',
-        parentEntityId: areaId,
+        parentEntityId: String(areaId),
         parentEntityType: 'area',
       })
     })
@@ -192,10 +192,10 @@ export const actions = {
         await db.insert(activities).values({
           type: 'deleted',
           userFk: user.id,
-          entityId: topo.blockFk,
+          entityId: String(topo.blockFk),
           entityType: 'block',
           columnName: 'topo image',
-          parentEntityId: areaId,
+          parentEntityId: String(areaId),
           parentEntityType: 'area',
         })
       } catch (exception) {

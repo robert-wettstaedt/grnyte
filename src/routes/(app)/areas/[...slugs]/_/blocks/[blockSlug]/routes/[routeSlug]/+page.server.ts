@@ -105,8 +105,8 @@ export const load = (async ({ locals, params, parent, url }) => {
 
     const feed = await loadFeed({ locals, url }, [
       or(
-        and(eq(activities.entityId, route.id), eq(activities.entityType, 'route')),
-        and(eq(activities.parentEntityId, route.id), eq(activities.parentEntityType, 'route')),
+        and(eq(activities.entityId, String(route.id)), eq(activities.entityType, 'route')),
+        and(eq(activities.parentEntityId, String(route.id)), eq(activities.parentEntityType, 'route')),
       )!,
     ])
 
@@ -228,7 +228,7 @@ export const actions = {
         await db.insert(activities).values({
           type: 'updated',
           userFk: user.id,
-          entityId: user.id,
+          entityId: String(user.id),
           entityType: 'user',
           columnName: 'first ascensionist',
           newValue: firstAscensionist.name,
@@ -324,12 +324,12 @@ export const actions = {
         await db.insert(activities).values({
           type: 'updated',
           userFk: user.id,
-          entityId: route.id,
+          entityId: String(route.id),
           entityType: 'route',
           columnName: 'first ascent',
           oldValue: oldFirstAscent,
           newValue: newFirstAscent,
-          parentEntityId: block.id,
+          parentEntityId: String(block.id),
           parentEntityType: 'block',
         })
       } catch (error) {

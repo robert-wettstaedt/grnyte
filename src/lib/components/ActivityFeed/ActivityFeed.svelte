@@ -63,7 +63,7 @@
       .filter((file, index, self) => index === self.findIndex((f: FileDTO) => f.id === file.id))
   }
 
-  function findAscentForFile(group: ActivityGroup, fileId: number) {
+  function findAscentForFile(group: ActivityGroup, fileId: string) {
     const activity = group.items.find(
       (
         activity,
@@ -191,7 +191,7 @@
                                 stat={file.stat}
                                 readOnly={!$page.data.userPermissions?.includes(DELETE_PERMISSION) ||
                                   ascentActivity?.entity.object?.createdBy !== $page.data.user?.id}
-                                on:delete={() => {
+                                onDelete={() => {
                                   if (ascentActivity?.entity.object != null) {
                                     ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(
                                       (f) => f.id !== file.id,

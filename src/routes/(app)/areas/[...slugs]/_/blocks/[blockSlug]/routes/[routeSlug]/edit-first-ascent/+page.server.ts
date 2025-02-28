@@ -171,12 +171,12 @@ export const actions = {
         await db.insert(activities).values({
           type: 'updated',
           userFk: user.id,
-          entityId: route.id,
+          entityId: String(route.id),
           entityType: 'route',
           columnName: 'first ascent',
           oldValue: oldFirstAscent,
           newValue: newFirstAscent,
-          parentEntityId: block.id,
+          parentEntityId: String(block.id),
           parentEntityType: 'block',
         })
       } catch (exception) {
@@ -258,11 +258,11 @@ export const actions = {
         await db.insert(activities).values({
           type: 'deleted',
           userFk: user.id,
-          entityId: route.id,
+          entityId: String(route.id),
           entityType: 'route',
           columnName: 'first ascent',
           oldValue: oldFirstAscent,
-          parentEntityId: block.id,
+          parentEntityId: String(block.id),
           parentEntityType: 'block',
         })
       } catch (error) {

@@ -20,6 +20,8 @@
 
   const { activity, withBreadcrumbs = false, withDetails = false, withFiles = false }: ItemProps = $props()
 
+  console.log(activity.entity.object, $page.data.user)
+
   const iconClasses = $derived.by(() => {
     if (activity.entity.type === 'ascent' && activity.entity.object != null && activity.type === 'created') {
       switch (activity.entity.object.type) {
@@ -288,9 +290,11 @@
               <FileViewer
                 {file}
                 stat={file.stat}
-                readOnly={!$page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                  activity.entity.object.createdBy !== $page.data.user.id}
-                on:delete={() => {
+                readOnly={!(
+                  $page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                  activity.entity.object.createdBy === $page.data.user.id
+                )}
+                onDelete={() => {
                   if (activity.entity.type == 'ascent' && activity.entity.object != null) {
                     activity.entity.object.files = activity.entity.object!.files.filter((_file) => file.id !== _file.id)
                   }

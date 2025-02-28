@@ -112,10 +112,11 @@ export const actions = {
           locals.supabase,
           values.folderName,
           config.files.folders.topos,
+          values.bunnyVideoIds,
           { blockFk: block.id },
         )
 
-        const fileBuffers = createdFiles.map((result) => result.fileBuffer)
+        const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
         await createGeolocationFromFiles(db, block, fileBuffers, 'create')
         await Promise.all(
@@ -134,10 +135,10 @@ export const actions = {
             db.insert(activities).values({
               type: 'uploaded',
               userFk: user.id,
-              entityId: file.id,
+              entityId: String(file.id),
               entityType: 'file',
               columnName: 'topo image',
-              parentEntityId: block.id,
+              parentEntityId: String(block.id),
               parentEntityType: 'block',
             }),
           ),

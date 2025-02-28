@@ -97,10 +97,10 @@ export const actions = {
         await db.insert(activities).values({
           type: 'updated',
           userFk: user.id,
-          entityId: area.id,
+          entityId: String(area.id),
           entityType: 'area',
           columnName: 'parking location',
-          parentEntityId: area.parentFk,
+          parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
         })
       } catch (exception) {
@@ -148,10 +148,10 @@ export const actions = {
         await db.insert(activities).values({
           type: 'deleted',
           userFk: user.id,
-          entityId: area.id,
+          entityId: String(area.id),
           entityType: 'area',
           columnName: 'parking location',
-          parentEntityId: area.parentFk,
+          parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
         })
       } catch (error) {

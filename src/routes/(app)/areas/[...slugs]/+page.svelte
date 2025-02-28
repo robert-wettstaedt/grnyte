@@ -256,9 +256,7 @@
                             {file}
                             readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
                             stat={file.stat}
-                            on:delete={() => {
-                              files = files.filter((_file) => file.id !== _file.id)
-                            }}
+                            onDelete={() => (files = files.filter((_file) => file.id !== _file.id))}
                           />
                         {:else if file.error != null}
                           <aside class="alert variant-filled-error">

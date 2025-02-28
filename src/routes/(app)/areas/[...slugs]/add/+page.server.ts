@@ -98,9 +98,9 @@ export const actions = {
         await db.insert(activities).values({
           type: 'created',
           userFk: user.id,
-          entityId: createdArea.id,
+          entityId: String(createdArea.id),
           entityType: 'area',
-          parentEntityId: parentArea?.id,
+          parentEntityId: parentArea?.id == null ? null : String(parentArea.id),
           parentEntityType: 'area',
         })
 

@@ -83,7 +83,12 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   event.locals.userPermissions = userPermissions
   event.locals.userRole = userRole
 
-  if (event.locals.session == null && event.url.pathname !== '/' && !event.url.pathname.startsWith('/auth')) {
+  if (
+    event.locals.session == null &&
+    event.url.pathname !== '/' &&
+    !event.url.pathname.startsWith('/auth') &&
+    !event.url.pathname.startsWith('/f/')
+  ) {
     redirect(303, '/auth')
   }
 
