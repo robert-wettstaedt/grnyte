@@ -60,7 +60,7 @@ export const transcodingMessageSchema = z.object({
   /**
    * The timestamp of the transcoding message
    */
-  timeStamp: z.string().datetime(),
+  timeStamp: z.string().datetime({ local: true, offset: true }),
   /**
    * The level of the message (0 = Undefined, 1 = Information, 2 = Warning, 3 = Error)
    */
@@ -151,7 +151,7 @@ export const videoSchema = z.object({
   /**
    * The date when the video was uploaded
    */
-  dateUploaded: z.string().datetime(),
+  dateUploaded: z.string().datetime({ local: true, offset: true }).nullish(),
   /**
    * The number of views the video received
    */
@@ -290,11 +290,11 @@ export const videoPlaySchema = z.intersection(
     /**
      * Whether DRM is enabled
      */
-    enableDRM: z.boolean(),
+    enableDRM: z.boolean().nullish(),
     /**
      * DRM version
      */
-    drmVersion: z.number().int(),
+    drmVersion: z.number().int().nullish(),
     /**
      * Color key for the player
      */
@@ -306,7 +306,7 @@ export const videoPlaySchema = z.intersection(
     /**
      * Font size for captions
      */
-    captionsFontSize: z.number().int(),
+    captionsFontSize: z.number().int().nullish(),
     /**
      * Font color for captions
      */
@@ -322,19 +322,19 @@ export const videoPlaySchema = z.intersection(
     /**
      * Whether early play is allowed
      */
-    allowEarlyPlay: z.boolean(),
+    allowEarlyPlay: z.boolean().nullish(),
     /**
      * Whether token auth is enabled
      */
-    tokenAuthEnabled: z.boolean(),
+    tokenAuthEnabled: z.boolean().nullish(),
     /**
      * Whether MP4 fallback is enabled
      */
-    enableMP4Fallback: z.boolean(),
+    enableMP4Fallback: z.boolean().nullish(),
     /**
      * Whether to show heatmap
      */
-    showHeatmap: z.boolean(),
+    showHeatmap: z.boolean().nullish(),
     /**
      * Font family
      */

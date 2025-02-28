@@ -7,17 +7,19 @@
   import type { Snippet } from 'svelte'
   import type { MouseEventHandler } from 'svelte/elements'
   import type { FileStat } from 'webdav'
+  import type { FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
 
   interface Props {
     file: File
     onDelete?: () => void
     readOnly?: boolean
     stat: FileStat
+    status?: FileStatusResponse
 
     topLeft?: Snippet
   }
 
-  let { file, readOnly = true, stat, topLeft, ...props }: Props = $props()
+  let { file, readOnly = true, stat, status = $bindable(), topLeft, ...props }: Props = $props()
 
   let shareData = $derived({
     text: $page.data.user?.username
@@ -86,11 +88,11 @@
 </script>
 
 <div class="relative w-full h-full">
-  {#if mediaHasError}
-    <aside class="alert variant-filled-error">
-      <div class="alert-message">
-        <h3 class="h3">Unable to play video</h3>
-        <p>{stat.filename}</p>
+  {#if mediaHasError || status != null}
+    <aside class="alert variant-filled-error p-1 flex items-center justify-center h-full">
+      <div class="alert-message text-center max-w-[200px]">
+        <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
+        <p class="text-sm">{status?.message ?? stat.basename}</p>
       </div>
     </aside>
   {:else}

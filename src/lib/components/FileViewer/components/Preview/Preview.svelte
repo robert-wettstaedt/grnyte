@@ -1,24 +1,33 @@
 <script lang="ts">
   import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
   import { getVideoThumbnailUrl } from '$lib/bunny'
+  import { upfetch } from '$lib/config'
   import type { File } from '$lib/db/schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import type { FileStat } from 'webdav'
+  import { FileStatusResponseSchema, type FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
 
   interface Props {
     file: File
     onClick: () => void
     stat: FileStat
+    status?: FileStatusResponse
   }
 
-  let { file, onClick, stat }: Props = $props()
+  let { file, onClick, stat, status = $bindable() }: Props = $props()
 
   const resourcePath = $derived(`/nextcloud${stat.filename}`)
 
   let mediaIsLoading = $state(stat.mime?.includes('image') ?? false)
   let mediaHasError = $state(false)
   const mediaAction = (el: HTMLElement) => {
-    const onError = () => (mediaHasError = true)
+    const onError = async () => {
+      try {
+        status = await upfetch(`/api/files/${file.id}/status`, { schema: FileStatusResponseSchema })
+      } catch (error) {
+        mediaHasError = true
+      }
+    }
     const onLoad = () => (mediaIsLoading = false)
     const onLoadStart = () => (mediaIsLoading = true)
 
@@ -45,12 +54,12 @@
   onclick={onClick}
   role="presentation"
 >
-  <div class="relative">
-    {#if mediaHasError}
-      <aside class="alert variant-filled-error">
-        <div class="alert-message">
-          <h3 class="h3">Unable to play video</h3>
-          <p>{stat.basename}</p>
+  <div class="relative w-full h-full">
+    {#if mediaHasError || status != null}
+      <aside class="alert variant-filled-error p-1 flex items-center justify-center h-full">
+        <div class="alert-message text-center">
+          <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
+          <p class="text-sm">{status?.message ?? stat.basename}</p>
         </div>
       </aside>
     {:else}
