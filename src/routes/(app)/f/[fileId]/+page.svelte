@@ -23,14 +23,32 @@
 
   const entityId = $derived(data.file.areaFk ?? data.file.blockFk ?? data.file.routeFk ?? data.file.ascentFk)
   const pathname = $derived(`/${entityType}s/${entityId}`)
+  const title = $derived.by(() => {
+    if (data.file.ascent == null) {
+      return 'Shared file'
+    }
+
+    const routename = [
+      data.file.ascent.route.rating == null ? '' : Array(data.file.ascent.route.rating).fill('★').join(''),
+      data.file.ascent.route.name,
+      data.file.ascent.route.gradeFk == null
+        ? ''
+        : `(${data.grades[data.file.ascent.route.gradeFk][data.gradingScale]})`,
+    ].join(' ')
+
+    return `${data.file.ascent.author.username}'s ascent of ${routename}`
+  })
+  const description = $derived(`${title} - Secure boulder topo and session tracker.`)
 
   let isNotesExpanded = $state(false)
 </script>
 
 <svelte:head>
-  <meta name="description" content="Secure boulder topo and session tracker." />
+  <title>{title} - {PUBLIC_APPLICATION_NAME}</title>
+
+  <meta name="description" content={description} />
   <meta property="og:title" content={PUBLIC_APPLICATION_NAME} />
-  <meta property="og:description" content="Secure boulder topo and session tracker." />
+  <meta property="og:description" content={description} />
   {#if data.file.bunnyStreamFk != null}
     <meta
       property="og:image"
@@ -43,14 +61,6 @@
   {/if}
   <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
-
-  {#if data.file.ascent == null}
-    <title>Shared file - {PUBLIC_APPLICATION_NAME}</title>
-  {:else}
-    <title>
-      {data.file.ascent.author.username}'s ascent of {data.file.ascent.route.name} - {PUBLIC_APPLICATION_NAME}
-    </title>
-  {/if}
 </svelte:head>
 
 {#if data.file.stat != null}
