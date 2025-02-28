@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import * as schema from '$lib/db/schema'
   import { convertMarkdownToHtml } from '$lib/markdown'
   import type { SearchedResources, SearchResults } from '$lib/search.server'
@@ -47,7 +47,7 @@
       route.name.length === 0 ? '?' : route.name,
       route.gradeFk == null
         ? null
-        : $page.data.grades.find((grade) => grade.id === route.gradeFk)?.[$page.data.gradingScale],
+        : page.data.grades.find((grade) => grade.id === route.gradeFk)?.[page.data.gradingScale],
       route.rating == null ? null : new Array(route.rating).fill('⭐️').join(''),
     ]
       .filter(Boolean)

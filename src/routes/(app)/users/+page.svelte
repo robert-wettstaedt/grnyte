@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { EDIT_PERMISSION, READ_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
@@ -60,7 +60,7 @@
     pageSize={data.pagination.pageSize}
     siblingCount={0}
     onPageChange={(detail) => {
-      const url = new URL($page.url)
+      const url = new URL(page.url)
       url.searchParams.set('page', String(detail.page))
       goto(url)
     }}

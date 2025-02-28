@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import type { Route } from '$lib/db/schema'
   import { Modal } from '@skeletonlabs/skeleton-svelte'
 
@@ -62,8 +62,8 @@
     <select bind:value={grade} class="select" onchange={(event) => (value = Number(event.currentTarget.value))}>
       <option disabled value="">-- Select grade --</option>
 
-      {#each $page.data.grades as grade}
-        <option value={grade.id}>{grade[$page.data.gradingScale]}</option>
+      {#each page.data.grades as grade}
+        <option value={grade.id}>{grade[page.data.gradingScale]}</option>
       {/each}
     </select>
 

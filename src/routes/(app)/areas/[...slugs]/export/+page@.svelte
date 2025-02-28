@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import SaveBouldering from '$lib/assets/Save-Bouldering.jpg'
   import by from '$lib/assets/by.svg'
@@ -14,7 +14,7 @@
   import '../../../../../app.postcss'
 
   let { data } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
   const DEBUG = false
   const ITEM_CLASS = 'break-after-page h-[210mm] w-[297mm]'
 

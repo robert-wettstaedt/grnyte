@@ -18,7 +18,7 @@
 </script>
 
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import type { GetBlockKey } from '$lib/components/BlocksMap'
   import TopoViewer, { type TopoViewerProps } from '$lib/components/TopoViewer'
   import type { InferResultType } from '$lib/db/types'
@@ -59,7 +59,7 @@
                 {route.name.length === 0 ? 'Unbekannt' : route.name}
 
                 {#if route.gradeFk != null}
-                  {$page.data.grades.find((grade) => grade.id === route.gradeFk)?.[$page.data.gradingScale]}
+                  {page.data.grades.find((grade) => grade.id === route.gradeFk)?.[page.data.gradingScale]}
                 {/if}
 
                 {#if route.rating != null}

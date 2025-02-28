@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
 
   let { form } = $props()
 
-  const error = $derived($page.url.searchParams.get('error_description'))
+  const error = $derived(page.url.searchParams.get('error_description'))
 </script>
 
 <svelte:head>

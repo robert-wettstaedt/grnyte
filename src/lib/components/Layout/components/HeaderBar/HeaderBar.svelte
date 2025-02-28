@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
   import '@fortawesome/fontawesome-free/css/all.css'
@@ -20,7 +20,7 @@
   {/snippet}
 
   {#snippet trail()}
-    {#if $page.data.session?.user == null}
+    {#if page.data.session?.user == null}
       <a href="/auth" class="btn btn-sm preset-filled-primary-500"> Get Started </a>
     {:else}
       <Popover

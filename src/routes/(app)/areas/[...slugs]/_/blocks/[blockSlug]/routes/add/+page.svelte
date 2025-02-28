@@ -1,13 +1,13 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { form, data } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
+  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
   let loading = $state(false)
 </script>
@@ -58,7 +58,7 @@
     tags={data.tags}
   />
 
-  <input type="hidden" name="redirect" value={$page.url.searchParams.get('redirect') ?? ''} />
+  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 
   <div class="flex justify-between mt-8">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>

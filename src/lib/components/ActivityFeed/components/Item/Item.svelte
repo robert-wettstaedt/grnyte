@@ -8,7 +8,7 @@
 </script>
 
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
   import type { ActivityDTO } from '$lib/components/ActivityFeed'
   import FileViewer from '$lib/components/FileViewer'
@@ -19,8 +19,6 @@
   import { enGB as locale } from 'date-fns/locale'
 
   const { activity, withBreadcrumbs = false, withDetails = false, withFiles = false }: ItemProps = $props()
-
-  console.log(activity.entity.object, $page.data.user)
 
   const iconClasses = $derived.by(() => {
     if (activity.entity.type === 'ascent' && activity.entity.object != null && activity.type === 'created') {
@@ -152,7 +150,7 @@
             {/if}
 
             {#if activity.entity.type === 'ascent' && activity.entity.object != null}
-              {#if activity.entity.object.createdBy === $page.data.user?.id}
+              {#if activity.entity.object.createdBy === page.data.user?.id}
                 their own
               {:else}
                 <a class="anchor" href={`/users/${activity.entity.object.author.authUserFk}`}>
@@ -255,7 +253,7 @@
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
 
-      {#if activity.entity.type === 'ascent' && activity.type === 'created' && ($page.data.session?.user?.id === activity.entity.object?.author.authUserFk || $page.data.userPermissions?.includes(EDIT_PERMISSION))}
+      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || page.data.userPermissions?.includes(EDIT_PERMISSION))}
         <a
           aria-label="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
@@ -291,8 +289,8 @@
                 {file}
                 stat={file.stat}
                 readOnly={!(
-                  $page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                  activity.entity.object.createdBy === $page.data.user.id
+                  page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                  activity.entity.object.createdBy === page.data.user.id
                 )}
                 onDelete={() => {
                   if (activity.entity.type == 'ascent' && activity.entity.object != null) {

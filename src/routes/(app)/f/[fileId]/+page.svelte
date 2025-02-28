@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { DELETE_PERMISSION, READ_PERMISSION } from '$lib/auth'
@@ -41,7 +41,7 @@
       })}
     />
   {/if}
-  <meta property="og:url" content={$page.url.toString()} />
+  <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
 
   {#if data.file.ascent == null}

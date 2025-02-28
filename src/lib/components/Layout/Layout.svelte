@@ -12,7 +12,7 @@
 
 <script lang="ts">
   import { afterNavigate, invalidateAll } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
   import { READ_PERMISSION } from '$lib/auth'
@@ -43,7 +43,7 @@
   })
 
   afterNavigate(() => {
-    if ($page.url.hash.length === 0) {
+    if (page.url.hash.length === 0) {
       document.scrollingElement?.scrollTo(0, 0)
     }
   })
@@ -61,7 +61,7 @@
   <meta property="og:title" content={PUBLIC_APPLICATION_NAME} />
   <meta property="og:description" content="Secure boulder topo and session tracker." />
   <meta property="og:image" content={Logo} />
-  <meta property="og:url" content={$page.url.toString()} />
+  <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
 
   {#if pwaAssetsHead.themeColor}
@@ -81,11 +81,11 @@
   <HeaderBar {data} />
 
   <main
-    class="relative p-2 md:p-4 {$page.data.session?.user == null
+    class="relative p-2 md:p-4 {page.data.session?.user == null
       ? 'min-h-[calc(100vh-4.25rem)]'
       : 'min-h-[calc(100vh-4.25rem-4.515625rem)] md:min-h-[calc(100vh-4.25rem)] md:ms-[6rem]'}"
   >
-    <Breadcrumb url={$page.url} />
+    <Breadcrumb url={page.url} />
 
     {#if form?.error}
       <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">

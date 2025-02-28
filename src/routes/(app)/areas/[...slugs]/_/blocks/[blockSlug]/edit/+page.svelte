@@ -1,13 +1,13 @@
 <script>
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { DELETE_PERMISSION } from '$lib/auth'
   import BlockFormFields from '$lib/components/BlockFormFields'
   import { AppBar, Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
+  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
   let loading = $state(false)
 </script>

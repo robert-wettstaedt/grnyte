@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { convertException } from '$lib/errors'
   import AppBar from '$lib/components/AppBar'
@@ -9,7 +9,7 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { data } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let error: string | null = $state(null)
   let loading = $state(false)

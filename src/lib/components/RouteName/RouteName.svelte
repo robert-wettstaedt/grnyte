@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
@@ -17,11 +17,11 @@
   let { classes, route }: Props = $props()
 
   const lastAscent = $derived.by(() => {
-    if (route?.ascents == null || $page.data.user == null) {
+    if (route?.ascents == null || page.data.user == null) {
       return null
     }
 
-    const ascents = route.ascents.filter((ascent) => String(ascent.createdBy) === String($page.data.user!.id))
+    const ascents = route.ascents.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
 
     const priorityAscents: Ascent['type'][] = ['repeat', 'flash', 'send', 'attempt']
 

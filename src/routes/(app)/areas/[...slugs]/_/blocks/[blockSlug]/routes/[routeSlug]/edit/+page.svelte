@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { DELETE_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
@@ -10,7 +10,7 @@
 
   let { data, form } = $props()
   let basePath = $derived(
-    `/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}/routes/${$page.params.routeSlug}`,
+    `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
 
   let grade = $derived(data.grades.find((grade) => grade.id === data.route.gradeFk))
@@ -46,7 +46,7 @@
     tags={data.tags}
   />
 
-  <input type="hidden" name="redirect" value={$page.url.searchParams.get('redirect') ?? ''} />
+  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 
   <div class="flex justify-between mt-8">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>

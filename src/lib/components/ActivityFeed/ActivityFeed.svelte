@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { DELETE_PERMISSION } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer/FileViewer.svelte'
   import RouteName from '$lib/components/RouteName/RouteName.svelte'
@@ -37,7 +37,7 @@
     }
 
     prevPage = pagination.page
-    filterValue = Array.from($page.url.searchParams.entries()).map(([key, value]) => `${key}=${value}`)
+    filterValue = Array.from(page.url.searchParams.entries()).map(([key, value]) => `${key}=${value}`)
   })
 
   function getUniqueFiles(group: ActivityGroup): FileDTO[] {
@@ -95,7 +95,7 @@
       const selectedOptions = (event.target as HTMLSelectElement).selectedOptions
       const selectedValues = Array.from(selectedOptions).map((option) => option.value)
 
-      const url = new URL($page.url)
+      const url = new URL(page.url)
       url.searchParams.delete('type')
       url.searchParams.delete('user')
       selectedValues.forEach((selectedValue) => {
@@ -189,8 +189,8 @@
                               <FileViewer
                                 {file}
                                 stat={file.stat}
-                                readOnly={!$page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                                  ascentActivity?.entity.object?.createdBy !== $page.data.user?.id}
+                                readOnly={!page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                                  ascentActivity?.entity.object?.createdBy !== page.data.user?.id}
                                 onDelete={() => {
                                   if (ascentActivity?.entity.object != null) {
                                     ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(
@@ -232,7 +232,7 @@
     disabled={pagination.page >= pagination.totalPages}
     onclick={() => {
       const nextPage = pagination.page + 1
-      const url = new URL($page.url)
+      const url = new URL(page.url)
       url.searchParams.set('page', String(nextPage))
       goto(url)
     }}

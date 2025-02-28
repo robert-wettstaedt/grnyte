@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
@@ -12,7 +12,7 @@
 
   let { data } = $props()
 
-  let searchQuery = $state($page.url.searchParams.get('q') ?? '')
+  let searchQuery = $state(page.url.searchParams.get('q') ?? '')
   let element: HTMLInputElement | null = $state(null)
 
   let tabValue: string | undefined = $state(undefined)

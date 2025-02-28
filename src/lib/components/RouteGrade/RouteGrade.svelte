@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import type { InferResultType } from '$lib/db/types'
   import CorrectedGrade from './components/CorrectedGrade'
 
@@ -13,7 +13,7 @@
 
   const send = $derived(
     route?.ascents
-      ?.filter((ascent) => String(ascent.createdBy) === String($page.data.user!.id))
+      ?.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
       .find((ascent) => ascent.type === 'send'),
   )
 </script>

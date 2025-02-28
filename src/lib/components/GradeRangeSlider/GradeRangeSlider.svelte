@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { onMount } from 'svelte'
 
   interface Values {
@@ -12,13 +12,13 @@
   }
 
   let {
-    minGrade = $bindable($page.data.grades.at(0)?.id),
-    maxGrade = $bindable($page.data.grades.at(-1)?.id),
+    minGrade = $bindable(page.data.grades.at(0)?.id),
+    maxGrade = $bindable(page.data.grades.at(-1)?.id),
     onchange,
   }: Props = $props()
 
-  let minUserGrade = $derived($page.data.grades[minGrade][$page.data.gradingScale])
-  let maxUserGrade = $derived($page.data.grades[maxGrade][$page.data.gradingScale])
+  let minUserGrade = $derived(page.data.grades[minGrade][page.data.gradingScale])
+  let maxUserGrade = $derived(page.data.grades[maxGrade][page.data.gradingScale])
   let minInput = $state<HTMLInputElement>()
   let maxInput = $state<HTMLInputElement>()
   let rangeElement = $state<HTMLDivElement>()
@@ -71,8 +71,8 @@
     <input
       bind:this={minInput}
       class="absolute w-full h-1 appearance-none pointer-events-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:border-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:border-primary-500 [&::-moz-range-thumb]:cursor-pointer"
-      max={$page.data.grades.at(-1)?.id}
-      min={$page.data.grades.at(0)?.id}
+      max={page.data.grades.at(-1)?.id}
+      min={page.data.grades.at(0)?.id}
       name="minGrade"
       onchange={onChange}
       oninput={updateRange}
@@ -83,8 +83,8 @@
     <input
       bind:this={maxInput}
       class="absolute w-full h-1 appearance-none pointer-events-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:border-primary-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:border-primary-500 [&::-moz-range-thumb]:cursor-pointer"
-      max={$page.data.grades.at(-1)?.id}
-      min={$page.data.grades.at(0)?.id}
+      max={page.data.grades.at(-1)?.id}
+      min={page.data.grades.at(0)?.id}
       name="maxGrade"
       onchange={onChange}
       oninput={updateRange}

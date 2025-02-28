@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import AscentsTable from '$lib/components/AscentsTable'
@@ -23,13 +23,13 @@
 
   let tabValue: string | undefined = $state(undefined)
   afterNavigate(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : data.requestedUser == null ? '#first-ascents' : '#sends'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : data.requestedUser == null ? '#first-ascents' : '#sends'
   })
   onMount(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : data.requestedUser == null ? '#first-ascents' : '#sends'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : data.requestedUser == null ? '#first-ascents' : '#sends'
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onFocusChange'] = (event) => {
-    goto($page.url.pathname + event.focusedValue, { replaceState: true })
+    goto(page.url.pathname + event.focusedValue, { replaceState: true })
   }
 
   const sends = data.ascents
@@ -46,7 +46,7 @@
 
   const loadData = async () => {
     const searchParams = new URLSearchParams(loadOpts)
-    const res = await fetch(`/api/users/${$page.params.name}/ascents?${searchParams.toString()}`)
+    const res = await fetch(`/api/users/${page.params.name}/ascents?${searchParams.toString()}`)
 
     if (res.status != 200) {
       loadError = 'Unable to load ascents'
@@ -66,13 +66,13 @@
   <title>Profile of {data.requestedUser?.username ?? data.firstAscensionist?.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<AppBar hasActions={$page.data.session?.user?.id === data.requestedUser?.authUserFk}>
+<AppBar hasActions={page.data.session?.user?.id === data.requestedUser?.authUserFk}>
   {#snippet lead()}
     {data.requestedUser?.username ?? data.firstAscensionist?.name}
   {/snippet}
 
   {#snippet actions()}
-    {#if $page.data.session?.user?.id === data.requestedUser?.authUserFk}
+    {#if page.data.session?.user?.id === data.requestedUser?.authUserFk}
       <a class="btn btn-sm preset-outlined-primary-500" href="/profile/edit">
         <i class="fa-solid fa-pen"></i>Edit profile
       </a>

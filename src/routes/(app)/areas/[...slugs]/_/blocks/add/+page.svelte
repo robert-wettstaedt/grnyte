@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import BlockFormFields from '$lib/components/BlockFormFields'
@@ -8,7 +8,7 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let loading = $state(false)
   let uploadProgress = $state<number | null>(null)

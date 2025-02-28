@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import Vega, { type VegaProps } from '$lib/components/Vega'
   import { getGradeColor } from '$lib/grades'
 
@@ -28,8 +28,8 @@
         legend: null,
         field: 'grade',
         scale: {
-          domain: [...$page.data.grades.map((grade) => grade[$page.data.gradingScale]), 'no grade'],
-          range: [...$page.data.grades.map((grade) => getGradeColor(grade)), '#bcc0cc'],
+          domain: [...page.data.grades.map((grade) => grade[page.data.gradingScale]), 'no grade'],
+          range: [...page.data.grades.map((grade) => getGradeColor(grade)), '#bcc0cc'],
         },
       },
       x: {
@@ -41,7 +41,7 @@
           : null,
         field: 'grade',
         scale: {
-          domain: [...$page.data.grades.map((grade) => grade[$page.data.gradingScale]), 'no grade'],
+          domain: [...page.data.grades.map((grade) => grade[page.data.gradingScale]), 'no grade'],
         },
         type: 'nominal',
         title: 'Grade',

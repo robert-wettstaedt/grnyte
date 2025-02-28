@@ -1,7 +1,7 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
   import { beforeNavigate, invalidate } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import RouteName from '$lib/components/RouteName'
@@ -39,7 +39,7 @@
     undoHistory = [getNewHistoryEntry()]
   })
 
-  let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
+  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
   let isSaving = $state(false)
 
@@ -231,7 +231,7 @@
                                 isSaving = true
                                 selectedTopoIndex = 0
                                 $selectedRouteStore = null
-                                invalidate($page.url)
+                                invalidate(page.url)
 
                                 return async ({ update, result }) => {
                                   isSaving = false
@@ -331,7 +331,7 @@
                               use:enhance={() => {
                                 isSaving = true
                                 $selectedRouteStore = null
-                                invalidate($page.url)
+                                invalidate(page.url)
 
                                 return async ({ update, result }) => {
                                   isSaving = false

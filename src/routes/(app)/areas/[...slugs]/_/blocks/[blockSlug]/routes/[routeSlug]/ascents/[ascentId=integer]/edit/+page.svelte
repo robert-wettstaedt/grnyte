@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { DELETE_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
@@ -11,7 +11,7 @@
 
   let { data, form } = $props()
   let basePath = $derived(
-    `/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}/routes/${$page.params.routeSlug}`,
+    `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
 
   let grade = $derived(data.grades.find((grade) => grade.id === data.ascent.route.gradeFk))
@@ -82,7 +82,7 @@
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if $page.data.session?.user?.id === data.ascent.author.authUserFk || data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if page.data.session?.user?.id === data.ascent.author.authUserFk || data.userPermissions?.includes(DELETE_PERMISSION)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

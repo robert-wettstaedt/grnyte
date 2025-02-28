@@ -1,6 +1,6 @@
 <script lang="ts">
   import { pushState } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import type { File } from '$lib/db/schema'
   import type { FileStat } from 'webdav'
   import { type FileStatusResponse } from '../../../routes/api/files/[id]/status/lib'
@@ -25,7 +25,7 @@
   }
 
   const onOpenFullscreen = () => {
-    const url = new URL($page.url)
+    const url = new URL(page.url)
     url.searchParams.set('fullscreen', 'true')
 
     pushState(url, {})
@@ -38,7 +38,7 @@
   }
 
   const onPopstate = () => {
-    const url = new URL($page.url)
+    const url = new URL(page.url)
     isFullscreen = url.searchParams.get('fullscreen') === 'true'
     if (isFullscreen) {
       onCloseFullscreen()

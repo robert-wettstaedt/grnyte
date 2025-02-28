@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { afterNavigate, goto, invalidateAll } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import Logo27crags from '$lib/assets/27crags-logo.png'
@@ -19,8 +19,8 @@
   import { onMount } from 'svelte'
 
   let { data } = $props()
-  let blockPath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
-  let basePath = $derived(`${blockPath}/routes/${$page.params.routeSlug}`)
+  let blockPath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
+  let basePath = $derived(`${blockPath}/routes/${page.params.routeSlug}`)
 
   let selectedTopoIndex = $state<number | undefined>(undefined)
 
@@ -35,18 +35,18 @@
 
   let tabValue: string | undefined = $state(undefined)
   afterNavigate(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : '#info'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : '#info'
     selectedRouteStore.set(data.route.id)
 
     const index = data.topos.findIndex((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === data.route.id))
     selectedTopoIndex = index === -1 ? undefined : index
   })
   onMount(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : '#info'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : '#info'
     selectedRouteStore.set(data.route.id)
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onFocusChange'] = (event) => {
-    goto($page.url.pathname + event.focusedValue, { replaceState: true })
+    goto(page.url.pathname + event.focusedValue, { replaceState: true })
   }
 
   const gradeMap = $derived.by(() => {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
@@ -10,7 +10,7 @@
   import type { ChangeEventHandler } from 'svelte/elements'
 
   let { data, form } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let coordinate: Coordinate | null = $state(null)
   let tabSet = $state('map')

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
 
   interface Props {
     url: URL

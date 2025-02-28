@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
@@ -10,7 +10,7 @@
 
   let { data, form } = $props()
   let basePath = $derived(
-    `/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}/routes/${$page.params.routeSlug}`,
+    `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
 
   let grade = $derived(data.grades.find((grade) => grade.id === data.route.gradeFk))

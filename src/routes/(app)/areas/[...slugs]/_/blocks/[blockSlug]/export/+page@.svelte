@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import by from '$lib/assets/by.svg'
   import cc from '$lib/assets/cc.svg'
@@ -16,7 +16,7 @@
   import '../../../../../../../../app.postcss'
 
   let { data } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
+  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
   let dom: HTMLElement
   const date = new Date().toISOString().split('T')[0]

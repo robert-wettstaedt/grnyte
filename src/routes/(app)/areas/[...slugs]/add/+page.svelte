@@ -1,12 +1,12 @@
 <script>
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import AreaFormFields from '$lib/components/AreaFormFields'
 
   let { data, form } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
 </script>
 
 <svelte:head>

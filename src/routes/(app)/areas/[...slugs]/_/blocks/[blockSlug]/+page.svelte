@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { EDIT_PERMISSION } from '$lib/auth'
@@ -11,19 +11,19 @@
   import { onMount } from 'svelte'
 
   let { data } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}/_/blocks/${$page.params.blockSlug}`)
+  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
   let highlightedRoutes: number[] = $state([])
 
   let tabValue: string | undefined = $state(undefined)
   afterNavigate(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : '#topo'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : '#topo'
   })
   onMount(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : '#topo'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : '#topo'
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onFocusChange'] = (event) => {
-    goto($page.url.pathname + event.focusedValue, { replaceState: true })
+    goto(page.url.pathname + event.focusedValue, { replaceState: true })
   }
 
   const hasActions = $derived(data.userPermissions?.includes(EDIT_PERMISSION) || data.block.topos.length > 0)

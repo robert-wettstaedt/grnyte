@@ -1,6 +1,6 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION } from '$lib/auth'
@@ -31,7 +31,7 @@
     files = data.area.files
   })
 
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let loadingDownload = $state(false)
   let downloadError: string | null = $state(null)
@@ -40,13 +40,13 @@
 
   let tabValue: string | undefined = $state(undefined)
   afterNavigate(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : data.area.type === 'sector' ? '#info' : '#areas'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : data.area.type === 'sector' ? '#info' : '#areas'
   })
   onMount(() => {
-    tabValue = $page.url.hash.length > 0 ? $page.url.hash : data.area.type === 'sector' ? '#info' : '#areas'
+    tabValue = page.url.hash.length > 0 ? page.url.hash : data.area.type === 'sector' ? '#info' : '#areas'
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onFocusChange'] = (event) => {
-    goto($page.url.pathname + event.focusedValue, { replaceState: true })
+    goto(page.url.pathname + event.focusedValue, { replaceState: true })
   }
 
   let sortedBlocks = $derived.by(() => {
@@ -462,7 +462,7 @@
               pageSize={data.routes.pagination.pageSize}
               siblingCount={0}
               onPageChange={(detail) => {
-                const url = new URL($page.url)
+                const url = new URL(page.url)
                 url.searchParams.set('page', String(detail.page))
                 goto(url)
               }}

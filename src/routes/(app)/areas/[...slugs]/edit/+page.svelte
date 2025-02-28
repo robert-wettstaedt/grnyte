@@ -1,6 +1,6 @@
 <script>
   import { enhance } from '$app/forms'
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
@@ -8,7 +8,7 @@
   import { Popover } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
-  let basePath = $derived(`/areas/${$page.params.slugs}`)
+  let basePath = $derived(`/areas/${page.params.slugs}`)
 </script>
 
 <svelte:head>
