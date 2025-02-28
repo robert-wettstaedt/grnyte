@@ -5,9 +5,6 @@
   import Logo from '$lib/assets/logo.png'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { AppBar, Popover, Switch } from '@skeletonlabs/skeleton-svelte'
-  import type { LayoutProps } from '../../'
-
-  let { data }: Pick<LayoutProps, 'data'> = $props()
 </script>
 
 <AppBar classes="sticky top-0 z-50 shadow-xl">
@@ -36,7 +33,7 @@
 
         {#snippet content()}
           <div class="mb-4">
-            Hi, {data.user?.username}
+            Hi, {page.data.user?.username}
           </div>
 
           <nav class="list-nav">
@@ -46,7 +43,7 @@
               <span class="mx-2">FB</span>
 
               <Switch
-                checked={data.user?.userSettings?.gradingScale === 'V'}
+                checked={page.data.user?.userSettings?.gradingScale === 'V'}
                 name="gradingScale"
                 onCheckedChange={async (event) => {
                   const response = await fetch(`/api/users/settings?gradingScale=${event.checked ? 'V' : 'FB'}`, {
@@ -64,7 +61,7 @@
 
             <ul>
               <li>
-                <a class="flex hover:preset-filled-primary-100-900 p-2" href={`/users/${data.user?.username}`}>
+                <a class="flex hover:preset-filled-primary-100-900 p-2" href={`/users/${page.data.user?.username}`}>
                   Profile
                 </a>
               </li>
@@ -72,7 +69,7 @@
               <li>
                 <button
                   class="flex p-2 w-full hover:preset-filled-primary-100-900"
-                  onclick={() => data.supabase.auth.signOut()}
+                  onclick={() => page.data.supabase?.auth.signOut()}
                 >
                   Sign out
                 </button>

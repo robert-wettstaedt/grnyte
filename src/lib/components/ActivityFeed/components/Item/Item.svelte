@@ -290,7 +290,7 @@
                 stat={file.stat}
                 readOnly={!(
                   page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                  activity.entity.object.createdBy === page.data.user.id
+                  activity.entity.object.createdBy === page.data.user?.id
                 )}
                 onDelete={() => {
                   if (activity.entity.type == 'ascent' && activity.entity.object != null) {

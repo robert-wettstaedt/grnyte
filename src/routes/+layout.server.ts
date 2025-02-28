@@ -3,9 +3,8 @@ import { getLayoutBlocks } from '$lib/blocks.server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import type { UserSettings } from '$lib/db/schema'
 import { getUser } from '$lib/helper.server'
-import type { ServerLoadEvent } from '@sveltejs/kit'
 
-export const load = async ({ locals, cookies }: ServerLoadEvent) => {
+export const load = async ({ locals, cookies }) => {
   const { session, user: authUser } = await locals.safeGetSession()
   const grades = await db.query.grades.findMany()
   const localDb = await createDrizzleSupabaseClient(locals.supabase)
@@ -28,5 +27,3 @@ export const load = async ({ locals, cookies }: ServerLoadEvent) => {
     userRole: locals.userRole,
   }
 }
-
-export type Data = Awaited<ReturnType<typeof load>>

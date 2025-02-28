@@ -3,7 +3,7 @@
   import '@fortawesome/fontawesome-free/css/all.css'
   import '../../app.postcss'
 
-  let { data, form, children }: LayoutProps = $props()
+  let { children }: LayoutProps = $props()
 </script>
 
-<Layout {data} {form} {children} />
+<Layout {children} />

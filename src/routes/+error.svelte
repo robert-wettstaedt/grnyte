@@ -1,5 +1,8 @@
 <script lang="ts">
   import Error from '$lib/components/Error'
+  import Layout from '$lib/components/Layout'
 </script>
 
-<Error />
+<Layout>
+  <Error />
+</Layout>

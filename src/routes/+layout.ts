@@ -1,9 +1,7 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr'
-import type { LoadEvent } from '@sveltejs/kit'
-import type { Data } from './layout.server'
 
-export const load = async ({ data, depends, fetch }: LoadEvent<Record<string, string>, Data>) => {
+export const load = async ({ data, depends, fetch }) => {
   /**
    * Declare a dependency so the layout can be invalidated, for example, on
    * session refresh.

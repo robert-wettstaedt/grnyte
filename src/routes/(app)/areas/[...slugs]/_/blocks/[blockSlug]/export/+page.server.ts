@@ -2,17 +2,12 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { blocks, topos } from '$lib/db/schema'
 import { enrichBlock, enrichTopo } from '$lib/db/utils'
 import { convertAreaSlug } from '$lib/helper.server'
-import { load as loadServerLayout } from '$lib/layout/layout.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
-export const load = (async (event) => {
-  const { locals, params } = event
-
-  const layoutData = await loadServerLayout(event)
-
+export const load = (async ({ locals, params }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -72,7 +67,6 @@ export const load = (async (event) => {
     )
 
     return {
-      ...layoutData,
       block: {
         ...block,
         ...enrichedBlock,

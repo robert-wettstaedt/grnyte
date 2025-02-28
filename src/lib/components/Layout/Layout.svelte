@@ -1,12 +1,6 @@
 <script lang="ts" module>
-  export interface Data extends Omit<App.Locals, 'safeGetSession' | 'user'> {
-    user: InferResultType<'users', { userSettings: { columns: { gradingScale: true } } }> | null | undefined
-  }
-
   export interface LayoutProps {
     children: Snippet
-    data: Data
-    form: any
   }
 </script>
 
@@ -18,7 +12,6 @@
   import { READ_PERMISSION } from '$lib/auth'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
-  import type { InferResultType } from '$lib/db/types'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
@@ -28,18 +21,18 @@
   import '../../../app.postcss'
   import HeaderBar from './components/HeaderBar'
 
-  let { data, form, children }: LayoutProps = $props()
+  let { children }: LayoutProps = $props()
 
   let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
 
   onMount(() => {
-    const value = data.supabase.auth.onAuthStateChange((_, newSession) => {
-      if (newSession?.expires_at !== data.session?.expires_at) {
+    const value = page.data.supabase?.auth.onAuthStateChange((_, newSession) => {
+      if (newSession?.expires_at !== page.data.session?.expires_at) {
         invalidateAll()
       }
     })
 
-    return () => value.data.subscription.unsubscribe()
+    return () => value?.data.subscription.unsubscribe()
   })
 
   afterNavigate(() => {
@@ -49,7 +42,7 @@
   })
 
   $effect(() => {
-    if (form != null) {
+    if (page.form != null) {
       document.scrollingElement?.scrollTo(0, 0)
     }
   })
@@ -78,7 +71,7 @@
 <div>
   <ProgressBar class="text-secondary-500 !z-[100]" />
 
-  <HeaderBar {data} />
+  <HeaderBar />
 
   <main
     class="relative p-2 md:p-4 {page.data.session?.user == null
@@ -87,18 +80,18 @@
   >
     <Breadcrumb url={page.url} />
 
-    {#if form?.error}
+    {#if page.form?.error}
       <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">
-        <p>{form.error}</p>
+        <p>{page.form.error}</p>
       </aside>
     {/if}
 
     {@render children?.()}
   </main>
 
-  {#if data.userPermissions?.includes(READ_PERMISSION)}
+  {#if page.data.userPermissions?.includes(READ_PERMISSION)}
     <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
-      <NavTiles userPermissions={data.userPermissions} />
+      <NavTiles userPermissions={page.data.userPermissions} />
     </Navigation.Bar>
 
     <Navigation.Rail base="hidden md:block fixed top-[68px] h-screen">
@@ -109,7 +102,7 @@
       {/snippet}
 
       {#snippet tiles()}
-        <NavTiles userPermissions={data.userPermissions} />
+        <NavTiles userPermissions={page.data.userPermissions} />
       {/snippet}
     </Navigation.Rail>
   {/if}

@@ -1,5 +1,6 @@
-import type { EDIT_PERMISSION, READ_PERMISSION } from '$lib/auth'
-import type { Grade, User } from '$lib/db/schema'
+import type { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+import type { Grade, UserSettings } from '$lib/db/schema'
+import type { InferResultType, NestedBlock } from '$lib/db/types'
 import type { User as AuthUser, Session, SupabaseClient } from '@supabase/supabase-js'
 
 // See https://kit.svelte.dev/docs/types#app
@@ -9,7 +10,6 @@ declare global {
   namespace App {
     // interface Error {}
     interface Locals {
-      supabase: SupabaseClient
       safeGetSession: () => Promise<{
         session: Session | null
         user: AuthUser | null
@@ -19,20 +19,20 @@ declare global {
         userRole: string | undefined
       }>
       session: Session | null
+      supabase: SupabaseClient
       user: AuthUser | null
       userPermissions:
         | Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION | typeof EXPORT_PERMISSION>
         | undefined
       userRole: string | undefined
     }
-    interface PageData {
-      authUser: AuthUser | null
+    interface PageData extends Omit<Locals, 'safeGetSession' | 'user' | 'supabase'> {
+      authUser: Locals['user']
+      blocks: NestedBlock[]
       grades: Grade[]
-      gradingScale: 'FB' | 'V'
-      session: Session | null
-      user: User
-      userPermissions: Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION> | undefined
-      userRole: string | undefined
+      gradingScale: NonNullable<UserSettings['gradingScale']>
+      supabase?: Locals['supabase']
+      user: InferResultType<'users', { userSettings: true }> | undefined
     }
     // interface PageState {}
     // interface Platform {}

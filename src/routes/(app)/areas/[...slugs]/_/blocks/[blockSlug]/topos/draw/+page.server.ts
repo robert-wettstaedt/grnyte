@@ -4,19 +4,14 @@ import { activities, ascents, blocks, files, routes, topoRoutes, topos, type Ins
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { convertAreaSlug, getUser } from '$lib/helper.server'
-import { load as loadServerLayout } from '$lib/layout/layout.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteRoute } from '$lib/routes.server'
 import { convertPointsToPath, type TopoDTO, type TopoRouteDTO } from '$lib/topo'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
-import { deleteRoute } from '$lib/routes.server'
 
-export const load = (async (event) => {
-  const layoutData = await loadServerLayout(event)
-
-  const { locals, params } = event
-
+export const load = (async ({ locals, params }) => {
   if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
     error(404)
   }
@@ -24,6 +19,12 @@ export const load = (async (event) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
+    const user = await getUser(locals.user, db)
+
+    if (user == null) {
+      error(404)
+    }
+
     const { areaId, areaSlug } = convertAreaSlug(params)
 
     const blocksResult = await db.query.blocks.findMany({
@@ -32,7 +33,7 @@ export const load = (async (event) => {
         routes: {
           orderBy: routes.gradeFk,
           with: {
-            ascents: layoutData.user == null ? { limit: 0 } : { where: eq(ascents.createdBy, layoutData.user.id) },
+            ascents: user == null ? { limit: 0 } : { where: eq(ascents.createdBy, user.id) },
           },
         },
         topos: {
@@ -86,7 +87,6 @@ export const load = (async (event) => {
     })
 
     return {
-      ...layoutData,
       block: { ...block, routes: enrichedRoutes },
       topos: enrichedTopos,
     }
