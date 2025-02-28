@@ -101,7 +101,17 @@
         <ProgressRing value={null} />
       </div>
     {/if}
-    {#if stat.mime?.includes('image')}
+
+    {#if file.bunnyStreamFk != null}
+      <iframe
+        allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
+        allowfullscreen
+        class="w-full h-full border-none absolute top-0 left-0"
+        loading="lazy"
+        src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID, videoId: file.bunnyStreamFk })}
+        title=""
+      ></iframe>
+    {:else if stat.mime?.includes('image')}
       <img alt="" class="h-full w-full object-contain" src={resourcePath} use:mediaAction />
     {:else if stat.mime?.includes('video')}
       <video
@@ -118,15 +128,6 @@
         <source src={resourcePath} type={stat.mime} />
         <track kind="captions" />
       </video>
-    {:else if file.bunnyStreamFk != null}
-      <iframe
-        allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
-        allowfullscreen
-        class="w-full h-full border-none absolute top-0 left-0"
-        loading="lazy"
-        src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID, videoId: file.bunnyStreamFk })}
-        title=""
-      ></iframe>
     {/if}
   {/if}
 

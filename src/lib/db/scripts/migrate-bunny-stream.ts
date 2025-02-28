@@ -45,12 +45,14 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
   })
 
-  for await (const file of files.slice(0, 1)) {
-    console.log('Migrating:', file.path)
+  for await (const [index, file] of files.entries()) {
+    const prefix = `[${index + 1} / ${files.length}]`
+
+    console.log(prefix, 'Migrating:', file.path)
 
     const stat = await searchNextcloudFile(nextcloud, file)
 
-    console.log('Found nextcloud file:', stat.filename)
+    console.log(prefix, 'Found nextcloud file:', stat.filename)
 
     const content = await nextcloud?.getFileContents(`${NEXTCLOUD_USER_NAME}/${stat.filename}`, { details: true })
     const { data } = content as ResponseDataDetailed<BufferLike>
@@ -91,7 +93,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       title: file.id,
     })
 
-    console.log('Video created:', video.guid)
+    console.log(prefix, 'Video created:', video.guid)
 
     if (video.guid == null) {
       throw new Error('Video guid is null')
