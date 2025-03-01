@@ -11,16 +11,35 @@ import AreasPage from '../src/routes/(app)/areas/+page.svelte'
 vi.mock('@supabase/ssr', () => ({
   createServerClient: vi.fn(() => ({
     auth: {
-      getSession: vi.fn(() => ({ data: { session: {} } })),
+      getSession: vi.fn(() => ({ data: { session: { user: { id: '1' } } } })),
       getUser: vi.fn(() => ({ data: { user: {} } })),
     },
   })),
+}))
+
+// Mock the eq function from drizzle-orm
+vi.mock('drizzle-orm', () => ({
+  eq: vi.fn(() => true), // Just return true for any comparison
+  relations: vi.fn(),
+}))
+
+// Mock the schema
+vi.mock('$lib/db/schema', () => ({
+  users: { authUserFk: 'authUserFk' },
+  userRoles: { authUserFk: 'authUserFk' },
+  rolePermissions: { role: 'role' },
+  appRole: {
+    enumValues: ['user', 'maintainer', 'admin'],
+  },
 }))
 
 // Mock database client
 vi.mock('$lib/db/db.server', () => ({
   db: {
     query: {
+      users: {
+        findFirst: vi.fn(),
+      },
       userRoles: {
         findFirst: vi.fn(),
       },
@@ -56,6 +75,14 @@ describe('Permission Tests', () => {
     it('should grant maintainer all permissions', async () => {
       const event = createMockEvent()
 
+      vi.mocked(db.query.users.findFirst).mockResolvedValue({
+        id: 1,
+        authUserFk: '1',
+        username: 'test',
+        firstAscensionistFk: null,
+        userSettingsFk: null,
+        createdAt: new Date().toISOString(),
+      })
       vi.mocked(db.query.userRoles.findFirst).mockResolvedValue({
         id: 1,
         role: appRole.enumValues[1],
@@ -77,6 +104,14 @@ describe('Permission Tests', () => {
     it('should grant regular users only read permissions', async () => {
       const event = createMockEvent()
 
+      vi.mocked(db.query.users.findFirst).mockResolvedValue({
+        id: 1,
+        authUserFk: '1',
+        username: 'test',
+        firstAscensionistFk: null,
+        userSettingsFk: null,
+        createdAt: new Date().toISOString(),
+      })
       vi.mocked(db.query.userRoles.findFirst).mockResolvedValue({
         id: 1,
         role: appRole.enumValues[0],
