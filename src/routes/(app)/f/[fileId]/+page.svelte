@@ -99,7 +99,7 @@
         role="presentation"
       >
         <span class="text-xs opacity-80">
-          {formatDistance(new Date(data.file.ascent.dateTime), new Date(), { addSuffix: true })}
+          {formatDistance(new Date(data.file.ascent.createdAt), new Date(), { addSuffix: true })}
         </span>
 
         <div class="flex items-center flex-wrap gap-2">
