@@ -64,15 +64,10 @@ export default defineConfig({
         config: true,
       },
       injectManifest: {
-        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}', '_app/**/*', '**/*.html'],
-        // Ensure these URLs are included in the precache manifest
-        additionalManifestEntries: [
-          { url: '/', revision: null },
-          { url: '/index.html', revision: null },
-        ],
+        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
       },
       workbox: {
-        globPatterns: ['client/**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+        globPatterns: ['client/**/*.{js,css,ico,png,svg,webp,woff,woff2}'],
       },
       devOptions: {
         enabled: true,
