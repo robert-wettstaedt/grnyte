@@ -14,7 +14,7 @@
   <title>{PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#if data.authUser == null}
+{#if data.session == null}
   <!-- Hero Section -->
   <section class="relative flex items-center min-h-[calc(100vh-1rem-64px)] md:min-h-[calc(100vh-2rem-64px)]">
     <div class="absolute inset-[-0.5rem] md:inset-[-1rem] overflow-hidden -z-10 brightness-50 blur-sm">

@@ -6,7 +6,6 @@ import * as schema from '$lib/db/schema'
 import type { IncludeRelation, InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { validateObject } from '$lib/forms.server'
-import { getUser } from '$lib/helper.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
@@ -212,8 +211,7 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const user = await getUser(locals.user, db)
-    if (user == null) {
+    if (locals.user == null) {
       error(404)
     }
 
@@ -223,7 +221,7 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
     const allQueries = [...(queries ?? [])]
 
     if (searchParams.user === 'me') {
-      allQueries.push(eq(schema.activities.userFk, user.id))
+      allQueries.push(eq(schema.activities.userFk, locals.user.id))
     }
 
     if (searchParams.type === 'ascents') {

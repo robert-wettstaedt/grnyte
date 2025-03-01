@@ -1,6 +1,5 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { convertException } from '$lib/errors'
-import { getUser } from '$lib/helper.server'
 import { searchResources } from '$lib/search.server'
 import { error } from '@sveltejs/kit'
 
@@ -12,15 +11,14 @@ export const GET = async ({ locals, url }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const user = await getUser(locals.user, db)
-    if (user == null) {
+    if (locals.user == null) {
       error(404)
     }
 
     const query = url.searchParams.get('q')
 
     try {
-      const result = await searchResources(query, user, db)
+      const result = await searchResources(query, locals.user, db)
 
       return new Response(JSON.stringify(result))
     } catch (exception) {

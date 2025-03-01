@@ -66,9 +66,9 @@ export const load = (async ({ locals, params }) => {
 
     let gradingScale: UserSettings['gradingScale'] = 'FB'
 
-    if (locals.user != null) {
+    if (locals.session != null) {
       const user = await db.query.users.findFirst({
-        where: eq(users.authUserFk, locals.user!.id),
+        where: eq(users.authUserFk, locals.session.user.id),
         with: {
           userSettings: {
             columns: {

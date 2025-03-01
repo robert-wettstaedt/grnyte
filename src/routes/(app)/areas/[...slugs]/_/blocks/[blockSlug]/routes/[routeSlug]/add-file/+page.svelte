@@ -47,7 +47,6 @@
   use:enhanceWithFile={{
     session: data.session,
     supabase: data.supabase,
-    user: data.authUser,
     onSubmit: async () => {
       loading = true
 

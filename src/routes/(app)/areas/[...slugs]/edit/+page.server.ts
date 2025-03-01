@@ -5,7 +5,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, areas, files, generateSlug, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -48,8 +48,7 @@ export const actions = {
       // Convert the area slug to get the areaId
       const { areaId } = convertAreaSlug(params)
 
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -97,7 +96,7 @@ export const actions = {
           entityType: 'area',
           newEntity: values,
           oldEntity: area,
-          userFk: user?.id,
+          userFk: locals.user.id,
           parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
         })
@@ -128,8 +127,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -171,7 +169,7 @@ export const actions = {
         await db.delete(areas).where(eq(areas.id, areaId))
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(areaId),
           entityType: 'area',
           oldValue: area.name,

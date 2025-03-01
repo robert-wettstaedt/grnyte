@@ -13,7 +13,7 @@ import {
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { insertExternalResources } from '$lib/external-resources/index.server'
-import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
+import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
@@ -159,8 +159,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -213,22 +212,22 @@ export const actions = {
         return fail(404)
       }
 
-      if (firstAscensionist.userFk != null || user?.firstAscensionistFk != null) {
+      if (firstAscensionist.userFk != null || locals.user.firstAscensionistFk != null) {
         return fail(400)
       }
 
       try {
-        user!.firstAscensionistFk = firstAscensionist.id
-        await db.update(users).set({ firstAscensionistFk: firstAscensionist.id }).where(eq(users.id, user!.id))
+        locals.user.firstAscensionistFk = firstAscensionist.id
+        await db.update(users).set({ firstAscensionistFk: firstAscensionist.id }).where(eq(users.id, locals.user.id))
         await db
           .update(firstAscensionists)
-          .set({ userFk: user!.id })
+          .set({ userFk: locals.user.id })
           .where(eq(firstAscensionists.id, firstAscensionist.id))
 
         await db.insert(activities).values({
           type: 'updated',
-          userFk: user.id,
-          entityId: String(user.id),
+          userFk: locals.user.id,
+          entityId: String(locals.user.id),
           entityType: 'user',
           columnName: 'first ascensionist',
           newValue: firstAscensionist.name,
@@ -243,8 +242,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -291,30 +289,35 @@ export const actions = {
         return fail(400, { error: `Route already has a first ascent` })
       }
 
-      if (user?.firstAscensionistFk == null) {
+      if (locals.user.firstAscensionistFk == null) {
         return fail(400, { error: `User does not have a first ascensionist` })
       }
 
       try {
         const firstAscensionist =
-          user?.firstAscensionistFk == null
-            ? (await db.insert(firstAscensionists).values({ name: user!.username, userFk: user!.id }).returning()).at(0)
+          locals.user.firstAscensionistFk == null
+            ? (
+                await db
+                  .insert(firstAscensionists)
+                  .values({ name: locals.user.username, userFk: locals.user.id })
+                  .returning()
+              ).at(0)
             : await db.query.firstAscensionists.findFirst({
-                where: eq(firstAscensionists.id, user!.firstAscensionistFk!),
+                where: eq(firstAscensionists.id, locals.user.firstAscensionistFk!),
               })
 
         if (firstAscensionist == null) {
           return fail(404)
         }
 
-        if (user?.firstAscensionistFk == null) {
-          user!.firstAscensionistFk = firstAscensionist.id
-          await db.update(users).set({ firstAscensionistFk: firstAscensionist.id }).where(eq(users.id, user!.id))
+        if (locals.user.firstAscensionistFk == null) {
+          locals.user.firstAscensionistFk = firstAscensionist.id
+          await db.update(users).set({ firstAscensionistFk: firstAscensionist.id }).where(eq(users.id, locals.user.id))
         }
 
         await db
           .insert(routesToFirstAscensionists)
-          .values({ firstAscensionistFk: user!.firstAscensionistFk!, routeFk: route.id })
+          .values({ firstAscensionistFk: locals.user.firstAscensionistFk!, routeFk: route.id })
 
         const oldFirstAscent = [route.firstAscentYear, ...route.firstAscents.map((fa) => fa.firstAscensionist.name)]
           .filter(Boolean)
@@ -323,7 +326,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'updated',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(route.id),
           entityType: 'route',
           columnName: 'first ascent',

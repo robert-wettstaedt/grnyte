@@ -37,20 +37,24 @@ export const supabase: Handle = async ({ event, resolve }) => {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
     if (!session) {
-      return { session: null, user: null, userPermissions: undefined, userRole: undefined }
+      return { session: undefined, user: undefined, userPermissions: undefined, userRole: undefined }
     }
 
-    const {
-      data: { user },
-      error,
-    } = await event.locals.supabase.auth.getUser()
-    if (error) {
-      // JWT validation has failed
-      return { session: null, user: null, userPermissions: undefined, userRole: undefined }
-    }
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.authUserFk, session.user.id),
+      with: {
+        userSettings: {
+          columns: {
+            gradingScale: true,
+          },
+        },
+      },
+    })
 
-    const userRole =
-      user == null ? undefined : await db.query.userRoles.findFirst({ where: eq(schema.userRoles.authUserFk, user.id) })
+    const userRole = await db.query.userRoles.findFirst({
+      where: eq(schema.userRoles.authUserFk, session.user.id),
+    })
+
     const userPermissions =
       userRole == null
         ? undefined
@@ -92,7 +96,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, '/auth')
   }
 
-  if (event.locals.session != null && event.url.pathname === '/auth') {
+  if (event.locals.session != null && event.url.pathname.startsWith('/auth')) {
     redirect(303, '/')
   }
 

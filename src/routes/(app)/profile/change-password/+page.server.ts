@@ -4,7 +4,7 @@ import { fail } from '@sveltejs/kit'
 
 export const actions = {
   default: async ({ request, locals }) => {
-    if (locals.user?.email == null) {
+    if (locals.session?.user.email == null) {
       return fail(404)
     }
 
@@ -25,7 +25,7 @@ export const actions = {
     }
 
     const signInResponse = await locals.supabase.auth.signInWithPassword({
-      email: locals.user.email,
+      email: locals.session?.user.email,
       password: values.currentPassword,
     })
     if (signInResponse.error != null) {

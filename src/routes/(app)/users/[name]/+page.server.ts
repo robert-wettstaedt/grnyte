@@ -49,7 +49,7 @@ export const load = (async ({ locals, params }) => {
     }
 
     const externalResources =
-      user != null && user.authUserFk === locals.user?.id
+      user != null && user.authUserFk === locals.session?.user.id
         ? await db.query.userSettings.findFirst({
             where: eq(userSettings.userFk, user.id),
           })
@@ -197,7 +197,7 @@ export const actions = {
         error(400, `Multiple users with name ${params.name} found`)
       }
 
-      if (user.authUserFk !== locals.user?.id) {
+      if (user.authUserFk !== locals.session?.user.id) {
         error(401)
       }
 

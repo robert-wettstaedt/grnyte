@@ -8,7 +8,7 @@ import {
   type ActionFailure,
   type FirstAscentActionValues,
 } from '$lib/forms.server'
-import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
+import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -76,15 +76,10 @@ export const load = (async ({ locals, params, parent }) => {
 
 export const actions = {
   updateFirstAscent: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
         return fail(404)
       }
 
@@ -170,7 +165,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'updated',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(route.id),
           entityType: 'route',
           columnName: 'first ascent',
@@ -196,15 +191,14 @@ export const actions = {
   },
 
   removeFirstAscent: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (
+        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
+        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
+        locals.user == null
+      ) {
         return fail(404)
       }
 
@@ -257,7 +251,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(route.id),
           entityType: 'route',
           columnName: 'first ascent',

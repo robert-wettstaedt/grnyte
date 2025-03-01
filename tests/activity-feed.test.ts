@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
 import type { ActivityDTO, Entity } from '$lib/components/ActivityFeed'
 import { createUpdateActivity, groupActivities, loadFeed } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -113,19 +113,23 @@ const mockSchemaUser = {
   firstAscensionistFk: null,
   userSettingsFk: null,
   createdAt: new Date().toISOString(),
-}
+  userSettings: { gradingScale: 'FB' },
+} satisfies App.SafeSession['user']
 
 const mockLocals = {
   supabase: mockSupabase,
-  safeGetSession: async () => ({
-    session: null as Session | null,
-    user: mockSupabaseUser,
-    userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION>,
-    userRole: 'anonymous' as string | undefined,
-  }),
-  session: null as Session | null,
-  user: mockSupabaseUser,
-  userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION>,
+  safeGetSession: async () =>
+    ({
+      session: undefined,
+      user: mockSchemaUser,
+      userPermissions: [READ_PERMISSION, EDIT_PERMISSION],
+      userRole: 'anonymous',
+    }) satisfies App.SafeSession,
+  session: undefined as Session | undefined,
+  user: mockSchemaUser,
+  userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<
+    typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION | typeof EXPORT_PERMISSION
+  >,
   userRole: 'anonymous' as string | undefined,
 }
 

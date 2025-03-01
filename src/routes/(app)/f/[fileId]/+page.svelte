@@ -72,7 +72,7 @@
       stat={data.file.stat}
     >
       {#snippet topLeft()}
-        {#if data.authUser != null && data.userPermissions?.includes(READ_PERMISSION)}
+        {#if data.session != null && data.userPermissions?.includes(READ_PERMISSION)}
           <a class="btn btn-sm bg-black/20 backdrop-blur-sm" href={pathname}>
             Show {entityType}
 

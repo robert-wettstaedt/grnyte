@@ -48,10 +48,10 @@ export const queryExternalResource = async (query: string, blockId: number, loca
   }
 
   const user = await db(async (tx) =>
-    locals.user?.id == null
+    locals.session == null
       ? null
       : tx.query.users.findFirst({
-          where: eq(schema.users.authUserFk, locals.user.id),
+          where: eq(schema.users.authUserFk, locals.session.user.id),
         }),
   )
 
@@ -260,10 +260,10 @@ export const checkExternalSessions = async (route: schema.Route, locals: App.Loc
   )
 
   const user = await db(async (tx) =>
-    locals.user?.id == null
+    locals.session == null
       ? null
       : tx.query.users.findFirst({
-          where: eq(schema.users.authUserFk, locals.user.id),
+          where: eq(schema.users.authUserFk, locals.session.user.id),
         }),
   )
 

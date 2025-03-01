@@ -5,7 +5,7 @@ import { activities, ascents, blocks, type Ascent } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { checkExternalSessions, logExternalAscent } from '$lib/external-resources/index.server'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
+import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
@@ -56,8 +56,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -111,7 +110,7 @@ export const actions = {
         // Insert the ascent into the database
         const results = await db
           .insert(ascents)
-          .values({ ...values, routeFk: route.id, createdBy: user.id })
+          .values({ ...values, routeFk: route.id, createdBy: locals.user.id })
           .returning()
         ascent = results[0]
 
@@ -121,7 +120,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'created',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(ascent.id),
           entityType: 'ascent',
           parentEntityId: String(route.id),
@@ -134,7 +133,7 @@ export const actions = {
 
       if (values.folderName != null) {
         try {
-          const dstFolder = `${config.files.folders.userContent}/${user.authUserFk}`
+          const dstFolder = `${config.files.folders.userContent}/${locals.user.authUserFk}`
           await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, values.bunnyVideoIds, {
             ascentFk: ascent.id,
           })

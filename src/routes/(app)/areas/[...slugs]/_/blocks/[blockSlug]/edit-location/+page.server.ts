@@ -4,7 +4,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichBlock, type EnrichedBlock } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { createOrUpdateGeolocation } from '$lib/topo-files.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
@@ -54,8 +54,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -112,7 +111,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'updated',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(block.id),
           entityType: 'block',
           columnName: 'location',
@@ -139,15 +138,14 @@ export const actions = {
   },
 
   removeGeolocation: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (
+        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
+        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
+        locals.user == null
+      ) {
         return fail(404)
       }
 
@@ -177,7 +175,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(block.id),
           entityType: 'block',
           columnName: 'location',

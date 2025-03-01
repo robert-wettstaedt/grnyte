@@ -6,7 +6,6 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, files } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
-import { getUser } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -32,7 +31,7 @@ export const load = (async ({ locals, params }) => {
 
     if (
       ascent == null ||
-      (locals.user?.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
+      (locals.session?.user.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
     ) {
       error(404)
     }
@@ -49,7 +48,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
+      const { user } = locals
       if (user == null) {
         return fail(404)
       }
@@ -75,7 +74,7 @@ export const actions = {
 
       if (
         ascent == null ||
-        (locals.user?.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
+        (locals.session?.user.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
       ) {
         return fail(404, { ...values, error: `Ascent not found ${params.ascentId}` })
       }
@@ -98,7 +97,7 @@ export const actions = {
           entityType: 'ascent',
           newEntity: rest,
           oldEntity: ascent,
-          userFk: user?.id,
+          userFk: user.id,
           parentEntityId: String(ascent.route.id),
           parentEntityType: 'route',
         })
@@ -108,7 +107,7 @@ export const actions = {
 
       if (values.folderName != null) {
         try {
-          const dstFolder = `${config.files.folders.userContent}/${locals.user?.id}`
+          const dstFolder = `${config.files.folders.userContent}/${user.id}`
           const createdFiles = await handleFileUpload(
             db,
             locals.supabase,
@@ -152,8 +151,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -166,7 +164,7 @@ export const actions = {
 
       if (
         ascent == null ||
-        (locals.user?.id !== ascent.author.authUserFk &&
+        (locals.session?.user.id !== ascent.author.authUserFk &&
           !locals.userPermissions?.includes(EDIT_PERMISSION) &&
           !locals.userPermissions?.includes(DELETE_PERMISSION))
       ) {
@@ -185,7 +183,7 @@ export const actions = {
           .where(and(eq(activities.entityType, 'ascent'), eq(activities.entityId, String(ascent.id))))
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(ascent.id),
           entityType: 'ascent',
           oldValue: ascent.type,

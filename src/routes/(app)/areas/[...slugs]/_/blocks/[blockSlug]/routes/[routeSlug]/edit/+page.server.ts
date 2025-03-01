@@ -4,7 +4,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, generateSlug, routes, routesToTags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { routeActionSchema, validateFormData, type ActionFailure, type RouteActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getRouteDbFilter, getUser } from '$lib/helper.server'
+import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { deleteRoute, updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, not } from 'drizzle-orm'
@@ -60,15 +60,10 @@ export const load = (async ({ locals, params, parent }) => {
 
 export const actions = {
   updateRoute: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
         return fail(404)
       }
 
@@ -165,7 +160,7 @@ export const actions = {
           entityType: 'route',
           newEntity: values,
           oldEntity: oldRoute,
-          userFk: user?.id,
+          userFk: locals.user.id,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
         })
@@ -190,15 +185,14 @@ export const actions = {
   },
 
   removeRoute: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (
+        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
+        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
+        locals.user == null
+      ) {
         return fail(404)
       }
 
@@ -206,7 +200,7 @@ export const actions = {
 
       try {
         const result = await deleteRoute(
-          { areaId, blockSlug: params.blockSlug, routeSlug: params.routeSlug, userId: user.id },
+          { areaId, blockSlug: params.blockSlug, routeSlug: params.routeSlug, userId: locals.user.id },
           db,
         )
 

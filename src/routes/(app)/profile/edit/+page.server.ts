@@ -2,7 +2,6 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, ascents, routes, users } from '$lib/db/schema'
 import type { ActionFailure, ProfileActionValues } from '$lib/forms.server'
 import { profileActionSchema, validateFormData, validateUsername } from '$lib/forms.server'
-import { getUser } from '$lib/helper.server'
 import { replaceMention } from '$lib/markdown.js'
 import { fail } from '@sveltejs/kit'
 import { eq, ilike } from 'drizzle-orm'
@@ -12,7 +11,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
+      const { user } = locals
       if (user == null) {
         return fail(404)
       }
@@ -78,7 +77,7 @@ export const actions = {
         )
       }
 
-      if (values.email !== locals.user?.email) {
+      if (values.email !== locals.session?.user.email) {
         const { error } = await locals.supabase.auth.updateUser(
           { email: values.email },
           { emailRedirectTo: `${url.origin}/profile/edit` },

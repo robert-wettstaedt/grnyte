@@ -4,7 +4,6 @@ import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { deleteVideo } from '$lib/bunny'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { getUser } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
@@ -17,8 +16,6 @@ const updateFileSchema = z.object({
 })
 
 const getFile = async ({ locals, params }: RequestEvent, db: PostgresJsDatabase<typeof schema>) => {
-  const user = await getUser(locals.user, db)
-
   const file = await db.query.files.findFirst({
     where: eq(schema.files.id, params.id),
     with: {
@@ -33,15 +30,15 @@ const getFile = async ({ locals, params }: RequestEvent, db: PostgresJsDatabase<
   const authorId = file?.area?.createdBy ?? file?.ascent?.createdBy ?? file?.block?.createdBy ?? file?.route?.createdBy
 
   if (
-    user == null ||
+    locals.user == null ||
     file == null ||
     ((!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) &&
-      authorId !== user.id)
+      authorId !== locals.user.id)
   ) {
     error(404)
   }
 
-  return { file, user }
+  return file
 }
 
 export async function PUT(event) {
@@ -51,7 +48,7 @@ export async function PUT(event) {
   return await rls(async (db) => {
     const { visibility } = updateFileSchema.parse(await request.json())
 
-    const { file } = await getFile(event, db)
+    const file = await getFile(event, db)
     const [updatedFile] = await db
       .update(schema.files)
       .set({ visibility })
@@ -67,7 +64,7 @@ export async function DELETE(event) {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const { file, user } = await getFile(event, db)
+    const file = await getFile(event, db)
 
     const entityId = file.routeFk ?? file.ascentFk ?? file.blockFk ?? file.areaFk
     const entityType =
@@ -90,10 +87,10 @@ export async function DELETE(event) {
 
     await db.delete(schema.files).where(eq(schema.files.id, file.id))
 
-    if (entityId != null) {
+    if (entityId != null && locals.user != null) {
       await db.insert(schema.activities).values({
         type: 'deleted',
-        userFk: user.id,
+        userFk: locals.user.id,
         entityId: String(entityId),
         entityType: entityType,
         columnName: 'file',

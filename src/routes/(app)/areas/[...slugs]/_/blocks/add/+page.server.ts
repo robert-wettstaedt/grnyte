@@ -5,7 +5,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, areas, blocks, generateSlug, topos, type Block } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { blockActionSchema, validateFormData, type ActionFailure, type BlockActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { createGeolocationFromFiles } from '$lib/topo-files.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, count, eq } from 'drizzle-orm'
@@ -49,8 +49,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -93,13 +92,13 @@ export const actions = {
         // Insert the new block into the database
         const blockResult = await db
           .insert(blocks)
-          .values({ ...values, createdBy: user.id, areaFk: areaId, order: blocksCount.count, slug })
+          .values({ ...values, createdBy: locals.user.id, areaFk: areaId, order: blocksCount.count, slug })
           .returning()
         block = blockResult[0]
 
         await db.insert(activities).values({
           type: 'created',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(block.id),
           entityType: 'block',
           parentEntityId: String(areaId),

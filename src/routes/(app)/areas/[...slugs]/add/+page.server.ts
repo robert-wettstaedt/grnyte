@@ -37,13 +37,13 @@ export const load = (async ({ locals, parent }) => {
 
 export const actions = {
   default: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
+      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.session == null) {
+        error(404)
+      }
+
       // Get the form data from the request
       const data = await request.formData()
       let values: AreaActionValues
@@ -82,7 +82,7 @@ export const actions = {
       let createdArea: Area
       try {
         // Find the user in the database by email
-        const user = await db.query.users.findFirst({ where: eq(users.authUserFk, locals.user!.id) })
+        const user = await db.query.users.findFirst({ where: eq(users.authUserFk, locals.session.user.id) })
         if (user == null) {
           throw new Error('User not found')
         }

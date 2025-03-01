@@ -10,7 +10,6 @@ import {
   type ActionFailure,
   type AddRoleActionValues,
 } from '$lib/forms.server'
-import { getUser } from '$lib/helper.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
 import { error, fail } from '@sveltejs/kit'
 import { asc, count, eq, inArray } from 'drizzle-orm'
@@ -63,16 +62,11 @@ export const load = (async ({ locals, url }) => {
 
 export const actions = {
   addRole: async ({ locals, request, url }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (tx) => {
-      const user = await getUser(locals.user, tx)
-      if (user == null) {
-        return fail(404)
+      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
+        error(404)
       }
 
       const data = await request.formData()
@@ -98,7 +92,7 @@ export const actions = {
         type: 'updated',
         entityId: String(formUser.id),
         entityType: 'user',
-        userFk: user.id,
+        userFk: locals.user.id,
         columnName: 'role',
         newValue: 'user',
       })

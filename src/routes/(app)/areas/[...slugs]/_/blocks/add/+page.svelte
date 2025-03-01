@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
@@ -33,7 +32,6 @@
   use:enhanceWithFile={{
     session: data.session,
     supabase: data.supabase,
-    user: data.authUser,
     onSubmit: async () => {
       loading = true
 

@@ -2,10 +2,9 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, routes, type Ascent } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichRoute, type EnrichedRoute } from '$lib/db/utils'
 import { validateObject } from '$lib/forms.server'
-import { getUser } from '$lib/helper.server'
 import { getPaginationQuery, paginationParamsSchema, type PaginatedData } from '$lib/pagination.server'
 import type { RequestEvent } from '@sveltejs/kit'
-import { and, asc, count, eq, gte, arrayContains, lte, sql } from 'drizzle-orm'
+import { and, arrayContains, asc, count, eq, gte, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 const searchParamsSchema = z.intersection(
@@ -69,8 +68,6 @@ export const load = async (
   const db = await createDrizzleSupabaseClient(locals.supabase)
 
   return await db(async (db) => {
-    const user = await getUser(locals.user, db)
-
     const searchParamsObj = Object.fromEntries(url.searchParams.entries())
     const searchParams = await validateObject(searchParamsSchema, searchParamsObj)
 
@@ -80,7 +77,7 @@ export const load = async (
       ...getPaginationQuery(searchParams),
       ...opts,
       with: {
-        ascents: user == null ? { limit: 0 } : { where: eq(ascents.createdBy, user.id) },
+        ascents: locals.user == null ? { limit: 0 } : { where: eq(ascents.createdBy, locals.user.id) },
         block: {
           with: {
             area: buildNestedAreaQuery(),

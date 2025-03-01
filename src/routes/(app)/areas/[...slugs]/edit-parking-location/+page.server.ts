@@ -2,7 +2,7 @@ import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, areas, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -41,8 +41,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -96,7 +95,7 @@ export const actions = {
         await db.insert(geolocations).values({ lat, long, areaFk: area.id })
         await db.insert(activities).values({
           type: 'updated',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(area.id),
           entityType: 'area',
           columnName: 'parking location',
@@ -126,8 +125,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -147,7 +145,7 @@ export const actions = {
         await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(area.id),
           entityType: 'area',
           columnName: 'parking location',

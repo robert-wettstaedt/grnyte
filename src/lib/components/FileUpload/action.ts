@@ -6,14 +6,14 @@ import type { Action } from 'svelte/action'
 import * as tus from 'tus-js-client'
 import { CreateVideoResponseSchema } from '../../../routes/api/files/videos/lib'
 
-interface EnhanceFileUploadOptions extends Pick<App.Locals, 'session' | 'supabase' | 'user'> {
+interface EnhanceFileUploadOptions extends Pick<App.PageData, 'session' | 'supabase'> {
   onError?: (error: string) => void
   onProgress?: (percentage: number) => void
   onSubmit?: Parameters<typeof enhance>[1]
 }
 
 export const enhanceWithFile: Action<HTMLFormElement, EnhanceFileUploadOptions> = (node, parameters) => {
-  const { onError, onSubmit, onProgress, session, supabase, user } = parameters
+  const { onError, onSubmit, onProgress, session, supabase } = parameters
 
   const enhanced = enhance(node, async (event) => {
     const result = await onSubmit?.(event)
@@ -31,7 +31,7 @@ export const enhanceWithFile: Action<HTMLFormElement, EnhanceFileUploadOptions> 
 
     let folderName = event.formData.get('folderName')
 
-    if (session == null || user == null || files.length === 0) {
+    if (session == null || files.length === 0) {
       return returnValue
     }
 
@@ -39,7 +39,7 @@ export const enhanceWithFile: Action<HTMLFormElement, EnhanceFileUploadOptions> 
       return returnValue
     }
 
-    folderName = `${user.id}-${Date.now()}`
+    folderName = `${session.user.id}-${Date.now()}`
     event.formData.set('folderName', folderName)
 
     await Promise.all(
@@ -78,10 +78,14 @@ interface SupabaseUploadOptions {
   folderName: string
   onError: EnhanceFileUploadOptions['onError']
   onProgress: EnhanceFileUploadOptions['onProgress']
-  supabase: App.Locals['supabase']
+  supabase: App.PageData['supabase']
 }
 
 const uploadFileToSupabase = async (file: File, opts: SupabaseUploadOptions) => {
+  if (opts.supabase == null) {
+    throw new Error('Supabase is not defined')
+  }
+
   try {
     await uploadTus(file, opts)
   } catch (exception) {

@@ -5,7 +5,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, files, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { blockActionSchema, validateFormData, type ActionFailure, type BlockActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -20,11 +20,6 @@ export const load = (async ({ locals, params, parent }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const user = await getUser(locals.user, db)
-    if (user == null) {
-      return fail(404)
-    }
-
     // Retrieve areaId and areaSlug from the parent function
     const { areaId, areaSlug } = await parent()
 
@@ -53,15 +48,10 @@ export const load = (async ({ locals, params, parent }) => {
 
 export const actions = {
   updateBlock: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
         return fail(404)
       }
 
@@ -117,7 +107,7 @@ export const actions = {
           entityType: 'block',
           newEntity: values,
           oldEntity: block,
-          userFk: user?.id,
+          userFk: locals.user.id,
           parentEntityId: String(areaId),
           parentEntityType: 'area',
         })
@@ -141,15 +131,14 @@ export const actions = {
   },
 
   removeBlock: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (
+        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
+        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
+        locals.user == null
+      ) {
         return fail(404)
       }
 
@@ -205,7 +194,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(block.id),
           entityType: 'block',
           oldValue: block.name,

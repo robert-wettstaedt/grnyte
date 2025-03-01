@@ -3,7 +3,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents, blocks, files, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { deleteRoute } from '$lib/routes.server'
 import { convertPointsToPath, type TopoDTO, type TopoRouteDTO } from '$lib/topo'
@@ -19,9 +19,7 @@ export const load = (async ({ locals, params }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const user = await getUser(locals.user, db)
-
-    if (user == null) {
+    if (locals.user == null) {
       error(404)
     }
 
@@ -33,7 +31,7 @@ export const load = (async ({ locals, params }) => {
         routes: {
           orderBy: routes.gradeFk,
           with: {
-            ascents: user == null ? { limit: 0 } : { where: eq(ascents.createdBy, user.id) },
+            ascents: { where: eq(ascents.createdBy, locals.user.id) },
           },
         },
         topos: {
@@ -104,8 +102,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -146,7 +143,7 @@ export const actions = {
 
       await db.insert(activities).values({
         type: 'updated',
-        userFk: user.id,
+        userFk: locals.user.id,
         entityId: String(parsedTopos[0].blockFk),
         entityType: 'block',
         columnName: 'topo',
@@ -164,8 +161,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -191,7 +187,7 @@ export const actions = {
 
         await db.insert(activities).values({
           type: 'deleted',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(topo.blockFk),
           entityType: 'block',
           columnName: 'topo image',
@@ -225,8 +221,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-      if (user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -236,7 +231,7 @@ export const actions = {
       const routeId = Number(data.get('routeId'))
 
       try {
-        return deleteRoute({ areaId, blockSlug: params.blockSlug, routeId, userId: user.id }, db)
+        return deleteRoute({ areaId, blockSlug: params.blockSlug, routeId, userId: locals.user.id }, db)
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }

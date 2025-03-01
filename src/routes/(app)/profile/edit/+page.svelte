@@ -50,7 +50,7 @@
       placeholder="you@example.com"
       class="input"
       required
-      value={data.authUser?.email}
+      value={data.session?.user.email}
     />
   </label>
 

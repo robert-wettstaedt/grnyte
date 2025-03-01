@@ -5,12 +5,12 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { addFileActionSchema, validateFormData, type ActionFailure, type AddFileActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
+import { deleteFile, loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { createGeolocationFromFiles } from '$lib/topo-files.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
-import { deleteFile, loadFiles } from '$lib/nextcloud/nextcloud.server'
 
 export const load = (async ({ locals, params, parent }) => {
   if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
@@ -68,7 +68,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
+      const { user } = locals
       if (user == null) {
         return fail(404)
       }

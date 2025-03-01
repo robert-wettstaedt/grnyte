@@ -6,7 +6,7 @@ import type { InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { routeActionSchema, validateFormData, type ActionFailure, type RouteActionValues } from '$lib/forms.server'
-import { convertAreaSlug, getUser } from '$lib/helper.server'
+import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -51,16 +51,10 @@ export const load = (async ({ locals, params, parent }) => {
 
 export const actions = {
   default: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      const user = await getUser(locals.user, db)
-
-      if (user == null) {
+      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
         return fail(404)
       }
 
@@ -128,13 +122,13 @@ export const actions = {
         // Insert the new route into the database
         const result = await db
           .insert(routes)
-          .values({ ...values, areaFks, createdBy: user.id, blockFk: block.id, slug })
+          .values({ ...values, areaFks, createdBy: locals.user.id, blockFk: block.id, slug })
           .returning()
         route = result[0]
 
         await db.insert(activities).values({
           type: 'created',
-          userFk: user.id,
+          userFk: locals.user.id,
           entityId: String(route.id),
           entityType: 'route',
           newValue: route.name.length > 0 ? route.name : config.routes.defaultName,

@@ -34,16 +34,11 @@ export const load = async ({ data, depends, fetch }) => {
     data: { session },
   } = await supabase.auth.getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   return {
-    authUser: user ?? data.authUser,
     blocks: data.blocks,
     grades: data.grades,
     gradingScale: data.gradingScale,
-    session,
+    session: session ?? data.session,
     supabase,
     user: data.user,
     userPermissions: data.userPermissions,
