@@ -5,6 +5,7 @@
 </script>
 
 <script lang="ts">
+  import { dev } from '$app/environment'
   import { afterNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -15,11 +16,14 @@
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
+  import { injectAnalytics } from '@vercel/analytics/sveltekit'
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.postcss'
   import HeaderBar from './components/HeaderBar'
+
+  injectAnalytics({ mode: dev ? 'development' : 'production' })
 
   let { children }: LayoutProps = $props()
 
