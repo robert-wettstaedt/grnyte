@@ -402,7 +402,7 @@
         <div class="flex gap-1">
           <button
             aria-label="Previous Topo"
-            class="btn-icon preset-filled"
+            class="btn-icon bg-white/70 backdrop-blur-sm text-black"
             disabled={selectedTopoIndex <= 0}
             onclick={onPrevTopo}
           >
@@ -411,7 +411,7 @@
 
           <button
             aria-label="Next Topo"
-            class="btn-icon preset-filled"
+            class="btn-icon bg-white/70 backdrop-blur-sm text-black"
             disabled={selectedTopoIndex >= topos.length - 1}
             onclick={onNextTopo}
           >
@@ -422,7 +422,7 @@
 
       <button
         aria-label="Reset zoom"
-        class="btn-icon preset-filled"
+        class="btn-icon bg-white/70 backdrop-blur-sm text-black"
         disabled={zoomTransform == null}
         onclick={onResetZoom}
       >
@@ -431,7 +431,7 @@
 
       <button
         aria-label="Toggle lines"
-        class="btn-icon {linesVisible ? 'preset-filled' : 'preset-filled-secondary-500'}"
+        class="btn-icon {linesVisible ? 'bg-white/70' : 'preset-filled-secondary-500'} backdrop-blur-sm text-black"
         onclick={onToggleLines}
       >
         <i class="fa-solid {linesVisible ? 'fa-eye-slash' : 'fa-eye'}"></i>
@@ -439,7 +439,7 @@
 
       <button
         aria-label="Fullscreen"
-        class="btn-icon {isFullscreen ? 'preset-filled-secondary-500' : 'preset-filled'}"
+        class="btn-icon {isFullscreen ? 'preset-filled-secondary-500' : 'bg-white/70'} backdrop-blur-sm text-black"
         onclick={() => onToggleFullscreen()}
       >
         <i class="fa-solid {isFullscreen ? 'fa-compress' : 'fa-expand'}"></i>

@@ -114,6 +114,10 @@
 <div class="fixed top-0 left-0 w-screen h-screen -z-10 preset-filled-surface-100-900"></div>
 
 <div class="flex justify-between m-2 md:m-4">
+  <a aria-label="Close" class="btn-icon text-xl bg-white/20 backdrop-blur-sm" href={basePath}>
+    <i class="fa-solid fa-arrow-left"></i>
+  </a>
+
   <div class="flex gap-2">
     <form
       method="POST"
@@ -145,21 +149,20 @@
 
     <button
       aria-label="Undo"
-      class="btn-icon preset-outlined-primary-500"
+      class="btn-icon bg-white/20 backdrop-blur-sm"
       disabled={undoHistory.length <= 1}
       onclick={onUndo}
     >
       <i class="fa-solid fa-undo"></i>
     </button>
-  </div>
-  <div class="flex gap-2">
+
     <Popover
       arrow
       arrowBackground="!bg-surface-200 dark:!bg-surface-800"
       contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
       positionerZIndex="!z-50"
       positioning={{ placement: 'bottom' }}
-      triggerBase="btn-icon preset-outlined-surface-500"
+      triggerBase="btn-icon bg-white/20 backdrop-blur-sm"
     >
       {#snippet trigger()}
         <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -355,10 +358,6 @@
         </nav>
       {/snippet}
     </Popover>
-
-    <a aria-label="Close" class="btn-icon preset-outlined-surface-500" href={basePath}>
-      <i class="fa-solid fa-x"></i>
-    </a>
   </div>
 </div>
 
