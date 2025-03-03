@@ -631,8 +631,44 @@ export const bunnyStreams = table(
   () => [
     policy(`${READ_PERMISSION} can insert bunny_streams`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
     policy(`${READ_PERMISSION} can read bunny_streams`, getAuthorizedPolicyConfig('select', READ_PERMISSION)),
-    policy(`${EDIT_PERMISSION} can update bunny_streams`, getAuthorizedPolicyConfig('update', EDIT_PERMISSION)),
-    policy(`${EDIT_PERMISSION} can delete bunny_streams`, getAuthorizedPolicyConfig('delete', EDIT_PERMISSION)),
+    policy(
+      `${READ_PERMISSION} can update bunny_streams for files of their own ascents`,
+      getPolicyConfig(
+        'update',
+        sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.files f
+              JOIN public.ascents a ON f.ascent_fk = a.id
+              JOIN public.users u ON a.created_by = u.id
+            WHERE
+              f.id = file_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+        `),
+      ),
+    ),
+    policy(
+      `${READ_PERMISSION} can delete bunny_streams for files of their own ascents`,
+      getPolicyConfig(
+        'delete',
+        sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.files f
+              JOIN public.ascents a ON f.ascent_fk = a.id
+              JOIN public.users u ON a.created_by = u.id
+            WHERE
+              f.id = file_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+        `),
+      ),
+    ),
   ],
 ).enableRLS()
 export type BunnyStream = InferSelectModel<typeof bunnyStreams>
@@ -775,8 +811,26 @@ export const activities = table(
     newValue: text('new_value'), // Only populated for 'updated' activities
   },
   (table) => [
-    policy('authenticated users can read activities', getPolicyConfig('select', sql`true`)),
-    policy('users can insert activities', getPolicyConfig('insert', sql`true`)),
+    policy(`${READ_PERMISSION} can insert activities`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
+    policy(`${READ_PERMISSION} can read activities`, getAuthorizedPolicyConfig('select', READ_PERMISSION)),
+    policy(`${DELETE_PERMISSION} can delete activities`, getAuthorizedPolicyConfig('delete', DELETE_PERMISSION)),
+    policy(
+      `${READ_PERMISSION} can delete their own activities`,
+      getPolicyConfig(
+        'delete',
+        sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.users u
+            WHERE
+              u.id = user_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+        `),
+      ),
+    ),
     index('activities_created_at_idx').on(table.createdAt),
     index('activities_type_idx').on(table.type),
     index('activities_user_fk_idx').on(table.userFk),
