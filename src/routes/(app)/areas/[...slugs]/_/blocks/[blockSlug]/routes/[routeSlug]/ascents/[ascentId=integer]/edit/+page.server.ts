@@ -3,10 +3,10 @@ import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, files } from '$lib/db/schema'
+import { activities, ascents } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteFiles } from '$lib/helper.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
@@ -172,8 +172,7 @@ export const actions = {
       }
 
       try {
-        const filesToDelete = await db.delete(files).where(eq(files.ascentFk, ascent.id)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+        await deleteFiles({ ascentFk: ascent.id }, db)
 
         await db.delete(ascents).where(eq(ascents.id, ascent.id))
         await updateRoutesUserData(ascent.routeFk, db)

@@ -106,6 +106,10 @@ export const mkDir = async (path: string): Promise<string> => {
 export const deleteFile = async (file: schema.File) => {
   const nextcloud = getNextcloud()
 
+  if (file.path.length === 0) {
+    return
+  }
+
   const [filename, ...pathSegments] = file.path.split('/').reverse()
   const path = pathSegments.reverse().join('/')
   const basename = filename.split('.').slice(0, -1).join('.')

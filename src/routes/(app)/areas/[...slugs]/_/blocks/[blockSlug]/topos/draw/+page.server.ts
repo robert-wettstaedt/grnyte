@@ -1,10 +1,9 @@
 import { EDIT_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks, files, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
+import { activities, ascents, blocks, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
-import { convertAreaSlug } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
 import { deleteRoute } from '$lib/routes.server'
 import { convertPointsToPath, type TopoDTO, type TopoRouteDTO } from '$lib/topo'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -180,10 +179,7 @@ export const actions = {
         await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
         await db.delete(topos).where(eq(topos.id, id))
 
-        const filesToDelete =
-          topo.fileFk == null ? [] : await db.delete(files).where(eq(files.id, topo.fileFk)).returning()
-
-        await Promise.all([...filesToDelete.map((file) => deleteFile(file))])
+        await deleteFiles({ fileId: topo.fileFk }, db)
 
         await db.insert(activities).values({
           type: 'deleted',

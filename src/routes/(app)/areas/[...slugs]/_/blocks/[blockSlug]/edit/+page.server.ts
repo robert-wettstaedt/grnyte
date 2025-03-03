@@ -2,11 +2,10 @@ import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache.server'
 import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, blocks, files, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
+import { activities, blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { blockActionSchema, validateFormData, type ActionFailure, type BlockActionValues } from '$lib/forms.server'
-import { convertAreaSlug } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, inArray } from 'drizzle-orm'
@@ -184,8 +183,7 @@ export const actions = {
 
         await db.delete(topos).where(eq(topos.blockFk, block.id))
 
-        const filesToDelete = await db.delete(files).where(eq(files.blockFk, block.id)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+        await deleteFiles({ blockFk: block.id }, db)
 
         await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
         await db.delete(geolocations).where(eq(geolocations.blockFk, block.id))

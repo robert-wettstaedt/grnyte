@@ -3,7 +3,6 @@ import {
   activities,
   ascents,
   blocks,
-  files,
   routeExternalResource27crags,
   routeExternalResource8a,
   routeExternalResources,
@@ -13,8 +12,7 @@ import {
   routesToTags,
   topoRoutes,
 } from '$lib/db/schema'
-import { getRouteDbFilter } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteFiles, getRouteDbFilter } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
 import { fail } from '@sveltejs/kit'
 import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
@@ -78,11 +76,7 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
       routes: {
         where: getRouteDbFilter(String(routeId)),
         with: {
-          ascents: {
-            with: {
-              files: true,
-            },
-          },
+          ascents: true,
           externalResources: true,
           files: true,
           firstAscents: {
@@ -119,21 +113,8 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
     return fail(400, { error: 'Route is referenced by other entities. Delete references first.' })
   }
 
-  const filesToDelete = await db.delete(files).where(eq(files.routeFk, route.id)).returning()
-  await Promise.all(filesToDelete.map((file) => deleteFile(file)))
-
-  if (route.ascents.length > 0) {
-    const filesToDelete = await db
-      .delete(files)
-      .where(
-        inArray(
-          files.ascentFk,
-          route.ascents.map((ascent) => ascent.id),
-        ),
-      )
-      .returning()
-    await Promise.all(filesToDelete.map((file) => deleteFile(file)))
-  }
+  await deleteFiles({ routeFk: route.id }, db)
+  await Promise.all(route.ascents.map((ascent) => deleteFiles({ ascentFk: ascent.id }, db)))
 
   await db.delete(ascents).where(eq(ascents.routeFk, route.id))
   await db.delete(routesToFirstAscensionists).where(eq(routesToFirstAscensionists.routeFk, route.id))

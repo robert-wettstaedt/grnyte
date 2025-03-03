@@ -1,10 +1,7 @@
-import { BUNNY_STREAM_API_KEY } from '$env/static/private'
-import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { deleteVideo } from '$lib/bunny'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { deleteFiles } from '$lib/helper.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -65,27 +62,11 @@ export async function DELETE(event) {
 
   return await rls(async (db) => {
     const file = await getFile(event, db)
+    await deleteFiles({ fileId: file.id }, db)
 
     const entityId = file.routeFk ?? file.ascentFk ?? file.blockFk ?? file.areaFk
     const entityType =
       file.routeFk != null ? 'route' : file.ascentFk != null ? 'ascent' : file.blockFk != null ? 'block' : 'area'
-
-    if (file.bunnyStreamFk == null) {
-      await deleteFile(file)
-    } else {
-      await db
-        .update(schema.files)
-        .set({ bunnyStreamFk: null })
-        .where(eq(schema.files.bunnyStreamFk, file.bunnyStreamFk))
-      await db.delete(schema.bunnyStreams).where(eq(schema.bunnyStreams.id, file.bunnyStreamFk))
-      await deleteVideo({
-        apiKey: BUNNY_STREAM_API_KEY,
-        libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
-        videoId: file.bunnyStreamFk,
-      })
-    }
-
-    await db.delete(schema.files).where(eq(schema.files.id, file.id))
 
     if (entityId != null && locals.user != null) {
       await db.insert(schema.activities).values({

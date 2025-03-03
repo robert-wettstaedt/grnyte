@@ -2,11 +2,10 @@ import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache.server'
 import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, areas, files, generateSlug, geolocations } from '$lib/db/schema'
+import { activities, areas, generateSlug, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
-import { convertAreaSlug } from '$lib/helper.server'
-import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq, not } from 'drizzle-orm'
@@ -161,8 +160,7 @@ export const actions = {
       }
 
       try {
-        const filesToDelete = await db.delete(files).where(eq(files.areaFk, areaId)).returning()
-        await Promise.all(filesToDelete.map((file) => deleteFile(file)))
+        await deleteFiles({ areaFk: area.id }, db)
 
         await db.delete(geolocations).where(eq(geolocations.areaFk, areaId))
         await db.update(areas).set({ parentFk: null }).where(eq(areas.parentFk, areaId))
