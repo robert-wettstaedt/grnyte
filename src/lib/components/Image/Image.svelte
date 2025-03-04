@@ -29,13 +29,13 @@
 {#if path == null || mediaHasError}
   <i
     class="fa-solid fa-image flex items-center justify-center text-white"
-    style="width: {size}px; height: {size}px; font-size: {fontSize}px"
+    style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px; font-size: {fontSize}px"
   ></i>
 {:else}
   <div class="relative">
     <div
       class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      style="width: {progressSize}px; height: {progressSize}px;"
+      style="min-width: {progressSize}px; width: {progressSize}px; min-height: {progressSize}px; height: {progressSize}px;"
     >
       <ProgressRing size="size-full" value={null} />
     </div>
@@ -45,7 +45,7 @@
       class="z-0 relative object-cover"
       loading="lazy"
       src="{path}?x={size}&y={size}&mimeFallback=true&a=0"
-      style="width: {size}px; height: {size}px;"
+      style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px;"
       use:mediaAction
     />
   </div>

@@ -4,8 +4,8 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
+  import Image from '$lib/components/Image'
   import RouteName from '$lib/components/RouteName'
-  import type { EnrichedBlock } from '$lib/db/utils'
   import type { SearchResults } from '$lib/search.server'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
@@ -78,58 +78,44 @@
         {#snippet list()}
           {#if data.searchResults.routes.length > 0}
             <Tabs.Control value="#routes">
-              Routes
-              <div
-                class="text-xs text-surface-500-900 absolute top-0 right-0 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
-              >
-                {data.searchResults.routes.length}
-              </div>
+              Routes ({data.searchResults.routes.length})
             </Tabs.Control>
           {/if}
 
           {#if data.searchResults.blocks.length > 0}
             <Tabs.Control value="#blocks">
-              Blocks
-              <div
-                class="text-xs text-surface-500-900 absolute top-0 right-0 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
-              >
-                {data.searchResults.blocks.length}
-              </div>
+              Blocks ({data.searchResults.blocks.length})
             </Tabs.Control>
           {/if}
 
           {#if data.searchResults.areas.length > 0}
             <Tabs.Control value="#areas">
-              Areas
-              <div
-                class="text-xs text-surface-500-900 absolute top-0 right-0 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
-              >
-                {data.searchResults.areas.length}
-              </div>
+              Areas ({data.searchResults.areas.length})
             </Tabs.Control>
           {/if}
 
           {#if data.searchResults.users.length > 0}
             <Tabs.Control value="#users">
-              Users
-              <div
-                class="text-xs text-surface-500-900 absolute top-0 right-0 bg-red-500 rounded-full w-4 h-4 flex items-center justify-center"
-              >
-                {data.searchResults.users.length}
-              </div>
+              Users ({data.searchResults.users.length})
             </Tabs.Control>
           {/if}
         {/snippet}
 
         {#snippet content()}
           <Tabs.Panel value="#routes">
-            <GenericList
-              items={data.searchResults.routes}
-              rightContent={(item) => item.block.name}
-              rightPathname={(item) => (item.block as EnrichedBlock).pathname}
-            >
+            <GenericList items={data.searchResults.routes}>
               {#snippet left(item)}
-                <RouteName route={item} />
+                <div class="flex gap-2">
+                  <Image path="/blocks/{item.block.id}/preview-image" size={64} />
+
+                  <div class="flex flex-col gap-1">
+                    <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+                      {item.block.area.name} / {item.block.name}
+                    </p>
+
+                    <RouteName route={item} />
+                  </div>
+                </div>
               {/snippet}
             </GenericList>
           </Tabs.Panel>
@@ -137,7 +123,11 @@
           <Tabs.Panel value="#blocks">
             <GenericList items={data.searchResults.blocks}>
               {#snippet left(item)}
-                {item.name}
+                <div class="flex items-center gap-2">
+                  <Image path="/blocks/{item.id}/preview-image" size={64} />
+
+                  {item.name}
+                </div>
               {/snippet}
             </GenericList>
           </Tabs.Panel>

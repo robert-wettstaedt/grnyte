@@ -56,7 +56,7 @@
           <div
             class="hover:preset-tonal-primary flex {wrap
               ? 'flex-wrap'
-              : ''} items-center justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+              : ''} items-center justify-between whitespace-nowrap border-surface-800 rounded"
           >
             {#if onFinishSort != null}
               <i class="fa-solid fa-grip-vertical cursor-grab ml-2 {TRIGGER_ELEMENT_CLASS}"></i>
