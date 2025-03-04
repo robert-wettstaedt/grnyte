@@ -160,7 +160,7 @@
       arrow
       arrowBackground="!bg-surface-200 dark:!bg-surface-800"
       contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-      positionerZIndex="!z-50"
+      zIndex="50"
       positioning={{ placement: 'bottom' }}
       triggerBase="btn-icon bg-white/20 backdrop-blur-sm"
     >
@@ -175,7 +175,7 @@
               arrow
               arrowBackground="!bg-surface-300 dark:!bg-surface-700"
               contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px] shadow-lg"
-              positionerZIndex="!z-50"
+              zIndex="50"
               positioning={{ placement: 'bottom' }}
               triggerClasses="hover:preset-tonal-primary flex flex-wrap justify-between items-center whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded w-full p-2 md:p-4"
             >
@@ -213,7 +213,7 @@
                         arrowBackground="!bg-surface-400 dark:!bg-surface-600"
                         contentBase="card bg-surface-400-600 p-4 space-y-4 max-w-[320px]"
                         positioning={{ placement: 'bottom' }}
-                        positionerZIndex="!z-50"
+                        zIndex="50"
                         triggerClasses="p-2 md:p-4 w-full text-left {isSaving ? 'pointer-events-none opacity-50' : ''}"
                         classes="w-full"
                       >
@@ -259,7 +259,7 @@
               arrow
               arrowBackground="!bg-surface-300 dark:!bg-surface-700"
               contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px] shadow-lg"
-              positionerZIndex="!z-50"
+              zIndex="50"
               positioning={{ placement: 'bottom' }}
               triggerClasses="hover:preset-tonal-primary flex flex-wrap justify-between items-center whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded w-full p-2 md:p-4"
             >
@@ -312,7 +312,7 @@
                         arrowBackground="!bg-surface-400 dark:!bg-surface-600"
                         contentBase="card bg-surface-400-600 p-4 space-y-4 max-w-[320px]"
                         positioning={{ placement: 'bottom' }}
-                        positionerZIndex="!z-50"
+                        zIndex="50"
                         triggerClasses="p-2 md:p-4 w-full text-left {selectedRoute == null || isSaving
                           ? 'pointer-events-none opacity-50'
                           : ''}"

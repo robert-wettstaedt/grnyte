@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { DELETE_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
@@ -47,7 +47,7 @@
   method="POST"
   use:enhance
 >
-  <Tabs bind:value={tabSet}>
+  <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     {#snippet list()}
       <Tabs.Control value="map">Map</Tabs.Control>
       <Tabs.Control value="latlong">Lat Long</Tabs.Control>

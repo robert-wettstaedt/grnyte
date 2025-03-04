@@ -185,7 +185,11 @@
         </Tabs.Panel>
 
         <Tabs.Panel value="#projects">
-          <Segment name="projectsMode" bind:value={projectsMode}>
+          <Segment
+            name="projectsMode"
+            onValueChange={(event) => (projectsMode = (event.value as 'open' | 'finished' | null) ?? 'open')}
+            value={projectsMode}
+          >
             <Segment.Item value="open">Open projects</Segment.Item>
             <Segment.Item value="finished">Finished projects</Segment.Item>
           </Segment>

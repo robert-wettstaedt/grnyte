@@ -143,7 +143,7 @@
         arrow
         arrowBackground="!bg-surface-200 dark:!bg-surface-800"
         contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-        positionerZIndex="!z-[5000]"
+        zIndex="5000"
         positioning={{ placement: 'bottom' }}
         triggerBase="btn-icon bg-black/20 backdrop-blur-sm"
       >
@@ -195,7 +195,7 @@
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"
           contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-          positionerZIndex="!z-[5000]"
+          zIndex="5000"
           positioning={{ placement: 'bottom' }}
           triggerBase="btn-icon bg-black/20 backdrop-blur-sm"
         >
@@ -214,7 +214,7 @@
                     arrowBackground="!bg-surface-300 dark:!bg-surface-700"
                     contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px]"
                     positioning={{ placement: 'bottom' }}
-                    positionerZIndex="!z-[5000]"
+                    zIndex="5000"
                     triggerClasses="p-2 md:p-4 w-full text-left"
                     classes="w-full"
                   >

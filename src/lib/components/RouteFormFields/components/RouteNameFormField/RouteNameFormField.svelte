@@ -15,7 +15,8 @@
     Name
 
     <Modal
-      bind:open={modalOpen}
+      open={modalOpen}
+      onOpenChange={(event) => (modalOpen = event.open)}
       triggerBase="sl-2 fa-regular fa-circle-question"
       contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm max-h-[90vh] overflow-y-auto"
       backdropClasses="backdrop-blur-sm"

@@ -18,7 +18,7 @@
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"
           contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-          positionerZIndex="!z-50"
+          zIndex="50"
           positioning={{ placement: 'bottom-end' }}
           triggerBase="btn preset-outlined-primary-500"
         >

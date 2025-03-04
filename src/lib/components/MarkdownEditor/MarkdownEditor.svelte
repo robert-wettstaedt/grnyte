@@ -162,11 +162,11 @@
 </script>
 
 <div class="relative">
-  <a class="anchor absolute top-2 right-0" href="https://markdownguide.offshoot.io/cheat-sheet/" target="_blank"
-    >Markdown supported</a
-  >
+  <a class="anchor absolute top-2 right-0" href="https://markdownguide.offshoot.io/cheat-sheet/" target="_blank">
+    Markdown supported
+  </a>
 
-  <Tabs bind:value={tab}>
+  <Tabs onValueChange={(event) => (tab = event.value as 'write' | 'preview')} value={tab}>
     {#snippet list()}
       <Tabs.Control value="write">Write</Tabs.Control>
       <Tabs.Control value="preview">Preview</Tabs.Control>

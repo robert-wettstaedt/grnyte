@@ -52,7 +52,7 @@
   method="POST"
   use:enhance
 >
-  <Tabs bind:value={tabSet}>
+  <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     {#snippet list()}
       <Tabs.Control value="map">Map</Tabs.Control>
       <Tabs.Control value="latlong">Lat Long</Tabs.Control>
