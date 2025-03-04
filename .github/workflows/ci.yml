@@ -26,3 +26,6 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run checks
+        run: npm run check
