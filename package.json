@@ -102,7 +102,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-svelte": "^2.46.1",
-    "jsdom": "^25.0.1",
+    "jsdom": "^26.0.0",
     "postcss": "^8.4.38",
     "prettier": "^3.5.2",
     "prettier-plugin-svelte": "^3.3.3",
