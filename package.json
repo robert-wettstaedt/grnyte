@@ -99,7 +99,7 @@
     "drizzle-kit": "^0.29.1",
     "drizzle-orm": "^0.37.0",
     "eslint": "^8.56.0",
-    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-svelte": "^2.46.1",
     "jsdom": "^25.0.1",
