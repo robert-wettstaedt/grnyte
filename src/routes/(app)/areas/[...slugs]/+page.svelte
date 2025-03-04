@@ -396,6 +396,7 @@
               {:else}
                 <GenericList
                   items={data.area.areas.map((item) => ({ ...item, pathname: `${basePath}/${item.slug}-${item.id}` }))}
+                  listClasses="border-b-[1px] border-surface-700 last:border-none py-2"
                   wrap={false}
                 >
                   {#snippet left(item)}
@@ -403,26 +404,28 @@
                   {/snippet}
 
                   {#snippet right(item)}
-                    <div class="flex items-center">
-                      {item.numOfRoutes}
+                    <div class="flex flex-col">
+                      <GradeHistogram
+                        axes={false}
+                        data={item.grades}
+                        spec={{
+                          width: 100,
+                        }}
+                        opts={{
+                          height: 38,
+                        }}
+                      />
 
-                      {#if item.numOfRoutes === 1}
-                        route
-                      {:else}
-                        routes
-                      {/if}
+                      <div class="flex items-center justify-end text-sm opacity-70">
+                        {item.numOfRoutes}
+
+                        {#if item.numOfRoutes === 1}
+                          route
+                        {:else}
+                          routes
+                        {/if}
+                      </div>
                     </div>
-
-                    <GradeHistogram
-                      axes={false}
-                      data={item.grades}
-                      spec={{
-                        width: 100,
-                      }}
-                      opts={{
-                        height: 38,
-                      }}
-                    />
                   {/snippet}
                 </GenericList>
               {/if}
