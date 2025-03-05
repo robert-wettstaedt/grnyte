@@ -74,7 +74,13 @@
     {#if tabValue == null}
       <div class="text-center text-sm text-surface-500-900">No results found</div>
     {:else}
-      <Tabs fluid listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]" listGap="0" value={tabValue}>
+      <Tabs
+        fluid
+        listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
+        listGap="0"
+        onValueChange={(event) => (tabValue = event.value)}
+        value={tabValue}
+      >
         {#snippet list()}
           {#if data.searchResults.routes.length > 0}
             <Tabs.Control value="#routes">

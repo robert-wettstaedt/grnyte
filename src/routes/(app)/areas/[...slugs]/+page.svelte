@@ -45,8 +45,10 @@
   onMount(() => {
     tabValue = page.url.hash.length > 0 ? page.url.hash : data.area.type === 'sector' ? '#info' : '#areas'
   })
-  const onChangeTab: Parameters<typeof Tabs>[1]['onFocusChange'] = (event) => {
-    goto(page.url.pathname + event.focusedValue, { replaceState: true })
+  const onChangeTab: Parameters<typeof Tabs>[1]['onValueChange'] = (event) => {
+    const newUrl = new URL(page.url)
+    newUrl.hash = event.value
+    goto(newUrl.toString(), { replaceState: true })
   }
 
   let sortedBlocks = $derived.by(() => {
@@ -180,7 +182,7 @@
       fluid
       listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
       listGap="0"
-      onFocusChange={onChangeTab}
+      onValueChange={onChangeTab}
       value={tabValue}
     >
       {#snippet list()}
