@@ -11,7 +11,7 @@
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
-  import '../../../../../../../../../app.postcss'
+  import '../../../../../../../../../app.css'
 
   let { form, data } = $props()
 

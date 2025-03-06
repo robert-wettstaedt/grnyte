@@ -11,7 +11,7 @@
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import '../../../../../app.postcss'
+  import '../../../../../app.css'
 
   let { data } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)

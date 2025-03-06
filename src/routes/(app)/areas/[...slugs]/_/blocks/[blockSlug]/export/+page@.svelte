@@ -13,7 +13,7 @@
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import * as domtoimage from 'modern-screenshot'
-  import '../../../../../../../../app.postcss'
+  import '../../../../../../../../app.css'
 
   let { data } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)

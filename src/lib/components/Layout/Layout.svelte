@@ -20,7 +20,7 @@
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
-  import '../../../app.postcss'
+  import '../../../app.css'
   import HeaderBar from './components/HeaderBar'
 
   injectAnalytics({ mode: dev ? 'development' : 'production' })
