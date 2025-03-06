@@ -556,7 +556,7 @@
 <div class="relative flex h-full">
   <!-- svelte-ignore a11y_positive_tabindex -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div class="map w-full -z-0" tabindex="1" use:mapAction>
+  <div class="map -z-0 w-full" tabindex="1" use:mapAction>
     <div class="relative z-10 {'ontouchstart' in window ? ' ol-touch' : ''}">
       <div class="ol-control ol-layers">
         <button

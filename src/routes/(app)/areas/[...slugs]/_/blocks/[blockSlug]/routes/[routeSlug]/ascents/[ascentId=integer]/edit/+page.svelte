@@ -41,7 +41,7 @@
 
 <form
   action="?/updateAscent"
-  class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900"
+  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
   enctype="multipart/form-data"
   method="POST"
   use:enhanceWithFile={{
@@ -77,7 +77,7 @@
     type={form?.type ?? data.ascent.type}
   />
 
-  <div class="flex justify-between mt-8">
+  <div class="mt-8 flex justify-between">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">

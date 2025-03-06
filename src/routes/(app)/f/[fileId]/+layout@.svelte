@@ -3,7 +3,7 @@
   import { HeaderBar, type LayoutProps } from '$lib/components/Layout'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { injectAnalytics } from '@vercel/analytics/sveltekit'
-  import '../../../../app.postcss'
+  import '../../../../app.css'
 
   injectAnalytics({ mode: dev ? 'development' : 'production' })
 

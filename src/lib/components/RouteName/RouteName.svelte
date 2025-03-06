@@ -35,7 +35,7 @@
 </script>
 
 {#if route != null}
-  <div class="flex gap-x-1 md:gap-x-2 items-center {classes}">
+  <div class="flex items-center gap-x-1 md:gap-x-2 {classes}">
     {#if lastAscent != null}
       <AscentTypeLabel includeText={false} type={lastAscent.type} />
     {/if}

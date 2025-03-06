@@ -48,11 +48,11 @@
 </script>
 
 <div class="flex items-start gap-4">
-  <div class="w-10 h-10 rounded-full bg-surface-200-800 flex items-center justify-center flex-shrink-0">
+  <div class="bg-surface-200-800 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
     <i class="fa-solid {iconClasses} text-lg"></i>
   </div>
 
-  <div class="flex-1 min-w-0">
+  <div class="min-w-0 flex-1">
     <div class="mb-2">
       {#if withDetails}
         <span class="font-semibold">
@@ -72,7 +72,7 @@
 
           {#if activity.parentEntity != null}
             <a
-              class="anchor font-medium inline-flex max-w-full whitespace-nowrap overflow-hidden text-ellipsis"
+              class="anchor inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"
               href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}
             >
               {#if activity.parentEntity.type === 'route' && activity.parentEntity.object != null}
@@ -87,7 +87,7 @@
             <span class="text-surface-500">in</span>
 
             {#each activity.parentEntity?.breadcrumb as crumb, i}
-              <span class="inline-flex text-surface-500">{crumb}</span>
+              <span class="text-surface-500 inline-flex">{crumb}</span>
 
               {#if i < activity.parentEntity?.breadcrumb.length - 1}
                 <span class="text-surface-500 mx-1 text-sm" aria-hidden="true">&gt;</span>
@@ -96,7 +96,7 @@
           {/if}
 
           {#if (activity.entity.object?.gradeFk ?? activity.entity.object?.rating) != null}
-            <div class="flex gap-x-1 md:gap-x-2 items-center my-2">
+            <div class="my-2 flex items-center gap-x-1 md:gap-x-2">
               <span class="opacity-80"> Personal opinion: </span>
 
               {#if activity.entity.object?.gradeFk != null}
@@ -164,7 +164,7 @@
 
           {#if activity.entity.type != 'file'}
             <a
-              class="anchor font-medium inline-flex max-w-full whitespace-nowrap overflow-hidden text-ellipsis"
+              class="anchor inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"
               href={`/${activity.entityType}s/${activity.entityId}`}
             >
               {#if activity.entity.type === 'route' && activity.entity.object != null}
@@ -180,7 +180,7 @@
             <a class="anchor inline-flex flex-wrap" href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}>
               {#if withBreadcrumbs && activity.parentEntity?.breadcrumb != null}
                 {#each activity.parentEntity?.breadcrumb as crumb, i}
-                  <span class="inline-flex text-surface-500">{crumb}</span>
+                  <span class="text-surface-500 inline-flex">{crumb}</span>
 
                   <span class="text-surface-500 mx-1 text-sm" aria-hidden="true">&gt;</span>
                 {/each}
@@ -248,7 +248,7 @@
       {/if}
     </div>
 
-    <p class="text-sm text-surface-500 flex items-center justify-between">
+    <p class="text-surface-500 flex items-center justify-between text-sm">
       {#if withDetails}
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
@@ -265,14 +265,14 @@
     </p>
 
     {#if activity.entity.type == 'file' && activity.entity.object?.stat != null}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+      <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
         <FileViewer file={activity.entity.object} stat={activity.entity.object.stat} />
       </div>
     {/if}
 
     {#if withFiles && activity.entity.type == 'ascent' && activity.entity.object != null && activity.type === 'created'}
       {#if activity.entity.object.notes != null && activity.entity.object.notes!.length > 0}
-        <div class="rendered-markdown preset-filled-surface-200-800 p-4 mt-4">
+        <div class="rendered-markdown preset-filled-surface-200-800 mt-4 p-4">
           {@html activity.entity.object.notes}
         </div>
       {/if}
@@ -281,7 +281,7 @@
         <div
           class="grid {activity.entity.object.files.length === 1
             ? 'grid-cols-1 md:grid-cols-2'
-            : 'grid-cols-2 md:grid-cols-4'} gap-3 mt-4"
+            : 'grid-cols-2 md:grid-cols-4'} mt-4 gap-3"
         >
           {#each activity.entity.object.files as file}
             {#if file.stat != null}

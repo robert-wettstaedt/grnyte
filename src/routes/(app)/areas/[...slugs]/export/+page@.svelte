@@ -11,7 +11,7 @@
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import '../../../../../app.postcss'
+  import '../../../../../app.css'
 
   let { data } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
@@ -59,10 +59,10 @@
   <title>Exporting {data.area.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<div class={DEBUG ? undefined : 'overflow-hidden w-full h-full'}>
+<div class={DEBUG ? undefined : 'h-full w-full overflow-hidden'}>
   {#if !DEBUG}
     <div
-      class="absolute top-0 left-0 w-full h-full flex flex-col gap-4 justify-center items-center bg-surface-50-950 z-[100]"
+      class="bg-surface-50-950 absolute top-0 left-0 z-[100] flex h-full w-full flex-col items-center justify-center gap-4"
       id="progress"
     >
       {#if done}
@@ -81,11 +81,11 @@
   <section class={ITEM_CLASS}>
     <div class="flex">
       <div class="w-2/4">
-        <div class="p-2 pt-8 flex flex-col h-full">
+        <div class="flex h-full flex-col p-2 pt-8">
           <h1 class="text-center text-4xl">{data.area.name}</h1>
           <h1 class="text-center text-3xl">Bouldering</h1>
 
-          <div class="p-2 mt-4">
+          <div class="mt-4 p-2">
             {#if data.area.description != null && data.area.description.length > 0}
               <div class="rendered-markdown mt-4">
                 {@html data.area.description}

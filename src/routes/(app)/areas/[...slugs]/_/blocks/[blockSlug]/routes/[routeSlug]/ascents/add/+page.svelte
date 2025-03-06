@@ -39,7 +39,7 @@
 </AppBar>
 
 <form
-  class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900"
+  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
   enctype="multipart/form-data"
   method="POST"
   use:enhanceWithFile={{
@@ -75,7 +75,7 @@
     type={form?.type ?? null}
   />
 
-  <div class="flex justify-between mt-8">
+  <div class="mt-8 flex justify-between">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
       {#if loading}

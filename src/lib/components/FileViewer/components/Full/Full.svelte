@@ -87,17 +87,17 @@
   }
 </script>
 
-<div class="relative w-full h-full">
+<div class="relative h-full w-full">
   {#if mediaHasError || status != null}
-    <aside class="alert variant-filled-error p-1 flex items-center justify-center h-full">
-      <div class="alert-message text-center max-w-[200px]">
+    <aside class="alert variant-filled-error flex h-full items-center justify-center p-1">
+      <div class="alert-message max-w-[200px] text-center">
         <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
         <p class="text-sm">{status?.message ?? stat.basename}</p>
       </div>
     </aside>
   {:else}
     {#if mediaIsLoading}
-      <div class="absolute w-full h-full flex justify-center items-center bg-black/80">
+      <div class="absolute flex h-full w-full items-center justify-center bg-black/80">
         <ProgressRing value={null} />
       </div>
     {/if}
@@ -106,7 +106,7 @@
       <iframe
         allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
         allowfullscreen
-        class="w-full h-full border-none absolute top-0 left-0"
+        class="absolute top-0 left-0 h-full w-full border-none"
         loading="lazy"
         src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID, videoId: file.bunnyStreamFk })}
         title=""
@@ -131,7 +131,7 @@
     {/if}
   {/if}
 
-  <div class="absolute top-4 flex items-center justify-between w-full px-2">
+  <div class="absolute top-4 flex w-full items-center justify-between px-2">
     {#if topLeft}
       {@render topLeft?.()}
     {:else}
@@ -160,7 +160,7 @@
             {/if}
           </p>
 
-          <footer class="flex gap-2 justify-between">
+          <footer class="flex justify-between gap-2">
             {#if file.bunnyStreamFk == null}
               <p class="text-error-500">Only videos can be made public and shared.</p>
             {:else}
@@ -207,7 +207,7 @@
             <nav class="list-nav w-48">
               <ul>
                 <li
-                  class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                  class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                 >
                   <Popover
                     arrow
@@ -219,7 +219,7 @@
                     classes="w-full"
                   >
                     {#snippet trigger()}
-                      <i class="fa-solid fa-trash w-5 me-2"></i>Delete
+                      <i class="fa-solid fa-trash me-2 w-5"></i>Delete
                     {/snippet}
 
                     {#snippet content()}

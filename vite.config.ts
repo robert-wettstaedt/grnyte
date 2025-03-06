@@ -1,7 +1,7 @@
 import { sveltekit } from '@sveltejs/kit/vite'
+import tailwindcss from '@tailwindcss/vite'
 import { svelteTesting } from '@testing-library/svelte/vite'
 import { SvelteKitPWA } from '@vite-pwa/sveltekit'
-import { purgeCss } from 'vite-plugin-tailwind-purgecss'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -10,9 +10,9 @@ export default defineConfig({
     port: 3000,
   },
   plugins: [
+    tailwindcss(),
     sveltekit(),
     svelteTesting(),
-    purgeCss(),
     SvelteKitPWA({
       srcDir: './src',
       mode: 'development',

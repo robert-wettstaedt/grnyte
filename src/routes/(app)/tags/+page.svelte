@@ -25,11 +25,11 @@
   {/snippet}
 </AppBar>
 
-<div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900 table-wrap">
+<div class="card preset-filled-surface-100-900 table-wrap mt-8 p-2 md:p-4">
   {#if data.tags.length === 0}
     No tags yet
   {:else}
-    <table class="table table-hover">
+    <table class="table-hover table">
       <thead>
         <tr>
           <th class="w-full">Name</th>

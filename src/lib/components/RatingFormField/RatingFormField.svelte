@@ -27,7 +27,7 @@
       {#snippet content()}
         <button
           aria-label="Close"
-          class="fixed top-4 right-2 btn preset-filled-primary-500 w-12 h-12 rounded-full z-10"
+          class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
           onclick={() => (modalOpen = false)}
         >
           <i class="fa-solid fa-xmark"></i>
@@ -40,7 +40,7 @@
         <article class="opacity-60">
           <p>As objective as possible try to consider these factors:</p>
 
-          <ul class="list-disc list-inside mt-4">
+          <ul class="mt-4 list-inside list-disc">
             <li>The quality of the rock and holds</li>
             <li>The quality of the landing area</li>
             <li>The climbing movement</li>
@@ -55,7 +55,7 @@
   <input name="rating" type="hidden" {value} />
 </label>
 
-<div class="flex items-center justify-between h-10">
+<div class="flex h-10 items-center justify-between">
   <div class="flex gap-1">
     {#each [1, 2, 3] as rating}
       <button
@@ -66,9 +66,9 @@
         }}
       >
         {#if value != null && value >= rating}
-          <i class="fa-solid fa-star text-3xl text-warning-500"></i>
+          <i class="fa-solid fa-star text-warning-500 text-3xl"></i>
         {:else}
-          <i class="fa-regular fa-star text-3xl text-warning-500"></i>
+          <i class="fa-regular fa-star text-warning-500 text-3xl"></i>
         {/if}
       </button>
     {/each}

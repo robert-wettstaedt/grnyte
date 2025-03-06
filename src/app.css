@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton/optional/presets';
+@import '@skeletonlabs/skeleton/themes/catppuccin';
+
+@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+  @apply h-full;
+}
+
+.list-item-sign-out button {
+  width: 100%;
+}
+
+.rendered-markdown {
+  display: block !important;
+
+  & > * {
+    margin-left: 0 !important;
+  }
+
+  & ul {
+    list-style: initial;
+    margin: 16px 0;
+    padding-left: 40px;
+  }
+
+  & a {
+    @apply anchor;
+  }
+
+  & p {
+    margin-top: 8px;
+  }
+}

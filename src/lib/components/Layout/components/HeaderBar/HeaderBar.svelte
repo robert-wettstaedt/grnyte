@@ -61,14 +61,14 @@
 
             <ul>
               <li>
-                <a class="flex hover:preset-filled-primary-100-900 p-2" href={`/users/${page.data.user?.username}`}>
+                <a class="hover:preset-filled-primary-100-900 flex p-2" href={`/users/${page.data.user?.username}`}>
                   Profile
                 </a>
               </li>
 
               <li>
                 <button
-                  class="flex p-2 w-full hover:preset-filled-primary-100-900"
+                  class="hover:preset-filled-primary-100-900 flex w-full p-2"
                   onclick={() => page.data.supabase?.auth.signOut()}
                 >
                   Sign out

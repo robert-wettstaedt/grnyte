@@ -25,27 +25,27 @@
   })
 </script>
 
-<div class="h-24 bg-primary-50-950 overflow-hidden text-primary-50 shadow-lg rounded">
+<div class="bg-primary-50-950 text-primary-50 h-24 overflow-hidden rounded shadow-lg">
   <div class="flex gap-2">
     {#if feature.avatar != null}
-      <a class="min-w-24 w-24 h-24" href={feature.pathname}>
+      <a class="h-24 w-24 min-w-24" href={feature.pathname}>
         {#if feature.avatar.src != null}
           <Image path={feature.avatar.src} size={96} />
         {:else if feature.avatar.icon != null}
-          <i class="{feature.avatar.icon} h-full w-full flex items-center justify-center text-[4rem]"></i>
+          <i class="{feature.avatar.icon} flex h-full w-full items-center justify-center text-[4rem]"></i>
         {/if}
       </a>
     {/if}
 
-    <div class="flex flex-col min-w-0 grow p-1">
+    <div class="flex min-w-0 grow flex-col p-1">
       <a href={feature.pathname}>
         {#if feature.subtitle != null}
-          <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap">
+          <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap opacity-50">
             {feature.subtitle}
           </p>
         {/if}
 
-        <p class="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
+        <p class="overflow-hidden text-sm text-ellipsis whitespace-nowrap">
           {feature.name}
 
           {#if feature.pathname}

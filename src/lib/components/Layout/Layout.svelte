@@ -20,7 +20,7 @@
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
-  import '../../../app.postcss'
+  import '../../../app.css'
   import HeaderBar from './components/HeaderBar'
 
   injectAnalytics({ mode: dev ? 'development' : 'production' })
@@ -80,12 +80,12 @@
   <main
     class="relative p-2 md:p-4 {page.data.session?.user == null
       ? 'min-h-[calc(100vh-4.25rem)]'
-      : 'min-h-[calc(100vh-4.25rem-4.515625rem)] md:min-h-[calc(100vh-4.25rem)] md:ms-[6rem]'}"
+      : 'min-h-[calc(100vh-4.25rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-4.25rem)]'}"
   >
     <Breadcrumb url={page.url} />
 
     {#if page.form?.error}
-      <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">
+      <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
         <p>{page.form.error}</p>
       </aside>
     {/if}

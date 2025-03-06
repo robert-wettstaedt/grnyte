@@ -9,9 +9,9 @@
   <title>Login - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<div class="flex justify-center items-center min-h-[80vh]">
-  <div class="card p-8 max-w-lg w-full preset-filled-surface-100-900">
-    <header class="text-center mb-8">
+<div class="flex min-h-[80vh] items-center justify-center">
+  <div class="card preset-filled-surface-100-900 w-full max-w-lg p-8">
+    <header class="mb-8 text-center">
       <h1 class="h1 mb-2">Welcome Back</h1>
       <p class="opacity-75">Sign in to continue to {PUBLIC_APPLICATION_NAME}</p>
     </header>

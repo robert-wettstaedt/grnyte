@@ -277,7 +277,7 @@
 />
 
 {#if editable}
-  <div class="flex justify-between p-2 preset-filled-surface-100-900">
+  <div class="preset-filled-surface-100-900 flex justify-between p-2">
     {#if $selectedRouteStore == null}
       <p>&nbsp;</p>
     {:else}
@@ -322,7 +322,7 @@
 
 <div
   bind:this={imgWrapper}
-  class="relative overflow-hidden h-full w-full flex items-center justify-center {isFullscreen
+  class="relative flex h-full w-full items-center justify-center overflow-hidden {isFullscreen
     ? '!fixed top-0 left-0 !z-[1000]'
     : ''}"
   style={elementHeight == null ? undefined : `min-height: ${elementHeight}px`}
@@ -332,7 +332,7 @@
       <img
         alt={selectedTopo.file.stat?.filename}
         bind:this={img}
-        class="absolute top-0 left-0 w-full h-full object-cover blur pointer-events-none touch-none"
+        class="pointer-events-none absolute top-0 left-0 h-full w-full touch-none object-cover blur"
         onload={getDimensions}
         src={`/nextcloud${selectedTopo.file.stat?.filename}`}
       />
@@ -340,7 +340,7 @@
       <img
         alt={selectedTopo.file.stat?.filename}
         bind:this={img}
-        class="m-auto relative max-h-full z-10 pointer-events-none touch-none origin-top-left"
+        class="pointer-events-none relative z-10 m-auto max-h-full origin-top-left touch-none"
         id={limitImgHeight ? 'img' : undefined}
         onload={onLoadImage}
         src={`/nextcloud${selectedTopo.file.stat?.filename}`}
@@ -355,11 +355,11 @@
     {/if}
   {/if}
 
-  <div class="absolute z-20 left-0 right-0 top-0 bottom-0 {linesVisible ? 'opacity-100' : 'opacity-0'}">
+  <div class="absolute top-0 right-0 bottom-0 left-0 z-20 {linesVisible ? 'opacity-100' : 'opacity-0'}">
     {#if selectedTopo != null}
       <svg
         bind:this={svg}
-        class="w-full h-full"
+        class="h-full w-full"
         onclick={onClickSvg}
         role="presentation"
         viewBox={`0 0 ${width} ${height}`}
@@ -397,12 +397,12 @@
   </div>
 
   {#if showControls}
-    <div class="flex flex-col items-end gap-4 absolute top-2 right-2 z-30 topo-controls">
+    <div class="topo-controls absolute top-2 right-2 z-30 flex flex-col items-end gap-4">
       {#if topos.length > 1}
         <div class="flex gap-1">
           <button
             aria-label="Previous Topo"
-            class="btn-icon bg-white/70 backdrop-blur-sm text-black"
+            class="btn-icon bg-white/70 text-black backdrop-blur-sm"
             disabled={selectedTopoIndex <= 0}
             onclick={onPrevTopo}
           >
@@ -411,7 +411,7 @@
 
           <button
             aria-label="Next Topo"
-            class="btn-icon bg-white/70 backdrop-blur-sm text-black"
+            class="btn-icon bg-white/70 text-black backdrop-blur-sm"
             disabled={selectedTopoIndex >= topos.length - 1}
             onclick={onNextTopo}
           >
@@ -422,7 +422,7 @@
 
       <button
         aria-label="Reset zoom"
-        class="btn-icon bg-white/70 backdrop-blur-sm text-black"
+        class="btn-icon bg-white/70 text-black backdrop-blur-sm"
         disabled={zoomTransform == null}
         onclick={onResetZoom}
       >
@@ -431,7 +431,7 @@
 
       <button
         aria-label="Toggle lines"
-        class="btn-icon {linesVisible ? 'bg-white/70' : 'preset-filled-secondary-500'} backdrop-blur-sm text-black"
+        class="btn-icon {linesVisible ? 'bg-white/70' : 'preset-filled-secondary-500'} text-black backdrop-blur-sm"
         onclick={onToggleLines}
       >
         <i class="fa-solid {linesVisible ? 'fa-eye-slash' : 'fa-eye'}"></i>
@@ -439,7 +439,7 @@
 
       <button
         aria-label="Fullscreen"
-        class="btn-icon {isFullscreen ? 'preset-filled-secondary-500' : 'bg-white/70'} backdrop-blur-sm text-black"
+        class="btn-icon {isFullscreen ? 'preset-filled-secondary-500' : 'bg-white/70'} text-black backdrop-blur-sm"
         onclick={() => onToggleFullscreen()}
       >
         <i class="fa-solid {isFullscreen ? 'fa-compress' : 'fa-expand'}"></i>
@@ -453,7 +453,7 @@
 
   {#if selectedTopoRoute?.route != null && selectedTopoRoute.route.id !== initialRouteId}
     <a
-      class="absolute z-30 bg-primary-50-950 p-2 rounded shadow bottom-1 left-1 right-1 text-overflow-ellipsis whitespace-nowrap overflow-hidden topo-controls"
+      class="bg-primary-50-950 text-overflow-ellipsis topo-controls absolute right-1 bottom-1 left-1 z-30 overflow-hidden rounded p-2 whitespace-nowrap shadow"
       href={`/routes/${selectedTopoRoute.route.id}`}
       onclick={() => (isFullscreen ? onToggleFullscreen() : undefined)}
       transition:slide={{ duration: 100 }}

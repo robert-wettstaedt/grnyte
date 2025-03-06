@@ -26,14 +26,14 @@
   <RoutesFilter />
 </div>
 
-<div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900">
+<div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
   <GenericList items={data.routes}>
     {#snippet left(item)}
       <div class="flex gap-2">
         <Image path="/blocks/{item.block.id}/preview-image" size={64} />
 
         <div class="flex flex-col gap-1">
-          <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+          <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
             {item.block.area.name} / {item.block.name}
           </p>
 

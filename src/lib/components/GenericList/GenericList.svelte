@@ -56,10 +56,10 @@
           <div
             class="hover:preset-tonal-primary flex {wrap
               ? 'flex-wrap'
-              : ''} items-center justify-between whitespace-nowrap border-surface-800 rounded"
+              : ''} border-surface-800 items-center justify-between rounded whitespace-nowrap"
           >
             {#if onFinishSort != null}
-              <i class="fa-solid fa-grip-vertical cursor-grab ml-2 {TRIGGER_ELEMENT_CLASS}"></i>
+              <i class="fa-solid fa-grip-vertical ml-2 cursor-grab {TRIGGER_ELEMENT_CLASS}"></i>
             {/if}
 
             <a
@@ -67,13 +67,13 @@
               {leftClasses}
               {wrap ? 'w-full' : 'w-1/2 sm:w-auto'}
               grow
-              hover:text-white
-              md:px-4
-              md:w-auto
               overflow-hidden
               px-2
               py-3
               text-ellipsis
+              hover:text-white
+              md:w-auto
+              md:px-4
             "
               href={item.pathname}
             >
@@ -85,13 +85,13 @@
                 class="
                 {wrap ? 'w-full' : 'w-1/2 sm:w-auto'}
                 anchor
-                hover:text-white
-                md:px-4
-                md:w-auto
                 overflow-hidden
                 px-2
                 py-3
                 text-ellipsis
+                hover:text-white
+                md:w-auto
+                md:px-4
               "
                 href={rightPathname?.(item)}
               >
@@ -104,9 +104,9 @@
                 class="
               {wrap ? 'w-full' : 'shrink'}
               flex
-              md:w-auto
               overflow-hidden
               text-ellipsis
+              md:w-auto
             "
               >
                 {@render right(item)}

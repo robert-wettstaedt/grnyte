@@ -23,11 +23,11 @@
 {#if features.length > 0}
   <div
     bind:this={container}
-    class="absolute bottom-1 left-1 right-1 z-10 snap-x snap-mandatory scroll-smooth flex gap-4 overflow-x-auto"
+    class="absolute right-1 bottom-1 left-1 z-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth"
     transition:slide={{ duration: 100 }}
   >
     {#each features as feature (feature.pathname)}
-      <div class="snap-start shrink-0 {features.length > 1 ? 'w-[calc(100%-2rem)] md:w-[calc(50%-2rem)]' : 'w-full'}">
+      <div class="shrink-0 snap-start {features.length > 1 ? 'w-[calc(100%-2rem)] md:w-[calc(50%-2rem)]' : 'w-full'}">
         <FeatureCard {feature} />
       </div>
     {/each}

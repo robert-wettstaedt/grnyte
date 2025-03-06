@@ -48,23 +48,23 @@
 
 {#if position != null}
   <div
-    class="fixed top-0 left-0 w-[128px] h-[128px] rounded-full border-2 overflow-hidden pointer-events-none touch-none origin-top-left z-30 origin-top-left"
+    class="pointer-events-none fixed top-0 left-0 z-30 h-[128px] w-[128px] origin-top-left origin-top-left touch-none overflow-hidden rounded-full border-2"
     style="transform: translate({position.x - 128 / 2}px, {position.y - 128 - 32}px)"
     transition:fade={{ duration: 100 }}
   >
     <img
       alt={file.stat?.filename}
-      class="w-full h-full object-fill origin-top-left"
+      class="h-full w-full origin-top-left object-fill"
       onload={onLoadImage}
       src={`/nextcloud${file.stat?.filename}`}
       style="transform: translate({-imagePosition.x + 128 / 2}px, {-imagePosition.y + 128 / 2}px) scale(10)"
     />
 
     <div
-      class="absolute top-1/2 left-1/2 w-[2px] h-4 opacity-75 bg-error-500 transform translate-x-[-50%] translate-y-[-50%]"
+      class="bg-error-500 absolute top-1/2 left-1/2 h-4 w-[2px] translate-x-[-50%] translate-y-[-50%] transform opacity-75"
     ></div>
     <div
-      class="absolute top-1/2 left-1/2 w-4 h-[2px] opacity-75 bg-error-500 transform translate-x-[-50%] translate-y-[-50%]"
+      class="bg-error-500 absolute top-1/2 left-1/2 h-[2px] w-4 translate-x-[-50%] translate-y-[-50%] transform opacity-75"
     ></div>
   </div>
 {/if}

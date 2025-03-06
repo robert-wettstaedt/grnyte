@@ -75,13 +75,13 @@
   </aside>
 {/if}
 
-<div class="mt-8 w-full text-token card mt-8 p-2 md:p-4 preset-filled-surface-100-900 space-y-4 overflow-auto">
+<div class="text-token card preset-filled-surface-100-900 mt-8 mt-8 w-full space-y-4 overflow-auto p-2 md:p-4">
   {#each data.blocks as block}
     <p class="font-bold">{block.name}</p>
 
     <ul>
       {#each block.routes as route}
-        <li class="flex items-center justify-between p-1 hover:bg-surface-400 whitespace-nowrap">
+        <li class="hover:bg-surface-400 flex items-center justify-between p-1 whitespace-nowrap">
           <RouteName {route} />
 
           {#if loading && values?.find((value) => value.routeFk === route.id) == null}
@@ -100,7 +100,7 @@
   {/each}
 </div>
 
-<div class="flex justify-between mt-8">
+<div class="mt-8 flex justify-between">
   <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 
   <button

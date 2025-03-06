@@ -71,12 +71,12 @@
 {#if crumbs.length > 2}
   <div class="relative mb-4 md:mb-8">
     {#if isOverflowing && !showOverflow}
-      <span class="absolute left-0 top-0 bg-surface-50-950 pr-1">...</span>
+      <span class="bg-surface-50-950 absolute top-0 left-0 pr-1">...</span>
     {/if}
 
     <ol
       bind:this={breadcrumbRef}
-      class="flex {showOverflow ? 'flex-wrap' : ''} mr-9 items-center gap-2 md:gap-4 overflow-hidden whitespace-nowrap"
+      class="flex {showOverflow ? 'flex-wrap' : ''} mr-9 items-center gap-2 overflow-hidden whitespace-nowrap md:gap-4"
     >
       {#each crumbs as crumb, i}
         <li>
@@ -92,7 +92,7 @@
     {#if isOverflowing || showOverflow}
       <button
         aria-label={showOverflow ? 'Show less' : 'Show more'}
-        class="btn-icon absolute right-0 -top-1"
+        class="btn-icon absolute -top-1 right-0"
         onclick={onToggleOverflow}
       >
         <i class="fa-solid {showOverflow ? 'fa-caret-up' : 'fa-caret-down'}"></i>

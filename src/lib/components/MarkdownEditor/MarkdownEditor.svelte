@@ -176,7 +176,7 @@
         <div bind:this={element} class="bg-surface-700 h-64"></div>
       </Tabs.Panel>
       <Tabs.Panel value="preview">
-        <div class="rendered-markdown h-64 bg-surface-700 px-3 py-2 overflow-auto">
+        <div class="rendered-markdown bg-surface-700 h-64 overflow-auto px-3 py-2">
           {@html valueHtml}
         </div>
       </Tabs.Panel>
