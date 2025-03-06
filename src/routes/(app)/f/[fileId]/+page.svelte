@@ -64,7 +64,7 @@
 </svelte:head>
 
 {#if data.file.stat != null}
-  <div class="bg-black w-full relative" use:fitHeightAction={{ paddingBottom: 0 }}>
+  <div class="relative w-full bg-black" use:fitHeightAction={{ paddingBottom: 0 }}>
     <Full
       file={data.file}
       onDelete={() => goto(pathname)}
@@ -86,15 +86,15 @@
 
     {#if isNotesExpanded}
       <div
-        class="absolute top-0 left-0 w-full h-full {isNotesExpanded
+        class="absolute top-0 left-0 h-full w-full {isNotesExpanded
           ? 'bg-black/40'
-          : 'bg-black/0'} transition-all duration-300 touch-none pointer-events-none user-select-none"
+          : 'bg-black/0'} user-select-none pointer-events-none touch-none transition-all duration-300"
       ></div>
     {/if}
 
     {#if data.file.ascent != null}
       <div
-        class="absolute bottom-16 left-0 right-0 p-2"
+        class="absolute right-0 bottom-16 left-0 p-2"
         onclick={() => (isNotesExpanded = !isNotesExpanded)}
         role="presentation"
       >
@@ -102,7 +102,7 @@
           {formatDistance(new Date(data.file.ascent.createdAt), new Date(), { addSuffix: true })}
         </span>
 
-        <div class="flex items-center flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span>{data.file.ascent.author.username}</span>
 
           {data.file.ascent.type === 'flash'
@@ -120,7 +120,7 @@
           <div
             class="rendered-markdown {isNotesExpanded
               ? 'max-h-[300px] overflow-auto'
-              : 'max-h-[32px] overflow-hidden'} transition-all duration-300 -mt-[8px]"
+              : 'max-h-[32px] overflow-hidden'} -mt-[8px] transition-all duration-300"
           >
             {@html data.notes}
           </div>

@@ -23,7 +23,7 @@
 </script>
 
 {#if error}
-  <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
     <p>{error}</p>
   </aside>
 {/if}

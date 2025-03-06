@@ -15,7 +15,7 @@
 </script>
 
 {#if value != null}
-  <ul class="flex flex-col gap-2 !mb-4">
+  <ul class="!mb-4 flex flex-col gap-2">
     {#each value as val}
       <li class="flex items-center justify-between">
         <span>{val}</span>

@@ -8,17 +8,17 @@
   <title>Forgot Password - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<div class="flex justify-center items-center min-h-[80vh]">
-  <div class="card p-8 max-w-lg w-full preset-filled-surface-100-900">
+<div class="flex min-h-[80vh] items-center justify-center">
+  <div class="card preset-filled-surface-100-900 w-full max-w-lg p-8">
     {#if form?.success}
-      <header class="text-center mb-8">
+      <header class="mb-8 text-center">
         <h1 class="h1 mb-2">Success</h1>
         <p class="opacity-75">
           We have sent a reset link to your email address {form?.email}.
         </p>
       </header>
     {:else}
-      <header class="text-center mb-8">
+      <header class="mb-8 text-center">
         <h2 class="h2 mb-2">Forgot Password</h2>
       </header>
 

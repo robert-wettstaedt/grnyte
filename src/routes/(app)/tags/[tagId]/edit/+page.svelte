@@ -17,10 +17,10 @@
   {/snippet}
 </AppBar>
 
-<form class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900" method="POST" use:enhance>
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" method="POST" use:enhance>
   <TagFormFields id={form?.id ?? data.tag.id} />
 
-  <div class="flex justify-between mt-8">
+  <div class="mt-8 flex justify-between">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit">
       <i class="fa-solid fa-floppy-disk"></i> Save tag

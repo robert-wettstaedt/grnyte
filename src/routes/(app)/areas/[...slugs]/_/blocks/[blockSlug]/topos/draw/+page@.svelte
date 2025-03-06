@@ -111,10 +111,10 @@
   <title>Draw topo of {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<div class="fixed top-0 left-0 w-screen h-screen -z-10 preset-filled-surface-100-900"></div>
+<div class="preset-filled-surface-100-900 fixed top-0 left-0 -z-10 h-screen w-screen"></div>
 
-<div class="flex justify-between m-2 md:m-4">
-  <a aria-label="Close" class="btn-icon text-xl bg-white/20 backdrop-blur-sm" href={basePath}>
+<div class="m-2 flex justify-between md:m-4">
+  <a aria-label="Close" class="btn-icon bg-white/20 text-xl backdrop-blur-sm" href={basePath}>
     <i class="fa-solid fa-arrow-left"></i>
   </a>
 
@@ -187,26 +187,26 @@
                 <nav class="list-nav w-48">
                   <ul>
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
-                      <a class="p-2 md:p-4 w-full" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
-                        <i class="fa-solid fa-cloud-arrow-up w-5 me-2"></i>Upload
+                      <a class="w-full p-2 md:p-4" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
+                        <i class="fa-solid fa-cloud-arrow-up me-2 w-5"></i>Upload
                       </a>
                     </li>
 
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
                       <a
-                        class="p-2 md:p-4 w-full"
+                        class="w-full p-2 md:p-4"
                         href="{basePath}/topos/{topos[selectedTopoIndex].id}/edit?redirect={basePath}/topos/draw"
                       >
-                        <i class="fa-solid fa-retweet w-5 me-2"></i>Replace
+                        <i class="fa-solid fa-retweet me-2 w-5"></i>Replace
                       </a>
                     </li>
 
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
                       <Popover
                         arrow
@@ -218,7 +218,7 @@
                         classes="w-full"
                       >
                         {#snippet trigger()}
-                          <i class="fa-solid fa-trash w-5 me-2"></i>Remove
+                          <i class="fa-solid fa-trash me-2 w-5"></i>Remove
                         {/snippet}
 
                         {#snippet content()}
@@ -271,41 +271,41 @@
                 <nav class="list-nav w-48">
                   <ul>
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
-                      <a class="p-2 md:p-4 w-full" href="{basePath}/routes/add?redirect={basePath}/topos/draw">
-                        <i class="fa-solid fa-plus w-5 me-2"></i>New
+                      <a class="w-full p-2 md:p-4" href="{basePath}/routes/add?redirect={basePath}/topos/draw">
+                        <i class="fa-solid fa-plus me-2 w-5"></i>New
                       </a>
                     </li>
 
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
                       <a
-                        class="p-2 md:p-4 w-full {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
+                        class="w-full p-2 md:p-4 {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
                         aria-disabled={selectedRoute == null}
                         href={selectedRoute == null ? '' : `${basePath}/routes/${selectedRoute.routeFk}`}
                       >
-                        <i class="fa-solid fa-eye w-5 me-2"></i>Show
+                        <i class="fa-solid fa-eye me-2 w-5"></i>Show
                       </a>
                     </li>
 
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
                       <a
-                        class="p-2 md:p-4 w-full {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
+                        class="w-full p-2 md:p-4 {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
                         aria-disabled={selectedRoute == null}
                         href={selectedRoute == null
                           ? ''
                           : `${basePath}/routes/${selectedRoute.routeFk}/edit?redirect=${basePath}/topos/draw`}
                       >
-                        <i class="fa-solid fa-pen w-5 me-2"></i>Edit
+                        <i class="fa-solid fa-pen me-2 w-5"></i>Edit
                       </a>
                     </li>
 
                     <li
-                      class="hover:preset-tonal-primary flex flex-wrap justify-between whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded"
+                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
                     >
                       <Popover
                         arrow
@@ -319,7 +319,7 @@
                         classes="w-full"
                       >
                         {#snippet trigger()}
-                          <i class="fa-solid fa-trash w-5 me-2"></i>Delete
+                          <i class="fa-solid fa-trash me-2 w-5"></i>Delete
                         {/snippet}
 
                         {#snippet content()}
@@ -362,13 +362,13 @@
 </div>
 
 {#if form?.error}
-  <aside class="card preset-tonal-warning mt-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-warning mt-8 p-2 whitespace-pre-line md:p-4">
     <p>{form.error}</p>
   </aside>
 {/if}
 
 <div class="flex flex-wrap">
-  <div class="p-2 preset-filled-surface-100-900 w-full">
+  <div class="preset-filled-surface-100-900 w-full p-2">
     <div class="input-group divide-surface-200-800 grid-cols-[1fr_auto] divide-x">
       <select
         class="select"

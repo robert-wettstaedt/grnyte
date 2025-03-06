@@ -125,11 +125,11 @@
             <div class="card bg-base-200 group/feed-group hover:bg-base-300 transition-colors">
               <div class="card-body">
                 <div class="flex items-start gap-4">
-                  <div class="w-10 h-10 rounded-full bg-surface-200-800 flex items-center justify-center flex-shrink-0">
+                  <div class="bg-surface-200-800 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
                     <i class="fa-solid fa-layer-group text-lg"></i>
                   </div>
 
-                  <div class="flex-1 min-w-0">
+                  <div class="min-w-0 flex-1">
                     <div class="mb-2">
                       <span class="font-semibold">
                         <a class="anchor" href={`/users/${group.user?.username}`}>{group.user?.username}</a>
@@ -141,14 +141,14 @@
 
                           {#if rest.withBreadcrumbs && group.parentEntity?.breadcrumb != null}
                             {#each group.parentEntity?.breadcrumb as crumb, i}
-                              <span class="inline-flex text-surface-500">{crumb}</span>
+                              <span class="text-surface-500 inline-flex">{crumb}</span>
 
                               <span class="text-surface-500 mx-1 text-sm" aria-hidden="true">&gt;</span>
                             {/each}
                           {/if}
 
                           <a
-                            class="anchor font-medium inline-flex max-w-full whitespace-nowrap overflow-hidden text-ellipsis"
+                            class="anchor inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"
                             href={`/${group.parentEntity.type}s/${group.parentEntity.object?.id}`}
                           >
                             {#if group.parentEntity.type === 'route' && group.parentEntity.object != null}
@@ -162,7 +162,7 @@
                         <span>
                           updated
                           <a
-                            class="anchor font-medium inline-flex max-w-full whitespace-nowrap overflow-hidden text-ellipsis"
+                            class="anchor inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"
                             href={`/${group.entity.type}s/${group.entity.object?.id}`}
                           >
                             {#if group.entity.type === 'route' && group.entity.object != null}
@@ -175,13 +175,13 @@
                       {/if}
                     </div>
 
-                    <p class="text-sm text-surface-500">
+                    <p class="text-surface-500 text-sm">
                       {formatRelative(new Date(group.latestDate), new Date(), { locale })}
                     </p>
 
                     {#if group.items.some((activity) => activity.entity.type === 'ascent' && activity.entity.object?.files != null && activity.entity.object.files.length > 0)}
                       <div class="mt-4">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
                           {#each getUniqueFiles(group) as file}
                             {#if file.stat != null}
                               {@const ascentActivity = findAscentForFile(group, file.id)}
@@ -206,10 +206,10 @@
                     {/if}
 
                     <details class="mt-4">
-                      <summary class="cursor-pointer hover:text-primary-500 transition-colors">
+                      <summary class="hover:text-primary-500 cursor-pointer transition-colors">
                         Show {group.items.length} changes
                       </summary>
-                      <div class="space-y-4 mt-4 pl-2 border-l-2 border-surface-200-800">
+                      <div class="border-surface-200-800 mt-4 space-y-4 border-l-2 pl-2">
                         {#each group.items as activity}
                           <Item {activity} withFiles={false} />
                         {/each}
@@ -226,7 +226,7 @@
   </div>
 {/each}
 
-<div class="flex justify-center my-16">
+<div class="my-16 flex justify-center">
   <button
     class="btn preset-outlined-primary-500"
     disabled={pagination.page >= pagination.totalPages}

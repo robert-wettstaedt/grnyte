@@ -34,19 +34,19 @@
 
 {#if $needRefresh}
   <div
-    class="fixed bottom-4 left-4 md:left-auto right-4 z-50 flex items-center gap-4 rounded-lg border border-surface-500 bg-surface-100 p-4 shadow-lg dark:bg-surface-800"
+    class="border-surface-500 bg-surface-100 dark:bg-surface-800 fixed right-4 bottom-4 left-4 z-50 flex items-center gap-4 rounded-lg border p-4 shadow-lg md:left-auto"
     role="alert"
   >
     <div class="flex-1 text-sm">New app version available, click on reload button to update.</div>
-    <div class="flex flex-col md:flex-row gap-2">
+    <div class="flex flex-col gap-2 md:flex-row">
       <button
-        class="rounded bg-primary-500 px-3 py-1 text-sm text-white hover:bg-primary-600"
+        class="bg-primary-500 hover:bg-primary-600 rounded px-3 py-1 text-sm text-white"
         onclick={() => updateServiceWorker(true)}
       >
         Reload
       </button>
       <button
-        class="rounded border border-surface-500 px-3 py-1 text-sm hover:bg-surface-200 dark:hover:bg-surface-700"
+        class="border-surface-500 hover:bg-surface-200 dark:hover:bg-surface-700 rounded border px-3 py-1 text-sm"
         onclick={close}
       >
         Close

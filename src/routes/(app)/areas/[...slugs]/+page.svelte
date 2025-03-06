@@ -131,7 +131,7 @@
 </svelte:head>
 
 {#if downloadError}
-  <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
     <p>{downloadError}</p>
   </aside>
 {/if}
@@ -224,7 +224,7 @@
                     <span class="flex-auto">
                       <dt>Mentioned in</dt>
 
-                      <dd class="flex gap-1 mt-1">
+                      <dd class="mt-1 flex gap-1">
                         <References {references} />
                       </dd>
                     </span>
@@ -236,7 +236,7 @@
                 <span class="flex-auto">
                   <dt>Grades</dt>
 
-                  <dd class="flex gap-1 mt-1">
+                  <dd class="mt-1 flex gap-1">
                     <GradeHistogram
                       data={data.area.grades}
                       spec={{
@@ -251,7 +251,7 @@
                 <div class="flex p-2">
                   <span class="flex-auto">
                     <dt>Files</dt>
-                    <dd class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                    <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
                       {#each files as file}
                         {#if file.stat != null}
                           <FileViewer
@@ -348,7 +348,7 @@
                   {#snippet children(item)}
                     {#if !orderMode}
                       {#if item.routes.length === 0}
-                        <div class="flex items-center gap-2 px-2 md:px-4 py-3">
+                        <div class="flex items-center gap-2 px-2 py-3 md:px-4">
                           <Image
                             path={item.topos?.[0]?.file?.path == null
                               ? null
@@ -396,7 +396,7 @@
           <Tabs.Panel value="#areas">
             <section class="py-2 md:py-4">
               {#if data.userPermissions?.includes(EDIT_PERMISSION) && data.canAddArea}
-                <div class="flex justify-center mb-4">
+                <div class="mb-4 flex justify-center">
                   <a class="btn preset-filled-primary-500" href={`${basePath}/add`}>Add area</a>
                 </div>
               {/if}
@@ -448,14 +448,14 @@
             <RoutesFilter />
           </div>
 
-          <div class="mt-8 preset-filled-surface-100-900">
+          <div class="preset-filled-surface-100-900 mt-8">
             <GenericList items={data.routes.routes}>
               {#snippet left(item)}
                 <div class="flex gap-2">
                   <Image path="/blocks/{item.block.id}/preview-image" size={64} />
 
                   <div class="flex flex-col gap-1">
-                    <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+                    <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
                       {item.block.area.name} / {item.block.name}
                     </p>
 

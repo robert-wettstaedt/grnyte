@@ -82,13 +82,13 @@
   <title>Exporting {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<div class={DEBUG ? undefined : 'overflow-hidden w-full h-full'}>
+<div class={DEBUG ? undefined : 'h-full w-full overflow-hidden'}>
   {#if !DEBUG}
     <div
-      class="absolute top-0 left-0 w-full h-full flex flex-col gap-4 justify-center items-center bg-surface-50-950 z-[100]"
+      class="bg-surface-50-950 absolute top-0 left-0 z-[100] flex h-full w-full flex-col items-center justify-center gap-4"
     >
       {#if error != null}
-        <aside class="card preset-tonal-error mt-8 p-2 md:p-4 whitespace-pre-line">
+        <aside class="card preset-tonal-error mt-8 p-2 whitespace-pre-line md:p-4">
           <p>Error: {error}</p>
         </aside>
       {:else if shareData != null}
@@ -122,12 +122,12 @@
     </div>
   {/if}
 
-  <section bind:this={dom} class="p-2 bg-surface-50-950">
-    <div class="flex justify-between mb-4">
+  <section bind:this={dom} class="bg-surface-50-950 p-2">
+    <div class="mb-4 flex justify-between">
       <img alt={PUBLIC_APPLICATION_NAME} src={logo} class="w-16" />
 
       <div class="flex items-center">
-        <h1 class="text-2xl text-ellipsis overflow-hidden w-[150mm] whitespace-nowrap">
+        <h1 class="w-[150mm] overflow-hidden text-2xl text-ellipsis whitespace-nowrap">
           {(data.block.area as NestedArea).parent?.name} / {data.block.area.name}
         </h1>
       </div>

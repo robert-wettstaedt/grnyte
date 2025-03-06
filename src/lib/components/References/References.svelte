@@ -13,7 +13,7 @@
   <ul>
     {#each references.routes as route}
       <li>
-        <a class="anchor px-4 py-3 flex hover:preset-tonal-primary" href={`/routes/${route.id}`}>
+        <a class="anchor hover:preset-tonal-primary flex px-4 py-3" href={`/routes/${route.id}`}>
           <RouteName {route} />
         </a>
       </li>
@@ -21,7 +21,7 @@
 
     {#each references.areas as area}
       <li>
-        <a class="anchor px-4 py-3 flex hover:preset-tonal-primary hover:text-white" href={`/areas/${area.id}`}>
+        <a class="anchor hover:preset-tonal-primary flex px-4 py-3 hover:text-white" href={`/areas/${area.id}`}>
           {area.name}
         </a>
       </li>
@@ -30,7 +30,7 @@
     {#each references.ascents as ascent}
       <li>
         <a
-          class="anchor px-4 py-3 flex hover:preset-tonal-primary hover:text-white"
+          class="anchor hover:preset-tonal-primary flex px-4 py-3 hover:text-white"
           href={`/routes/${ascent.route.id}`}
         >
           {ascent.author.username}'s tick of&nbsp;<RouteName route={ascent.route} />

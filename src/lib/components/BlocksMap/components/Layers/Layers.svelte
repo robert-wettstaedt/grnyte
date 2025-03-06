@@ -31,12 +31,12 @@
 </script>
 
 <form
-  class="absolute bottom-[calc(var(--ol-control-height)+var(--ol-control-margin))] right-[calc(var(--ol-control-height)+var(--ol-control-margin))] w-[165px] bg-[--ol-subtle-background-color] rounded-[4px] overflow-hidden"
+  class="absolute right-[calc(var(--ol-control-height)+var(--ol-control-margin))] bottom-[calc(var(--ol-control-height)+var(--ol-control-margin))] w-[165px] overflow-hidden rounded-[4px] bg-[--ol-subtle-background-color]"
   transition:slide={{ axis: 'x', duration: 100 }}
 >
-  <fieldset class="bg-[--ol-background-color] m-[1px] p-2 rounded-[2px] overflow-hidden">
+  <fieldset class="m-[1px] overflow-hidden rounded-[2px] bg-[--ol-background-color] p-2">
     {#each layers as layer}
-      <label class="flex items-center space-x-2 text-[--ol-subtle-foreground-color] whitespace-nowrap border">
+      <label class="flex items-center space-x-2 border whitespace-nowrap text-[--ol-subtle-foreground-color]">
         <input
           class="checkbox"
           type="checkbox"

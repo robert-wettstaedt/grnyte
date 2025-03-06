@@ -60,7 +60,7 @@
 
   {#snippet headline()}
     {#if data.block.geolocationFk == null}
-      <aside class="card flex items-center gap-2 preset-tonal-warning mb-4 p-2 md:p-4 whitespace-pre-line">
+      <aside class="card preset-tonal-warning mb-4 flex items-center gap-2 p-2 whitespace-pre-line md:p-4">
         <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
 
         <p>
@@ -86,9 +86,9 @@
 
       {#snippet content()}
         <Tabs.Panel value="#topo">
-          <div class="flex flex-wrap md:flex-nowrap gap-2">
+          <div class="flex flex-wrap gap-2 md:flex-nowrap">
             {#if data.topos.length > 0}
-              <section class="w-full md:w-2/4 relative" use:fitHeightAction>
+              <section class="relative w-full md:w-2/4" use:fitHeightAction>
                 <TopoViewer topos={data.topos}>
                   {#snippet actions()}
                     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
@@ -100,14 +100,14 @@
                 </TopoViewer>
               </section>
             {:else if data.userPermissions?.includes(EDIT_PERMISSION)}
-              <div class="flex w-full justify-center mt-4">
+              <div class="mt-4 flex w-full justify-center">
                 <a class="btn preset-filled-primary-500" href={`${basePath}/topos/add`}>Add topos</a>
               </div>
             {/if}
 
-            <section class={`mt-4 md:mt-0 w-full ${data.topos.length === 0 ? '' : 'md:w-2/4'}`}>
+            <section class={`mt-4 w-full md:mt-0 ${data.topos.length === 0 ? '' : 'md:w-2/4'}`}>
               {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-                <div class="flex justify-center mb-4">
+                <div class="mb-4 flex justify-center">
                   <a class="btn preset-filled-primary-500" href={`${basePath}/routes/add`}>Add route</a>
                 </div>
               {/if}

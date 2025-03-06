@@ -22,7 +22,7 @@
   {/snippet}
 </AppBar>
 
-<form class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900" action="?/updateArea" method="POST">
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" action="?/updateArea" method="POST">
   <AreaFormFields
     description={form?.description ?? data.description}
     hasParent={data.parentFk != null}
@@ -31,7 +31,7 @@
     visibility={form?.visibility ?? data.visibility}
   />
 
-  <div class="flex justify-between mt-8">
+  <div class="mt-8 flex justify-between">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">

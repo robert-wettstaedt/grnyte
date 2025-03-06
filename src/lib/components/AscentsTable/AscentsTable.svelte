@@ -18,7 +18,7 @@
   let { ascents, pagination, paginationProps }: Props = $props()
 </script>
 
-<div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900">
+<div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
   <div class="table-wrap">
     {#if ascents.length === 0}
       No ascents yet

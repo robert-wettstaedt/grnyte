@@ -5,14 +5,14 @@
   let form: HTMLFormElement | null = $state(null)
 </script>
 
-<form bind:this={form} class="flex flex-col gap-4 items-center px-6">
+<form bind:this={form} class="flex flex-col items-center gap-4 px-6">
   <GradeRangeSlider
     minGrade={page.url.searchParams.get('minGrade') == null ? undefined : Number(page.url.searchParams.get('minGrade'))}
     maxGrade={page.url.searchParams.get('maxGrade') == null ? undefined : Number(page.url.searchParams.get('maxGrade'))}
     onchange={form?.submit.bind(form)}
   />
 
-  <div class="flex max-w-md w-full gap-4">
+  <div class="flex w-full max-w-md gap-4">
     <label class="label">
       <span class="label-text">Sort by</span>
       <select

@@ -86,7 +86,7 @@
   {/snippet}
 </AppBar>
 
-<div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900">
+<div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
   <Tabs
     fluid
     listClasses="overflow-x-auto overflow-y-hidden pb-[1px]"
@@ -165,11 +165,11 @@
           />
 
           {#if loadError != null}
-            <aside class="card preset-tonal-warning mt-8 p-2 md:p-4 whitespace-pre-line">
+            <aside class="card preset-tonal-warning mt-8 p-2 whitespace-pre-line md:p-4">
               <p>{loadError}</p>
             </aside>
           {:else if loadedData == null}
-            <div class="flex justify-center mt-16">
+            <div class="mt-16 flex justify-center">
               <ProgressRing value={null} />
             </div>
           {:else}
@@ -218,7 +218,7 @@
             {/snippet}
 
             {#snippet right(item)}
-              <ol class="flex items-center gap-2 w-auto p-2">
+              <ol class="flex w-auto items-center gap-2 p-2">
                 <li>
                   <a class="anchor" href={(item.route.block.area as EnrichedArea).pathname}>
                     {item.route.block.area.name}
@@ -247,7 +247,7 @@
           {/snippet}
 
           {#snippet right(item)}
-            <ol class="flex items-center gap-2 w-auto p-2">
+            <ol class="flex w-auto items-center gap-2 p-2">
               <li>
                 <a class="anchor" href={(item.block.area as EnrichedArea).pathname}>
                   {item.block.area.name}

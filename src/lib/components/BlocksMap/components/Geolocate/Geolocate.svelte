@@ -114,7 +114,7 @@
   {#snippet content()}
     <button
       aria-label="Close"
-      class="fixed top-4 right-2 btn preset-filled-primary-500 w-12 h-12 rounded-full z-10"
+      class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
       onclick={() => (modalOpen = false)}
     >
       <i class="fa-solid fa-xmark"></i>
@@ -127,7 +127,7 @@
     <article class="opacity-60">
       <p>The geolocation service is not working. Please check your browser settings and try again.</p>
 
-      <ul class="list-disc list-inside mt-4">
+      <ul class="mt-4 list-inside list-disc">
         <li>Check if location services are enabled in your browser</li>
         <li>Ensure you have permission to share your location</li>
         <li>Check if you have a GPS signal</li>

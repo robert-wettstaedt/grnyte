@@ -42,7 +42,7 @@
   <section class={itemClass}>
     <div class="flex h-full">
       <div class="w-2/4 px-4">
-        <div class="p-2 mt-8">
+        <div class="mt-8 p-2">
           <h2 class="text-center text-xl">
             {#if getBlockKey != null}
               {getBlockKey?.(block, index)}.
@@ -53,7 +53,7 @@
 
           {#each topo.routes.map( (topoRoute) => block.routes.find((route) => route.id === topoRoute.routeFk), ) as route, index}
             {#if route != null}
-              <h3 class="text-lg mt-8 px-2 flex gap-x-2">
+              <h3 class="mt-8 flex gap-x-2 px-2 text-lg">
                 <strong>{index + 1}</strong>
 
                 {route.name.length === 0 ? 'Unbekannt' : route.name}
@@ -86,7 +86,7 @@
               {/if}
 
               {#if route.tags.length > 0}
-                <div class="flex gap-2 ms-4">
+                <div class="ms-4 flex gap-2">
                   {#each route.tags as tag}
                     <p>#{tag.tagFk}</p>
                   {/each}
@@ -101,9 +101,9 @@
         </div>
       </div>
 
-      <div class="w-2/4 h-full relative">
+      <div class="relative h-full w-2/4">
         {#if topo.file?.stat == null}
-          <p class="text-center w-full">Error loading file: {topo.file?.error ?? ''}</p>
+          <p class="w-full text-center">Error loading file: {topo.file?.error ?? ''}</p>
         {:else}
           <TopoViewer
             {...topoViewerProps}
@@ -116,7 +116,7 @@
 
         {#if block.geolocation?.lat != null && block.geolocation?.long != null}
           <p
-            class="text-xs text-white bg-black/50 p-1 absolute top-4 right-4 z-50"
+            class="absolute top-4 right-4 z-50 bg-black/50 p-1 text-xs text-white"
             style="print-color-adjust: exact !important"
           >
             <i class="fa-solid fa-location-dot"></i>

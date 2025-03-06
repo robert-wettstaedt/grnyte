@@ -56,8 +56,8 @@
 
 {#if data.searchResults == null}
   {#if data.recentSearch != null && data.recentSearch.length > 0}
-    <div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900 flex flex-col">
-      <div class="text-center text-sm text-surface-500-900 mb-2">
+    <div class="card preset-filled-surface-100-900 mt-8 flex flex-col p-2 md:p-4">
+      <div class="text-surface-500-900 mb-2 text-center text-sm">
         <i class="fa-solid fa-clock-rotate-left"></i>
         Recent searches
       </div>
@@ -70,9 +70,9 @@
     </div>
   {/if}
 {:else}
-  <div class="card mt-8 p-2 md:p-4 preset-filled-surface-100-900">
+  <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     {#if tabValue == null}
-      <div class="text-center text-sm text-surface-500-900">No results found</div>
+      <div class="text-surface-500-900 text-center text-sm">No results found</div>
     {:else}
       <Tabs
         fluid
@@ -115,7 +115,7 @@
                   <Image path="/blocks/{item.block.id}/preview-image" size={64} />
 
                   <div class="flex flex-col gap-1">
-                    <p class="text-xs opacity-50 overflow-hidden text-ellipsis whitespace-nowrap text-white">
+                    <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
                       {item.block.area.name} / {item.block.name}
                     </p>
 

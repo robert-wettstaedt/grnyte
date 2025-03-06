@@ -16,7 +16,7 @@
 </AppBar>
 
 {#if form?.success}
-  <aside class="card preset-tonal-success my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-success my-8 p-2 whitespace-pre-line md:p-4">
     <p>Your password has been changed successfully.</p>
   </aside>
 {/if}
@@ -37,7 +37,7 @@
     <input name="passwordConfirmation" type="password" placeholder="Confirm your new password" class="input" required />
   </label>
 
-  <div class="flex justify-between mt-4">
+  <div class="mt-4 flex justify-between">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit">Save password</button>
   </div>

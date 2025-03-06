@@ -194,7 +194,7 @@
         {#if data.topos.length > 0}
           <Tabs.Panel value="#topo">
             <div class="flex">
-              <section class="w-full relative" use:fitHeightAction>
+              <section class="relative w-full" use:fitHeightAction>
                 <TopoViewer {selectedTopoIndex} initialRouteId={data.route.id} topos={data.topos}>
                   {#snippet actions()}
                     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
@@ -211,7 +211,7 @@
 
         <Tabs.Panel value="#activity">
           <section class="p-2">
-            <div class="flex justify-center mb-4">
+            <div class="mb-4 flex justify-center">
               <a class="btn preset-filled-primary-500" href={`${basePath}/ascents/add`}>
                 <i class="fa-solid fa-check"></i>
                 Log ascent
@@ -237,7 +237,7 @@
             <div class="flex p-2">
               <span class="flex-auto">
                 <dt>FA</dt>
-                <dd class="flex justify-between items-center">
+                <dd class="flex items-center justify-between">
                   <span class="flex flex-wrap items-center gap-2">
                     {#if data.route.firstAscents.length === 0 && data.route.firstAscentYear == null}
                       <span>unknown</span>
@@ -361,7 +361,7 @@
               <div class="flex p-2">
                 <span class="flex-auto">
                   <dt>Tags</dt>
-                  <dd class="flex gap-1 mt-1">
+                  <dd class="mt-1 flex gap-1">
                     {#each data.route.tags as tag}
                       <span class="chip preset-filled-surface-900-100">
                         <i class="fa-solid fa-tag me-2"></i>
@@ -377,25 +377,25 @@
               <div class="flex p-2">
                 <span class="flex-auto">
                   <dt>Grade opinions</dt>
-                  <dd class="flex flex-col gap-2 mt-1">
+                  <dd class="mt-1 flex flex-col gap-2">
                     {#if data.route.gradeFk != null}
-                      <div class="flex items-center w-full">
+                      <div class="flex w-full items-center">
                         <div class="w-28">
                           <CorrectedGrade oldGrade={data.route.gradeFk} newGrade={null} />
                         </div>
 
-                        <span class="text-sm text-surface-500"> Original grade </span>
+                        <span class="text-surface-500 text-sm"> Original grade </span>
                       </div>
                     {/if}
 
                     {#each gradeMap.entries() as [grade, count]}
                       {#if count != null}
-                        <div class="flex items-center w-full">
+                        <div class="flex w-full items-center">
                           <div class="w-28">
                             <CorrectedGrade oldGrade={grade} newGrade={null} />
                           </div>
 
-                          <span class="text-sm text-surface-500">
+                          <span class="text-surface-500 text-sm">
                             {count}x
                           </span>
                         </div>
@@ -412,7 +412,7 @@
                   <span class="flex-auto">
                     <dt>Mentioned in</dt>
 
-                    <dd class="flex gap-1 mt-1">
+                    <dd class="mt-1 flex gap-1">
                       <References {references} />
                     </dd>
                   </span>
@@ -424,7 +424,7 @@
               <div class="flex p-2">
                 <span class="flex-auto">
                   <dt>Files</dt>
-                  <dd class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+                  <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
                     {#each files as file}
                       {#if file.stat != null}
                         <FileViewer

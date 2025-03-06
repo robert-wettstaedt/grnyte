@@ -35,7 +35,7 @@
         {#snippet content()}
           <button
             aria-label="Close"
-            class="fixed top-4 right-2 btn preset-filled-primary-500 w-12 h-12 rounded-full z-10"
+            class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
             onclick={() => (modalOpen = false)}
           >
             <i class="fa-solid fa-xmark"></i>
@@ -72,7 +72,7 @@
     {#if typeof grade === 'number'}
       <button
         aria-label="Clear"
-        class="btn preset-outlined-surface-500 h-10 w-10 absolute right-0 top-0"
+        class="btn preset-outlined-surface-500 absolute top-0 right-0 h-10 w-10"
         onclick={(event) => {
           event.preventDefault()
           value = null

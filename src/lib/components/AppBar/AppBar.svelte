@@ -32,7 +32,7 @@
         </Popover>
       </div>
 
-      <div class="hidden md:flex space-x-4 rtl:space-x-reverse">
+      <div class="hidden space-x-4 md:flex rtl:space-x-reverse">
         {@render actions()}
       </div>
     {/if}

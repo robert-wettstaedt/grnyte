@@ -24,7 +24,7 @@
       {#snippet content()}
         <button
           aria-label="Close"
-          class="fixed top-4 right-2 btn preset-filled-primary-500 w-12 h-12 rounded-full z-10"
+          class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
           onclick={() => (modalOpen = false)}
         >
           <i class="fa-solid fa-xmark"></i>
@@ -37,7 +37,7 @@
         <article class="opacity-60">
           <p class="font-semibold">When naming a route, please follow these guidelines:</p>
 
-          <ul class="list-disc list-inside mt-4 space-y-2">
+          <ul class="mt-4 list-inside list-disc space-y-2">
             <li>Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content</li>
             <li>Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content</li>
             <li>Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content</li>

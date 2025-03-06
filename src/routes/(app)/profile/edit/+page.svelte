@@ -17,25 +17,25 @@
 </AppBar>
 
 {#if form?.success}
-  <aside class="card preset-tonal-success my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-success my-8 p-2 whitespace-pre-line md:p-4">
     <p>{form.success}</p>
   </aside>
 {/if}
 
 {#if page.url.searchParams.get('message') != null}
-  <aside class="card preset-tonal-success my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-success my-8 p-2 whitespace-pre-line md:p-4">
     <p>{page.url.searchParams.get('message')}</p>
   </aside>
 {/if}
 
 {#if page.url.searchParams.get('error_description') != null}
-  <aside class="card preset-tonal-error my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-error my-8 p-2 whitespace-pre-line md:p-4">
     <p>{page.url.searchParams.get('error_description')}</p>
   </aside>
 {/if}
 
 {#if page.data.session?.user.email_confirmed_at == null}
-  <aside class="card preset-tonal-warning my-8 p-2 md:p-4 whitespace-pre-line">
+  <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
     <p>Your email address is not confirmed. Please check your email for a confirmation link.</p>
   </aside>
 {/if}
@@ -66,7 +66,7 @@
     />
   </label>
 
-  <div class="flex justify-between mt-4">
+  <div class="mt-4 flex justify-between">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit">Save profile</button>
   </div>
