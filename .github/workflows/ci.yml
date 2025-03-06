@@ -3,14 +3,33 @@ name: CI
 on:
   push:
     branches:
-      - '**' # This will trigger the workflow on push to any branch
+      - "**" # This will trigger the workflow on push to any branch
   pull_request:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      NEXTCLOUD_URL: foobar
+      PUBLIC_TOPO_EMAIL: foobar
+      RESEND_SENDER_EMAIL: foobar
+      RESEND_RECIPIENT_EMAIL: foobar
+      RESEND_API_KEY: foobar
+      UPSTASH_REDIS_REST_URL: foobar
+      UPSTASH_REDIS_REST_TOKEN: foobar
+      PUBLIC_APPLICATION_NAME: foobar
+      PUBLIC_DEMO_MODE: foobar
+      PUBLIC_SUPABASE_URL: foobar
+      PUBLIC_SUPABASE_ANON_KEY: foobar
+      DATABASE_URL: foobar
+      NEXTCLOUD_USER_NAME: foobar
+      NEXTCLOUD_USER_PASSWORD: foobar
+      BUNNY_STREAM_API_KEY: foobar
+      PUBLIC_BUNNY_STREAM_LIBRARY_ID: foobar
+      PUBLIC_BUNNY_STREAM_HOSTNAME: foobar
 
     steps:
       - name: Checkout code
@@ -19,7 +38,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm install
