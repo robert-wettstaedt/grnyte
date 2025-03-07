@@ -13,6 +13,7 @@
 <script lang="ts">
   import type { Area, Block, Geolocation } from '$lib/db/schema'
   import type { NestedArea } from '$lib/db/types'
+  import { getDistance } from '$lib/geometry'
   import Feature, { type FeatureLike } from 'ol/Feature.js'
   import OlMap from 'ol/Map.js'
   import View from 'ol/View.js'
@@ -475,15 +476,12 @@
       )
 
       if (isRootMap) {
-        const sorted = coordinates.toSorted((a, b) => {
-          return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2))
-        })
+        const sorted = coordinates.toSorted((a, b) => getDistance({ x: a[0], y: a[1] }, { x: b[0], y: b[1] }))
         const median = sorted[Math.floor(sorted.length / 2)]
 
-        const filtered = coordinates.filter((coordinate) => {
-          const distance = Math.sqrt(Math.pow(coordinate[0] - median[0], 2) + Math.pow(coordinate[1] - median[1], 2))
-          return distance < 200_000
-        })
+        const filtered = coordinates.filter(
+          (coordinate) => getDistance({ x: coordinate[0], y: coordinate[1] }, { x: median[0], y: median[1] }) < 200_000,
+        )
 
         const extent = boundingExtent(filtered)
 

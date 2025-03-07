@@ -16,6 +16,7 @@
 
 <script lang="ts">
   import RouteName from '$lib/components/RouteName'
+  import { getDistance } from '$lib/geometry'
   import type { PointDTO, TopoDTO, TopoRouteDTO } from '$lib/topo'
   import * as d3 from 'd3'
   import { onMount, type Snippet } from 'svelte'
@@ -99,7 +100,7 @@
 
       const closePoint = topos
         .flatMap((topo) => topo.routes.flatMap((route) => route.points))
-        .map((p) => ({ point: p, distance: Math.sqrt(Math.pow(p.x - point.x, 2) + Math.pow(p.y - point.y, 2)) }))
+        .map((p) => ({ point: p, distance: getDistance(p, point) }))
         .sort((a, b) => a.distance - b.distance)
         .at(0)
 

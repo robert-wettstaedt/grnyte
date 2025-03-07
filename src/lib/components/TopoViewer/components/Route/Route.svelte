@@ -4,11 +4,11 @@
   export interface Line {
     from: Coordinates
     to: Coordinates
-    length: number
   }
 </script>
 
 <script lang="ts">
+  import { getDistance } from '$lib/geometry'
   import { type PointDTO, type TopoRouteDTO } from '$lib/topo'
   import * as d3 from 'd3'
   import { onMount } from 'svelte'
@@ -139,10 +139,7 @@
             const closePoint = routes
               .flatMap((route) => route.points)
               .filter((p) => p.id !== points[0].id)
-              .map((p) => ({
-                point: p,
-                distance: Math.sqrt(Math.pow(p.x - points[0].x, 2) + Math.pow(p.y - points[0].y, 2)),
-              }))
+              .map((p) => ({ point: p, distance: getDistance(p, points[0]) }))
               .sort((a, b) => a.distance - b.distance)
               .at(0)
 
