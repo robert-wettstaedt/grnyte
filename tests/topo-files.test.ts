@@ -29,6 +29,10 @@ vi.mock('$lib/nextcloud/nextcloud.server', () => {
   }
 })
 
+vi.mock('$lib/cache.server', () => ({
+  invalidateCache: vi.fn(),
+}))
+
 vi.mock('sharp', () => ({
   default: vi.fn(),
 }))

@@ -118,9 +118,6 @@ export const actions = {
           parentEntityId: String(block.areaFk),
           parentEntityType: 'area',
         })
-
-        // Invalidate cache after successful update
-        await invalidateCache('layout', 'blocks')
       } catch (exception) {
         // Handle any exceptions that occur during the update
         return fail(404, { ...values, error: convertException(exception) })
