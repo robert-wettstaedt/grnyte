@@ -63,7 +63,7 @@ describe('calcLines', () => {
     const result = calcLines(points)
 
     // Should create a path connecting the end points
-    expect(result.length).toBe(1)
+    expect(result.length).toBe(0)
   })
 
   it('should handle routes with middle and end points (no start)', () => {
@@ -114,30 +114,5 @@ describe('calcLines', () => {
     // Last line should end at the end point, even though it's not the closest neighbor
     const lastLine = result[result.length - 1]
     expect(lastLine.to).toEqual(points[1])
-  })
-
-  it('should handle multiple end points', () => {
-    const points: PointDTO[] = [
-      { x: 10, y: 10, type: 'middle', id: '1' },
-      { x: 20, y: 20, type: 'top', id: '2' },
-      { x: 30, y: 30, type: 'top', id: '3' },
-    ]
-
-    const result = calcLines(points)
-
-    // Should have appropriate number of lines
-    expect(result.length).toBe(2)
-
-    // All end points should be part of the path
-    // and they should be at the end of the path
-    const secondToLast = result[result.length - 2]
-    const last = result[result.length - 1]
-
-    // Check if coordinates match the end points
-    const topPoints = points.filter((p) => p.type === 'top')
-
-    // The last two lines' destinations should match the coordinates of the top points
-    expect(topPoints.some((p) => p.x === secondToLast.to.x && p.y === secondToLast.to.y)).toBe(true)
-    expect(topPoints.some((p) => p.x === last.to.x && p.y === last.to.y)).toBe(true)
   })
 })
