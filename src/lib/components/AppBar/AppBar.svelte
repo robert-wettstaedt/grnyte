@@ -43,6 +43,7 @@
   :global(.action-list .btn),
   :global(.action-list > *) {
     background: none;
+    border: none;
     border-radius: 0;
     box-shadow: none;
     font-size: 1rem;
@@ -56,16 +57,18 @@
   }
 
   :global(.action-list > *) {
-    border-bottom: 1px solid;
-    display: flex;
-    padding: 1rem;
+    && {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      padding: 1rem;
+    }
 
     &:hover {
-      background: rgb(var(--color-primary-500) / var(--tw-bg-opacity, 1));
+      background: var(--color-primary-500);
     }
 
     &:last-child {
-      border: none;
+      border-bottom: none !important;
     }
   }
 </style>
