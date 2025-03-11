@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { Modal } from '@skeletonlabs/skeleton-svelte'
   import OlGeolocation from 'ol/Geolocation.js'
   import type Map from 'ol/Map'
@@ -8,6 +9,8 @@
   import { fromLonLat } from 'ol/proj.js'
   import GeolocationMarker from '../../assets/geolocation_marker.png'
   import GeolocationMarkerHeading from '../../assets/geolocation_marker_heading.png'
+
+  const STORAGE_KEY = `[${PUBLIC_APPLICATION_NAME}].geolocation`
 
   interface Props {
     map: Map | undefined | null
@@ -63,6 +66,7 @@
       isGeolocationError = true
       modalOpen = true
       isTrackingGeolocation = false
+      sessionStorage.removeItem(STORAGE_KEY)
     })
 
     map.on('pointerdrag', () => {
@@ -70,7 +74,7 @@
     })
   }
 
-  const geolocate = async () => {
+  const geolocate = async (moveMap: boolean) => {
     let position: Coordinate | undefined
 
     if (geolocation.getTracking()) {
@@ -83,18 +87,28 @@
     }
 
     if (position != null) {
-      isTrackingGeolocation = true
+      sessionStorage.setItem(STORAGE_KEY, 'true')
       isGeolocationError = false
-      map?.getView().animate({ center: fromLonLat(position), zoom: 18, duration: 100 })
+
+      if (moveMap) {
+        isTrackingGeolocation = true
+        map?.getView().animate({ center: fromLonLat(position), zoom: 18, duration: 100 })
+      }
     }
   }
 
   $effect(() => {
     map != null && createGeolocation(map)
   })
+
+  $effect(() => {
+    if (sessionStorage.getItem(STORAGE_KEY) != null) {
+      geolocate(false)
+    }
+  })
 </script>
 
-<button aria-label="Geolocate" onclick={geolocate} title="Geolocate" type="button">
+<button aria-label="Geolocate" onclick={() => geolocate(true)} title="Geolocate" type="button">
   <i
     class="fa-solid fa-location-crosshairs text-sm {isTrackingGeolocation
       ? 'text-primary-500'
