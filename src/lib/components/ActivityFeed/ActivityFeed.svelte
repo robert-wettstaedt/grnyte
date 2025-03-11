@@ -180,28 +180,30 @@
                     </p>
 
                     {#if group.items.some((activity) => activity.entity.type === 'ascent' && activity.entity.object?.files != null && activity.entity.object.files.length > 0)}
-                      <div class="mt-4">
-                        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-                          {#each getUniqueFiles(group) as file}
-                            {#if file.stat != null}
-                              {@const ascentActivity = findAscentForFile(group, file.id)}
+                      <div
+                        class="mt-4 grid gap-3 {getUniqueFiles(group).length === 1
+                          ? 'grid-cols-1 md:grid-cols-2'
+                          : 'grid-cols-2 md:grid-cols-4'}"
+                      >
+                        {#each getUniqueFiles(group) as file}
+                          {#if file.stat != null}
+                            {@const ascentActivity = findAscentForFile(group, file.id)}
 
-                              <FileViewer
-                                {file}
-                                stat={file.stat}
-                                readOnly={!page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                                  ascentActivity?.entity.object?.createdBy !== page.data.user?.id}
-                                onDelete={() => {
-                                  if (ascentActivity?.entity.object != null) {
-                                    ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(
-                                      (f) => f.id !== file.id,
-                                    )
-                                  }
-                                }}
-                              />
-                            {/if}
-                          {/each}
-                        </div>
+                            <FileViewer
+                              {file}
+                              stat={file.stat}
+                              readOnly={!page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                                ascentActivity?.entity.object?.createdBy !== page.data.user?.id}
+                              onDelete={() => {
+                                if (ascentActivity?.entity.object != null) {
+                                  ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(
+                                    (f) => f.id !== file.id,
+                                  )
+                                }
+                              }}
+                            />
+                          {/if}
+                        {/each}
                       </div>
                     {/if}
 

@@ -279,9 +279,9 @@
 
       {#if activity.entity.object.files.length > 0}
         <div
-          class="grid {activity.entity.object.files.length === 1
+          class="mt-4 grid gap-3 {activity.entity.object.files.length === 1
             ? 'grid-cols-1 md:grid-cols-2'
-            : 'grid-cols-2 md:grid-cols-4'} mt-4 gap-3"
+            : 'grid-cols-2 md:grid-cols-4'}"
         >
           {#each activity.entity.object.files as file}
             {#if file.stat != null}
