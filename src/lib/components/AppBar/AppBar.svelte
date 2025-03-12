@@ -20,7 +20,7 @@
           contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
           zIndex="50"
           positioning={{ placement: 'bottom-end' }}
-          triggerBase="btn preset-outlined-primary-500"
+          triggerBase="btn-icon preset-outlined-primary-500"
         >
           {#snippet trigger()}
             <i class="fa-solid fa-ellipsis-vertical"></i>

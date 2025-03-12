@@ -78,7 +78,9 @@
   />
 
   <div class="mt-8 flex justify-between">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+    <div>
+      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+    </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
       {#if page.data.session?.user?.id === data.ascent.author.authUserFk || data.userPermissions?.includes(DELETE_PERMISSION)}
