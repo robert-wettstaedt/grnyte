@@ -13,6 +13,10 @@
 <AppBar {...props} leadClasses="flex-wrap" toolbarClasses="items-center">
   {#snippet trail()}
     {#if actions != null && hasActions}
+      <div class="hidden space-x-4 md:flex rtl:space-x-reverse">
+        {@render actions()}
+      </div>
+
       <div class="md:hidden">
         <Popover
           arrow
@@ -30,10 +34,6 @@
             <article class="action-list flex flex-wrap">{@render actions()}</article>
           {/snippet}
         </Popover>
-      </div>
-
-      <div class="hidden space-x-4 md:flex rtl:space-x-reverse">
-        {@render actions()}
       </div>
     {/if}
   {/snippet}

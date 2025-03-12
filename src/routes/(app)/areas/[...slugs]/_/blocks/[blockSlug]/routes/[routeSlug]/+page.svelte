@@ -364,7 +364,7 @@
                   <dd class="mt-1 flex gap-1">
                     {#each data.route.tags as tag}
                       <span class="chip preset-filled-surface-900-100">
-                        <i class="fa-solid fa-tag me-2"></i>
+                        <i class="fa-solid fa-tag"></i>
                         {tag.tagFk}
                       </span>
                     {/each}
