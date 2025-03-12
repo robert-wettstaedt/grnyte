@@ -38,7 +38,6 @@
   allowCustomValue
   contentClasses="max-h-[200px] md:max-h-[400px] overflow-auto"
   data={availableOptions}
-  name="climberName"
   onValueChange={(event) => (value = [...(value ?? []), ...event.value])}
   placeholder="Search..."
 />
