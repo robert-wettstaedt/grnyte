@@ -141,13 +141,13 @@
   }
 
   const onPrevTopo = () => {
-    selectedTopoIndex = Math.max(selectedTopoIndex - 1, 0)
     selectedRouteStore.set(null)
+    selectedTopoIndex = Math.max(selectedTopoIndex - 1, 0)
   }
 
   const onNextTopo = () => {
-    selectedTopoIndex = Math.min(selectedTopoIndex + 1, topos.length - 1)
     selectedRouteStore.set(null)
+    selectedTopoIndex = Math.min(selectedTopoIndex + 1, topos.length - 1)
   }
 
   const getDimensions = () => {
@@ -250,11 +250,11 @@
     })
     imgWrapper != null && observer.observe(imgWrapper)
 
-    const unsubscribe = selectedRouteStore.subscribe(() => {
+    const unsubscribe = selectedRouteStore.subscribe((value) => {
       $selectedPointTypeStore = null
       selectedPoint = undefined
 
-      const toposWithRoute = topos.filter((topo) => topo.routes.some((route) => route.routeFk === $selectedRouteStore))
+      const toposWithRoute = topos.filter((topo) => topo.routes.some((route) => route.routeFk === value))
 
       if (toposWithRoute.length === 1) {
         const index = topos.findIndex((topo) => topo.id === toposWithRoute.at(0)?.id)
