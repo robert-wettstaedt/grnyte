@@ -10,16 +10,16 @@
   let { userPermissions }: Props = $props()
 </script>
 
-<Navigation.Tile href="/areas" label="Areas" selected={page.url.pathname.startsWith('/areas')}>
-  <i class="fa-solid fa-layer-group"></i>
+<Navigation.Tile href="/" label="Home" selected={page.url.pathname === '/'}>
+  <i class="fa-solid fa-house"></i>
+</Navigation.Tile>
+
+<Navigation.Tile href="/areas" label="Browse" selected={page.url.pathname.startsWith('/areas')}>
+  <i class="fa-solid fa-globe"></i>
 </Navigation.Tile>
 
 <Navigation.Tile href="/feed" label="Feed" selected={page.url.pathname.startsWith('/feed')}>
   <i class="fa-solid fa-square-poll-horizontal"></i>
-</Navigation.Tile>
-
-<Navigation.Tile href="/routes" label="Routes" selected={page.url.pathname.startsWith('/routes')}>
-  <i class="fa-solid fa-route"></i>
 </Navigation.Tile>
 
 <Navigation.Tile href="/search" label="Search" selected={page.url.pathname.startsWith('/search')}>
@@ -31,3 +31,7 @@
     <i class="fa-solid fa-tags"></i>
   </Navigation.Tile>
 {/if}
+
+<Navigation.Tile href="/settings" label="Settings" selected={page.url.pathname.startsWith('/settings')}>
+  <i class="fa-solid fa-gear"></i>
+</Navigation.Tile>

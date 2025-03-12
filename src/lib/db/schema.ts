@@ -1,3 +1,4 @@
+import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
 import { relations, sql } from 'drizzle-orm'
 import {
@@ -18,7 +19,6 @@ import {
 import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
 import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '../auth'
 import { createBasicTablePolicies, getAuthorizedPolicyConfig, getOwnEntryPolicyConfig, getPolicyConfig } from './policy'
-import { createId as createCuid2 } from '@paralleldrive/cuid2'
 
 export const generateSlug = (name: string): string =>
   name
@@ -845,4 +845,38 @@ export type InsertActivity = InferInsertModel<typeof activities>
 
 export const activitiesRelations = relations(activities, ({ one }) => ({
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
+}))
+
+export const pushSubscriptions = table(
+  'push_subscriptions',
+  {
+    id: baseFields.id,
+
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+
+    endpoint: text('endpoint').notNull(),
+    expirationTime: integer('expiration_time'),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+  },
+  (table) => [
+    policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert')),
+    policy(`users can read own push_subscriptions`, getOwnEntryPolicyConfig('select')),
+    policy(`users can update own push_subscriptions`, getOwnEntryPolicyConfig('update')),
+    index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
+    index('push_subscriptions_user_fk_idx').on(table.userFk),
+  ],
+).enableRLS()
+
+export type PushSubscription = InferSelectModel<typeof pushSubscriptions>
+export type InsertPushSubscription = InferInsertModel<typeof pushSubscriptions>
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
+  user: one(users, { fields: [pushSubscriptions.userFk], references: [users.id] }),
 }))

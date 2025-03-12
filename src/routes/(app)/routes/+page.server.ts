@@ -1,6 +1,6 @@
-import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
+import { redirect } from '@sveltejs/kit'
 import type { PageServerLoad } from './$types'
 
-export const load = (async (event) => {
-  return routesFilterLoad(event)
+export const load = (async () => {
+  redirect(301, '/areas#routes')
 }) satisfies PageServerLoad

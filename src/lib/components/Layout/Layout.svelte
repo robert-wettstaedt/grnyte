@@ -99,12 +99,6 @@
     </Navigation.Bar>
 
     <Navigation.Rail base="hidden md:block fixed top-[68px] h-screen">
-      {#snippet header()}
-        <Navigation.Tile href="/" label="Home">
-          <i class="fa-solid fa-house"></i>
-        </Navigation.Tile>
-      {/snippet}
-
       {#snippet tiles()}
         <NavTiles userPermissions={page.data.userPermissions} />
       {/snippet}
