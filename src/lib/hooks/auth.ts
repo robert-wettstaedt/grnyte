@@ -46,6 +46,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
         userSettings: {
           columns: {
             gradingScale: true,
+            notifyNewUsers: true,
+            notifyNewAscents: true,
           },
         },
       },
@@ -91,7 +93,8 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     event.locals.session == null &&
     event.url.pathname !== '/' &&
     !event.url.pathname.startsWith('/auth') &&
-    !event.url.pathname.startsWith('/f/')
+    !event.url.pathname.startsWith('/f/') &&
+    !event.url.pathname.startsWith('/api/notifications')
   ) {
     redirect(303, '/auth')
   }

@@ -1,0 +1,11 @@
+{
+  "name": "notify-activities",
+  "version": "1",
+  "description": "Batch and send notifications for recent activities",
+  "schedules": [
+    {
+      "cron": "*/5 * * * *",
+      "timezone": "UTC"
+    }
+  ]
+}

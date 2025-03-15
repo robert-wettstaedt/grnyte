@@ -1,4 +1,6 @@
-import { PUBLIC_VAPID_KEY } from '$env/static/public'
+import { PUBLIC_APPLICATION_NAME, PUBLIC_VAPID_KEY } from '$env/static/public'
+
+export const STORAGE_KEY = `[${PUBLIC_APPLICATION_NAME}].pushSubscriptionId`
 
 export const isSupported = () => {
   return 'serviceWorker' in navigator && 'PushManager' in window
@@ -17,7 +19,7 @@ export const isSubscribed = async () => {
     const registration = await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.getSubscription()
 
-    return subscription != null
+    return subscription != null && localStorage.getItem(STORAGE_KEY) != null
   } catch (error) {
     console.error('Error checking subscription status:', error)
     return false
@@ -42,13 +44,15 @@ export const subscribe = async () => {
   // Check if we already have a subscription
   let subscription = await registration.pushManager.getSubscription()
 
-  if (subscription == null) {
-    // Convert base64 string to Uint8Array for the applicationServerKey
-    const applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-
-    // Create the subscription
-    subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })
+  if (subscription != null) {
+    await subscription.unsubscribe()
   }
+
+  // Convert base64 string to Uint8Array for the applicationServerKey
+  const applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+
+  // Create the subscription
+  subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })
 
   if (subscription == null) {
     throw new Error('Failed to subscribe to push notifications')

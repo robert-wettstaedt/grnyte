@@ -1,21 +1,32 @@
 <script lang="ts">
+  import { applyAction, enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import AppBar from '$lib/components/AppBar'
-  import { Switch } from '@skeletonlabs/skeleton-svelte'
   import PushNotificationSubscriber, { isSubscribed, isSupported } from '$lib/components/PushNotificationSubscriber'
+  import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
-  const { form } = $props()
+  let { form } = $props()
 
   let isPushSubscribed = $state(false)
+  let formEl: HTMLFormElement | undefined = $state(undefined)
+  let loading = $state(false)
+
+  let notifyNewUsers = $state(false)
+  let notifyNewAscents = $state(false)
+
+  $effect(() => {
+    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? page.data.user?.userSettings?.notifyNewUsers ?? false
+    notifyNewAscents = (form?.notifyNewAscents as boolean) ?? page.data.user?.userSettings?.notifyNewAscents ?? false
+  })
 
   onMount(async () => {
     isPushSubscribed = await isSubscribed()
   })
 </script>
 
-<AppBar>
+<AppBar classes="mx-auto max-w-lg">
   {#snippet lead()}
     Hello {page.data.user?.username ?? ''}
   {/snippet}
@@ -103,18 +114,50 @@
   <section class="w-full space-y-5">
     <PushNotificationSubscriber />
 
-    <ul>
-      <li class="flex items-center justify-between gap-4 p-2">
-        <p>New users</p>
+    <form
+      action="?/notifications"
+      bind:this={formEl}
+      method="post"
+      use:enhance={async () => {
+        loading = true
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        return ({ result }) => {
+          loading = false
+          return applyAction(result)
+        }
+      }}
+    >
+      <ul>
+        <li class="flex items-center justify-between gap-4 p-2">
+          <p>New users</p>
 
-        <Switch disabled={!isPushSubscribed} name="ascents" />
-      </li>
+          <Switch
+            checked={notifyNewUsers}
+            disabled={!isPushSubscribed || loading}
+            onCheckedChange={(details) => {
+              formEl?.requestSubmit()
+              console.log('notifyNewUsers', details)
+              notifyNewUsers = details.checked
+            }}
+            name="notifyNewUsers"
+          />
+        </li>
 
-      <li class="flex items-center justify-between gap-4 p-2">
-        <p>New ascents</p>
+        <li class="flex items-center justify-between gap-4 p-2">
+          <p>New ascents</p>
 
-        <Switch disabled={!isPushSubscribed} name="ascents" />
-      </li>
-    </ul>
+          <Switch
+            checked={notifyNewAscents}
+            disabled={!isPushSubscribed || loading}
+            onCheckedChange={(details) => {
+              formEl?.requestSubmit()
+              console.log('notifyNewAscents')
+              notifyNewAscents = details.checked
+            }}
+            name="notifyNewAscents"
+          />
+        </li>
+      </ul>
+    </form>
   </section>
 </div>

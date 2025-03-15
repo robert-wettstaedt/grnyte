@@ -1,8 +1,21 @@
 import { PRIVATE_VAPID_KEY } from '$env/static/private'
 import { PUBLIC_TOPO_EMAIL, PUBLIC_VAPID_KEY } from '$env/static/public'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { pushSubscriptions } from '$lib/db/schema'
+import { pushSubscriptions, userSettings } from '$lib/db/schema'
 import { convertException } from '$lib/errors.js'
+import {
+  notificationsActionSchema,
+  pushSubscriptionSchema,
+  subscribePushSubscriptionActionSchema,
+  unsubscribePushSubscriptionActionSchema,
+  validateFormData,
+  validateObject,
+  type ActionFailure,
+  type NotificationsActionValues,
+  type PushSubscription,
+  type SubscribePushSubscriptionActionValues,
+  type UnsubscribePushSubscriptionActionValues,
+} from '$lib/forms.server'
 import { fail } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import webpush from 'web-push'
@@ -18,22 +31,38 @@ export const actions = {
         return fail(404)
       }
 
-      const formData = await request.formData()
-      const subscription = formData.get('subscription')
+      // Retrieve form data from the request
+      const data = await request.formData()
+      let values: SubscribePushSubscriptionActionValues
+      let subscription: PushSubscription
 
-      if (typeof subscription !== 'string') {
-        return fail(400)
+      try {
+        // Validate the form data
+        values = await validateFormData(subscribePushSubscriptionActionSchema, data)
+        subscription = await validateObject(pushSubscriptionSchema, JSON.parse(values.subscription))
+      } catch (exception) {
+        // If validation fails, return the exception as BlockActionFailure
+        return exception as ActionFailure<SubscribePushSubscriptionActionValues>
       }
 
       try {
-        const subscriptionObject = JSON.parse(subscription)
+        if (values.pushSubscriptionId != null) {
+          await db
+            .delete(pushSubscriptions)
+            .where(
+              and(
+                eq(pushSubscriptions.id, values.pushSubscriptionId),
+                eq(pushSubscriptions.authUserFk, locals.user.authUserFk),
+              ),
+            )
+        }
 
         const [result] = await db
           .insert(pushSubscriptions)
           .values({
             authUserFk: locals.user.authUserFk,
             userFk: locals.user.id,
-            ...subscriptionObject,
+            ...subscription,
           })
           .returning({ id: pushSubscriptions.id })
 
@@ -52,19 +81,23 @@ export const actions = {
         return fail(404)
       }
 
-      const formData = await request.formData()
-      const pushSubscriptionId = formData.get('pushSubscriptionId')
-      const pushSubscriptionIdNum = Number(pushSubscriptionId)
+      // Retrieve form data from the request
+      const data = await request.formData()
+      let values: UnsubscribePushSubscriptionActionValues
 
-      if (pushSubscriptionId == null || Number.isNaN(pushSubscriptionIdNum)) {
-        return fail(400)
+      try {
+        // Validate the form data
+        values = await validateFormData(unsubscribePushSubscriptionActionSchema, data)
+      } catch (exception) {
+        // If validation fails, return the exception as BlockActionFailure
+        return exception as ActionFailure<UnsubscribePushSubscriptionActionValues>
       }
 
       await db
         .delete(pushSubscriptions)
         .where(
           and(
-            eq(pushSubscriptions.id, pushSubscriptionIdNum),
+            eq(pushSubscriptions.id, values.pushSubscriptionId),
             eq(pushSubscriptions.authUserFk, locals.user.authUserFk),
           ),
         )
@@ -95,6 +128,41 @@ export const actions = {
           ),
         ),
       )
+    })
+  },
+
+  notifications: async ({ locals, request }) => {
+    const rls = await createDrizzleSupabaseClient(locals.supabase)
+
+    return await rls(async (db) => {
+      if (locals.user == null) {
+        return fail(404)
+      }
+
+      const data = await request.formData()
+      let values: NotificationsActionValues
+
+      try {
+        // Validate the form data
+        values = await validateFormData(notificationsActionSchema, data)
+      } catch (exception) {
+        // If validation fails, return the exception as BlockActionFailure
+        return exception as ActionFailure<NotificationsActionValues>
+      }
+
+      const [result] = await db
+        .update(userSettings)
+        .set({
+          notifyNewUsers: values.notifyNewUsers === 'on',
+          notifyNewAscents: values.notifyNewAscents === 'on',
+        })
+        .where(eq(userSettings.authUserFk, locals.user.authUserFk))
+        .returning({
+          notifyNewUsers: userSettings.notifyNewUsers,
+          notifyNewAscents: userSettings.notifyNewAscents,
+        })
+
+      return result
     })
   },
 }

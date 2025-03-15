@@ -246,3 +246,28 @@ export const validatePassword = (data: PasswordActionValues) => {
     return 'Passwords must match'
   }
 }
+
+export const subscribePushSubscriptionActionSchema = z.object({
+  pushSubscriptionId: z.number().nullable().optional(),
+  subscription: z.string(),
+})
+export type SubscribePushSubscriptionActionValues = z.infer<typeof subscribePushSubscriptionActionSchema>
+
+export const unsubscribePushSubscriptionActionSchema = z.object({
+  pushSubscriptionId: z.number(),
+})
+export type UnsubscribePushSubscriptionActionValues = z.infer<typeof unsubscribePushSubscriptionActionSchema>
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.string(),
+  expirationTime: z.number().nullable().optional(),
+  p256dh: z.string(),
+  auth: z.string(),
+})
+export type PushSubscription = z.infer<typeof pushSubscriptionSchema>
+
+export const notificationsActionSchema = z.object({
+  notifyNewUsers: z.string().nullable().optional(),
+  notifyNewAscents: z.string().nullable().optional(),
+})
+export type NotificationsActionValues = z.infer<typeof notificationsActionSchema>

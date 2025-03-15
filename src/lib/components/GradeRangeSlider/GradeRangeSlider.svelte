@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { onMount } from 'svelte'
 
   interface Values {
     minGrade: number
@@ -17,8 +16,8 @@
     onchange,
   }: Props = $props()
 
-  let minUserGrade = $derived(page.data.grades[minGrade][page.data.gradingScale])
-  let maxUserGrade = $derived(page.data.grades[maxGrade][page.data.gradingScale])
+  let minUserGrade = $derived(minGrade == null ? null : page.data.grades[minGrade][page.data.gradingScale])
+  let maxUserGrade = $derived(maxGrade == null ? null : page.data.grades[maxGrade][page.data.gradingScale])
   let minInput = $state<HTMLInputElement>()
   let maxInput = $state<HTMLInputElement>()
   let rangeElement = $state<HTMLDivElement>()

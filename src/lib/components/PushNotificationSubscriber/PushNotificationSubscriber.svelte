@@ -1,12 +1,9 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { applyAction, enhance } from '$app/forms'
   import { convertException } from '$lib/errors'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
-  import { isSubscribed, isSupported, subscribe, unsubscribe } from './lib'
-
-  const STORAGE_KEY = `[${PUBLIC_APPLICATION_NAME}].pushSubscriptionId`
+  import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
 
   const supported = isSupported()
   let subscribed = $state(false)
@@ -37,22 +34,28 @@
             }
           }, 10_000)
 
-          await unsubscribe()
+          try {
+            await unsubscribe()
+          } catch (exception) {
+            errorMessage = convertException(exception)
+          }
+
           resolved = true
           subscribed = false
           const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
-          if (pushSubscriptionId) {
-            formData.set('pushSubscriptionId', pushSubscriptionId)
+          localStorage.removeItem(STORAGE_KEY)
+
+          if (pushSubscriptionId == null) {
+            loading = false
+            return undefined
           }
 
-          return async ({ update, result }) => {
+          formData.set('pushSubscriptionId', pushSubscriptionId)
+
+          return async ({ result }) => {
             loading = false
 
-            if (result.type === 'success') {
-              localStorage.removeItem(STORAGE_KEY)
-            }
-
-            return update()
+            return applyAction(result)
           }
         }}
       >
@@ -88,10 +91,17 @@
           try {
             const subscription = await subscribe()
             formData.set('subscription', JSON.stringify(subscription))
+
+            const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
+            if (pushSubscriptionId) {
+              formData.set('pushSubscriptionId', pushSubscriptionId)
+            }
+
             resolved = true
           } catch (exception) {
-            errorMessage = 'Failed to subscribe to push notifications: ' + convertException(exception)
+            errorMessage = convertException(exception)
             resolved = true
+            loading = false
             return
           }
 

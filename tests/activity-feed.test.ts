@@ -112,8 +112,12 @@ const mockSchemaUser = {
   authUserFk: mockSupabaseUser.id,
   firstAscensionistFk: null,
   userSettingsFk: null,
-  createdAt: new Date().toISOString(),
-  userSettings: { gradingScale: 'FB' },
+  createdAt: new Date(),
+  userSettings: {
+    gradingScale: 'FB',
+    notifyNewUsers: false,
+    notifyNewAscents: false,
+  },
 } satisfies App.SafeSession['user']
 
 const mockLocals = {
@@ -391,7 +395,7 @@ describe('Activity Feed', () => {
       username: 'Other User',
       firstAscensionistFk: null,
       userSettingsFk: null,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     }
 
     const mockRoute = (id: number): Entity => ({
@@ -399,7 +403,7 @@ describe('Activity Feed', () => {
       object: {
         id,
         name: `Route ${id}`,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         description: null,
         slug: `route-${id}`,
         createdBy: 1,
@@ -419,7 +423,7 @@ describe('Activity Feed', () => {
       object: {
         id,
         name: `Block ${id}`,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         slug: `block-${id}`,
         createdBy: 1,
         areaFk: 100,
@@ -433,7 +437,7 @@ describe('Activity Feed', () => {
       object: {
         id,
         name: `Area ${id}`,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         description: null,
         slug: `area-${id}`,
         type: 'area',
@@ -455,7 +459,7 @@ describe('Activity Feed', () => {
           entityType: 'route',
           entityId: '1',
           userFk: 1,
-          createdAt: now.toISOString(),
+          createdAt: now,
           user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntityId: '1', // Same parent block
@@ -465,6 +469,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
         {
           id: 2,
@@ -472,7 +477,7 @@ describe('Activity Feed', () => {
           entityType: 'route',
           entityId: '2',
           userFk: 1,
-          createdAt: oneHourAgo.toISOString(),
+          createdAt: oneHourAgo,
           user: mockSchemaUser,
           entity: mockRoute(2),
           parentEntityId: '1', // Same parent block
@@ -482,6 +487,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
         {
           id: 3,
@@ -489,7 +495,7 @@ describe('Activity Feed', () => {
           entityType: 'route',
           entityId: '3',
           userFk: 1,
-          createdAt: fourHoursAgo.toISOString(),
+          createdAt: fourHoursAgo,
           user: mockSchemaUser,
           entity: mockRoute(3),
           parentEntityId: '2', // Different parent block
@@ -499,6 +505,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
       ]
 
@@ -549,7 +556,7 @@ describe('Activity Feed', () => {
           parentEntityType: 'area',
           parentEntityId: '100',
           userFk: 1,
-          createdAt: now.toISOString(),
+          createdAt: now,
           user: mockSchemaUser,
           entity: mockBlock(1),
           parentEntity: mockArea(100),
@@ -557,6 +564,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
         {
           id: 2,
@@ -566,7 +574,7 @@ describe('Activity Feed', () => {
           parentEntityType: 'block',
           parentEntityId: '1',
           userFk: 1,
-          createdAt: fiveMinutesAgo.toISOString(),
+          createdAt: fiveMinutesAgo,
           user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntity: mockBlock(1),
@@ -574,6 +582,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
       ]
 
@@ -593,7 +602,7 @@ describe('Activity Feed', () => {
           entityType: 'route',
           entityId: '1',
           userFk: 1,
-          createdAt: now.toISOString(),
+          createdAt: now,
           user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntityId: null,
@@ -602,6 +611,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
         {
           id: 2,
@@ -609,7 +619,7 @@ describe('Activity Feed', () => {
           entityType: 'route',
           entityId: '1',
           userFk: 2,
-          createdAt: fiveMinutesAgo.toISOString(),
+          createdAt: fiveMinutesAgo,
           user: mockOtherUser,
           entity: mockRoute(1),
           parentEntityId: null,
@@ -618,6 +628,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
       ]
 
@@ -645,7 +656,7 @@ describe('Activity Feed', () => {
           parentEntityType: 'block',
           parentEntityId: '100',
           userFk: 1,
-          createdAt: now.toISOString(),
+          createdAt: now,
           user: mockSchemaUser,
           entity: mockRoute(1),
           parentEntity: mockBlock(100),
@@ -653,6 +664,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
         {
           id: 2,
@@ -662,7 +674,7 @@ describe('Activity Feed', () => {
           parentEntityType: 'block',
           parentEntityId: '100',
           userFk: 1,
-          createdAt: fiveMinutesAgo.toISOString(),
+          createdAt: fiveMinutesAgo,
           user: mockSchemaUser,
           entity: mockRoute(2),
           parentEntity: mockBlock(100),
@@ -670,6 +682,7 @@ describe('Activity Feed', () => {
           oldValue: null,
           newValue: null,
           metadata: null,
+          notified: null,
         },
       ]
 
