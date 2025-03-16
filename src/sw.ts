@@ -4,6 +4,7 @@
 /// <reference lib="esnext" />
 
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -25,17 +26,17 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json()
+    const notification = NotificationSchema.parse(data)
 
-    const options = {
-      body: data.body || 'New notification',
-      icon: data.icon || '/android-chrome-192x192.png',
+    const options: NotificationOptions = {
       badge: '/android-chrome-192x192.png',
-      data: data.data || {},
-      actions: data.actions || [],
-      requireInteraction: data.requireInteraction || false,
+      body: notification.body,
+      data: notification.data,
+      icon: notification.icon ?? '/android-chrome-192x192.png',
+      tag: notification.tag,
     }
 
-    event.waitUntil(self.registration.showNotification(data.title, options))
+    event.waitUntil(self.registration.showNotification(notification.title, options))
   } catch (error) {
     console.error('Error showing notification:', error)
   }
@@ -45,34 +46,26 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   const notification = event.notification
   const action = event.action
-  const data = notification.data
+  const data = NotificationDataSchema.parse(notification.data)
 
   notification.close()
 
-  // If the action is "open", open the URL provided in the data
-  if (action === 'open' && data && data.url) {
-    event.waitUntil(self.clients.openWindow(data.url))
-    return
-  }
-
-  // Handle custom actions
-  if (action && data && data.actions && data.actions[action]) {
-    event.waitUntil(self.clients.openWindow(data.actions[action]))
+  if (action && data && data.pathname) {
+    event.waitUntil(self.clients.openWindow(data.pathname))
     return
   }
 
   // If no specific action, just focus on the app if it's open
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((clientList) => {
-      // If a window is already open, focus it
-      if (clientList.length > 0) {
-        const client = clientList[0]
-        client.focus()
-        return
+    self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(async (windowClients) => {
+      if (windowClients.at(0) == null) {
+        return self.clients.openWindow(data.pathname ?? '/')
+      } else {
+        const url = new URL(windowClients[0].url)
+        url.pathname = data.pathname ?? '/'
+        await windowClients[0].focus()
+        return windowClients[0].navigate(url)
       }
-
-      // Otherwise open a new window
-      self.clients.openWindow('/')
     }),
   )
 })

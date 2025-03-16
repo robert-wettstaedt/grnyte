@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "notify_moderations" boolean DEFAULT false NOT NULL;

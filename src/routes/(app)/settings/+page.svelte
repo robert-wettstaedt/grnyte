@@ -13,12 +13,14 @@
   let formEl: HTMLFormElement | undefined = $state(undefined)
   let loading = $state(false)
 
-  let notifyNewUsers = $state(false)
+  let notifyModerations = $state(false)
   let notifyNewAscents = $state(false)
+  let notifyNewUsers = $state(false)
 
   $effect(() => {
-    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? page.data.user?.userSettings?.notifyNewUsers ?? false
+    notifyModerations = (form?.notifyModerations as boolean) ?? page.data.user?.userSettings?.notifyModerations ?? false
     notifyNewAscents = (form?.notifyNewAscents as boolean) ?? page.data.user?.userSettings?.notifyNewAscents ?? false
+    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? page.data.user?.userSettings?.notifyNewUsers ?? false
   })
 
   onMount(async () => {
@@ -32,7 +34,7 @@
   {/snippet}
 </AppBar>
 
-<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4">
+<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="app-settings">
   <header class="space-y-1">
     <h2 class="h4">App settings</h2>
   </header>
@@ -61,7 +63,7 @@
   </section>
 </div>
 
-<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4">
+<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="user-settings">
   <header class="space-y-1">
     <h2 class="h4">User settings</h2>
   </header>
@@ -101,7 +103,7 @@
   </section>
 </div>
 
-<div class="card preset-filled-surface-100-900 mx-auto mt-8 mb-8 max-w-lg space-y-5 p-4">
+<div class="card preset-filled-surface-100-900 mx-auto mt-8 mb-8 max-w-lg space-y-5 p-4" id="notifications">
   <header class="space-y-1">
     <h2 class="h4">Notification settings</h2>
     {#if isSupported()}
@@ -155,6 +157,21 @@
               notifyNewAscents = details.checked
             }}
             name="notifyNewAscents"
+          />
+        </li>
+
+        <li class="flex items-center justify-between gap-4 p-2">
+          <p>New content updates</p>
+
+          <Switch
+            checked={notifyModerations}
+            disabled={!isPushSubscribed || loading}
+            onCheckedChange={(details) => {
+              formEl?.requestSubmit()
+              console.log('notifyModerations')
+              notifyModerations = details.checked
+            }}
+            name="notifyModerations"
           />
         </li>
       </ul>

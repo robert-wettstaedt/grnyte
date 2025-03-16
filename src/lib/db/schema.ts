@@ -142,8 +142,9 @@ export const userSettings = table(
       .notNull()
       .default('FB'),
 
-    notifyNewUsers: boolean('notify_new_users').notNull().default(false),
+    notifyModerations: boolean('notify_moderations').notNull().default(false),
     notifyNewAscents: boolean('notify_new_ascents').notNull().default(false),
+    notifyNewUsers: boolean('notify_new_users').notNull().default(false),
   },
   (table) => [
     policy(`users can insert own users_settings`, getOwnEntryPolicyConfig('insert')),

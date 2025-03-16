@@ -153,13 +153,15 @@ export const actions = {
       const [result] = await db
         .update(userSettings)
         .set({
-          notifyNewUsers: values.notifyNewUsers === 'on',
+          notifyModerations: values.notifyModerations === 'on',
           notifyNewAscents: values.notifyNewAscents === 'on',
+          notifyNewUsers: values.notifyNewUsers === 'on',
         })
         .where(eq(userSettings.authUserFk, locals.user.authUserFk))
         .returning({
-          notifyNewUsers: userSettings.notifyNewUsers,
+          notifyModerations: userSettings.notifyModerations,
           notifyNewAscents: userSettings.notifyNewAscents,
+          notifyNewUsers: userSettings.notifyNewUsers,
         })
 
       return result

@@ -267,7 +267,8 @@ export const pushSubscriptionSchema = z.object({
 export type PushSubscription = z.infer<typeof pushSubscriptionSchema>
 
 export const notificationsActionSchema = z.object({
-  notifyNewUsers: z.string().nullable().optional(),
+  notifyModerations: z.string().nullable().optional(),
   notifyNewAscents: z.string().nullable().optional(),
+  notifyNewUsers: z.string().nullable().optional(),
 })
 export type NotificationsActionValues = z.infer<typeof notificationsActionSchema>

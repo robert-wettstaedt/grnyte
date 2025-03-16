@@ -13,7 +13,16 @@ declare global {
       user:
         | InferResultType<
             'users',
-            { userSettings: { columns: { gradingScale: true; notifyNewUsers: true; notifyNewAscents: true } } }
+            {
+              userSettings: {
+                columns: {
+                  gradingScale: true
+                  notifyModerations: true
+                  notifyNewAscents: true
+                  notifyNewUsers: true
+                }
+              }
+            }
           >
         | undefined
       userPermissions:

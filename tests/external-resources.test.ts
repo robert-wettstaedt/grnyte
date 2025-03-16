@@ -62,8 +62,9 @@ const mockUserSettings: UserSettings = {
   cookie27crags: 'test-cookie-27crags',
   cookieTheCrag: 'test-cookie-thecrag',
   gradingScale: 'FB',
-  notifyNewUsers: false,
+  notifyModerations: false,
   notifyNewAscents: false,
+  notifyNewUsers: false,
 }
 
 const mockLocals = {
