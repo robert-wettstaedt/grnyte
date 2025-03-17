@@ -1,5 +1,3 @@
-import { PRIVATE_VAPID_KEY } from '$env/static/private'
-import { PUBLIC_TOPO_EMAIL, PUBLIC_VAPID_KEY } from '$env/static/public'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { pushSubscriptions, userSettings } from '$lib/db/schema'
 import { convertException } from '$lib/errors.js'
@@ -16,11 +14,9 @@ import {
   type SubscribePushSubscriptionActionValues,
   type UnsubscribePushSubscriptionActionValues,
 } from '$lib/forms.server'
+import { sendNotificationToSubscription } from '$lib/notifications/notifications.server.js'
 import { fail } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
-import webpush from 'web-push'
-
-webpush.setVapidDetails(`mailto:${PUBLIC_TOPO_EMAIL}`, PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY)
 
 export const actions = {
   subscribe: async ({ locals, request }) => {
@@ -112,19 +108,15 @@ export const actions = {
         return fail(404)
       }
 
-      const results = await db.query.pushSubscriptions.findMany({
+      const userSubscriptions = await db.query.pushSubscriptions.findMany({
         where: eq(pushSubscriptions.authUserFk, locals.user.authUserFk),
       })
 
       await Promise.all(
-        results.map(({ endpoint, expirationTime, auth, p256dh }) =>
-          webpush.sendNotification(
-            { endpoint, keys: { auth, p256dh }, expirationTime },
-            JSON.stringify({
-              title: 'Crag Track Notification',
-              body: 'This is a test notification',
-              icon: '/android-chrome-192x192.png',
-            }),
+        userSubscriptions.map((subscription) =>
+          sendNotificationToSubscription(
+            { title: 'This is a test notification', type: 'moderate', userId: locals.user!.id },
+            subscription,
           ),
         ),
       )

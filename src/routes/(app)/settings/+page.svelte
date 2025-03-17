@@ -2,8 +2,10 @@
   import { applyAction, enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
+  import { modalOpen } from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
   import PushNotificationSubscriber, { isSubscribed, isSupported } from '$lib/components/PushNotificationSubscriber'
+  import { isIOS } from '$lib/features.js'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
@@ -106,10 +108,23 @@
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 mb-8 max-w-lg space-y-5 p-4" id="notifications">
   <header class="space-y-1">
     <h2 class="h4">Notification settings</h2>
+
     {#if isSupported()}
       <p class="opacity-60">Select which notifications you want to receive.</p>
     {:else}
       <p class="text-error-500 opacity-60">Push notifications are not supported by your browser.</p>
+
+      {#if isIOS}
+        <p>
+          <span class="text-warning-500 opacity-60">
+            To request permission to receive push notifications, web apps must first be added to the Home Screen.
+          </span>
+
+          <button class="anchor inline" onclick={() => modalOpen.set(true)}>
+            Show me how <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </p>
+      {/if}
     {/if}
   </header>
 

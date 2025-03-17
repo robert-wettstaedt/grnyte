@@ -11,6 +11,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
   import { READ_PERMISSION } from '$lib/auth'
+  import AddToHomescreen from '$lib/components/AddToHomescreen'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import '@fortawesome/fontawesome-free/css/all.css'
@@ -74,6 +75,7 @@
 
 <div>
   <ProgressBar class="text-secondary-500 !z-[100]" />
+  <AddToHomescreen />
 
   <HeaderBar />
 

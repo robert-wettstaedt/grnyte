@@ -2,7 +2,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ActivityFeed from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
-  import { isSubscribed } from '$lib/components/PushNotificationSubscriber'
+  import { isSubscribed, isSupported } from '$lib/components/PushNotificationSubscriber'
   import { onMount } from 'svelte'
 
   const { data } = $props()
@@ -24,12 +24,17 @@
   {/snippet}
 </AppBar>
 
-{#if !isPushSubscribed}
-  <div class="mx-auto mt-8 flex justify-center">
-    <a class="btn preset-filled-primary-500" href="/settings#notifications"
-      ><i class="fa-solid fa-bell"></i> Enable notifications</a
-    >
-  </div>
+{#if !isPushSubscribed && isSupported()}
+  <aside class="card preset-outlined-secondary-500 mt-4 p-4">
+    <p>Don't miss out on any of the action! Enable notifications to get instant updates.</p>
+
+    <div class="flex justify-end">
+      <a class="btn preset-filled-secondary-500 mt-4" href="/settings#notifications">
+        <i class="fa-solid fa-bell"></i>
+        Enable notifications
+      </a>
+    </div>
+  </aside>
 {/if}
 
 <div class="mt-8">

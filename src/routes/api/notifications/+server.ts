@@ -1,3 +1,4 @@
+import { CRON_API_KEY } from '$env/static/private'
 import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
 import { getVideoThumbnailUrl } from '$lib/bunny'
 import { getParentWith, getQuery, getWhere, postProcessEntity } from '$lib/components/ActivityFeed/load.server'
@@ -10,6 +11,11 @@ import { json } from '@sveltejs/kit'
 import { sub } from 'date-fns'
 import { and, eq, gte, inArray, isNull } from 'drizzle-orm'
 
+const verifyApiKey = (request: Request) => {
+  const apiKey = request.headers.get('x-api-key')
+  return apiKey === CRON_API_KEY
+}
+
 export const GET = async () => {
   const activities = await getActivities()
   const groups = groupActivities(activities)
@@ -18,7 +24,12 @@ export const GET = async () => {
   return json(notifications)
 }
 
-export const POST = () => {
+export const POST = async ({ request }) => {
+  if (!verifyApiKey(request)) {
+    console.log('unauthorized')
+    return new Response('Unauthorized', { status: 401 })
+  }
+
   console.log('hello')
   return new Response('hello')
 }
