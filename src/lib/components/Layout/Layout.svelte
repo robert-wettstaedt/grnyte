@@ -19,8 +19,8 @@
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import { injectAnalytics } from '@vercel/analytics/sveltekit'
   import { onMount, type Snippet } from 'svelte'
-  // import { pwaAssetsHead } from 'virtual:pwa-assets/head'
-  // import { pwaInfo } from 'virtual:pwa-info'
+  import { pwaAssetsHead } from 'virtual:pwa-assets/head'
+  import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.css'
   import HeaderBar from './components/HeaderBar'
 
@@ -28,7 +28,7 @@
 
   let { children }: LayoutProps = $props()
 
-  // let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
+  let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
 
   onMount(() => {
     const value = page.data.supabase?.auth.onAuthStateChange((_, newSession) => {
@@ -62,7 +62,7 @@
   <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
 
-  <!-- {#if pwaAssetsHead.themeColor}
+  {#if pwaAssetsHead.themeColor}
     <meta name="theme-color" content={pwaAssetsHead.themeColor.content} />
   {/if}
 
@@ -70,7 +70,7 @@
     <link {...link} />
   {/each}
 
-  {@html webManifest} -->
+  {@html webManifest}
 </svelte:head>
 
 <div>

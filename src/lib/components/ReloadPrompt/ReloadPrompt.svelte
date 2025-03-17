@@ -1,4 +1,4 @@
-<!-- <script lang="ts">
+<script lang="ts">
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW({
@@ -53,4 +53,4 @@
       </button>
     </div>
   </div>
-{/if} -->
+{/if}
