@@ -47,7 +47,7 @@
 
           if (pushSubscriptionId == null) {
             loading = false
-            return undefined
+            throw new Error()
           }
 
           formData.set('pushSubscriptionId', pushSubscriptionId)
@@ -102,7 +102,7 @@
             errorMessage = convertException(exception)
             resolved = true
             loading = false
-            return
+            throw exception
           }
 
           return async ({ update, result }) => {
@@ -131,6 +131,8 @@
   </div>
 
   {#if errorMessage}
-    <p class="text-red-600">{errorMessage}</p>
+    <aside class="card preset-tonal-error my-4 p-4 whitespace-pre-line">
+      <p>{errorMessage}</p>
+    </aside>
   {/if}
 {/if}

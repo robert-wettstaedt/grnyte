@@ -111,20 +111,18 @@
 
     {#if isSupported()}
       <p class="opacity-60">Select which notifications you want to receive.</p>
+    {:else if isIOS}
+      <p>
+        <span class="text-error-500 opacity-60">
+          To request permission to receive push notifications, web apps must first be added to the Home Screen.
+        </span>
+
+        <button class="anchor inline" onclick={() => modalOpen.set(true)}>
+          Show me how <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </p>
     {:else}
       <p class="text-error-500 opacity-60">Push notifications are not supported by your browser.</p>
-
-      {#if isIOS}
-        <p>
-          <span class="text-warning-500 opacity-60">
-            To request permission to receive push notifications, web apps must first be added to the Home Screen.
-          </span>
-
-          <button class="anchor inline" onclick={() => modalOpen.set(true)}>
-            Show me how <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </p>
-      {/if}
     {/if}
   </header>
 

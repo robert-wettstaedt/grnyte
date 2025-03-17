@@ -54,17 +54,24 @@ export const subscribe = async () => {
   // Create the subscription
   subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })
 
-  if (subscription == null) {
+  const json = subscription?.toJSON()
+
+  if (
+    json?.endpoint == null ||
+    json.endpoint.length === 0 ||
+    json.keys?.p256dh == null ||
+    json.keys?.p256dh.length === 0 ||
+    json.keys.auth == null ||
+    json.keys.auth.length === 0
+  ) {
     throw new Error('Failed to subscribe to push notifications')
   }
-
-  const json = subscription.toJSON()
 
   return {
     endpoint: json.endpoint,
     expirationTime: json.expirationTime,
-    p256dh: json.keys?.p256dh,
-    auth: json.keys?.auth,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth,
   }
 }
 
