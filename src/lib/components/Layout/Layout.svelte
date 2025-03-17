@@ -11,7 +11,6 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
   import { READ_PERMISSION } from '$lib/auth'
-  import AddToHomescreen from '$lib/components/AddToHomescreen'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import '@fortawesome/fontawesome-free/css/all.css'
@@ -75,14 +74,13 @@
 
 <div>
   <ProgressBar class="text-secondary-500 !z-[100]" />
-  <AddToHomescreen />
 
   <HeaderBar />
 
   <main
     class="relative p-2 md:p-4 {page.data.session?.user == null
-      ? 'min-h-[calc(100vh-4.25rem)]'
-      : 'min-h-[calc(100vh-4.25rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-4.25rem)]'}"
+      ? 'min-h-[calc(100vh-3rem)]'
+      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
   >
     <Breadcrumb url={page.url} />
 
@@ -100,7 +98,7 @@
       <NavTiles userPermissions={page.data.userPermissions} />
     </Navigation.Bar>
 
-    <Navigation.Rail base="hidden md:block fixed top-[68px] h-screen">
+    <Navigation.Rail base="hidden md:block fixed top-[48px] h-screen">
       {#snippet tiles()}
         <NavTiles userPermissions={page.data.userPermissions} />
       {/snippet}

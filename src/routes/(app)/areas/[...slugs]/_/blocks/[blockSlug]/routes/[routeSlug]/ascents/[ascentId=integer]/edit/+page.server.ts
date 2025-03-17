@@ -11,6 +11,7 @@ import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
+import { differenceInMinutes } from 'date-fns'
 
 export const load = (async ({ locals, params }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -91,16 +92,18 @@ export const actions = {
 
         await updateRoutesUserData(ascent.route.id, db)
 
-        await createUpdateActivity({
-          db,
-          entityId: String(ascent.id),
-          entityType: 'ascent',
-          newEntity: rest,
-          oldEntity: ascent,
-          userFk: user.id,
-          parentEntityId: String(ascent.route.id),
-          parentEntityType: 'route',
-        })
+        if (ascent.createdBy !== user.id || differenceInMinutes(new Date(), ascent.createdAt) > 60) {
+          await createUpdateActivity({
+            db,
+            entityId: String(ascent.id),
+            entityType: 'ascent',
+            newEntity: rest,
+            oldEntity: ascent,
+            userFk: user.id,
+            parentEntityId: String(ascent.route.id),
+            parentEntityType: 'route',
+          })
+        }
       } catch (exception) {
         return fail(400, { ...values, error: convertException(exception) })
       }

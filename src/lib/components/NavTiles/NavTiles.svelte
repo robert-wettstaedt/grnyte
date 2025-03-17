@@ -15,7 +15,7 @@
 </Navigation.Tile>
 
 <Navigation.Tile href="/areas" label="Browse" selected={page.url.pathname.startsWith('/areas')}>
-  <i class="fa-solid fa-globe"></i>
+  <i class="fa-solid fa-layer-group"></i>
 </Navigation.Tile>
 
 <Navigation.Tile href="/feed" label="Feed" selected={page.url.pathname.startsWith('/feed')}>

@@ -2,9 +2,13 @@
   import { applyAction, enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
-  import { modalOpen } from '$lib/components/AddToHomescreen'
+  import AddToHomescreen from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
-  import PushNotificationSubscriber, { isSubscribed, isSupported } from '$lib/components/PushNotificationSubscriber'
+  import PushNotificationSubscriber, {
+    isSubscribed,
+    isSupported,
+    unsubscribe,
+  } from '$lib/components/PushNotificationSubscriber'
   import { isIOS } from '$lib/features.js'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
@@ -14,7 +18,7 @@
   let isPushSubscribed = $state(false)
   let formEl: HTMLFormElement | undefined = $state(undefined)
   let loading = $state(false)
-
+  let modalOpen = $state(false)
   let notifyModerations = $state(false)
   let notifyNewAscents = $state(false)
   let notifyNewUsers = $state(false)
@@ -28,6 +32,11 @@
   onMount(async () => {
     isPushSubscribed = await isSubscribed()
   })
+
+  const onSignout = async () => {
+    await unsubscribe()
+    page.data.supabase?.auth.signOut()
+  }
 </script>
 
 <AppBar classes="mx-auto max-w-lg">
@@ -94,7 +103,7 @@
       <li class="border-surface-800 border-t">
         <button
           class="hover:preset-tonal-primary flex w-full items-center justify-between gap-4 p-2"
-          onclick={() => page.data.supabase?.auth.signOut()}
+          onclick={onSignout}
         >
           Sign out
 
@@ -112,18 +121,22 @@
     {#if isSupported()}
       <p class="opacity-60">Select which notifications you want to receive.</p>
     {:else if isIOS}
-      <p>
-        <span class="text-error-500 opacity-60">
+      <aside class="card preset-tonal-warning my-4 p-4 whitespace-pre-line">
+        <p>
           To request permission to receive push notifications, web apps must first be added to the Home Screen.
-        </span>
 
-        <button class="anchor inline" onclick={() => modalOpen.set(true)}>
-          Show me how <i class="fa-solid fa-chevron-right"></i>
-        </button>
-      </p>
+          <button class="anchor inline" onclick={() => (modalOpen = true)}>
+            Show me how <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </p>
+      </aside>
     {:else}
-      <p class="text-error-500 opacity-60">Push notifications are not supported by your browser.</p>
+      <aside class="card preset-tonal-error my-4 p-4 whitespace-pre-line">
+        <p>Push notifications are not supported by your browser.</p>
+      </aside>
     {/if}
+
+    <AddToHomescreen {modalOpen} />
   </header>
 
   <section class="w-full space-y-5">

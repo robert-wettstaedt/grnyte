@@ -8,20 +8,15 @@ import * as schema from '$lib/db/schema'
 import type { Notification } from '$lib/notifications'
 import { getGradeTemplateString, sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { json } from '@sveltejs/kit'
-import { sub } from 'date-fns'
+import { differenceInDays, differenceInMinutes, sub } from 'date-fns'
 import { and, eq, gte, inArray, isNull } from 'drizzle-orm'
+
+const QUERY_INTERVAL_MINUTES = 30
+const DEBOUNCE_MINUTES = 5
 
 const verifyApiKey = (request: Request) => {
   const apiKey = request.headers.get('x-api-key')
   return apiKey === CRON_API_KEY
-}
-
-export const GET = async () => {
-  const activities = await getActivities()
-  const groups = groupActivities(activities)
-  const notifications = await createNotifications(groups)
-  await sendNotificationsToAllSubscriptions(notifications, db)
-  return json(notifications)
 }
 
 export const POST = async ({ request }) => {
@@ -30,8 +25,15 @@ export const POST = async ({ request }) => {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  console.log('hello')
-  return new Response('hello')
+  const activities = await getActivities()
+  const groups = groupActivities(activities)
+  const notifications = await createNotifications(groups)
+  await sendNotificationsToAllSubscriptions(notifications, db)
+
+  const notifiedActivityIds = groups.flatMap((group) => group.activities.map((activity) => activity.id))
+  await db.update(schema.activities).set({ notified: true }).where(inArray(schema.activities.id, notifiedActivityIds))
+
+  return json(notifications)
 }
 
 interface Group {
@@ -42,7 +44,7 @@ interface Group {
 }
 
 const getActivities = async () => {
-  const dateFilter = sub(new Date(), { days: 30 })
+  const dateFilter = sub(new Date(), { minutes: QUERY_INTERVAL_MINUTES })
 
   const result = await db.query.activities.findMany({
     where: and(isNull(schema.activities.notified), gte(schema.activities.createdAt, dateFilter)),
@@ -73,13 +75,15 @@ const groupActivities = (activities: schema.Activity[]) => {
     item.activities.push(activity)
   })
 
-  groups = groups.map((group) => {
-    const sorted = group.activities.toSorted((a, b) => {
-      return b.createdAt.getTime() - a.createdAt.getTime()
-    })
+  groups = groups
+    .map((group) => {
+      const sorted = group.activities.toSorted((a, b) => {
+        return b.createdAt.getTime() - a.createdAt.getTime()
+      })
 
-    return { ...group, activities: sorted, date: sorted[0].createdAt }
-  })
+      return { ...group, activities: sorted, date: sorted[0].createdAt }
+    })
+    .filter((group) => group.activities.length > 0 && differenceInMinutes(new Date(), group.date) > DEBOUNCE_MINUTES)
 
   return groups
 }
@@ -129,6 +133,7 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
 
       return (b.gradeFk ?? b.route.userGradeFk ?? -1) - (a.gradeFk ?? a.route.userGradeFk ?? -1)
     })
+    .filter((ascent) => differenceInDays(new Date(), new Date(ascent.dateTime)) <= 2)
     .at(0)
 
   if (ascent == null) {
