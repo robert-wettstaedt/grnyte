@@ -140,7 +140,7 @@
   </header>
 
   <section class="w-full space-y-5">
-    <PushNotificationSubscriber />
+    <PushNotificationSubscriber onChange={async () => (isPushSubscribed = await isSubscribed())} />
 
     <form
       action="?/notifications"

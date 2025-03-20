@@ -5,6 +5,12 @@
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
 
+  interface Props {
+    onChange?: () => void
+  }
+
+  const { onChange }: Props = $props()
+
   const supported = isSupported()
   let subscribed = $state(false)
   let errorMessage = $state('')
@@ -44,6 +50,7 @@
           subscribed = false
           const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
           localStorage.removeItem(STORAGE_KEY)
+          onChange?.()
 
           if (pushSubscriptionId == null) {
             loading = false
@@ -107,6 +114,7 @@
 
           return async ({ update, result }) => {
             loading = false
+            onChange?.()
 
             if (result.type === 'success' && typeof result.data?.subscriptionId === 'number') {
               subscribed = true
