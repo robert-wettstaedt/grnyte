@@ -62,6 +62,9 @@ const mockUserSettings: UserSettings = {
   cookie27crags: 'test-cookie-27crags',
   cookieTheCrag: 'test-cookie-thecrag',
   gradingScale: 'FB',
+  notifyModerations: false,
+  notifyNewAscents: false,
+  notifyNewUsers: false,
 }
 
 const mockLocals = {
@@ -167,7 +170,7 @@ describe('27crags Handler', () => {
       id: 1,
       routeFk: 1,
       createdBy: 1,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
       type: 'flash',
       dateTime: new Date().toISOString(),
       gradeFk: 1,
@@ -229,7 +232,7 @@ describe('8a Handler', () => {
       id: 1,
       routeFk: 1,
       createdBy: 1,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
       type: 'flash',
       dateTime: new Date().toISOString(),
       gradeFk: 1,
@@ -296,7 +299,7 @@ describe('TheCrag Handler', () => {
       id: 1,
       routeFk: 1,
       createdBy: 1,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
       type: 'flash',
       dateTime: new Date().toISOString(),
       gradeFk: 1,

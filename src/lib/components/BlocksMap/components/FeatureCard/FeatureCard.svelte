@@ -1,5 +1,6 @@
 <script lang="ts">
   import Image from '$lib/components/Image'
+  import { isAndroid, isIOS } from '$lib/features'
   import type { FeatureData } from '../../BlocksMap.svelte'
 
   interface Props {
@@ -17,9 +18,6 @@
     const geoUrl = `geo:${coords}`
     const googleMapsUrl = `https://www.google.com/maps?q=${coords}`
     const appleMapsUrl = `maps://maps.apple.com/?q=${coords}`
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isAndroid = /Android/.test(navigator.userAgent)
 
     return isIOS ? appleMapsUrl : isAndroid ? geoUrl : googleMapsUrl
   })

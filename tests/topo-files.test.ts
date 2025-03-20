@@ -49,7 +49,7 @@ const mockBlock = {
   name: 'Test Block',
   slug: 'test-block',
   areaFk: 1,
-  createdAt: new Date().toISOString(),
+  createdAt: new Date(),
   createdBy: 1,
   geolocationFk: null,
 } as Block

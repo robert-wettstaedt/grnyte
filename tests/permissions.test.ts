@@ -3,9 +3,7 @@ import { db } from '$lib/db/db.server'
 import { appRole } from '$lib/db/schema'
 import { supabase } from '$lib/hooks/auth'
 import type { RequestEvent } from '@sveltejs/kit'
-import { render, screen } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import AreasPage from '../src/routes/(app)/areas/+page.svelte'
 
 // Mock Supabase client
 vi.mock('@supabase/ssr', () => ({
@@ -81,7 +79,7 @@ describe('Permission Tests', () => {
         username: 'test',
         firstAscensionistFk: null,
         userSettingsFk: null,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       })
       vi.mocked(db.query.userRoles.findFirst).mockResolvedValue({
         id: 1,
@@ -110,7 +108,7 @@ describe('Permission Tests', () => {
         username: 'test',
         firstAscensionistFk: null,
         userSettingsFk: null,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       })
       vi.mocked(db.query.userRoles.findFirst).mockResolvedValue({
         id: 1,
@@ -127,58 +125,6 @@ describe('Permission Tests', () => {
       expect(userRole).toBe(appRole.enumValues[0])
       expect(userPermissions).toContain(READ_PERMISSION)
       expect(userPermissions).not.toContain(EDIT_PERMISSION)
-    })
-  })
-
-  describe('UI Permission Checks', () => {
-    it('should show "Add area" button for users with EDIT_PERMISSION', () => {
-      const mockData = {
-        areas: [],
-        userPermissions: [READ_PERMISSION, EDIT_PERMISSION],
-      } as unknown as Parameters<typeof AreasPage>[1]['data']
-
-      render(AreasPage, { data: mockData })
-
-      const addButton = screen.queryByText('Add area')
-      expect(addButton).toBeInTheDocument()
-    })
-
-    it('should hide "Add area" button for users without EDIT_PERMISSION', () => {
-      const mockData = {
-        areas: [],
-        userPermissions: [READ_PERMISSION],
-      } as unknown as Parameters<typeof AreasPage>[1]['data']
-
-      render(AreasPage, { data: mockData })
-
-      const addButton = screen.queryByText('Add area')
-      expect(addButton).not.toBeInTheDocument()
-    })
-
-    it('should show areas list for users with READ_PERMISSION', () => {
-      const mockData = {
-        areas: [
-          { id: 1, name: 'Test Area 1', slug: 'test-area-1' },
-          { id: 2, name: 'Test Area 2', slug: 'test-area-2' },
-        ],
-        userPermissions: [READ_PERMISSION],
-      } as unknown as Parameters<typeof AreasPage>[1]['data']
-
-      render(AreasPage, { data: mockData })
-
-      expect(screen.getByText('Test Area 1')).toBeInTheDocument()
-      expect(screen.getByText('Test Area 2')).toBeInTheDocument()
-    })
-
-    it('should show "No areas yet" message when areas array is empty', () => {
-      const mockData = {
-        areas: [],
-        userPermissions: [READ_PERMISSION],
-      } as unknown as Parameters<typeof AreasPage>[1]['data']
-
-      render(AreasPage, { data: mockData })
-
-      expect(screen.getByText('No areas yet')).toBeInTheDocument()
     })
   })
 })

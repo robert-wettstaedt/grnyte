@@ -100,7 +100,7 @@ export default {
 
     return {
       blockFk: -1,
-      createdAt: '',
+      createdAt: new Date(),
       createdBy: -1,
       description: data.description ?? null,
       externalResourcesFk: null,

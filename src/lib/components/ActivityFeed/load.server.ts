@@ -14,7 +14,7 @@ import { and, asc, count, desc, eq, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
 
-const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Activity['entityType']) => {
+export const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Activity['entityType']) => {
   switch (entityType) {
     case 'area':
       return db.query.areas
@@ -31,7 +31,7 @@ const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Acti
   }
 }
 
-const getWhere = (entityType: schema.Activity['entityType'], entityId: schema.Activity['entityId']) => {
+export const getWhere = (entityType: schema.Activity['entityType'], entityId: schema.Activity['entityId']) => {
   switch (entityType) {
     case 'area':
       return eq(schema.areas.id, Number(entityId))
@@ -48,7 +48,7 @@ const getWhere = (entityType: schema.Activity['entityType'], entityId: schema.Ac
   }
 }
 
-const getWith = (
+export const getWith = (
   entityType: schema.Activity['entityType'],
 ): IncludeRelation<'ascents' | 'routes' | 'blocks' | 'areas'> => {
   switch (entityType) {
@@ -59,7 +59,7 @@ const getWith = (
   }
 }
 
-const getParentWith = (
+export const getParentWith = (
   entityType: schema.Activity['parentEntityType'],
 ): IncludeRelation<'routes' | 'blocks' | 'areas'> => {
   const blockWith = { area: buildNestedAreaQuery(2) } as IncludeRelation<'blocks'>
@@ -77,7 +77,7 @@ const getParentWith = (
   }
 }
 
-const postProcessEntity = async (
+export const postProcessEntity = async (
   db: PostgresJsDatabase<typeof schema>,
   entityType: schema.Activity['entityType'],
   object: unknown,
@@ -133,7 +133,6 @@ export const groupActivities = (activities: ActivityDTO[]): ActivityGroup[] => {
   const entityToGroupKey: Map<string, string> = new Map()
 
   for (const activity of activities) {
-    const activityDate = new Date(activity.createdAt)
     const entityKey = `${activity.userFk}-${activity.entityType}-${activity.entityId}`
     const parentKey = activity.parentEntityId
       ? `${activity.userFk}-${activity.parentEntityType}-${activity.parentEntityId}`
@@ -145,7 +144,7 @@ export const groupActivities = (activities: ActivityDTO[]): ActivityGroup[] => {
     // Try to find an existing group that this activity belongs to
     for (const [groupKey, group] of groups.entries()) {
       const firstActivity = group.items[0]
-      const timeDiff = Math.abs(activityDate.getTime() - new Date(firstActivity.createdAt).getTime())
+      const timeDiff = Math.abs(activity.createdAt.getTime() - new Date(firstActivity.createdAt).getTime())
 
       if (activity.userFk === firstActivity.userFk && timeDiff <= config.activityFeed.groupTimeLimit) {
         const firstActivityEntityKey = `${firstActivity.userFk}-${firstActivity.entityType}-${firstActivity.entityId}`
@@ -168,8 +167,8 @@ export const groupActivities = (activities: ActivityDTO[]): ActivityGroup[] => {
 
         if (isConnected) {
           group.items.push(activity)
-          if (activityDate > group.latestDate) {
-            group.latestDate = activityDate
+          if (activity.createdAt > group.latestDate) {
+            group.latestDate = activity.createdAt
             group.entity = activity.entity
             group.parentEntity = activity.parentEntity
           }
@@ -193,7 +192,7 @@ export const groupActivities = (activities: ActivityDTO[]): ActivityGroup[] => {
         user: activity.user,
         parentEntity: activity.parentEntity,
         entity: activity.entity,
-        latestDate: activityDate,
+        latestDate: activity.createdAt,
       })
 
       // Initialize entity to group mappings

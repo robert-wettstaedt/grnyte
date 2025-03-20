@@ -1,7 +1,9 @@
+import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
-import { relations, sql } from 'drizzle-orm'
+import { Many, relations, sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   index,
   integer,
   pgEnum,
@@ -11,6 +13,7 @@ import {
   serial,
   pgTable as table,
   text,
+  timestamp,
   uuid,
   type AnyPgColumn as AnyColumn,
   type PgPolicyConfig,
@@ -18,7 +21,6 @@ import {
 import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
 import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '../auth'
 import { createBasicTablePolicies, getAuthorizedPolicyConfig, getOwnEntryPolicyConfig, getPolicyConfig } from './policy'
-import { createId as createCuid2 } from '@paralleldrive/cuid2'
 
 export const generateSlug = (name: string): string =>
   name
@@ -32,9 +34,7 @@ export const generateSlug = (name: string): string =>
     .replace(/^-|-$/g, '') // Remove leading and trailing hyphens
 
 const baseFields = {
-  createdAt: text('created_at')
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   id: serial('id').primaryKey(),
 }
 
@@ -119,6 +119,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   ascents: many(ascents),
   blocks: many(blocks),
   routes: many(routes),
+  pushSubscriptions: many(pushSubscriptions),
 }))
 
 export const userSettings = table(
@@ -140,6 +141,10 @@ export const userSettings = table(
     gradingScale: text('grading_scale', { enum: ['FB', 'V'] })
       .notNull()
       .default('FB'),
+
+    notifyModerations: boolean('notify_moderations').notNull().default(false),
+    notifyNewAscents: boolean('notify_new_ascents').notNull().default(false),
+    notifyNewUsers: boolean('notify_new_users').notNull().default(false),
   },
   (table) => [
     policy(`users can insert own users_settings`, getOwnEntryPolicyConfig('insert')),
@@ -809,6 +814,7 @@ export const activities = table(
     metadata: text('metadata'), // JSON string containing relevant changes
     oldValue: text('old_value'), // Only populated for 'updated' activities
     newValue: text('new_value'), // Only populated for 'updated' activities
+    notified: boolean('notified'), // Whether this activity has been notified
   },
   (table) => [
     policy(`${READ_PERMISSION} can insert activities`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),
@@ -837,6 +843,7 @@ export const activities = table(
     index('activities_entity_id_idx').on(table.entityId),
     index('activities_entity_type_idx').on(table.entityType),
     index('activities_parent_entity_id_idx').on(table.parentEntityId),
+    index('activities_notified_idx').on(table.notified),
   ],
 ).enableRLS()
 
@@ -845,4 +852,39 @@ export type InsertActivity = InferInsertModel<typeof activities>
 
 export const activitiesRelations = relations(activities, ({ one }) => ({
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
+}))
+
+export const pushSubscriptions = table(
+  'push_subscriptions',
+  {
+    id: baseFields.id,
+
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+
+    endpoint: text('endpoint').notNull(),
+    expirationTime: integer('expiration_time'),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+  },
+  (table) => [
+    policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert')),
+    policy(`users can read own push_subscriptions`, getOwnEntryPolicyConfig('select')),
+    policy(`users can update own push_subscriptions`, getOwnEntryPolicyConfig('update')),
+    policy(`users can delete own push_subscriptions`, getOwnEntryPolicyConfig('delete')),
+    index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
+    index('push_subscriptions_user_fk_idx').on(table.userFk),
+  ],
+).enableRLS()
+
+export type PushSubscription = InferSelectModel<typeof pushSubscriptions>
+export type InsertPushSubscription = InferInsertModel<typeof pushSubscriptions>
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
+  user: one(users, { fields: [pushSubscriptions.userFk], references: [users.id] }),
 }))

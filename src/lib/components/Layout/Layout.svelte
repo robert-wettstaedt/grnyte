@@ -79,8 +79,8 @@
 
   <main
     class="relative p-2 md:p-4 {page.data.session?.user == null
-      ? 'min-h-[calc(100vh-4.25rem)]'
-      : 'min-h-[calc(100vh-4.25rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-4.25rem)]'}"
+      ? 'min-h-[calc(100vh-3rem)]'
+      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
   >
     <Breadcrumb url={page.url} />
 
@@ -98,13 +98,7 @@
       <NavTiles userPermissions={page.data.userPermissions} />
     </Navigation.Bar>
 
-    <Navigation.Rail base="hidden md:block fixed top-[68px] h-screen">
-      {#snippet header()}
-        <Navigation.Tile href="/" label="Home">
-          <i class="fa-solid fa-house"></i>
-        </Navigation.Tile>
-      {/snippet}
-
+    <Navigation.Rail base="hidden md:block fixed top-[48px] h-screen">
       {#snippet tiles()}
         <NavTiles userPermissions={page.data.userPermissions} />
       {/snippet}

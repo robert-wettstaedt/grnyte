@@ -47,7 +47,7 @@ export const GET = async ({ locals, url }) => {
 
   const route: InsertRoute = {
     blockFk: blockId,
-    createdAt: '',
+    createdAt: new Date(),
     createdBy: -1,
     description: route8a?.description ?? route27crags?.description ?? routeTheCrag?.description ?? null,
     externalResourcesFk: null,

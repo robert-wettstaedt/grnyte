@@ -15,7 +15,6 @@ import { eq, inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { encode as encodeHtml } from 'html-entities'
 import { minify, type Options } from 'html-minifier'
-import { DateTime } from 'luxon'
 import sharp from 'sharp'
 import stringToColor from 'string-to-color'
 import { render } from 'svelte/server'
@@ -80,7 +79,7 @@ export const getAreaGPX = async (areaId: number, db: PostgresJsDatabase<typeof s
     .map((block) => {
       return `
     <wpt lat="${block.geolocation!.lat}" lon="${block.geolocation!.long}">
-      <time>${encodeHtml(DateTime.fromSQL(block.createdAt).toISO())}</time>
+      <time>${encodeHtml(block.createdAt.toISOString())}</time>
       <name>${encodeHtml([(block.area as NestedArea).parent?.name, block.area.name, block.name].join(' / '))}</name>
       <desc>${prepareHtml(renderBlockHtml(block, grades, gradingScale))}</desc>
       <extensions>
@@ -112,7 +111,7 @@ export const getAreaGPX = async (areaId: number, db: PostgresJsDatabase<typeof s
       .map(
         (parkingLocation, index) => `
     <wpt lat="${parkingLocation.lat}" lon="${parkingLocation.long}">
-      <time>${DateTime.fromSQL(area.createdAt).toISO()}</time>
+      <time>${area.createdAt.toISOString()}</time>
       <name>Parking${area.parkingLocations.length > 1 ? ` ${index + 1}` : ''}</name>
       <extensions>
         <osmand:color>#a71de1</osmand:color>

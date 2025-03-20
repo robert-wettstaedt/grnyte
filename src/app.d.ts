@@ -10,7 +10,21 @@ declare global {
   namespace App {
     interface SafeSession {
       session: Session | undefined
-      user: InferResultType<'users', { userSettings: { columns: { gradingScale: true } } }> | undefined
+      user:
+        | InferResultType<
+            'users',
+            {
+              userSettings: {
+                columns: {
+                  gradingScale: true
+                  notifyModerations: true
+                  notifyNewAscents: true
+                  notifyNewUsers: true
+                }
+              }
+            }
+          >
+        | undefined
       userPermissions:
         | Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION | typeof EXPORT_PERMISSION>
         | undefined

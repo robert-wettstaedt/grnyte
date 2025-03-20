@@ -74,7 +74,7 @@ describe('RouteView Component', () => {
       id: 1,
       name: 'Test Route',
       slug: 'test-route',
-      createdAt: '2021-01-01',
+      createdAt: new Date(),
       description: 'Test Description',
       createdBy: 1,
       gradeFk: 1,
