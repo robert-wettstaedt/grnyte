@@ -51,7 +51,7 @@ export const sendNotificationsToAllSubscriptions = async (
             const processed = {
               ...notification,
               title: notification.title.replace(/{grade: \d+}/g, (match) => {
-                const gradeFk = Number(match.replace('{grade: ', '').replace('}', ''))
+                const gradeFk = Number(match.match(/\d+/g)[0])
                 const grade = grades.find((grade) => grade.id === gradeFk)
                 return grade?.[userSettings.gradingScale ?? 'FB'] ?? ''
               }),
