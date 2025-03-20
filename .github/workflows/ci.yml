@@ -30,6 +30,9 @@ jobs:
       BUNNY_STREAM_API_KEY: foobar
       PUBLIC_BUNNY_STREAM_LIBRARY_ID: foobar
       PUBLIC_BUNNY_STREAM_HOSTNAME: foobar
+      PRIVATE_VAPID_KEY: foobar
+      PUBLIC_VAPID_KEY: foobar
+      CRON_API_KEY: foobar
 
     steps:
       - name: Checkout code
