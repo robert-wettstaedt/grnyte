@@ -10,6 +10,18 @@ webpush.setVapidDetails(`mailto:${PUBLIC_TOPO_EMAIL}`, PUBLIC_VAPID_KEY, PRIVATE
 
 export const getGradeTemplateString = (gradeFk: number) => `{grade: ${gradeFk}}`
 
+export const replaceGradeTemplateWithValue = (
+  title: string,
+  grades: schema.Grade[],
+  gradingScale: keyof Omit<schema.Grade, 'id'> = 'FB',
+): string => {
+  return title.replace(/{grade: \d+}/g, (match) => {
+    const gradeFk = Number(match.match(/\d+/g)?.[0])
+    const grade = grades.find((grade) => grade.id === gradeFk)
+    return grade?.[gradingScale] ?? ''
+  })
+}
+
 export const sendNotificationToSubscription = async (
   notification: Notification,
   subscription: schema.PushSubscription,
@@ -50,11 +62,7 @@ export const sendNotificationsToAllSubscriptions = async (
           .map(async (notification) => {
             const processed = {
               ...notification,
-              title: notification.title.replace(/{grade: \d+}/g, (match) => {
-                const gradeFk = Number(match.match(/\d+/g)[0])
-                const grade = grades.find((grade) => grade.id === gradeFk)
-                return grade?.[userSettings.gradingScale ?? 'FB'] ?? ''
-              }),
+              title: replaceGradeTemplateWithValue(notification.title, grades, userSettings.gradingScale),
             }
 
             try {
