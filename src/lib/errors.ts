@@ -47,3 +47,17 @@ export const convertException = (exception: unknown): string => {
 
   return String(exception)
 }
+
+export class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'TimeoutError'
+  }
+}
+
+export const timeoutFunction = <T>(fn: () => Promise<T>, timeout: number): Promise<T> => {
+  return Promise.race([
+    fn(),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new TimeoutError('Timeout')), timeout)),
+  ])
+}

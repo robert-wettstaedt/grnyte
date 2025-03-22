@@ -9,7 +9,8 @@
     isSupported,
     unsubscribe,
   } from '$lib/components/PushNotificationSubscriber'
-  import { isIOS } from '$lib/features.js'
+  import { timeoutFunction } from '$lib/errors'
+  import { isIOS } from '$lib/features'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
@@ -34,7 +35,11 @@
   })
 
   const onSignout = async () => {
-    await unsubscribe()
+    try {
+      await timeoutFunction(unsubscribe, 3_000)
+    } catch (error) {
+      console.error(error)
+    }
     page.data.supabase?.auth.signOut()
   }
 </script>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { convertException } from '$lib/errors'
+  import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
@@ -30,23 +30,18 @@
         use:enhance={async ({ formData }) => {
           errorMessage = ''
           loading = true
-          let resolved = false
-
-          setTimeout(() => {
-            if (!resolved) {
-              loading = false
-              errorMessage =
-                'Unable to unsubscribe from push notifications. Please try again or check your browser settings.'
-            }
-          }, 10_000)
 
           try {
-            await unsubscribe()
+            await timeoutFunction(unsubscribe, 10_000)
           } catch (exception) {
-            errorMessage = convertException(exception)
+            if (exception instanceof TimeoutError) {
+              errorMessage =
+                'Unable to unsubscribe from push notifications. Please try again or check your browser settings.'
+            } else {
+              errorMessage = convertException(exception)
+            }
           }
 
-          resolved = true
           subscribed = false
           const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
           localStorage.removeItem(STORAGE_KEY)
@@ -85,29 +80,22 @@
         use:enhance={async ({ formData }) => {
           errorMessage = ''
           loading = true
-          let resolved = false
-
-          setTimeout(() => {
-            if (!resolved) {
-              loading = false
-              errorMessage =
-                'Unable to subscribe to push notifications. Please try again or check your browser settings.'
-            }
-          }, 10_000)
 
           try {
-            const subscription = await subscribe()
+            const subscription = await timeoutFunction(subscribe, 10_000)
             formData.set('subscription', JSON.stringify(subscription))
 
             const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
             if (pushSubscriptionId) {
               formData.set('pushSubscriptionId', pushSubscriptionId)
             }
-
-            resolved = true
           } catch (exception) {
-            errorMessage = convertException(exception)
-            resolved = true
+            if (exception instanceof TimeoutError) {
+              errorMessage =
+                'Unable to subscribe to push notifications. Please try again or check your browser settings.'
+            } else {
+              errorMessage = convertException(exception)
+            }
             loading = false
             throw exception
           }
