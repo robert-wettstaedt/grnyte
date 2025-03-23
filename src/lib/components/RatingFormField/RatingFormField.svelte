@@ -75,7 +75,7 @@
   </div>
 
   {#if value != null}
-    <button aria-label="Clear" class="btn preset-outlined-surface-500 h-10 w-10" onclick={() => (value = null)}>
+    <button aria-label="Clear" class="btn preset-filled-surface-500 h-9 w-9" onclick={() => (value = null)}>
       <i class="fa-solid fa-xmark"></i>
     </button>
   {/if}
