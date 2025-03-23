@@ -239,6 +239,13 @@
       "when": 1742726544431,
       "tag": "0034_eager_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1742726931012,
+      "tag": "0035_dapper_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { relations, sql } from 'drizzle-orm'
 import {
   bigint,
   boolean,
+  date,
   doublePrecision,
   index,
   integer,
@@ -503,9 +504,7 @@ export const ascents = table(
     ...baseFields,
     createdBy: baseContentFields.createdBy,
 
-    dateTime: text('date_time')
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+    dateTime: date('date_time').notNull().defaultNow(),
     notes: text('notes'),
     rating: integer('rating'),
     type: text('type', { enum: ascentTypeEnum }).notNull(),
