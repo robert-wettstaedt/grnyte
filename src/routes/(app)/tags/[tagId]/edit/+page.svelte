@@ -20,7 +20,7 @@
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" method="POST" use:enhance>
   <TagFormFields id={form?.id ?? data.tag.id} />
 
-  <div class="mt-8 flex justify-between">
+  <div class="mt-8 flex justify-between md:items-center">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit">
       <i class="fa-solid fa-floppy-disk"></i> Save tag

@@ -50,13 +50,13 @@
   </label>
 
   <div class="mt-4">Climber</div>
-    <MultiSelect
-      name="climberName"
-      options={data.firstAscensionists.map((firstAscensionist) => firstAscensionist.name)}
-      value={form?.climberName ?? data.route.firstAscents.map((fa) => fa.firstAscensionist.name)}
-    />
+  <MultiSelect
+    name="climberName"
+    options={data.firstAscensionists.map((firstAscensionist) => firstAscensionist.name)}
+    value={form?.climberName ?? data.route.firstAscents.map((fa) => fa.firstAscensionist.name)}
+  />
 
-  <div class="mt-8 flex justify-between">
+  <div class="mt-8 flex justify-between md:items-center">
     <div>
       <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     </div>

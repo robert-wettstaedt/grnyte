@@ -39,7 +39,7 @@
 >
   <BlockFormFields name={form?.name ?? data.name} />
 
-  <div class="mt-8 flex justify-between">
+  <div class="mt-8 flex justify-between md:items-center">
     <div>
       <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     </div>

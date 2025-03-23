@@ -58,7 +58,7 @@
     name={form?.name ?? `Block ${data.blocksCount + 1}`}
   />
 
-  <div class="mt-8 flex justify-between">
+  <div class="mt-8 flex justify-between md:items-center">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
       {#if loading}
