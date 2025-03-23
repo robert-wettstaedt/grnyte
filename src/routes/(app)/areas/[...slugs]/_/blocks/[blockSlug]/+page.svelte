@@ -48,12 +48,26 @@
     {/if}
 
     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/routes/add`}>
+        <i class="fa-solid fa-plus"></i> Add route
+      </a>
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/topos/add`}>
+        <i class="fa-solid fa-file-arrow-up"></i> Upload topo image
+      </a>
+
+      {#if data.block.topos.length > 0}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/topos/draw`}>
+          <i class="fa-solid fa-file-pen"></i> Edit topo
+        </a>
+      {/if}
+
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-location`}>
         <i class="fa-solid fa-location-dot"></i>Edit geolocation
       </a>
 
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit block
+        <i class="fa-solid fa-pen"></i>Edit block details
       </a>
     {/if}
   {/snippet}
@@ -99,19 +113,9 @@
                   {/snippet}
                 </TopoViewer>
               </section>
-            {:else if data.userPermissions?.includes(EDIT_PERMISSION)}
-              <div class="mt-4 flex w-full justify-center">
-                <a class="btn preset-filled-primary-500" href={`${basePath}/topos/add`}>Add topos</a>
-              </div>
             {/if}
 
             <section class={`mt-4 w-full md:mt-0 ${data.topos.length === 0 ? '' : 'md:w-2/4'}`}>
-              {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-                <div class="mb-4 flex justify-center">
-                  <a class="btn preset-filled-primary-500" href={`${basePath}/routes/add`}>Add route</a>
-                </div>
-              {/if}
-
               {#if data.block.routes.length === 0}
                 No routes yet
               {:else}

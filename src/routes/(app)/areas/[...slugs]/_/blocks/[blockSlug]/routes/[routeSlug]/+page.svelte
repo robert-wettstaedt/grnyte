@@ -160,12 +160,18 @@
         <i class="fa-solid fa-cloud-arrow-up"></i>Upload file
       </a>
 
+      {#if data.topos.length > 0}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${blockPath}/topos/draw`}>
+          <i class="fa-solid fa-file-pen"></i> Edit topo
+        </a>
+      {/if}
+
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-first-ascent`}>
         <i class="fa-solid fa-pen"></i>Edit FA
       </a>
 
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit route
+        <i class="fa-solid fa-pen"></i>Edit route details
       </a>
     {/if}
   {/snippet}
