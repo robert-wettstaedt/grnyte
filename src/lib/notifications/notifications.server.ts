@@ -67,7 +67,10 @@ export const sendNotificationsToAllSubscriptions = async (
           .map(async (notification) => {
             const processed = {
               ...notification,
-              title: replaceGradeTemplateWithValue(notification.title, grades, userSettings.gradingScale),
+              body:
+                notification.body == null
+                  ? undefined
+                  : replaceGradeTemplateWithValue(notification.body, grades, userSettings.gradingScale),
             }
 
             try {

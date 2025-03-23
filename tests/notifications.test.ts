@@ -282,7 +282,7 @@ describe('Notifications Server Module', () => {
 
       const notificationWithGrade: Notification = {
         ...mockNotification,
-        title: 'Test notification with {grade: 10}',
+        body: 'Test notification with {grade: 10}',
         userId: 4, // Different from subscription userFks
       }
 
