@@ -10,7 +10,7 @@ export const NotificationSchema = z.object({
   data: NotificationDataSchema.optional(),
   icon: z.string().optional(),
   tag: z.string().optional(),
-  title: z.string(),
+  title: z.string().optional(),
 
   userId: z.number(),
   type: z.enum(['ascent', 'user', 'moderate']),

@@ -168,11 +168,7 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
       : getVideoThumbnailUrl({ format: 'jpg', hostname: PUBLIC_BUNNY_STREAM_HOSTNAME, videoId: file.bunnyStreamFk })
 
   return {
-    body: ascent.notes ?? undefined,
-    data: { pathname: `/ascents/${ascent.id}` },
-    icon,
-    tag: `${group.userFk}-${group.type}`,
-    title: [
+    body: [
       username,
       ascentVerb(ascent),
       ascent.route.name.length === 0 ? config.routes.defaultName : `"${ascent.route.name}"`,
@@ -182,6 +178,9 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
     ]
       .filter(Boolean)
       .join(' '),
+    data: { pathname: `/ascents/${ascent.id}` },
+    icon,
+    tag: `${group.userFk}-${group.type}`,
 
     userId: group.userFk,
     type: 'ascent',
@@ -190,8 +189,8 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
 
 const getUserNotification = async (group: Group, username: string): Promise<Notification | undefined> => {
   return {
+    body: `${username} has joined ${PUBLIC_APPLICATION_NAME}`,
     data: { pathname: `/users/${group.userFk}` },
-    title: `${username} has joined ${PUBLIC_APPLICATION_NAME}`,
 
     userId: group.userFk,
     type: 'user',
@@ -219,9 +218,7 @@ const getModerateNotification = async (group: Group, username: string): Promise<
   }
 
   return {
-    data: { pathname: `/${entity.type}s/${entity.object.id}` },
-    tag: `${group.userFk}-${group.type}`,
-    title: [
+    body: [
       username,
       'has updated',
       entity.breadcrumb.length === 0 ? entity.object.name : entity.breadcrumb.join(' > '),
@@ -229,6 +226,8 @@ const getModerateNotification = async (group: Group, username: string): Promise<
     ]
       .filter(Boolean)
       .join(' '),
+    data: { pathname: `/${entity.type}s/${entity.object.id}` },
+    tag: `${group.userFk}-${group.type}`,
 
     userId: group.userFk,
     type: 'moderate',

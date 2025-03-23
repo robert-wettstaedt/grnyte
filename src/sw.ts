@@ -45,7 +45,7 @@ self.addEventListener('push', (event) => {
         }
       }
 
-      return self.registration.showNotification(newNotification.title, options)
+      return self.registration.showNotification(newNotification.title ?? 'New activity', options)
     }
 
     event.waitUntil(mergeNotifications())
