@@ -34,9 +34,14 @@ export const sendNotificationToSubscription = async (
 export const sendNotificationsToAllSubscriptions = async (
   notifications: Notification[],
   db: PostgresJsDatabase<typeof schema>,
+  userFk?: number,
 ) => {
-  const subscriptions = await db.query.pushSubscriptions.findMany()
-  const usersSettings = await db.query.userSettings.findMany()
+  const subscriptions = await db.query.pushSubscriptions.findMany(
+    userFk == null ? undefined : { where: eq(schema.pushSubscriptions.userFk, userFk) },
+  )
+  const usersSettings = await db.query.userSettings.findMany(
+    userFk == null ? undefined : { where: eq(schema.userSettings.userFk, userFk) },
+  )
   const grades = await db.query.grades.findMany()
 
   await Promise.all(

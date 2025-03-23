@@ -1,6 +1,6 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { pushSubscriptions, userSettings } from '$lib/db/schema'
-import { convertException } from '$lib/errors.js'
+import { areas, pushSubscriptions, users, userSettings } from '$lib/db/schema'
+import { convertException } from '$lib/errors'
 import {
   notificationsActionSchema,
   pushSubscriptionSchema,
@@ -14,9 +14,9 @@ import {
   type SubscribePushSubscriptionActionValues,
   type UnsubscribePushSubscriptionActionValues,
 } from '$lib/forms.server'
-import { sendNotificationToSubscription } from '$lib/notifications/notifications.server.js'
+import { sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { fail } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNotNull, not, sql } from 'drizzle-orm'
 
 export const actions = {
   subscribe: async ({ locals, request }) => {
@@ -108,17 +108,32 @@ export const actions = {
         return fail(404)
       }
 
-      const userSubscriptions = await db.query.pushSubscriptions.findMany({
-        where: eq(pushSubscriptions.authUserFk, locals.user.authUserFk),
+      const randomArea = await db.query.areas.findFirst({
+        orderBy: sql`RANDOM()`,
+        where: isNotNull(areas.parentFk),
+        with: { parent: true },
       })
 
-      await Promise.all(
-        userSubscriptions.map((subscription) =>
-          sendNotificationToSubscription(
-            { title: 'This is a test notification', type: 'moderate', userId: locals.user!.id },
-            subscription,
-          ),
-        ),
+      const randomUser = await db.query.users.findFirst({
+        orderBy: sql`RANDOM()`,
+        where: not(eq(users.id, locals.user.id)),
+      })
+
+      if (randomArea == null || randomUser == null) {
+        return fail(404)
+      }
+
+      await sendNotificationsToAllSubscriptions(
+        [
+          {
+            body: `${randomUser.username} has updated ${randomArea.parent?.name} > ${randomArea.name} and 2 more`,
+            tag: 'test',
+            title: 'This is a test notification',
+            type: 'moderate',
+            userId: randomUser.id,
+          },
+        ],
+        db,
       )
     })
   },

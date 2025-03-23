@@ -26,17 +26,29 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json()
-    const notification = NotificationSchema.parse(data)
+    const newNotification = NotificationSchema.parse(data)
 
     const options: NotificationOptions = {
       badge: '/android-chrome-192x192.png',
-      body: notification.body,
-      data: notification.data,
-      icon: notification.icon ?? '/android-chrome-192x192.png',
-      tag: notification.tag,
+      body: newNotification.body,
+      data: newNotification.data,
+      icon: newNotification.icon ?? '/android-chrome-192x192.png',
     }
 
-    event.waitUntil(self.registration.showNotification(notification.title, options))
+    async function mergeNotifications() {
+      const existingNotifications = await self.registration.getNotifications({ tag: newNotification.tag })
+
+      for (const existingNotification of existingNotifications) {
+        if (newNotification.tag == existingNotification.tag) {
+          existingNotification.close()
+          options.body = `${options.body}\n${existingNotification.body}`
+        }
+      }
+
+      return self.registration.showNotification(newNotification.title, options)
+    }
+
+    event.waitUntil(mergeNotifications())
   } catch (error) {
     console.error('Error showing notification:', error)
   }

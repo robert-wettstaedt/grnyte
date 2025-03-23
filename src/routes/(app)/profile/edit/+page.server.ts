@@ -2,7 +2,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, ascents, routes, users } from '$lib/db/schema'
 import type { ActionFailure, ProfileActionValues } from '$lib/forms.server'
 import { profileActionSchema, validateFormData, validateUsername } from '$lib/forms.server'
-import { replaceMention } from '$lib/markdown.js'
+import { replaceMention } from '$lib/markdown'
 import { fail } from '@sveltejs/kit'
 import { eq, ilike } from 'drizzle-orm'
 

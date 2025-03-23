@@ -1,9 +1,9 @@
 import { db } from '$lib/db/db.server'
-import { eq } from 'drizzle-orm'
 import { files } from '$lib/db/schema'
-import { loadFiles } from '$lib/nextcloud/nextcloud.server.js'
+import { convertMarkdownToHtml } from '$lib/markdown'
+import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { error } from '@sveltejs/kit'
-import { convertMarkdownToHtml } from '$lib/markdown.js'
+import { eq } from 'drizzle-orm'
 
 export const load = async ({ locals, params }) => {
   const { fileId } = params
