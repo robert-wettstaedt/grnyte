@@ -7,11 +7,36 @@
     name?: string
   }
 
-  let { options, name, value = $bindable() }: Props = $props()
+  // Define the input value change event type
+  interface InputValueChangeEvent {
+    inputValue: string
+    [key: string]: any
+  }
 
-  const availableOptions = $derived(
-    options.filter((option) => !value?.includes(option)).map((option) => ({ label: option, value: option })),
-  )
+  // Define the value change event type to match what Combobox actually sends
+  interface ValueChangeEvent {
+    value: string[]
+    [key: string]: any
+  }
+
+  let { options, name, value = $bindable() }: Props = $props()
+  let inputValue = $state('')
+
+  // Function to regenerate the available options on each input change
+  function handleInputValueChange(event: InputValueChangeEvent) {
+    inputValue = event.inputValue
+  }
+
+  // Handle when an item is selected from the dropdown
+  function handleValueChange(event: ValueChangeEvent) {
+    if (event.value != null && event.value.length > 0) {
+      value = [...(value ?? []), ...event.value]
+      inputValue = ''
+    }
+  }
+
+  // Transform all available options to the format Combobox expects
+  const availableOptions = $derived(options.map((option) => ({ label: option, value: option })))
 </script>
 
 {#if value != null}
@@ -34,10 +59,26 @@
   </ul>
 {/if}
 
+<!-- Manual Add button for custom values -->
+{#if inputValue && !value?.includes(inputValue)}
+  <div class="mb-2">
+    <button
+      class="btn preset-filled-primary-500"
+      onclick={() => {
+        value = [...(value ?? []), inputValue]
+        inputValue = ''
+      }}
+    >
+      Add "{inputValue}"
+    </button>
+  </div>
+{/if}
+
 <Combobox
   allowCustomValue
   contentClasses="max-h-[200px] md:max-h-[400px] overflow-auto"
   data={availableOptions}
-  onValueChange={(event) => (value = [...(value ?? []), ...event.value])}
+  onInputValueChange={handleInputValueChange}
+  onValueChange={handleValueChange}
   placeholder="Search..."
 />

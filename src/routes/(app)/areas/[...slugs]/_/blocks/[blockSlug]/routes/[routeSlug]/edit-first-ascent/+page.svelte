@@ -49,14 +49,12 @@
     />
   </label>
 
-  <label class="label mt-4">
-    <span>Climber</span>
+  <div class="mt-4">Climber</div>
     <MultiSelect
       name="climberName"
       options={data.firstAscensionists.map((firstAscensionist) => firstAscensionist.name)}
       value={form?.climberName ?? data.route.firstAscents.map((fa) => fa.firstAscensionist.name)}
     />
-  </label>
 
   <div class="mt-8 flex justify-between">
     <div>
