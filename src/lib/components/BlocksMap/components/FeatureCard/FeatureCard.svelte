@@ -30,7 +30,9 @@
         {#if feature.avatar.src != null}
           <Image path={feature.avatar.src} size={96} />
         {:else if feature.avatar.icon != null}
-          <i class="{feature.avatar.icon} flex h-full w-full items-center justify-center text-[4rem]"></i>
+          <div class="flex h-full w-full items-center justify-center">
+            <i class="{feature.avatar.icon} text-[4rem]"></i>
+          </div>
         {/if}
       </a>
     {/if}

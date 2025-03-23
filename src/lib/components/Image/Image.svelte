@@ -27,10 +27,12 @@
 </script>
 
 {#if path == null || mediaHasError}
-  <i
-    class="fa-solid fa-image flex items-center justify-center text-white"
+  <div
+    class="flex items-center justify-center text-white"
     style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px; font-size: {fontSize}px"
-  ></i>
+  >
+    <i class="fa-solid fa-image"></i>
+  </div>
 {:else}
   <div class="relative">
     <div
