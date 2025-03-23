@@ -1,9 +1,10 @@
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
-import { Many, relations, sql } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import {
   bigint,
   boolean,
+  doublePrecision,
   index,
   integer,
   pgEnum,
@@ -775,8 +776,8 @@ export const geolocations = table(
   {
     id: baseFields.id,
 
-    lat: real('lat').notNull(),
-    long: real('long').notNull(),
+    lat: doublePrecision('lat').notNull(),
+    long: doublePrecision('long').notNull(),
 
     areaFk: integer('area_fk').references((): AnyColumn => areas.id),
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),

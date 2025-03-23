@@ -232,6 +232,13 @@
       "when": 1742111009704,
       "tag": "0033_greedy_the_watchers",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1742726544431,
+      "tag": "0034_eager_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }
