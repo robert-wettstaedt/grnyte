@@ -57,5 +57,5 @@
     </Modal>
   </span>
 
-  <input class="input" name="name" type="text" placeholder="Enter name..." {value} />
+  <input class="input" name="name" type="text" placeholder="Leave empty if unknown" {value} />
 </label>
