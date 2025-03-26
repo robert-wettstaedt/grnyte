@@ -51,6 +51,8 @@
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 
+  <p class="mt-8 text-sm text-gray-500">You can upload more topo images later.</p>
+
   <div class="mt-8 flex justify-between md:items-center">
     <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
     <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
