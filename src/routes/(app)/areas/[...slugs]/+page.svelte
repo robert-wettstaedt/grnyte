@@ -13,9 +13,7 @@
   import RouteName from '$lib/components/RouteName'
   import RoutesFilter from '$lib/components/RoutesFilter'
   import type { Block } from '$lib/db/schema'
-  import type { EnrichedBlock } from '$lib/db/utils'
-  import { convertException } from '$lib/errors'
-  import { Pagination, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
   let { data } = $props()
@@ -68,33 +66,6 @@
     }
   })
 
-  const onDownloadGpx = async () => {
-    loadingDownload = true
-    downloadError = null
-
-    try {
-      const res = await fetch(`${basePath}/gpx`)
-
-      if (!res.ok || res.status >= 400) {
-        throw new Error(res.statusText)
-      }
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.style.display = 'none'
-      a.href = url
-      a.download = `${data.area.name}.gpx`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-    } catch (exception) {
-      downloadError = convertException(exception)
-    }
-
-    loadingDownload = false
-  }
-
   const updateBlocksFromServer = async (res: Response) => {
     if (res.ok) {
       const { blocks: updatedBlocks } = (await res.json()) as { blocks: Block[] }
@@ -146,18 +117,6 @@
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
         <i class="fa-solid fa-file-export"></i>Export PDF
       </a>
-
-      <button class="btn btn-sm preset-outlined-primary-500" disabled={loadingDownload} onclick={onDownloadGpx}>
-        {#if loadingDownload}
-          <span>
-            <ProgressRing size="size-4" value={null} />
-          </span>
-        {:else}
-          <i class="fa-solid fa-map-location-dot"></i>
-        {/if}
-
-        Export GPX
-      </button>
     {/if}
 
     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
