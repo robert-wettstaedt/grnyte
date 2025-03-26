@@ -172,6 +172,7 @@ type MockDb = {
   }
   select: ReturnType<typeof vi.fn>
   insert: ReturnType<typeof vi.fn>
+  update: ReturnType<typeof vi.fn>
 }
 
 describe('Activity Feed', () => {
@@ -218,6 +219,7 @@ describe('Activity Feed', () => {
       },
       select: vi.fn().mockReturnValue(fromMock),
       insert: vi.fn().mockReturnValue({ values: vi.fn() }),
+      update: vi.fn().mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn() }) }),
     }
 
     const dbWithTransaction = async <T>(fn: (tx: any) => Promise<T>) => fn(mockDb as any)
@@ -743,6 +745,9 @@ describe('Activity Feed', () => {
       const oldEntity = { name: 'Old Name', description: 'Old Description' }
       const newEntity = { name: 'New Name', description: 'Old Description' }
 
+      // Mock that there are no existing activities
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([])
+
       await createUpdateActivity({
         oldEntity,
         newEntity,
@@ -762,6 +767,9 @@ describe('Activity Feed', () => {
       const oldEntity = { name: 'Old Name', description: null }
       const newEntity = { name: 'Old Name', description: 'New Description' }
 
+      // Mock that there are no existing activities
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([])
+
       await createUpdateActivity({
         oldEntity,
         newEntity,
@@ -779,6 +787,9 @@ describe('Activity Feed', () => {
     it('should not create activities when no changes', async () => {
       const entity = { name: 'Same Name', description: 'Same Description' }
 
+      // This call shouldn't matter since there are no changes
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([])
+
       await createUpdateActivity({
         oldEntity: entity,
         newEntity: entity,
@@ -791,6 +802,94 @@ describe('Activity Feed', () => {
       })
 
       expect(mockDb.insert).not.toHaveBeenCalled()
+    })
+
+    it('should update existing activity instead of creating a new one', async () => {
+      const oldEntity = { name: 'Old Name', description: 'Old Description' }
+      const newEntity = { name: 'New Name', description: 'Updated Description' }
+
+      // Mock an existing "updated" activity for the "name" field
+      const existingActivity = {
+        id: 1,
+        type: 'updated',
+        entityType: 'route',
+        entityId: '1',
+        userFk: 1,
+        columnName: 'name',
+        oldValue: 'Old Name',
+        newValue: 'Previous Update',
+        createdAt: new Date(),
+      } as schema.Activity
+
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([existingActivity])
+
+      // Setup the update mock
+      const updateMock = { set: vi.fn().mockReturnValue({ where: vi.fn() }) }
+      vi.mocked(mockDb).update = vi.fn().mockReturnValue(updateMock)
+
+      await createUpdateActivity({
+        oldEntity,
+        newEntity,
+        db: mockDb as unknown as PostgresJsDatabase<typeof schema>,
+        entityId: '1',
+        entityType: 'route',
+        userFk: 1,
+        parentEntityId: null,
+        parentEntityType: null,
+      })
+
+      // Should update the existing activity for "name"
+      expect(mockDb.update).toHaveBeenCalledWith(schema.activities)
+      expect(updateMock.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createdAt: expect.any(Date),
+          newValue: 'New Name',
+        }),
+      )
+
+      // Should still create a new activity for "description"
+      expect(mockDb.insert).toHaveBeenCalledWith(schema.activities)
+      expect(vi.mocked(mockDb.insert).mock.calls[0][0]).toBe(schema.activities)
+      // Check that the values array contains an activity for "description"
+      const insertValues = vi.mocked(mockDb.insert().values).mock.calls[0][0]
+      expect(insertValues).toHaveLength(1)
+      expect(insertValues[0]).toMatchObject({
+        columnName: 'description',
+        oldValue: 'Old Description',
+        newValue: 'Updated Description',
+      })
+    })
+
+    it('should not create any activities if a recent created activity exists', async () => {
+      const oldEntity = { name: 'Old Name' }
+      const newEntity = { name: 'New Name' }
+
+      // Mock an existing "created" activity
+      const existingActivity = {
+        id: 1,
+        type: 'created',
+        entityType: 'route',
+        entityId: '1',
+        userFk: 1,
+        createdAt: new Date(),
+      } as schema.Activity
+
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([existingActivity])
+
+      await createUpdateActivity({
+        oldEntity,
+        newEntity,
+        db: mockDb as unknown as PostgresJsDatabase<typeof schema>,
+        entityId: '1',
+        entityType: 'route',
+        userFk: 1,
+        parentEntityId: null,
+        parentEntityType: null,
+      })
+
+      // Should not create or update any activities
+      expect(mockDb.insert).not.toHaveBeenCalled()
+      expect(mockDb.update).not.toHaveBeenCalled()
     })
   })
 })

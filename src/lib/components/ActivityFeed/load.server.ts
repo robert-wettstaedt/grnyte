@@ -10,7 +10,8 @@ import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
 import { error } from '@sveltejs/kit'
-import { and, asc, count, desc, eq, inArray, type SQLWrapper } from 'drizzle-orm'
+import { sub } from 'date-fns'
+import { and, asc, count, desc, eq, gt, inArray, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
 
@@ -373,10 +374,42 @@ export const createUpdateActivity = async ({
     }
   })
 
+  const existingActivities = await db.query.activities.findMany({
+    where: and(
+      eq(schema.activities.entityId, entityId),
+      eq(schema.activities.entityType, entityType),
+      eq(schema.activities.userFk, userFk),
+      gt(schema.activities.createdAt, sub(new Date(), { minutes: 15 })),
+    ),
+  })
+
+  await Promise.all(
+    existingActivities
+      .filter((activity) => activity.type === 'updated')
+      .map(async (activity) => {
+        const change = changes.find((change) => change.columnName === activity.columnName)
+
+        if (change == null) {
+          return
+        }
+
+        changes.splice(changes.indexOf(change), 1)
+
+        return db
+          .update(schema.activities)
+          .set({ createdAt: new Date(), newValue: change.newValue })
+          .where(eq(schema.activities.id, activity.id))
+      }),
+  )
+
+  if (existingActivities.some((activity) => activity.type === 'created')) {
+    return
+  }
+
   if (changes.length > 0) {
-    await Promise.all(
-      changes.map((change) =>
-        db.insert(schema.activities).values({
+    await db.insert(schema.activities).values(
+      changes.map(
+        (change): InsertActivity => ({
           type: 'updated',
           userFk,
           entityId,
