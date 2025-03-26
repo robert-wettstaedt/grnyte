@@ -10,7 +10,7 @@ import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
 import { error } from '@sveltejs/kit'
-import { and, asc, count, desc, eq, type SQLWrapper } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
 
@@ -45,6 +45,25 @@ export const getWhere = (entityType: schema.Activity['entityType'], entityId: sc
       return eq(schema.ascents.id, Number(entityId))
     case 'user':
       return eq(schema.users.id, Number(entityId))
+  }
+}
+
+export const getWhereArr = (entityType: schema.Activity['entityType'], entityIds: schema.Activity['entityId'][]) => {
+  const numIds = entityIds.map(Number)
+
+  switch (entityType) {
+    case 'area':
+      return inArray(schema.areas.id, numIds)
+    case 'block':
+      return inArray(schema.blocks.id, numIds)
+    case 'route':
+      return inArray(schema.routes.id, numIds)
+    case 'file':
+      return inArray(schema.files.id, entityIds)
+    case 'ascent':
+      return inArray(schema.ascents.id, numIds)
+    case 'user':
+      return inArray(schema.users.id, numIds)
   }
 }
 
@@ -118,6 +137,38 @@ export const postProcessEntity = async (
   }
 
   return { type: entityType, object } as Entity
+}
+
+const resolveEntities = async (
+  db: PostgresJsDatabase<typeof schema>,
+  activities: schema.Activity[],
+  entityTypes: schema.Activity['entityType'][],
+) => {
+  const objects = await Promise.all(
+    entityTypes.map(async (entityType) => {
+      const ids = activities
+        .filter((activity) => activity.entityType === entityType)
+        .map((activity) => activity.entityId)
+      const distinctIds = Array.from(new Set(ids))
+
+      const query = getQuery(db, entityType)
+      const objects = await query.findMany({
+        where: getWhereArr(entityType, distinctIds),
+        with: getWith(entityType),
+      })
+
+      return objects.map((object) => ({ entityType, object }))
+    }),
+  )
+
+  const wrappers = await Promise.all(
+    objects.flat().map(async ({ entityType, object }) => {
+      const res = { entity: await postProcessEntity(db, entityType, object), object }
+      return res
+    }),
+  )
+
+  return wrappers
 }
 
 const searchParamsSchema = z.intersection(
@@ -238,35 +289,45 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
       },
     })
 
-    const activitiesDTOs = await Promise.all(
-      activities.map(async (activity): Promise<ActivityDTO> => {
-        const query = getQuery(db, activity.entityType)
-        const parentQuery = activity.parentEntityType == null ? null : getQuery(db, activity.parentEntityType)
+    const distinctEntityTypes = Array.from(new Set(activities.map((activity) => activity.entityType)))
+    const distinctParentEntityTypes = Array.from(
+      new Set(activities.map((activity) => activity.parentEntityType)),
+    ).filter((type) => type != null)
 
-        const entity = await query.findFirst({
-          where: getWhere(activity.entityType, activity.entityId),
-          with: getWith(activity.entityType),
-        })
-        const parentEntity =
-          activity.parentEntityId == null || activity.parentEntityType == null
-            ? null
-            : await parentQuery?.findFirst({
-                where: getWhere(activity.parentEntityType, activity.parentEntityId),
-                with: getParentWith(activity.parentEntityType),
-              })
+    const [entities, parentEntities] = await Promise.all([
+      resolveEntities(db, activities, distinctEntityTypes),
+      resolveEntities(db, activities, distinctParentEntityTypes),
+    ])
+
+    const activitiesDTOs = activities
+      .map((activity): ActivityDTO | null => {
+        const wrapper = entities.find(
+          (item) =>
+            item.entity.object != null &&
+            String(item.entity.object.id) === activity.entityId &&
+            item.entity.type === activity.entityType,
+        )
+
+        const parentWrapper = parentEntities.find(
+          (item) =>
+            item.entity.object != null &&
+            String(item.entity.object.id) === activity.parentEntityId &&
+            item.entity.type === activity.parentEntityType,
+        )
+
+        if (wrapper?.entity == null) {
+          return null
+        }
 
         return {
           ...activity,
-          entity: await postProcessEntity(db, activity.entityType, entity),
-          entityName: entity?.name,
-          parentEntity:
-            activity.parentEntityType == null || parentEntity == null
-              ? undefined
-              : await postProcessEntity(db, activity.parentEntityType, parentEntity),
-          parentEntityName: parentEntity?.name,
+          entity: wrapper?.entity,
+          entityName: wrapper?.object?.name,
+          parentEntity: parentWrapper?.entity,
+          parentEntityName: parentWrapper?.object?.name,
         }
-      }),
-    )
+      })
+      .filter((item) => item != null)
 
     const countResults = await db.select({ count: count() }).from(schema.activities).where(and(where))
     const groupedActivities = groupActivities(activitiesDTOs)

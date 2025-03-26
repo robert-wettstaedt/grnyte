@@ -147,18 +147,27 @@ type MockDb = {
     }
     areas: {
       findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
     }
     blocks: {
       findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
     }
     routes: {
       findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
     }
     ascents: {
       findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
     }
     users: {
       findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
+    }
+    files: {
+      findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
     }
   }
   select: ReturnType<typeof vi.fn>
@@ -184,18 +193,27 @@ describe('Activity Feed', () => {
         },
         areas: {
           findFirst: vi.fn().mockResolvedValue(mockArea),
+          findMany: vi.fn().mockResolvedValue([mockArea]),
         },
         blocks: {
           findFirst: vi.fn().mockResolvedValue(mockBlock),
+          findMany: vi.fn().mockResolvedValue([mockBlock]),
         },
         routes: {
           findFirst: vi.fn().mockResolvedValue(mockRoute),
+          findMany: vi.fn().mockResolvedValue([mockRoute]),
         },
         ascents: {
           findFirst: vi.fn().mockResolvedValue(mockAscent),
+          findMany: vi.fn().mockResolvedValue([mockAscent]),
         },
         users: {
           findFirst: vi.fn().mockResolvedValue({ ...mockSchemaUser, userSettings: { gradingScale: 'FB' } }),
+          findMany: vi.fn().mockResolvedValue([{ ...mockSchemaUser, userSettings: { gradingScale: 'FB' } }]),
+        },
+        files: {
+          findFirst: vi.fn().mockResolvedValue({ id: 1, path: '/test/image.jpg' }),
+          findMany: vi.fn().mockResolvedValue([{ id: 1, path: '/test/image.jpg' }]),
         },
       },
       select: vi.fn().mockReturnValue(fromMock),
@@ -241,8 +259,11 @@ describe('Activity Feed', () => {
     it('should process different entity types correctly', async () => {
       // Test area activity
       vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([
-        { ...mockActivity, entityType: 'area', entityId: 1, user: { id: 1, name: 'Test User' } },
+        { ...mockActivity, entityType: 'area', entityId: '1', user: { id: 1, name: 'Test User' } },
       ])
+
+      // Mock the findMany for area entities
+      vi.mocked(mockDb.query.areas.findMany).mockResolvedValueOnce([mockArea])
 
       const areaResult = await loadFeed({
         locals: mockLocals,
@@ -254,8 +275,11 @@ describe('Activity Feed', () => {
 
       // Test route activity
       vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([
-        { ...mockActivity, entityType: 'route', entityId: 1, user: { id: 1, name: 'Test User' } },
+        { ...mockActivity, entityType: 'route', entityId: '1', user: { id: 1, name: 'Test User' } },
       ])
+
+      // Mock the findMany for route entities
+      vi.mocked(mockDb.query.routes.findMany).mockResolvedValueOnce([mockRoute])
 
       const routeResult = await loadFeed({
         locals: mockLocals,
@@ -272,7 +296,7 @@ describe('Activity Feed', () => {
       const fortyMinutesAgo = new Date(now.getTime() - 40 * 60 * 1000)
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
 
-      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([
+      const mockActivities = [
         {
           ...mockActivity,
           id: 1,
@@ -282,7 +306,6 @@ describe('Activity Feed', () => {
           parentEntityType: 'area',
           userFk: 1,
           createdAt: now,
-          user: { id: 1, name: 'Test User' },
         } as schema.Activity,
         {
           ...mockActivity,
@@ -293,7 +316,6 @@ describe('Activity Feed', () => {
           parentEntityType: 'area',
           userFk: 1,
           createdAt: fiveMinutesAgo,
-          user: { id: 1, name: 'Test User' },
         } as schema.Activity,
         {
           ...mockActivity,
@@ -304,7 +326,6 @@ describe('Activity Feed', () => {
           parentEntityType: 'area',
           userFk: 1,
           createdAt: fortyMinutesAgo,
-          user: { id: 1, name: 'Test User' },
         } as schema.Activity,
         {
           ...mockActivity,
@@ -315,9 +336,23 @@ describe('Activity Feed', () => {
           parentEntityType: 'area',
           userFk: 2,
           createdAt: oneHourAgo,
-          user: { id: 2, name: 'Other User' },
         } as schema.Activity,
+      ]
+
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce(
+        mockActivities.map((activity, index) => ({
+          ...activity,
+          user: index === 3 ? { id: 2, name: 'Other User' } : { id: 1, name: 'Test User' },
+        })),
+      )
+
+      // Mock the batch queries for resolveEntities
+      vi.mocked(mockDb.query.blocks.findMany).mockResolvedValueOnce([
+        { id: 1, name: 'Block 1', area: mockArea },
+        { id: 2, name: 'Block 2', area: mockArea },
       ])
+
+      vi.mocked(mockDb.query.areas.findMany).mockResolvedValueOnce([{ id: 100, name: 'Area 100', parent: null }])
 
       const result = await loadFeed({
         locals: mockLocals,
@@ -345,7 +380,7 @@ describe('Activity Feed', () => {
       const now = new Date()
       const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
 
-      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce([
+      const mockActivities = [
         {
           ...mockActivity,
           id: 1,
@@ -366,7 +401,14 @@ describe('Activity Feed', () => {
           userFk: 1,
           createdAt: fiveMinutesAgo,
         } satisfies schema.Activity,
-      ])
+      ]
+
+      vi.mocked(mockDb.query.activities.findMany).mockResolvedValueOnce(
+        mockActivities.map((activity) => ({ ...activity, user: mockSchemaUser })),
+      )
+
+      // Mock the batch query for areas
+      vi.mocked(mockDb.query.areas.findMany).mockResolvedValueOnce([mockArea])
 
       const result = await loadFeed({
         locals: mockLocals,

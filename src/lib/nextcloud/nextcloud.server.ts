@@ -29,6 +29,17 @@ export const getNextcloud = (path = '/remote.php/dav/files'): WebDAVClient => {
  */
 export const searchNextcloudFile = async (file: schema.File): Promise<FileStat> => {
   try {
+    if (file.path.length === 0) {
+      return {
+        basename: '',
+        filename: '',
+        lastmod: '',
+        size: 0,
+        type: 'file',
+        etag: '',
+      }
+    }
+
     const path = file.path.startsWith('/') ? file.path : `/${file.path}`
     const stat = (await getNextcloud().stat(NEXTCLOUD_USER_NAME + path, {
       details: true,
