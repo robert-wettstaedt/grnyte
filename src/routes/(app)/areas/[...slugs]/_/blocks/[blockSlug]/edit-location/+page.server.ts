@@ -1,5 +1,6 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache.server'
+import { invalidateCache } from '$lib/cache/cache.server'
+import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichBlock, type EnrichedBlock } from '$lib/db/utils'
@@ -181,7 +182,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache('layout', 'blocks')
+        await invalidateCache(config.cache.keys.layoutBlocks)
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }

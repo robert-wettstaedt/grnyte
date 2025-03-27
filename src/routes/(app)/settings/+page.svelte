@@ -2,6 +2,7 @@
   import { applyAction, enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
+  import { calculateCacheSize, clearCache } from '$lib/cache/cache'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
   import PushNotificationSubscriber, {
@@ -24,6 +25,8 @@
   let notifyNewAscents = $state(false)
   let notifyNewUsers = $state(false)
 
+  let cacheSize = $state(0)
+
   $effect(() => {
     notifyModerations = (form?.notifyModerations as boolean) ?? page.data.user?.userSettings?.notifyModerations ?? false
     notifyNewAscents = (form?.notifyNewAscents as boolean) ?? page.data.user?.userSettings?.notifyNewAscents ?? false
@@ -32,6 +35,7 @@
 
   onMount(async () => {
     isPushSubscribed = await isSubscribed()
+    cacheSize = await calculateCacheSize()
   })
 
   const onSignout = async () => {
@@ -41,6 +45,42 @@
       console.error(error)
     }
     page.data.supabase?.auth.signOut()
+  }
+
+  /**
+   * Format bytes as human-readable text.
+   *
+   * @param bytes Number of bytes.
+   * @param si True to use metric (SI) units, aka powers of 1000. False to use
+   *           binary (IEC), aka powers of 1024.
+   * @param dp Number of decimal places to display.
+   *
+   * @return Formatted string.
+   */
+  function humanFileSize(bytes: number, si = false, dp = 1) {
+    const thresh = si ? 1000 : 1024
+
+    if (Math.abs(bytes) < thresh) {
+      return bytes + ' B'
+    }
+
+    const units = si
+      ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+      : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+    let u = -1
+    const r = 10 ** dp
+
+    do {
+      bytes /= thresh
+      ++u
+    } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1)
+
+    return bytes.toFixed(dp) + ' ' + units[u]
+  }
+
+  const onClearCache = async () => {
+    await clearCache()
+    cacheSize = await calculateCacheSize()
   }
 </script>
 
@@ -56,26 +96,41 @@
   </header>
 
   <section class="w-full space-y-5">
-    <div class="flex items-center justify-between gap-4 p-2">
-      <div>Grading scale</div>
+    <ul>
+      <li>
+        <div class="flex items-center justify-between gap-4 p-2">
+          <div>Grading scale</div>
 
-      <select
-        class="select w-24"
-        value={page.data.user?.userSettings?.gradingScale}
-        onchange={async (event) => {
-          const response = await fetch(`/api/users/settings?gradingScale=${event.currentTarget.value}`, {
-            method: 'POST',
-          })
+          <select
+            class="select w-24"
+            value={page.data.user?.userSettings?.gradingScale}
+            onchange={async (event) => {
+              const response = await fetch(`/api/users/settings?gradingScale=${event.currentTarget.value}`, {
+                method: 'POST',
+              })
 
-          if (response.ok) {
-            invalidateAll()
-          }
-        }}
-      >
-        <option value="FB">FB</option>
-        <option value="V">V</option>
-      </select>
-    </div>
+              if (response.ok) {
+                invalidateAll()
+              }
+            }}
+          >
+            <option value="FB">FB</option>
+            <option value="V">V</option>
+          </select>
+        </div>
+      </li>
+
+      <li>
+        <button
+          class="hover:preset-tonal-primary flex w-full items-center justify-between gap-4 p-2"
+          onclick={onClearCache}
+        >
+          <span>Clear app cache</span>
+
+          <span class="text-sm opacity-60">{humanFileSize(cacheSize, true)}</span>
+        </button>
+      </li>
+    </ul>
   </section>
 </div>
 

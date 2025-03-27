@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GetBlockKey, NestedBlock } from '$lib/components/BlocksMap'
+  import type { BlocksMapProps, GetBlockKey, NestedBlock } from '$lib/components/BlocksMap'
   import BlockEntry, { type Block } from './components/BlockEntry'
 
   interface Props {
@@ -8,9 +8,10 @@
     itemClass?: string
     name: string
     onLoadTopo?: () => void
+    onRenderComplete?: BlocksMapProps['onRenderComplete']
   }
 
-  let { name, blocks, itemClass, getBlockKey = null, onLoadTopo }: Props = $props()
+  let { name, blocks, itemClass, getBlockKey = null, onLoadTopo, onRenderComplete }: Props = $props()
 </script>
 
 <section>
@@ -20,10 +21,10 @@
     <BlocksMap.default
       {blocks}
       {getBlockKey}
+      {onRenderComplete}
       collapsibleAttribution={false}
       declutter={false}
       height="210mm"
-      on:rendercomplete
       showAreas={false}
       zoom={null}
     />

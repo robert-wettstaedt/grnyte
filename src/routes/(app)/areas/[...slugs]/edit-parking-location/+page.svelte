@@ -15,8 +15,6 @@
   let coordinate: Coordinate | null = $state(null)
   let tabSet = $state('map')
 
-  const onChange = ({ detail }: CustomEvent<Coordinate>) => (coordinate = detail)
-
   const getValue: ChangeEventHandler<HTMLInputElement> = (event): number => {
     return Number((event.target as HTMLInputElement).value)
   }
@@ -57,7 +55,7 @@
       <Tabs.Panel value="map">
         <div use:fitHeightAction>
           {#await import('$lib/components/BlocksMapWithAddableMarker') then BlocksMap}
-            <BlocksMap.default blocks={data.blocks} on:change={onChange} />
+            <BlocksMap.default onChange={(value) => (coordinate = value)} />
           {/await}
         </div>
 

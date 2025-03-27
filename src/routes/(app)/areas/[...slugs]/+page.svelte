@@ -240,11 +240,7 @@
           <div use:fitHeightAction>
             {#await import('$lib/components/BlocksMap') then BlocksMap}
               {#key data.area.id}
-                <BlocksMap.default
-                  blocks={data.blocks}
-                  parkingLocations={data.area.parkingLocations}
-                  selectedArea={data.area}
-                />
+                <BlocksMap.default parkingLocations={data.area.parkingLocations} selectedArea={data.area} />
               {/key}
             {/await}
           </div>

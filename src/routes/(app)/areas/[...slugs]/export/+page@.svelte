@@ -140,7 +140,7 @@
         collapsibleAttribution={false}
         blocks={data.area.blocks}
         height="210mm"
-        on:rendercomplete={onLoadMap}
+        onRenderComplete={onLoadMap}
         parkingLocations={data.area.parkingLocations}
         selectedArea={data.area}
         showBlocks={false}
@@ -158,7 +158,7 @@
         itemClass={ITEM_CLASS}
         name={area.name}
         {onLoadTopo}
-        on:rendercomplete={onLoadMap}
+        onRenderComplete={onLoadMap}
       />
     {/each}
   {:else}
@@ -168,7 +168,7 @@
       itemClass={ITEM_CLASS}
       name="Blöcke"
       {onLoadTopo}
-      on:rendercomplete={onLoadMap}
+      onRenderComplete={onLoadMap}
     />
   {/if}
 </div>

@@ -1,5 +1,6 @@
-import { getFromCache, setInCache } from '$lib/cache.server'
+import { getFromCache, setInCache } from '$lib/cache/cache.server'
 import type { NestedBlock } from '$lib/components/BlocksMap'
+import { config } from '$lib/config'
 import type { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, blocks } from '$lib/db/schema'
@@ -298,7 +299,7 @@ export const getStatsOfBlocks = <
 
 export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatabase<typeof schema>): Promise<T[]> => {
   // Try to get from cache first
-  const cached = await getFromCache<T[]>('layout', 'blocks')
+  const cached = await getFromCache<T[]>(config.cache.keys.layoutBlocks)
   if (cached) {
     return cached
   }
@@ -322,7 +323,7 @@ export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatab
   })
 
   // Cache the raw blocks data before enrichment
-  await setInCache('layout', 'blocks', filteredBlocks)
+  await setInCache(config.cache.keys.layoutBlocks, filteredBlocks)
 
   // Return the enriched blocks
   return filteredBlocks as T[]

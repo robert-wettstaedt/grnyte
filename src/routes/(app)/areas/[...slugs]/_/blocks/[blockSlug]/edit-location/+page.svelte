@@ -4,21 +4,25 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { DELETE_PERMISSION } from '$lib/auth'
+  import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
-  import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { config } from '$lib/config'
+  import { Popover, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
 
   let { data, form } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
+  let loading = $state(false)
+
   let coordinate: Coordinate | null = $state(
     data.block.geolocation == null ? null : [data.block.geolocation.long, data.block.geolocation.lat],
   )
   let tabSet = $state('map')
 
-  const onChange = ({ detail }: CustomEvent<Coordinate>) => {
-    coordinate = detail
+  const onChange = (value: Coordinate) => {
+    coordinate = value
     document.scrollingElement?.scrollTo({ top: document.scrollingElement.scrollHeight, behavior: 'smooth' })
   }
 
@@ -50,7 +54,17 @@
   class="card preset-filled-surface-100-900 mt-4 p-2 md:mt-8 md:p-4"
   action="?/updateLocation"
   method="POST"
-  use:enhance
+  use:enhance={() => {
+    loading = true
+
+    return async ({ update }) => {
+      loading = false
+      await invalidateCache(config.cache.keys.layoutBlocks)
+      await invalidateCache(config.cache.keys.layoutBlocksHash)
+
+      return update()
+    }
+  }}
 >
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     {#snippet list()}
@@ -62,12 +76,7 @@
       <Tabs.Panel value="map">
         <div use:fitHeightAction>
           {#await import('$lib/components/BlocksMapWithAddableMarker') then BlocksMap}
-            <BlocksMap.default
-              blocks={data.blocks}
-              selectedArea={data.block.area}
-              selectedBlock={data.block}
-              on:change={onChange}
-            />
+            <BlocksMap.default selectedArea={data.block.area} selectedBlock={data.block} {onChange} />
           {/await}
         </div>
 
@@ -115,7 +124,21 @@
             </article>
 
             <footer class="flex justify-end">
-              <form method="POST" action="?/removeGeolocation" use:enhance>
+              <form
+                method="POST"
+                action="?/removeGeolocation"
+                use:enhance={() => {
+                  loading = true
+
+                  return async ({ update }) => {
+                    loading = false
+                    await invalidateCache(config.cache.keys.layoutBlocks)
+                    await invalidateCache(config.cache.keys.layoutBlocksHash)
+
+                    return update()
+                  }
+                }}
+              >
                 <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
               </form>
             </footer>
@@ -123,7 +146,13 @@
         </Popover>
       {/if}
 
-      <button class="btn preset-filled-primary-500" disabled={coordinate == null} type="submit">
+      <button class="btn preset-filled-primary-500" type="submit" disabled={loading || coordinate == null}>
+        {#if loading}
+          <span class="me-2">
+            <ProgressRing size="size-4" value={null} />
+          </span>
+        {/if}
+
         Update geolocation
       </button>
     </div>
