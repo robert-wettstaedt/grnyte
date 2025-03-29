@@ -246,6 +246,13 @@
       "when": 1742726931012,
       "tag": "0035_dapper_carlie_cooper",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1743243712915,
+      "tag": "0036_superb_scourge",
+      "breakpoints": true
     }
   ]
 }

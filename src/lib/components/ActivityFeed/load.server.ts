@@ -144,12 +144,14 @@ const resolveEntities = async (
   db: PostgresJsDatabase<typeof schema>,
   activities: schema.Activity[],
   entityTypes: schema.Activity['entityType'][],
+  parent: boolean,
 ) => {
   const objects = await Promise.all(
     entityTypes.map(async (entityType) => {
       const ids = activities
-        .filter((activity) => activity.entityType === entityType)
-        .map((activity) => activity.entityId)
+        .filter((activity) => (parent ? activity.parentEntityType : activity.entityType) === entityType)
+        .map((activity) => (parent ? activity.parentEntityId : activity.entityId))
+        .filter((id) => id != null)
       const distinctIds = Array.from(new Set(ids))
 
       const query = getQuery(db, entityType)
@@ -300,8 +302,8 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
         ).filter((type) => type != null)
 
         const [entities, parentEntities] = await Promise.all([
-          resolveEntities(db, activities, distinctEntityTypes),
-          resolveEntities(db, activities, distinctParentEntityTypes),
+          resolveEntities(db, activities, distinctEntityTypes, false),
+          resolveEntities(db, activities, distinctParentEntityTypes, true),
         ])
 
         const activitiesDTOs = activities

@@ -566,7 +566,7 @@ export const files = table(
     areaFk: integer('area_fk').references((): AnyColumn => areas.id),
     ascentFk: integer('ascent_fk').references((): AnyColumn => ascents.id),
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
-    bunnyStreamFk: uuid('bunny_stream_fk').references((): AnyColumn => bunnyStreams.id),
+    bunnyStreamFk: uuid('bunny_stream_fk').references((): AnyColumn => bunnyStreams.id, { onDelete: 'set null' }),
     routeFk: integer('route_fk').references((): AnyColumn => routes.id),
   },
   (table) => [
@@ -631,7 +631,7 @@ export const bunnyStreams = table(
   'bunny_streams',
   {
     id: uuid('id').primaryKey(),
-    fileFk: text('file_fk').references((): AnyColumn => files.id),
+    fileFk: text('file_fk').references((): AnyColumn => files.id, { onDelete: 'set null' }),
   },
   () => [
     policy(`${READ_PERMISSION} can insert bunny_streams`, getAuthorizedPolicyConfig('insert', READ_PERMISSION)),

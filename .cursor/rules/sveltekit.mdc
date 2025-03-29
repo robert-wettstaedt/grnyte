@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+---
+This project uses SvelteKit. Always prefer to use its module import paradigm. Example:
+
+Instead of 
+```
+import { foo } from './bar'
+```
+
+Try to use
+```
+import { foo } from '$lib/bar'
+```

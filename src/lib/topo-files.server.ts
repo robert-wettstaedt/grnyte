@@ -36,7 +36,7 @@ export const createGeolocationFromFiles = async (
   operation: 'create' | 'update' | 'all' = 'all',
 ) => {
   const allGps = await Promise.all(buffers.map((buffer) => exif.gps(buffer)))
-  const nonNullGps = allGps.filter((d) => d != null)
+  const nonNullGps = allGps.filter((d) => d != null && !Number.isNaN(d.latitude) && !Number.isNaN(d.longitude))
 
   const sumGps = nonNullGps.reduce(
     (sum, gps) => {

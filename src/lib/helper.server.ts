@@ -1,12 +1,12 @@
 import { BUNNY_STREAM_API_KEY } from '$env/static/private'
 import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
+import { deleteVideo } from '$lib/bunny'
 import * as schema from '$lib/db/schema'
 import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { error } from '@sveltejs/kit'
 import { and, eq, inArray, SQL } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { deleteVideo } from './bunny'
 
 /**
  * Converts a slug string into an object containing area slug, area ID,
@@ -73,23 +73,25 @@ export const deleteFiles = async (opts: DeleteFilesOpts, db: PostgresJsDatabase<
     throw new Error('Not enough parameters to delete files')
   }
 
-  const filesToDelete = await db
-    .update(schema.files)
-    .set({ bunnyStreamFk: null })
-    .where(and(...where))
-    .returning()
+  const filesToDelete = await db.query.files.findMany({ where: and(...where) })
   const fileIds = filesToDelete.map((file) => file.id)
 
   if (filesToDelete.length === 0) {
     return
   }
 
-  const bunnyStreamsToDelete = await db
-    .delete(schema.bunnyStreams)
-    .where(inArray(schema.bunnyStreams.fileFk, fileIds))
-    .returning()
+  const bunnyStreamsToDelete = await db.query.bunnyStreams.findMany({
+    where: inArray(schema.bunnyStreams.fileFk, fileIds),
+  })
 
-  await db.delete(schema.files).where(inArray(schema.files.id, fileIds))
+  if (bunnyStreamsToDelete.length > 0) {
+    const bunnyStreamIds = bunnyStreamsToDelete.map((stream) => stream.id)
+    await db.delete(schema.bunnyStreams).where(inArray(schema.bunnyStreams.id, bunnyStreamIds))
+  }
+
+  if (fileIds.length > 0) {
+    await db.delete(schema.files).where(inArray(schema.files.id, fileIds))
+  }
 
   await Promise.all(filesToDelete.map((file) => deleteFile(file)))
   await Promise.all(
