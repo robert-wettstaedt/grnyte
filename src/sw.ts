@@ -13,9 +13,6 @@ import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
 
-// Flag to track if we should use the cache or network for blocks API
-let useBlocksCache = true
-
 self.addEventListener('message', (event) => {
   console.log('message', event)
 
@@ -29,7 +26,7 @@ self.addEventListener('message', (event) => {
 
       // Compare histories to determine if we should use cache
       if (nextBlockHistoryHash != null) {
-        useBlocksCache = prevBlockHistoryHash === nextBlockHistoryHash
+        const useBlocksCache = prevBlockHistoryHash === nextBlockHistoryHash
 
         console.log('Block histories are the same:', useBlocksCache, prevBlockHistoryHash, nextBlockHistoryHash)
 
