@@ -1,6 +1,7 @@
 import { EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
+import { ascents, blocks, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
@@ -140,7 +141,7 @@ export const actions = {
         )
       }
 
-      await db.insert(activities).values({
+      await insertActivity(db, {
         type: 'updated',
         userFk: locals.user.id,
         entityId: String(parsedTopos[0].blockFk),
@@ -181,7 +182,7 @@ export const actions = {
 
         await deleteFiles({ fileId: topo.fileFk }, db)
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(topo.blockFk),

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
   import BlockFormFields from '$lib/components/BlockFormFields'
   import { enhanceWithFile } from '$lib/components/FileUpload/action'
+  import { config } from '$lib/config'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
@@ -38,6 +40,9 @@
       return async ({ update }) => {
         const returnValue = await update()
         loading = false
+        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(config.cache.keys.layoutBlocksHash)
+
         return returnValue
       }
     },

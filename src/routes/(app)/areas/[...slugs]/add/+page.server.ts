@@ -1,7 +1,9 @@
 import { EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache.server'
+import { invalidateCache } from '$lib/cache/cache.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, areas, generateSlug, users, type Area } from '$lib/db/schema'
+import { areas, generateSlug, users, type Area } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
 import { convertAreaSlug } from '$lib/helper.server'
@@ -95,7 +97,7 @@ export const actions = {
             .returning()
         )[0]
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'created',
           userFk: user.id,
           entityId: String(createdArea.id),
@@ -105,7 +107,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache('layout', 'blocks')
+        await invalidateCache(config.cache.keys.layoutBlocks)
       } catch (exception) {
         // If an error occurs during insertion, return a 400 error with the exception message
         return fail(400, { ...values, error: convertException(exception) })

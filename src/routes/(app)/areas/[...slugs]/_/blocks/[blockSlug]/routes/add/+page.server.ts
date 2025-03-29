@@ -1,7 +1,8 @@
 import { EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, blocks, generateSlug, routes, routesToTags, type Route } from '$lib/db/schema'
+import { blocks, generateSlug, routes, routesToTags, type Route } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
@@ -126,7 +127,7 @@ export const actions = {
           .returning()
         route = result[0]
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'created',
           userFk: locals.user.id,
           entityId: String(route.id),

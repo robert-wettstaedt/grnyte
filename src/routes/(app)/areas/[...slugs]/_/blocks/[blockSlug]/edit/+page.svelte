@@ -3,7 +3,9 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { DELETE_PERMISSION } from '$lib/auth'
+  import { invalidateCache } from '$lib/cache/cache'
   import BlockFormFields from '$lib/components/BlockFormFields'
+  import { config } from '$lib/config'
   import { AppBar, Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
@@ -30,8 +32,10 @@
   use:enhance={() => {
     loading = true
 
-    return ({ update }) => {
+    return async ({ update }) => {
       loading = false
+      await invalidateCache(config.cache.keys.layoutBlocks)
+      await invalidateCache(config.cache.keys.layoutBlocksHash)
 
       return update()
     }
@@ -63,7 +67,21 @@
             </article>
 
             <footer class="flex justify-end">
-              <form method="POST" action="?/removeBlock" use:enhance>
+              <form
+                method="POST"
+                action="?/removeBlock"
+                use:enhance={() => {
+                  loading = true
+
+                  return async ({ update }) => {
+                    loading = false
+                    await invalidateCache(config.cache.keys.layoutBlocks)
+                    await invalidateCache(config.cache.keys.layoutBlocksHash)
+
+                    return update()
+                  }
+                }}
+              >
                 <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
               </form>
             </footer>

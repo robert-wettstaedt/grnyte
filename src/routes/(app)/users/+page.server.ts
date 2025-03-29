@@ -1,8 +1,9 @@
 import { RESEND_API_KEY, RESEND_RECIPIENT_EMAIL, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
-import { activities, userRoles, users, type User } from '$lib/db/schema'
+import { userRoles, users, type User } from '$lib/db/schema'
 import {
   addRoleActionSchema,
   validateFormData,
@@ -88,7 +89,7 @@ export const actions = {
       }
 
       await db.insert(userRoles).values({ authUserFk: values.authUserFk, role: 'user' })
-      await tx.insert(activities).values({
+      await insertActivity(tx, {
         type: 'updated',
         entityId: String(formUser.id),
         entityType: 'user',

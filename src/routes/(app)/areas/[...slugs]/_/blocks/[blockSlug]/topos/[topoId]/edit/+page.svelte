@@ -1,10 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
   import FileUpload, { enhanceWithFile } from '$lib/components/FileUpload'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import Image from '$lib/components/Image'
+  import { config } from '$lib/config'
+  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
@@ -42,6 +44,9 @@
       return async ({ update }) => {
         const returnValue = await update()
         loading = false
+        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(config.cache.keys.layoutBlocksHash)
+
         return returnValue
       }
     },

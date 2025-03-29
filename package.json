@@ -34,7 +34,6 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/dragula": "^3.7.5",
     "@types/heic-convert": "^2.1.0",
-    "@upstash/redis": "^1.34.3",
     "@vercel/analytics": "^1.5.0",
     "cheerio": "^1.0.0-rc.12",
     "codemirror": "^6.0.1",

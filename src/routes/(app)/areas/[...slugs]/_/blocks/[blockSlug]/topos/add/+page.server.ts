@@ -1,8 +1,9 @@
 import { EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, blocks, topos } from '$lib/db/schema'
+import { blocks, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { addFileActionSchema, validateFormData, type ActionFailure, type AddFileActionValues } from '$lib/forms.server'
 import { convertAreaSlug } from '$lib/helper.server'
@@ -98,18 +99,17 @@ export const actions = {
           createdFiles.map((result) => db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id })),
         )
 
-        await Promise.all(
-          createdFiles.map(({ file }) =>
-            db.insert(activities).values({
-              type: 'uploaded',
-              userFk: user.id,
-              entityId: String(file.id),
-              entityType: 'file',
-              columnName: 'topo image',
-              parentEntityId: String(block.id),
-              parentEntityType: 'block',
-            }),
-          ),
+        await insertActivity(
+          db,
+          createdFiles.map(({ file }) => ({
+            type: 'uploaded',
+            userFk: user.id,
+            entityId: String(file.id),
+            entityType: 'file',
+            columnName: 'topo image',
+            parentEntityId: String(block.id),
+            parentEntityType: 'block',
+          })),
         )
       } catch (exception) {
         // If an exception occurs during insertion, return a failure response with the error message

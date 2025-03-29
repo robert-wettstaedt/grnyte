@@ -8,6 +8,24 @@
     priority: number
     subtitle?: string
   }
+
+  export interface BlocksMapProps {
+    collapsibleAttribution?: boolean
+    blocks: NestedBlock[]
+    selectedArea?: Area | null
+    selectedBlock?: Block | null
+    height?: number | string | null
+    zoom?: number | null
+    showRelief?: boolean
+    showBlocks?: boolean
+    showAreas?: boolean
+    declutter?: boolean
+    getBlockKey?: GetBlockKey
+    parkingLocations?: Geolocation[]
+
+    onAction?: (map: OlMap) => void
+    onRenderComplete?: () => void
+  }
 </script>
 
 <script lang="ts">
@@ -31,28 +49,12 @@
   import TileWMS from 'ol/source/TileWMS.js'
   import { Fill, Stroke, Style, Text } from 'ol/style.js'
   import CircleStyle from 'ol/style/Circle'
-  import { createEventDispatcher } from 'svelte'
   import type { GetBlockKey, NestedBlock } from '.'
   import Geolocate from './components/Geolocate'
   import Layers, { type Layer } from './components/Layers'
   import Popup from './components/Popup'
 
   const DEFAULT_ZOOM = 19
-
-  interface Props {
-    collapsibleAttribution?: boolean
-    blocks: NestedBlock[]
-    selectedArea?: Area | null
-    selectedBlock?: Block | null
-    height?: number | string | null
-    zoom?: number | null
-    showRelief?: boolean
-    showBlocks?: boolean
-    showAreas?: boolean
-    declutter?: boolean
-    getBlockKey?: GetBlockKey
-    parkingLocations?: Geolocation[]
-  }
 
   let {
     collapsibleAttribution = true,
@@ -67,9 +69,9 @@
     declutter = true,
     getBlockKey = null,
     parkingLocations = [],
-  }: Props = $props()
-
-  const dispatch = createEventDispatcher<{ action: OlMap; rendercomplete: void }>()
+    onAction,
+    onRenderComplete,
+  }: BlocksMapProps = $props()
 
   let mapElement: HTMLDivElement | null = null
   let map: OlMap | null = $state(null)
@@ -486,14 +488,14 @@
         const extent = boundingExtent(filtered)
 
         map.getView().fit(extent, {
-          callback: () => dispatch('rendercomplete'),
+          callback: () => onRenderComplete?.(),
           maxZoom: zoom ?? DEFAULT_ZOOM,
         })
       } else {
         const extent = boundingExtent(coordinates)
 
         map.getView().fit(extent, {
-          callback: () => dispatch('rendercomplete'),
+          callback: () => onRenderComplete?.(),
           maxZoom: zoom ?? DEFAULT_ZOOM,
         })
       }
@@ -511,7 +513,7 @@
     const observer = new ResizeObserver(() => requestAnimationFrame(resizeMap))
     observer.observe(el)
 
-    dispatch('action', map)
+    onAction?.(map)
 
     return {
       destroy: () => {

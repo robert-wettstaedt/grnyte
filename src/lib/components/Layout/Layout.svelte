@@ -6,7 +6,7 @@
 
 <script lang="ts">
   import { dev } from '$app/environment'
-  import { afterNavigate, invalidateAll } from '$app/navigation'
+  import { afterNavigate, beforeNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
@@ -48,6 +48,20 @@
   $effect(() => {
     if (page.form != null) {
       document.scrollingElement?.scrollTo(0, 0)
+    }
+  })
+
+  $effect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then((registration) => {
+        console.log('posting message..')
+
+        // Send data to service worker
+        registration?.active?.postMessage({
+          type: 'BLOCK_HISTORY_HASH',
+          payload: page.data.blockHistoryHash,
+        })
+      })
     }
   })
 </script>

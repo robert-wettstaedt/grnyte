@@ -1,6 +1,6 @@
 import type { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
 import type { Grade, UserSettings } from '$lib/db/schema'
-import type { InferResultType, NestedBlock } from '$lib/db/types'
+import type { InferResultType } from '$lib/db/types'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
 // See https://kit.svelte.dev/docs/types#app
@@ -37,7 +37,7 @@ declare global {
       supabase: SupabaseClient
     }
     interface PageData extends Omit<Locals, 'safeGetSession' | 'supabase'> {
-      blocks: NestedBlock[]
+      blockHistoryHash: string | undefined
       grades: Grade[]
       gradingScale: NonNullable<UserSettings['gradingScale']>
       supabase?: Locals['supabase']

@@ -18,8 +18,6 @@ jobs:
       RESEND_SENDER_EMAIL: foobar
       RESEND_RECIPIENT_EMAIL: foobar
       RESEND_API_KEY: foobar
-      UPSTASH_REDIS_REST_URL: foobar
-      UPSTASH_REDIS_REST_TOKEN: foobar
       PUBLIC_APPLICATION_NAME: foobar
       PUBLIC_DEMO_MODE: foobar
       PUBLIC_SUPABASE_URL: foobar

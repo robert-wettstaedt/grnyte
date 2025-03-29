@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BlocksMap, { type NestedBlock } from '$lib/components/BlocksMap'
+  import BlocksMap from '$lib/components/BlocksMap'
   import type { Area } from '$lib/db/schema'
   import type { InferResultType } from '$lib/db/types'
   import Feature from 'ol/Feature.js'
@@ -9,19 +9,16 @@
   import { Vector as VectorLayer } from 'ol/layer.js'
   import { toLonLat } from 'ol/proj'
   import { Vector as VectorSource } from 'ol/source.js'
-  import { createEventDispatcher } from 'svelte'
 
   interface Props {
-    blocks: NestedBlock[]
+    onChange?: (coordinate: Coordinate) => void
     selectedArea?: Area | null
     selectedBlock?: InferResultType<'blocks', { geolocation: true }> | null
   }
 
-  let { blocks, selectedArea = null, selectedBlock = null }: Props = $props()
+  let { onChange, selectedArea = null, selectedBlock = null }: Props = $props()
 
-  const dispatch = createEventDispatcher<{ change: Coordinate }>()
-
-  const onAction = ({ detail: map }: CustomEvent<Map>) => {
+  const onAction = (map: Map) => {
     let marker: Feature<Point> | null = null
 
     map.on('click', (event) => {
@@ -43,9 +40,9 @@
         marker.getGeometry()?.setCoordinates(event.coordinate)
       }
 
-      dispatch('change', toLonLat(event.coordinate))
+      onChange?.(toLonLat(event.coordinate))
     })
   }
 </script>
 
-<BlocksMap {blocks} {selectedArea} {selectedBlock} on:action={onAction} />
+<BlocksMap {selectedArea} {selectedBlock} {onAction} />

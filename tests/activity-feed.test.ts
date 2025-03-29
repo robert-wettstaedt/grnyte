@@ -1,6 +1,11 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
 import type { ActivityDTO, Entity } from '$lib/components/ActivityFeed'
-import { createUpdateActivity, groupActivities, loadFeed } from '$lib/components/ActivityFeed/load.server'
+import {
+  createUpdateActivity,
+  groupActivities,
+  insertActivity,
+  loadFeed,
+} from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
@@ -15,6 +20,13 @@ vi.mock('$lib/db/db.server', () => ({
 
 vi.mock('$lib/markdown', () => ({
   convertMarkdownToHtml: vi.fn((text) => Promise.resolve(`<p>${text}</p>`)),
+}))
+
+vi.mock('$lib/cache/cache.server', () => ({
+  getFromCache: vi.fn(),
+  setInCache: vi.fn(),
+  invalidateCache: vi.fn(),
+  getFromCacheWithDefault: vi.fn((key, fn, predicate) => fn()),
 }))
 
 interface FileWithPath {
@@ -430,6 +442,24 @@ describe('Activity Feed', () => {
           url: new URL('http://localhost:3000/feed?page=invalid'),
         }),
       ).rejects.toThrow()
+    })
+
+    it('should use caching for standard feed queries', async () => {
+      const getFromCacheWithDefault = vi.mocked(await import('$lib/cache/cache.server')).getFromCacheWithDefault
+
+      // Initial call to loadFeed
+      await loadFeed({
+        locals: mockLocals,
+        url: new URL('http://localhost:3000/feed'),
+      })
+
+      // Verify getFromCacheWithDefault was called with the correct key
+      expect(getFromCacheWithDefault).toHaveBeenCalled()
+      expect(getFromCacheWithDefault).toHaveBeenCalledWith(
+        config.cache.keys.activityFeed,
+        expect.any(Function),
+        expect.any(Function),
+      )
     })
   })
 
@@ -890,6 +920,56 @@ describe('Activity Feed', () => {
       // Should not create or update any activities
       expect(mockDb.insert).not.toHaveBeenCalled()
       expect(mockDb.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('insertActivity', () => {
+    it('should insert a single activity and invalidate cache', async () => {
+      const activity = {
+        type: 'created',
+        userFk: 1,
+        entityId: '1',
+        entityType: 'route',
+        parentEntityId: null,
+        parentEntityType: null,
+      } as schema.InsertActivity
+
+      await insertActivity(mockDb as unknown as PostgresJsDatabase<typeof schema>, activity)
+
+      expect(mockDb.insert).toHaveBeenCalledWith(schema.activities)
+      expect(mockDb.insert().values).toHaveBeenCalledWith([activity])
+    })
+
+    it('should insert multiple activities and invalidate cache once', async () => {
+      const activities = [
+        {
+          type: 'created',
+          userFk: 1,
+          entityId: '1',
+          entityType: 'route',
+          parentEntityId: null,
+          parentEntityType: null,
+        },
+        {
+          type: 'created',
+          userFk: 1,
+          entityId: '2',
+          entityType: 'route',
+          parentEntityId: null,
+          parentEntityType: null,
+        },
+      ] as schema.InsertActivity[]
+
+      await insertActivity(mockDb as unknown as PostgresJsDatabase<typeof schema>, activities)
+
+      expect(mockDb.insert).toHaveBeenCalledWith(schema.activities)
+      expect(mockDb.insert().values).toHaveBeenCalledWith(activities)
+    })
+
+    it('should not do anything if an empty array is provided', async () => {
+      await insertActivity(mockDb as unknown as PostgresJsDatabase<typeof schema>, [])
+
+      expect(mockDb.insert).not.toHaveBeenCalled()
     })
   })
 })

@@ -1,6 +1,6 @@
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import * as schema from '$lib/db/schema'
 import {
-  activities,
   ascents,
   blocks,
   routeExternalResource27crags,
@@ -143,7 +143,7 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
 
   await db.delete(routes).where(eq(routes.id, route.id))
 
-  await db.insert(activities).values({
+  await insertActivity(db, {
     type: 'deleted',
     userFk: params.userId,
     entityId: String(route.id),

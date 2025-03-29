@@ -1,4 +1,5 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { deleteFiles } from '$lib/helper.server'
@@ -69,7 +70,7 @@ export async function DELETE(event) {
       file.routeFk != null ? 'route' : file.ascentFk != null ? 'ascent' : file.blockFk != null ? 'block' : 'area'
 
     if (entityId != null && locals.user != null) {
-      await db.insert(schema.activities).values({
+      await insertActivity(db, {
         type: 'deleted',
         userFk: locals.user.id,
         entityId: String(entityId),

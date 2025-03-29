@@ -1,5 +1,6 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache.server'
+import { invalidateCache } from '$lib/cache/cache.server'
+import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichBlock, type EnrichedBlock } from '$lib/db/utils'
@@ -9,6 +10,7 @@ import { createOrUpdateGeolocation } from '$lib/topo-files.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 
 export const load = (async ({ locals, params, parent }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -109,7 +111,7 @@ export const actions = {
       try {
         await createOrUpdateGeolocation(db, block, { lat, long })
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'updated',
           userFk: locals.user.id,
           entityId: String(block.id),
@@ -170,7 +172,7 @@ export const actions = {
           await db.delete(geolocations).where(eq(geolocations.id, block.geolocationFk!))
         }
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(block.id),
@@ -181,7 +183,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache('layout', 'blocks')
+        await invalidateCache(config.cache.keys.layoutBlocks)
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }
