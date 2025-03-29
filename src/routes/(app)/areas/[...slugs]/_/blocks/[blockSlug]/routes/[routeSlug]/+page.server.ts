@@ -1,5 +1,5 @@
 import { EDIT_PERMISSION } from '$lib/auth'
-import { loadFeed } from '$lib/components/ActivityFeed/load.server'
+import { insertActivity, loadFeed } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import {
   activities,
@@ -224,7 +224,7 @@ export const actions = {
           .set({ userFk: locals.user.id })
           .where(eq(firstAscensionists.id, firstAscensionist.id))
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'updated',
           userFk: locals.user.id,
           entityId: String(locals.user.id),
@@ -324,7 +324,7 @@ export const actions = {
           .join(' ')
         const newFirstAscent = [route.firstAscentYear, firstAscensionist.name].filter(Boolean).join(' ')
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'updated',
           userFk: locals.user.id,
           entityId: String(route.id),

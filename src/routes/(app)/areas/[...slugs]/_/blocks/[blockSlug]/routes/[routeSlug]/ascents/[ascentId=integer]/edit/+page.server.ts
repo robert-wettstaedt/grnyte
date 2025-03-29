@@ -1,5 +1,5 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
@@ -122,7 +122,7 @@ export const actions = {
 
           await Promise.all(
             createdFiles.map(({ file }) =>
-              db.insert(activities).values({
+              insertActivity(db, {
                 type: 'uploaded',
                 userFk: user.id,
                 entityId: String(file.id),
@@ -183,7 +183,7 @@ export const actions = {
         await db
           .delete(activities)
           .where(and(eq(activities.entityType, 'ascent'), eq(activities.entityId, String(ascent.id))))
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(ascent.id),

@@ -10,6 +10,7 @@ import { createOrUpdateGeolocation } from '$lib/topo-files.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 
 export const load = (async ({ locals, params, parent }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -110,7 +111,7 @@ export const actions = {
       try {
         await createOrUpdateGeolocation(db, block, { lat, long })
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'updated',
           userFk: locals.user.id,
           entityId: String(block.id),
@@ -171,7 +172,7 @@ export const actions = {
           await db.delete(geolocations).where(eq(geolocations.id, block.geolocationFk!))
         }
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(block.id),

@@ -1,7 +1,8 @@
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks, type Ascent } from '$lib/db/schema'
+import { ascents, blocks, type Ascent } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { checkExternalSessions, logExternalAscent } from '$lib/external-resources/index.server'
 import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
@@ -118,7 +119,7 @@ export const actions = {
           await updateRoutesUserData(route.id, db)
         }
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'created',
           userFk: locals.user.id,
           entityId: String(ascent.id),

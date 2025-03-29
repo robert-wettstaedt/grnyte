@@ -35,6 +35,7 @@ export const config = {
     keys: {
       layoutBlocks: 'layout_blocks',
       layoutBlocksHash: 'layout_blocks_hash',
+      activityFeed: 'activity_feed',
     },
   },
   logging: {

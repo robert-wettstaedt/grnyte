@@ -1,4 +1,4 @@
-import { getFromCache, setInCache } from '$lib/cache/cache.server'
+import { getFromCacheWithDefault } from '$lib/cache/cache.server'
 import type { NestedBlock } from '$lib/components/BlocksMap'
 import { config } from '$lib/config'
 import type { db } from '$lib/db/db.server'
@@ -298,33 +298,25 @@ export const getStatsOfBlocks = <
 }
 
 export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatabase<typeof schema>): Promise<T[]> => {
-  // Try to get from cache first
-  const cached = await getFromCache<T[]>(config.cache.keys.layoutBlocks)
-  if (cached) {
-    return cached
-  }
+  return getFromCacheWithDefault(config.cache.keys.layoutBlocks, async () => {
+    const blocks = await db.query.blocks.findMany({
+      where: (table, { isNotNull }) => isNotNull(table.geolocationFk),
+      with: {
+        area: buildNestedAreaQuery(),
+        geolocation: true,
+      },
+    })
 
-  const blocks = await db.query.blocks.findMany({
-    where: (table, { isNotNull }) => isNotNull(table.geolocationFk),
-    with: {
-      area: buildNestedAreaQuery(),
-      geolocation: true,
-    },
+    const filteredBlocks = blocks.filter((block) => {
+      let current = block.area as InferResultType<'areas', { parent: true }> | null
+
+      while (current?.parent != null) {
+        current = current.parent as InferResultType<'areas', { parent: true }> | null
+      }
+
+      return current?.visibility !== 'private'
+    })
+
+    return filteredBlocks as T[]
   })
-
-  const filteredBlocks = blocks.filter((block) => {
-    let current = block.area as InferResultType<'areas', { parent: true }> | null
-
-    while (current?.parent != null) {
-      current = current.parent as InferResultType<'areas', { parent: true }> | null
-    }
-
-    return current?.visibility !== 'private'
-  })
-
-  // Cache the raw blocks data before enrichment
-  await setInCache(config.cache.keys.layoutBlocks, filteredBlocks)
-
-  // Return the enriched blocks
-  return filteredBlocks as T[]
 }

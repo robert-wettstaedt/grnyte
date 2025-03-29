@@ -47,3 +47,26 @@ export const setInCache = async <T>(id: string | number, data: T): Promise<void>
   const hash = await digestMessage(string)
   await keyv.set(cacheHashKey, hash, config.cache.ttl)
 }
+
+export const getFromCacheWithDefault = async <T>(
+  id: string | number,
+  getDefaultValue: () => Promise<T>,
+  predicate?: () => Promise<boolean>,
+): Promise<T> => {
+  const useCache = predicate ? await predicate() : true
+
+  if (useCache) {
+    const cached = await getFromCache<T>(id)
+    if (cached != null) {
+      return cached
+    }
+  }
+
+  const defaultValue = await getDefaultValue()
+
+  if (useCache) {
+    await setInCache(id, defaultValue)
+  }
+
+  return defaultValue
+}

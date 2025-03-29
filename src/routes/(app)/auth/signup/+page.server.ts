@@ -1,6 +1,7 @@
 import { RESEND_API_KEY, RESEND_RECIPIENT_EMAIL, RESEND_SENDER_EMAIL } from '$env/static/private'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { db } from '$lib/db/db.server'
-import { activities, users, userSettings } from '$lib/db/schema'
+import { users, userSettings } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import {
   createUserActionSchema,
@@ -54,7 +55,7 @@ export const actions = {
           .returning()
         await db.update(users).set({ userSettingsFk: createdUserSettings.id }).where(eq(users.id, createdUser.id))
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'created',
           entityId: String(createdUser.id),
           entityType: 'user',

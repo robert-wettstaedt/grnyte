@@ -1,6 +1,7 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, areas, geolocations } from '$lib/db/schema'
+import { areas, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -93,7 +94,7 @@ export const actions = {
 
       try {
         await db.insert(geolocations).values({ lat, long, areaFk: area.id })
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'updated',
           userFk: locals.user.id,
           entityId: String(area.id),
@@ -143,7 +144,7 @@ export const actions = {
 
       try {
         await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(area.id),

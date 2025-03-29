@@ -1,6 +1,7 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, ascents, blocks, firstAscensionists, routes, routesToFirstAscensionists } from '$lib/db/schema'
+import { ascents, blocks, firstAscensionists, routes, routesToFirstAscensionists } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import {
   firstAscentActionSchema,
@@ -163,7 +164,7 @@ export const actions = {
           .join(' ')
         const newFirstAscent = [values.year, ...(values.climberName ?? [])].filter(Boolean).join(' ')
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'updated',
           userFk: locals.user.id,
           entityId: String(route.id),
@@ -249,7 +250,7 @@ export const actions = {
           .filter((d) => d != null)
           .join(' ')
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(route.id),

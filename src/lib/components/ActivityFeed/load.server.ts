@@ -1,7 +1,7 @@
+import { getFromCacheWithDefault, invalidateCache } from '$lib/cache/cache.server'
 import type { ActivityDTO, ActivityGroup, Entity } from '$lib/components/ActivityFeed'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import type { InsertActivity } from '$lib/db/schema'
 import * as schema from '$lib/db/schema'
 import type { IncludeRelation, InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
@@ -280,58 +280,64 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
     }
 
     const where = and(...allQueries)
-
-    const activities = await db.query.activities.findMany({
-      ...getPaginationQuery(searchParams),
-      orderBy: [desc(schema.activities.createdAt), asc(schema.activities.id)],
-      where: where,
-      with: {
-        user: true,
-      },
-    })
-
-    const distinctEntityTypes = Array.from(new Set(activities.map((activity) => activity.entityType)))
-    const distinctParentEntityTypes = Array.from(
-      new Set(activities.map((activity) => activity.parentEntityType)),
-    ).filter((type) => type != null)
-
-    const [entities, parentEntities] = await Promise.all([
-      resolveEntities(db, activities, distinctEntityTypes),
-      resolveEntities(db, activities, distinctParentEntityTypes),
-    ])
-
-    const activitiesDTOs = activities
-      .map((activity): ActivityDTO | null => {
-        const wrapper = entities.find(
-          (item) =>
-            item.entity.object != null &&
-            String(item.entity.object.id) === activity.entityId &&
-            item.entity.type === activity.entityType,
-        )
-
-        const parentWrapper = parentEntities.find(
-          (item) =>
-            item.entity.object != null &&
-            String(item.entity.object.id) === activity.parentEntityId &&
-            item.entity.type === activity.parentEntityType,
-        )
-
-        if (wrapper?.entity == null) {
-          return null
-        }
-
-        return {
-          ...activity,
-          entity: wrapper?.entity,
-          entityName: wrapper?.object?.name,
-          parentEntity: parentWrapper?.entity,
-          parentEntityName: parentWrapper?.object?.name,
-        }
-      })
-      .filter((item) => item != null)
-
     const countResults = await db.select({ count: count() }).from(schema.activities).where(and(where))
-    const groupedActivities = groupActivities(activitiesDTOs)
+
+    const groupedActivities = await getFromCacheWithDefault(
+      config.cache.keys.activityFeed,
+      async () => {
+        const activities = await db.query.activities.findMany({
+          ...getPaginationQuery(searchParams),
+          orderBy: [desc(schema.activities.createdAt), asc(schema.activities.id)],
+          where: where,
+          with: {
+            user: true,
+          },
+        })
+
+        const distinctEntityTypes = Array.from(new Set(activities.map((activity) => activity.entityType)))
+        const distinctParentEntityTypes = Array.from(
+          new Set(activities.map((activity) => activity.parentEntityType)),
+        ).filter((type) => type != null)
+
+        const [entities, parentEntities] = await Promise.all([
+          resolveEntities(db, activities, distinctEntityTypes),
+          resolveEntities(db, activities, distinctParentEntityTypes),
+        ])
+
+        const activitiesDTOs = activities
+          .map((activity): ActivityDTO | null => {
+            const wrapper = entities.find(
+              (item) =>
+                item.entity.object != null &&
+                String(item.entity.object.id) === activity.entityId &&
+                item.entity.type === activity.entityType,
+            )
+
+            const parentWrapper = parentEntities.find(
+              (item) =>
+                item.entity.object != null &&
+                String(item.entity.object.id) === activity.parentEntityId &&
+                item.entity.type === activity.parentEntityType,
+            )
+
+            if (wrapper?.entity == null) {
+              return null
+            }
+
+            return {
+              ...activity,
+              entity: wrapper?.entity,
+              entityName: wrapper?.object?.name,
+              parentEntity: parentWrapper?.entity,
+              parentEntityName: parentWrapper?.object?.name,
+            }
+          })
+          .filter((item) => item != null)
+
+        return groupActivities(activitiesDTOs)
+      },
+      async () => allQueries.length === 0 && searchParams.page === 1 && searchParams.pageSize === 15,
+    )
 
     return {
       activities: groupedActivities,
@@ -346,7 +352,7 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
 }
 
 interface HandleOpts
-  extends Pick<InsertActivity, 'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType'> {
+  extends Pick<schema.InsertActivity, 'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType'> {
   oldEntity: Record<string, unknown>
   newEntity: Record<string, unknown>
   db: PostgresJsDatabase<typeof schema>
@@ -362,7 +368,7 @@ export const createUpdateActivity = async ({
   parentEntityId,
   parentEntityType,
 }: HandleOpts) => {
-  const changes: Pick<InsertActivity, 'columnName' | 'oldValue' | 'newValue'>[] = []
+  const changes: Pick<schema.InsertActivity, 'columnName' | 'oldValue' | 'newValue'>[] = []
 
   Object.keys(newEntity).forEach((key) => {
     if (String(oldEntity[key] ?? null) !== String(newEntity[key] ?? null)) {
@@ -409,7 +415,7 @@ export const createUpdateActivity = async ({
   if (changes.length > 0) {
     await db.insert(schema.activities).values(
       changes.map(
-        (change): InsertActivity => ({
+        (change): schema.InsertActivity => ({
           type: 'updated',
           userFk,
           entityId,
@@ -422,5 +428,18 @@ export const createUpdateActivity = async ({
         }),
       ),
     )
+    await invalidateCache(config.cache.keys.activityFeed)
+  }
+}
+
+export const insertActivity = async (
+  db: PostgresJsDatabase<typeof schema>,
+  activity: schema.InsertActivity | schema.InsertActivity[],
+) => {
+  const arr = Array.isArray(activity) ? activity : [activity]
+
+  if (arr.length > 0) {
+    await db.insert(schema.activities).values(arr)
+    await invalidateCache(config.cache.keys.activityFeed)
   }
 }

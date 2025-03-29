@@ -1,6 +1,6 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
-import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
@@ -191,7 +191,7 @@ export const actions = {
 
         await db.delete(blocks).where(eq(blocks.id, block.id))
 
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(block.id),

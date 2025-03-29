@@ -1,9 +1,9 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
-import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, areas, generateSlug, geolocations } from '$lib/db/schema'
+import { areas, generateSlug, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
 import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
@@ -166,7 +166,7 @@ export const actions = {
         await db.delete(geolocations).where(eq(geolocations.areaFk, areaId))
         await db.update(areas).set({ parentFk: null }).where(eq(areas.parentFk, areaId))
         await db.delete(areas).where(eq(areas.id, areaId))
-        await db.insert(activities).values({
+        await insertActivity(db, {
           type: 'deleted',
           userFk: locals.user.id,
           entityId: String(areaId),
