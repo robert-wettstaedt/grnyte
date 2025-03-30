@@ -50,7 +50,7 @@ export const getWhere = (entityType: schema.Activity['entityType'], entityId: sc
 }
 
 export const getWhereArr = (entityType: schema.Activity['entityType'], entityIds: schema.Activity['entityId'][]) => {
-  const numIds = entityIds.map(Number)
+  const numIds = entityIds.map(Number).filter((num) => !Number.isNaN(num))
 
   switch (entityType) {
     case 'area':
