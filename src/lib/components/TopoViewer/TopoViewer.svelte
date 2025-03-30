@@ -393,7 +393,10 @@
         </g>
       </svg>
 
-      <div class="absolute top-1/2 left-0 -translate-y-1/2" style="width: {width}px; height: {height}px;">
+      <div
+        class="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 touch-none"
+        style="width: {width}px; height: {height}px;"
+      >
         <Labels {getRouteKey} {scale} routes={selectedTopo?.routes} />
       </div>
     {/if}
