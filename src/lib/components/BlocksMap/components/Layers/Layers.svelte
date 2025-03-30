@@ -1,32 +1,44 @@
 <script module lang="ts">
+  import { onMount } from 'svelte'
+  import { writable } from 'svelte/store'
+
   export interface Layer {
     label: string
     name: string
   }
+
+  interface Props {
+    layers: Layer[]
+  }
+
+  export const visibleLayers = writable<string[] | null>(null)
 </script>
 
 <script lang="ts">
   import { slide } from 'svelte/transition'
 
-  interface Props {
-    layers: Layer[]
-    onChange?: (visibleLayers: string[]) => void
-  }
+  const { layers }: Props = $props()
 
-  const { layers, onChange }: Props = $props()
+  onMount(() => {
+    const unsubscribe = visibleLayers.subscribe((value) => {
+      if (value == null) {
+        visibleLayers.set(layers.map((layer) => layer.name))
+      }
+    })
 
-  let visibleLayers = $state(layers.map((layer) => layer.name))
+    return () => {
+      unsubscribe()
+    }
+  })
 
   const onChangeCheckbox = (layer: Layer, event: Event) => {
     const target = event.target as HTMLInputElement
 
     if (target.checked) {
-      visibleLayers = Array.from(new Set([...visibleLayers, layer.name]))
+      visibleLayers.set(Array.from(new Set([...($visibleLayers ?? []), layer.name])))
     } else {
-      visibleLayers = visibleLayers.filter((name) => name !== layer.name)
+      visibleLayers.set(($visibleLayers ?? []).filter((name) => name !== layer.name))
     }
-
-    onChange?.(visibleLayers)
   }
 </script>
 
@@ -40,7 +52,7 @@
         <input
           class="checkbox"
           type="checkbox"
-          checked={visibleLayers.includes(layer.name)}
+          checked={($visibleLayers ?? []).includes(layer.name)}
           onchange={onChangeCheckbox.bind(null, layer)}
         />
         <p>{layer.label}</p>

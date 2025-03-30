@@ -49,9 +49,10 @@
   import TileWMS from 'ol/source/TileWMS.js'
   import { Fill, Stroke, Style, Text } from 'ol/style.js'
   import CircleStyle from 'ol/style/Circle'
+  import { onMount } from 'svelte'
   import type { GetBlockKey, NestedBlock } from '.'
   import Geolocate from './components/Geolocate'
-  import Layers, { type Layer } from './components/Layers'
+  import Layers, { visibleLayers, type Layer } from './components/Layers'
   import Popup from './components/Popup'
 
   const DEFAULT_ZOOM = 19
@@ -551,6 +552,16 @@
         layer.setVisible(isVisible)
       })
   }
+
+  onMount(() => {
+    const unsubscribe = visibleLayers.subscribe((value) => {
+      onChangeRelief(value ?? [])
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  })
 </script>
 
 <div class="relative flex h-full">
@@ -569,7 +580,7 @@
         </button>
 
         {#if layersIsVisible}
-          <Layers {layers} onChange={onChangeRelief} />
+          <Layers {layers} />
         {/if}
       </div>
 
