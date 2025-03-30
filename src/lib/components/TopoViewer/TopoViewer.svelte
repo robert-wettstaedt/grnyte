@@ -393,7 +393,9 @@
         </g>
       </svg>
 
-      <Labels {getRouteKey} {scale} routes={selectedTopo?.routes} />
+      <div class="absolute top-1/2 left-0 -translate-y-1/2" style="width: {width}px; height: {height}px;">
+        <Labels {getRouteKey} {scale} routes={selectedTopo?.routes} />
+      </div>
     {/if}
   </div>
 

@@ -73,20 +73,20 @@
                 {/if}
               </h3>
 
-              {#if route.firstAscents.length > 0 || route.firstAscentYear != null}
-                <p class="ms-4">
-                  FA:
+              {#if route.firstAscents.length > 0 || route.firstAscentYear != null || route.tags.length > 0}
+                <div class="ms-4 flex flex-wrap gap-2 text-sm opacity-50">
+                  {#if route.firstAscents.length > 0 || route.firstAscentYear != null}
+                    <p>
+                      FA:
 
-                  {route.firstAscents.map((firstAscent) => firstAscent.firstAscensionist.name).join(', ')}
+                      {route.firstAscents.map((firstAscent) => firstAscent.firstAscensionist.name).join(', ')}
 
-                  {#if route.firstAscentYear != null}
-                    {route.firstAscentYear}
+                      {#if route.firstAscentYear != null}
+                        {route.firstAscentYear}
+                      {/if}
+                    </p>
                   {/if}
-                </p>
-              {/if}
 
-              {#if route.tags.length > 0}
-                <div class="ms-4 flex gap-2">
                   {#each route.tags as tag}
                     <p>#{tag.tagFk}</p>
                   {/each}
