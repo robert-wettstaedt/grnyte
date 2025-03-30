@@ -19,18 +19,6 @@
 
   const { layers }: Props = $props()
 
-  onMount(() => {
-    const unsubscribe = visibleLayers.subscribe((value) => {
-      if (value == null) {
-        visibleLayers.set(layers.map((layer) => layer.name))
-      }
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  })
-
   const onChangeCheckbox = (layer: Layer, event: Event) => {
     const target = event.target as HTMLInputElement
 

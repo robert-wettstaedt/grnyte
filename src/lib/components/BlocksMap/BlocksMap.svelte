@@ -555,7 +555,13 @@
 
   onMount(() => {
     const unsubscribe = visibleLayers.subscribe((value) => {
-      onChangeRelief(value ?? [])
+      let newValue = value ?? layers.map((layer) => layer.name)
+
+      if (value == null) {
+        visibleLayers.set(newValue)
+      }
+
+      onChangeRelief(newValue)
     })
 
     return () => {
