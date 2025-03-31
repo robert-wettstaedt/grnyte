@@ -5,10 +5,11 @@
   import { DELETE_PERMISSION } from '$lib/auth'
   import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
+  import AreaFormFields from '$lib/components/AreaFormFields'
   import { config } from '$lib/config'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
-  let { data } = $props()
+  let { data, form } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let loading = $state(false)
@@ -41,6 +42,14 @@
     }
   }}
 >
+  <AreaFormFields
+    description={form?.description ?? data.description}
+    hasParent={data.parentFk != null}
+    name={form?.name ?? data.name}
+    type={form?.type ?? data.type}
+    visibility={form?.visibility ?? data.visibility}
+  />
+
   <div class="mt-8 flex justify-between md:items-center">
     <div>
       <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
