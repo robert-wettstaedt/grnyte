@@ -62,9 +62,10 @@
       return
     }
 
-    routes[index].points = routes[index].points.filter((_point) => _point.id !== longPressPoint?.id)
+    const currentIndex = index
+    routes[currentIndex].points = routes[currentIndex].points.filter((_point) => _point.id !== longPressPoint?.id)
     selectedPoint = undefined
-    onChange?.(routes[index])
+    onChange?.(routes[currentIndex])
 
     clearLongPress()
   }
