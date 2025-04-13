@@ -75,7 +75,7 @@
   </aside>
 {/if}
 
-<div class="text-token card preset-filled-surface-100-900 mt-8 mt-8 w-full space-y-4 overflow-auto p-2 md:p-4">
+<div class="text-token card preset-filled-surface-100-900 mt-8 w-full space-y-4 overflow-auto p-2 md:p-4">
   {#each data.blocks as block}
     <p class="font-bold">{block.name}</p>
 

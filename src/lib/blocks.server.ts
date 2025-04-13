@@ -21,13 +21,12 @@ export const getBlocksOfArea = async (areaId: number, db: PostgresJsDatabase<typ
     routes: true,
   }
 
-  const areasResult = await db.query.areas.findMany({
+  const area = await db.query.areas.findFirst({
     where: eq(areas.id, areaId),
     with: {
       author: true,
       blocks: {
         orderBy: [blocks.order, blocks.name],
-        where: isNotNull(blocks.geolocationFk),
         with: blocksQuery,
       },
       areas: {
@@ -36,7 +35,6 @@ export const getBlocksOfArea = async (areaId: number, db: PostgresJsDatabase<typ
           author: true,
           blocks: {
             orderBy: [blocks.order, blocks.name],
-            where: isNotNull(blocks.geolocationFk),
             with: blocksQuery,
           },
           areas: {
@@ -44,7 +42,6 @@ export const getBlocksOfArea = async (areaId: number, db: PostgresJsDatabase<typ
             with: {
               blocks: {
                 orderBy: [blocks.order, blocks.name],
-                where: isNotNull(blocks.geolocationFk),
                 with: blocksQuery,
               },
             },
@@ -55,9 +52,6 @@ export const getBlocksOfArea = async (areaId: number, db: PostgresJsDatabase<typ
       parkingLocations: true,
     },
   })
-
-  // Get the last area from the result
-  const area = areasResult.at(-1)
 
   // If no area is found, throw a 404 error
   if (area == null) {
@@ -70,16 +64,14 @@ export const getBlocksOfArea = async (areaId: number, db: PostgresJsDatabase<typ
     ...area.areas.flatMap((area) => area.areas).flatMap((area) => area.blocks),
   ]
 
-  const enrichedBlocks = allBlocks
-    .filter((block) => block.geolocation != null)
-    .map((block) => {
-      const enrichedBlock = enrichBlock(block)
+  const enrichedBlocks = allBlocks.map((block) => {
+    const enrichedBlock = enrichBlock(block)
 
-      return {
-        ...block,
-        ...enrichedBlock,
-      }
-    })
+    return {
+      ...block,
+      ...enrichedBlock,
+    }
+  })
 
   const result = { area, blocks: enrichedBlocks }
 
