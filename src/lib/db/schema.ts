@@ -41,7 +41,9 @@ const baseFields = {
 }
 
 const baseContentFields = {
-  createdBy: integer('created_by').notNull(),
+  createdBy: integer('created_by')
+    .notNull()
+    .references((): AnyColumn => users.id),
   name: text('name').notNull(),
   slug: text('slug').notNull(),
 }
