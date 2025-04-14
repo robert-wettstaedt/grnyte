@@ -11,6 +11,12 @@
 
   onMount(async () => {
     isPushSubscribed = await isSubscribed()
+
+    if ('clearAppBadge' in navigator) {
+      try {
+        await navigator.clearAppBadge()
+      } catch (error) {}
+    }
   })
 </script>
 

@@ -80,12 +80,20 @@ self.addEventListener('push', (event) => {
 
     async function mergeNotifications() {
       const existingNotifications = await self.registration.getNotifications({ tag: newNotification.tag })
+      let notificationCount = existingNotifications.length
 
       for (const existingNotification of existingNotifications) {
         if (newNotification.tag == existingNotification.tag) {
           existingNotification.close()
           options.body = `${options.body}\n${existingNotification.body}`
+          notificationCount--
         }
+      }
+
+      if ('setAppBadge' in self.navigator) {
+        try {
+          await self.navigator.setAppBadge(notificationCount)
+        } catch (error) {}
       }
 
       return self.registration.showNotification(newNotification.title ?? 'New activity', options)
