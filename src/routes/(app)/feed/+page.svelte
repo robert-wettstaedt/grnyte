@@ -11,7 +11,7 @@
 
   let isPushSubscribed = $state(false)
   let lastUpdated = $state(Date.now())
-  let updater = $state<Parameters<ActivityFeedProps['onMount']>[0]>(() => {})
+  let updater = $state<Parameters<NonNullable<ActivityFeedProps['onMount']>>[0]>(() => {})
   let interval = $state<ReturnType<typeof setInterval> | undefined>(undefined)
   let loading = $state(false)
 
