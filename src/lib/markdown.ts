@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import type { PhrasingContent, Root } from 'mdast'
 import { findAndReplace, type ReplaceFunction } from 'mdast-util-find-and-replace'
+import remarkGfm from 'remark-gfm'
 import remarkHtml from 'remark-html'
 import remarkMentions from 'remark-mentions'
 import remarkParse from 'remark-parse'
@@ -27,6 +28,7 @@ export const convertMarkdownToHtml = async (
 
   const result = await unified()
     .use(remarkParse)
+    .use(remarkGfm)
     .use(remarkMentions, {
       usernameLink: (username) => `/users/${username}`,
     })

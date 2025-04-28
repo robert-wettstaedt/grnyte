@@ -355,7 +355,7 @@
                 <span class="flex-auto">
                   <dt>Description</dt>
                   <dd>
-                    <div class="rendered-markdown">
+                    <div class="markdown-body">
                       {@html data.route.description}
                     </div>
                   </dd>

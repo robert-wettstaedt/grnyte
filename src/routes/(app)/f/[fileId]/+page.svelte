@@ -118,7 +118,7 @@
 
         {#if data.notes != null}
           <div
-            class="rendered-markdown {isNotesExpanded
+            class="markdown-body {isNotesExpanded
               ? 'max-h-[300px] overflow-auto'
               : 'max-h-[32px] overflow-hidden'} -mt-[8px] transition-all duration-300"
           >

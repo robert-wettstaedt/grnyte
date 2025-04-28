@@ -272,7 +272,7 @@
 
     {#if withFiles && activity.entity.type == 'ascent' && activity.entity.object != null && activity.type === 'created'}
       {#if activity.entity.object.notes != null && activity.entity.object.notes!.length > 0}
-        <div class="rendered-markdown preset-filled-surface-200-800 mt-4 p-4">
+        <div class="markdown-body preset-filled-surface-200-800 mt-4 p-4">
           {@html activity.entity.object.notes}
         </div>
       {/if}

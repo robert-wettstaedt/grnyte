@@ -87,7 +87,7 @@
 
           <div class="mt-4 p-2">
             {#if data.area.description != null && data.area.description.length > 0}
-              <div class="rendered-markdown mt-4 {data.area.description.length > 1000 ? 'text-sm' : ''}">
+              <div class="markdown-body mt-4 {data.area.description.length > 1000 ? 'text-sm' : ''}">
                 {@html data.area.description}
               </div>
             {/if}

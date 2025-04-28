@@ -6,7 +6,7 @@
 
 <script lang="ts">
   import { dev } from '$app/environment'
-  import { afterNavigate, beforeNavigate, invalidateAll } from '$app/navigation'
+  import { afterNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
@@ -17,6 +17,7 @@
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import { injectAnalytics } from '@vercel/analytics/sveltekit'
+  import 'github-markdown-css/github-markdown.css'
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'

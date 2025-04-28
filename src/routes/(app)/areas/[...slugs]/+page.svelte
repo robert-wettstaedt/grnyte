@@ -169,7 +169,7 @@
                   <span class="flex-auto">
                     <dt>Description</dt>
                     <dd>
-                      <div class="rendered-markdown mt-4">
+                      <div class="markdown-body mt-4">
                         {@html data.area.description}
                       </div>
                     </dd>
