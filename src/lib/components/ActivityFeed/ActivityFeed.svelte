@@ -1,3 +1,11 @@
+<script lang="ts" module>
+  export interface ActivityFeedProps extends Pick<ItemProps, 'withBreadcrumbs'> {
+    activities: ActivityGroup[]
+    pagination: Pagination
+    onMount?: (updater: (activities: ActivityGroup[]) => void) => void
+  }
+</script>
+
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/state'
@@ -8,20 +16,22 @@
   import type { Pagination } from '$lib/pagination.server'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
+  import { onMount } from 'svelte'
   import type { ActivityDTO, ActivityGroup } from '.'
   import type { ItemProps } from './components/Item'
   import Item from './components/Item'
 
-  interface Props extends Pick<ItemProps, 'withBreadcrumbs'> {
-    activities: ActivityGroup[]
-    pagination: Pagination
-  }
-
-  const { activities, pagination, ...rest }: Props = $props()
+  const { activities, pagination, onMount: propsOnMount, ...rest }: ActivityFeedProps = $props()
 
   let activityPages = $state<(typeof activities)[]>([])
   let prevPage = $state(1)
   let filterValue = $state<string[]>([])
+
+  onMount(() => {
+    propsOnMount?.((newActivities) => {
+      activityPages = [newActivities]
+    })
+  })
 
   afterNavigate(() => {
     if (pagination.page === prevPage + 1) {

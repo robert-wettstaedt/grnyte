@@ -2,6 +2,7 @@ import type { Area, Block, Route, User } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import type { FileDTO } from '$lib/nextcloud'
 
+export * from './ActivityFeed.svelte'
 export { default } from './ActivityFeed.svelte'
 
 export interface BaseEntity {
