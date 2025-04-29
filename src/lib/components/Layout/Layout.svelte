@@ -17,7 +17,7 @@
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import { injectAnalytics } from '@vercel/analytics/sveltekit'
-  import 'github-markdown-css/github-markdown.css'
+  import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'

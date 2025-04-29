@@ -11,6 +11,7 @@
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import 'github-markdown-css/github-markdown-dark.css'
   import '../../../../../app.css'
 
   let { data } = $props()

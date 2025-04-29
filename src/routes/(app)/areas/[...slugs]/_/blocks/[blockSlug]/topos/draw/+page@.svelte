@@ -9,6 +9,7 @@
   import { type TopoDTO } from '$lib/topo'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import 'github-markdown-css/github-markdown-dark.css'
   import { onMount } from 'svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
   import '../../../../../../../../../app.css'
