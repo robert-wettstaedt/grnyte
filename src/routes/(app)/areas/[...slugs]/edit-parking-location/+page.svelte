@@ -55,7 +55,7 @@
       <Tabs.Panel value="map">
         <div use:fitHeightAction>
           {#await import('$lib/components/BlocksMapWithAddableMarker') then BlocksMap}
-            <BlocksMap.default onChange={(value) => (coordinate = value)} />
+            <BlocksMap.default onChange={(value) => (coordinate = value)} selectedArea={data} />
           {/await}
         </div>
 

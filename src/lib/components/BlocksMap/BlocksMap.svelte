@@ -162,14 +162,21 @@
       })
 
       const iconStyle = new Style({
-        image: new CircleStyle({
-          fill: new Fill({ color: getBlockKey == null ? 'transparent' : '#ffffffaa' }),
-          radius: selectedBlock?.id === block.id ? 12 : 10,
-          stroke: new Stroke({
-            color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444',
-            width: selectedBlock?.id === block.id ? 3 : 2,
-          }),
-        }),
+        image: new CircleStyle(
+          getBlockKey == null
+            ? {
+                fill: new Fill({ color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444' }),
+                radius: selectedBlock?.id === block.id ? 8 : 6,
+              }
+            : {
+                fill: new Fill({ color: '#ffffffaa' }),
+                stroke: new Stroke({
+                  color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444',
+                  width: selectedBlock?.id === block.id ? 3 : 2,
+                }),
+                radius: 10,
+              },
+        ),
         text: new Text(
           getBlockKey == null
             ? {
@@ -373,8 +380,9 @@
     )
 
     const sectorsLayer = new VectorLayer({
-      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
       declutter,
+      maxZoom: declutter ? 14 : undefined,
+      properties: { layerOpts: layers.find((layer) => layer.name === 'markers'), name: crag.name },
       source: sectorsSource,
       style: showAreas
         ? {
@@ -405,11 +413,12 @@
 
     crags.forEach((area) => createCragLayer(map, area))
 
-    const parkingIconFeatures = selectedArea == null ? [] : parkingLocations.map(createParkingMarker)
+    const parkingIconFeatures = parkingLocations.map(createParkingMarker)
     const vectorSource = new VectorSource<Feature<Geometry>>({ features: parkingIconFeatures })
     const vectorLayer = new VectorLayer({
       properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
       source: vectorSource,
+      minZoom: declutter ? 14 : undefined,
     })
     map.addLayer(vectorLayer)
   }
@@ -474,8 +483,20 @@
         .filter((block) => block.geolocation?.lat != null && block.geolocation!.long != null)
         .map((block) => fromLonLat([block.geolocation!.long, block.geolocation!.lat]))
 
+      const selectedParkingLocations = parkingLocations.filter((parkingLocation) => {
+        if (selectedBlock != null) {
+          return false
+        }
+
+        if (selectedArea == null) {
+          return true
+        }
+
+        return parkingLocation.areaFk === selectedArea.id
+      })
+
       coordinates.push(
-        ...parkingLocations.map((parkingLocation) => fromLonLat([parkingLocation.long, parkingLocation.lat])),
+        ...selectedParkingLocations.map((parkingLocation) => fromLonLat([parkingLocation.long, parkingLocation.lat])),
       )
 
       if (isRootMap) {
