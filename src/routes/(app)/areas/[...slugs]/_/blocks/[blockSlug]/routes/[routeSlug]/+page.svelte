@@ -177,6 +177,18 @@
   {/snippet}
 
   {#snippet headline()}
+    {#if data.block.geolocationFk == null}
+      <aside class="card preset-tonal-warning mb-4 flex items-center gap-2 p-2 whitespace-pre-line md:p-4">
+        <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
+
+        <p>
+          The geolocation of this block is missing. Do you know where it is?
+
+          <a class="anchor" href={`${blockPath}/edit-location`}>Add location</a>
+        </p>
+      </aside>
+    {/if}
+
     <Tabs
       fluid
       listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
