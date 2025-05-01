@@ -24,14 +24,19 @@ describe('buildNestedAreaQuery', () => {
                     parent: {
                       with: {
                         parent: true,
+                        parkingLocations: true,
                       },
                     },
+                    parkingLocations: true,
                   },
                 },
+                parkingLocations: true,
               },
             },
+            parkingLocations: true,
           },
         },
+        parkingLocations: true,
       },
     })
   })
@@ -45,10 +50,13 @@ describe('buildNestedAreaQuery', () => {
             parent: {
               with: {
                 parent: true,
+                parkingLocations: true,
               },
             },
+            parkingLocations: true,
           },
         },
+        parkingLocations: true,
       },
     })
   })
@@ -58,6 +66,7 @@ describe('buildNestedAreaQuery', () => {
     expect(query).toEqual({
       with: {
         parent: true,
+        parkingLocations: true,
       },
     })
   })
