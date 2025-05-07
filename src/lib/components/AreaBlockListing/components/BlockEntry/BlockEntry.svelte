@@ -58,15 +58,26 @@
 
                 {route.name.length === 0 ? 'Unbekannt' : route.name}
 
-                {#if route.gradeFk != null}
-                  {page.data.grades.find((grade) => grade.id === route.gradeFk)?.[page.data.gradingScale]}
+                {#if (route?.userGradeFk ?? route?.gradeFk) != null}
+                  {page.data.grades.find((grade) => grade.id === (route?.userGradeFk ?? route?.gradeFk))?.[
+                    page.data.gradingScale
+                  ]}
                 {/if}
 
-                {#if route.rating != null}
-                  <div>
-                    <Rating value={route.rating} count={3} readOnly>
+                {#if (route.userRating ?? route.rating) != null}
+                  <div class="flex items-center justify-center">
+                    <Rating
+                      controlClasses="!gap-0 text-xs md:text-sm"
+                      count={3}
+                      readOnly
+                      value={(route.userRating ?? route.rating)!}
+                    >
                       {#snippet iconFull()}
                         <i class="fa-solid fa-star text-warning-500"></i>
+                      {/snippet}
+
+                      {#snippet iconEmpty()}
+                        <i class="fa-regular fa-star"></i>
                       {/snippet}
                     </Rating>
                   </div>
