@@ -1,4 +1,5 @@
 import { EDIT_PERMISSION } from '$lib/auth'
+import type { AscentEntity } from '$lib/components/ActivityFeed'
 import { insertActivity, loadFeed } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import {
@@ -110,11 +111,15 @@ export const load = (async ({ locals, params, parent, url }) => {
       )!,
     ])
 
+    const feedFiles = feed.activities
+      .filter((activity) => activity.entity.type === 'ascent' && activity.entity.object?.type !== 'attempt')
+      .flatMap((activity) => (activity.entity as AscentEntity).object?.files ?? [])
+
     // Return the enriched data
     return {
       block,
       route: { ...route, description },
-      files: routeFiles,
+      files: [...routeFiles, ...feedFiles],
       references: getReferences(route.id, 'routes'),
       topos: enrichedTopos,
       feed,
