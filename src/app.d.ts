@@ -42,7 +42,9 @@ declare global {
       gradingScale: NonNullable<UserSettings['gradingScale']>
       supabase?: Locals['supabase']
     }
-    // interface PageState {}
+    interface PageState {
+      blocksViewMode?: 'list' | 'grid'
+    }
     // interface Platform {}
   }
 }

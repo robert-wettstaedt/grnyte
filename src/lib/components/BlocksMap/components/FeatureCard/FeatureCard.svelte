@@ -23,15 +23,15 @@
   })
 </script>
 
-<div class="bg-primary-50-950 text-primary-50 h-24 overflow-hidden rounded shadow-lg">
+<div class="bg-primary-50-950 text-primary-50 h-32 overflow-hidden rounded shadow-lg">
   <div class="flex gap-2">
     {#if feature.avatar != null}
-      <a class="h-24 w-24 min-w-24" href={feature.pathname}>
+      <a class="h-32 w-32 min-w-32" href={feature.pathname}>
         {#if feature.avatar.src != null}
-          <Image path={feature.avatar.src} size={96} />
+          <Image path={feature.avatar.src} size={128} />
         {:else if feature.avatar.icon != null}
           <div class="flex h-full w-full items-center justify-center">
-            <i class="{feature.avatar.icon} text-[4rem]"></i>
+            <i class="{feature.avatar.icon} text-[6rem]"></i>
           </div>
         {/if}
       </a>

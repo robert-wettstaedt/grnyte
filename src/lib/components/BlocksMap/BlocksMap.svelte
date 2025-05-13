@@ -413,7 +413,9 @@
 
     crags.forEach((area) => createCragLayer(map, area))
 
-    const parkingIconFeatures = parkingLocations.map(createParkingMarker)
+    const parkingLocationsMap = new Map(parkingLocations.map((location) => [location.id, location]))
+    const distinctParkingLocations = Array.from(parkingLocationsMap.values())
+    const parkingIconFeatures = distinctParkingLocations.map(createParkingMarker)
     const vectorSource = new VectorSource<Feature<Geometry>>({ features: parkingIconFeatures })
     const vectorLayer = new VectorLayer({
       properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
@@ -428,6 +430,8 @@
       if (((event.originalEvent as Event).target as HTMLElement).tagName.toLowerCase() === 'a') {
         return
       }
+
+      console.log(map.getFeaturesAtPixel(event.pixel))
 
       selectedFeatures = map
         .getFeaturesAtPixel(event.pixel)
