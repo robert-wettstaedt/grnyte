@@ -9,7 +9,7 @@ import { areaActionSchema, validateFormData, type ActionFailure, type AreaAction
 import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { and, eq, not } from 'drizzle-orm'
+import { and, eq, isNull, not } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
@@ -75,7 +75,11 @@ export const actions = {
 
       // Check if an area with the same slug already exists
       const existingAreasResult = await db.query.areas.findMany({
-        where: and(eq(areas.slug, slug), not(eq(areas.id, areaId))),
+        where: and(
+          eq(areas.slug, slug),
+          area.parentFk == null ? isNull(areas.parentFk) : eq(areas.parentFk, area.parentFk),
+          not(eq(areas.id, areaId)),
+        ),
       })
 
       if (existingAreasResult.length > 0) {

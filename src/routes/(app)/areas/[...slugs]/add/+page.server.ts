@@ -8,7 +8,7 @@ import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
@@ -74,7 +74,12 @@ export const actions = {
       const slug = generateSlug(values.name)
 
       // Check if an area with the same slug already exists
-      const existingAreasResult = await db.query.areas.findMany({ where: eq(areas.slug, slug) })
+      const existingAreasResult = await db.query.areas.findMany({
+        where: and(
+          eq(areas.slug, slug),
+          parentArea == null ? isNull(areas.parentFk) : eq(areas.parentFk, parentArea.id),
+        ),
+      })
 
       if (existingAreasResult.length > 0) {
         // If an area with the same name exists, return a 400 error with a message

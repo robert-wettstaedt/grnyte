@@ -35,7 +35,6 @@
 <form
   class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
   method="POST"
-  use:enhance
   use:enhance={() => {
     loading = true
 
