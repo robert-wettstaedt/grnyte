@@ -37,3 +37,7 @@ body {
     @apply anchor;
   }
 }
+
+select option:checked {
+  background-color: var(--color-primary-500);
+}
