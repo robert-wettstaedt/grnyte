@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { EDIT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+  import { EDIT_PERMISSION } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import { Pagination } from '@skeletonlabs/skeleton-svelte'

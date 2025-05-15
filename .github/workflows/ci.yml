@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - "**" # This will trigger the workflow on push to any branch
+      - '**' # This will trigger the workflow on push to any branch
   pull_request:
     branches:
-      - "**"
+      - '**'
 
 jobs:
   test:
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: '22'
 
       - name: Install dependencies
         run: npm install
