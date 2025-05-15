@@ -41,33 +41,33 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if data.block.topos.length > 0}
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
-        <i class="fa-solid fa-file-export"></i>Export block preview
-      </a>
-    {/if}
-
     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit block details
+      </a>
+
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/routes/add`}>
-        <i class="fa-solid fa-plus"></i> Add route
+        <i class="fa-solid fa-plus w-4"></i>Add route
       </a>
 
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/topos/add`}>
-        <i class="fa-solid fa-file-arrow-up"></i> Upload topo image
+        <i class="fa-solid fa-file-arrow-up w-4"></i>Upload topo image
       </a>
 
       {#if data.block.topos.length > 0}
         <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/topos/draw`}>
-          <i class="fa-solid fa-file-pen"></i> Edit topo
+          <i class="fa-solid fa-file-pen w-4"></i>Edit topo
         </a>
       {/if}
 
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-location`}>
-        <i class="fa-solid fa-location-dot"></i>Edit geolocation
+        <i class="fa-solid fa-location-dot w-4"></i>Edit geolocation
       </a>
+    {/if}
 
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit block details
+    {#if data.block.topos.length > 0}
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
+        <i class="fa-solid fa-file-export w-4"></i>Export block preview
       </a>
     {/if}
   {/snippet}

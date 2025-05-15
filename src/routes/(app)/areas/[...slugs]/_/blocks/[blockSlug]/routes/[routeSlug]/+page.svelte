@@ -7,7 +7,7 @@
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION } from '$lib/auth'
   import ActivityFeed from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
@@ -86,9 +86,59 @@
 
   {#snippet actions()}
     <a class="btn btn-sm preset-filled-primary-500" href={`${basePath}/ascents/add`}>
-      <i class="fa-solid fa-check"></i>
-      Log ascent
+      <i class="fa-solid fa-check w-4"></i>Log ascent
     </a>
+
+    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit route details
+      </a>
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-first-ascent`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit FA
+      </a>
+
+      {#if data.topos.length > 0}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${blockPath}/topos/draw`}>
+          <i class="fa-solid fa-file-pen w-4"></i>Edit topo
+        </a>
+      {/if}
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add-file`}>
+        <i class="fa-solid fa-cloud-arrow-up w-4"></i>Upload file
+      </a>
+    {/if}
+
+    {#if data.userPermissions?.includes(EXPORT_PERMISSION)}
+      <form
+        class="leading-none"
+        method="POST"
+        action="?/syncExternalResources"
+        use:enhance={({}) => {
+          syncing = true
+
+          return ({ result }) => {
+            syncing = false
+
+            if (result.type === 'success') {
+              invalidateAll()
+            }
+          }
+        }}
+      >
+        <button class="btn btn-sm preset-outlined-primary-500" disabled={syncing} type="submit">
+          {#if syncing}
+            <span class="me-2">
+              <ProgressRing size="size-sm" value={null} />
+            </span>
+          {:else}
+            <i class="fa-solid fa-sync"></i>
+          {/if}
+
+          Sync external resources
+        </button>
+      </form>
+    {/if}
 
     {#if data.route.externalResources?.externalResource8a?.url != null}
       <a
@@ -123,55 +173,6 @@
         <img src={LogoTheCrag} alt="The Crag" width={16} height={16} />
 
         <span class="md:hidden"> Show on theCrag </span>
-      </a>
-    {/if}
-
-    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-      <form
-        class="leading-none"
-        method="POST"
-        action="?/syncExternalResources"
-        use:enhance={({}) => {
-          syncing = true
-
-          return ({ result }) => {
-            syncing = false
-
-            if (result.type === 'success') {
-              invalidateAll()
-            }
-          }
-        }}
-      >
-        <button class="btn btn-sm preset-outlined-primary-500" disabled={syncing} type="submit">
-          {#if syncing}
-            <span class="me-2">
-              <ProgressRing size="size-sm" value={null} />
-            </span>
-          {:else}
-            <i class="fa-solid fa-sync"></i>
-          {/if}
-
-          Sync external resources
-        </button>
-      </form>
-
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add-file`}>
-        <i class="fa-solid fa-cloud-arrow-up"></i>Upload file
-      </a>
-
-      {#if data.topos.length > 0}
-        <a class="btn btn-sm preset-outlined-primary-500" href={`${blockPath}/topos/draw`}>
-          <i class="fa-solid fa-file-pen"></i> Edit topo
-        </a>
-      {/if}
-
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-first-ascent`}>
-        <i class="fa-solid fa-pen"></i>Edit FA
-      </a>
-
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit route details
       </a>
     {/if}
   {/snippet}

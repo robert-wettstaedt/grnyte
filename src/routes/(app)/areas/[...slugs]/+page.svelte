@@ -113,31 +113,39 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if data.userPermissions?.includes(EXPORT_PERMISSION) && data.area.type === 'sector'}
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
-        <i class="fa-solid fa-file-export"></i>Export PDF
-      </a>
-    {/if}
-
     {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/sync-external-resources`}>
-        <i class="fa-solid fa-sync"></i>Sync external resources
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit area details
       </a>
 
-      {#if data.area.type !== 'area'}
-        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-parking-location`}>
-          <i class="fa-solid fa-parking"></i>Add parking location
+      {#if data.area.type !== 'sector' && data.canAddArea}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add`}>
+          <i class="fa-solid fa-plus w-4"></i>Add area
         </a>
       {/if}
 
       {#if data.area.type === 'sector'}
-        <a class="btn btn-sm preset-filled-primary-500" href={`${basePath}/_/blocks/add`}>
-          <i class="fa-solid fa-plus"></i>Add block
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/_/blocks/add`}>
+          <i class="fa-solid fa-plus w-4"></i>Add block
         </a>
       {/if}
 
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit area
+      {#if data.area.type !== 'area'}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-parking-location`}>
+          <i class="fa-solid fa-parking w-4"></i>Add parking location
+        </a>
+      {/if}
+    {/if}
+
+    {#if data.userPermissions?.includes(EXPORT_PERMISSION)}
+      {#if data.area.type === 'sector'}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
+          <i class="fa-solid fa-file-export w-4"></i>Export PDF
+        </a>
+      {/if}
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/sync-external-resources`}>
+        <i class="fa-solid fa-sync w-4"></i>Sync external resources
       </a>
     {/if}
   {/snippet}
@@ -405,12 +413,6 @@
         {#if data.area.type !== 'sector'}
           <Tabs.Panel value="#areas">
             <section class="py-2 md:py-4">
-              {#if data.userPermissions?.includes(EDIT_PERMISSION) && data.canAddArea}
-                <div class="mb-4 flex justify-center">
-                  <a class="btn preset-filled-primary-500" href={`${basePath}/add`}>Add area</a>
-                </div>
-              {/if}
-
               {#if data.area.areas.length === 0}
                 No areas yet
               {:else}
