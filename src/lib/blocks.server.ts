@@ -249,7 +249,9 @@ export const getStatsOfArea = <T extends InferResultType<'areas'>>(
   const routes = recursive(area as unknown as NestedArea)
 
   const gradesObj = routes.map((route) => ({
-    grade: grades.find((grade) => grade.id === route.gradeFk)?.[user?.userSettings?.gradingScale ?? 'FB'],
+    grade: grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))?.[
+      user?.userSettings?.gradingScale ?? 'FB'
+    ],
   }))
 
   return {
