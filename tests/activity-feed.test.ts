@@ -520,6 +520,7 @@ describe('Activity Feed', () => {
         visibility: 'public',
         parentFk: null,
         createdBy: 1,
+        walkingPaths: [],
       },
     })
 

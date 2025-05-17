@@ -13,6 +13,7 @@
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let coordinate: Coordinate | null = $state(null)
+  let polyline: string | null = $state(null)
   let tabSet = $state('map')
 
   const getValue: ChangeEventHandler<HTMLInputElement> = (event): number => {
@@ -55,12 +56,26 @@
       <Tabs.Panel value="map">
         <div use:fitHeightAction>
           {#await import('$lib/components/BlocksMapWithAddableMarker') then BlocksMap}
-            <BlocksMap.default onChange={(value) => (coordinate = value)} selectedArea={data} />
+            <BlocksMap.default
+              modes={[
+                { icon: 'fa-solid fa-parking', value: 'click' },
+                { icon: 'fa-solid fa-draw-polygon', value: 'draw' },
+              ]}
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  polyline = value
+                } else {
+                  coordinate = value
+                }
+              }}
+              selectedArea={data}
+            />
           {/await}
         </div>
 
         <input hidden name="lat" value={form?.lat ?? coordinate?.at(1)} />
         <input hidden name="long" value={form?.long ?? coordinate?.at(0)} />
+        <input hidden name="polyline" value={form?.polyline ?? polyline} />
       </Tabs.Panel>
 
       <Tabs.Panel value="latlong">
@@ -111,7 +126,7 @@
         </Popover>
       {/if}
 
-      <button class="btn preset-filled-primary-500" disabled={coordinate == null} type="submit">
+      <button class="btn preset-filled-primary-500" disabled={coordinate == null && polyline == null} type="submit">
         Update parking location
       </button>
     </div>

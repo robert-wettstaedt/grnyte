@@ -10,23 +10,28 @@ export const GET = async ({ locals }) => {
   }
 
   const localDb = await createDrizzleSupabaseClient(locals.supabase)
-  const { blocks, parkingLocations } = await localDb(async (db) => {
+  const { blocks, parkingLocations, walkingPaths } = await localDb(async (db) => {
     const blocks = locals.userPermissions?.includes(READ_PERMISSION) ? await getLayoutBlocks(db) : []
 
-    const parkingLocations = blocks.flatMap((block) => {
+    const data = blocks.flatMap((block) => {
       let current = block.area as InferResultType<'areas', { parent: true; parkingLocations: true }> | null
       const parkingLocations = current?.parkingLocations ?? []
+      const walkingPaths = current?.walkingPaths ?? []
 
       while (current?.parent != null) {
         current = current.parent as InferResultType<'areas', { parent: true; parkingLocations: true }> | null
         parkingLocations.push(...(current?.parkingLocations ?? []))
+        walkingPaths.push(...(current?.walkingPaths ?? []))
       }
 
-      return parkingLocations
+      return { parkingLocations, walkingPaths }
     })
 
-    return { blocks, parkingLocations }
+    const parkingLocations = data.flatMap((item) => item.parkingLocations)
+    const walkingPaths = data.flatMap((item) => item.walkingPaths)
+
+    return { blocks, parkingLocations, walkingPaths }
   })
 
-  return json({ blocks, parkingLocations })
+  return json({ blocks, parkingLocations, walkingPaths })
 }

@@ -177,6 +177,7 @@ export const areas = table(
     description: text('description'),
     type: text('type', { enum: areaTypeEnum }).notNull().default('area'),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
+    walkingPaths: text('walking_paths').array(),
 
     parentFk: integer('parent_fk').references((): AnyColumn => areas.id),
   },

@@ -25,6 +25,13 @@ function getSchemaShape<Output = unknown, Def extends z.ZodTypeDef = z.ZodObject
 
     return { ...left, ...right }
   }
+
+  if ((def as z.ZodUnionDef).typeName === z.ZodFirstPartyTypeKind.ZodUnion) {
+    const left = getSchemaShape((def as z.ZodUnionDef).options[0])
+    const right = getSchemaShape((def as z.ZodUnionDef).options[1])
+
+    return { ...left, ...right }
+  }
 }
 
 function getItemDef(shape: z.ZodRawShape, itemName: string): { typeName: z.ZodFirstPartyTypeKind; nullable: boolean } {
@@ -272,3 +279,9 @@ export const notificationsActionSchema = z.object({
   notifyNewUsers: z.string().nullable().optional(),
 })
 export type NotificationsActionValues = z.infer<typeof notificationsActionSchema>
+
+export const geolocationActionSchema = z.object({
+  lat: z.number(),
+  long: z.number(),
+})
+export type GeolocationActionValues = z.infer<typeof geolocationActionSchema>

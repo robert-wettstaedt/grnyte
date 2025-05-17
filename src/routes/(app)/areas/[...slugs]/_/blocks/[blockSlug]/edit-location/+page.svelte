@@ -21,7 +21,11 @@
   )
   let tabSet = $state('map')
 
-  const onChange = (value: Coordinate) => {
+  const onChange = (value: Coordinate | string) => {
+    if (typeof value === 'string') {
+      return
+    }
+
     coordinate = value
     document.scrollingElement?.scrollTo({ top: document.scrollingElement.scrollHeight, behavior: 'smooth' })
   }

@@ -1,16 +1,18 @@
 import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, blocks, geolocations } from '$lib/db/schema'
+import { blocks, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichBlock, type EnrichedBlock } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
+import type { GeolocationActionValues } from '$lib/forms.server'
+import { geolocationActionSchema, validateFormData } from '$lib/forms.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { createOrUpdateGeolocation } from '$lib/topo-files.server'
-import { error, fail, redirect } from '@sveltejs/kit'
+import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 
 export const load = (async ({ locals, params, parent }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -76,40 +78,18 @@ export const actions = {
 
       // Retrieve form data from the request
       const data = await request.formData()
+      let values: GeolocationActionValues
 
-      // Extract latitude and longitude from the form data
-      const rawLat = data.get('lat')
-      const rawLong = data.get('long')
-
-      // Store the raw latitude and longitude values
-      const values = { lat: rawLat, long: rawLong }
-
-      // Validate the latitude value
-      if (typeof rawLat !== 'string' || rawLat.length === 0) {
-        return fail(400, { ...values, error: 'lat is required' })
-      }
-
-      // Validate the longitude value
-      if (typeof rawLong !== 'string' || rawLong.length === 0) {
-        return fail(400, { ...values, error: 'long is required' })
-      }
-
-      // Convert latitude and longitude to numbers
-      const lat = Number(rawLat)
-      const long = Number(rawLong)
-
-      // Check if the latitude is a valid number
-      if (Number.isNaN(lat)) {
-        return fail(400, { ...values, error: 'lat is not a valid Latitude' })
-      }
-
-      // Check if the longitude is a valid number
-      if (Number.isNaN(long)) {
-        return fail(400, { ...values, error: 'long is not a valid Longitude' })
+      try {
+        // Validate the form data
+        values = await validateFormData(geolocationActionSchema, data)
+      } catch (exception) {
+        // If validation fails, return the exception as an AreaActionFailure
+        return exception as ActionFailure<GeolocationActionValues>
       }
 
       try {
-        await createOrUpdateGeolocation(db, block, { lat, long })
+        await createOrUpdateGeolocation(db, block, { lat: values.lat, long: values.long })
 
         await insertActivity(db, {
           type: 'updated',

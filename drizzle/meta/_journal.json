@@ -260,6 +260,13 @@
       "when": 1744535371776,
       "tag": "0037_common_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1747484955267,
+      "tag": "0038_curvy_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

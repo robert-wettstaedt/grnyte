@@ -22,6 +22,7 @@
     declutter?: boolean
     getBlockKey?: GetBlockKey
     parkingLocations?: Geolocation[]
+    lineStrings?: string[] | null
 
     onAction?: (map: OlMap) => void
     onRenderComplete?: () => void
@@ -37,13 +38,14 @@
   import View from 'ol/View.js'
   import { Attribution, FullScreen, defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
-  import { Geometry } from 'ol/geom'
+  import Polyline from 'ol/format/Polyline'
+  import { Geometry, LineString } from 'ol/geom'
   import Point from 'ol/geom/Point.js'
   import { fromExtent } from 'ol/geom/Polygon'
-  import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction.js'
+  import { DragRotateAndZoom, Draw, defaults as defaultInteractions } from 'ol/interaction.js'
   import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
   import 'ol/ol.css'
-  import { fromLonLat } from 'ol/proj.js'
+  import { fromLonLat, toLonLat } from 'ol/proj.js'
   import { Cluster, Vector as VectorSource } from 'ol/source.js'
   import OSM, { ATTRIBUTION } from 'ol/source/OSM'
   import TileWMS from 'ol/source/TileWMS.js'
@@ -70,6 +72,7 @@
     declutter = true,
     getBlockKey = null,
     parkingLocations = [],
+    lineStrings = [],
     onAction,
     onRenderComplete,
   }: BlocksMapProps = $props()
@@ -223,6 +226,29 @@
     iconFeature.setStyle(iconStyle)
 
     return iconFeature
+  }
+
+  const createLineStringFeatures = () => {
+    const distinctLineStrings = Array.from(new Set(lineStrings))
+    const style = new Style({
+      stroke: new Stroke({ color: '#1e40af', width: 2 }),
+    })
+
+    const features = distinctLineStrings.map((path) => {
+      const decodedPolyline = new Polyline({ geometryLayout: 'XY' }).readGeometry(path, {
+        dataProjection: 'EPSG:4326',
+        featureProjection: 'EPSG:3857',
+      }) as LineString
+
+      const feature = new Feature({
+        geometry: decodedPolyline,
+        type: 'route',
+      })
+      feature.setStyle(style)
+      return feature
+    })
+
+    return features
   }
 
   const createSectorGeometry = (iconFeatures: Feature<Point>[]) => {
@@ -405,6 +431,21 @@
   }
 
   const createMarkers = (map: OlMap) => {
+    const parkingLocationsMap = new Map(parkingLocations.map((location) => [location.id, location]))
+    const distinctParkingLocations = Array.from(parkingLocationsMap.values())
+    const parkingIconFeatures = distinctParkingLocations.map(createParkingMarker)
+    const vectorSource = new VectorSource<Feature<Geometry>>({ features: parkingIconFeatures })
+
+    const lineStringFeatures = createLineStringFeatures()
+    vectorSource.addFeatures(lineStringFeatures)
+
+    const vectorLayer = new VectorLayer({
+      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
+      source: vectorSource,
+      minZoom: declutter ? 14 : undefined,
+    })
+    map.addLayer(vectorLayer)
+
     const allCrags = blocks
       .map((block) => findArea(block.area, 'crag').at(0))
       .filter((d) => d != null) as NestedBlock['area'][]
@@ -412,17 +453,6 @@
     const crags = Array.from(cragsMap.values())
 
     crags.forEach((area) => createCragLayer(map, area))
-
-    const parkingLocationsMap = new Map(parkingLocations.map((location) => [location.id, location]))
-    const distinctParkingLocations = Array.from(parkingLocationsMap.values())
-    const parkingIconFeatures = distinctParkingLocations.map(createParkingMarker)
-    const vectorSource = new VectorSource<Feature<Geometry>>({ features: parkingIconFeatures })
-    const vectorLayer = new VectorLayer({
-      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
-      source: vectorSource,
-      minZoom: declutter ? 14 : undefined,
-    })
-    map.addLayer(vectorLayer)
   }
 
   const createPopup = (map: OlMap) => {
@@ -430,8 +460,6 @@
       if (((event.originalEvent as Event).target as HTMLElement).tagName.toLowerCase() === 'a') {
         return
       }
-
-      console.log(map.getFeaturesAtPixel(event.pixel))
 
       selectedFeatures = map
         .getFeaturesAtPixel(event.pixel)

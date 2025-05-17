@@ -138,14 +138,15 @@
 
     {#await import('$lib/components/BlocksMap') then BlocksMap}
       <BlocksMap.default
-        collapsibleAttribution={false}
         blocks={data.area.blocks}
+        collapsibleAttribution={false}
         height="210mm"
         onRenderComplete={onLoadMap}
         parkingLocations={data.area.parkingLocations}
         selectedArea={data.area}
         showBlocks={false}
         showRelief={false}
+        lineStrings={data.area.walkingPaths}
         zoom={16}
       />
     {/await}
