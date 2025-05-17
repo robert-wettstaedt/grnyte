@@ -105,7 +105,9 @@
               {/if}
 
               {#if route.description}
-                <p class="ms-4">{@html route.description}</p>
+                <div class="markdown-body ms-4">
+                  {@html route.description}
+                </div>
               {/if}
             {/if}
           {/each}
