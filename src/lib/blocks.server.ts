@@ -292,7 +292,9 @@ export const getStatsOfBlocks = <
 }
 
 export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatabase<typeof schema>): Promise<T[]> => {
-  return getFromCacheWithDefault(config.cache.keys.layoutBlocks, async () => {
+  return getFromCacheWithDefault(
+    config.cache.keys.layoutBlocks,
+    async () => {
     const blocks = await db.query.blocks.findMany({
       where: (table, { isNotNull }) => isNotNull(table.geolocationFk),
       with: {
@@ -312,5 +314,8 @@ export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatab
     })
 
     return filteredBlocks as T[]
-  })
+    },
+    undefined,
+    null,
+  )
 }

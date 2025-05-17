@@ -34,24 +34,27 @@ export const getCacheHash = async (id: string | number): Promise<string | undefi
   return keyv.get<string>(cacheKey)
 }
 
-export const setInCache = async <T>(id: string | number, data: T): Promise<void> => {
+export const setInCache = async <T>(id: string | number, data: T, ttl?: number | null): Promise<void> => {
   if (data == null || (typeof data === 'string' && data.length === 0) || (Array.isArray(data) && data.length === 0)) {
     return
   }
 
+  const cacheTtl = ttl === null ? undefined : (ttl ?? config.cache.ttl)
+
   const cacheKey = getCacheKey(id)
   const string = JSON.stringify(data)
-  await keyv.set(cacheKey, string, config.cache.ttl)
+  await keyv.set(cacheKey, string, cacheTtl)
 
   const cacheHashKey = getCacheHashKey(id)
   const hash = await digestMessage(string)
-  await keyv.set(cacheHashKey, hash, config.cache.ttl)
+  await keyv.set(cacheHashKey, hash, cacheTtl)
 }
 
 export const getFromCacheWithDefault = async <T>(
   id: string | number,
   getDefaultValue: () => Promise<T>,
   predicate?: () => Promise<boolean>,
+  ttl?: number | null,
 ): Promise<T> => {
   const useCache = predicate ? await predicate() : true
 
@@ -65,7 +68,7 @@ export const getFromCacheWithDefault = async <T>(
   const defaultValue = await getDefaultValue()
 
   if (useCache) {
-    await setInCache(id, defaultValue)
+    await setInCache(id, defaultValue, ttl)
   }
 
   return defaultValue

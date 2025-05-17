@@ -339,6 +339,7 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
         return groupActivities(activitiesDTOs)
       },
       async () => allQueries.length === 0 && searchParams.page === 1 && searchParams.pageSize === 15,
+      null,
     )
 
     return {
