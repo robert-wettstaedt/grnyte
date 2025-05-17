@@ -459,6 +459,7 @@ describe('Activity Feed', () => {
         config.cache.keys.activityFeed,
         expect.any(Function),
         expect.any(Function),
+        null,
       )
     })
   })

@@ -211,7 +211,7 @@
 
                   <dd class="mt-1 flex gap-1">
                     <GradeHistogram
-                      data={data.area.grades}
+                      data={data.area.grades ?? []}
                       spec={{
                         width: 'container' as any,
                       }}
@@ -429,7 +429,7 @@
                     <div class="flex flex-col">
                       <GradeHistogram
                         axes={false}
-                        data={item.grades}
+                        data={item.grades ?? []}
                         spec={{
                           width: 100,
                         }}

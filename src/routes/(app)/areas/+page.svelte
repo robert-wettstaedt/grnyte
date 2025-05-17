@@ -62,7 +62,7 @@
                 <div class="flex flex-col">
                   <GradeHistogram
                     axes={false}
-                    data={item.grades}
+                    data={item.grades ?? []}
                     spec={{
                       width: 100,
                     }}

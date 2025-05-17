@@ -1,4 +1,4 @@
-import { getStatsOfArea, nestedAreaQuery } from '$lib/blocks.server'
+import { getStatsOfAreas } from '$lib/blocks.server'
 import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, ascents, blocks, routes, topos } from '$lib/db/schema'
@@ -45,7 +45,6 @@ export const load = (async (event) => {
           },
         },
         areas: {
-          ...nestedAreaQuery,
           orderBy: areas.name, // Order nested areas by name
         },
         files: true, // Include files associated with the area
@@ -83,12 +82,14 @@ export const load = (async (event) => {
     )
 
     const files = await loadFiles(area.files)
+    const stats = await getStatsOfAreas(db, [area.id], grades, user)
 
     // Return the area, enriched blocks, and processed files
     return {
       area: {
-        ...getStatsOfArea(area, grades, user),
-        areas: area.areas.map((area) => getStatsOfArea(area, grades, user)),
+        ...area,
+        ...stats[area.id],
+        areas: area.areas.map((area) => ({ ...area, ...stats[area.id] })),
         blocks: blocksWithTopos,
         description,
         files,

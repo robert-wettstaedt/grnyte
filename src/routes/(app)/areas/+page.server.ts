@@ -1,4 +1,4 @@
-import { getStatsOfArea, nestedAreaQuery } from '$lib/blocks.server'
+import { getStatsOfAreas, nestedAreaQuery } from '$lib/blocks.server'
 import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas } from '$lib/db/schema'
@@ -18,9 +18,16 @@ export const load = (async (event) => {
       where: and(isNull(areas.parentFk), eq(areas.visibility, 'public')),
     })
 
+    const stats = await getStatsOfAreas(
+      db,
+      areaResults.map((area) => area.id),
+      grades,
+      user,
+    )
+
     // Return the result as an object with an 'areas' property
     return {
-      areas: areaResults.map((area) => getStatsOfArea(area, grades, user)),
+      areas: areaResults.map((area) => ({ ...area, ...stats[area.id] })),
       ...(await routesFilterLoad(event)),
     }
   })
