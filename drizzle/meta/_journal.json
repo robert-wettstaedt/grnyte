@@ -267,6 +267,13 @@
       "when": 1747484955267,
       "tag": "0038_curvy_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1747660199338,
+      "tag": "0039_lame_switch",
+      "breakpoints": true
     }
   ]
 }

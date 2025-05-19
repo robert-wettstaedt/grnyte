@@ -10,6 +10,41 @@ const db = drizzle(postgres, { schema })
 await db.execute(sql`
 grant usage on schema public to supabase_auth_admin;
 
+create or replace function public.custom_access_token_hook(event jsonb) returns jsonb as $$
+  declare
+    claims jsonb;
+    user_role public.app_role;
+    user_permissions jsonb;
+  begin
+    -- Fetch the user role in the user_roles table
+    select role into user_role from public.user_roles where user_fk = (event->>'user_id')::uuid;
+
+    claims := event->'claims';
+
+    if user_role is not null then
+      -- Set the claim for user role
+      claims := jsonb_set(claims, '{user_role}', to_jsonb(user_role));
+
+      -- Fetch permissions for the user role
+      select jsonb_agg(permission) into user_permissions
+      from public.role_permissions
+      where role = user_role;
+
+      -- Set the permissions claim
+      claims := jsonb_set(claims, '{user_permissions}', coalesce(user_permissions, '[]'::jsonb));
+    else
+      claims := jsonb_set(claims, '{user_role}', 'null');
+      claims := jsonb_set(claims, '{user_permissions}', '[]'::jsonb);
+    end if;
+
+    -- Update the 'claims' object in the original event
+    event := jsonb_set(event, '{claims}', claims);
+
+    -- Return the modified or original event
+    return event;
+  end;
+$$ language plpgsql security definer set search_path = '';
+
 grant execute
   on function public.custom_access_token_hook
   to supabase_auth_admin;
