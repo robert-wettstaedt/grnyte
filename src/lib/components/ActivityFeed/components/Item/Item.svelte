@@ -17,6 +17,7 @@
   import { Rating } from '@skeletonlabs/skeleton-svelte'
   import { compareAsc, format, formatDistance, formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
+  import { diffWords } from 'diff'
 
   const { activity, withBreadcrumbs = false, withDetails = false, withFiles = false }: ItemProps = $props()
 
@@ -44,6 +45,14 @@
       default:
         return 'fa-pen'
     }
+  })
+
+  const diff = $derived.by(() => {
+    if (activity.oldValue != null || activity.newValue != null) {
+      return diffWords(activity.oldValue ?? '', activity.newValue ?? '')
+    }
+
+    return []
   })
 </script>
 
@@ -207,42 +216,48 @@
                 newGrade={activity.newValue == null ? null : Number(activity.newValue)}
               />
             </div>
-          {:else}
+          {:else if ['notes', 'name', 'tags', 'description', 'first ascent'].includes(activity.columnName ?? '')}
             <span>
-              {#if activity.oldValue != null}
-                {#if activity.columnName === 'rating'}
-                  <span class="inline-flex">
-                    <Rating count={3} readOnly value={Number(activity.oldValue)}>
-                      {#snippet iconFull()}
-                        <i class="fa-solid fa-star text-warning-500"></i>
-                      {/snippet}
-                    </Rating>
-                  </span>
-                {:else}
-                  <s class="text-red-500">
-                    "{activity.oldValue}"
-                  </s>
-                {/if}
-              {/if}
-
-              {#if activity.newValue != null}
-                <i class="fa-solid fa-arrow-right-long mx-2"></i>
-              {/if}
-
-              {#if activity.newValue != null}
-                {#if activity.columnName === 'rating'}
-                  <span class="inline-flex">
-                    <Rating count={3} readOnly value={Number(activity.newValue)}>
-                      {#snippet iconFull()}
-                        <i class="fa-solid fa-star text-warning-500"></i>
-                      {/snippet}
-                    </Rating>
-                  </span>
-                {:else}
-                  <span class="text-green-500">"{activity.newValue}"</span>
-                {/if}
-              {/if}
+              {#each diff as change}
+                <span class={change.added ? 'text-green-500' : change.removed ? 'text-red-500' : ''}>
+                  {change.value}
+                </span>
+              {/each}
             </span>
+          {:else}
+            {#if activity.oldValue != null}
+              {#if activity.columnName === 'rating'}
+                <span class="inline-flex">
+                  <Rating count={3} readOnly value={Number(activity.oldValue)}>
+                    {#snippet iconFull()}
+                      <i class="fa-solid fa-star text-warning-500"></i>
+                    {/snippet}
+                  </Rating>
+                </span>
+              {:else}
+                <s class="text-red-500">
+                  "{activity.oldValue}"
+                </s>
+              {/if}
+            {/if}
+
+            {#if activity.newValue != null}
+              <i class="fa-solid fa-arrow-right-long mx-2"></i>
+
+              {#if activity.columnName === 'rating'}
+                <span class="inline-flex">
+                  <Rating count={3} readOnly value={Number(activity.newValue)}>
+                    {#snippet iconFull()}
+                      <i class="fa-solid fa-star text-warning-500"></i>
+                    {/snippet}
+                  </Rating>
+                </span>
+              {:else}
+                <s class="text-red-500">
+                  "{activity.newValue}"
+                </s>
+              {/if}
+            {/if}
           {/if}
         {/if}
       {/if}

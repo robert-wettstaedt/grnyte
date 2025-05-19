@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import type { ActivityFeedProps } from '$lib/components/ActivityFeed'
   import ActivityFeed from '$lib/components/ActivityFeed'
@@ -52,8 +53,14 @@
         } catch (error) {}
       }
     })()
+  })
 
-    startPolling()
+  $effect(() => {
+    if (page.url.searchParams.get('page') == null) {
+      startPolling()
+    } else {
+      stopPolling()
+    }
 
     return () => stopPolling()
   })
