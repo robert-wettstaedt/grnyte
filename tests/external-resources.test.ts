@@ -138,6 +138,7 @@ describe('27crags Handler', () => {
     ...mock27cragsRouteResponse.search_keys.at(0),
     externalResourcesFk: -1,
     id: -1,
+    regionFk: -1,
     url: `https://27crags.com/${mock27cragsRouteResponse.search_keys.at(0)?.path}`,
   } as unknown as RouteExternalResource27crags
 
@@ -176,6 +177,7 @@ describe('27crags Handler', () => {
       gradeFk: 1,
       notes: null,
       rating: null,
+      regionFk: 1,
     }
     const mockSession = { username: 'test-user' }
 
@@ -190,6 +192,7 @@ describe('8a Handler', () => {
     ...mock8aRouteResponse.items.at(0),
     externalResourcesFk: -1,
     id: -1,
+    regionFk: -1,
     url: `https://www.8a.nu/crags/bouldering///sectors//routes/${mock8aRouteResponse.items.at(0)?.zlaggableSlug}`,
   } as unknown as RouteExternalResource8a
 
@@ -238,6 +241,7 @@ describe('8a Handler', () => {
       gradeFk: 1,
       notes: null,
       rating: null,
+      regionFk: 1,
     }
 
     await expect(handler8a.logAscent(mockAscent, 1, mockUserSettings, true, mockLocals)).resolves.not.toThrow()
@@ -255,6 +259,7 @@ describe('TheCrag Handler', () => {
     grade: '7A',
     node: 123,
     tags: 'test,route',
+    regionFk: -1,
   }
 
   it('should query route information', async () => {
@@ -305,6 +310,7 @@ describe('TheCrag Handler', () => {
       gradeFk: 1,
       notes: null,
       rating: null,
+      regionFk: 1,
     }
     const mockSession = { account: 'test-user' }
 

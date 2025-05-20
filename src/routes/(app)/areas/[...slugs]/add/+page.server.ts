@@ -70,15 +70,16 @@ export const actions = {
         path = []
       }
 
+      if (parentArea == null) {
+        return fail(400, { ...values, error: 'Parent area not found' })
+      }
+
       // Generate a slug from the area name
       const slug = generateSlug(values.name)
 
       // Check if an area with the same slug already exists
       const existingAreasResult = await db.query.areas.findMany({
-        where: and(
-          eq(areas.slug, slug),
-          parentArea == null ? isNull(areas.parentFk) : eq(areas.parentFk, parentArea.id),
-        ),
+        where: and(eq(areas.slug, slug), eq(areas.parentFk, parentArea.id)),
       })
 
       if (existingAreasResult.length > 0) {
@@ -98,7 +99,7 @@ export const actions = {
         createdArea = (
           await db
             .insert(areas)
-            .values({ ...values, createdBy: user.id, parentFk: parentArea?.id, slug })
+            .values({ ...values, createdBy: user.id, parentFk: parentArea.id, regionFk: parentArea.regionFk, slug })
             .returning()
         )[0]
 
@@ -107,8 +108,9 @@ export const actions = {
           userFk: user.id,
           entityId: String(createdArea.id),
           entityType: 'area',
-          parentEntityId: parentArea?.id == null ? null : String(parentArea.id),
+          parentEntityId: parentArea.id == null ? null : String(parentArea.id),
           parentEntityType: 'area',
+          regionFk: createdArea.regionFk,
         })
 
         // Invalidate cache after successful update

@@ -88,15 +88,17 @@ export const actions = {
           locals.supabase,
           values.folderName,
           config.files.folders.topos,
+          { blockFk: block.id, regionFk: block.regionFk },
           values.bunnyVideoIds,
-          { blockFk: block.id },
         )
 
         const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
         await createGeolocationFromFiles(db, block, fileBuffers, 'create')
         await Promise.all(
-          createdFiles.map((result) => db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id })),
+          createdFiles.map((result) =>
+            db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id, regionFk: block.regionFk }),
+          ),
         )
 
         await insertActivity(
@@ -109,6 +111,7 @@ export const actions = {
             columnName: 'topo image',
             parentEntityId: String(block.id),
             parentEntityType: 'block',
+            regionFk: file.regionFk,
           })),
         )
       } catch (exception) {

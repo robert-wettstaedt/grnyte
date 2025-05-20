@@ -111,7 +111,7 @@ export const actions = {
         // Insert the ascent into the database
         const results = await db
           .insert(ascents)
-          .values({ ...values, routeFk: route.id, createdBy: locals.user.id })
+          .values({ ...values, routeFk: route.id, createdBy: locals.user.id, regionFk: route.regionFk })
           .returning()
         ascent = results[0]
 
@@ -126,6 +126,7 @@ export const actions = {
           entityType: 'ascent',
           parentEntityId: String(route.id),
           parentEntityType: 'route',
+          regionFk: ascent.regionFk,
         })
       } catch (exception) {
         // Return a 400 failure if ascent insertion fails
@@ -135,9 +136,14 @@ export const actions = {
       if (values.folderName != null) {
         try {
           const dstFolder = `${config.files.folders.userContent}/${locals.user.authUserFk}`
-          await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, values.bunnyVideoIds, {
-            ascentFk: ascent.id,
-          })
+          await handleFileUpload(
+            db,
+            locals.supabase,
+            values.folderName!,
+            dstFolder,
+            { ascentFk: ascent.id, regionFk: ascent.regionFk },
+            values.bunnyVideoIds,
+          )
         } catch (exception) {
           // Return a 400 failure if file insertion fails
           return fail(400, { ...values, error: convertException(exception) })

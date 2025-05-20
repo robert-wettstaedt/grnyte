@@ -147,7 +147,9 @@ export const actions = {
 
         if (tags != null && tags.length > 0) {
           // Insert new route-to-tag associations for the route
-          await db.insert(routesToTags).values(tags.map((tag) => ({ routeFk: route.id, tagFk: tag })))
+          await db
+            .insert(routesToTags)
+            .values(tags.map((tag) => ({ routeFk: route.id, tagFk: tag, regionFk: route.regionFk })))
         }
 
         await updateRoutesUserData(route.id, db)
@@ -163,6 +165,7 @@ export const actions = {
           userFk: locals.user.id,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (exception) {
         // Return a failure if the update operation fails

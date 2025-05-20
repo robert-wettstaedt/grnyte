@@ -78,7 +78,12 @@ export const actions = {
         await invalidateCache(config.cache.keys.layoutBlocks)
 
         if (values.lat != null && values.long != null) {
-          await db.insert(geolocations).values({ lat: values.lat, long: values.long, areaFk: area.id })
+          await db.insert(geolocations).values({
+            lat: values.lat,
+            long: values.long,
+            areaFk: area.id,
+            regionFk: area.regionFk,
+          })
 
           await insertActivity(db, {
             type: 'updated',
@@ -88,6 +93,7 @@ export const actions = {
             columnName: 'parking location',
             parentEntityId: String(area.parentFk),
             parentEntityType: 'area',
+            regionFk: area.regionFk,
           })
         }
 
@@ -105,6 +111,7 @@ export const actions = {
             columnName: 'walking paths',
             parentEntityId: String(area.parentFk),
             parentEntityType: 'area',
+            regionFk: area.regionFk,
           })
         }
       } catch (exception) {
@@ -160,6 +167,7 @@ export const actions = {
           columnName: 'parking location',
           parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
+          regionFk: area.regionFk,
         })
       } catch (error) {
         return fail(404, { error: convertException(error) })

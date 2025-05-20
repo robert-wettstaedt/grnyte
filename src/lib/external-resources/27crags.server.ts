@@ -59,6 +59,7 @@ export default {
           ...item,
           externalResourcesFk: -1,
           id: -1,
+          regionFk: -1,
           url: `https://27crags.com/${item.path}`,
         }
 
@@ -100,6 +101,7 @@ export default {
       userGradeFk: null,
       userRating: null,
       areaFks: [],
+      regionFk: -1,
     }
 
     return route

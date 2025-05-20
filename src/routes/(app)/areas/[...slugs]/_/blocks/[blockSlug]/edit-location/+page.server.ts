@@ -89,7 +89,7 @@ export const actions = {
       }
 
       try {
-        await createOrUpdateGeolocation(db, block, { lat: values.lat, long: values.long })
+        await createOrUpdateGeolocation(db, block, { lat: values.lat, long: values.long, regionFk: block.regionFk })
 
         await insertActivity(db, {
           type: 'updated',
@@ -99,6 +99,7 @@ export const actions = {
           columnName: 'location',
           parentEntityId: String(block.areaFk),
           parentEntityType: 'area',
+          regionFk: block.regionFk,
         })
       } catch (exception) {
         // Handle any exceptions that occur during the update
@@ -160,6 +161,7 @@ export const actions = {
           columnName: 'location',
           parentEntityId: String(block.areaFk),
           parentEntityType: 'area',
+          regionFk: block.regionFk,
         })
 
         // Invalidate cache after successful update

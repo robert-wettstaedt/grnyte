@@ -85,7 +85,7 @@ describe('Topo Files', () => {
   })
 
   describe('createOrUpdateGeolocation', () => {
-    const geolocation: InsertGeolocation = { lat: 47.123, long: 8.456 }
+    const geolocation: InsertGeolocation = { lat: 47.123, long: 8.456, regionFk: 1 }
     const blockWithGeo = { ...mockBlock, geolocationFk: 1 }
 
     describe('with operation="all" (default)', () => {

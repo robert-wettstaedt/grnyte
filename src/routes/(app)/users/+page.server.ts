@@ -89,14 +89,14 @@ export const actions = {
       }
 
       await db.insert(userRoles).values({ authUserFk: values.authUserFk, role: 'user' })
-      await insertActivity(tx, {
-        type: 'updated',
-        entityId: String(formUser.id),
-        entityType: 'user',
-        userFk: locals.user.id,
-        columnName: 'role',
-        newValue: 'user',
-      })
+      // await insertActivity(tx, {
+      //   type: 'updated',
+      //   entityId: String(formUser.id),
+      //   entityType: 'user',
+      //   userFk: locals.user.id,
+      //   columnName: 'role',
+      //   newValue: 'user',
+      // })
 
       if (RESEND_API_KEY && RESEND_RECIPIENT_EMAIL && RESEND_SENDER_EMAIL && formAuthUser.email != null) {
         const resend = new Resend(RESEND_API_KEY)

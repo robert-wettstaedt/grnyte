@@ -55,13 +55,13 @@ export const actions = {
           .returning()
         await db.update(users).set({ userSettingsFk: createdUserSettings.id }).where(eq(users.id, createdUser.id))
 
-        await insertActivity(db, {
-          type: 'created',
-          entityId: String(createdUser.id),
-          entityType: 'user',
-          userFk: createdUser.id,
-          newValue: createdUser.username,
-        })
+        // await insertActivity(db, {
+        //   type: 'created',
+        //   entityId: String(createdUser.id),
+        //   entityType: 'user',
+        //   userFk: createdUser.id,
+        //   newValue: createdUser.username,
+        // })
       } catch (exception) {
         return fail(400, { email: values.email, username: values.username, error: convertException(exception) })
       }

@@ -109,8 +109,8 @@ export const actions = {
           locals.supabase,
           values.folderName,
           config.files.folders.topos,
+          { routeFk: route.id, regionFk: route.regionFk },
           values.bunnyVideoIds,
-          { routeFk: route.id },
         )
 
         await Promise.all(
@@ -122,6 +122,7 @@ export const actions = {
               entityType: 'file',
               parentEntityId: String(route.id),
               parentEntityType: 'route',
+              regionFk: file.regionFk,
             }),
           ),
         )

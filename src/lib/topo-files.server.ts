@@ -15,7 +15,7 @@ export const createOrUpdateGeolocation = async (
   if (block.geolocationFk == null && (operation === 'create' || operation === 'all')) {
     const [createdGeolocation] = await db
       .insert(schema.geolocations)
-      .values({ ...geolocation, blockFk: block.id })
+      .values({ ...geolocation, blockFk: block.id, regionFk: block.regionFk })
       .returning()
     // Update the block with the new geolocation foreign key
     await db.update(schema.blocks).set({ geolocationFk: createdGeolocation.id }).where(eq(schema.blocks.id, block.id))
@@ -56,6 +56,7 @@ export const createGeolocationFromFiles = async (
   const geolocation: schema.InsertGeolocation = {
     lat: sumGps.latitude / nonNullGps.length,
     long: sumGps.longitude / nonNullGps.length,
+    regionFk: block.regionFk,
   }
 
   await createOrUpdateGeolocation(db, block, geolocation, operation)

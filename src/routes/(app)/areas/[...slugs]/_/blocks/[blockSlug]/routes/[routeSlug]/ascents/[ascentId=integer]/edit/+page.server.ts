@@ -102,6 +102,7 @@ export const actions = {
             userFk: user.id,
             parentEntityId: String(ascent.route.id),
             parentEntityType: 'route',
+            regionFk: ascent.regionFk,
           })
         }
       } catch (exception) {
@@ -116,8 +117,8 @@ export const actions = {
             locals.supabase,
             values.folderName!,
             dstFolder,
+            { ascentFk: ascent.id, regionFk: ascent.regionFk },
             values.bunnyVideoIds,
-            { ascentFk: ascent.id },
           )
 
           await Promise.all(
@@ -130,6 +131,7 @@ export const actions = {
                 columnName: 'file',
                 parentEntityId: String(ascent.routeFk),
                 parentEntityType: 'route',
+                regionFk: file.regionFk,
               }),
             ),
           )
@@ -191,6 +193,7 @@ export const actions = {
           oldValue: ascent.type,
           parentEntityId: String(ascent.routeFk),
           parentEntityType: 'route',
+          regionFk: ascent.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })

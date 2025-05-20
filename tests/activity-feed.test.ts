@@ -94,6 +94,7 @@ const mockActivity = {
   newValue: null,
   metadata: null,
   notified: null,
+  regionFk: 1,
 } satisfies schema.Activity
 
 const mockSupabase = {
@@ -491,6 +492,7 @@ describe('Activity Feed', () => {
         areaFks: [],
         userRating: null,
         userGradeFk: null,
+        regionFk: 1,
       },
     })
 
@@ -505,6 +507,7 @@ describe('Activity Feed', () => {
         areaFk: 100,
         geolocationFk: null,
         order: 0,
+        regionFk: 1,
       },
     })
 
@@ -521,6 +524,7 @@ describe('Activity Feed', () => {
         parentFk: null,
         createdBy: 1,
         walkingPaths: [],
+        regionFk: 1,
       },
     })
 
@@ -547,6 +551,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
         {
           id: 2,
@@ -565,6 +570,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
         {
           id: 3,
@@ -583,6 +589,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
       ]
 
@@ -642,6 +649,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
         {
           id: 2,
@@ -660,6 +668,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
       ]
 
@@ -689,6 +698,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
         {
           id: 2,
@@ -706,6 +716,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
       ]
 
@@ -742,6 +753,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
         {
           id: 2,
@@ -760,6 +772,7 @@ describe('Activity Feed', () => {
           newValue: null,
           metadata: null,
           notified: null,
+          regionFk: 1,
         },
       ]
 
@@ -789,6 +802,7 @@ describe('Activity Feed', () => {
         userFk: 1,
         parentEntityId: null,
         parentEntityType: null,
+        regionFk: 1,
       })
 
       expect(mockDb.insert).toHaveBeenCalledWith(schema.activities)
@@ -811,6 +825,7 @@ describe('Activity Feed', () => {
         userFk: 1,
         parentEntityId: null,
         parentEntityType: null,
+        regionFk: 1,
       })
 
       expect(mockDb.insert).toHaveBeenCalledWith(schema.activities)
@@ -831,6 +846,7 @@ describe('Activity Feed', () => {
         userFk: 1,
         parentEntityId: null,
         parentEntityType: null,
+        regionFk: 1,
       })
 
       expect(mockDb.insert).not.toHaveBeenCalled()
@@ -868,6 +884,7 @@ describe('Activity Feed', () => {
         userFk: 1,
         parentEntityId: null,
         parentEntityType: null,
+        regionFk: 1,
       })
 
       // Should update the existing activity for "name"
@@ -917,6 +934,7 @@ describe('Activity Feed', () => {
         userFk: 1,
         parentEntityId: null,
         parentEntityType: null,
+        regionFk: 1,
       })
 
       // Should not create or update any activities

@@ -236,6 +236,7 @@ export const actions = {
           entityType: 'user',
           columnName: 'first ascensionist',
           newValue: firstAscensionist.name,
+          regionFk: route.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })
@@ -304,7 +305,7 @@ export const actions = {
             ? (
                 await db
                   .insert(firstAscensionists)
-                  .values({ name: locals.user.username, userFk: locals.user.id })
+                  .values({ name: locals.user.username, userFk: locals.user.id, regionFk: route.regionFk })
                   .returning()
               ).at(0)
             : await db.query.firstAscensionists.findFirst({
@@ -322,7 +323,11 @@ export const actions = {
 
         await db
           .insert(routesToFirstAscensionists)
-          .values({ firstAscensionistFk: locals.user.firstAscensionistFk!, routeFk: route.id })
+          .values({
+            firstAscensionistFk: locals.user.firstAscensionistFk!,
+            regionFk: route.regionFk,
+            routeFk: route.id,
+          })
 
         const oldFirstAscent = [route.firstAscentYear, ...route.firstAscents.map((fa) => fa.firstAscensionist.name)]
           .filter(Boolean)
@@ -339,6 +344,7 @@ export const actions = {
           newValue: newFirstAscent,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })

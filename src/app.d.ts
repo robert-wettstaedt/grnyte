@@ -1,4 +1,12 @@
-import type { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+import type {
+  DELETE_PERMISSION,
+  EDIT_PERMISSION,
+  EXPORT_PERMISSION,
+  READ_PERMISSION,
+  REGIONS_ADMIN_PERMISSION,
+  TAGS_ADMIN_PERMISSION,
+  USER_ADMIN_PERMISSION,
+} from '$lib/auth'
 import type { Grade, UserSettings } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
@@ -26,7 +34,15 @@ declare global {
           >
         | undefined
       userPermissions:
-        | Array<typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION | typeof EXPORT_PERMISSION>
+        | Array<
+            | typeof READ_PERMISSION
+            | typeof EDIT_PERMISSION
+            | typeof DELETE_PERMISSION
+            | typeof EXPORT_PERMISSION
+            | typeof REGIONS_ADMIN_PERMISSION
+            | typeof TAGS_ADMIN_PERMISSION
+            | typeof USERS_ADMIN_PERMISSION
+          >
         | undefined
       userRole: string | undefined
     }
