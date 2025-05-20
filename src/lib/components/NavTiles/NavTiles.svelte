@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { REGION_ADMIN_PERMISSION, TAG_ADMIN_PERMISSION, USER_ADMIN_PERMISSION } from '$lib/auth'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
@@ -26,9 +26,9 @@
   <i class="fa-solid fa-search"></i>
 </Navigation.Tile>
 
-{#if userPermissions?.includes(EDIT_PERMISSION) && userPermissions?.includes(DELETE_PERMISSION)}
-  <Navigation.Tile href="/tags" label="Tags" selected={page.url.pathname.startsWith('/tags')}>
-    <i class="fa-solid fa-tags"></i>
+{#if [TAG_ADMIN_PERMISSION, REGION_ADMIN_PERMISSION, USER_ADMIN_PERMISSION].some( (permission) => userPermissions?.includes(permission as App.Permission), )}
+  <Navigation.Tile href="/config" label="Manage" selected={page.url.pathname.startsWith('/config')}>
+    <i class="fa-solid fa-wrench"></i>
   </Navigation.Tile>
 {/if}
 

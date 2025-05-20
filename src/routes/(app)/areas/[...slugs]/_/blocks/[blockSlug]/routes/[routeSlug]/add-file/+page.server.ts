@@ -110,7 +110,7 @@ export const actions = {
           values.folderName,
           config.files.folders.topos,
           values.bunnyVideoIds,
-          { routeFk: route.id },
+          { routeFk: route.id, regionFk: route.regionFk },
         )
 
         await Promise.all(
@@ -122,6 +122,7 @@ export const actions = {
               entityType: 'file',
               parentEntityId: String(route.id),
               parentEntityType: 'route',
+              regionFk: file.regionFk,
             }),
           ),
         )

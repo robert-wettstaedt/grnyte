@@ -10,7 +10,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
-  import { READ_PERMISSION } from '$lib/auth'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import '@fortawesome/fontawesome-free/css/all.css'
@@ -108,7 +107,7 @@
     {@render children?.()}
   </main>
 
-  {#if page.data.userPermissions?.includes(READ_PERMISSION)}
+  {#if page.data.userRegions.length > 0}
     <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
       <NavTiles userPermissions={page.data.userPermissions} />
     </Navigation.Bar>

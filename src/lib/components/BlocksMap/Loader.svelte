@@ -18,9 +18,9 @@
       loading = true
       const response = await fetch('/api/blocks')
       const data = await response.json()
-      blocks = data.blocks
-      parkingLocations = data.parkingLocations
-      lineStrings = data.walkingPaths
+      blocks = data.blocks ?? []
+      parkingLocations = data.parkingLocations ?? []
+      lineStrings = data.walkingPaths ?? []
 
       loading = false
     }

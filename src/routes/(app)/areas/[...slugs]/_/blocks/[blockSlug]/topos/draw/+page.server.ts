@@ -63,6 +63,7 @@ export const load = (async ({ locals, params }) => {
             return {
               id: undefined,
               points: [],
+              regionFk: topo.regionFk,
               route: null,
               routeFk: route.id,
               topoFk: topo.id,
@@ -133,6 +134,7 @@ export const actions = {
             (topoRoute): InsertTopoRoute => ({
               id: topoRoute.id,
               path: convertPointsToPath(topoRoute.points),
+              regionFk: topoRoute.regionFk,
               routeFk: topoRoute.routeFk,
               topoFk: topoRoute.topoFk,
               topType: topoRoute.topType,
@@ -149,6 +151,7 @@ export const actions = {
         columnName: 'topo',
         parentEntityId: String(areaId),
         parentEntityType: 'area',
+        regionFk: parsedTopos[0].regionFk,
       })
     })
   },

@@ -32,4 +32,5 @@ ALTER TABLE "routes" ADD CONSTRAINT "routes_region_fk_regions_id_fk" FOREIGN KEY
 CREATE INDEX "areas_region_fk_idx" ON "areas" USING btree ("region_fk");--> statement-breakpoint
 CREATE INDEX "blocks_region_fk_idx" ON "blocks" USING btree ("region_fk");--> statement-breakpoint
 CREATE INDEX "first_ascensionists_region_fk_idx" ON "first_ascensionists" USING btree ("region_fk");--> statement-breakpoint
-CREATE INDEX "routes_region_fk_idx" ON "routes" USING btree ("region_fk");
+CREATE INDEX "routes_region_fk_idx" ON "routes" USING btree ("region_fk");--> statement-breakpoint
+CREATE INDEX "regions_name_idx" ON "regions" USING btree ("name");--> statement-breakpoint

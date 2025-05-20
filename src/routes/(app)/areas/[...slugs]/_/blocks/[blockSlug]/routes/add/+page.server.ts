@@ -123,7 +123,7 @@ export const actions = {
         // Insert the new route into the database
         const result = await db
           .insert(routes)
-          .values({ ...values, areaFks, createdBy: locals.user.id, blockFk: block.id, slug })
+          .values({ ...values, areaFks, createdBy: locals.user.id, blockFk: block.id, regionFk: block.regionFk, slug })
           .returning()
         route = result[0]
 
@@ -135,6 +135,7 @@ export const actions = {
           newValue: route.name.length > 0 ? route.name : config.routes.defaultName,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (exception) {
         return fail(400, { ...values, error: `Unable to create route: ${convertException(exception)}` })
@@ -142,7 +143,9 @@ export const actions = {
 
       try {
         if (values.tags != null && values.tags.length > 0) {
-          await db.insert(routesToTags).values(values.tags!.map((tag) => ({ routeFk: route.id, tagFk: tag })))
+          await db
+            .insert(routesToTags)
+            .values(values.tags!.map((tag) => ({ regionFk: route.regionFk, routeFk: route.id, tagFk: tag })))
         }
       } catch (exception) {
         return fail(400, { ...values, error: `Unable to create tags: ${convertException(exception)}` })

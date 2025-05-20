@@ -241,6 +241,7 @@ export const insertExternalResources = async (route: schema.Route, block: schema
           blockFk: block.id,
           lat: externalResources.data27crags!.latitude!,
           long: externalResources.data27crags!.longitude!,
+          regionFk: block.regionFk,
         })
         .returning(),
     )

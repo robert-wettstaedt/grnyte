@@ -149,7 +149,15 @@ export const actions = {
               })
 
               if (firstAscensionist == null) {
-                firstAscensionist = (await db.insert(firstAscensionists).values({ name }).returning())[0]
+                firstAscensionist = (
+                  await db
+                    .insert(firstAscensionists)
+                    .values({
+                      name,
+                      regionFk: route.regionFk,
+                    })
+                    .returning()
+                )[0]
               }
 
               await db
@@ -174,6 +182,7 @@ export const actions = {
           newValue: newFirstAscent,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (exception) {
         // Return a 400 error if an exception occurs
@@ -259,6 +268,7 @@ export const actions = {
           oldValue: oldFirstAscent,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })

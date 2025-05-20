@@ -99,6 +99,7 @@ export const actions = {
           columnName: 'location',
           parentEntityId: String(block.areaFk),
           parentEntityType: 'area',
+          regionFk: block.regionFk,
         })
       } catch (exception) {
         // Handle any exceptions that occur during the update
@@ -160,6 +161,7 @@ export const actions = {
           columnName: 'location',
           parentEntityId: String(block.areaFk),
           parentEntityType: 'area',
+          regionFk: block.regionFk,
         })
 
         // Invalidate cache after successful update

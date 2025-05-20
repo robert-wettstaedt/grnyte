@@ -5,6 +5,8 @@ import Keyv from 'keyv'
 import Database from 'postgres'
 import drizzleConfig from '../../../drizzle.config'
 import * as schema from './schema'
+import { migrate as migrateRegions } from './scripts/migrate-regions'
+import { migrate as setupRbac } from './scripts/setup-rbac'
 
 const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
 const db = drizzle(postgres, { schema })
@@ -14,5 +16,8 @@ export const keyv = new Keyv({ store: keyvPostgres })
 
 await migrate(db, { migrationsFolder: 'drizzle' })
 await keyv.clear()
+
+await setupRbac(db)
+await migrateRegions(db)
 
 await postgres.end()

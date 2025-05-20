@@ -86,6 +86,10 @@ export const actions = {
       }
 
       const [blocksCount] = await db.select({ count: count() }).from(blocks).where(eq(blocks.areaFk, areaId))
+      const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId), columns: { regionFk: true } })
+      if (area == null) {
+        return fail(400, { ...values, error: 'Area not found' })
+      }
 
       let block: Block | undefined
 
@@ -93,7 +97,14 @@ export const actions = {
         // Insert the new block into the database
         const blockResult = await db
           .insert(blocks)
-          .values({ ...values, createdBy: locals.user.id, areaFk: areaId, order: blocksCount.count, slug })
+          .values({
+            ...values,
+            createdBy: locals.user.id,
+            areaFk: areaId,
+            order: blocksCount.count,
+            regionFk: area.regionFk,
+            slug,
+          })
           .returning()
         block = blockResult[0]
 
@@ -104,6 +115,7 @@ export const actions = {
           entityType: 'block',
           parentEntityId: String(areaId),
           parentEntityType: 'area',
+          regionFk: block.regionFk,
         })
       } catch (exception) {
         // If insertion fails, return a 400 error with the exception message
@@ -118,14 +130,16 @@ export const actions = {
             values.folderName!,
             config.files.folders.topos,
             values.bunnyVideoIds,
-            { blockFk: block.id },
+            { blockFk: block.id, regionFk: block.regionFk },
           )
 
           const fileBuffers = results.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
           await createGeolocationFromFiles(db, block, fileBuffers)
           await Promise.all(
-            results.map((result) => db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id })),
+            results.map((result) =>
+              db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id, regionFk: area.regionFk }),
+            ),
           )
         } catch (exception) {
           return fail(400, {

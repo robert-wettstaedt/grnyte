@@ -1,4 +1,4 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { TAG_ADMIN_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { routesToTags, tags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -11,17 +11,29 @@ export const load = (async ({ locals }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const tags = await db.query.tags.findMany()
+    const regionMembers = await db.query.regionMembers.findMany()
+    const regions = await db.query.regions.findMany({
+      orderBy: (table, { asc }) => [asc(table.id)],
+    })
+    const tags = await db.query.tags.findMany({
+      orderBy: (table, { asc }) => [asc(table.id)],
+    })
+    const users = await db.query.users.findMany({
+      orderBy: (table, { asc }) => [asc(table.id)],
+    })
 
     return {
+      regionMembers,
+      regions,
       tags,
+      users,
     }
   })
 }) satisfies PageServerLoad
 
 export const actions = {
-  delete: async ({ locals, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) && !locals.userPermissions?.includes(DELETE_PERMISSION)) {
+  deleteTag: async ({ locals, request }) => {
+    if (!locals.userPermissions?.includes(TAG_ADMIN_PERMISSION)) {
       error(404)
     }
 

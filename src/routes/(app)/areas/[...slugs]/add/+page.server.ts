@@ -98,7 +98,7 @@ export const actions = {
         createdArea = (
           await db
             .insert(areas)
-            .values({ ...values, createdBy: user.id, parentFk: parentArea?.id, slug })
+            .values({ ...values, createdBy: user.id, parentFk: parentArea?.id, regionFk: parentArea?.regionFk, slug })
             .returning()
         )[0]
 
@@ -109,6 +109,7 @@ export const actions = {
           entityType: 'area',
           parentEntityId: parentArea?.id == null ? null : String(parentArea.id),
           parentEntityType: 'area',
+          regionFk: createdArea.regionFk,
         })
 
         // Invalidate cache after successful update

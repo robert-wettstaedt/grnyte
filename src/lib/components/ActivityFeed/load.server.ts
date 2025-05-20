@@ -355,7 +355,10 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
 }
 
 interface HandleOpts
-  extends Pick<schema.InsertActivity, 'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType'> {
+  extends Pick<
+    schema.InsertActivity,
+    'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType' | 'regionFk'
+  > {
   oldEntity: Record<string, unknown>
   newEntity: Record<string, unknown>
   db: PostgresJsDatabase<typeof schema>
@@ -370,6 +373,7 @@ export const createUpdateActivity = async ({
   userFk,
   parentEntityId,
   parentEntityType,
+  regionFk,
 }: HandleOpts) => {
   const changes: Pick<schema.InsertActivity, 'columnName' | 'oldValue' | 'newValue'>[] = []
 
@@ -428,6 +432,7 @@ export const createUpdateActivity = async ({
           newValue: change.newValue,
           parentEntityId,
           parentEntityType,
+          regionFk,
         }),
       ),
     )

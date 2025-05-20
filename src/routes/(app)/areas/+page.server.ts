@@ -2,7 +2,7 @@ import { getStatsOfAreas, nestedAreaQuery } from '$lib/blocks.server'
 import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas } from '$lib/db/schema'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, isNull } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async (event) => {
@@ -15,8 +15,14 @@ export const load = (async (event) => {
     const areaResults = await db.query.areas.findMany({
       ...nestedAreaQuery,
       orderBy: areas.name,
-      where: and(isNull(areas.parentFk), eq(areas.visibility, 'public')),
+      where: and(isNull(areas.parentFk)),
     })
+
+    const regions = await db.query.regions.findMany()
+    console.log(regions)
+
+    const regionMembers = await db.query.regionMembers.findMany()
+    console.log(regionMembers)
 
     const stats = await getStatsOfAreas(
       db,

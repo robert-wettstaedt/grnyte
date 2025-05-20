@@ -145,7 +145,7 @@ export const handleBunnyVideoUpload = async (
         .values({ ...fileInit, path: '' })
         .returning()
 
-      await db.insert(schema.bunnyStreams).values({ id: bunnyVideoId, fileFk: dbFile.id })
+      await db.insert(schema.bunnyStreams).values({ id: bunnyVideoId, fileFk: dbFile.id, regionFk: dbFile.regionFk })
       await db.update(schema.files).set({ bunnyStreamFk: bunnyVideoId }).where(eq(schema.files.id, dbFile.id))
 
       return { file: dbFile }

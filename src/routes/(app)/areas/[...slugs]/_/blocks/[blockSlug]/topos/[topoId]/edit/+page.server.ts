@@ -114,7 +114,7 @@ export const actions = {
           values.folderName,
           config.files.folders.topos,
           values.bunnyVideoIds,
-          { blockFk: block.id },
+          { blockFk: block.id, regionFk: block.regionFk },
         )
 
         const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
@@ -141,6 +141,7 @@ export const actions = {
             columnName: 'topo image',
             parentEntityId: String(block.id),
             parentEntityType: 'block',
+            regionFk: file.regionFk,
           })),
         )
       } catch (exception) {

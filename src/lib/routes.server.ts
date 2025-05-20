@@ -151,5 +151,6 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
     oldValue: route.name,
     parentEntityId: String(block.id),
     parentEntityType: 'block',
+    regionFk: route.regionFk,
   })
 }

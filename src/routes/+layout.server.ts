@@ -18,6 +18,7 @@ export const load = async ({ locals, cookies }) => {
     session,
     user: locals.user,
     userPermissions: locals.userPermissions,
+    userRegions: locals.userRegions,
     userRole: locals.userRole,
   }
 }

@@ -3,7 +3,7 @@ import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { createServerClient } from '@supabase/ssr'
 import { type Handle, redirect } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 export const supabase: Handle = async ({ event, resolve }) => {
   /**
@@ -37,7 +37,13 @@ export const supabase: Handle = async ({ event, resolve }) => {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
     if (!session) {
-      return { session: undefined, user: undefined, userPermissions: undefined, userRole: undefined }
+      return {
+        session: undefined,
+        user: undefined,
+        userPermissions: undefined,
+        userRole: undefined,
+        userRegions: [],
+      }
     }
 
     const user = await db.query.users.findFirst({
@@ -63,10 +69,26 @@ export const supabase: Handle = async ({ event, resolve }) => {
         ? undefined
         : await db.query.rolePermissions.findMany({ where: eq(schema.rolePermissions.role, userRole.role) })
 
+    const userRegions = await db.query.regionMembers.findMany({
+      where: and(eq(schema.regionMembers.authUserFk, session.user.id), eq(schema.regionMembers.isActive, true)),
+      columns: {
+        regionFk: true,
+        role: true,
+      },
+    })
+
+    const permissions = await db.query.rolePermissions.findMany()
+
+    const a = userRegions.map((member) => ({
+      ...member,
+      permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+    }))
+
     return {
       session,
       user,
       userPermissions: userPermissions?.map(({ permission }) => permission),
+      userRegions: a,
       userRole: userRole?.role,
     }
   }
@@ -83,11 +105,12 @@ export const supabase: Handle = async ({ event, resolve }) => {
 }
 
 export const authGuard: Handle = async ({ event, resolve }) => {
-  const { session, user, userPermissions, userRole } = await event.locals.safeGetSession()
+  const { session, user, userPermissions, userRole, userRegions } = await event.locals.safeGetSession()
 
   event.locals.session = session
   event.locals.user = user
   event.locals.userPermissions = userPermissions
+  event.locals.userRegions = userRegions
   event.locals.userRole = userRole
 
   if (

@@ -99,7 +99,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       throw new Error('Video guid is null')
     }
 
-    await db.insert(schema.bunnyStreams).values({ fileFk: file.id, id: video.guid })
+    await db.insert(schema.bunnyStreams).values({ fileFk: file.id, id: video.guid, regionFk: file.regionFk })
     await db.update(schema.files).set({ bunnyStreamFk: video.guid }).where(eq(schema.files.id, file.id))
 
     const uploadBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)

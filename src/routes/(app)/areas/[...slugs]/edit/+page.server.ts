@@ -103,6 +103,7 @@ export const actions = {
           userFk: locals.user.id,
           parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
+          regionFk: area.regionFk,
         })
 
         // Invalidate cache after successful update
@@ -178,6 +179,7 @@ export const actions = {
           oldValue: area.name,
           parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
+          regionFk: area.regionFk,
         })
 
         // Invalidate cache after successful update

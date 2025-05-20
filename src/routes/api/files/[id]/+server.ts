@@ -76,6 +76,7 @@ export async function DELETE(event) {
         entityId: String(entityId),
         entityType: entityType,
         columnName: 'file',
+        regionFk: file.regionFk,
       })
     }
 

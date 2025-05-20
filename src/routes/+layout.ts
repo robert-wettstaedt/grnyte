@@ -42,6 +42,7 @@ export const load = async ({ data, depends, fetch }) => {
     supabase,
     user: data.user,
     userPermissions: data.userPermissions,
+    userRegions: data.userRegions,
     userRole: data.userRole,
   }
 }
