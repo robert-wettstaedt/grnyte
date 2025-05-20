@@ -242,14 +242,17 @@ export const getStatsOfAreas = async (
   user: InferResultType<'users', { userSettings: { columns: { gradingScale: true } } }> | undefined,
 ) => {
   return getFromCacheWithDefault(config.cache.keys.areaStats + areaIds.join(','), async () => {
-    const routes = await db.query.routes.findMany({
-      where: arrayOverlaps(schema.routes.areaFks, areaIds),
-      columns: {
-        areaFks: true,
-        userGradeFk: true,
-        gradeFk: true,
-      },
-    })
+    const routes =
+      areaIds.length === 0
+        ? []
+        : await db.query.routes.findMany({
+            where: arrayOverlaps(schema.routes.areaFks, areaIds),
+            columns: {
+              areaFks: true,
+              userGradeFk: true,
+              gradeFk: true,
+            },
+          })
 
     const allAreaIds = routes.flatMap((route) => route.areaFks ?? [])
     const distinctAreaIds = [...new Set(allAreaIds)]
