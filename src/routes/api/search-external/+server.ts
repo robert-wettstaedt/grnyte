@@ -56,6 +56,7 @@ export const GET = async ({ locals, url }) => {
     name: route8a?.name ?? route27crags?.name ?? routeTheCrag?.name ?? query,
     rating: ratingMean,
     slug: '',
+    regionFk: -1,
   }
 
   const routeExternalResources: InferResultType<
@@ -63,6 +64,7 @@ export const GET = async ({ locals, url }) => {
     { externalResource8a: true; externalResource27crags: true; externalResourceTheCrag: true }
   > = {
     routeFk: -1,
+    regionFk: -1,
     id: -1,
     externalResource27cragsFk: -1,
     externalResource8aFk: -1,

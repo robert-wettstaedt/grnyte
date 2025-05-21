@@ -35,6 +35,7 @@ export async function POST({ locals, params, request }) {
             { externalResource8a: true; externalResource27crags: true; externalResourceTheCrag: true }
           > = {
             id: -1,
+            regionFk: route.regionFk,
             routeFk: route.id,
             externalResource8a: data.data8a,
             externalResource8aFk: null,

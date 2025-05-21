@@ -117,8 +117,8 @@ export const actions = {
             locals.supabase,
             values.folderName!,
             dstFolder,
-            values.bunnyVideoIds,
             { ascentFk: ascent.id, regionFk: ascent.regionFk },
+            values.bunnyVideoIds,
           )
 
           await Promise.all(

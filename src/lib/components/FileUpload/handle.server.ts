@@ -18,8 +18,8 @@ export const handleFileUpload = async (
   supabase: SupabaseClient,
   srcFolder: string,
   dstFolder: string,
+  fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
   bunnyVideoIds?: string[] | null,
-  fileInit?: Partial<schema.InsertFile>,
 ): Promise<FileUploadResult[]> => {
   const files: FileUploadResult[] = []
 
@@ -37,7 +37,7 @@ export const handleSupabaseFileUpload = async (
   supabase: SupabaseClient,
   srcFolder: string,
   dstFolder: string,
-  fileInit?: Partial<schema.InsertFile>,
+  fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
 ): Promise<FileUploadResult[]> => {
   const nextcloud = getNextcloud()
 
@@ -136,7 +136,7 @@ export const handleSupabaseFileUpload = async (
 export const handleBunnyVideoUpload = async (
   db: PostgresJsDatabase<typeof schema>,
   bunnyVideoIds: string[],
-  fileInit?: Partial<schema.InsertFile>,
+  fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
 ): Promise<FileUploadResult[]> => {
   return Promise.all(
     bunnyVideoIds.map(async (bunnyVideoId) => {

@@ -231,7 +231,7 @@
   const createLineStringFeatures = () => {
     const distinctLineStrings = Array.from(new Set(lineStrings))
     const style = new Style({
-      stroke: new Stroke({ color: '#1e40af', width: 2 }),
+      stroke: new Stroke({ color: '#1e40afaa', width: 2 }),
     })
 
     const features = distinctLineStrings.map((path) => {

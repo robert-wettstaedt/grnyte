@@ -74,6 +74,7 @@ export default {
           name: $row.attr('data-nodename') ?? '',
           node: id,
           rating: $('.star', $row).length,
+          regionFk: -1,
           tags,
           url: `https://www.thecrag.com/route/${id}`,
         }
@@ -110,6 +111,7 @@ export default {
       name: data.name ?? '',
       rating: data.rating ?? null,
       slug: '',
+      regionFk: -1,
     }
   },
 

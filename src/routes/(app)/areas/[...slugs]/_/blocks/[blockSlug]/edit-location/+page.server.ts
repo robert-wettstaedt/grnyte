@@ -89,7 +89,7 @@ export const actions = {
       }
 
       try {
-        await createOrUpdateGeolocation(db, block, { lat: values.lat, long: values.long })
+        await createOrUpdateGeolocation(db, block, { lat: values.lat, long: values.long, regionFk: block.regionFk })
 
         await insertActivity(db, {
           type: 'updated',

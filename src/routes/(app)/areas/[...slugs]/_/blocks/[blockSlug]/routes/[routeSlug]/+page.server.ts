@@ -323,7 +323,11 @@ export const actions = {
 
         await db
           .insert(routesToFirstAscensionists)
-          .values({ firstAscensionistFk: locals.user.firstAscensionistFk!, routeFk: route.id })
+          .values({
+            firstAscensionistFk: locals.user.firstAscensionistFk!,
+            regionFk: route.regionFk,
+            routeFk: route.id,
+          })
 
         const oldFirstAscent = [route.firstAscentYear, ...route.firstAscents.map((fa) => fa.firstAscensionist.name)]
           .filter(Boolean)

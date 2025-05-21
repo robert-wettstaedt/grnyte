@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../schema'
 import type { InferResultType } from '../types'
+import fs from 'node:fs'
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   const rootAreas = await db.query.areas.findMany({
@@ -69,9 +70,11 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       const routesToFirstAscensionists =
         routeIds.length === 0
           ? []
-          : await db.query.routesToFirstAscensionists.findMany({
-              where: inArray(schema.routesToFirstAscensionists.routeFk, routeIds),
-            })
+          : await db
+              .update(schema.routesToFirstAscensionists)
+              .set({ regionFk: region.id })
+              .where(inArray(schema.routesToFirstAscensionists.routeFk, routeIds))
+              .returning()
       const firstAscensionistIds = Array.from(
         new Set(routesToFirstAscensionists.map((item) => item.firstAscensionistFk)),
       )
@@ -80,7 +83,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
         await db
           .update(schema.firstAscensionists)
           .set({ regionFk: region.id })
-          .where(inArray(schema.firstAscensionists.userFk, firstAscensionistIds))
+          .where(inArray(schema.firstAscensionists.id, firstAscensionistIds))
       }
 
       const ascents =
@@ -141,6 +144,35 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
           .update(schema.routesToTags)
           .set({ regionFk: region.id })
           .where(inArray(schema.routesToTags.routeFk, routeIds))
+      }
+
+      const routeExternalResources =
+        routeIds.length === 0
+          ? []
+          : await db
+              .update(schema.routeExternalResources)
+              .set({ regionFk: region.id })
+              .where(inArray(schema.routeExternalResources.routeFk, routeIds))
+              .returning()
+      const routeExternalResourceIds = Array.from(
+        new Set(routeExternalResources.map((routeExternalResource) => routeExternalResource.id)),
+      )
+
+      if (routeExternalResourceIds.length > 0) {
+        await db
+          .update(schema.routeExternalResource27crags)
+          .set({ regionFk: region.id })
+          .where(inArray(schema.routeExternalResource27crags.externalResourcesFk, routeExternalResourceIds))
+
+        await db
+          .update(schema.routeExternalResource8a)
+          .set({ regionFk: region.id })
+          .where(inArray(schema.routeExternalResource8a.externalResourcesFk, routeExternalResourceIds))
+
+        await db
+          .update(schema.routeExternalResourceTheCrag)
+          .set({ regionFk: region.id })
+          .where(inArray(schema.routeExternalResourceTheCrag.externalResourcesFk, routeExternalResourceIds))
       }
 
       const geolocationQuery = [
@@ -234,6 +266,46 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       await db.insert(schema.regionMembers).values(newRegionMembers)
     }
   }
+
+  const areas = await db.query.areas.findMany({ where: (t) => isNull(t.regionFk) })
+  const blocks = await db.query.blocks.findMany({ where: (t) => isNull(t.regionFk) })
+  const routes = await db.query.routes.findMany({ where: (t) => isNull(t.regionFk) })
+  const routeExternalResources = await db.query.routeExternalResources.findMany({ where: (t) => isNull(t.regionFk) })
+  const resource27crags = await db.query.routeExternalResource27crags.findMany({ where: (t) => isNull(t.regionFk) })
+  const resource8a = await db.query.routeExternalResource8a.findMany({ where: (t) => isNull(t.regionFk) })
+  const resourceTheCrag = await db.query.routeExternalResourceTheCrag.findMany({ where: (t) => isNull(t.regionFk) })
+  const firstAscensionists = await db.query.firstAscensionists.findMany({ where: (t) => isNull(t.regionFk) })
+  const toFirstAscensionists = await db.query.routesToFirstAscensionists.findMany({ where: (t) => isNull(t.regionFk) })
+  const ascents = await db.query.ascents.findMany({ where: (t) => isNull(t.regionFk) })
+  const files = await db.query.files.findMany({ where: (t) => isNull(t.regionFk) })
+  const bunnyStreams = await db.query.bunnyStreams.findMany({ where: (t) => isNull(t.regionFk) })
+  const topos = await db.query.topos.findMany({ where: (t) => isNull(t.regionFk) })
+  const topoRoutes = await db.query.topoRoutes.findMany({ where: (t) => isNull(t.regionFk) })
+  const routesToTags = await db.query.routesToTags.findMany({ where: (t) => isNull(t.regionFk) })
+  const geolocations = await db.query.geolocations.findMany({ where: (t) => isNull(t.regionFk) })
+  const activities = await db.query.activities.findMany({ where: (t) => isNull(t.regionFk) })
+
+  const data = {
+    areas,
+    blocks,
+    routes,
+    routeExternalResources,
+    resource27crags,
+    resource8a,
+    resourceTheCrag,
+    firstAscensionists,
+    toFirstAscensionists,
+    ascents,
+    files,
+    bunnyStreams,
+    topos,
+    topoRoutes,
+    routesToTags,
+    geolocations,
+    activities,
+  }
+
+  fs.writeFileSync('inconsistent-regions.json', JSON.stringify(data, null, 2))
 }
 
 function recursiveArea(areas: InferResultType<'areas', { areas: true }>[]) {

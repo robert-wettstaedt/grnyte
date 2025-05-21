@@ -129,8 +129,8 @@ export const actions = {
             locals.supabase,
             values.folderName!,
             config.files.folders.topos,
-            values.bunnyVideoIds,
             { blockFk: block.id, regionFk: block.regionFk },
+            values.bunnyVideoIds,
           )
 
           const fileBuffers = results.map((result) => result.fileBuffer).filter((buffer) => buffer != null)

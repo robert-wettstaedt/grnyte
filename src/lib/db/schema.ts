@@ -31,13 +31,21 @@ import {
   USER_ADMIN_PERMISSION,
 } from '../auth'
 import {
-  createBasicTablePoliciesInRegion,
   createBasicTablePolicies,
+  createBasicTablePoliciesInRegion,
+  getAuthorizedInRegionPolicyConfig,
   getAuthorizedPolicyConfig,
   getOwnEntryPolicyConfig,
   getPolicyConfig,
-  getAuthorizedInRegionPolicyConfig,
 } from './policy'
+
+/**
+ *
+ *
+ * === HELPERS ===
+ *
+ *
+ */
 
 export const generateSlug = (name: string): string =>
   name
@@ -63,12 +71,24 @@ const baseContentFields = {
   slug: text('slug').notNull(),
 }
 
+const baseRegionFields = {
+  regionFk: integer('region_fk').references((): AnyColumn => regions.id),
+}
+
 const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
   as: 'permissive',
   for: 'select',
   to: supabaseAuthAdminRole,
   using: sql`true`,
 }
+
+/**
+ *
+ *
+ * === GLOBALS ===
+ *
+ *
+ */
 
 export const appPermission = pgEnum('app_permission', [
   READ_PERMISSION,
@@ -186,6 +206,42 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
   user: one(users, { fields: [userSettings.userFk], references: [users.id] }),
 }))
 
+export const pushSubscriptions = table(
+  'push_subscriptions',
+  {
+    id: baseFields.id,
+
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+
+    endpoint: text('endpoint').notNull(),
+    expirationTime: integer('expiration_time'),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+  },
+  (table) => [
+    index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
+    index('push_subscriptions_user_fk_idx').on(table.userFk),
+
+    policy(`users can delete own push_subscriptions`, getOwnEntryPolicyConfig('delete')),
+    policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert')),
+    policy(`users can read own push_subscriptions`, getOwnEntryPolicyConfig('select')),
+    policy(`users can update own push_subscriptions`, getOwnEntryPolicyConfig('update')),
+  ],
+).enableRLS()
+
+export type PushSubscription = InferSelectModel<typeof pushSubscriptions>
+export type InsertPushSubscription = InferInsertModel<typeof pushSubscriptions>
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
+  user: one(users, { fields: [pushSubscriptions.userFk], references: [users.id] }),
+}))
+
 export const regions = table(
   'regions',
   {
@@ -223,6 +279,7 @@ export const regionMembers = table(
   'region_members',
   {
     ...baseFields,
+    ...baseRegionFields,
     role: appRole().notNull(),
     isActive: boolean('is_active').notNull().default(true),
 
@@ -230,7 +287,6 @@ export const regionMembers = table(
       .notNull()
       .references((): AnyColumn => authUsers.id),
     invitedBy: integer('invited_by').references((): AnyColumn => users.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),
@@ -260,6 +316,49 @@ export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
   user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
 }))
 
+export const grades = table(
+  'grades',
+  {
+    id: baseFields.id,
+
+    FB: text('FB'),
+    V: text('V'),
+  },
+  () => [policy('authenticated users can fully access grades', getPolicyConfig('all', sql`true`))],
+).enableRLS()
+export type Grade = InferSelectModel<typeof grades>
+export type InsertGrade = InferInsertModel<typeof grades>
+
+export const gradesRelations = relations(grades, ({ many }) => ({
+  ascents: many(ascents),
+  routes: many(routes),
+}))
+
+export const tags = table(
+  'tags',
+  {
+    id: text('id').primaryKey(),
+  },
+  () => [
+    policy('authenticated users can read tags', getPolicyConfig('select', sql`true`)),
+    policy(`${TAG_ADMIN_PERMISSION} can fully access tags`, getAuthorizedPolicyConfig('all', TAG_ADMIN_PERMISSION)),
+  ],
+).enableRLS()
+export type Tag = InferSelectModel<typeof tags>
+export type InsertTag = InferInsertModel<typeof tags>
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  routes: many(routesToTags),
+}))
+
+/**
+ *
+ *
+ * === REGION-BASED ===
+ *
+ *
+ */
+
 export const areaVisibilityEnum: ['public', 'private'] = ['public', 'private']
 export const areaTypeEnum: ['area', 'crag', 'sector'] = ['area', 'crag', 'sector']
 export const areas = table(
@@ -267,6 +366,7 @@ export const areas = table(
   {
     ...baseFields,
     ...baseContentFields,
+    ...baseRegionFields,
 
     description: text('description'),
     type: text('type', { enum: areaTypeEnum }).notNull().default('area'),
@@ -274,7 +374,6 @@ export const areas = table(
     walkingPaths: text('walking_paths').array(),
 
     parentFk: integer('parent_fk').references((): AnyColumn => areas.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('areas_description_idx').on(table.description),
@@ -307,6 +406,7 @@ export const blocks = table(
   {
     ...baseFields,
     ...baseContentFields,
+    ...baseRegionFields,
 
     order: integer('order').notNull(),
 
@@ -314,7 +414,6 @@ export const blocks = table(
       .notNull()
       .references((): AnyColumn => areas.id),
     geolocationFk: integer('geolocation_fk').references((): AnyColumn => geolocations.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('blocks_region_fk_idx').on(table.regionFk),
@@ -346,6 +445,7 @@ export const routes = table(
   {
     ...baseFields,
     ...baseContentFields,
+    ...baseRegionFields,
 
     description: text('description'),
     rating: integer('rating'),
@@ -359,7 +459,6 @@ export const routes = table(
     externalResourcesFk: integer('external_resources_fk').references((): AnyColumn => routeExternalResources.id),
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),
     userGradeFk: integer('user_grade_fk').references((): AnyColumn => grades.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('routes_block_fk_idx').on(table.blockFk),
@@ -397,28 +496,11 @@ export const routesRelations = relations(routes, ({ one, many }) => ({
   tags: many(routesToTags),
 }))
 
-export const grades = table(
-  'grades',
-  {
-    id: baseFields.id,
-
-    FB: text('FB'),
-    V: text('V'),
-  },
-  () => [policy('authenticated users can read grades', getPolicyConfig('select', sql`true`))],
-).enableRLS()
-export type Grade = InferSelectModel<typeof grades>
-export type InsertGrade = InferInsertModel<typeof grades>
-
-export const GradesRelations = relations(grades, ({ many }) => ({
-  ascents: many(ascents),
-  routes: many(routes),
-}))
-
 export const routeExternalResources = table(
   'route_external_resources',
   {
     id: baseFields.id,
+    ...baseRegionFields,
 
     routeFk: integer('route_fk')
       .notNull()
@@ -445,7 +527,7 @@ export type InsertRouteExternalResource = InferInsertModel<typeof routeExternalR
 
 export const routeExternalResourcesRelations = relations(routeExternalResources, ({ one }) => ({
   route: one(routes, { fields: [routeExternalResources.routeFk], references: [routes.id] }),
-
+  region: one(regions, { fields: [routeExternalResources.regionFk], references: [regions.id] }),
   externalResource8a: one(routeExternalResource8a, {
     fields: [routeExternalResources.externalResource8aFk],
     references: [routeExternalResource8a.id],
@@ -464,7 +546,7 @@ export const routeExternalResource8a = table(
   'route_external_resource_8a',
   {
     id: baseFields.id,
-
+    ...baseRegionFields,
     zlaggableName: text('zlaggable_name'),
     zlaggableSlug: text('zlaggable_slug'),
     zlaggableId: integer('zlaggable_id'),
@@ -499,12 +581,14 @@ export const routeExternalResource8aRelations = relations(routeExternalResource8
     fields: [routeExternalResource8a.externalResourcesFk],
     references: [routeExternalResources.id],
   }),
+  region: one(regions, { fields: [routeExternalResource8a.regionFk], references: [regions.id] }),
 }))
 
 export const routeExternalResource27crags = table(
   'route_external_resource_27crags',
   {
     id: baseFields.id,
+    ...baseRegionFields,
 
     name: text('name'),
     searchable_id: integer('searchable_id'),
@@ -534,13 +618,14 @@ export const routeExternalResource27cragsRelations = relations(routeExternalReso
     fields: [routeExternalResource27crags.externalResourcesFk],
     references: [routeExternalResources.id],
   }),
+  region: one(regions, { fields: [routeExternalResource27crags.regionFk], references: [regions.id] }),
 }))
 
 export const routeExternalResourceTheCrag = table(
   'route_external_resource_the_crag',
   {
     id: baseFields.id,
-
+    ...baseRegionFields,
     name: text('name'),
     description: text('description'),
     grade: text('grade'),
@@ -565,15 +650,16 @@ export const routeExternalResourceTheCragRelations = relations(routeExternalReso
     fields: [routeExternalResourceTheCrag.externalResourcesFk],
     references: [routeExternalResources.id],
   }),
+  region: one(regions, { fields: [routeExternalResourceTheCrag.regionFk], references: [regions.id] }),
 }))
 
 export const firstAscensionists = table(
   'first_ascensionists',
   {
     id: baseFields.id,
-    name: baseContentFields.name,
+    ...baseRegionFields,
 
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
+    name: text('name').notNull(),
     userFk: integer('user_fk').references((): AnyColumn => users.id),
   },
   (table) => [
@@ -596,7 +682,9 @@ export type FirstAscensionist = InferSelectModel<typeof firstAscensionists>
 export type InsertFirstAscensionist = InferInsertModel<typeof firstAscensionists>
 
 export const firstAscensionistsRelations = relations(firstAscensionists, ({ one, many }) => ({
+  region: one(regions, { fields: [firstAscensionists.regionFk], references: [regions.id] }),
   user: one(users, { fields: [firstAscensionists.userFk], references: [users.id] }),
+
   routes: many(routesToFirstAscensionists),
 }))
 
@@ -604,6 +692,7 @@ export const routesToFirstAscensionists = table(
   'routes_to_first_ascensionists',
   {
     id: baseFields.id,
+    ...baseRegionFields,
 
     firstAscensionistFk: integer('first_ascensionist_fk')
       .notNull()
@@ -625,11 +714,12 @@ export const routesToFirstAscensionists = table(
 ).enableRLS()
 
 export const routesToFirstAscensionistsRelations = relations(routesToFirstAscensionists, ({ one }) => ({
-  route: one(routes, { fields: [routesToFirstAscensionists.routeFk], references: [routes.id] }),
   firstAscensionist: one(firstAscensionists, {
     fields: [routesToFirstAscensionists.firstAscensionistFk],
     references: [firstAscensionists.id],
   }),
+  region: one(regions, { fields: [routesToFirstAscensionists.regionFk], references: [regions.id] }),
+  route: one(routes, { fields: [routesToFirstAscensionists.routeFk], references: [routes.id] }),
 }))
 
 export const ascentTypeEnum: ['flash', 'send', 'repeat', 'attempt'] = ['flash', 'send', 'repeat', 'attempt']
@@ -637,6 +727,7 @@ export const ascents = table(
   'ascents',
   {
     ...baseFields,
+    ...baseRegionFields,
     createdBy: baseContentFields.createdBy,
 
     dateTime: date('date_time').notNull().defaultNow(),
@@ -648,7 +739,6 @@ export const ascents = table(
     routeFk: integer('route_fk')
       .notNull()
       .references((): AnyColumn => routes.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('ascents_created_by_idx').on(table.createdBy),
@@ -714,6 +804,7 @@ export type InsertAscent = InferInsertModel<typeof ascents>
 export const ascentsRelations = relations(ascents, ({ one, many }) => ({
   author: one(users, { fields: [ascents.createdBy], references: [users.id] }),
   grade: one(grades, { fields: [ascents.gradeFk], references: [grades.id] }),
+  region: one(regions, { fields: [ascents.regionFk], references: [regions.id] }),
   route: one(routes, { fields: [ascents.routeFk], references: [routes.id] }),
 
   files: many(files),
@@ -725,6 +816,7 @@ export const files = table(
     id: text('id')
       .$defaultFn(() => createCuid2())
       .primaryKey(),
+    ...baseRegionFields,
 
     path: text('path').notNull(),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
@@ -734,7 +826,6 @@ export const files = table(
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
     bunnyStreamFk: uuid('bunny_stream_fk').references((): AnyColumn => bunnyStreams.id, { onDelete: 'set null' }),
     routeFk: integer('route_fk').references((): AnyColumn => routes.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('files_area_fk_idx').on(table.areaFk),
@@ -802,6 +893,7 @@ export const filesRelations = relations(files, ({ one }) => ({
   ascent: one(ascents, { fields: [files.ascentFk], references: [ascents.id] }),
   block: one(blocks, { fields: [files.blockFk], references: [blocks.id] }),
   bunnyStream: one(bunnyStreams, { fields: [files.bunnyStreamFk], references: [bunnyStreams.id] }),
+  region: one(regions, { fields: [files.regionFk], references: [regions.id] }),
   route: one(routes, { fields: [files.routeFk], references: [routes.id] }),
 }))
 
@@ -809,8 +901,9 @@ export const bunnyStreams = table(
   'bunny_streams',
   {
     id: uuid('id').primaryKey(),
+    ...baseRegionFields,
+
     fileFk: text('file_fk').references((): AnyColumn => files.id, { onDelete: 'set null' }),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('bunny_streams_region_fk_idx').on(table.regionFk),
@@ -869,16 +962,17 @@ export type InsertBunnyStream = InferInsertModel<typeof bunnyStreams>
 
 export const bunnyStreamsRelations = relations(bunnyStreams, ({ one }) => ({
   file: one(files, { fields: [bunnyStreams.fileFk], references: [files.id] }),
+  region: one(regions, { fields: [bunnyStreams.regionFk], references: [regions.id] }),
 }))
 
 export const topos = table(
   'topos',
   {
     id: baseFields.id,
+    ...baseRegionFields,
 
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
     fileFk: text('file_fk').references((): AnyColumn => files.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('topos_block_fk_idx').on(table.blockFk),
@@ -898,6 +992,7 @@ export type InsertTopo = InferInsertModel<typeof topos>
 export const toposRelations = relations(topos, ({ one, many }) => ({
   block: one(blocks, { fields: [topos.blockFk], references: [blocks.id] }),
   file: one(files, { fields: [topos.fileFk], references: [files.id] }),
+  region: one(regions, { fields: [topos.regionFk], references: [regions.id] }),
 
   routes: many(topoRoutes),
 }))
@@ -907,11 +1002,11 @@ export const topoRoutes = table(
   'topo_routes',
   {
     id: baseFields.id,
+    ...baseRegionFields,
 
     topType: text('top_type', { enum: topoRouteTopTypeEnum }).notNull(),
     path: text('path'),
 
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
     routeFk: integer('route_fk').references((): AnyColumn => routes.id),
     topoFk: integer('topo_fk').references((): AnyColumn => topos.id),
   },
@@ -931,31 +1026,15 @@ export type TopoRoute = InferSelectModel<typeof topoRoutes>
 export type InsertTopoRoute = InferInsertModel<typeof topoRoutes>
 
 export const topoRoutesRelations = relations(topoRoutes, ({ one }) => ({
+  region: one(regions, { fields: [topoRoutes.regionFk], references: [regions.id] }),
   route: one(routes, { fields: [topoRoutes.routeFk], references: [routes.id] }),
   topo: one(topos, { fields: [topoRoutes.topoFk], references: [topos.id] }),
-}))
-
-export const tags = table(
-  'tags',
-  {
-    id: text('id').primaryKey(),
-  },
-  () => [
-    policy('authenticated users can read tags', getPolicyConfig('select', sql`true`)),
-    policy(`${TAG_ADMIN_PERMISSION} can fully access tags`, getAuthorizedPolicyConfig('all', TAG_ADMIN_PERMISSION)),
-  ],
-).enableRLS()
-export type Tag = InferSelectModel<typeof tags>
-export type InsertTag = InferInsertModel<typeof tags>
-
-export const tagsRelations = relations(tags, ({ many }) => ({
-  routes: many(routesToTags),
 }))
 
 export const routesToTags = table(
   'routes_to_tags',
   {
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
+    ...baseRegionFields,
     routeFk: integer('route_fk')
       .notNull()
       .references((): AnyColumn => routes.id),
@@ -979,6 +1058,7 @@ export const routesToTags = table(
 ).enableRLS()
 
 export const routesToTagsRelations = relations(routesToTags, ({ one }) => ({
+  region: one(regions, { fields: [routesToTags.regionFk], references: [regions.id] }),
   route: one(routes, { fields: [routesToTags.routeFk], references: [routes.id] }),
   tag: one(tags, { fields: [routesToTags.tagFk], references: [tags.id] }),
 }))
@@ -987,13 +1067,13 @@ export const geolocations = table(
   'geolocations',
   {
     id: baseFields.id,
+    ...baseRegionFields,
 
     lat: doublePrecision('lat').notNull(),
     long: doublePrecision('long').notNull(),
 
     areaFk: integer('area_fk').references((): AnyColumn => areas.id),
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('geolocations_area_fk_idx').on(table.areaFk),
@@ -1013,6 +1093,7 @@ export type InsertGeolocation = InferInsertModel<typeof geolocations>
 export const geolocationsRelations = relations(geolocations, ({ one }) => ({
   area: one(areas, { fields: [geolocations.areaFk], references: [areas.id] }),
   block: one(blocks, { fields: [geolocations.blockFk], references: [blocks.id] }),
+  region: one(regions, { fields: [geolocations.regionFk], references: [regions.id] }),
 }))
 
 export const activityTypeEnum = pgEnum('activity_type', ['created', 'updated', 'deleted', 'uploaded'])
@@ -1021,6 +1102,8 @@ export const activities = table(
   'activities',
   {
     ...baseFields,
+    ...baseRegionFields,
+
     type: activityTypeEnum('type').notNull(),
     userFk: integer('user_fk')
       .notNull()
@@ -1034,7 +1117,6 @@ export const activities = table(
     oldValue: text('old_value'), // Only populated for 'updated' activities
     newValue: text('new_value'), // Only populated for 'updated' activities
     notified: boolean('notified'), // Whether this activity has been notified
-    regionFk: integer('region_fk').references((): AnyColumn => regions.id),
   },
   (table) => [
     index('activities_created_at_idx').on(table.createdAt),
@@ -1082,40 +1164,6 @@ export type Activity = InferSelectModel<typeof activities>
 export type InsertActivity = InferInsertModel<typeof activities>
 
 export const activitiesRelations = relations(activities, ({ one }) => ({
+  region: one(regions, { fields: [activities.regionFk], references: [regions.id] }),
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
-}))
-
-export const pushSubscriptions = table(
-  'push_subscriptions',
-  {
-    id: baseFields.id,
-
-    authUserFk: uuid('auth_user_fk')
-      .notNull()
-      .references((): AnyColumn => authUsers.id),
-    userFk: integer('user_fk')
-      .notNull()
-      .references((): AnyColumn => users.id),
-
-    auth: text('auth').notNull(),
-    endpoint: text('endpoint').notNull(),
-    expirationTime: integer('expiration_time'),
-    p256dh: text('p256dh').notNull(),
-  },
-  (table) => [
-    index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
-    index('push_subscriptions_user_fk_idx').on(table.userFk),
-    policy(`users can delete own push_subscriptions`, getOwnEntryPolicyConfig('delete')),
-    policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert')),
-    policy(`users can read own push_subscriptions`, getOwnEntryPolicyConfig('select')),
-    policy(`users can update own push_subscriptions`, getOwnEntryPolicyConfig('update')),
-  ],
-).enableRLS()
-
-export type PushSubscription = InferSelectModel<typeof pushSubscriptions>
-export type InsertPushSubscription = InferInsertModel<typeof pushSubscriptions>
-
-export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
-  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
-  user: one(users, { fields: [pushSubscriptions.userFk], references: [users.id] }),
 }))

@@ -46,7 +46,7 @@ declare global {
       userRegions: {
         regionFk: RegionMember['regionFk']
         role: RegionMember['role']
-        permissions: RegionPermission[]
+        permissions: Permission[]
       }[]
       userRole: string | undefined
     }

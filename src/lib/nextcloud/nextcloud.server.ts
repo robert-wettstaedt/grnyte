@@ -160,6 +160,7 @@ export const imagePreviewHandler = async (path: string, event: RequestEvent) => 
     path,
     routeFk: null,
     visibility: null,
+    regionFk: -1, // TODO: check if user has access to the region
   })
 
   const searchParams = new URLSearchParams(url.searchParams)

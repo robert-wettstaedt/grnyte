@@ -162,7 +162,7 @@ export const actions = {
 
               await db
                 .insert(routesToFirstAscensionists)
-                .values({ firstAscensionistFk: firstAscensionist.id, routeFk: route.id })
+                .values({ firstAscensionistFk: firstAscensionist.id, regionFk: route.regionFk, routeFk: route.id })
             }),
           )
         }

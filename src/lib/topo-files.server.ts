@@ -56,6 +56,7 @@ export const createGeolocationFromFiles = async (
   const geolocation: schema.InsertGeolocation = {
     lat: sumGps.latitude / nonNullGps.length,
     long: sumGps.longitude / nonNullGps.length,
+    regionFk: block.regionFk,
   }
 
   await createOrUpdateGeolocation(db, block, geolocation, operation)

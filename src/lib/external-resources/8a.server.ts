@@ -94,6 +94,7 @@ export default {
           ...item,
           externalResourcesFk: -1,
           id: -1,
+          regionFk: -1,
           url: `https://www.8a.nu/crags/bouldering/${item.countrySlug}/${item.cragSlug}/sectors/${item.sectorSlug}/routes/${item.zlaggableSlug}`,
         }
 
@@ -132,6 +133,7 @@ export default {
       userRating: null,
       userGradeFk: null,
       areaFks: [],
+      regionFk: -1,
     }
   },
 

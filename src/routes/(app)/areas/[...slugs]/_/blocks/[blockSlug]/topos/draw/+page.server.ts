@@ -193,6 +193,7 @@ export const actions = {
           columnName: 'topo image',
           parentEntityId: String(areaId),
           parentEntityType: 'area',
+          regionFk: topo.regionFk,
         })
       } catch (exception) {
         return fail(400, { error: convertException(exception) })
