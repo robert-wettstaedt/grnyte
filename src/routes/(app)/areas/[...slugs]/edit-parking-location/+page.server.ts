@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -28,7 +28,7 @@ export const load = (async ({ locals, parent }) => {
     if (
       area == null ||
       area.type === 'area' ||
-      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
     ) {
       error(404)
     }
@@ -69,7 +69,7 @@ export const actions = {
       if (
         area == null ||
         area.type === 'area' ||
-        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
       ) {
         error(400, 'Area is not a crag')
       }
@@ -145,7 +145,7 @@ export const actions = {
       const area = areasResult.at(0)
 
       // If the area is not found, throw a 404 error
-      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_DELETE], area.regionFk)) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)) {
         error(404)
       }
 

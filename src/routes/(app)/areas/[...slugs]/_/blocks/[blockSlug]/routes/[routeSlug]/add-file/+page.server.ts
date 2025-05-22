@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
@@ -35,7 +35,7 @@ export const load = (async ({ locals, params, parent }) => {
     const route = block?.routes?.at(0)
 
     // If no route is found, throw a 404 error
-    if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], route.regionFk)) {
+    if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)) {
       error(404)
     }
 
@@ -90,7 +90,7 @@ export const actions = {
       const route = block?.routes?.at(0)
 
       // If no route is found, return a 404 error with the values and error message
-      if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], route.regionFk)) {
+      if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)) {
         return fail(404, { ...values, error: `Route not found ${params.routeSlug}` })
       }
 

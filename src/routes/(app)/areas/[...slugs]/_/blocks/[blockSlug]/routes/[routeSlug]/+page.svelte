@@ -10,8 +10,8 @@
   import {
     checkRegionPermission,
     REGION_PERMISSION_ADMIN,
-    REGION_PERMISSION_DATA_DELETE,
-    REGION_PERMISSION_DATA_EDIT,
+    REGION_PERMISSION_DELETE,
+    REGION_PERMISSION_EDIT,
   } from '$lib/auth'
   import ActivityFeed from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
@@ -94,7 +94,7 @@
       <i class="fa-solid fa-check w-4"></i>Log ascent
     </a>
 
-    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk)}
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
         <i class="fa-solid fa-pen w-4"></i>Edit route details
       </a>
@@ -221,7 +221,7 @@
               <section class="relative w-full" use:fitHeightAction>
                 <TopoViewer {selectedTopoIndex} initialRouteId={data.route.id} topos={data.topos}>
                   {#snippet actions()}
-                    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk)}
+                    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
                       <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/topos/draw`}>
                         <i class="fa-solid fa-pen"></i>
                       </a>
@@ -455,7 +455,7 @@
                           {file}
                           readOnly={!checkRegionPermission(
                             data.userRegions,
-                            [REGION_PERMISSION_DATA_DELETE],
+                            [REGION_PERMISSION_DELETE],
                             data.block.regionFk,
                           )}
                           stat={file.stat}

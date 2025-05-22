@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, firstAscensionists, routes, routesToFirstAscensionists } from '$lib/db/schema'
@@ -47,7 +47,7 @@ export const load = (async ({ locals, params, parent }) => {
     const route = block?.routes?.at(0)
 
     // Throw a 404 error if the route is not found
-    if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], route.regionFk)) {
+    if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)) {
       error(404)
     }
 
@@ -117,7 +117,7 @@ export const actions = {
       const route = block?.routes?.at(0)
 
       // Return a 404 error if the route is not found
-      if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], route.regionFk)) {
+      if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)) {
         return fail(404, { ...values, error: `Route not found ${params.routeSlug}` })
       }
 
@@ -229,10 +229,7 @@ export const actions = {
       const route = block?.routes?.at(0)
 
       // Return a 404 error if the route is not found
-      if (
-        route == null ||
-        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_DELETE], route.regionFk)
-      ) {
+      if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)) {
         return fail(404, { error: `Route not found ${params.routeSlug}` })
       }
 

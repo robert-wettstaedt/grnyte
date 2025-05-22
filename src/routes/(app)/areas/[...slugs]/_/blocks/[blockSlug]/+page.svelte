@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
@@ -29,7 +29,7 @@
   }
 
   const hasActions = $derived(
-    checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk) ||
+    checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk) ||
       data.block.topos.length > 0,
   )
 </script>
@@ -44,7 +44,7 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk)}
+    {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
         <i class="fa-solid fa-pen w-4"></i>Edit block details
       </a>
@@ -108,7 +108,7 @@
               <section class="relative w-full md:w-2/4" use:fitHeightAction>
                 <TopoViewer topos={data.topos}>
                   {#snippet actions()}
-                    {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk)}
+                    {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
                       <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${basePath}/topos/draw`}>
                         <i class="fa-solid fa-pen"></i>
                       </a>

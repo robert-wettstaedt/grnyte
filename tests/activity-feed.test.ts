@@ -1,4 +1,4 @@
-import { REGION_PERMISSION_DATA_EDIT, REGION_PERMISSION_DATA_READ } from '$lib/auth'
+import { REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
 import type { ActivityDTO, Entity } from '$lib/components/ActivityFeed'
 import {
   createUpdateActivity,
@@ -141,13 +141,13 @@ const mockLocals = {
   safeGetSession: async () => ({
     session: undefined,
     user: mockSchemaUser,
-    userPermissions: [REGION_PERMISSION_DATA_READ, REGION_PERMISSION_DATA_EDIT],
+    userPermissions: [REGION_PERMISSION_READ, REGION_PERMISSION_EDIT],
     userRole: 'anonymous',
     userRegions: [],
   }),
   session: undefined,
   user: mockSchemaUser,
-  userPermissions: [REGION_PERMISSION_DATA_READ, REGION_PERMISSION_DATA_EDIT],
+  userPermissions: [REGION_PERMISSION_READ, REGION_PERMISSION_EDIT],
   userRegions: [],
   userRole: 'anonymous',
 } satisfies App.Locals

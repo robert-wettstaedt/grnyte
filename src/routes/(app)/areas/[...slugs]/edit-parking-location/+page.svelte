@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
@@ -100,7 +100,7 @@
     </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_DELETE], data.regionFk)}
+      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DELETE], data.regionFk)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

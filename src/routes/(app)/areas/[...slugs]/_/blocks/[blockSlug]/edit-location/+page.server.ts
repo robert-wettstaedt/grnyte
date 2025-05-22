@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -43,7 +43,7 @@ export const load = (async ({ locals, params, parent }) => {
     }
 
     if (
-      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk) &&
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) &&
       block.geolocationFk != null
     ) {
       error(404)
@@ -77,7 +77,7 @@ export const actions = {
 
       if (
         block == null ||
-        (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk) &&
+        (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) &&
           block.geolocationFk != null)
       ) {
         return fail(404)
@@ -143,10 +143,7 @@ export const actions = {
       const block = blocksResult.at(0)
 
       // If no block is found, throw a 404 error
-      if (
-        block == null ||
-        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_DELETE], block.regionFk)
-      ) {
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)) {
         return fail(404, { error: 'Block not found' })
       }
 

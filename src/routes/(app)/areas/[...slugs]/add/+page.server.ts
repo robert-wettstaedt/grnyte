@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -28,7 +28,7 @@ export const load = (async ({ locals, parent }) => {
 
     if (
       parentAreaResult == null ||
-      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], parentAreaResult.regionFk)
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentAreaResult.regionFk)
     ) {
       error(404)
     }
@@ -75,7 +75,7 @@ export const actions = {
 
       if (
         parentArea == null ||
-        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], parentArea.regionFk)
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentArea.regionFk)
       ) {
         error(404)
       }

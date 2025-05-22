@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
@@ -27,7 +27,7 @@ export const load = (async ({ locals, params, parent }) => {
     const block = blocksResult.at(0)
 
     // If no block is found, throw a 404 error
-    if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
+    if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)) {
       error(404)
     }
 
@@ -62,7 +62,7 @@ export const actions = {
       })
 
       // If no block is found, throw a 404 error
-      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)) {
         error(404)
       }
 

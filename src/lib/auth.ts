@@ -1,23 +1,13 @@
 import { jwtDecode, type JwtPayload } from 'jwt-decode'
 
-export const APP_PERMISSION_REGIONS_ADMIN = 'regions.admin'
-export const APP_PERMISSION_TAGS_ADMIN = 'tags.admin'
-export const APP_PERMISSION_USERS_ADMIN = 'users.admin'
+export const APP_PERMISSION_ADMIN = 'app.admin'
 
-export const REGION_PERMISSION_DATA_DELETE = 'data.delete'
-export const REGION_PERMISSION_DATA_EDIT = 'data.edit'
-export const REGION_PERMISSION_DATA_READ = 'data.read'
+export const REGION_PERMISSION_DELETE = 'region.delete'
+export const REGION_PERMISSION_EDIT = 'region.edit'
+export const REGION_PERMISSION_READ = 'region.read'
 export const REGION_PERMISSION_ADMIN = 'region.admin'
 
-/**
- * @deprecated This permission is not used anymore.
- */
-export const REGION_PERMISSION_DATA_EXPORT = 'data.export'
-
-export type AppPermission =
-  | typeof APP_PERMISSION_REGIONS_ADMIN
-  | typeof APP_PERMISSION_TAGS_ADMIN
-  | typeof APP_PERMISSION_USERS_ADMIN
+export type AppPermission = typeof APP_PERMISSION_ADMIN
 
 export function checkAppPermission(
   userPermissions: App.Locals['userPermissions'],
@@ -27,11 +17,10 @@ export function checkAppPermission(
 }
 
 export type RegionPermission =
-  | typeof REGION_PERMISSION_DATA_READ
-  | typeof REGION_PERMISSION_DATA_EDIT
-  | typeof REGION_PERMISSION_DATA_DELETE
+  | typeof REGION_PERMISSION_READ
+  | typeof REGION_PERMISSION_EDIT
+  | typeof REGION_PERMISSION_DELETE
   | typeof REGION_PERMISSION_ADMIN
-  | typeof REGION_PERMISSION_DATA_EXPORT
 
 export function checkRegionPermission(
   userRegions: App.Locals['userRegions'],

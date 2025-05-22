@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -23,7 +23,7 @@ export const load = (async ({ locals, parent }) => {
     const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 
     // If the area is not found, throw a 404 error
-    if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)) {
+    if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
       error(404)
     }
 
@@ -46,7 +46,7 @@ export const actions = {
 
       const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 
-      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
         return fail(404)
       }
 
@@ -136,7 +136,7 @@ export const actions = {
         },
       })
 
-      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_DELETE], area.regionFk)) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)) {
         error(404)
       }
 

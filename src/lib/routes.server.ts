@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import * as schema from '$lib/db/schema'
 import {
@@ -96,7 +96,7 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
   const route = block?.routes?.at(0)
 
   // Return a 404 failure if the route is not found
-  if (route == null || !checkRegionPermission(params.userRegions, [REGION_PERMISSION_DATA_DELETE], route.regionFk)) {
+  if (route == null || !checkRegionPermission(params.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)) {
     return fail(404, { error: `Route not found ${routeId}` })
   }
 

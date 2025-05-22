@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_READ } from '$lib/auth.js'
+import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth.js'
 import { db } from '$lib/db/db.server'
 import { blocks, type InsertRoute } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
@@ -25,7 +25,7 @@ export const GET = async ({ locals, url }) => {
     },
   })
 
-  if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_READ], block?.regionFk)) {
+  if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_READ], block?.regionFk)) {
     return new Response(null, { status: 404 })
   }
 

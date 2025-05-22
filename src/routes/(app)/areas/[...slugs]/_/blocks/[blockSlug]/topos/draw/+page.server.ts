@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
@@ -41,10 +41,7 @@ export const load = (async ({ locals, params }) => {
     })
     const block = blocksResult.at(0)
 
-    if (
-      block?.topos == null ||
-      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)
-    ) {
+    if (block?.topos == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)) {
       error(404)
     }
 
@@ -106,7 +103,7 @@ export const actions = {
         where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
       })
 
-      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)) {
         return fail(404)
       }
 
@@ -178,7 +175,7 @@ export const actions = {
         return fail(404, { error: `Topo with id ${id} not found` })
       }
 
-      if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], topo.regionFk)) {
+      if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], topo.regionFk)) {
         return fail(404)
       }
 

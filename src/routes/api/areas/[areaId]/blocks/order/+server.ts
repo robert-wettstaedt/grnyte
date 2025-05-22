@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, blocks } from '$lib/db/schema'
 import { error } from '@sveltejs/kit'
@@ -15,7 +15,7 @@ export const PUT = async ({ locals, params, url }) => {
       where: eq(areas.id, Number(areaId)),
     })
 
-    if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area?.regionFk)) {
+    if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk)) {
       error(404)
     }
 

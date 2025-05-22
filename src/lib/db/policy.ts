@@ -2,7 +2,7 @@ import type { SQL } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { pgPolicy as policy, type PgPolicyConfig } from 'drizzle-orm/pg-core'
 import { authenticatedRole, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
-import { REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT, REGION_PERMISSION_DATA_READ } from '../auth'
+import { REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '../auth'
 
 export const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
   as: 'permissive',
@@ -43,19 +43,19 @@ export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for']) =>
 
 export const createBasicTablePolicies = (tableName: string) => [
   policy(
-    `${REGION_PERMISSION_DATA_READ} can read ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_DATA_READ),
+    `${REGION_PERMISSION_READ} can read ${tableName}`,
+    getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
   ),
   policy(
-    `${REGION_PERMISSION_DATA_EDIT} can insert ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_DATA_EDIT),
+    `${REGION_PERMISSION_EDIT} can insert ${tableName}`,
+    getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
   ),
   policy(
-    `${REGION_PERMISSION_DATA_EDIT} can update ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_DATA_EDIT),
+    `${REGION_PERMISSION_EDIT} can update ${tableName}`,
+    getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
   ),
   policy(
-    `${REGION_PERMISSION_DATA_DELETE} can delete ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DATA_DELETE),
+    `${REGION_PERMISSION_DELETE} can delete ${tableName}`,
+    getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
   ),
 ]

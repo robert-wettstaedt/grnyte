@@ -22,14 +22,11 @@ import {
 } from 'drizzle-orm/pg-core'
 import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
 import {
-  APP_PERMISSION_REGIONS_ADMIN,
-  APP_PERMISSION_TAGS_ADMIN,
-  APP_PERMISSION_USERS_ADMIN,
+  APP_PERMISSION_ADMIN,
   REGION_PERMISSION_ADMIN,
-  REGION_PERMISSION_DATA_DELETE,
-  REGION_PERMISSION_DATA_EDIT,
-  REGION_PERMISSION_DATA_EXPORT,
-  REGION_PERMISSION_DATA_READ,
+  REGION_PERMISSION_DELETE,
+  REGION_PERMISSION_EDIT,
+  REGION_PERMISSION_READ,
 } from '../auth'
 import {
   createBasicTablePolicies,
@@ -91,18 +88,14 @@ const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
  */
 
 export const appPermission = pgEnum('app_permission', [
-  REGION_PERMISSION_DATA_READ,
-  REGION_PERMISSION_DATA_EDIT,
-  REGION_PERMISSION_DATA_DELETE,
+  REGION_PERMISSION_READ,
+  REGION_PERMISSION_EDIT,
+  REGION_PERMISSION_DELETE,
   REGION_PERMISSION_ADMIN,
 
-  REGION_PERMISSION_DATA_EXPORT,
-
-  APP_PERMISSION_REGIONS_ADMIN,
-  APP_PERMISSION_TAGS_ADMIN,
-  APP_PERMISSION_USERS_ADMIN,
+  APP_PERMISSION_ADMIN,
 ])
-export const appRole = pgEnum('app_role', ['user', 'maintainer', 'admin'])
+export const appRole = pgEnum('app_role', ['app_admin', 'region_user', 'region_maintainer', 'region_admin'])
 
 export const userRoles = table(
   'user_roles',
@@ -254,7 +247,7 @@ export const regions = table(
   (table) => [
     index('regions_name_idx').on(table.name),
 
-    policy(`${APP_PERMISSION_REGIONS_ADMIN} can fully access regions`, getPolicyConfig('all', sql`true`)),
+    policy(`${APP_PERMISSION_ADMIN} can fully access regions`, getPolicyConfig('all', sql`true`)),
     policy(
       `users can read regions they are members of`,
       getPolicyConfig(
@@ -300,8 +293,8 @@ export const regionMembers = table(
     index('region_members_user_fk_idx').on(table.userFk),
 
     policy(
-      `${APP_PERMISSION_REGIONS_ADMIN} can fully access region_members`,
-      getAuthorizedInRegionPolicyConfig('all', APP_PERMISSION_REGIONS_ADMIN),
+      `${APP_PERMISSION_ADMIN} can fully access region_members`,
+      getAuthorizedInRegionPolicyConfig('all', APP_PERMISSION_ADMIN),
     ),
     policy('authenticated users can read region_members', getPolicyConfig('select', sql`true`)),
     policy('users can insert own region_members', getOwnEntryPolicyConfig('insert')),
@@ -343,10 +336,7 @@ export const tags = table(
     id: text('id').primaryKey(),
   },
   () => [
-    policy(
-      `${APP_PERMISSION_TAGS_ADMIN} can fully access tags`,
-      getAuthorizedPolicyConfig('all', APP_PERMISSION_TAGS_ADMIN),
-    ),
+    policy(`${APP_PERMISSION_ADMIN} can fully access tags`, getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN)),
     policy('authenticated users can read tags', getPolicyConfig('select', sql`true`)),
   ],
 ).enableRLS()
@@ -388,8 +378,8 @@ export const areas = table(
 
     ...createBasicTablePolicies('areas'),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can update areas`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can update areas`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -427,8 +417,8 @@ export const blocks = table(
 
     ...createBasicTablePolicies('blocks'),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can update blocks`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can update blocks`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -474,12 +464,12 @@ export const routes = table(
 
     ...createBasicTablePolicies('routes'),
     policy(
-      `${REGION_PERMISSION_DATA_EDIT} can delete routes`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DATA_EDIT),
+      `${REGION_PERMISSION_EDIT} can delete routes`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can update routes`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can update routes`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -671,8 +661,8 @@ export const firstAscensionists = table(
     index('first_ascensionists_user_fk_idx').on(table.userFk),
 
     policy(
-      `${REGION_PERMISSION_DATA_READ} can fully access first_ascensionists`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can fully access first_ascensionists`,
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -705,8 +695,8 @@ export const routesToFirstAscensionists = table(
     index('routes_to_first_ascensionists_route_fk_idx').on(table.routeFk),
 
     policy(
-      `${REGION_PERMISSION_DATA_READ} can fully access routes_to_first_ascensionists`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can fully access routes_to_first_ascensionists`,
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -745,15 +735,15 @@ export const ascents = table(
     index('ascents_route_fk_idx').on(table.routeFk),
 
     policy(
-      `${REGION_PERMISSION_DATA_READ} can insert ascents`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can insert ascents`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can read ascents`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can read ascents`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can update their own ascents`,
+      `${REGION_PERMISSION_READ} can update their own ascents`,
       getPolicyConfig(
         'update',
         sql.raw(`
@@ -765,12 +755,12 @@ export const ascents = table(
             WHERE
               u.id = created_by
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can delete their own ascents`,
+      `${REGION_PERMISSION_READ} can delete their own ascents`,
       getPolicyConfig(
         'delete',
         sql.raw(`
@@ -782,7 +772,7 @@ export const ascents = table(
             WHERE
               u.id = created_by
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -829,15 +819,15 @@ export const files = table(
     index('files_route_fk_idx').on(table.routeFk),
 
     policy(
-      `${REGION_PERMISSION_DATA_READ} can insert files`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can insert files`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can read files`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can read files`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can update files belonging to their own ascents`,
+      `${REGION_PERMISSION_READ} can update files belonging to their own ascents`,
       getPolicyConfig(
         'update',
         sql.raw(`
@@ -850,12 +840,12 @@ export const files = table(
             WHERE
               a.id = ascent_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can delete files belonging to their own ascents`,
+      `${REGION_PERMISSION_READ} can delete files belonging to their own ascents`,
       getPolicyConfig(
         'delete',
         sql.raw(`
@@ -868,7 +858,7 @@ export const files = table(
             WHERE
               a.id = ascent_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -903,15 +893,15 @@ export const bunnyStreams = table(
     index('bunny_streams_file_fk_idx').on(table.fileFk),
 
     policy(
-      `${REGION_PERMISSION_DATA_READ} can insert bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can insert bunny_streams`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can read bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can read bunny_streams`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can update bunny_streams for files of their own ascents`,
+      `${REGION_PERMISSION_READ} can update bunny_streams for files of their own ascents`,
       getPolicyConfig(
         'update',
         sql.raw(`
@@ -925,12 +915,12 @@ export const bunnyStreams = table(
             WHERE
               f.id = file_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can delete bunny_streams for files of their own ascents`,
+      `${REGION_PERMISSION_READ} can delete bunny_streams for files of their own ascents`,
       getPolicyConfig(
         'delete',
         sql.raw(`
@@ -944,7 +934,7 @@ export const bunnyStreams = table(
             WHERE
               f.id = file_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -978,8 +968,8 @@ export const topos = table(
 
     ...createBasicTablePolicies('topos'),
     policy(
-      `${REGION_PERMISSION_DATA_EDIT} can delete topos`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DATA_EDIT),
+      `${REGION_PERMISSION_EDIT} can delete topos`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
     ),
   ],
 ).enableRLS()
@@ -1014,8 +1004,8 @@ export const topoRoutes = table(
 
     ...createBasicTablePolicies('topo_routes'),
     policy(
-      `${REGION_PERMISSION_DATA_EDIT} can delete topo_routes`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DATA_EDIT),
+      `${REGION_PERMISSION_EDIT} can delete topo_routes`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
     ),
   ],
 ).enableRLS()
@@ -1046,8 +1036,8 @@ export const routesToTags = table(
 
     ...createBasicTablePolicies('routes_to_tags'),
     policy(
-      `${REGION_PERMISSION_DATA_EDIT} can delete routes_to_tags`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DATA_EDIT),
+      `${REGION_PERMISSION_EDIT} can delete routes_to_tags`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
     ),
 
     primaryKey({ columns: [table.routeFk, table.tagFk] }),
@@ -1079,8 +1069,8 @@ export const geolocations = table(
 
     ...createBasicTablePolicies('geolocations'),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can insert geolocations`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can insert geolocations`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -1126,19 +1116,19 @@ export const activities = table(
     index('activities_region_fk_idx').on(table.regionFk),
 
     policy(
-      `${REGION_PERMISSION_DATA_READ} can insert activities`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can insert activities`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can read activities`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_DATA_READ),
+      `${REGION_PERMISSION_READ} can read activities`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_DELETE} can delete activities`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DATA_DELETE),
+      `${REGION_PERMISSION_DELETE} can delete activities`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
     ),
     policy(
-      `${REGION_PERMISSION_DATA_READ} can delete their own activities`,
+      `${REGION_PERMISSION_READ} can delete their own activities`,
       getPolicyConfig(
         'delete',
         sql.raw(`
@@ -1150,7 +1140,7 @@ export const activities = table(
             WHERE
               u.id = user_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_DATA_READ}', region_fk))
+          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),

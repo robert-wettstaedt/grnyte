@@ -1,4 +1,4 @@
-import { APP_PERMISSION_TAGS_ADMIN, checkAppPermission } from '$lib/auth'
+import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { tags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -8,14 +8,14 @@ import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (({ locals }) => {
-  if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_TAGS_ADMIN])) {
+  if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
     error(404)
   }
 }) satisfies PageServerLoad
 
 export const actions = {
   default: async ({ locals, request }) => {
-    if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_TAGS_ADMIN])) {
+    if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
       error(404)
     }
 

@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
@@ -25,7 +25,7 @@ export const load = (async ({ locals, parent }) => {
     // If the area is not found, throw a 404 error
     if (
       areaResult == null ||
-      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], areaResult.regionFk)
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], areaResult.regionFk)
     ) {
       error(404)
     }
@@ -69,7 +69,7 @@ export const actions = {
 
       const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId), columns: { regionFk: true } })
 
-      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
         error(404)
       }
 

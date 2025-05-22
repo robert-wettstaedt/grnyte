@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_READ } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_READ } from '$lib/auth'
   import { getVideoThumbnailUrl } from '$lib/bunny'
   import { Full } from '$lib/components/FileViewer'
   import RouteName from '$lib/components/RouteName'
@@ -69,13 +69,13 @@
       file={data.file}
       onDelete={() => goto(pathname)}
       readOnly={!(
-        checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DATA_DELETE], data.file.regionFk) ||
+        checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DELETE], data.file.regionFk) ||
         data.file.ascent?.author.id === data.user?.id
       )}
       stat={data.file.stat}
     >
       {#snippet topLeft()}
-        {#if data.session != null && checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DATA_READ], data.file.regionFk)}
+        {#if data.session != null && checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_READ], data.file.regionFk)}
           <a class="btn btn-sm bg-black/20 backdrop-blur-sm" href={pathname}>
             Show {entityType}
 

@@ -6,8 +6,8 @@
   import {
     checkRegionPermission,
     REGION_PERMISSION_ADMIN,
-    REGION_PERMISSION_DATA_DELETE,
-    REGION_PERMISSION_DATA_EDIT,
+    REGION_PERMISSION_DELETE,
+    REGION_PERMISSION_EDIT,
   } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
@@ -97,9 +97,7 @@
     await updateBlocksFromServer(res)
   }
 
-  const hasActions = $derived(
-    checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.area.regionFk),
-  )
+  const hasActions = $derived(checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk))
 </script>
 
 <svelte:head>
@@ -118,7 +116,7 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.area.regionFk)}
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk)}
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
         <i class="fa-solid fa-pen w-4"></i>Edit area details
       </a>
@@ -236,7 +234,7 @@
                             {file}
                             readOnly={!checkRegionPermission(
                               data.userRegions,
-                              [REGION_PERMISSION_DATA_DELETE],
+                              [REGION_PERMISSION_DELETE],
                               file.regionFk,
                             )}
                             stat={file.stat}
@@ -288,7 +286,7 @@
                 </Segment.Item>
               </Segment>
 
-              {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.area.regionFk)}
+              {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk)}
                 <button
                   class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
                   disabled={sortOrder !== 'custom'}
