@@ -1,4 +1,4 @@
-import { getFromCacheWithDefault, invalidateCache } from '$lib/cache/cache.server'
+import { caches, getFromCacheWithDefault, invalidateCache } from '$lib/cache/cache.server'
 import type { ActivityDTO, ActivityGroup, Entity } from '$lib/components/ActivityFeed'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
@@ -285,7 +285,8 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
     const countResults = await db.select({ count: count() }).from(schema.activities).where(and(where))
 
     const groupedActivities = await getFromCacheWithDefault(
-      config.cache.keys.activityFeed,
+      caches.activityFeed,
+      locals.userRegions,
       async () => {
         const activities = await db.query.activities.findMany({
           ...getPaginationQuery(searchParams),
@@ -444,7 +445,7 @@ export const createUpdateActivity = async ({
         }),
       ),
     )
-    await invalidateCache(config.cache.keys.activityFeed)
+    await invalidateCache(caches.activityFeed)
   }
 }
 
@@ -453,9 +454,10 @@ export const insertActivity = async (
   activity: schema.InsertActivity | schema.InsertActivity[],
 ) => {
   const arr = Array.isArray(activity) ? activity : [activity]
+  const regionFks = arr.map((activity) => activity.regionFk)
 
   if (arr.length > 0) {
     await db.insert(schema.activities).values(arr)
-    await invalidateCache(config.cache.keys.activityFeed)
+    await invalidateCache(caches.activityFeed)
   }
 }

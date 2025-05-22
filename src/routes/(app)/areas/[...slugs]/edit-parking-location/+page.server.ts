@@ -1,7 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -75,7 +74,7 @@ export const actions = {
       }
 
       try {
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
 
         if (values.lat != null && values.long != null) {
           await db.insert(geolocations).values({
@@ -150,7 +149,7 @@ export const actions = {
       }
 
       try {
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
 
         await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
         await db.update(areas).set({ walkingPaths: null }).where(eq(areas.id, area.id))

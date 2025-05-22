@@ -148,7 +148,6 @@ export const areaActionSchema = z.object({
   description: z.string().nullable().default(''),
   name: z.string().trim(),
   type: z.enum(areaTypeEnum).default('area'),
-  visibility: z.enum(areaVisibilityEnum).optional(),
 })
 
 export type BlockActionValues = z.infer<typeof blockActionSchema>

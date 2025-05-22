@@ -1,7 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, generateSlug, users, type Area } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -120,7 +119,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (exception) {
         // If an error occurs during insertion, return a 400 error with the exception message
         return fail(400, { ...values, error: convertException(exception) })

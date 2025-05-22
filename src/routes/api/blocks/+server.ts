@@ -10,7 +10,7 @@ export const GET = async ({ locals }) => {
 
   const localDb = await createDrizzleSupabaseClient(locals.supabase)
   const { blocks, parkingLocations, walkingPaths } = await localDb(async (db) => {
-    const blocks = await getLayoutBlocks(db)
+    const blocks = await getLayoutBlocks(db, locals.userRegions)
 
     const data = blocks.flatMap((block) => {
       let current = block.area as InferResultType<'areas', { parent: true; parkingLocations: true }> | null

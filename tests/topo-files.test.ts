@@ -31,6 +31,13 @@ vi.mock('$lib/nextcloud/nextcloud.server', () => {
 
 vi.mock('$lib/cache/cache.server', () => ({
   invalidateCache: vi.fn(),
+  caches: {
+    layoutBlocks: {
+      clear: vi.fn(),
+      get: vi.fn(),
+      set: vi.fn(),
+    },
+  },
 }))
 
 vi.mock('sharp', () => ({

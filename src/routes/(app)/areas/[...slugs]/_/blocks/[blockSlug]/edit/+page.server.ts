@@ -1,7 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
@@ -115,7 +114,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (exception) {
         // If the update fails, return a 404 error with the exception details
         return fail(404, { ...values, error: convertException(exception) })
@@ -201,7 +200,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }

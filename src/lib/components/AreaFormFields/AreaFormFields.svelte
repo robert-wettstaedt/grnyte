@@ -7,26 +7,15 @@
     hasParent: boolean
     name: Area['name']
     type: Area['type']
-    visibility: Area['visibility']
   }
 
-  let { description = $bindable(), name, type, visibility, hasParent }: Props = $props()
+  let { description = $bindable(), name, type, hasParent }: Props = $props()
 </script>
 
 <label class="label">
   <span>Name</span>
   <input class="input" name="name" type="text" placeholder="Enter name..." value={name} />
 </label>
-
-{#if !hasParent}
-  <label class="label mt-4">
-    <span>Visibility</span>
-    <select class="select" name="visibility" value={visibility}>
-      <option value="public">Public</option>
-      <option value="private">Private</option>
-    </select>
-  </label>
-{/if}
 
 {#if hasParent}
   <label class="label mt-4">

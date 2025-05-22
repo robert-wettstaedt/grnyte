@@ -1,4 +1,5 @@
 import { DATABASE_URL } from '$env/static/private'
+import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { decodeToken, type SupabaseToken } from '$lib/auth'
 import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
@@ -21,8 +22,8 @@ const postgres = Database(DATABASE_URL, {
 
 export const db = drizzle(postgres, { schema })
 
-const keyvPostgres = new KeyvPostgres({ uri: DATABASE_URL, pool: false })
-export const keyv = new Keyv({ store: keyvPostgres, ttl: config.cache.ttl })
+export const keyvPostgres = new KeyvPostgres({ uri: DATABASE_URL, pool: false })
+export const keyv = new Keyv({ store: keyvPostgres, ttl: config.cache.ttl, namespace: PUBLIC_APPLICATION_NAME })
 
 export function createDrizzle<
   Database extends PostgresJsDatabase<typeof schema>,

@@ -22,11 +22,37 @@ vi.mock('$lib/markdown', () => ({
   convertMarkdownToHtml: vi.fn((text) => Promise.resolve(`<p>${text}</p>`)),
 }))
 
+vi.mock('$lib/config', () => ({
+  config: {
+    cache: {
+      keys: {
+        activityFeed: 'activity_feed',
+      },
+      ttl: 1000 * 60 * 60, // 1 hour default TTL
+    },
+    activityFeed: {
+      groupTimeLimit: 3 * 60 * 60 * 1000, // 3 hours in milliseconds
+    },
+  },
+}))
+
 vi.mock('$lib/cache/cache.server', () => ({
   getFromCache: vi.fn(),
   setInCache: vi.fn(),
   invalidateCache: vi.fn(),
-  getFromCacheWithDefault: vi.fn((key, fn, predicate) => fn()),
+  getFromCacheWithDefault: vi.fn((cache, userRegions, fn, defaultFn, defaultValue) => fn()),
+  getCacheKey: vi.fn((userRegions: App.Locals['userRegions']) => userRegions.map((r) => r.regionFk).join('-')),
+  getCacheHashKey: vi.fn(
+    (userRegions: App.Locals['userRegions']) => `${userRegions.map((r) => r.regionFk).join('-')}_hash`,
+  ),
+  getCacheHash: vi.fn((cache, userRegions) => Promise.resolve(undefined)),
+  caches: {
+    activityFeed: {
+      clear: vi.fn(),
+      get: vi.fn(),
+      set: vi.fn(),
+    },
+  },
 }))
 
 interface FileWithPath {
@@ -445,7 +471,7 @@ describe('Activity Feed', () => {
     })
 
     it('should use caching for standard feed queries', async () => {
-      const getFromCacheWithDefault = vi.mocked(await import('$lib/cache/cache.server')).getFromCacheWithDefault
+      const { getFromCacheWithDefault, caches } = vi.mocked(await import('$lib/cache/cache.server'))
 
       // Initial call to loadFeed
       await loadFeed({
@@ -453,10 +479,11 @@ describe('Activity Feed', () => {
         url: new URL('http://localhost:3000/feed'),
       })
 
-      // Verify getFromCacheWithDefault was called with the correct key
+      // Verify getFromCacheWithDefault was called with the correct arguments
       expect(getFromCacheWithDefault).toHaveBeenCalled()
       expect(getFromCacheWithDefault).toHaveBeenCalledWith(
-        config.cache.keys.activityFeed,
+        caches.activityFeed,
+        mockLocals.userRegions,
         expect.any(Function),
         expect.any(Function),
         null,

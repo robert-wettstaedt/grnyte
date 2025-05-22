@@ -47,7 +47,6 @@
     hasParent={data.parentFk != null}
     name={form?.name ?? data.name}
     type={form?.type ?? data.type}
-    visibility={form?.visibility ?? data.visibility}
   />
 
   <div class="mt-8 flex justify-between md:items-center">
