@@ -1,4 +1,4 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+import { REGION_PERMISSION_DATA_EDIT, REGION_PERMISSION_DATA_READ } from '$lib/auth'
 import type { ActivityDTO, Entity } from '$lib/components/ActivityFeed'
 import {
   createUpdateActivity,
@@ -9,7 +9,7 @@ import {
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import type { User as AuthUser, Session, SupabaseClient } from '@supabase/supabase-js'
+import type { User as AuthUser, SupabaseClient } from '@supabase/supabase-js'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -138,20 +138,19 @@ const mockSchemaUser = {
 
 const mockLocals = {
   supabase: mockSupabase,
-  safeGetSession: async () =>
-    ({
-      session: undefined,
-      user: mockSchemaUser,
-      userPermissions: [READ_PERMISSION, EDIT_PERMISSION],
-      userRole: 'anonymous',
-    }) satisfies App.SafeSession,
-  session: undefined as Session | undefined,
+  safeGetSession: async () => ({
+    session: undefined,
+    user: mockSchemaUser,
+    userPermissions: [REGION_PERMISSION_DATA_READ, REGION_PERMISSION_DATA_EDIT],
+    userRole: 'anonymous',
+    userRegions: [],
+  }),
+  session: undefined,
   user: mockSchemaUser,
-  userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<
-    typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION | typeof EXPORT_PERMISSION
-  >,
-  userRole: 'anonymous' as string | undefined,
-}
+  userPermissions: [REGION_PERMISSION_DATA_READ, REGION_PERMISSION_DATA_EDIT],
+  userRegions: [],
+  userRole: 'anonymous',
+} satisfies App.Locals
 
 type MockDb = {
   query: {

@@ -18,12 +18,6 @@ export const load = (async (event) => {
       where: and(isNull(areas.parentFk)),
     })
 
-    const regions = await db.query.regions.findMany()
-    console.log(regions)
-
-    const regionMembers = await db.query.regionMembers.findMany()
-    console.log(regionMembers)
-
     const stats = await getStatsOfAreas(
       db,
       areaResults.map((area) => area.id),

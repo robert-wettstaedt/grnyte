@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import MultiSelect from '$lib/components/MultiSelect'
   import RouteName from '$lib/components/RouteName'
@@ -62,7 +62,7 @@
     </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_DELETE], data.route.regionFk)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

@@ -1,12 +1,4 @@
-import type {
-  DELETE_PERMISSION,
-  EDIT_PERMISSION,
-  EXPORT_PERMISSION,
-  READ_PERMISSION,
-  REGION_ADMIN_PERMISSION,
-  TAG_ADMIN_PERMISSION,
-  USER_ADMIN_PERMISSION,
-} from '$lib/auth'
+import type { AppPermission, RegionPermission } from '$lib/auth'
 import type { Grade, RegionMember, UserSettings } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
@@ -16,14 +8,12 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 // and what to do when importing types
 declare global {
   namespace App {
-    type Permission =
-      | typeof READ_PERMISSION
-      | typeof EDIT_PERMISSION
-      | typeof DELETE_PERMISSION
-      | typeof EXPORT_PERMISSION
-      | typeof REGION_ADMIN_PERMISSION
-      | typeof TAG_ADMIN_PERMISSION
-      | typeof USER_ADMIN_PERMISSION
+    type Permission = RegionPermission | AppPermission
+    type UserRegions = {
+      regionFk: RegionMember['regionFk']
+      role: RegionMember['role']
+      permissions: Permission[]
+    }
 
     interface SafeSession {
       session: Session | undefined
@@ -43,11 +33,7 @@ declare global {
           >
         | undefined
       userPermissions: Permission[] | undefined
-      userRegions: {
-        regionFk: RegionMember['regionFk']
-        role: RegionMember['role']
-        permissions: Permission[]
-      }[]
+      userRegions: UserRegions[]
       userRole: string | undefined
     }
 

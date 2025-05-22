@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import type { AscentEntity } from '$lib/components/ActivityFeed'
 import { insertActivity, loadFeed } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
@@ -129,10 +129,6 @@ export const load = (async ({ locals, params, parent, url }) => {
 
 export const actions = {
   syncExternalResources: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (db) => {
@@ -152,7 +148,11 @@ export const actions = {
       const route = block?.routes?.at(0)
 
       // Handle case where route is not found
-      if (block == null || route == null) {
+      if (
+        block == null ||
+        route == null ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)
+      ) {
         error(404)
       }
 
@@ -321,13 +321,11 @@ export const actions = {
           await db.update(users).set({ firstAscensionistFk: firstAscensionist.id }).where(eq(users.id, locals.user.id))
         }
 
-        await db
-          .insert(routesToFirstAscensionists)
-          .values({
-            firstAscensionistFk: locals.user.firstAscensionistFk!,
-            regionFk: route.regionFk,
-            routeFk: route.id,
-          })
+        await db.insert(routesToFirstAscensionists).values({
+          firstAscensionistFk: locals.user.firstAscensionistFk!,
+          regionFk: route.regionFk,
+          routeFk: route.id,
+        })
 
         const oldFirstAscent = [route.firstAscentYear, ...route.firstAscents.map((fa) => fa.firstAscensionist.name)]
           .filter(Boolean)

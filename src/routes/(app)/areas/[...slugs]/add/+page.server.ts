@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -8,26 +8,29 @@ import { convertException } from '$lib/errors'
 import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
     // Retrieve areaId and canAddArea from the parent function
     const { areaId, canAddArea } = await parent()
 
-    // Query the database to find the parent area by areaId
-    const parentAreaResult = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
-
     // If the maximum depth for adding areas is reached, throw a 400 error
     if (!canAddArea) {
       error(400, 'Max depth reached')
+    }
+
+    // Query the database to find the parent area by areaId
+    const parentAreaResult = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+
+    if (
+      parentAreaResult == null ||
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], parentAreaResult.regionFk)
+    ) {
+      error(404)
     }
 
     // Return the parent area result
@@ -42,7 +45,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.session == null) {
+      if (locals.session == null) {
         error(404)
       }
 
@@ -70,8 +73,11 @@ export const actions = {
         path = []
       }
 
-      if (parentArea == null) {
-        return fail(400, { ...values, error: 'Parent area not found' })
+      if (
+        parentArea == null ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], parentArea.regionFk)
+      ) {
+        error(404)
       }
 
       // Generate a slug from the area name

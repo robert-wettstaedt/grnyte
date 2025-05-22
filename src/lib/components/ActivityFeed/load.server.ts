@@ -326,12 +326,20 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
               return null
             }
 
+            const entityName =
+              wrapper.entity.object != null && 'name' in wrapper.entity.object ? wrapper.entity.object.name : null
+
+            const parentEntityName =
+              parentWrapper?.entity.object != null && 'name' in parentWrapper.entity.object
+                ? parentWrapper.entity.object.name
+                : null
+
             return {
               ...activity,
               entity: wrapper?.entity,
-              entityName: wrapper?.object?.name,
+              entityName,
               parentEntity: parentWrapper?.entity,
-              parentEntityName: parentWrapper?.object?.name,
+              parentEntityName,
             }
           })
           .filter((item) => item != null)

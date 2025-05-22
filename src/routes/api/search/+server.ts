@@ -4,7 +4,7 @@ import { searchResources } from '$lib/search.server'
 import { error } from '@sveltejs/kit'
 
 export const GET = async ({ locals, url }) => {
-  if (!locals.userPermissions?.includes('data.read')) {
+  if (locals.userRegions.length === 0) {
     return new Response(null, { status: 404 })
   }
 

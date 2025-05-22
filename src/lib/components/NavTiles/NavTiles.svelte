@@ -1,13 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { REGION_ADMIN_PERMISSION, TAG_ADMIN_PERMISSION, USER_ADMIN_PERMISSION } from '$lib/auth'
+  import {
+    APP_PERMISSION_REGIONS_ADMIN,
+    APP_PERMISSION_TAGS_ADMIN,
+    APP_PERMISSION_USERS_ADMIN,
+    checkAppPermission,
+  } from '$lib/auth'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
-
-  interface Props {
-    userPermissions: App.Locals['userPermissions'] | undefined
-  }
-
-  let { userPermissions }: Props = $props()
 </script>
 
 <Navigation.Tile href="/" label="Home" selected={page.url.pathname === '/'}>
@@ -26,7 +25,7 @@
   <i class="fa-solid fa-search"></i>
 </Navigation.Tile>
 
-{#if [TAG_ADMIN_PERMISSION, REGION_ADMIN_PERMISSION, USER_ADMIN_PERMISSION].some( (permission) => userPermissions?.includes(permission as App.Permission), )}
+{#if checkAppPermission( page.data.userPermissions, [APP_PERMISSION_TAGS_ADMIN, APP_PERMISSION_REGIONS_ADMIN, APP_PERMISSION_USERS_ADMIN], )}
   <Navigation.Tile href="/config" label="Manage" selected={page.url.pathname.startsWith('/config')}>
     <i class="fa-solid fa-wrench"></i>
   </Navigation.Tile>

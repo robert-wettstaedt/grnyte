@@ -2,7 +2,12 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { REGION_ADMIN_PERMISSION, TAG_ADMIN_PERMISSION, USER_ADMIN_PERMISSION } from '$lib/auth'
+  import {
+    APP_PERMISSION_REGIONS_ADMIN,
+    APP_PERMISSION_TAGS_ADMIN,
+    APP_PERMISSION_USERS_ADMIN,
+    checkAppPermission,
+  } from '$lib/auth'
   import { AppBar, Popover } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
@@ -20,7 +25,7 @@
   {/snippet}
 </AppBar>
 
-{#if page.data.userPermissions?.includes(TAG_ADMIN_PERMISSION)}
+{#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_TAGS_ADMIN])}
   <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="user-settings">
     <header class="flex items-center justify-between gap-4">
       <h2 class="h4">Tags</h2>
@@ -85,7 +90,7 @@
   </div>
 {/if}
 
-{#if page.data.userPermissions?.includes(REGION_ADMIN_PERMISSION)}
+{#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_REGIONS_ADMIN])}
   <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="user-settings">
     <header class="flex items-center justify-between gap-4">
       <h2 class="h4">Regions</h2>
@@ -119,7 +124,7 @@
   </div>
 {/if}
 
-{#if page.data.userPermissions?.includes(REGION_ADMIN_PERMISSION)}
+{#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_USERS_ADMIN])}
   <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="user-settings">
     <header class="flex items-center justify-between gap-4">
       <h2 class="h4">Users</h2>

@@ -9,7 +9,7 @@
 
 <script lang="ts">
   import { page } from '$app/state'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import type { ActivityDTO } from '$lib/components/ActivityFeed'
   import FileViewer from '$lib/components/FileViewer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
@@ -268,7 +268,7 @@
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
 
-      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || page.data.userPermissions?.includes(EDIT_PERMISSION))}
+      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
         <a
           aria-label="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
@@ -304,7 +304,7 @@
                 {file}
                 stat={file.stat}
                 readOnly={!(
-                  page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                  checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
                   activity.entity.object.createdBy === page.data.user?.id
                 )}
                 onDelete={() => {

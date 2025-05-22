@@ -14,10 +14,11 @@ const db = drizzle(postgres, { schema })
 const keyvPostgres = new KeyvPostgres({ uri: drizzleConfig.dbCredentials.url, pool: false })
 export const keyv = new Keyv({ store: keyvPostgres })
 
+await setupRbac(db)
+
 await migrate(db, { migrationsFolder: 'drizzle' })
 await keyv.clear()
 
-await setupRbac(db)
 await migrateRegions(db)
 
 await postgres.end()

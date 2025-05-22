@@ -1,9 +1,7 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
-import * as schema from '$lib/db/schema'
 import { createServerClient } from '@supabase/ssr'
 import { type Handle, redirect } from '@sveltejs/kit'
-import { and, eq, inArray } from 'drizzle-orm'
 
 export const supabase: Handle = async ({ event, resolve }) => {
   /**
@@ -47,7 +45,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
     }
 
     const user = await db.query.users.findFirst({
-      where: eq(schema.users.authUserFk, session.user.id),
+      where: (table, { eq }) => eq(table.authUserFk, session.user.id),
       with: {
         userSettings: {
           columns: {
@@ -61,16 +59,11 @@ export const supabase: Handle = async ({ event, resolve }) => {
     })
 
     const userRole = await db.query.userRoles.findFirst({
-      where: eq(schema.userRoles.authUserFk, session.user.id),
+      where: (table, { eq }) => eq(table.authUserFk, session.user.id),
     })
 
-    const userPermissions =
-      userRole == null
-        ? undefined
-        : await db.query.rolePermissions.findMany({ where: eq(schema.rolePermissions.role, userRole.role) })
-
     const userRegions = await db.query.regionMembers.findMany({
-      where: and(eq(schema.regionMembers.authUserFk, session.user.id), eq(schema.regionMembers.isActive, true)),
+      where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, session.user.id), isNotNull(table.isActive)),
       columns: {
         regionFk: true,
         role: true,
@@ -78,6 +71,11 @@ export const supabase: Handle = async ({ event, resolve }) => {
     })
 
     const permissions = await db.query.rolePermissions.findMany()
+
+    const userPermissions =
+      userRole == null
+        ? undefined
+        : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
 
     const a = userRegions.map((member) => ({
       ...member,
@@ -87,7 +85,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
     return {
       session,
       user,
-      userPermissions: userPermissions?.map(({ permission }) => permission),
+      userPermissions,
       userRegions: a,
       userRole: userRole?.role,
     }

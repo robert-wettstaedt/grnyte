@@ -1,4 +1,4 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -13,10 +13,6 @@ import { z } from 'zod'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -29,7 +25,11 @@ export const load = (async ({ locals, parent }) => {
     const area = areasResult.at(0)
 
     // If the area is not found, throw a 404 error
-    if (area == null || area.type === 'area') {
+    if (
+      area == null ||
+      area.type === 'area' ||
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)
+    ) {
       error(404)
     }
 
@@ -39,10 +39,6 @@ export const load = (async ({ locals, parent }) => {
 
 export const actions = {
   updateParkingLocation: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -70,7 +66,11 @@ export const actions = {
       const area = areasResult.at(0)
 
       // If the area is not found, throw a 404 error
-      if (area == null || area.type === 'area') {
+      if (
+        area == null ||
+        area.type === 'area' ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)
+      ) {
         error(400, 'Area is not a crag')
       }
 
@@ -130,10 +130,6 @@ export const actions = {
   },
 
   removeParkingLocation: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -149,7 +145,7 @@ export const actions = {
       const area = areasResult.at(0)
 
       // If the area is not found, throw a 404 error
-      if (area == null) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_DELETE], area.regionFk)) {
         error(404)
       }
 

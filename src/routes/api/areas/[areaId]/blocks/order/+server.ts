@@ -1,20 +1,24 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { blocks } from '$lib/db/schema'
+import { areas, blocks } from '$lib/db/schema'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 
 export const PUT = async ({ locals, params, url }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const { areaId } = params
   const ids = url.searchParams.getAll('id')
 
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
+    const area = await db.query.areas.findFirst({
+      where: eq(areas.id, Number(areaId)),
+    })
+
+    if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area?.regionFk)) {
+      error(404)
+    }
+
     await Promise.all(
       ids.map((id, index) =>
         db

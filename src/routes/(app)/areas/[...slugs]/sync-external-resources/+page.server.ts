@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import { getBlocksOfArea } from '$lib/blocks.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { routeExternalResources } from '$lib/db/schema'
@@ -7,10 +7,6 @@ import { inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -23,6 +19,10 @@ export const load = (async ({ locals, parent }) => {
     }
 
     const { area, blocks } = await getBlocksOfArea(areaId, db)
+
+    if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk)) {
+      error(404)
+    }
 
     const routes = blocks.flatMap((block) => block.routes)
 

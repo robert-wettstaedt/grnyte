@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
@@ -12,10 +12,6 @@ import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -45,7 +41,10 @@ export const load = (async ({ locals, params }) => {
     })
     const block = blocksResult.at(0)
 
-    if (block?.topos == null) {
+    if (
+      block?.topos == null ||
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)
+    ) {
       error(404)
     }
 
@@ -94,16 +93,20 @@ export const load = (async ({ locals, params }) => {
 
 export const actions = {
   saveTopos: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const { areaId } = convertAreaSlug(params)
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (db) => {
       if (locals.user == null) {
+        return fail(404)
+      }
+
+      const block = await db.query.blocks.findFirst({
+        where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
+      })
+
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
         return fail(404)
       }
 
@@ -157,10 +160,6 @@ export const actions = {
   },
 
   removeTopo: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -177,6 +176,10 @@ export const actions = {
 
       if (topo == null || topo.blockFk == null) {
         return fail(404, { error: `Topo with id ${id} not found` })
+      }
+
+      if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], topo.regionFk)) {
+        return fail(404)
       }
 
       try {
@@ -215,10 +218,6 @@ export const actions = {
   },
 
   removeRoute: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -232,7 +231,16 @@ export const actions = {
       const routeId = Number(data.get('routeId'))
 
       try {
-        return deleteRoute({ areaId, blockSlug: params.blockSlug, routeId, userId: locals.user.id }, db)
+        return deleteRoute(
+          {
+            areaId,
+            blockSlug: params.blockSlug,
+            routeId,
+            userId: locals.user.id,
+            userRegions: locals.userRegions,
+          },
+          db,
+        )
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }

@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
@@ -13,10 +13,6 @@ import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -31,7 +27,7 @@ export const load = (async ({ locals, params, parent }) => {
     const block = blocksResult.at(0)
 
     // If no block is found, throw a 404 error
-    if (block == null) {
+    if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
       error(404)
     }
 
@@ -55,7 +51,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -84,7 +80,7 @@ export const actions = {
       })
 
       // If no block is found, return a 400 error with a message
-      if (block == null) {
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
         return fail(400, { ...values, error: `Parent not found ${params.blockSlug}` })
       }
 

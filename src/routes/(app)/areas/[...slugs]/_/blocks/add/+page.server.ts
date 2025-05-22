@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
@@ -13,10 +13,6 @@ import { and, count, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -27,7 +23,10 @@ export const load = (async ({ locals, parent }) => {
     const areaResult = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 
     // If the area is not found, throw a 404 error
-    if (areaResult == null) {
+    if (
+      areaResult == null ||
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], areaResult.regionFk)
+    ) {
       error(404)
     }
 
@@ -43,10 +42,6 @@ export const load = (async ({ locals, parent }) => {
 
 export const actions = {
   default: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -72,6 +67,12 @@ export const actions = {
       // Convert the area slug from the parameters
       const { areaId, areaSlug, path } = convertAreaSlug(params)
 
+      const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId), columns: { regionFk: true } })
+
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], area.regionFk)) {
+        error(404)
+      }
+
       // Check if a block with the same slug already exists in the area
       const existingBlocksResult = await db.query.blocks.findFirst({
         where: and(eq(blocks.slug, slug), eq(blocks.areaFk, areaId)),
@@ -86,10 +87,6 @@ export const actions = {
       }
 
       const [blocksCount] = await db.select({ count: count() }).from(blocks).where(eq(blocks.areaFk, areaId))
-      const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId), columns: { regionFk: true } })
-      if (area == null) {
-        return fail(400, { ...values, error: 'Area not found' })
-      }
 
       let block: Block | undefined
 

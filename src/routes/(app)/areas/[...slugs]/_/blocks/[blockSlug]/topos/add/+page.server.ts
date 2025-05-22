@@ -1,4 +1,4 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
@@ -13,10 +13,6 @@ import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -31,7 +27,7 @@ export const load = (async ({ locals, params, parent }) => {
     const block = blocksResult.at(0)
 
     // If no block is found, throw a 404 error
-    if (block == null) {
+    if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
       error(404)
     }
 
@@ -53,7 +49,7 @@ export const actions = {
 
     const returnValue = await rls(async (db) => {
       const { user } = locals
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || user == null) {
+      if (user == null) {
         return fail(404)
       }
 
@@ -66,7 +62,7 @@ export const actions = {
       })
 
       // If no block is found, throw a 404 error
-      if (block == null) {
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
         error(404)
       }
 

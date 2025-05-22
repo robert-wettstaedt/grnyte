@@ -1,9 +1,9 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DATA_DELETE, REGION_PERMISSION_DATA_EDIT } from '$lib/auth'
 import { invalidateCache } from '$lib/cache/cache.server'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { activities, blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
+import { blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { blockActionSchema, validateFormData, type ActionFailure, type BlockActionValues } from '$lib/forms.server'
 import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
@@ -13,10 +13,6 @@ import { and, eq, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -30,7 +26,7 @@ export const load = (async ({ locals, params, parent }) => {
     const block = blocksResult.at(0) // Get the first block from the result
 
     // If no block is found, return a 404 error
-    if (block == null) {
+    if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
       error(404) // Not Found error
     }
 
@@ -42,6 +38,7 @@ export const load = (async ({ locals, params, parent }) => {
     // Return the block name to be used in the page
     return {
       name: block.name,
+      regionFk: block.regionFk,
     }
   })
 }) satisfies PageServerLoad
@@ -51,7 +48,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -91,6 +88,10 @@ export const actions = {
           ...values,
           error: `Block with name "${existingBlocksResult.name}" already exists in area "${areaSlug}"`,
         })
+      }
+
+      if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_EDIT], block.regionFk)) {
+        error(404)
       }
 
       try {
@@ -135,11 +136,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (
-        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
-        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
-        locals.user == null
-      ) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -156,7 +153,10 @@ export const actions = {
       const block = blocksResult.at(0) // Get the first block from the result
 
       // If no block is found, return a 404 error
-      if (block == null) {
+      if (
+        block == null ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DATA_DELETE], block.regionFk)
+      ) {
         return fail(404, { error: `Block with slug ${params.blockSlug} in ${areaSlug} not found` }) // Not Found error
       }
 

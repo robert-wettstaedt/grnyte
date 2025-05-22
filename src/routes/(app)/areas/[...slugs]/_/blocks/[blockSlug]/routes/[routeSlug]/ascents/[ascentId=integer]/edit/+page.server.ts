@@ -1,4 +1,4 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
@@ -9,9 +9,9 @@ import { ascentActionSchema, validateFormData, type ActionFailure, type AscentAc
 import { deleteFiles } from '$lib/helper.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
+import { differenceInMinutes } from 'date-fns'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
-import { differenceInMinutes } from 'date-fns'
 
 export const load = (async ({ locals, params }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -32,7 +32,8 @@ export const load = (async ({ locals, params }) => {
 
     if (
       ascent == null ||
-      (locals.session?.user.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
+      (locals.session?.user.id !== ascent.author.authUserFk &&
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], ascent.route.regionFk))
     ) {
       error(404)
     }
@@ -75,7 +76,8 @@ export const actions = {
 
       if (
         ascent == null ||
-        (locals.session?.user.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
+        (locals.session?.user.id !== ascent.author.authUserFk &&
+          !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], ascent.route.regionFk))
       ) {
         return fail(404, { ...values, error: `Ascent not found ${params.ascentId}` })
       }
@@ -170,8 +172,7 @@ export const actions = {
       if (
         ascent == null ||
         (locals.session?.user.id !== ascent.author.authUserFk &&
-          !locals.userPermissions?.includes(EDIT_PERMISSION) &&
-          !locals.userPermissions?.includes(DELETE_PERMISSION))
+          !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], ascent.regionFk))
       ) {
         return fail(404)
       }

@@ -9,7 +9,7 @@
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/state'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer/FileViewer.svelte'
   import RouteName from '$lib/components/RouteName/RouteName.svelte'
   import type { FileDTO } from '$lib/nextcloud'
@@ -202,8 +202,13 @@
                             <FileViewer
                               {file}
                               stat={file.stat}
-                              readOnly={!page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                                ascentActivity?.entity.object?.createdBy !== page.data.user?.id}
+                              readOnly={!(
+                                checkRegionPermission(
+                                  page.data.userRegions,
+                                  [REGION_PERMISSION_ADMIN],
+                                  file.regionFk,
+                                ) || ascentActivity?.entity.object?.createdBy === page.data.user?.id
+                              )}
                               onDelete={() => {
                                 if (ascentActivity?.entity.object != null) {
                                   ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(

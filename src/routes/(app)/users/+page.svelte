@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { EDIT_PERMISSION } from '$lib/auth'
+  import { APP_PERMISSION_USERS_ADMIN, checkAppPermission } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import { Pagination } from '@skeletonlabs/skeleton-svelte'
@@ -35,7 +35,7 @@
         {/snippet}
 
         {#snippet right(item)}
-          {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+          {#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_USERS_ADMIN])}
             {#if item.role}
               {item.role}
             {:else}

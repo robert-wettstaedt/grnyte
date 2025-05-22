@@ -109,12 +109,12 @@
 
   {#if page.data.userRegions.length > 0}
     <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
-      <NavTiles userPermissions={page.data.userPermissions} />
+      <NavTiles />
     </Navigation.Bar>
 
     <Navigation.Rail base="hidden md:block fixed top-[48px] h-screen">
       {#snippet tiles()}
-        <NavTiles userPermissions={page.data.userPermissions} />
+        <NavTiles />
       {/snippet}
     </Navigation.Rail>
   {/if}

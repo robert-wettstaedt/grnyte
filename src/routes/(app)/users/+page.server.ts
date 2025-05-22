@@ -1,7 +1,6 @@
 import { RESEND_API_KEY, RESEND_RECIPIENT_EMAIL, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-import { EDIT_PERMISSION } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { APP_PERMISSION_USERS_ADMIN, checkAppPermission } from '$lib/auth'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import { userRoles, users, type User } from '$lib/db/schema'
 import {
@@ -34,7 +33,7 @@ export const load = (async ({ locals, url }) => {
       orderBy: [asc(users.username), asc(users.id)],
     })
 
-    if (locals.userPermissions?.includes(EDIT_PERMISSION)) {
+    if (checkAppPermission(locals.userPermissions, [APP_PERMISSION_USERS_ADMIN])) {
       const userRolesResult = await db.query.userRoles.findMany({
         where: inArray(
           userRoles.authUserFk,
@@ -66,7 +65,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (tx) => {
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
+      if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_USERS_ADMIN]) || locals.user == null) {
         error(404)
       }
 

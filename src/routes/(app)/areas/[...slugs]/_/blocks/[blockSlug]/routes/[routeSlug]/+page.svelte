@@ -7,7 +7,12 @@
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
-  import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION } from '$lib/auth'
+  import {
+    checkRegionPermission,
+    REGION_PERMISSION_ADMIN,
+    REGION_PERMISSION_DATA_DELETE,
+    REGION_PERMISSION_DATA_EDIT,
+  } from '$lib/auth'
   import ActivityFeed from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
@@ -89,7 +94,7 @@
       <i class="fa-solid fa-check w-4"></i>Log ascent
     </a>
 
-    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk)}
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
         <i class="fa-solid fa-pen w-4"></i>Edit route details
       </a>
@@ -109,7 +114,7 @@
       </a>
     {/if}
 
-    {#if data.userPermissions?.includes(EXPORT_PERMISSION)}
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_ADMIN], data.block.regionFk)}
       <form
         class="leading-none"
         method="POST"
@@ -216,7 +221,7 @@
               <section class="relative w-full" use:fitHeightAction>
                 <TopoViewer {selectedTopoIndex} initialRouteId={data.route.id} topos={data.topos}>
                   {#snippet actions()}
-                    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+                    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DATA_EDIT], data.block.regionFk)}
                       <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/topos/draw`}>
                         <i class="fa-solid fa-pen"></i>
                       </a>
@@ -448,7 +453,11 @@
                       {#if file.stat != null}
                         <FileViewer
                           {file}
-                          readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
+                          readOnly={!checkRegionPermission(
+                            data.userRegions,
+                            [REGION_PERMISSION_DATA_DELETE],
+                            data.block.regionFk,
+                          )}
                           stat={file.stat}
                           onDelete={() => {
                             files = files.filter((_file) => file.id !== _file.id)
