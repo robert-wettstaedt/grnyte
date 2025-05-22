@@ -69,7 +69,9 @@ const baseContentFields = {
 }
 
 const baseRegionFields = {
-  regionFk: integer('region_fk').references((): AnyColumn => regions.id),
+  regionFk: integer('region_fk')
+    .notNull()
+    .references((): AnyColumn => regions.id),
 }
 
 const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
