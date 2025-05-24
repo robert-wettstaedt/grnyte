@@ -296,7 +296,7 @@ export const regionMembers = table(
 
     policy(
       `${APP_PERMISSION_ADMIN} can fully access region_members`,
-      getAuthorizedInRegionPolicyConfig('all', APP_PERMISSION_ADMIN),
+      getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN),
     ),
     policy('authenticated users can read region_members', getPolicyConfig('select', sql`true`)),
     policy('users can insert own region_members', getOwnEntryPolicyConfig('insert')),
