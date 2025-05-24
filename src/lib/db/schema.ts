@@ -99,6 +99,13 @@ export const appPermission = pgEnum('app_permission', [
 ])
 export const appRole = pgEnum('app_role', ['app_admin', 'region_user', 'region_maintainer', 'region_admin'])
 
+export const appRoleLabels: Record<(typeof appRole.enumValues)[number], string> = {
+  app_admin: 'App Admin',
+  region_user: 'User',
+  region_maintainer: 'Maintainer',
+  region_admin: 'Admin',
+}
+
 export const userRoles = table(
   'user_roles',
   {

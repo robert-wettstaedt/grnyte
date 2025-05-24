@@ -123,6 +123,12 @@ const mockActivity = {
   regionFk: 1,
 } satisfies schema.Activity
 
+const mockRegion = {
+  createdAt: new Date(),
+  id: 1,
+  name: 'Test Region',
+} satisfies schema.Region
+
 const mockSupabase = {
   supabaseUrl: 'http://localhost:54321',
   supabaseKey: 'test-key',
@@ -207,6 +213,10 @@ type MockDb = {
       findFirst: ReturnType<typeof vi.fn>
       findMany: ReturnType<typeof vi.fn>
     }
+    regions: {
+      findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
+    }
   }
   select: ReturnType<typeof vi.fn>
   insert: ReturnType<typeof vi.fn>
@@ -253,6 +263,10 @@ describe('Activity Feed', () => {
         files: {
           findFirst: vi.fn().mockResolvedValue({ id: 1, path: '/test/image.jpg' }),
           findMany: vi.fn().mockResolvedValue([{ id: 1, path: '/test/image.jpg' }]),
+        },
+        regions: {
+          findFirst: vi.fn().mockResolvedValue(mockRegion),
+          findMany: vi.fn().mockResolvedValue([mockRegion]),
         },
       },
       select: vi.fn().mockReturnValue(fromMock),
@@ -578,6 +592,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -597,6 +612,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 3,
@@ -616,6 +632,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 
@@ -676,6 +693,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -695,6 +713,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 
@@ -725,6 +744,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -743,6 +763,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 
@@ -780,6 +801,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -799,6 +821,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 

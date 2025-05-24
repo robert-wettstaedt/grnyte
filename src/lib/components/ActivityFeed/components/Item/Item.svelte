@@ -137,11 +137,29 @@
             </span>
           {/if}
         </span>
-      {:else if activity.entity.type === 'user' && activity.type === 'created'}
-        has requested account approval
-      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role' && activity.newValue === 'user'}
+      {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'role'}
         has approved user
         <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          to region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role'}
+        has updated user
+        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        to {activity.newValue}
+
+        {#if activity.region != null}
+          in region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'role'}
+        has removed user
+        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          from region {activity.region.name}
+        {/if}
       {:else}
         <span>
           {activity.type}

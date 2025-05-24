@@ -307,6 +307,8 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
           resolveEntities(db, activities, distinctParentEntityTypes, true),
         ])
 
+        const regions = await db.query.regions.findMany()
+
         const activitiesDTOs = activities
           .map((activity): ActivityDTO | null => {
             const wrapper = entities.find(
@@ -341,6 +343,7 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
               entityName,
               parentEntity: parentWrapper?.entity,
               parentEntityName,
+              region: regions.find((region) => region.id === activity.regionFk),
             }
           })
           .filter((item) => item != null)

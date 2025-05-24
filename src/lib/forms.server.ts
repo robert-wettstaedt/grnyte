@@ -284,3 +284,10 @@ export const geolocationActionSchema = z.object({
   long: z.number(),
 })
 export type GeolocationActionValues = z.infer<typeof geolocationActionSchema>
+
+export const regionMemberActionSchema = z.object({
+  role: z.enum(schema.appRole.enumValues).nullish(),
+  userId: z.number(),
+  regionId: z.number(),
+})
+export type RegionMemberActionValues = z.infer<typeof regionMemberActionSchema>
