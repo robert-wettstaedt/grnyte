@@ -50,7 +50,6 @@ const getEmailBase = (title: string, content: string) => {
 
 interface BaseOpts {
   authUserFk: string
-  regionName: string
 }
 const getNotificationBase = async ({ authUserFk }: BaseOpts) => {
   const pushSubscriptions = await db.query.pushSubscriptions.findMany({
@@ -70,8 +69,14 @@ const getNotificationBase = async ({ authUserFk }: BaseOpts) => {
   }
 }
 
-export const notifyFirstRoleAdded = async (event: RequestEvent, { authUserFk, regionName }: BaseOpts) => {
-  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk, regionName })
+interface NotifyFirstRoleAddedProps extends BaseOpts {
+  regionName: string
+}
+export const notifyFirstRoleAdded = async (
+  event: RequestEvent,
+  { authUserFk, regionName }: NotifyFirstRoleAddedProps,
+) => {
+  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
   const title = `Welcome to ${PUBLIC_APPLICATION_NAME}`
 
   if (authUser?.email == null || user == null) {
@@ -188,8 +193,11 @@ export const notifyFirstRoleAdded = async (event: RequestEvent, { authUserFk, re
   })
 }
 
-export const notifyRoleAdded = async (event: RequestEvent, { authUserFk, regionName }: BaseOpts) => {
-  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk, regionName })
+interface NotifyRoleAddedProps extends BaseOpts {
+  regionName: string
+}
+export const notifyRoleAdded = async (event: RequestEvent, { authUserFk, regionName }: NotifyRoleAddedProps) => {
+  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
   const title = `Update on your ${PUBLIC_APPLICATION_NAME} Account`
 
   if (authUser?.email == null || user == null) {
@@ -282,8 +290,11 @@ export const notifyRoleAdded = async (event: RequestEvent, { authUserFk, regionN
   })
 }
 
-export const notifyRoleRemoved = async (event: RequestEvent, { authUserFk, regionName }: BaseOpts) => {
-  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk, regionName })
+interface NotifyRoleRemovedProps extends BaseOpts {
+  regionName: string
+}
+export const notifyRoleRemoved = async (event: RequestEvent, { authUserFk, regionName }: NotifyRoleRemovedProps) => {
+  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
   const title = `Update on your ${PUBLIC_APPLICATION_NAME} Account`
 
   if (authUser?.email == null || user == null) {
@@ -372,13 +383,14 @@ export const notifyRoleRemoved = async (event: RequestEvent, { authUserFk, regio
 }
 
 interface NotifyRoleUpdatedProps extends BaseOpts {
+  regionName: string
   role: string
 }
 export const notifyRoleUpdated = async (
   event: RequestEvent,
   { authUserFk, regionName, role }: NotifyRoleUpdatedProps,
 ) => {
-  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk, regionName })
+  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
   const title = `Update on your ${PUBLIC_APPLICATION_NAME} Account`
 
   if (authUser?.email == null || user == null) {
@@ -455,6 +467,65 @@ export const notifyRoleUpdated = async (
           If you have any questions about your access or need assistance
           getting started, please contact your region administrator or our
           support team.
+        </p>
+        <hr
+          style="border-color:rgb(229,231,235);margin-top:32px;margin-bottom:32px;width:100%;border:none;border-top:1px solid #eaeaea" />
+        <p
+          style="font-size:14px;font-weight:700;color:rgb(107,114,128);margin-top:0px;margin-bottom:32px;line-height:24px">
+          The ${PUBLIC_APPLICATION_NAME} Team
+        </p>
+    `,
+    ),
+  })
+}
+
+interface NotifyNewUserProps extends BaseOpts {
+  username: string
+  email: string
+}
+export const notifyNewUser = async (event: RequestEvent, { authUserFk, username, email }: NotifyNewUserProps) => {
+  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
+  const title = 'New user registered'
+
+  if (authUser?.email == null || user == null) {
+    return
+  }
+
+  if (pushSubscriptions.length > 0) {
+    const notification: Notification = {
+      body: `A new user just signed up: ${username} - ${email}`,
+      title,
+      type: 'user',
+      userId: user.id,
+    }
+    await Promise.all(
+      pushSubscriptions.map(async (subscription) => {
+        await sendNotificationToSubscription(notification, subscription)
+      }),
+    )
+  }
+
+  await resend.emails.send({
+    from: RESEND_SENDER_EMAIL,
+    to: [authUser.email],
+    subject: title,
+    html: getEmailBase(
+      title,
+      `
+        <h1
+          style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
+          New User Registered:
+          ${username} - ${email}
+        </h1>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          Hello
+          ${user.username},
+        </p>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          A new user just signed up:
+          <strong>${username} - ${email}</strong>.
         </p>
         <hr
           style="border-color:rgb(229,231,235);margin-top:32px;margin-bottom:32px;width:100%;border:none;border-top:1px solid #eaeaea" />

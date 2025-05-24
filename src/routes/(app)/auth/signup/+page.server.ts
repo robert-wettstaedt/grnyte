@@ -1,7 +1,5 @@
-import { RESEND_API_KEY, RESEND_RECIPIENT_EMAIL, RESEND_SENDER_EMAIL } from '$env/static/private'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { db } from '$lib/db/db.server'
-import { users, userSettings } from '$lib/db/schema'
+import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import {
   createUserActionSchema,
@@ -10,12 +8,13 @@ import {
   validateUsername,
   type CreateUserActionValues,
 } from '$lib/forms.server'
+import { notifyNewUser } from '$lib/notifications/samples.server.js'
 import { fail, type ActionFailure } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
-import { Resend } from 'resend'
 
 export const actions = {
-  default: async ({ request, locals: { supabase } }) => {
+  default: async (event) => {
+    const { request, locals } = event
     const data = await request.formData()
     let values: CreateUserActionValues
 
@@ -37,7 +36,7 @@ export const actions = {
       return fail(400, { email: values.email, username: values.username, error: usernameError })
     }
 
-    const signUpData = await supabase.auth.signUp({ email: values.email, password: values.password })
+    const signUpData = await locals.supabase.auth.signUp({ email: values.email, password: values.password })
 
     if (signUpData.error != null) {
       return fail(400, { email: values.email, username: values.username, error: signUpData.error.message })
@@ -46,36 +45,30 @@ export const actions = {
     if (signUpData.data.user != null) {
       try {
         const [createdUser] = await db
-          .insert(users)
+          .insert(schema.users)
           .values({ authUserFk: signUpData.data.user.id, username: values.username })
           .returning()
         const [createdUserSettings] = await db
-          .insert(userSettings)
+          .insert(schema.userSettings)
           .values({ userFk: createdUser.id, authUserFk: signUpData.data.user.id })
           .returning()
-        await db.update(users).set({ userSettingsFk: createdUserSettings.id }).where(eq(users.id, createdUser.id))
-
-        // await insertActivity(db, {
-        //   type: 'created',
-        //   entityId: String(createdUser.id),
-        //   entityType: 'user',
-        //   userFk: createdUser.id,
-        //   newValue: createdUser.username,
-        // })
+        await db
+          .update(schema.users)
+          .set({ userSettingsFk: createdUserSettings.id })
+          .where(eq(schema.users.id, createdUser.id))
       } catch (exception) {
         return fail(400, { email: values.email, username: values.username, error: convertException(exception) })
       }
 
-      if (RESEND_API_KEY && RESEND_RECIPIENT_EMAIL && RESEND_SENDER_EMAIL) {
-        const resend = new Resend(RESEND_API_KEY)
+      const appAdmins = await db.query.userRoles.findMany({
+        where: eq(schema.userRoles.role, 'app_admin'),
+      })
 
-        await resend.emails.send({
-          from: RESEND_SENDER_EMAIL,
-          to: [RESEND_RECIPIENT_EMAIL],
-          subject: 'New user',
-          html: `A new user just signed up: ${values.username} - ${values.email}`,
-        })
-      }
+      await Promise.all(
+        appAdmins.map((admin) =>
+          notifyNewUser(event, { authUserFk: admin.authUserFk, username: values.username, email: values.email }),
+        ),
+      )
 
       return { email: values.email, username: values.username, success: true }
     }
