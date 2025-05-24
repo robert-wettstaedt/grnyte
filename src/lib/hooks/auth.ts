@@ -68,6 +68,13 @@ export const supabase: Handle = async ({ event, resolve }) => {
         regionFk: true,
         role: true,
       },
+      with: {
+        region: {
+          columns: {
+            name: true,
+          },
+        },
+      },
     })
 
     const permissions = await db.query.rolePermissions.findMany()
@@ -77,16 +84,17 @@ export const supabase: Handle = async ({ event, resolve }) => {
         ? undefined
         : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
 
-    const a = userRegions.map((member) => ({
+    const userRegionsResult = userRegions.map((member) => ({
       ...member,
       permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+      name: member.region.name,
     }))
 
     return {
       session,
       user,
       userPermissions,
-      userRegions: a,
+      userRegions: userRegionsResult,
       userRole: userRole?.role,
     }
   }

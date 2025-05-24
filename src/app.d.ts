@@ -10,6 +10,7 @@ declare global {
   namespace App {
     type Permission = RegionPermission | AppPermission
     type UserRegions = {
+      name: string
       regionFk: RegionMember['regionFk']
       role: RegionMember['role']
       permissions: Permission[]

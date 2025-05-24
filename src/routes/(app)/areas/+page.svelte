@@ -56,6 +56,12 @@
             >
               {#snippet left(item)}
                 {item.name}
+
+                {#if data.userRegions.length > 1}
+                  <div class="text-surface-400 text-xs">
+                    {data.userRegions.find((region) => region.regionFk === item.regionFk)?.name ?? ''}
+                  </div>
+                {/if}
               {/snippet}
 
               {#snippet right(item)}

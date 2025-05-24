@@ -1,6 +1,7 @@
 import { REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { appRole } from '$lib/db/schema'
+import type { InferResultType } from '$lib/db/types'
 import { supabase } from '$lib/hooks/auth'
 import type { RequestEvent } from '@sveltejs/kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -103,7 +104,10 @@ describe('Permission Tests', () => {
           regionFk: 1,
           userFk: 1,
           role: 'region_admin',
-        },
+          region: {
+            name: 'test',
+          },
+        } as InferResultType<'regionMembers', { region: true }>,
       ])
 
       await supabase({ event, resolve: vi.fn() })
@@ -143,7 +147,10 @@ describe('Permission Tests', () => {
           regionFk: 1,
           userFk: 1,
           role: 'region_admin',
-        },
+          region: {
+            name: 'test',
+          },
+        } as InferResultType<'regionMembers', { region: true }>,
       ])
 
       await supabase({ event, resolve: vi.fn() })
