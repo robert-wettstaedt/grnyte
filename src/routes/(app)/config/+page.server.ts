@@ -138,17 +138,13 @@ export const actions = {
       })
       const existingRegionMembership = existingMemberships.find((membership) => membership.regionFk === values.regionId)
 
+      try {
       if (values.role == null) {
         await db
           .delete(schema.regionMembers)
           .where(
             and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
           )
-
-        await notifyRoleRemoved(event, {
-          authUserFk: user.authUserFk,
-          regionName: region.name,
-        })
 
         await insertActivity(db, {
           columnName: 'role',
@@ -158,6 +154,11 @@ export const actions = {
           type: 'deleted',
           userFk: locals.user.id,
         })
+
+          await notifyRoleRemoved(event, {
+            authUserFk: user.authUserFk,
+            regionName: region.name,
+          })
 
         return
       }
@@ -170,12 +171,6 @@ export const actions = {
             and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
           )
 
-        await notifyRoleUpdated(event, {
-          authUserFk: user.authUserFk,
-          regionName: region.name,
-          role: schema.appRoleLabels[values.role],
-        })
-
         await insertActivity(db, {
           columnName: 'role',
           entityId: String(values.userId),
@@ -187,6 +182,12 @@ export const actions = {
           userFk: locals.user.id,
         })
 
+          await notifyRoleUpdated(event, {
+            authUserFk: user.authUserFk,
+            regionName: region.name,
+            role: schema.appRoleLabels[values.role],
+          })
+
         return
       }
 
@@ -196,6 +197,15 @@ export const actions = {
         role: values.role,
         userFk: values.userId,
       })
+
+        await insertActivity(db, {
+          columnName: 'role',
+          entityId: String(values.userId),
+          entityType: 'user',
+          regionFk: region.id,
+          type: 'created',
+          userFk: locals.user.id,
+        })
 
       if (existingMemberships.length === 0) {
         await notifyFirstRoleAdded(event, {
@@ -208,15 +218,9 @@ export const actions = {
           regionName: region.name,
         })
       }
-
-      await insertActivity(db, {
-        columnName: 'role',
-        entityId: String(values.userId),
-        entityType: 'user',
-        regionFk: region.id,
-        type: 'created',
-        userFk: locals.user.id,
-      })
+      } catch (exception) {
+        return fail(400, { ...values, error: convertException(exception) })
+      }
     })
   },
 }
