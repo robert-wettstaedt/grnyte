@@ -127,7 +127,9 @@ const mockRegion = {
   createdAt: new Date(),
   id: 1,
   name: 'Test Region',
-  settings: {},
+  settings: {
+    mapLayers: [],
+  },
 } satisfies schema.Region
 
 const mockSupabase = {
