@@ -148,6 +148,13 @@
           {#if data.users.length === 0}
             No users yet
           {:else}
+            <div class="card preset-outlined-surface-950-50 my-8 w-full p-4">
+              <p class="font-bold">Hey, heads up!</p>
+              <p class="text-xs opacity-60">
+                Changing the role of a user will send them a notification about their updated permissions.
+              </p>
+            </div>
+
             <div class="flex overflow-x-auto">
               <table class="table-hover table">
                 <thead>
