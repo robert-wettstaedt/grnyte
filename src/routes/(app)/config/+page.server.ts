@@ -21,6 +21,7 @@ import { error, fail } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 import type { PageServerLoad } from './$types'
+
 export const load = (async ({ locals }) => {
   if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
     error(404)
@@ -93,7 +94,7 @@ export const actions = {
 
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-    return await rls(async (db) => {
+    return await rls(async (tx) => {
       if (locals.user == null) {
         return fail(400)
       }
@@ -110,7 +111,7 @@ export const actions = {
         return exception as ActionFailure<RegionMemberActionValues>
       }
 
-      const region = await db.query.regions.findFirst({
+      const region = await tx.query.regions.findFirst({
         columns: {
           id: true,
           name: true,
@@ -122,7 +123,7 @@ export const actions = {
         return fail(400, { ...values, error: 'Region not found' })
       }
 
-      const user = await db.query.users.findFirst({
+      const user = await tx.query.users.findFirst({
         where: (table, { eq }) => eq(table.id, values.userId),
         columns: {
           authUserFk: true,
@@ -133,14 +134,14 @@ export const actions = {
         return fail(400, { ...values, error: 'User not found' })
       }
 
-      const existingMemberships = await db.query.regionMembers.findMany({
+      const existingMemberships = await tx.query.regionMembers.findMany({
         where: (table, { eq }) => and(eq(table.userFk, values.userId)),
       })
       const existingRegionMembership = existingMemberships.find((membership) => membership.regionFk === values.regionId)
 
       try {
         if (values.role == null) {
-          await db
+          await tx
             .delete(schema.regionMembers)
             .where(
               and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
@@ -164,7 +165,7 @@ export const actions = {
         }
 
         if (existingRegionMembership != null) {
-          await db
+          await tx
             .update(schema.regionMembers)
             .set({ role: values.role })
             .where(
@@ -191,7 +192,7 @@ export const actions = {
           return
         }
 
-        await db.insert(schema.regionMembers).values({
+        await tx.insert(schema.regionMembers).values({
           authUserFk: user.authUserFk,
           regionFk: values.regionId,
           role: values.role,
