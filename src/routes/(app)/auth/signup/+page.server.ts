@@ -1,13 +1,8 @@
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import {
-  createUserActionSchema,
-  validateFormData,
-  validatePassword,
-  validateUsername,
-  type CreateUserActionValues,
-} from '$lib/forms.server'
+import { createUserActionSchema, type CreateUserActionValues } from '$lib/forms/schemas'
+import { validateFormData, validatePassword, validateUsername } from '$lib/forms/validate.server'
 import { notifyNewUser } from '$lib/notifications/samples.server.js'
 import { fail, type ActionFailure } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'

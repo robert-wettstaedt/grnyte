@@ -3,12 +3,8 @@ import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, firstAscensionists, routes, routesToFirstAscensionists } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import {
-  firstAscentActionSchema,
-  validateFormData,
-  type ActionFailure,
-  type FirstAscentActionValues,
-} from '$lib/forms.server'
+import { firstAscentActionSchema, type ActionFailure, type FirstAscentActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'

@@ -2,7 +2,8 @@ import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { routesToTags, tags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { tagActionSchema, validateFormData, type ActionFailure, type TagActionValues } from '$lib/forms.server'
+import { tagActionSchema, type ActionFailure, type TagActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
@@ -66,7 +67,7 @@ export const actions = {
       }
 
       // Redirect to the new area path
-      return '/config'
+      return '/config/tags'
     })
 
     if (typeof returnValue === 'string') {

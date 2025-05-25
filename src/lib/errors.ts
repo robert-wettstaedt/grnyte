@@ -1,5 +1,5 @@
 import { isHttpError } from '@sveltejs/kit'
-import { ZodError } from 'zod'
+import { ZodError } from 'zod/v4'
 
 export class AppError extends Error {
   constructor(

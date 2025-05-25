@@ -6,7 +6,7 @@ import { deleteFiles } from '$lib/helper.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import type { RequestEvent } from './$types'
 
 const updateFileSchema = z.object({

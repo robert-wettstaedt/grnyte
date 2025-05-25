@@ -1,5 +1,5 @@
 import type { AppPermission, RegionPermission } from '$lib/auth'
-import type { Grade, RegionMember, UserSettings } from '$lib/db/schema'
+import type { Grade, Region, RegionMember, UserSettings } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
@@ -11,9 +11,10 @@ declare global {
     type Permission = RegionPermission | AppPermission
     type UserRegions = {
       name: string
+      permissions: Permission[]
       regionFk: RegionMember['regionFk']
       role: RegionMember['role']
-      permissions: Permission[]
+      settings: Region['settings']
     }
 
     interface SafeSession {

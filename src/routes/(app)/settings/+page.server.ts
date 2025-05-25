@@ -6,14 +6,13 @@ import {
   pushSubscriptionSchema,
   subscribePushSubscriptionActionSchema,
   unsubscribePushSubscriptionActionSchema,
-  validateFormData,
-  validateObject,
   type ActionFailure,
   type NotificationsActionValues,
   type PushSubscription,
   type SubscribePushSubscriptionActionValues,
   type UnsubscribePushSubscriptionActionValues,
-} from '$lib/forms.server'
+} from '$lib/forms/schemas'
+import { validateFormData, validateObject } from '$lib/forms/validate.server'
 import { sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { fail } from '@sveltejs/kit'
 import { and, eq, isNotNull, not, sql } from 'drizzle-orm'

@@ -1,6 +1,6 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { validateObject } from '$lib/forms.server'
+import { validateObject } from '$lib/forms/validate.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
 import { asc, count, inArray } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'

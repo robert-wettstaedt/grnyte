@@ -1,26 +1,26 @@
 import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import {
   regionMemberActionSchema,
   tagActionSchema,
-  validateFormData,
   type ActionFailure,
   type RegionMemberActionValues,
   type TagActionValues,
-} from '$lib/forms.server'
-import { error, fail } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
-import { authUsers } from 'drizzle-orm/supabase'
-import type { PageServerLoad } from './$types'
+} from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import {
   notifyFirstRoleAdded,
   notifyRoleAdded,
   notifyRoleRemoved,
   notifyRoleUpdated,
 } from '$lib/notifications/samples.server'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { error, fail } from '@sveltejs/kit'
+import { and, eq } from 'drizzle-orm'
+import { authUsers } from 'drizzle-orm/supabase'
+import type { PageServerLoad } from './$types'
 export const load = (async ({ locals }) => {
   if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
     error(404)
@@ -139,48 +139,48 @@ export const actions = {
       const existingRegionMembership = existingMemberships.find((membership) => membership.regionFk === values.regionId)
 
       try {
-      if (values.role == null) {
-        await db
-          .delete(schema.regionMembers)
-          .where(
-            and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
-          )
+        if (values.role == null) {
+          await db
+            .delete(schema.regionMembers)
+            .where(
+              and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
+            )
 
-        await insertActivity(db, {
-          columnName: 'role',
-          entityId: String(values.userId),
-          entityType: 'user',
-          regionFk: region.id,
-          type: 'deleted',
-          userFk: locals.user.id,
-        })
+          await insertActivity(db, {
+            columnName: 'role',
+            entityId: String(values.userId),
+            entityType: 'user',
+            regionFk: region.id,
+            type: 'deleted',
+            userFk: locals.user.id,
+          })
 
           await notifyRoleRemoved(event, {
             authUserFk: user.authUserFk,
             regionName: region.name,
           })
 
-        return
-      }
+          return
+        }
 
-      if (existingRegionMembership != null) {
-        await db
-          .update(schema.regionMembers)
-          .set({ role: values.role })
-          .where(
-            and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
-          )
+        if (existingRegionMembership != null) {
+          await db
+            .update(schema.regionMembers)
+            .set({ role: values.role })
+            .where(
+              and(eq(schema.regionMembers.userFk, values.userId), eq(schema.regionMembers.regionFk, values.regionId)),
+            )
 
-        await insertActivity(db, {
-          columnName: 'role',
-          entityId: String(values.userId),
-          entityType: 'user',
-          oldValue: schema.appRoleLabels[existingRegionMembership.role],
-          newValue: schema.appRoleLabels[values.role],
-          regionFk: region.id,
-          type: 'updated',
-          userFk: locals.user.id,
-        })
+          await insertActivity(db, {
+            columnName: 'role',
+            entityId: String(values.userId),
+            entityType: 'user',
+            oldValue: schema.appRoleLabels[existingRegionMembership.role],
+            newValue: schema.appRoleLabels[values.role],
+            regionFk: region.id,
+            type: 'updated',
+            userFk: locals.user.id,
+          })
 
           await notifyRoleUpdated(event, {
             authUserFk: user.authUserFk,
@@ -188,15 +188,15 @@ export const actions = {
             role: schema.appRoleLabels[values.role],
           })
 
-        return
-      }
+          return
+        }
 
-      await db.insert(schema.regionMembers).values({
-        authUserFk: user.authUserFk,
-        regionFk: values.regionId,
-        role: values.role,
-        userFk: values.userId,
-      })
+        await db.insert(schema.regionMembers).values({
+          authUserFk: user.authUserFk,
+          regionFk: values.regionId,
+          role: values.role,
+          userFk: values.userId,
+        })
 
         await insertActivity(db, {
           columnName: 'role',
@@ -207,17 +207,17 @@ export const actions = {
           userFk: locals.user.id,
         })
 
-      if (existingMemberships.length === 0) {
-        await notifyFirstRoleAdded(event, {
-          authUserFk: user.authUserFk,
-          regionName: region.name,
-        })
-      } else {
-        await notifyRoleAdded(event, {
-          authUserFk: user.authUserFk,
-          regionName: region.name,
-        })
-      }
+        if (existingMemberships.length === 0) {
+          await notifyFirstRoleAdded(event, {
+            authUserFk: user.authUserFk,
+            regionName: region.name,
+          })
+        } else {
+          await notifyRoleAdded(event, {
+            authUserFk: user.authUserFk,
+            regionName: region.name,
+          })
+        }
       } catch (exception) {
         return fail(400, { ...values, error: convertException(exception) })
       }

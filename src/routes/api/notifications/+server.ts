@@ -214,7 +214,7 @@ const getModerateNotification = async (group: Group, username: string): Promise<
 
   const parentEntity = await getQuery(db, activity.parentEntityType).findFirst({
     where: getWhere(activity.parentEntityType, activity.parentEntityId),
-    with: getParentWith(activity.parentEntityType),
+    with: getParentWith(activity.parentEntityType) as any,
   })
 
   const entity = parentEntity == null ? null : await postProcessEntity(db, activity.parentEntityType, parentEntity)

@@ -3,6 +3,7 @@
   import 'ol/ol.css'
   import { onMount } from 'svelte'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
+  import { page } from '$app/state'
 
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()

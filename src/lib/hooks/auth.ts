@@ -72,6 +72,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
         region: {
           columns: {
             name: true,
+            settings: true,
           },
         },
       },
@@ -88,6 +89,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
       ...member,
       permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
       name: member.region.name,
+      settings: member.region.settings,
     }))
 
     return {

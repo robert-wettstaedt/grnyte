@@ -22,10 +22,15 @@
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.2",
     "@codemirror/commands": "^6.7.1",
+    "@codemirror/lang-json": "^6.0.1",
     "@codemirror/lang-markdown": "^6.3.0",
-    "@codemirror/view": "^6.34.1",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/lint": "^6.8.5",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.8",
     "@fortawesome/fontawesome-free": "^6.5.1",
     "@keyv/postgres": "^2.0.4",
+    "@lezer/common": "^1.2.3",
     "@paralleldrive/cuid2": "^2.2.2",
     "@prgm/sveltekit-progress-bar": "^3.0.2",
     "@supabase/ssr": "^0.6.0",
@@ -37,6 +42,7 @@
     "@vercel/analytics": "^1.5.0",
     "cheerio": "^1.0.0-rc.12",
     "codemirror": "^6.0.1",
+    "codemirror-json-schema": "^0.8.1",
     "cookie": "^1.0.2",
     "d3": "^7.9.0",
     "date-fns": "^4.1.0",
@@ -68,7 +74,7 @@
     "vega-lite": "^6.0.0",
     "web-push": "^3.6.7",
     "webdav": "^5.8.0",
-    "zod": "^3.24.2"
+    "zod": "^3.25.20"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^3.1.3",

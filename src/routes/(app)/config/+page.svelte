@@ -115,6 +115,12 @@
         </Tabs.Panel>
 
         <Tabs.Panel value="#regions">
+          <header class="flex items-center justify-end gap-4">
+            <a class="btn btn-sm preset-filled-primary-500" href="/config/regions/add">
+              <i class="fa-solid fa-plus"></i> Add region
+            </a>
+          </header>
+
           {#if data.regions.length === 0}
             No regions yet
           {:else}
@@ -125,6 +131,7 @@
                     <th>ID</th>
                     <th>Name</th>
                     <th>Created at</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
 
@@ -135,6 +142,9 @@
                       <td>{region.name}</td>
                       <td>
                         {formatRelative(new Date(region.createdAt), new Date(), { locale })}
+                      </td>
+                      <td>
+                        <a href="/config/regions/{region.id}/edit" class="btn btn-sm preset-filled-primary-500">Edit</a>
                       </td>
                     </tr>
                   {/each}

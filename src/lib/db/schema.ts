@@ -1,3 +1,4 @@
+import type { RegionSettings } from '$lib/forms/schemas'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
 import { relations, sql } from 'drizzle-orm'
@@ -8,6 +9,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgPolicy as policy,
   primaryKey,
@@ -252,6 +254,7 @@ export const regions = table(
   {
     ...baseFields,
     name: baseContentFields.name,
+    settings: jsonb('settings').$type<RegionSettings>(),
   },
   (table) => [
     index('regions_name_idx').on(table.name),

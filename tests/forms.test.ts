@@ -4,8 +4,8 @@ import {
   blockActionSchema,
   firstAscentActionSchema,
   routeActionSchema,
-  validateFormData,
-} from '$lib/forms.server'
+} from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { describe, expect, it } from 'vitest'
 
 describe('validateAreaForm', () => {
