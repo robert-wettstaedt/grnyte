@@ -535,7 +535,10 @@
       )
 
       if (isRootMap) {
-        const sorted = coordinates.toSorted((a, b) => getDistance({ x: a[0], y: a[1] }, { x: b[0], y: b[1] }))
+        const sorted = coordinates.toSorted(
+          (a, b) =>
+            getDistance({ x: a[0], y: a[1] }, { x: 0, y: 0 }) - getDistance({ x: b[0], y: b[1] }, { x: 0, y: 0 }),
+        )
         const median = sorted[Math.floor(sorted.length / 2)]
 
         const filtered = coordinates.filter(
