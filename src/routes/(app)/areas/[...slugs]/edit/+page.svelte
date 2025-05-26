@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
   import AreaFormFields from '$lib/components/AreaFormFields'
@@ -47,7 +47,6 @@
     hasParent={data.parentFk != null}
     name={form?.name ?? data.name}
     type={form?.type ?? data.type}
-    visibility={form?.visibility ?? data.visibility}
   />
 
   <div class="mt-8 flex justify-between md:items-center">
@@ -56,7 +55,7 @@
     </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DELETE], data.regionFk)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

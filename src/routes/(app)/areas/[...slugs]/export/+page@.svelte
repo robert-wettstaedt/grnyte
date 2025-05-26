@@ -145,7 +145,7 @@
         parkingLocations={data.area.parkingLocations}
         selectedArea={data.area}
         showBlocks={false}
-        showRelief={false}
+        showRegionLayers={false}
         lineStrings={data.area.walkingPaths}
         zoom={16}
       />

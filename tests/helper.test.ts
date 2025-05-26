@@ -13,6 +13,22 @@ vi.mock('$lib/db/db.server', () => ({
     },
     update: vi.fn(),
   },
+  keyvPostgres: {
+    clear: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    has: vi.fn(),
+    on: vi.fn(),
+  },
+  keyv: {
+    clear: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    has: vi.fn(),
+    on: vi.fn(),
+  },
 }))
 
 // Mock the database query and update functions

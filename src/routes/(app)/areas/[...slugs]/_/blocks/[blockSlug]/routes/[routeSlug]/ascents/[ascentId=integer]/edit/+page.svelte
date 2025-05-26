@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
   import { enhanceWithFile } from '$lib/components/FileUpload'
@@ -83,7 +83,7 @@
     </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if page.data.session?.user?.id === data.ascent.author.authUserFk || data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if page.data.session?.user?.id === data.ascent.author.authUserFk || checkRegionPermission(data.userRegions, [REGION_PERMISSION_ADMIN], data.ascent.route.regionFk)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

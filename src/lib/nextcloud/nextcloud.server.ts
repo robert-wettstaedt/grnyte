@@ -1,8 +1,9 @@
 import { NEXTCLOUD_URL, NEXTCLOUD_USER_NAME, NEXTCLOUD_USER_PASSWORD } from '$env/static/private'
-import { READ_PERMISSION } from '$lib/auth'
+import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { error, type RequestEvent } from '@sveltejs/kit'
+import { eq } from 'drizzle-orm'
 import { createClient, type FileStat, type Headers, type ResponseDataDetailed, type WebDAVClient } from 'webdav'
 import type { FileDTO } from '.'
 
@@ -135,51 +136,59 @@ export const deleteFile = async (file: schema.File) => {
 export const imagePreviewHandler = async (path: string, event: RequestEvent) => {
   const { locals, request, url } = event
 
-  if (!locals.userPermissions?.includes(READ_PERMISSION)) {
-    return new Response(null, { status: 404 })
-  }
+  const rls = await createDrizzleSupabaseClient(locals.supabase)
 
-  // Extract relevant headers from the request
-  const reqHeaders = Array.from(request.headers.entries()).reduce(
-    (headers, [key, value]) => {
-      // Include only 'accept' and 'range' headers
-      if (['accept', 'range'].includes(key.toLowerCase())) {
-        return { ...headers, [key]: value }
-      }
-      return headers
-    },
-    { Authorization: `Basic ${btoa(`${NEXTCLOUD_USER_NAME}:${NEXTCLOUD_USER_PASSWORD}`)}` } as Headers,
-  )
+  return await rls(async (db) => {
+    const file = await db.query.files.findFirst({
+      where: eq(schema.files.path, path),
+    })
 
-  const file = await searchNextcloudFile({
-    areaFk: null,
-    ascentFk: null,
-    blockFk: null,
-    bunnyStreamFk: null,
-    id: '0',
-    path,
-    routeFk: null,
-    visibility: null,
-    regionFk: -1, // TODO: check if user has access to the region
-  })
+    if (file == null) {
+      return new Response(null, { status: 404 })
+    }
 
-  const searchParams = new URLSearchParams(url.searchParams)
-  searchParams.set('fileId', String(file.props?.fileid ?? ''))
+    // Extract relevant headers from the request
+    const reqHeaders = Array.from(request.headers.entries()).reduce(
+      (headers, [key, value]) => {
+        // Include only 'accept' and 'range' headers
+        if (['accept', 'range'].includes(key.toLowerCase())) {
+          return { ...headers, [key]: value }
+        }
+        return headers
+      },
+      { Authorization: `Basic ${btoa(`${NEXTCLOUD_USER_NAME}:${NEXTCLOUD_USER_PASSWORD}`)}` } as Headers,
+    )
 
-  const result = await fetch(`${NEXTCLOUD_URL}/core/preview?${searchParams}`, {
-    headers: reqHeaders,
-    signal: request.signal,
-  })
+    const stat = await searchNextcloudFile({
+      areaFk: null,
+      ascentFk: null,
+      blockFk: null,
+      bunnyStreamFk: null,
+      id: '0',
+      path,
+      regionFk: file.regionFk,
+      routeFk: null,
+      visibility: null,
+    })
 
-  const resHeaders = new Headers(result.headers)
-  // eslint-disable-next-line drizzle/enforce-delete-with-where
-  resHeaders.delete('Set-Cookie')
-  // eslint-disable-next-line drizzle/enforce-delete-with-where
-  resHeaders.delete('Content-Encoding')
+    const searchParams = new URLSearchParams(url.searchParams)
+    searchParams.set('fileId', String(stat.props?.fileid ?? ''))
 
-  return new Response(result.body, {
-    headers: resHeaders,
-    status: result.status,
-    statusText: result.statusText,
+    const result = await fetch(`${NEXTCLOUD_URL}/core/preview?${searchParams}`, {
+      headers: reqHeaders,
+      signal: request.signal,
+    })
+
+    const resHeaders = new Headers(result.headers)
+    // eslint-disable-next-line drizzle/enforce-delete-with-where
+    resHeaders.delete('Set-Cookie')
+    // eslint-disable-next-line drizzle/enforce-delete-with-where
+    resHeaders.delete('Content-Encoding')
+
+    return new Response(result.body, {
+      headers: resHeaders,
+      status: result.status,
+      statusText: result.statusText,
+    })
   })
 }

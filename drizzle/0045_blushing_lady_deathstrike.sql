@@ -1,0 +1,1 @@
+ALTER TYPE "public"."app_permission" RENAME TO "legacy_app_permission";

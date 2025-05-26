@@ -305,7 +305,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     activities,
   }
 
-  fs.writeFileSync('inconsistent-regions.json', JSON.stringify(data, null, 2))
+  fs.writeFileSync('.inconsistent-regions.json', JSON.stringify(data, null, 2))
 }
 
 function recursiveArea(areas: InferResultType<'areas', { areas: true }>[]) {

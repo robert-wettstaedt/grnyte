@@ -1,6 +1,5 @@
-import { getFromCacheWithDefault } from '$lib/cache/cache.server'
+import { caches, getFromCacheWithDefault } from '$lib/cache/cache.server'
 import type { NestedBlock } from '$lib/components/BlocksMap'
-import { config } from '$lib/config'
 import type { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, blocks } from '$lib/db/schema'
@@ -241,51 +240,53 @@ export const getStatsOfAreas = async (
   grades: schema.Grade[],
   user: InferResultType<'users', { userSettings: { columns: { gradingScale: true } } }> | undefined,
 ) => {
-  return getFromCacheWithDefault(config.cache.keys.areaStats + areaIds.join(','), async () => {
-    const routes =
-      areaIds.length === 0
-        ? []
-        : await db.query.routes.findMany({
-            where: arrayOverlaps(schema.routes.areaFks, areaIds),
-            columns: {
-              areaFks: true,
-              userGradeFk: true,
-              gradeFk: true,
-            },
-          })
-
-    const allAreaIds = routes.flatMap((route) => route.areaFks ?? [])
-    const distinctAreaIds = [...new Set(allAreaIds)]
-
-    const areaStats = distinctAreaIds.reduce(
-      (obj, areaId) => {
-        const areaRoutes = routes.filter((route) => route.areaFks?.includes(areaId))
-
-        const gradesObj = areaRoutes.map((route): AreaStats['grades'][0] => {
-          const grade = grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
-          const gradeValue = grade?.[user?.userSettings?.gradingScale ?? 'FB'] ?? undefined
-
-          return { grade: gradeValue }
+  const routes =
+    areaIds.length === 0
+      ? []
+      : await db.query.routes.findMany({
+          where: arrayOverlaps(schema.routes.areaFks, areaIds),
+          columns: {
+            areaFks: true,
+            userGradeFk: true,
+            gradeFk: true,
+          },
         })
 
-        return {
-          ...obj,
-          [areaId]: {
-            numOfRoutes: areaRoutes.length,
-            grades: gradesObj,
-          },
-        }
-      },
-      {} as Record<number, AreaStats | undefined>,
-    )
+  const allAreaIds = routes.flatMap((route) => route.areaFks ?? [])
+  const distinctAreaIds = [...new Set(allAreaIds)]
 
-    return areaStats
-  })
+  const areaStats = distinctAreaIds.reduce(
+    (obj, areaId) => {
+      const areaRoutes = routes.filter((route) => route.areaFks?.includes(areaId))
+
+      const gradesObj = areaRoutes.map((route): AreaStats['grades'][0] => {
+        const grade = grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
+        const gradeValue = grade?.[user?.userSettings?.gradingScale ?? 'FB'] ?? undefined
+
+        return { grade: gradeValue }
+      })
+
+      return {
+        ...obj,
+        [areaId]: {
+          numOfRoutes: areaRoutes.length,
+          grades: gradesObj,
+        },
+      }
+    },
+    {} as Record<number, AreaStats | undefined>,
+  )
+
+  return areaStats
 }
 
-export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatabase<typeof schema>): Promise<T[]> => {
+export const getLayoutBlocks = async <T extends NestedBlock>(
+  db: PostgresJsDatabase<typeof schema>,
+  regions: App.Locals['userRegions'],
+): Promise<T[]> => {
   return getFromCacheWithDefault(
-    config.cache.keys.layoutBlocks,
+    caches.layoutBlocks,
+    regions,
     async () => {
       const blocks = await db.query.blocks.findMany({
         where: (table, { isNotNull }) => isNotNull(table.geolocationFk),
@@ -295,17 +296,7 @@ export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatab
         },
       })
 
-      const filteredBlocks = blocks.filter((block) => {
-        let current = block.area as InferResultType<'areas', { parent: true }> | null
-
-        while (current?.parent != null) {
-          current = current.parent as InferResultType<'areas', { parent: true }> | null
-        }
-
-        return current?.visibility !== 'private'
-      })
-
-      return filteredBlocks as T[]
+      return blocks as T[]
     },
     undefined,
     null,

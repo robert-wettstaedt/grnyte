@@ -1,21 +1,36 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { tags } from '$lib/db/schema'
+import { routesToTags, tags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { tagActionSchema, validateFormData, type ActionFailure, type TagActionValues } from '$lib/forms.server'
+import { tagActionSchema, type ActionFailure, type TagActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { error, fail, redirect } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
-export const load = (({ locals }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
+export const load = (async ({ locals, params }) => {
+  if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
     error(404)
   }
-}) satisfies PageServerLoad
+
+  const rls = await createDrizzleSupabaseClient(locals.supabase)
+
+  return await rls(async (db) => {
+    const result = await db.query.tags.findFirst({ where: eq(tags.id, params.tagId) })
+
+    if (result == null) {
+      error(404)
+    }
+
+    return {
+      tag: result,
+    }
+  })
+}) as PageServerLoad
 
 export const actions = {
-  default: async ({ locals, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
+  default: async ({ locals, params, request }) => {
+    if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
       error(404)
     }
 
@@ -43,14 +58,16 @@ export const actions = {
       }
 
       try {
-        // Insert the new tag into the database
-        await db.insert(tags).values(values).returning()
+        await db.insert(tags).values(values)
+        await db.update(routesToTags).set({ tagFk: values.id }).where(eq(routesToTags.tagFk, params.tagId))
+        await db.delete(tags).where(eq(tags.id, params.tagId))
       } catch (exception) {
         // If an error occurs during insertion, return a 400 error with the exception message
         return fail(400, { ...values, error: convertException(exception) })
       }
 
-      return '/tags'
+      // Redirect to the new area path
+      return '/config/tags'
     })
 
     if (typeof returnValue === 'string') {

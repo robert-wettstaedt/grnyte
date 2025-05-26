@@ -16,7 +16,7 @@
     selectedBlock?: Block | null
     height?: number | string | null
     zoom?: number | null
-    showRelief?: boolean
+    showRegionLayers?: boolean
     showBlocks?: boolean
     showAreas?: boolean
     declutter?: boolean
@@ -30,6 +30,7 @@
 </script>
 
 <script lang="ts">
+  import { page } from '$app/state'
   import type { Area, Block, Geolocation } from '$lib/db/schema'
   import type { NestedArea } from '$lib/db/types'
   import { getDistance } from '$lib/geometry'
@@ -42,10 +43,10 @@
   import { Geometry, LineString } from 'ol/geom'
   import Point from 'ol/geom/Point.js'
   import { fromExtent } from 'ol/geom/Polygon'
-  import { DragRotateAndZoom, Draw, defaults as defaultInteractions } from 'ol/interaction.js'
+  import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction.js'
   import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
   import 'ol/ol.css'
-  import { fromLonLat, toLonLat } from 'ol/proj.js'
+  import { fromLonLat } from 'ol/proj.js'
   import { Cluster, Vector as VectorSource } from 'ol/source.js'
   import OSM, { ATTRIBUTION } from 'ol/source/OSM'
   import TileWMS from 'ol/source/TileWMS.js'
@@ -66,7 +67,7 @@
     selectedBlock = null,
     height = null,
     zoom = DEFAULT_ZOOM,
-    showRelief = $bindable(true),
+    showRegionLayers = $bindable(true),
     showBlocks = true,
     showAreas = true,
     declutter = true,
@@ -85,7 +86,12 @@
   let layersIsVisible = $state(false)
   const layers: Layer[] = [
     { label: 'OSM', name: 'osm' },
-    { label: 'Bayern Relief', name: 'bayern_relief' },
+    ...page.data.userRegions.flatMap((region) =>
+      (region.settings?.mapLayers ?? []).map((regionLayer) => ({
+        label: regionLayer.name,
+        name: regionLayer.name,
+      })),
+    ),
     { label: 'Markers', name: 'markers' },
   ]
 
@@ -104,26 +110,23 @@
           properties: { layerOpts: layers.find((layer) => layer.name === 'osm') },
           source: new OSM(),
         }),
-        new TileLayer(
-          showRelief
-            ? {
-                properties: { layerOpts: layers.find((layer) => layer.name === 'bayern_relief') },
-                source: new TileWMS({
-                  attributions: [
-                    '© <a href="https://geodaten.bayern.de/" target="_blank">Bayerische Vermessungsverwaltung</a>',
-                    '© <a href="http://www.bkg.bund.de/" target="_blank">Bundesamt für Kartographie und Geodäsie (2022)</a>',
-                    '<a href="https://sg.geodatenzentrum.de/web_public/Datenquellen_TopPlus_Open.pdf" target="_blank">Datenquellen</a>',
-                    ATTRIBUTION,
-                  ],
-                  url: 'https://geoservices.bayern.de/od/wms/dgm/v1/relief',
-                  params: {
-                    LAYERS: 'by_relief_schraeglicht',
-                  },
-                }),
-                minZoom: 14,
-                opacity: 0.7,
-              }
-            : {},
+        ...page.data.userRegions.flatMap((region) =>
+          (region.settings?.mapLayers ?? []).map((regionLayer) => {
+            return new TileLayer(
+              showRegionLayers
+                ? {
+                    properties: { layerOpts: layers.find((layer) => layer.name === regionLayer.name) },
+                    source: new TileWMS({
+                      attributions: [...(regionLayer.attributions ?? [] ?? ATTRIBUTION)],
+                      url: regionLayer.url,
+                      params: regionLayer.params ?? {},
+                    }),
+                    minZoom: regionLayer.minZoom ?? undefined,
+                    opacity: regionLayer.opacity ?? undefined,
+                  }
+                : {},
+            )
+          }),
         ),
       ],
       view: new View({

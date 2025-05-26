@@ -1,4 +1,4 @@
-import type { Area, Block, Route, User } from '$lib/db/schema'
+import type { Area, Block, Region, Route, User } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import type { FileDTO } from '$lib/nextcloud'
 
@@ -55,4 +55,6 @@ export interface ActivityDTO extends InferResultType<'activities', { user: true 
 
   parentEntityName?: string | null
   parentEntity?: Entity
+
+  region: Region | undefined
 }

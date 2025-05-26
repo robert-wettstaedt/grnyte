@@ -1,5 +1,5 @@
-import type { ActionFailure, ChangePasswordActionValues } from '$lib/forms.server'
-import { changePasswordActionSchema, validateFormData, validatePassword } from '$lib/forms.server'
+import { changePasswordActionSchema, type ActionFailure, type ChangePasswordActionValues } from '$lib/forms/schemas'
+import { validateFormData, validatePassword } from '$lib/forms/validate.server'
 import { fail } from '@sveltejs/kit'
 
 export const actions = {

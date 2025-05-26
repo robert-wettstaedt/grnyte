@@ -1,9 +1,7 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
-import * as schema from '$lib/db/schema'
 import { createServerClient } from '@supabase/ssr'
 import { type Handle, redirect } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
 
 export const supabase: Handle = async ({ event, resolve }) => {
   /**
@@ -37,11 +35,17 @@ export const supabase: Handle = async ({ event, resolve }) => {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
     if (!session) {
-      return { session: undefined, user: undefined, userPermissions: undefined, userRole: undefined }
+      return {
+        session: undefined,
+        user: undefined,
+        userPermissions: undefined,
+        userRole: undefined,
+        userRegions: [],
+      }
     }
 
     const user = await db.query.users.findFirst({
-      where: eq(schema.users.authUserFk, session.user.id),
+      where: (table, { eq }) => eq(table.authUserFk, session.user.id),
       with: {
         userSettings: {
           columns: {
@@ -55,18 +59,44 @@ export const supabase: Handle = async ({ event, resolve }) => {
     })
 
     const userRole = await db.query.userRoles.findFirst({
-      where: eq(schema.userRoles.authUserFk, session.user.id),
+      where: (table, { eq }) => eq(table.authUserFk, session.user.id),
     })
+
+    const userRegions = await db.query.regionMembers.findMany({
+      where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, session.user.id), isNotNull(table.isActive)),
+      columns: {
+        regionFk: true,
+        role: true,
+      },
+      with: {
+        region: {
+          columns: {
+            name: true,
+            settings: true,
+          },
+        },
+      },
+    })
+
+    const permissions = await db.query.rolePermissions.findMany()
 
     const userPermissions =
       userRole == null
         ? undefined
-        : await db.query.rolePermissions.findMany({ where: eq(schema.rolePermissions.role, userRole.role) })
+        : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
+
+    const userRegionsResult = userRegions.map((member) => ({
+      ...member,
+      permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+      name: member.region.name,
+      settings: member.region.settings,
+    }))
 
     return {
       session,
       user,
-      userPermissions: userPermissions?.map(({ permission }) => permission),
+      userPermissions,
+      userRegions: userRegionsResult,
       userRole: userRole?.role,
     }
   }
@@ -83,11 +113,12 @@ export const supabase: Handle = async ({ event, resolve }) => {
 }
 
 export const authGuard: Handle = async ({ event, resolve }) => {
-  const { session, user, userPermissions, userRole } = await event.locals.safeGetSession()
+  const { session, user, userPermissions, userRole, userRegions } = await event.locals.safeGetSession()
 
   event.locals.session = session
   event.locals.user = user
   event.locals.userPermissions = userPermissions
+  event.locals.userRegions = userRegions
   event.locals.userRole = userRole
 
   if (

@@ -1,4 +1,4 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+import { REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
 import type { ActivityDTO, Entity } from '$lib/components/ActivityFeed'
 import {
   createUpdateActivity,
@@ -9,7 +9,7 @@ import {
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import type { User as AuthUser, Session, SupabaseClient } from '@supabase/supabase-js'
+import type { User as AuthUser, SupabaseClient } from '@supabase/supabase-js'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -22,11 +22,37 @@ vi.mock('$lib/markdown', () => ({
   convertMarkdownToHtml: vi.fn((text) => Promise.resolve(`<p>${text}</p>`)),
 }))
 
+vi.mock('$lib/config', () => ({
+  config: {
+    cache: {
+      keys: {
+        activityFeed: 'activity_feed',
+      },
+      ttl: 1000 * 60 * 60, // 1 hour default TTL
+    },
+    activityFeed: {
+      groupTimeLimit: 3 * 60 * 60 * 1000, // 3 hours in milliseconds
+    },
+  },
+}))
+
 vi.mock('$lib/cache/cache.server', () => ({
   getFromCache: vi.fn(),
   setInCache: vi.fn(),
   invalidateCache: vi.fn(),
-  getFromCacheWithDefault: vi.fn((key, fn, predicate) => fn()),
+  getFromCacheWithDefault: vi.fn((cache, userRegions, fn, defaultFn, defaultValue) => fn()),
+  getCacheKey: vi.fn((userRegions: App.Locals['userRegions']) => userRegions.map((r) => r.regionFk).join('-')),
+  getCacheHashKey: vi.fn(
+    (userRegions: App.Locals['userRegions']) => `${userRegions.map((r) => r.regionFk).join('-')}_hash`,
+  ),
+  getCacheHash: vi.fn((cache, userRegions) => Promise.resolve(undefined)),
+  caches: {
+    activityFeed: {
+      clear: vi.fn(),
+      get: vi.fn(),
+      set: vi.fn(),
+    },
+  },
 }))
 
 interface FileWithPath {
@@ -97,6 +123,15 @@ const mockActivity = {
   regionFk: 1,
 } satisfies schema.Activity
 
+const mockRegion = {
+  createdAt: new Date(),
+  id: 1,
+  name: 'Test Region',
+  settings: {
+    mapLayers: [],
+  },
+} satisfies schema.Region
+
 const mockSupabase = {
   supabaseUrl: 'http://localhost:54321',
   supabaseKey: 'test-key',
@@ -138,20 +173,19 @@ const mockSchemaUser = {
 
 const mockLocals = {
   supabase: mockSupabase,
-  safeGetSession: async () =>
-    ({
-      session: undefined,
-      user: mockSchemaUser,
-      userPermissions: [READ_PERMISSION, EDIT_PERMISSION],
-      userRole: 'anonymous',
-    }) satisfies App.SafeSession,
-  session: undefined as Session | undefined,
+  safeGetSession: async () => ({
+    session: undefined,
+    user: mockSchemaUser,
+    userPermissions: [REGION_PERMISSION_READ, REGION_PERMISSION_EDIT],
+    userRole: 'anonymous',
+    userRegions: [],
+  }),
+  session: undefined,
   user: mockSchemaUser,
-  userPermissions: [READ_PERMISSION, EDIT_PERMISSION] as Array<
-    typeof READ_PERMISSION | typeof EDIT_PERMISSION | typeof DELETE_PERMISSION | typeof EXPORT_PERMISSION
-  >,
-  userRole: 'anonymous' as string | undefined,
-}
+  userPermissions: [REGION_PERMISSION_READ, REGION_PERMISSION_EDIT],
+  userRegions: [],
+  userRole: 'anonymous',
+} satisfies App.Locals
 
 type MockDb = {
   query: {
@@ -179,6 +213,10 @@ type MockDb = {
       findMany: ReturnType<typeof vi.fn>
     }
     files: {
+      findFirst: ReturnType<typeof vi.fn>
+      findMany: ReturnType<typeof vi.fn>
+    }
+    regions: {
       findFirst: ReturnType<typeof vi.fn>
       findMany: ReturnType<typeof vi.fn>
     }
@@ -228,6 +266,10 @@ describe('Activity Feed', () => {
         files: {
           findFirst: vi.fn().mockResolvedValue({ id: 1, path: '/test/image.jpg' }),
           findMany: vi.fn().mockResolvedValue([{ id: 1, path: '/test/image.jpg' }]),
+        },
+        regions: {
+          findFirst: vi.fn().mockResolvedValue(mockRegion),
+          findMany: vi.fn().mockResolvedValue([mockRegion]),
         },
       },
       select: vi.fn().mockReturnValue(fromMock),
@@ -446,7 +488,7 @@ describe('Activity Feed', () => {
     })
 
     it('should use caching for standard feed queries', async () => {
-      const getFromCacheWithDefault = vi.mocked(await import('$lib/cache/cache.server')).getFromCacheWithDefault
+      const { getFromCacheWithDefault, caches } = vi.mocked(await import('$lib/cache/cache.server'))
 
       // Initial call to loadFeed
       await loadFeed({
@@ -454,10 +496,11 @@ describe('Activity Feed', () => {
         url: new URL('http://localhost:3000/feed'),
       })
 
-      // Verify getFromCacheWithDefault was called with the correct key
+      // Verify getFromCacheWithDefault was called with the correct arguments
       expect(getFromCacheWithDefault).toHaveBeenCalled()
       expect(getFromCacheWithDefault).toHaveBeenCalledWith(
-        config.cache.keys.activityFeed,
+        caches.activityFeed,
+        mockLocals.userRegions,
         expect.any(Function),
         expect.any(Function),
         null,
@@ -552,6 +595,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -571,6 +615,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 3,
@@ -590,6 +635,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 
@@ -650,6 +696,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -669,6 +716,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 
@@ -699,6 +747,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -717,6 +766,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 
@@ -754,6 +804,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
         {
           id: 2,
@@ -773,6 +824,7 @@ describe('Activity Feed', () => {
           metadata: null,
           notified: null,
           regionFk: 1,
+          region: mockRegion,
         },
       ]
 

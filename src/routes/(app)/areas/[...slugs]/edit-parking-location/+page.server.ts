@@ -1,22 +1,18 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { geolocationActionSchema, validateFormData } from '$lib/forms.server'
+import { geolocationActionSchema } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -29,7 +25,11 @@ export const load = (async ({ locals, parent }) => {
     const area = areasResult.at(0)
 
     // If the area is not found, throw a 404 error
-    if (area == null || area.type === 'area') {
+    if (
+      area == null ||
+      area.type === 'area' ||
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+    ) {
       error(404)
     }
 
@@ -39,10 +39,6 @@ export const load = (async ({ locals, parent }) => {
 
 export const actions = {
   updateParkingLocation: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -70,12 +66,16 @@ export const actions = {
       const area = areasResult.at(0)
 
       // If the area is not found, throw a 404 error
-      if (area == null || area.type === 'area') {
+      if (
+        area == null ||
+        area.type === 'area' ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+      ) {
         error(400, 'Area is not a crag')
       }
 
       try {
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
 
         if (values.lat != null && values.long != null) {
           await db.insert(geolocations).values({
@@ -130,10 +130,6 @@ export const actions = {
   },
 
   removeParkingLocation: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -149,12 +145,12 @@ export const actions = {
       const area = areasResult.at(0)
 
       // If the area is not found, throw a 404 error
-      if (area == null) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)) {
         error(404)
       }
 
       try {
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
 
         await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
         await db.update(areas).set({ walkingPaths: null }).where(eq(areas.id, area.id))

@@ -7,7 +7,6 @@ import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import type { Notification } from '$lib/notifications'
 import { getGradeTemplateString, sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
-import { json } from '@sveltejs/kit'
 import { differenceInDays, differenceInMinutes, sub } from 'date-fns'
 import { and, eq, gte, inArray, isNull } from 'drizzle-orm'
 
@@ -26,14 +25,21 @@ export const POST = async ({ request }) => {
   }
 
   const activities = await getActivities()
-  const groups = groupActivities(activities)
-  const notifications = await createNotifications(groups)
-  await sendNotificationsToAllSubscriptions(notifications, db)
+  const regionFks = Array.from(new Set(activities.map((activity) => activity.regionFk)))
+  const allGroups = await Promise.all(
+    regionFks.map(async (regionFk) => {
+      const groups = groupActivities(activities)
+      const notifications = await createNotifications(groups)
+      await sendNotificationsToAllSubscriptions(notifications, db, undefined, regionFk)
+      return groups
+    }),
+  )
+  const groups = allGroups.flat()
 
   const notifiedActivityIds = groups.flatMap((group) => group.activities.map((activity) => activity.id))
   await db.update(schema.activities).set({ notified: true }).where(inArray(schema.activities.id, notifiedActivityIds))
 
-  return json(notifications)
+  return new Response(null, { status: 200 })
 }
 
 interface Group {
@@ -208,7 +214,7 @@ const getModerateNotification = async (group: Group, username: string): Promise<
 
   const parentEntity = await getQuery(db, activity.parentEntityType).findFirst({
     where: getWhere(activity.parentEntityType, activity.parentEntityId),
-    with: getParentWith(activity.parentEntityType),
+    with: getParentWith(activity.parentEntityType) as any,
   })
 
   const entity = parentEntity == null ? null : await postProcessEntity(db, activity.parentEntityType, parentEntity)

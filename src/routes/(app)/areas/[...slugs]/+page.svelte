@@ -3,7 +3,12 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION } from '$lib/auth'
+  import {
+    checkRegionPermission,
+    REGION_PERMISSION_ADMIN,
+    REGION_PERMISSION_DELETE,
+    REGION_PERMISSION_EDIT,
+  } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
   import GenericList from '$lib/components/GenericList'
@@ -92,9 +97,7 @@
     await updateBlocksFromServer(res)
   }
 
-  const hasActions = $derived(
-    data.userPermissions?.includes(EDIT_PERMISSION) || data.userPermissions?.includes(EXPORT_PERMISSION),
-  )
+  const hasActions = $derived(checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk))
 </script>
 
 <svelte:head>
@@ -113,7 +116,7 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk)}
       <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
         <i class="fa-solid fa-pen w-4"></i>Edit area details
       </a>
@@ -137,7 +140,7 @@
       {/if}
     {/if}
 
-    {#if data.userPermissions?.includes(EXPORT_PERMISSION)}
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_ADMIN], data.area.regionFk)}
       {#if data.area.type === 'sector'}
         <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
           <i class="fa-solid fa-file-export w-4"></i>Export PDF
@@ -229,7 +232,11 @@
                         {#if file.stat != null}
                           <FileViewer
                             {file}
-                            readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
+                            readOnly={!checkRegionPermission(
+                              data.userRegions,
+                              [REGION_PERMISSION_DELETE],
+                              file.regionFk,
+                            )}
                             stat={file.stat}
                             onDelete={() => (files = files.filter((_file) => file.id !== _file.id))}
                           />
@@ -279,7 +286,7 @@
                 </Segment.Item>
               </Segment>
 
-              {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+              {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk)}
                 <button
                   class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
                   disabled={sortOrder !== 'custom'}

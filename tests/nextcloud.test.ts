@@ -2,6 +2,8 @@ import { getNextcloud, loadFiles, searchNextcloudFile } from '$lib/nextcloud/nex
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileStat } from 'webdav'
 
+vi.mock('$lib/db/db.server.ts', () => ({}))
+
 // Mock data
 const mockFileStat: FileStat = {
   filename: '/test/image.jpg',

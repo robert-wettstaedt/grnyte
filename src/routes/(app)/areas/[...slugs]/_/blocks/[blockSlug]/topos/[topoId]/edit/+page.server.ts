@@ -1,11 +1,12 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { blocks, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { addFileActionSchema, validateFormData, type ActionFailure, type AddFileActionValues } from '$lib/forms.server'
+import { addFileActionSchema, type ActionFailure, type AddFileActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { deleteFile, loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { createGeolocationFromFiles } from '$lib/topo-files.server'
@@ -14,10 +15,6 @@ import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -40,7 +37,10 @@ export const load = (async ({ locals, params, parent }) => {
     const block = blocksResult.at(0)
 
     // If no block is found, throw a 404 error
-    if (block?.topos[0]?.file == null) {
+    if (
+      block?.topos[0]?.file == null ||
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)
+    ) {
       error(404)
     }
 
@@ -62,10 +62,6 @@ export const load = (async ({ locals, params, parent }) => {
 
 export const actions = {
   default: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -91,7 +87,10 @@ export const actions = {
       })
 
       // If no block is found, throw a 404 error
-      if (block?.topos[0]?.file == null) {
+      if (
+        block?.topos[0]?.file == null ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)
+      ) {
         error(404)
       }
 

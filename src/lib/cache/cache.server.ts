@@ -1,22 +1,29 @@
-import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { config } from '$lib/config'
-import { keyv } from '$lib/db/db.server'
+import { keyv, keyvPostgres } from '$lib/db/db.server'
 import { digestMessage } from '$lib/helper'
+import Keyv from 'keyv'
 
-export const getCacheKey = (id: string | number) => `${PUBLIC_APPLICATION_NAME}_${id}`
-export const getCacheHashKey = (id: string | number) => `${getCacheKey(id)}_hash`
-
-export const invalidateCache = async (id: string | number) => {
-  const cacheKey = getCacheKey(id)
-  await keyv.delete(cacheKey)
-
-  const cacheHashKey = getCacheHashKey(id)
-  await keyv.delete(cacheHashKey)
+export const caches = {
+  layoutBlocks: new Keyv({ store: keyvPostgres, ttl: config.cache.ttl, namespace: config.cache.keys.layoutBlocks }),
+  activityFeed: new Keyv({ store: keyvPostgres, ttl: config.cache.ttl, namespace: config.cache.keys.activityFeed }),
+  global: keyv,
 }
 
-export const getFromCache = async <T>(id: string | number): Promise<T | undefined> => {
-  const cacheKey = getCacheKey(id)
-  const rawValue = await keyv.get<string>(cacheKey)
+export const getCacheKey = (userRegions: App.Locals['userRegions']) =>
+  userRegions
+    .map((region) => region.regionFk)
+    .toSorted((a, b) => a - b)
+    .join('-')
+
+export const getCacheHashKey = (userRegions: App.Locals['userRegions']) => `${getCacheKey(userRegions)}_hash`
+
+export const invalidateCache = async (cache: Keyv) => {
+  await cache.clear()
+}
+
+export const getFromCache = async <T>(cache: Keyv, userRegions: App.Locals['userRegions']): Promise<T | undefined> => {
+  const cacheKey = getCacheKey(userRegions)
+  const rawValue = await cache.get<string>(cacheKey)
 
   if (rawValue == null) {
     return undefined
@@ -29,29 +36,38 @@ export const getFromCache = async <T>(id: string | number): Promise<T | undefine
   }
 }
 
-export const getCacheHash = async (id: string | number): Promise<string | undefined> => {
-  const cacheKey = getCacheHashKey(id)
-  return keyv.get<string>(cacheKey)
+export const getCacheHash = async (
+  cache: Keyv,
+  userRegions: App.Locals['userRegions'],
+): Promise<string | undefined> => {
+  const cacheKey = getCacheHashKey(userRegions)
+  return cache.get<string>(cacheKey)
 }
 
-export const setInCache = async <T>(id: string | number, data: T, ttl?: number | null): Promise<void> => {
+export const setInCache = async <T>(
+  cache: Keyv,
+  userRegions: App.Locals['userRegions'],
+  data: T,
+  ttl?: number | null,
+): Promise<void> => {
   if (data == null || (typeof data === 'string' && data.length === 0) || (Array.isArray(data) && data.length === 0)) {
     return
   }
 
   const cacheTtl = ttl === null ? undefined : (ttl ?? config.cache.ttl)
 
-  const cacheKey = getCacheKey(id)
+  const cacheKey = getCacheKey(userRegions)
   const string = JSON.stringify(data)
-  await keyv.set(cacheKey, string, cacheTtl)
+  await cache.set(cacheKey, string, cacheTtl)
 
-  const cacheHashKey = getCacheHashKey(id)
+  const cacheHashKey = getCacheHashKey(userRegions)
   const hash = await digestMessage(string)
-  await keyv.set(cacheHashKey, hash, cacheTtl)
+  await cache.set(cacheHashKey, hash, cacheTtl)
 }
 
 export const getFromCacheWithDefault = async <T>(
-  id: string | number,
+  cache: Keyv,
+  userRegions: App.Locals['userRegions'],
   getDefaultValue: () => Promise<T>,
   predicate?: () => Promise<boolean>,
   ttl?: number | null,
@@ -59,7 +75,7 @@ export const getFromCacheWithDefault = async <T>(
   const useCache = predicate ? await predicate() : true
 
   if (useCache) {
-    const cached = await getFromCache<T>(id)
+    const cached = await getFromCache<T>(cache, userRegions)
     if (cached != null) {
       return cached
     }
@@ -68,7 +84,7 @@ export const getFromCacheWithDefault = async <T>(
   const defaultValue = await getDefaultValue()
 
   if (useCache) {
-    await setInCache(id, defaultValue, ttl)
+    await setInCache(cache, userRegions, defaultValue, ttl)
   }
 
   return defaultValue

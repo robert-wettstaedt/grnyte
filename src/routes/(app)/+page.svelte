@@ -73,7 +73,7 @@
       <img src={LogoTheCrag} alt="The Crag" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
     </div>
   </section>
-{:else if data.userPermissions?.includes('data.read')}
+{:else if data.userRegions.length > 0}
   <div class="-m-[0.5rem] md:-m-[1rem]" use:fitHeightAction={{ paddingBottom: 0 }}>
     {#await import('$lib/components/BlocksMap') then BlocksMap}
       <BlocksMap.default />

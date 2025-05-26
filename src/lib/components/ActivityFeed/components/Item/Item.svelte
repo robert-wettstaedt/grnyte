@@ -9,7 +9,7 @@
 
 <script lang="ts">
   import { page } from '$app/state'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import type { ActivityDTO } from '$lib/components/ActivityFeed'
   import FileViewer from '$lib/components/FileViewer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
@@ -137,11 +137,29 @@
             </span>
           {/if}
         </span>
-      {:else if activity.entity.type === 'user' && activity.type === 'created'}
-        has requested account approval
-      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role' && activity.newValue === 'user'}
+      {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'role'}
         has approved user
         <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          to region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role'}
+        has updated user
+        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        to {activity.newValue}
+
+        {#if activity.region != null}
+          in region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'role'}
+        has removed user
+        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          from region {activity.region.name}
+        {/if}
       {:else}
         <span>
           {activity.type}
@@ -268,7 +286,7 @@
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
 
-      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || page.data.userPermissions?.includes(EDIT_PERMISSION))}
+      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
         <a
           aria-label="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
@@ -304,7 +322,7 @@
                 {file}
                 stat={file.stat}
                 readOnly={!(
-                  page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                  checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
                   activity.entity.object.createdBy === page.data.user?.id
                 )}
                 onDelete={() => {

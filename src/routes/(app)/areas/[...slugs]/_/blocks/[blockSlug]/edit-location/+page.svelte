@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
   import { config } from '$lib/config'
@@ -110,7 +110,7 @@
     </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if data.block.geolocationFk != null && data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if data.block.geolocationFk != null && checkRegionPermission(data.userRegions, [REGION_PERMISSION_DELETE], data.block.regionFk)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

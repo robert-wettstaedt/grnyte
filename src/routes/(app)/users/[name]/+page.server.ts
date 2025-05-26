@@ -12,10 +12,10 @@ import { buildNestedAreaQuery, enrichRoute } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import {
   userExternalResourceActionSchema,
-  validateFormData,
   type ActionFailure,
   type UserExternalResourceActionValues,
-} from '$lib/forms.server'
+} from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { error, fail } from '@sveltejs/kit'
 import { eq, inArray, sql } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'

@@ -1,4 +1,4 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN, type RegionPermission } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
@@ -6,14 +6,18 @@ import { deleteFiles } from '$lib/helper.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import type { RequestEvent } from './$types'
 
 const updateFileSchema = z.object({
   visibility: z.enum(schema.areaVisibilityEnum),
 })
 
-const getFile = async ({ locals, params }: RequestEvent, db: PostgresJsDatabase<typeof schema>) => {
+const getFile = async (
+  { locals, params }: RequestEvent,
+  db: PostgresJsDatabase<typeof schema>,
+  permission: RegionPermission,
+) => {
   const file = await db.query.files.findFirst({
     where: eq(schema.files.id, params.id),
     with: {
@@ -30,8 +34,8 @@ const getFile = async ({ locals, params }: RequestEvent, db: PostgresJsDatabase<
   if (
     locals.user == null ||
     file == null ||
-    ((!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) &&
-      authorId !== locals.user.id)
+    !checkRegionPermission(locals.userRegions, [permission], file.regionFk) ||
+    authorId !== locals.user.id
   ) {
     error(404)
   }
@@ -46,7 +50,7 @@ export async function PUT(event) {
   return await rls(async (db) => {
     const { visibility } = updateFileSchema.parse(await request.json())
 
-    const file = await getFile(event, db)
+    const file = await getFile(event, db, REGION_PERMISSION_ADMIN)
     const [updatedFile] = await db
       .update(schema.files)
       .set({ visibility })
@@ -62,7 +66,7 @@ export async function DELETE(event) {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const file = await getFile(event, db)
+    const file = await getFile(event, db, REGION_PERMISSION_ADMIN)
     await deleteFiles({ fileId: file.id }, db)
 
     const entityId = file.routeFk ?? file.ascentFk ?? file.blockFk ?? file.areaFk

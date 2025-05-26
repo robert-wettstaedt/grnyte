@@ -1,13 +1,12 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { blocks, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichBlock, type EnrichedBlock } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
-import type { GeolocationActionValues } from '$lib/forms.server'
-import { geolocationActionSchema, validateFormData } from '$lib/forms.server'
+import { geolocationActionSchema, type GeolocationActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { createOrUpdateGeolocation } from '$lib/topo-files.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
@@ -42,7 +41,10 @@ export const load = (async ({ locals, params, parent }) => {
       error(400, `Multiple blocks with slug ${params.blockSlug} in ${areaSlug} found`)
     }
 
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) && block.geolocationFk != null) {
+    if (
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) &&
+      block.geolocationFk != null
+    ) {
       error(404)
     }
 
@@ -72,7 +74,11 @@ export const actions = {
       // Get the first block from the result
       const block = blocksResult.at(0)
 
-      if (block == null || (!locals.userPermissions?.includes(EDIT_PERMISSION) && block.geolocationFk != null)) {
+      if (
+        block == null ||
+        (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) &&
+          block.geolocationFk != null)
+      ) {
         return fail(404)
       }
 
@@ -121,11 +127,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (
-        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
-        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
-        locals.user == null
-      ) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -140,7 +142,7 @@ export const actions = {
       const block = blocksResult.at(0)
 
       // If no block is found, throw a 404 error
-      if (block == null) {
+      if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)) {
         return fail(404, { error: 'Block not found' })
       }
 
@@ -165,7 +167,7 @@ export const actions = {
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }

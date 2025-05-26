@@ -1,13 +1,11 @@
+import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth.js'
 import { db } from '$lib/db/db.server'
-import { type InsertRoute } from '$lib/db/schema'
+import { blocks, type InsertRoute } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import { handler27crags, handler8a, handlerTheCrag, queryExternalResource } from '$lib/external-resources/index.server'
+import { eq } from 'drizzle-orm'
 
 export const GET = async ({ locals, url }) => {
-  if (!locals.userPermissions?.includes('data.read')) {
-    return new Response(null, { status: 404 })
-  }
-
   const query = url.searchParams.get('query')
   const blockId = Number(url.searchParams.get('blockId'))
 
@@ -20,6 +18,16 @@ export const GET = async ({ locals, url }) => {
   }
 
   const grades = await db.query.grades.findMany()
+  const block = await db.query.blocks.findFirst({
+    where: eq(blocks.id, blockId),
+    columns: {
+      regionFk: true,
+    },
+  })
+
+  if (block == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_READ], block?.regionFk)) {
+    return new Response(null, { status: 404 })
+  }
 
   const { data8a, data27crags, dataTheCrag } = await queryExternalResource(query, blockId, locals)
 
@@ -56,7 +64,7 @@ export const GET = async ({ locals, url }) => {
     name: route8a?.name ?? route27crags?.name ?? routeTheCrag?.name ?? query,
     rating: ratingMean,
     slug: '',
-    regionFk: -1,
+    regionFk: block.regionFk,
   }
 
   const routeExternalResources: InferResultType<
@@ -64,7 +72,7 @@ export const GET = async ({ locals, url }) => {
     { externalResource8a: true; externalResource27crags: true; externalResourceTheCrag: true }
   > = {
     routeFk: -1,
-    regionFk: -1,
+    regionFk: block.regionFk,
     id: -1,
     externalResource27cragsFk: -1,
     externalResource8aFk: -1,

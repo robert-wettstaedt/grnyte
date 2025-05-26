@@ -1,12 +1,36 @@
 import { jwtDecode, type JwtPayload } from 'jwt-decode'
 
-export const DELETE_PERMISSION = 'data.delete'
-export const EDIT_PERMISSION = 'data.edit'
-export const EXPORT_PERMISSION = 'data.export'
-export const READ_PERMISSION = 'data.read'
-export const REGION_ADMIN_PERMISSION = 'regions.admin'
-export const TAG_ADMIN_PERMISSION = 'tags.admin'
-export const USER_ADMIN_PERMISSION = 'users.admin'
+export const APP_PERMISSION_ADMIN = 'app.admin'
+
+export const REGION_PERMISSION_DELETE = 'region.delete'
+export const REGION_PERMISSION_EDIT = 'region.edit'
+export const REGION_PERMISSION_READ = 'region.read'
+export const REGION_PERMISSION_ADMIN = 'region.admin'
+
+export type AppPermission = typeof APP_PERMISSION_ADMIN
+
+export function checkAppPermission(
+  userPermissions: App.Locals['userPermissions'],
+  requiredPermissions: AppPermission[],
+): boolean {
+  return requiredPermissions.some((permission) => userPermissions?.includes(permission))
+}
+
+export type RegionPermission =
+  | typeof REGION_PERMISSION_READ
+  | typeof REGION_PERMISSION_EDIT
+  | typeof REGION_PERMISSION_DELETE
+  | typeof REGION_PERMISSION_ADMIN
+
+export function checkRegionPermission(
+  userRegions: App.Locals['userRegions'],
+  requiredPermissions: RegionPermission[],
+  regionId: number | undefined | null,
+): boolean {
+  return requiredPermissions.some((permission) =>
+    userRegions.some((region) => region.regionFk === regionId && region.permissions.includes(permission)),
+  )
+}
 
 export interface SupabaseToken extends JwtPayload {
   iss?: string

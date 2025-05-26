@@ -1,13 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
-
-  interface Props {
-    userPermissions: App.Locals['userPermissions'] | undefined
-  }
-
-  let { userPermissions }: Props = $props()
 </script>
 
 <Navigation.Tile href="/" label="Home" selected={page.url.pathname === '/'}>
@@ -26,9 +20,9 @@
   <i class="fa-solid fa-search"></i>
 </Navigation.Tile>
 
-{#if userPermissions?.includes(EDIT_PERMISSION) && userPermissions?.includes(DELETE_PERMISSION)}
-  <Navigation.Tile href="/tags" label="Tags" selected={page.url.pathname.startsWith('/tags')}>
-    <i class="fa-solid fa-tags"></i>
+{#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN])}
+  <Navigation.Tile href="/config" label="Manage" selected={page.url.pathname.startsWith('/config')}>
+    <i class="fa-solid fa-wrench"></i>
   </Navigation.Tile>
 {/if}
 
