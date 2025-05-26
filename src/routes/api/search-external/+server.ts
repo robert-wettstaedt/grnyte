@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth.js'
+import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { blocks, type InsertRoute } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
