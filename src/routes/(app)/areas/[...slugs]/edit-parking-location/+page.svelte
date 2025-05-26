@@ -4,13 +4,17 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
+  import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
-  import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { config } from '$lib/config'
+  import { Popover, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
 
   let { data, form } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
+
+  let loading = $state(false)
 
   let coordinate: Coordinate | null = $state(null)
   let polyline: string | null = $state(null)
@@ -44,7 +48,17 @@
   class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
   action="?/updateParkingLocation"
   method="POST"
-  use:enhance
+  use:enhance={() => {
+    loading = true
+
+    return async ({ update }) => {
+      loading = false
+      await invalidateCache(config.cache.keys.layoutBlocks)
+      await invalidateCache(config.cache.keys.layoutBlocksHash)
+
+      return update()
+    }
+  }}
 >
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     {#snippet list()}
@@ -126,7 +140,17 @@
         </Popover>
       {/if}
 
-      <button class="btn preset-filled-primary-500" disabled={coordinate == null && polyline == null} type="submit">
+      <button
+        class="btn preset-filled-primary-500"
+        disabled={loading || (coordinate == null && polyline == null)}
+        type="submit"
+      >
+        {#if loading}
+          <span class="me-2">
+            <ProgressRing size="size-4" value={null} />
+          </span>
+        {/if}
+
         Update parking location
       </button>
     </div>
