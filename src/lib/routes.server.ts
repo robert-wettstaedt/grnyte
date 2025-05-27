@@ -123,10 +123,17 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
   await db.delete(routesToTags).where(eq(routesToTags.routeFk, route.id))
   await db.delete(topoRoutes).where(eq(topoRoutes.routeFk, route.id))
 
-  const externalResources = await db
-    .delete(routeExternalResources)
+  const externalResources = await db.query.routeExternalResources.findMany({
+    where: eq(routeExternalResources.routeFk, route.id),
+  })
+  await db
+    .update(routeExternalResources)
+    .set({
+      externalResource8aFk: null,
+      externalResource27cragsFk: null,
+      externalResourceTheCragFk: null,
+    })
     .where(eq(routeExternalResources.routeFk, route.id))
-    .returning()
 
   const ex8aIds = externalResources.map((er) => er.externalResource8aFk).filter((id) => id != null)
   if (ex8aIds.length > 0) {
@@ -143,6 +150,8 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
     await db.delete(routeExternalResourceTheCrag).where(inArray(routeExternalResourceTheCrag.id, exTheCragIds))
   }
 
+  await db.update(routes).set({ externalResourcesFk: null }).where(eq(routes.id, route.id))
+  await db.delete(routeExternalResources).where(eq(routeExternalResources.routeFk, route.id))
   await db.delete(routes).where(eq(routes.id, route.id))
 
   await insertActivity(db, {
