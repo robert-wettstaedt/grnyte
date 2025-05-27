@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
@@ -24,18 +24,23 @@ export const load = (async ({ locals, parent }) => {
     }
 
     // Query the database to find the parent area by areaId
-    const parentAreaResult = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+    const parentArea = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+
+    const isRegionAdmin = locals.userRegions.flatMap((region) => region.permissions).includes(REGION_PERMISSION_ADMIN)
+    if (parentArea == null && !isRegionAdmin) {
+      error(404)
+    }
 
     if (
-      parentAreaResult == null ||
-      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentAreaResult.regionFk)
+      parentArea != null &&
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentArea.regionFk)
     ) {
       error(404)
     }
 
     // Return the parent area result
     return {
-      parent: parentAreaResult,
+      parent: parentArea,
     }
   })
 }) satisfies PageServerLoad
@@ -73,9 +78,14 @@ export const actions = {
         path = []
       }
 
+      if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], values.regionFk)) {
+        error(404)
+      }
+
       if (
-        parentArea == null ||
-        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentArea.regionFk)
+        parentArea != null &&
+        (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentArea.regionFk) ||
+          values.regionFk !== parentArea.regionFk)
       ) {
         error(404)
       }
@@ -85,7 +95,10 @@ export const actions = {
 
       // Check if an area with the same slug already exists
       const existingAreasResult = await db.query.areas.findMany({
-        where: and(eq(areas.slug, slug), eq(areas.parentFk, parentArea.id)),
+        where: and(
+          eq(areas.slug, slug),
+          parentArea == null ? eq(areas.regionFk, values.regionFk) : eq(areas.parentFk, parentArea.id),
+        ),
       })
 
       if (existingAreasResult.length > 0) {
@@ -105,7 +118,7 @@ export const actions = {
         createdArea = (
           await db
             .insert(areas)
-            .values({ ...values, createdBy: user.id, parentFk: parentArea.id, regionFk: parentArea.regionFk, slug })
+            .values({ ...values, createdBy: user.id, parentFk: parentArea?.id, regionFk: values.regionFk, slug })
             .returning()
         )[0]
 
@@ -114,7 +127,7 @@ export const actions = {
           userFk: user.id,
           entityId: String(createdArea.id),
           entityType: 'area',
-          parentEntityId: parentArea.id == null ? null : String(parentArea.id),
+          parentEntityId: parentArea?.id == null ? null : String(parentArea.id),
           parentEntityType: 'area',
           regionFk: createdArea.regionFk,
         })

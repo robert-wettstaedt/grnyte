@@ -46,6 +46,7 @@
     description={form?.description ?? data.description}
     hasParent={data.parentFk != null}
     name={form?.name ?? data.name}
+    regionFk={form?.regionFk ?? data.regionFk}
     type={form?.type ?? data.type}
   />
 

@@ -20,6 +20,7 @@ export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
   description: z.string().nullable().default(''),
   name: z.string().trim(),
+  regionFk: z.number(),
   type: z.enum(areaTypeEnum).default('area'),
 })
 
