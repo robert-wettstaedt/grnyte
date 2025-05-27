@@ -45,7 +45,6 @@ declare global {
       supabase: SupabaseClient
     }
     interface PageData extends Omit<Locals, 'safeGetSession' | 'supabase'> {
-      blockHistoryHash: string | undefined
       grades: Grade[]
       gradingScale: NonNullable<UserSettings['gradingScale']>
       supabase?: Locals['supabase']

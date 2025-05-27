@@ -35,7 +35,6 @@ export const load = async ({ data, depends, fetch }) => {
   } = await supabase.auth.getSession()
 
   return {
-    blockHistoryHash: data.blockHistoryHash,
     grades: data.grades,
     gradingScale: data.gradingScale,
     session: session ?? data.session,

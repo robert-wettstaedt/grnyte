@@ -50,20 +50,6 @@
       document.scrollingElement?.scrollTo(0, 0)
     }
   })
-
-  $effect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then((registration) => {
-        console.log('posting message..')
-
-        // Send data to service worker
-        registration?.active?.postMessage({
-          type: 'BLOCK_HISTORY_HASH',
-          payload: page.data.blockHistoryHash,
-        })
-      })
-    }
-  })
 </script>
 
 <svelte:head>

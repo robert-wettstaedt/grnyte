@@ -19,27 +19,6 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
-
-  if (event.data && event.data.type === 'BLOCK_HISTORY_HASH') {
-    getFromCache<string>(config.cache.keys.layoutBlocksHash).then(async (prevBlockHistoryHash) => {
-      const nextBlockHistoryHash = event.data.payload as string | undefined
-
-      // Compare histories to determine if we should use cache
-      if (nextBlockHistoryHash != null) {
-        const useBlocksCache = prevBlockHistoryHash === nextBlockHistoryHash
-
-        console.log('Block histories are the same:', useBlocksCache, prevBlockHistoryHash, nextBlockHistoryHash)
-
-        // If histories are different, clear the blocks API cache to force a network fetch
-        if (!useBlocksCache) {
-          console.log('Clearing blocks API cache due to history change')
-          await invalidateCache(config.cache.keys.layoutBlocks)
-        }
-      }
-
-      await setInCache(config.cache.keys.layoutBlocksHash, nextBlockHistoryHash)
-    })
-  }
 })
 
 // self.__WB_MANIFEST is default injection point
@@ -50,7 +29,32 @@ cleanupOutdatedCaches()
 
 registerRoute(
   ({ url }) => url.pathname === '/api/blocks',
-  ({ request, event }) => {
+  async ({ request, event }) => {
+    try {
+      const response = await fetch('/api/blocks/hash')
+      if (!response.ok || response.status >= 400) {
+        throw new Error('')
+      }
+
+      const nextBlockHistoryHash = await response.text()
+      if (nextBlockHistoryHash == null) {
+        throw new Error('')
+      }
+
+      const prevBlockHistoryHash = await getFromCache<string>(config.cache.keys.layoutBlocksHash)
+      const useBlocksCache = prevBlockHistoryHash === nextBlockHistoryHash
+      console.log('Block histories are the same:', useBlocksCache, prevBlockHistoryHash, nextBlockHistoryHash)
+
+      if (!useBlocksCache) {
+        console.log('Clearing blocks API cache due to history change')
+        await invalidateCache(config.cache.keys.layoutBlocks)
+      }
+
+      await setInCache(config.cache.keys.layoutBlocksHash, nextBlockHistoryHash)
+    } catch (error) {
+      await invalidateCache(config.cache.keys.layoutBlocksHash)
+    }
+
     return new CacheFirst({
       cacheName: config.cache.keys.layoutBlocks,
       plugins: [
