@@ -11,7 +11,7 @@ export async function GET({ locals, request, params }) {
   return await rls(async (db) => {
     const file = await db.query.files.findFirst({
       columns: { id: true },
-      where: eq(files.path, '/' + params.resourcePath),
+      where: eq(files.path, params.resourcePath.startsWith('/') ? params.resourcePath : `/${params.resourcePath}`),
     })
 
     if (file == null) {
