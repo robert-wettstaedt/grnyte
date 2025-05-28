@@ -1,11 +1,21 @@
+import { DATABASE_URL } from '$env/static/private'
 import { config } from '$lib/config'
-import { keyv, keyvPostgres } from '$lib/db/db.server'
+import { keyv } from '$lib/db/db.server'
 import { digestMessage } from '$lib/helper'
+import KeyvPostgres from '@keyv/postgres'
 import Keyv from 'keyv'
 
 export const caches = {
-  layoutBlocks: new Keyv({ store: keyvPostgres, ttl: config.cache.ttl, namespace: config.cache.keys.layoutBlocks }),
-  activityFeed: new Keyv({ store: keyvPostgres, ttl: config.cache.ttl, namespace: config.cache.keys.activityFeed }),
+  layoutBlocks: new Keyv({
+    store: new KeyvPostgres({ uri: DATABASE_URL, pool: false }),
+    ttl: config.cache.ttl,
+    namespace: config.cache.keys.layoutBlocks,
+  }),
+  activityFeed: new Keyv({
+    store: new KeyvPostgres({ uri: DATABASE_URL, pool: false }),
+    ttl: config.cache.ttl,
+    namespace: config.cache.keys.activityFeed,
+  }),
   global: keyv,
 }
 
