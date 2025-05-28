@@ -1,0 +1,3 @@
+DROP POLICY "region.admin can fully access files" ON "files" CASCADE;--> statement-breakpoint
+CREATE POLICY "region.edit can update files" ON "files" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk))) WITH CHECK ((SELECT authorize_in_region('region.edit', region_fk)));--> statement-breakpoint
+CREATE POLICY "region.edit can delete files" ON "files" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk)));

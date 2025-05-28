@@ -839,6 +839,14 @@ export const files = table(
       getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
     policy(
+      `${REGION_PERMISSION_EDIT} can update files`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
+    ),
+    policy(
+      `${REGION_PERMISSION_EDIT} can delete files`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+    ),
+    policy(
       `${REGION_PERMISSION_READ} can update files belonging to their own ascents`,
       getPolicyConfig(
         'update',
@@ -873,10 +881,6 @@ export const files = table(
           ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
-    ),
-    policy(
-      `${REGION_PERMISSION_ADMIN} can fully access files`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN),
     ),
   ],
 ).enableRLS()
