@@ -253,15 +253,35 @@ export const regions = table(
   'regions',
   {
     ...baseFields,
+    createdBy: integer('created_by').references((): AnyColumn => users.id),
     name: baseContentFields.name,
     settings: jsonb('settings').$type<RegionSettings>(),
   },
   (table) => [
     index('regions_name_idx').on(table.name),
 
+    policy('authenticated users can create regions', getPolicyConfig('insert', sql`true`)),
     policy(`${APP_PERMISSION_ADMIN} can fully access regions`, getPolicyConfig('all', sql`true`)),
     policy(
       `users can read regions they are members of`,
+      getPolicyConfig(
+        'select',
+        sql`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              region_members as rm
+            WHERE
+              rm.region_fk = regions.id
+              AND rm.auth_user_fk = (SELECT auth.uid())
+              AND rm.is_active = true
+          )
+        `,
+      ),
+    ),
+    policy(
+      `${REGION_PERMISSION_ADMIN} can update region that they are members of`,
       getPolicyConfig(
         'select',
         sql`
@@ -319,7 +339,7 @@ export type InsertRegionMember = InferInsertModel<typeof regionMembers>
 
 export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
   authUser: one(authUsers, { fields: [regionMembers.authUserFk], references: [authUsers.id] }),
-  invitedBy: one(authUsers, { fields: [regionMembers.invitedBy], references: [authUsers.id] }),
+  invitedBy: one(users, { fields: [regionMembers.invitedBy], references: [users.id] }),
   region: one(regions, { fields: [regionMembers.regionFk], references: [regions.id] }),
   user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
 }))

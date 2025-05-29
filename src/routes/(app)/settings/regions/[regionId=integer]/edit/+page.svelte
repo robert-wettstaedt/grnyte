@@ -10,12 +10,12 @@
 </script>
 
 <svelte:head>
-  <title>Edit region {data.region.id} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>Edit {data.region.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   {#snippet lead()}
-    <span>Edit region {data.region.id}</span>
+    <span>Edit {data.region.name}</span>
   {/snippet}
 </AppBar>
 

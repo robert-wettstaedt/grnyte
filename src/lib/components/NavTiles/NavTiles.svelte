@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
 </script>
 
@@ -19,12 +18,6 @@
 <Navigation.Tile href="/search" label="Search" selected={page.url.pathname.startsWith('/search')}>
   <i class="fa-solid fa-search"></i>
 </Navigation.Tile>
-
-{#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN])}
-  <Navigation.Tile href="/config" label="Manage" selected={page.url.pathname.startsWith('/config')}>
-    <i class="fa-solid fa-wrench"></i>
-  </Navigation.Tile>
-{/if}
 
 <Navigation.Tile href="/settings" label="Settings" selected={page.url.pathname.startsWith('/settings')}>
   <i class="fa-solid fa-gear"></i>

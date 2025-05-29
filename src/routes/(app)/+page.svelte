@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
 
-  const { data } = $props()
+  const { data, form } = $props()
 </script>
 
 <svelte:window />
@@ -84,26 +85,37 @@
     <h2 class="h3 mb-4 text-center">Thank you for signing up for {PUBLIC_APPLICATION_NAME}</h2>
 
     <p class="mb-4 text-center opacity-75">
-      Your account is currently pending approval from our administrators. This helps us maintain the quality and
-      security of our climbing community.
+      You are not currently a member of any regions. You need to be invited by a region admin to join a region.
     </p>
 
-    <div class="space-y-4 opacity-75">
-      <p class="text-center text-xl">What happens next:</p>
-      <ol class="list-inside list-decimal space-y-2 text-left">
-        <li>Our team will review your request (usually within 24 hours)</li>
-        <li>You'll receive an email when your account is approved</li>
-        <li>Once approved, you can log in and start tracking your climbs</li>
-      </ol>
-    </div>
+    <p class="mb-4 text-center opacity-75">Or you can create a new region here:</p>
 
-    <p class="mt-6 text-center opacity-75">
-      {#if PUBLIC_TOPO_EMAIL}
-        If you don't receive an email within 24 hours, please check your spam folder or reach out to us at
+    <form action="?/createRegion" class="flex items-end" method="post" use:enhance>
+      <label class="label">
+        <span>Region name</span>
+        <input
+          class="input h-[34px] rounded-tr-none rounded-br-none"
+          name="name"
+          placeholder="Enter name..."
+          type="text"
+          value={form?.name ?? ''}
+        />
+      </label>
+
+      <button
+        aria-label="Create region"
+        class="btn-icon preset-filled-primary-500 h-[18px] rounded-tl-none rounded-bl-none"
+        type="submit"
+      >
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </form>
+
+    {#if PUBLIC_TOPO_EMAIL}
+      <p class="mt-6 text-center opacity-75">
+        If you need support or want to be invited to an existing region, please reach out to us at
         <a class="anchor" href="mailto:{PUBLIC_TOPO_EMAIL}">{PUBLIC_TOPO_EMAIL}</a>.
-      {:else}
-        If you don't receive an email within 24 hours, please check your spam folder.
-      {/if}
-    </p>
+      </p>
+    {/if}
   </div>
 {/if}

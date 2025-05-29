@@ -2,6 +2,7 @@
   import { applyAction, enhance } from '$app/forms'
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
+  import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
   import { calculateCacheSize, clearCache } from '$lib/cache/cache'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
@@ -120,7 +121,7 @@
         </div>
       </li>
 
-      <li>
+      <li class="border-surface-800 border-t">
         <button
           class="hover:preset-tonal-primary flex w-full items-center justify-between gap-4 p-2"
           onclick={onClearCache}
@@ -129,6 +130,55 @@
 
           <span class="text-sm opacity-60">{humanFileSize(cacheSize, true)}</span>
         </button>
+      </li>
+
+      {#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN])}
+        <li class="border-surface-800 border-t">
+          <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/tags">
+            Manage tags
+
+            <i class="fa-solid fa-chevron-right"></i>
+          </a>
+        </li>
+
+        <li class="border-surface-800 border-t">
+          <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/users">
+            Manage users
+
+            <i class="fa-solid fa-chevron-right"></i>
+          </a>
+        </li>
+      {/if}
+    </ul>
+  </section>
+</div>
+
+<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="region-settings">
+  <header class="space-y-1">
+    <h2 class="h4">Region settings</h2>
+  </header>
+
+  <section class="w-full space-y-5">
+    <ul>
+      {#each page.data.userRegions as region, index}
+        <li class={index === 0 ? '' : 'border-surface-800 border-t'}>
+          <a
+            class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2"
+            href="/settings/regions/{region.regionFk}"
+          >
+            {region.name}
+
+            <i class="fa-solid fa-chevron-right"></i>
+          </a>
+        </li>
+      {/each}
+
+      <li class={page.data.userRegions.length === 0 ? '' : 'border-surface-800 border-t'}>
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/regions/add">
+          Create region
+
+          <i class="fa-solid fa-plus"></i>
+        </a>
       </li>
     </ul>
   </section>
