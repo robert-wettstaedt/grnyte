@@ -72,6 +72,12 @@ describe('Permission Tests', () => {
           getAll: vi.fn().mockReturnValue([]),
           set: vi.fn(),
         },
+        url: {
+          pathname: '/test-path',
+        },
+        request: {
+          method: 'GET',
+        },
       }) as unknown as RequestEvent
 
     it('should grant maintainer all permissions', async () => {
