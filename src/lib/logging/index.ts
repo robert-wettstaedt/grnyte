@@ -64,8 +64,9 @@ class Logger {
 }
 
 // Create logger instances for different parts of the application
-export const dbLogger = new Logger('database')
-export const authLogger = new Logger('auth')
 export const apiLogger = new Logger('api')
+export const authLogger = new Logger('auth')
 export const cacheLogger = new Logger('cache')
+export const dbLogger = new Logger('database')
+export const errorLogger = new Logger('error')
 export const fileLogger = new Logger('file')

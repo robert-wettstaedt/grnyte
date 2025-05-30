@@ -1,9 +1,17 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
+import { authLogger } from '$lib/logging'
 import { createServerClient } from '@supabase/ssr'
 import { type Handle, redirect } from '@sveltejs/kit'
 
 export const supabase: Handle = async ({ event, resolve }) => {
+  const start = Date.now()
+
+  authLogger.debug('Supabase client initialization started', {
+    pathname: event.url.pathname,
+    method: event.request.method,
+  })
+
   /**
    * Creates a Supabase client specific to this server request.
    *
@@ -18,6 +26,10 @@ export const supabase: Handle = async ({ event, resolve }) => {
        * standard behavior.
        */
       setAll: (cookiesToSet) => {
+        authLogger.debug('Setting authentication cookies', {
+          cookieCount: cookiesToSet.length,
+          cookieNames: cookiesToSet.map((c) => c.name),
+        })
         cookiesToSet.forEach(({ name, value, options }) => {
           event.cookies.set(name, value, { ...options, secure: process.env.NODE_ENV !== 'development', path: '/' })
         })
@@ -31,10 +43,18 @@ export const supabase: Handle = async ({ event, resolve }) => {
    * JWT before returning the session.
    */
   event.locals.safeGetSession = async () => {
+    const sessionStart = Date.now()
+
+    authLogger.debug('Starting safe session retrieval')
+
     const {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
+
     if (!session) {
+      authLogger.debug('No session found', {
+        sessionRetrievalTime: Date.now() - sessionStart,
+      })
       return {
         session: undefined,
         user: undefined,
@@ -44,62 +64,119 @@ export const supabase: Handle = async ({ event, resolve }) => {
       }
     }
 
-    const user = await db.query.users.findFirst({
-      where: (table, { eq }) => eq(table.authUserFk, session.user.id),
-      with: {
-        userSettings: {
-          columns: {
-            gradingScale: true,
-            notifyModerations: true,
-            notifyNewAscents: true,
-            notifyNewUsers: true,
+    authLogger.debug('Session found, loading user data', {
+      sessionUserId: session.user.id,
+      sessionEmail: session.user.email,
+    })
+
+    try {
+      const userStart = Date.now()
+      const user = await db.query.users.findFirst({
+        where: (table, { eq }) => eq(table.authUserFk, session.user.id),
+        with: {
+          userSettings: {
+            columns: {
+              gradingScale: true,
+              notifyModerations: true,
+              notifyNewAscents: true,
+              notifyNewUsers: true,
+            },
           },
         },
-      },
-    })
+      })
+      const userTime = Date.now() - userStart
 
-    const userRole = await db.query.userRoles.findFirst({
-      where: (table, { eq }) => eq(table.authUserFk, session.user.id),
-    })
+      const roleStart = Date.now()
+      const userRole = await db.query.userRoles.findFirst({
+        where: (table, { eq }) => eq(table.authUserFk, session.user.id),
+      })
+      const roleTime = Date.now() - roleStart
 
-    const userRegions = await db.query.regionMembers.findMany({
-      where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, session.user.id), isNotNull(table.isActive)),
-      columns: {
-        regionFk: true,
-        role: true,
-      },
-      with: {
-        region: {
-          columns: {
-            name: true,
-            settings: true,
+      const regionsStart = Date.now()
+      const userRegions = await db.query.regionMembers.findMany({
+        where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, session.user.id), isNotNull(table.isActive)),
+        columns: {
+          regionFk: true,
+          role: true,
+        },
+        with: {
+          region: {
+            columns: {
+              name: true,
+              settings: true,
+            },
           },
         },
-      },
-    })
+      })
+      const regionsTime = Date.now() - regionsStart
 
-    const permissions = await db.query.rolePermissions.findMany()
+      const permissionsStart = Date.now()
+      const permissions = await db.query.rolePermissions.findMany()
+      const permissionsTime = Date.now() - permissionsStart
 
-    const userPermissions =
-      userRole == null
-        ? undefined
-        : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
+      const userPermissions =
+        userRole == null
+          ? undefined
+          : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
 
-    const userRegionsResult = userRegions.map((member) => ({
-      ...member,
-      permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
-      name: member.region.name,
-      settings: member.region.settings,
-    }))
+      const userRegionsResult = userRegions.map((member) => ({
+        ...member,
+        permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+        name: member.region.name,
+        settings: member.region.settings,
+      }))
 
-    return {
-      session,
-      user,
-      userPermissions,
-      userRegions: userRegionsResult,
-      userRole: userRole?.role,
+      const totalSessionTime = Date.now() - sessionStart
+
+      authLogger.info('User session loaded successfully', {
+        userId: user?.id,
+        userEmail: session.user.email,
+        userRole: userRole?.role,
+        userPermissionsCount: userPermissions?.length ?? 0,
+        userRegionsCount: userRegionsResult.length,
+        queryTimes: {
+          user: userTime,
+          role: roleTime,
+          regions: regionsTime,
+          permissions: permissionsTime,
+          total: totalSessionTime,
+        },
+      })
+
+      return {
+        session,
+        user,
+        userPermissions,
+        userRegions: userRegionsResult,
+        userRole: userRole?.role,
+      }
+    } catch (error) {
+      const totalSessionTime = Date.now() - sessionStart
+
+      authLogger.error('Failed to load user session data', {
+        sessionUserId: session.user.id,
+        sessionEmail: session.user.email,
+        totalSessionTime,
+        error,
+      })
+
+      // Return minimal session data on error
+      return {
+        session,
+        user: undefined,
+        userPermissions: undefined,
+        userRegions: [],
+        userRole: undefined,
+      }
     }
   }
+
+  const duration = Date.now() - start
+
+  authLogger.debug('Supabase client initialization completed', {
+    pathname: event.url.pathname,
+    duration,
+  })
 
   return resolve(event, {
     filterSerializedResponseHeaders(name) {
@@ -113,6 +190,13 @@ export const supabase: Handle = async ({ event, resolve }) => {
 }
 
 export const authGuard: Handle = async ({ event, resolve }) => {
+  const start = Date.now()
+
+  authLogger.debug('Auth guard started', {
+    pathname: event.url.pathname,
+    method: event.request.method,
+  })
+
   const { session, user, userPermissions, userRole, userRegions } = await event.locals.safeGetSession()
 
   event.locals.session = session
@@ -121,6 +205,16 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   event.locals.userRegions = userRegions
   event.locals.userRole = userRole
 
+  authLogger.debug('Session data loaded', {
+    hasSession: !!session,
+    hasUser: !!user,
+    userId: user?.id,
+    userRole,
+    userRegionsCount: userRegions.length,
+    userPermissionsCount: userPermissions?.length ?? 0,
+  })
+
+  // Check if user needs authentication
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
@@ -128,26 +222,73 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     !event.url.pathname.startsWith('/f/') &&
     !event.url.pathname.startsWith('/api/notifications')
   ) {
+    authLogger.info('Redirecting unauthenticated user to auth', {
+      originalPath: event.url.pathname,
+      method: event.request.method,
+    })
     redirect(303, '/auth')
   }
 
+  // Redirect authenticated users away from auth pages
   if (event.locals.session != null && event.url.pathname.startsWith('/auth')) {
+    authLogger.info('Redirecting authenticated user away from auth page', {
+      userId: user?.id,
+      userEmail: session?.user?.email,
+      attemptedPath: event.url.pathname,
+    })
     redirect(303, '/')
   }
 
+  // Handle users without regions (potential invites)
   const email = event.locals.session?.user.email
   if (email != null && event.locals.userRegions.length === 0) {
-    if (event.url.pathname === '/') {
-      const invitation = await db.query.regionInvitations.findFirst({
-        where: (table, { and, eq, gt }) =>
-          and(eq(table.email, email), eq(table.status, 'pending'), gt(table.expiresAt, new Date())),
-      })
+    authLogger.debug('User has no regions, checking for invitations', {
+      userId: user?.id,
+      userEmail: email,
+      pathname: event.url.pathname,
+    })
 
-      if (invitation != null) {
-        redirect(303, '/invite/accept?token=' + invitation.token)
+    if (event.url.pathname === '/') {
+      try {
+        const invitation = await db.query.regionInvitations.findFirst({
+          where: (table, { and, eq, gt }) =>
+            and(eq(table.email, email), eq(table.status, 'pending'), gt(table.expiresAt, new Date())),
+        })
+
+        if (invitation != null) {
+          authLogger.info('Redirecting user to accept pending invitation', {
+            userId: user?.id,
+            userEmail: email,
+            invitationToken: invitation.token,
+            invitationExpires: invitation.expiresAt,
+          })
+          redirect(303, '/invite/accept?token=' + invitation.token)
+        } else {
+          authLogger.warn('User has no regions and no pending invitations', {
+            userId: user?.id,
+            userEmail: email,
+          })
+        }
+      } catch (error) {
+        authLogger.error('Failed to check for region invitations', {
+          userId: user?.id,
+          userEmail: email,
+          error,
+        })
       }
     }
   }
+
+  const duration = Date.now() - start
+
+  authLogger.debug('Auth guard completed', {
+    pathname: event.url.pathname,
+    method: event.request.method,
+    hasSession: !!session,
+    userId: user?.id,
+    userRegionsCount: userRegions.length,
+    duration,
+  })
 
   return resolve(event)
 }
