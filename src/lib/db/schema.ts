@@ -344,6 +344,44 @@ export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
   user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
 }))
 
+export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired'])
+
+export const regionInvitations = table(
+  'region_invitations',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+    token: uuid('token').notNull().unique(),
+    invitedBy: integer('invited_by')
+      .notNull()
+      .references((): AnyColumn => users.id),
+    email: text('email').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    status: invitationStatusEnum('status').notNull().default('pending'),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    acceptedBy: integer('accepted_by').references((): AnyColumn => users.id),
+  },
+  (table) => [
+    index('region_invitations_token_idx').on(table.token),
+    index('region_invitations_region_fk_idx').on(table.regionFk),
+    index('region_invitations_email_idx').on(table.email),
+    index('region_invitations_status_idx').on(table.status),
+
+    policy(
+      `${REGION_PERMISSION_ADMIN} can insert region_invitations`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_ADMIN),
+    ),
+    policy(`users can read region_invitations`, getPolicyConfig('select', sql`true`)),
+    policy(`users can update region_invitations`, getPolicyConfig('update', sql`true`)),
+  ],
+).enableRLS()
+
+export const regionInvitationsRelations = relations(regionInvitations, ({ one }) => ({
+  region: one(regions, { fields: [regionInvitations.regionFk], references: [regions.id] }),
+  invitedBy: one(users, { fields: [regionInvitations.invitedBy], references: [users.id] }),
+  acceptedBy: one(users, { fields: [regionInvitations.acceptedBy], references: [users.id] }),
+}))
+
 export const grades = table(
   'grades',
   {

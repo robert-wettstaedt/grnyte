@@ -1,10 +1,15 @@
 import { db } from '$lib/db/db.server'
 import type { UserSettings } from '$lib/db/schema'
+import { redirect } from '@sveltejs/kit'
 
-export const load = async ({ locals, cookies }) => {
+export const load = async ({ locals, cookies, url }) => {
   const { session, user: authUser } = await locals.safeGetSession()
   const grades = await db.query.grades.findMany()
   const gradingScale: UserSettings['gradingScale'] = locals.user?.userSettings?.gradingScale ?? 'FB'
+
+  if (locals.user != null && locals.userRegions.length === 0 && url.pathname !== '/') {
+    redirect(302, '/')
+  }
 
   return {
     authUser,

@@ -479,6 +479,194 @@ export const notifyRoleUpdated = async (
   })
 }
 
+interface NotifyInvitedProps extends Partial<BaseOpts> {
+  email: string
+  inviteUrl: URL
+  regionName: string
+  username: string
+}
+export const notifyInvite = async (
+  event: RequestEvent,
+  { authUserFk, email, inviteUrl, regionName, username }: NotifyInvitedProps,
+) => {
+  const { pushSubscriptions, user } = authUserFk == null ? {} : await getNotificationBase({ authUserFk })
+  const title = `${username} has invited you to join ${regionName}`
+
+  if (user != null && pushSubscriptions != null && pushSubscriptions.length > 0) {
+    const notification: Notification = {
+      title,
+      type: 'user',
+      userId: user.id,
+    }
+    await Promise.all(
+      pushSubscriptions.map(async (subscription) => {
+        await sendNotificationToSubscription(notification, subscription)
+      }),
+    )
+  }
+
+  await resend.emails.send({
+    from: RESEND_SENDER_EMAIL,
+    to: [email],
+    subject: title,
+    html: getEmailBase(
+      title,
+      `
+        <h1
+          style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
+          You've Been Invited to Join:
+          ${regionName}
+        </h1>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          Hello${user == null ? '' : ` ${user.username}`},
+        </p>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          The user <strong>${username}</strong> has invited you to join the
+          <strong>${regionName}</strong> region in ${PUBLIC_APPLICATION_NAME}.
+        </p>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:32px">
+          Click the button below to accept the invitation and get started.
+        </p>
+        <table
+          align="center"
+          width="100%"
+          border="0"
+          cellpadding="0"
+          cellspacing="0"
+          role="presentation"
+          style="text-align:center;margin-bottom:32px">
+          <tbody>
+            <tr>
+              <td>
+                <a
+                  href="${inviteUrl.toString()}"
+                  style="background-color:rgb(130,58,165);color:rgb(255,255,255);font-weight:700;padding-top:12px;padding-bottom:12px;padding-left:24px;padding-right:24px;border-radius:4px;text-decoration-line:none;text-align:center;box-sizing:border-box;line-height:100%;text-decoration:none;display:inline-block;max-width:100%;mso-padding-alt:0px;padding:12px 24px 12px 24px"
+                  target="_blank"
+                  ><span
+                    ><!--[if mso]><i style="mso-font-width:400%;mso-text-raise:18" hidden>&#8202;&#8202;&#8202;</i><![endif]--></span
+                  ><span
+                    style="max-width:100%;display:inline-block;line-height:120%;mso-padding-alt:0px;mso-text-raise:9px"
+                    >Accept Invitation</span
+                  ><span
+                    ><!--[if mso]><i style="mso-font-width:400%" hidden>&#8202;&#8202;&#8202;&#8203;</i><![endif]--></span
+                  ></a
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          This invitation will expire in 7 days.
+        </p>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:32px">
+          If you have any questions about this invitation, please contact the region administrator.
+        </p>
+        <hr
+          style="border-color:rgb(229,231,235);margin-top:32px;margin-bottom:32px;width:100%;border:none;border-top:1px solid #eaeaea" />
+        <p
+          style="font-size:14px;font-weight:700;color:rgb(107,114,128);margin-top:0px;margin-bottom:32px;line-height:24px">
+          The ${PUBLIC_APPLICATION_NAME} Team
+        </p>
+      `,
+    ),
+  })
+}
+
+interface NotifyAcceptedInviteProps extends BaseOpts {
+  regionName: string
+  username: string
+}
+export const notifyAcceptedInvite = async (
+  event: RequestEvent,
+  { authUserFk, regionName, username }: NotifyAcceptedInviteProps,
+) => {
+  const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
+  const title = `${username} has accepted your invitation`
+
+  if (authUser?.email == null || user == null) {
+    return
+  }
+
+  if (pushSubscriptions.length > 0) {
+    const notification: Notification = {
+      title,
+      type: 'user',
+      userId: user.id,
+    }
+    await Promise.all(
+      pushSubscriptions.map(async (subscription) => {
+        await sendNotificationToSubscription(notification, subscription)
+      }),
+    )
+  }
+
+  await resend.emails.send({
+    from: RESEND_SENDER_EMAIL,
+    to: [authUser.email],
+    subject: title,
+    html: getEmailBase(
+      title,
+      `
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          Hello
+          ${user.username},
+        </p>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
+          The user <strong>${username}</strong> has accepted your invitation to join the
+          <strong>${regionName}</strong> region in ${PUBLIC_APPLICATION_NAME}.
+        </p>
+        <table
+          align="center"
+          width="100%"
+          border="0"
+          cellpadding="0"
+          cellspacing="0"
+          role="presentation"
+          style="text-align:center;margin-bottom:32px">
+          <tbody>
+            <tr>
+              <td>
+                <a
+                  href="${event.url.origin}/auth/signin"
+                  style="background-color:rgb(130,58,165);color:rgb(255,255,255);font-weight:700;padding-top:12px;padding-bottom:12px;padding-left:24px;padding-right:24px;border-radius:4px;text-decoration-line:none;text-align:center;box-sizing:border-box;line-height:100%;text-decoration:none;display:inline-block;max-width:100%;mso-padding-alt:0px;padding:12px 24px 12px 24px"
+                  target="_blank"
+                  ><span
+                    ><!--[if mso]><i style="mso-font-width:400%;mso-text-raise:18" hidden>&#8202;&#8202;&#8202;</i><![endif]--></span
+                  ><span
+                    style="max-width:100%;display:inline-block;line-height:120%;mso-padding-alt:0px;mso-text-raise:9px"
+                    >Log In Now</span
+                  ><span
+                    ><!--[if mso]><i style="mso-font-width:400%" hidden>&#8202;&#8202;&#8202;&#8203;</i><![endif]--></span
+                  ></a
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p
+          style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:32px">
+          If you have any questions about your access or need assistance
+          getting started, please contact your region administrator or our
+          support team.
+        </p>
+        <hr
+          style="border-color:rgb(229,231,235);margin-top:32px;margin-bottom:32px;width:100%;border:none;border-top:1px solid #eaeaea" />
+        <p
+          style="font-size:14px;font-weight:700;color:rgb(107,114,128);margin-top:0px;margin-bottom:32px;line-height:24px">
+          The ${PUBLIC_APPLICATION_NAME} Team
+        </p>
+      `,
+    ),
+  })
+}
+
 interface NotifyNewUserProps extends BaseOpts {
   username: string
   email: string

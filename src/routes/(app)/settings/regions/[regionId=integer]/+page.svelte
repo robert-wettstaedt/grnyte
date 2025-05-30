@@ -11,7 +11,7 @@
   } from '$lib/auth'
   import AppBar from '$lib/components/AppBar/AppBar.svelte'
   import { appRole, appRoleLabels } from '$lib/db/schema'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
 
@@ -92,10 +92,52 @@
             <th>Name</th>
             <th>Invited by</th>
             <th>Role</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
+          {#each data.regionInvitations as regionInvitation}
+            <tr class="hover:preset-tonal-primary">
+              <td>{regionInvitation.email}</td>
+              <td>{regionInvitation.invitedBy?.username}</td>
+              <td>Invitation pending</td>
+
+              <td>
+                {#if isAdmin || regionInvitation.invitedBy.authUserFk === page.data.user?.authUserFk}
+                  <Popover
+                    arrow
+                    arrowBackground="!bg-surface-200 dark:!bg-surface-800"
+                    contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+                    positioning={{ placement: 'top' }}
+                    triggerBase="btn-icon preset-filled-error-500 !text-white"
+                  >
+                    {#snippet trigger()}
+                      <i class="fa-solid fa-cancel"></i>
+                    {/snippet}
+
+                    {#snippet content()}
+                      <article>
+                        <p>
+                          Are you sure you want to remove <strong>{regionInvitation.email}</strong> from the region?
+                        </p>
+                      </article>
+
+                      <footer class="flex justify-end">
+                        <form method="POST" action="?/removeRegionInvitation" use:enhance>
+                          <input type="hidden" name="invitationId" value={regionInvitation.id} />
+                          <input type="hidden" name="regionId" value={regionInvitation.regionFk} />
+
+                          <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
+                        </form>
+                      </footer>
+                    {/snippet}
+                  </Popover>
+                {/if}
+              </td>
+            </tr>
+          {/each}
+
           {#each data.regionMembers as regionMember}
             <tr class="hover:preset-tonal-primary">
               <td>{regionMember.user?.username}</td>
@@ -133,7 +175,7 @@
                       }}
                       value={regionMember.role ?? ''}
                     >
-                      <option value="">-- None --</option>
+                      <option disabled value="">-- None --</option>
 
                       {#each appRole.enumValues.filter((role) => role !== 'app_admin') as role}
                         <option value={role}>{appRoleLabels[role]}</option>
@@ -142,6 +184,39 @@
                   </form>
                 {:else}
                   {appRoleLabels[regionMember.role]}
+                {/if}
+              </td>
+
+              <td>
+                {#if isAdmin}
+                  <Popover
+                    arrow
+                    arrowBackground="!bg-surface-200 dark:!bg-surface-800"
+                    contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+                    positioning={{ placement: 'top' }}
+                    triggerBase="btn-icon preset-filled-error-500 !text-white"
+                  >
+                    {#snippet trigger()}
+                      <i class="fa-solid fa-cancel"></i>
+                    {/snippet}
+
+                    {#snippet content()}
+                      <article>
+                        <p>
+                          Are you sure you want to remove <strong>{regionMember.user.username}</strong> from the region?
+                        </p>
+                      </article>
+
+                      <footer class="flex justify-end">
+                        <form method="POST" action="?/updateRegionMember" use:enhance>
+                          <input type="hidden" name="userId" value={regionMember.userFk} />
+                          <input type="hidden" name="regionId" value={regionMember.regionFk} />
+
+                          <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
+                        </form>
+                      </footer>
+                    {/snippet}
+                  </Popover>
                 {/if}
               </td>
             </tr>

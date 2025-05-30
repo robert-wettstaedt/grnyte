@@ -138,14 +138,14 @@
           {/if}
         </span>
       {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'role'}
-        has approved user
+        has approved
         <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
 
         {#if activity.region != null}
           to region {activity.region.name}
         {/if}
       {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role'}
-        has updated user
+        has updated the role of
         <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
 
         to {activity.newValue}
@@ -154,8 +154,28 @@
           in region {activity.region.name}
         {/if}
       {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'role'}
-        has removed user
+        has removed
         <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          from region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'invitation'}
+        has invited
+        <a class="anchor" href={`mailto:${activity.newValue}`}>{activity.newValue}</a>
+
+        {#if activity.region != null}
+          to region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'invitation'}
+        has accepted the invitation to join
+
+        {#if activity.region != null}
+          region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'invitation'}
+        has removed the invitation to
+        <a class="anchor" href={`mailto:${activity.newValue}`}>{activity.newValue}</a>
 
         {#if activity.region != null}
           from region {activity.region.name}

@@ -262,38 +262,39 @@ describe('Notifications API Server Module', () => {
       const mockActivities = [
         // Ascent activity
         {
-          id: 1,
-          type: 'created',
-          entityType: 'ascent',
-          entityId: '101',
-          userFk: 201,
-          regionFk: 1,
           createdAt: sub(new Date(), { minutes: 10 }), // 10 minutes ago
+          entityId: '101',
+          entityType: 'ascent',
+          id: 1,
           notified: null,
+          regionFk: 1,
+          type: 'created',
+          userFk: 201,
         },
         // User activity
         {
-          id: 2,
-          type: 'created',
-          entityType: 'user',
-          entityId: '401',
-          userFk: 401,
-          regionFk: 1,
+          columnName: 'role',
           createdAt: sub(new Date(), { minutes: 20 }), // 20 minutes ago
+          entityId: '401',
+          entityType: 'user',
+          id: 2,
           notified: null,
+          regionFk: 1,
+          type: 'created',
+          userFk: 201,
         },
         // Moderation activity
         {
-          id: 3,
-          type: 'updated',
-          entityType: 'route',
-          entityId: '501',
-          parentEntityType: 'block',
-          parentEntityId: '601',
-          userFk: 301,
-          regionFk: 1,
           createdAt: sub(new Date(), { minutes: 15 }), // 15 minutes ago
+          entityId: '501',
+          entityType: 'route',
+          id: 3,
           notified: null,
+          parentEntityId: '601',
+          parentEntityType: 'block',
+          regionFk: 1,
+          type: 'updated',
+          userFk: 301,
         },
       ]
 
@@ -354,6 +355,21 @@ describe('Notifications API Server Module', () => {
         },
       })
 
+      // Mock for the user activity - need to mock the entity lookup
+      // First call will be for the user entity lookup
+      mockFunctions.findFirst.mockResolvedValueOnce({
+        id: 401,
+        username: 'newuser',
+      })
+
+      mockFunctions.postProcessEntity.mockResolvedValueOnce({
+        type: 'user',
+        object: {
+          id: 401,
+          username: 'newuser',
+        },
+      })
+
       // Mock region members
       mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }, { userFk: 401 }, { userFk: 301 }])
 
@@ -378,8 +394,8 @@ describe('Notifications API Server Module', () => {
           // User notification
           expect.objectContaining({
             type: 'user',
-            body: expect.stringContaining('newuser has joined Test App'),
-            userId: 401,
+            body: expect.stringContaining('climber1 has approved newuser'),
+            userId: 201,
           }),
           // Moderation notification
           expect.objectContaining({
