@@ -1,7 +1,12 @@
 {
-  "name": "crag-track",
+  "name": "grnyte",
   "version": "0.0.1",
   "private": true,
+  "homepage": "http://grnyte.rocks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robert-wettstaedt/grnyte"
+  },
   "engines": {
     "node": "^22"
   },

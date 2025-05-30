@@ -19,6 +19,7 @@
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.css'
+  import { Footer } from './components/Footer'
   import HeaderBar from './components/HeaderBar'
 
   let { children }: LayoutProps = $props()
@@ -88,6 +89,11 @@
 
     {@render children?.()}
   </main>
+
+  <!-- Footer - only show for logged-out users or on certain pages -->
+  {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
+    <Footer />
+  {/if}
 
   {#if page.data.userRegions.length > 0}
     <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">

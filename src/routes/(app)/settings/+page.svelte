@@ -314,3 +314,45 @@
     </form>
   </section>
 </div>
+
+<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="legal">
+  <header class="space-y-1">
+    <h2 class="h4">Legal</h2>
+  </header>
+
+  <section class="w-full space-y-5">
+    <ul>
+      <li>
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/privacy">
+          Privacy policy
+
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+
+      <li class="border-surface-800 border-t">
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/terms">
+          Terms of service
+
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+
+      <li class="border-surface-800 border-t">
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/cookies">
+          Cookie policy
+
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+
+      <li class="border-surface-800 border-t">
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/disclaimer">
+          Disclaimer
+
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+    </ul>
+  </section>
+</div>

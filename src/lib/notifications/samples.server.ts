@@ -181,10 +181,6 @@ export const notifyFirstRoleAdded = async (
         <hr
           style="border-color:rgb(229,231,235);margin-top:32px;margin-bottom:32px;width:100%;border:none;border-top:1px solid #eaeaea" />
         <p
-          style="font-size:14px;color:rgb(107,114,128);margin-top:0px;margin-bottom:8px;line-height:24px">
-          Thank you for your patience during the approval process.
-        </p>
-        <p
           style="font-size:14px;font-weight:700;color:rgb(107,114,128);margin-top:0px;margin-bottom:32px;line-height:24px">
           The ${PUBLIC_APPLICATION_NAME} Team
         </p>
