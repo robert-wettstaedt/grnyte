@@ -7,10 +7,6 @@ export const load = async ({ locals, cookies, url }) => {
   const grades = await db.query.grades.findMany()
   const gradingScale: UserSettings['gradingScale'] = locals.user?.userSettings?.gradingScale ?? 'FB'
 
-  if (locals.user != null && locals.userRegions.length === 0 && url.pathname !== '/') {
-    redirect(302, '/')
-  }
-
   return {
     authUser,
     cookies: cookies.getAll(),

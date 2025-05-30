@@ -135,5 +135,19 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, '/')
   }
 
+  const email = event.locals.session?.user.email
+  if (email != null && event.locals.userRegions.length === 0) {
+    if (event.url.pathname === '/') {
+      const invitation = await db.query.regionInvitations.findFirst({
+        where: (table, { and, eq, gt }) =>
+          and(eq(table.email, email), eq(table.status, 'pending'), gt(table.expiresAt, new Date())),
+      })
+
+      if (invitation != null) {
+        redirect(303, '/invite/accept?token=' + invitation.token)
+      }
+    }
+  }
+
   return resolve(event)
 }
