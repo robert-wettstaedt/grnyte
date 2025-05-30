@@ -45,7 +45,7 @@
         {#if !PUBLIC_DEMO_MODE}
           <a
             class="btn preset-outlined-primary-500"
-            href="https://demo.grnyte.rocks"
+            href="https://demo.grnyte.rocks/auth/signin"
             rel="noopener noreferrer"
             target="_blank"
           >
