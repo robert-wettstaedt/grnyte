@@ -120,10 +120,9 @@
 
         <div class="card preset-filled-surface-100-900 p-6">
           <i class="fa-solid fa-chart-line text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Development Tracking</h3>
+          <h3 class="h4 mb-3">Development Documentation</h3>
           <p class="opacity-75">
-            Track first ascents, cleaning progress, and project status. See how your area evolves over time with
-            detailed analytics.
+            Document first ascents, cleaning progress, and project status. See how your area evolves over time.
           </p>
         </div>
 
