@@ -253,7 +253,7 @@ export const regions = table(
   'regions',
   {
     ...baseFields,
-    createdBy: integer('created_by').references((): AnyColumn => users.id),
+    createdBy: baseContentFields.createdBy,
     name: baseContentFields.name,
     settings: jsonb('settings').$type<RegionSettings>(),
   },

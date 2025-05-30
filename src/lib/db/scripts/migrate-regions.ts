@@ -35,7 +35,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       })
 
       if (region == null) {
-        const result = await db.insert(schema.regions).values({ name: visibility }).returning()
+        const result = await db.insert(schema.regions).values({ name: visibility, createdBy: 1 }).returning()
         region = result[0]
       }
 

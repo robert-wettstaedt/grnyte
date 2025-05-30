@@ -125,6 +125,7 @@ const mockActivity = {
 
 const mockRegion = {
   createdAt: new Date(),
+  createdBy: 1,
   id: 1,
   name: 'Test Region',
   settings: {
