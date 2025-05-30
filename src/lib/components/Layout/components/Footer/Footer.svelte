@@ -12,7 +12,7 @@
       <div>
         <h3 class="mb-2 text-lg font-bold">{PUBLIC_APPLICATION_NAME}</h3>
         <p class="text-sm opacity-75">
-          Secure boulder topo and session tracker. A hobby project for the climbing community.
+          Secure boulder topo and session tracker. A hobby project for the bouldering community.
         </p>
       </div>
 

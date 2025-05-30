@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME, PUBLIC_DEMO_MODE, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
@@ -29,49 +29,154 @@
     </div>
 
     <div class="container mx-auto px-4 text-center">
-      <h1 class="h1 mb-4">Secure boulder topo and session tracker</h1>
+      <h1 class="h1 mb-4">Protect Your Private Land Bouldering Areas</h1>
 
       <p class="mx-auto mb-8 max-w-2xl text-xl opacity-75">
-        Document your ascents, manage topos, and connect with the climbing community. All in one place.
+        Professional area management for sensitive access locations. Keep your development projects secure, collaborate
+        with your community, and never lose your data again.
       </p>
 
       <div class="flex justify-center gap-4">
         <a href="/auth" class="btn preset-filled-primary-500">
-          <i class="fa-solid fa-right-to-bracket mr-2"></i>
-          Start Climbing
+          <i class="fa-solid fa-shield-heart mr-2"></i>
+          Secure My Areas
         </a>
+
+        {#if !PUBLIC_DEMO_MODE}
+          <a
+            class="btn preset-outlined-primary-500"
+            href="https://demo.grnyte.rocks"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <i class="fa-solid fa-play mr-2"></i>
+            Try Demo
+          </a>
+        {/if}
       </div>
     </div>
   </section>
 
-  <!-- Features Grid -->
-  <section class="grid gap-8 py-16 md:grid-cols-3">
-    <div class="card preset-filled-surface-100-900 p-6">
-      <i class="fa-solid fa-mountain text-primary-500 mb-4 text-4xl"></i>
-      <h2 class="h3 mb-2">Topo Management</h2>
-      <p class="opacity-75">Organize climbing areas, sectors, and routes with detailed information and topos.</p>
-    </div>
+  <!-- Problem Statement -->
+  <section class="py-16">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="h2 mb-8">Why Area Developers Choose Privacy-First Tools</h2>
 
-    <div class="card preset-filled-surface-100-900 p-6">
-      <i class="fa-solid fa-chart-line text-primary-500 mb-4 text-4xl"></i>
-      <h2 class="h3 mb-2">Progress Tracking</h2>
-      <p class="opacity-75">Log your ascents, track projects, and visualize your climbing progression.</p>
+      <div class="mx-auto mb-12 max-w-3xl">
+        <p class="mb-6 text-lg opacity-90">
+          Developing bouldering areas on private land requires careful balance between community collaboration and
+          access protection. One misplaced coordinate or overshared beta can jeopardize years of relationship building
+          with landowners.
+        </p>
+        <p class="text-lg opacity-90">
+          Meanwhile, managing development data across scattered Excel files and email chains creates version conflicts,
+          data loss risks, and collaboration headaches that slow down progress.
+        </p>
+      </div>
     </div>
+  </section>
 
-    <div class="card preset-filled-surface-100-900 p-6">
-      <i class="fa-solid fa-users text-primary-500 mb-4 text-4xl"></i>
-      <h2 class="h3 mb-2">Community</h2>
-      <p class="opacity-75">Connect with other climbers, share beta, and discover new climbing spots.</p>
+  <!-- Core Features -->
+  <section class="py-16">
+    <div class="container mx-auto px-4">
+      <h2 class="h2 mb-12 text-center">Built for Area Developers Who Value Access</h2>
+
+      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div class="card preset-filled-surface-100-900 p-6">
+          <i class="fa-solid fa-lock text-primary-500 mb-4 text-4xl"></i>
+          <h3 class="h4 mb-3">Access Protection</h3>
+          <p class="opacity-75">
+            Keep sensitive areas private with invitation-only communities. Perfect for private land where public
+            exposure risks closure.
+          </p>
+        </div>
+
+        <div class="card preset-filled-surface-100-900 p-6">
+          <i class="fa-solid fa-users-gear text-primary-500 mb-4 text-4xl"></i>
+          <h3 class="h4 mb-3">Professional Collaboration</h3>
+          <p class="opacity-75">
+            Replace email chains and version conflicts. Your entire team sees updates instantly with proper change
+            tracking.
+          </p>
+        </div>
+
+        <div class="card preset-filled-surface-100-900 p-6">
+          <i class="fa-solid fa-database text-primary-500 mb-4 text-4xl"></i>
+          <h3 class="h4 mb-3">Data Integrity</h3>
+          <p class="opacity-75">
+            Import your Excel files and upgrade to professional area management. Never lose development work to
+            corrupted files again.
+          </p>
+        </div>
+
+        <div class="card preset-filled-surface-100-900 p-6">
+          <i class="fa-solid fa-map-marked-alt text-primary-500 mb-4 text-4xl"></i>
+          <h3 class="h4 mb-3">Complete Area Management</h3>
+          <p class="opacity-75">
+            Organize areas, sectors, and problems with detailed topos, grades, and conditions. Built specifically for
+            boulder development.
+          </p>
+        </div>
+
+        <div class="card preset-filled-surface-100-900 p-6">
+          <i class="fa-solid fa-chart-line text-primary-500 mb-4 text-4xl"></i>
+          <h3 class="h4 mb-3">Development Tracking</h3>
+          <p class="opacity-75">
+            Track first ascents, cleaning progress, and project status. See how your area evolves over time with
+            detailed analytics.
+          </p>
+        </div>
+
+        <div class="card preset-filled-surface-100-900 p-6">
+          <i class="fa-solid fa-upload text-primary-500 mb-4 text-4xl"></i>
+          <h3 class="h4 mb-3">Easy Migration</h3>
+          <p class="opacity-75">
+            Import existing problem lists from Excel or CSV. Migrate decades of development work in minutes, not months.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Who This Is For -->
+  <section class="bg-surface-100-900 py-16">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="h2 mb-8">Perfect For</h2>
+
+      <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
+        <div class="p-6">
+          <i class="fa-solid fa-hammer text-primary-500 mb-4 text-3xl"></i>
+          <h3 class="h5 mb-2">Area Developers</h3>
+          <p class="opacity-75">First ascentionists and route setters managing ongoing development projects</p>
+        </div>
+
+        <div class="p-6">
+          <i class="fa-solid fa-user-friends text-primary-500 mb-4 text-3xl"></i>
+          <h3 class="h5 mb-2">Local Communities</h3>
+          <p class="opacity-75">Tight-knit climbing groups with sensitive access areas requiring discretion</p>
+        </div>
+
+        <div class="p-6">
+          <i class="fa-solid fa-tree text-primary-500 mb-4 text-3xl"></i>
+          <h3 class="h5 mb-2">Private Land Stewards</h3>
+          <p class="opacity-75">Landowners and permitted groups managing sustainable access programs</p>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- Integration Section -->
   <section class="py-16 text-center">
-    <h2 class="h2 mb-8">Integrates with Your Favorite Platforms</h2>
-    <div class="flex items-center justify-center gap-8">
-      <img src={Logo8a} alt="8a" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
-      <img src={Logo27crags} alt="27crags" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
-      <img src={LogoTheCrag} alt="The Crag" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
+    <div class="container mx-auto px-4">
+      <h2 class="h2 mb-8">When You're Ready to Go Public</h2>
+      <p class="mx-auto mb-8 max-w-2xl opacity-75">
+        Once access is secured and areas are established, easily export your data to public platforms when appropriate.
+      </p>
+      <div class="flex items-center justify-center gap-8">
+        <img src={Logo8a} alt="8a" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
+        <img src={Logo27crags} alt="27crags" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
+        <img src={LogoTheCrag} alt="The Crag" class="h-8 opacity-75 transition-opacity hover:opacity-100" />
+      </div>
     </div>
   </section>
 {:else if data.userRegions.length > 0}
