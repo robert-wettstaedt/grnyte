@@ -19,24 +19,25 @@ body {
   width: 100%;
 }
 
-.rendered-markdown {
-  display: block !important;
-
-  & > * {
-    margin-left: 0 !important;
-  }
+.markdown-body {
+  background-color: transparent;
+  box-sizing: border-box;
+  margin: 0 auto;
+  min-width: 200px;
 
   & ul {
     list-style: initial;
-    margin: 16px 0;
-    padding-left: 40px;
+  }
+
+  & ol {
+    list-style: decimal;
   }
 
   & a {
     @apply anchor;
   }
+}
 
-  & p {
-    margin-top: 8px;
-  }
+select option:checked {
+  background-color: var(--color-primary-500);
 }

@@ -1,13 +1,12 @@
-import { getFromCacheWithDefault } from '$lib/cache/cache.server'
+import { caches, getFromCacheWithDefault } from '$lib/cache/cache.server'
 import type { NestedBlock } from '$lib/components/BlocksMap'
-import { config } from '$lib/config'
 import type { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, blocks } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery, enrichBlock, enrichTopo } from '$lib/db/utils'
 import { error } from '@sveltejs/kit'
-import { eq, isNotNull } from 'drizzle-orm'
+import { arrayOverlaps, eq, isNotNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 export const getBlocksOfArea = async (areaId: number, db: PostgresJsDatabase<typeof schema>) => {
@@ -230,85 +229,76 @@ export const nestedAreaQuery: Parameters<typeof db.query.areas.findMany>[0] = {
   },
 }
 
-type NestedArea = InferResultType<
-  'areas',
-  { areas: { with: { areas: true; blocks: { with: { routes: true } } } }; blocks: { with: { routes: true } } }
->
-const recursive = (area: NestedArea): schema.Route[] => {
-  const routes = area.blocks?.flatMap((block) => block.routes ?? []) ?? []
-  routes.push(...(area.areas?.flatMap((area) => recursive(area as NestedArea)) ?? []))
-
-  return routes
+interface AreaStats {
+  numOfRoutes: number
+  grades: { grade: string | undefined }[]
 }
 
-export const getStatsOfArea = <T extends InferResultType<'areas'>>(
-  area: T,
+export const getStatsOfAreas = async (
+  db: PostgresJsDatabase<typeof schema>,
+  areaIds: number[],
   grades: schema.Grade[],
   user: InferResultType<'users', { userSettings: { columns: { gradingScale: true } } }> | undefined,
 ) => {
-  const routes = recursive(area as unknown as NestedArea)
+  const routes =
+    areaIds.length === 0
+      ? []
+      : await db.query.routes.findMany({
+          where: arrayOverlaps(schema.routes.areaFks, areaIds),
+          columns: {
+            areaFks: true,
+            userGradeFk: true,
+            gradeFk: true,
+          },
+        })
 
-  const gradesObj = routes.map((route) => ({
-    grade: grades.find((grade) => grade.id === route.gradeFk)?.[user?.userSettings?.gradingScale ?? 'FB'],
-  }))
+  const allAreaIds = routes.flatMap((route) => route.areaFks ?? [])
+  const distinctAreaIds = [...new Set(allAreaIds)]
 
-  return {
-    ...area,
-    numOfRoutes: routes.length,
-    grades: gradesObj,
-  }
-}
+  const areaStats = distinctAreaIds.reduce(
+    (obj, areaId) => {
+      const areaRoutes = routes.filter((route) => route.areaFks?.includes(areaId))
 
-export const getStatsOfBlocks = <
-  T extends InferResultType<'blocks', { routes: true; topos: { with: { routes: true; file: true } } }>,
->(
-  blocks: T[],
-  grades: schema.Grade[],
-  user: InferResultType<'users', { userSettings: { columns: { gradingScale: true } } }> | undefined,
-) => {
-  return blocks.map((block) => {
-    const { routes } = block
+      const gradesObj = areaRoutes.map((route): AreaStats['grades'][0] => {
+        const grade = grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
+        const gradeValue = grade?.[user?.userSettings?.gradingScale ?? 'FB'] ?? undefined
 
-    const routesWithTopo = routes.map((route) => {
-      const topo = block.topos.find((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === route.id))
-      return { ...route, topo }
-    })
+        return { grade: gradeValue }
+      })
 
-    const gradesObj = routes
-      .filter((route) => route.gradeFk != null)
-      .map((route) => ({
-        grade: grades.find((grade) => grade.id === route.gradeFk)?.[user?.userSettings?.gradingScale ?? 'FB'],
-      }))
-
-    return {
-      ...block,
-      numOfRoutes: routes.length,
-      grades: gradesObj,
-      routes: routesWithTopo,
-    }
-  })
-}
-
-export const getLayoutBlocks = async <T extends NestedBlock>(db: PostgresJsDatabase<typeof schema>): Promise<T[]> => {
-  return getFromCacheWithDefault(config.cache.keys.layoutBlocks, async () => {
-    const blocks = await db.query.blocks.findMany({
-      where: (table, { isNotNull }) => isNotNull(table.geolocationFk),
-      with: {
-        area: buildNestedAreaQuery(),
-        geolocation: true,
-      },
-    })
-
-    const filteredBlocks = blocks.filter((block) => {
-      let current = block.area as InferResultType<'areas', { parent: true }> | null
-
-      while (current?.parent != null) {
-        current = current.parent as InferResultType<'areas', { parent: true }> | null
+      return {
+        ...obj,
+        [areaId]: {
+          numOfRoutes: areaRoutes.length,
+          grades: gradesObj,
+        },
       }
+    },
+    {} as Record<number, AreaStats | undefined>,
+  )
 
-      return current?.visibility !== 'private'
-    })
+  return areaStats
+}
 
-    return filteredBlocks as T[]
-  })
+export const getLayoutBlocks = async <T extends NestedBlock>(
+  db: PostgresJsDatabase<typeof schema>,
+  regions: App.Locals['userRegions'],
+): Promise<T[]> => {
+  return getFromCacheWithDefault(
+    caches.layoutBlocks,
+    regions,
+    async () => {
+      const blocks = await db.query.blocks.findMany({
+        where: (table, { isNotNull }) => isNotNull(table.geolocationFk),
+        with: {
+          area: buildNestedAreaQuery(),
+          geolocation: true,
+        },
+      })
+
+      return blocks as T[]
+    },
+    undefined,
+    null,
+  )
 }

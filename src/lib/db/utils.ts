@@ -21,6 +21,7 @@ export const buildNestedAreaQuery = (depth = MAX_AREA_NESTING_DEPTH) => {
   let nestedAreaQuery: Parameters<typeof db.query.areas.findMany>[0] = {
     with: {
       parent: true,
+      parkingLocations: true,
     },
   }
 
@@ -28,6 +29,7 @@ export const buildNestedAreaQuery = (depth = MAX_AREA_NESTING_DEPTH) => {
     nestedAreaQuery = {
       with: {
         parent: nestedAreaQuery,
+        parkingLocations: true,
       },
     }
   }

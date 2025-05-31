@@ -31,6 +31,13 @@ vi.mock('$lib/nextcloud/nextcloud.server', () => {
 
 vi.mock('$lib/cache/cache.server', () => ({
   invalidateCache: vi.fn(),
+  caches: {
+    layoutBlocks: {
+      clear: vi.fn(),
+      get: vi.fn(),
+      set: vi.fn(),
+    },
+  },
 }))
 
 vi.mock('sharp', () => ({
@@ -85,7 +92,7 @@ describe('Topo Files', () => {
   })
 
   describe('createOrUpdateGeolocation', () => {
-    const geolocation: InsertGeolocation = { lat: 47.123, long: 8.456 }
+    const geolocation: InsertGeolocation = { lat: 47.123, long: 8.456, regionFk: 1 }
     const blockWithGeo = { ...mockBlock, geolocationFk: 1 }
 
     describe('with operation="all" (default)', () => {

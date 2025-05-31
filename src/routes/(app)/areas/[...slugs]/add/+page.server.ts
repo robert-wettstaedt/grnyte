@@ -1,38 +1,46 @@
-import { EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, generateSlug, users, type Area } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
+import { areaActionSchema, type ActionFailure, type AreaActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
     // Retrieve areaId and canAddArea from the parent function
     const { areaId, canAddArea } = await parent()
 
-    // Query the database to find the parent area by areaId
-    const parentAreaResult = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
-
     // If the maximum depth for adding areas is reached, throw a 400 error
     if (!canAddArea) {
       error(400, 'Max depth reached')
     }
 
+    // Query the database to find the parent area by areaId
+    const parentArea = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+
+    const isRegionAdmin = locals.userRegions.flatMap((region) => region.permissions).includes(REGION_PERMISSION_ADMIN)
+    if (parentArea == null && !isRegionAdmin) {
+      error(404)
+    }
+
+    if (
+      parentArea != null &&
+      !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentArea.regionFk)
+    ) {
+      error(404)
+    }
+
     // Return the parent area result
     return {
-      parent: parentAreaResult,
+      parent: parentArea,
     }
   })
 }) satisfies PageServerLoad
@@ -42,7 +50,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.session == null) {
+      if (locals.session == null) {
         error(404)
       }
 
@@ -70,11 +78,28 @@ export const actions = {
         path = []
       }
 
+      if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], values.regionFk)) {
+        error(404)
+      }
+
+      if (
+        parentArea != null &&
+        (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], parentArea.regionFk) ||
+          values.regionFk !== parentArea.regionFk)
+      ) {
+        error(404)
+      }
+
       // Generate a slug from the area name
       const slug = generateSlug(values.name)
 
       // Check if an area with the same slug already exists
-      const existingAreasResult = await db.query.areas.findMany({ where: eq(areas.slug, slug) })
+      const existingAreasResult = await db.query.areas.findMany({
+        where: and(
+          eq(areas.slug, slug),
+          parentArea == null ? eq(areas.regionFk, values.regionFk) : eq(areas.parentFk, parentArea.id),
+        ),
+      })
 
       if (existingAreasResult.length > 0) {
         // If an area with the same name exists, return a 400 error with a message
@@ -93,7 +118,7 @@ export const actions = {
         createdArea = (
           await db
             .insert(areas)
-            .values({ ...values, createdBy: user.id, parentFk: parentArea?.id, slug })
+            .values({ ...values, createdBy: user.id, parentFk: parentArea?.id, regionFk: values.regionFk, slug })
             .returning()
         )[0]
 
@@ -104,10 +129,11 @@ export const actions = {
           entityType: 'area',
           parentEntityId: parentArea?.id == null ? null : String(parentArea.id),
           parentEntityType: 'area',
+          regionFk: createdArea.regionFk,
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (exception) {
         // If an error occurs during insertion, return a 400 error with the exception message
         return fail(400, { ...values, error: convertException(exception) })

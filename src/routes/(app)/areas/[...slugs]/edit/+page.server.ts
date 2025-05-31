@@ -1,22 +1,18 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
-import { invalidateCache } from '$lib/cache/cache.server'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
+import { caches, invalidateCache } from '$lib/cache/cache.server'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, generateSlug, geolocations } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { areaActionSchema, validateFormData, type ActionFailure, type AreaActionValues } from '$lib/forms.server'
+import { areaActionSchema, type ActionFailure, type AreaActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug, deleteFiles } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { and, eq, not } from 'drizzle-orm'
+import { and, eq, isNull, not } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -27,7 +23,7 @@ export const load = (async ({ locals, parent }) => {
     const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 
     // If the area is not found, throw a 404 error
-    if (area == null) {
+    if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
       error(404)
     }
 
@@ -38,10 +34,6 @@ export const load = (async ({ locals, parent }) => {
 
 export const actions = {
   updateArea: async ({ locals, params, request }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -54,7 +46,7 @@ export const actions = {
 
       const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 
-      if (area == null) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
         return fail(404)
       }
 
@@ -75,7 +67,11 @@ export const actions = {
 
       // Check if an area with the same slug already exists
       const existingAreasResult = await db.query.areas.findMany({
-        where: and(eq(areas.slug, slug), not(eq(areas.id, areaId))),
+        where: and(
+          eq(areas.slug, slug),
+          area.parentFk == null ? isNull(areas.parentFk) : eq(areas.parentFk, area.parentFk),
+          not(eq(areas.id, areaId)),
+        ),
       })
 
       if (existingAreasResult.length > 0) {
@@ -99,10 +95,11 @@ export const actions = {
           userFk: locals.user.id,
           parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
+          regionFk: area.regionFk,
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (exception) {
         // If the update fails, return a 404 error with the exception details
         return fail(404, { ...values, error: convertException(exception) })
@@ -120,10 +117,6 @@ export const actions = {
   },
 
   removeArea: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION) || !locals.userPermissions?.includes(DELETE_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
@@ -143,7 +136,7 @@ export const actions = {
         },
       })
 
-      if (area == null) {
+      if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)) {
         error(404)
       }
 
@@ -174,10 +167,11 @@ export const actions = {
           oldValue: area.name,
           parentEntityId: String(area.parentFk),
           parentEntityType: 'area',
+          regionFk: area.regionFk,
         })
 
         // Invalidate cache after successful update
-        await invalidateCache(config.cache.keys.layoutBlocks)
+        await invalidateCache(caches.layoutBlocks)
       } catch (error) {
         return fail(404, { error: convertException(error) })
       }

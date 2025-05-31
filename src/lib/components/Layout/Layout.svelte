@@ -5,25 +5,22 @@
 </script>
 
 <script lang="ts">
-  import { dev } from '$app/environment'
-  import { afterNavigate, beforeNavigate, invalidateAll } from '$app/navigation'
+  import { afterNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.png'
-  import { READ_PERMISSION } from '$lib/auth'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
-  import { injectAnalytics } from '@vercel/analytics/sveltekit'
+  import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.css'
+  import { Footer } from './components/Footer'
   import HeaderBar from './components/HeaderBar'
-
-  injectAnalytics({ mode: dev ? 'development' : 'production' })
 
   let { children }: LayoutProps = $props()
 
@@ -48,20 +45,6 @@
   $effect(() => {
     if (page.form != null) {
       document.scrollingElement?.scrollTo(0, 0)
-    }
-  })
-
-  $effect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then((registration) => {
-        console.log('posting message..')
-
-        // Send data to service worker
-        registration?.active?.postMessage({
-          type: 'BLOCK_HISTORY_HASH',
-          payload: page.data.blockHistoryHash,
-        })
-      })
     }
   })
 </script>
@@ -107,14 +90,19 @@
     {@render children?.()}
   </main>
 
-  {#if page.data.userPermissions?.includes(READ_PERMISSION)}
+  <!-- Footer - only show for logged-out users or on certain pages -->
+  {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
+    <Footer />
+  {/if}
+
+  {#if page.data.userRegions.length > 0}
     <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
-      <NavTiles userPermissions={page.data.userPermissions} />
+      <NavTiles />
     </Navigation.Bar>
 
     <Navigation.Rail base="hidden md:block fixed top-[48px] h-screen">
       {#snippet tiles()}
-        <NavTiles userPermissions={page.data.userPermissions} />
+        <NavTiles />
       {/snippet}
     </Navigation.Rail>
   {/if}

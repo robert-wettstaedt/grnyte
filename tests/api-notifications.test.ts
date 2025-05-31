@@ -13,6 +13,7 @@ const mockDb = vi.hoisted(() => ({
     ascents: { findMany: vi.fn().mockResolvedValue([]) },
     files: { findMany: vi.fn().mockResolvedValue([]) },
     users: { findMany: vi.fn().mockResolvedValue([]) },
+    regionMembers: { findMany: vi.fn().mockResolvedValue([]) },
   },
   update: vi.fn(),
 }))
@@ -155,8 +156,8 @@ describe('Notifications API Server Module', () => {
       expect(response.status).toBe(401)
     })
 
-    it('should process activities and send notifications', async () => {
-      // Mock activities
+    it('should process activities and send notifications by region', async () => {
+      // Mock activities with region
       const mockActivities = [
         {
           id: 1,
@@ -164,6 +165,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'ascent',
           entityId: '101',
           userFk: 201,
+          regionFk: 1,
           createdAt: new Date(),
           notified: null,
         },
@@ -173,6 +175,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'user',
           entityId: '301',
           userFk: 401,
+          regionFk: 2,
           createdAt: new Date(),
           notified: null,
         },
@@ -212,6 +215,9 @@ describe('Notifications API Server Module', () => {
         },
       ])
 
+      // Mock region members
+      mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }, { userFk: 401 }])
+
       const request = new Request('https://example.com', {
         method: 'POST',
         headers: {
@@ -219,23 +225,34 @@ describe('Notifications API Server Module', () => {
         },
       })
 
-      await POST({ request } as any)
+      const response = await POST({ request } as any)
 
       // Verify activities were fetched
       expect(mockFunctions.findMany).toHaveBeenCalledWith({
         where: expect.any(Object),
       })
 
-      // Verify notifications were sent with our mocked notifications
+      // Verify notifications were sent for each region
       expect(mockFunctions.sendNotificationsToAllSubscriptions).toHaveBeenCalledWith(
-        expect.anything(), // Don't verify the first parameter (notifications) as it comes from implementation
+        expect.anything(),
         mockDb,
+        undefined,
+        1,
+      )
+      expect(mockFunctions.sendNotificationsToAllSubscriptions).toHaveBeenCalledWith(
+        expect.anything(),
+        mockDb,
+        undefined,
+        2,
       )
 
       // Verify activities were marked as notified
       expect(mockDb.update).toHaveBeenCalledWith(schema.activities)
       expect(mockFunctions.set).toHaveBeenCalledWith({ notified: true })
       expect(mockFunctions.where).toHaveBeenCalledWith(expect.any(Object))
+
+      // Verify response status
+      expect(response.status).toBe(200)
     })
   })
 
@@ -245,35 +262,39 @@ describe('Notifications API Server Module', () => {
       const mockActivities = [
         // Ascent activity
         {
-          id: 1,
-          type: 'created',
-          entityType: 'ascent',
-          entityId: '101',
-          userFk: 201,
           createdAt: sub(new Date(), { minutes: 10 }), // 10 minutes ago
+          entityId: '101',
+          entityType: 'ascent',
+          id: 1,
           notified: null,
+          regionFk: 1,
+          type: 'created',
+          userFk: 201,
         },
         // User activity
         {
-          id: 2,
-          type: 'created',
-          entityType: 'user',
-          entityId: '401',
-          userFk: 401,
+          columnName: 'role',
           createdAt: sub(new Date(), { minutes: 20 }), // 20 minutes ago
+          entityId: '401',
+          entityType: 'user',
+          id: 2,
           notified: null,
+          regionFk: 1,
+          type: 'created',
+          userFk: 201,
         },
         // Moderation activity
         {
-          id: 3,
-          type: 'updated',
-          entityType: 'route',
-          entityId: '501',
-          parentEntityType: 'block',
-          parentEntityId: '601',
-          userFk: 301,
           createdAt: sub(new Date(), { minutes: 15 }), // 15 minutes ago
+          entityId: '501',
+          entityType: 'route',
+          id: 3,
           notified: null,
+          parentEntityId: '601',
+          parentEntityType: 'block',
+          regionFk: 1,
+          type: 'updated',
+          userFk: 301,
         },
       ]
 
@@ -334,6 +355,24 @@ describe('Notifications API Server Module', () => {
         },
       })
 
+      // Mock for the user activity - need to mock the entity lookup
+      // First call will be for the user entity lookup
+      mockFunctions.findFirst.mockResolvedValueOnce({
+        id: 401,
+        username: 'newuser',
+      })
+
+      mockFunctions.postProcessEntity.mockResolvedValueOnce({
+        type: 'user',
+        object: {
+          id: 401,
+          username: 'newuser',
+        },
+      })
+
+      // Mock region members
+      mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }, { userFk: 401 }, { userFk: 301 }])
+
       const request = new Request('https://example.com', {
         method: 'POST',
         headers: {
@@ -355,8 +394,8 @@ describe('Notifications API Server Module', () => {
           // User notification
           expect.objectContaining({
             type: 'user',
-            body: expect.stringContaining('newuser has joined Test App'),
-            userId: 401,
+            body: expect.stringContaining('climber1 has approved newuser'),
+            userId: 201,
           }),
           // Moderation notification
           expect.objectContaining({
@@ -366,6 +405,8 @@ describe('Notifications API Server Module', () => {
           }),
         ]),
         mockDb,
+        undefined,
+        1,
       )
 
       // Check that all processed activities were marked as notified
@@ -383,6 +424,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'ascent',
           entityId: '101',
           userFk: 201,
+          regionFk: 1,
           createdAt: sub(new Date(), { minutes: 10 }),
           notified: null,
         },
@@ -420,6 +462,9 @@ describe('Notifications API Server Module', () => {
         },
       ])
 
+      // Mock region members
+      mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }])
+
       const request = new Request('https://example.com', {
         method: 'POST',
         headers: {
@@ -445,6 +490,8 @@ describe('Notifications API Server Module', () => {
           }),
         ]),
         mockDb,
+        undefined,
+        1,
       )
     })
 
@@ -457,6 +504,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'ascent',
           entityId: '101',
           userFk: 201,
+          regionFk: 1,
           createdAt: sub(new Date(), { minutes: 10 }),
           notified: null,
         },
@@ -488,6 +536,9 @@ describe('Notifications API Server Module', () => {
       // Mock files
       mockFunctions.findMany.mockResolvedValueOnce([])
 
+      // Mock region members
+      mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }])
+
       const request = new Request('https://example.com', {
         method: 'POST',
         headers: {
@@ -506,6 +557,8 @@ describe('Notifications API Server Module', () => {
           }),
         ]),
         mockDb,
+        undefined,
+        1,
       )
     })
   })
@@ -520,6 +573,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'ascent',
           entityId: '101',
           userFk: 201,
+          regionFk: 1,
           createdAt: new Date(),
           notified: null, // Not notified
         },
@@ -529,6 +583,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'user',
           entityId: '301',
           userFk: 401,
+          regionFk: 1,
           createdAt: new Date(),
           notified: true, // Already notified
         },
@@ -557,6 +612,9 @@ describe('Notifications API Server Module', () => {
 
       mockFunctions.findMany.mockResolvedValueOnce([])
 
+      // Mock region members
+      mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }])
+
       const request = new Request('https://example.com', {
         method: 'POST',
         headers: {
@@ -568,8 +626,10 @@ describe('Notifications API Server Module', () => {
 
       // Verify only one notification was created (for the unnotified activity)
       expect(mockFunctions.sendNotificationsToAllSubscriptions).toHaveBeenCalledWith(
-        expect.anything(), // Don't verify the first parameter as it comes from implementation
+        expect.anything(),
         mockDb,
+        undefined,
+        1,
       )
 
       // Verify only the unnotified activity was marked as notified
@@ -610,6 +670,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'ascent',
           entityId: '101',
           userFk: 201,
+          regionFk: 1,
           createdAt: sub(new Date(), { minutes: 15 }),
           notified: null,
         },
@@ -619,6 +680,7 @@ describe('Notifications API Server Module', () => {
           entityType: 'ascent',
           entityId: '102',
           userFk: 201,
+          regionFk: 1,
           createdAt: sub(new Date(), { minutes: 10 }),
           notified: null,
         },
@@ -663,6 +725,9 @@ describe('Notifications API Server Module', () => {
       // Mock files
       mockFunctions.findMany.mockResolvedValueOnce([])
 
+      // Mock region members
+      mockDb.query.regionMembers.findMany.mockResolvedValue([{ userFk: 201 }])
+
       const request = new Request('https://example.com', {
         method: 'POST',
         headers: {
@@ -674,8 +739,10 @@ describe('Notifications API Server Module', () => {
 
       // Should create one notification that mentions both ascents
       expect(mockFunctions.sendNotificationsToAllSubscriptions).toHaveBeenCalledWith(
-        expect.anything(), // Don't verify the first parameter as it comes from implementation
+        expect.anything(),
         mockDb,
+        undefined,
+        1,
       )
     })
   })

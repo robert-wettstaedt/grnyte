@@ -1,16 +1,20 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { Area } from '$lib/db/schema'
+  import AreaTypeFormField from './components/AreaTypeFormField'
 
   interface Props {
     description: Area['description']
     hasParent: boolean
     name: Area['name']
+    regionFk: Area['regionFk'] | undefined
     type: Area['type']
-    visibility: Area['visibility']
   }
 
-  let { description = $bindable(), name, type, visibility, hasParent }: Props = $props()
+  let { description = $bindable(), name, regionFk, type, hasParent }: Props = $props()
+
+  let adminRegions = $derived(page.data.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
 
 <label class="label">
@@ -18,23 +22,22 @@
   <input class="input" name="name" type="text" placeholder="Enter name..." value={name} />
 </label>
 
-{#if !hasParent}
-  <label class="label mt-4">
-    <span>Visibility</span>
-    <select class="select" name="visibility" value={visibility}>
-      <option value="public">Public</option>
-      <option value="private">Private</option>
-    </select>
-  </label>
-{/if}
-
 {#if hasParent}
+  <AreaTypeFormField bind:value={type} />
+
+  <input type="hidden" name="regionFk" value={regionFk ?? ''} />
+{:else}
   <label class="label mt-4">
-    <span>Type</span>
-    <select class="select max-h-[300px] overflow-auto" name="type" size="3" value={type}>
-      <option value="area">Area</option>
-      <option value="crag">Crag</option>
-      <option value="sector">Sector</option>
+    <span>Region</span>
+    <select
+      class="select"
+      name="regionFk"
+      value={adminRegions.length === 1 ? adminRegions[0].regionFk : (regionFk ?? '')}
+    >
+      <option disabled value="">-- Select region --</option>
+      {#each adminRegions as region}
+        <option value={region.regionFk}>{region.name}</option>
+      {/each}
     </select>
   </label>
 {/if}

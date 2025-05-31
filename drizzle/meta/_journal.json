@@ -260,6 +260,146 @@
       "when": 1744535371776,
       "tag": "0037_common_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1747484955267,
+      "tag": "0038_curvy_living_tribunal",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1747741844819,
+      "tag": "0039_glorious_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1747902759741,
+      "tag": "0040_sweet_alice",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1747905464854,
+      "tag": "0041_reflective_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1747918800174,
+      "tag": "0042_remarkable_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1747918869737,
+      "tag": "0043_whole_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1747918915948,
+      "tag": "0044_bent_cable",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1747919058274,
+      "tag": "0045_blushing_lady_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1747919494695,
+      "tag": "0046_thankful_omega_flight",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1747919514645,
+      "tag": "0047_awesome_george_stacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1747921370598,
+      "tag": "0048_loud_ezekiel",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1747921724762,
+      "tag": "0049_sudden_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1747921822217,
+      "tag": "0050_cultured_puck",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1747924346181,
+      "tag": "0051_lucky_dakota_north",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1747994013884,
+      "tag": "0052_flaky_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1748165088500,
+      "tag": "0053_romantic_expediter",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1748420565458,
+      "tag": "0054_conscious_silk_fever",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1748506127821,
+      "tag": "0055_nervous_supernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1748518594964,
+      "tag": "0056_yellow_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1748602697118,
+      "tag": "0057_large_deathstrike",
+      "breakpoints": true
     }
   ]
 }

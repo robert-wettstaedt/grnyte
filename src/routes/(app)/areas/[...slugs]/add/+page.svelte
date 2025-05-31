@@ -35,7 +35,6 @@
 <form
   class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
   method="POST"
-  use:enhance
   use:enhance={() => {
     loading = true
 
@@ -52,8 +51,8 @@
     description={form?.description ?? ''}
     hasParent={data.parent != null}
     name={form?.name ?? ''}
+    regionFk={form?.regionFk ?? data.parent?.regionFk}
     type={form?.type ?? 'area'}
-    visibility={form?.visibility ?? 'public'}
   />
 
   <div class="mt-8 flex justify-between md:items-center">

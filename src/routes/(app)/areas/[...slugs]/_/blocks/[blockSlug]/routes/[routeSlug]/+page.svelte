@@ -7,7 +7,12 @@
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import {
+    checkRegionPermission,
+    REGION_PERMISSION_ADMIN,
+    REGION_PERMISSION_DELETE,
+    REGION_PERMISSION_EDIT,
+  } from '$lib/auth'
   import ActivityFeed from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
@@ -86,9 +91,59 @@
 
   {#snippet actions()}
     <a class="btn btn-sm preset-filled-primary-500" href={`${basePath}/ascents/add`}>
-      <i class="fa-solid fa-check"></i>
-      Log ascent
+      <i class="fa-solid fa-check w-4"></i>Log ascent
     </a>
+
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit route details
+      </a>
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-first-ascent`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit FA
+      </a>
+
+      {#if data.topos.length > 0}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${blockPath}/topos/draw`}>
+          <i class="fa-solid fa-file-pen w-4"></i>Edit topo
+        </a>
+      {/if}
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add-file`}>
+        <i class="fa-solid fa-cloud-arrow-up w-4"></i>Upload file
+      </a>
+    {/if}
+
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_ADMIN], data.block.regionFk)}
+      <form
+        class="leading-none"
+        method="POST"
+        action="?/syncExternalResources"
+        use:enhance={({}) => {
+          syncing = true
+
+          return ({ result }) => {
+            syncing = false
+
+            if (result.type === 'success') {
+              invalidateAll()
+            }
+          }
+        }}
+      >
+        <button class="btn btn-sm preset-outlined-primary-500" disabled={syncing} type="submit">
+          {#if syncing}
+            <span class="me-2">
+              <ProgressRing size="size-sm" value={null} />
+            </span>
+          {:else}
+            <i class="fa-solid fa-sync"></i>
+          {/if}
+
+          Sync external resources
+        </button>
+      </form>
+    {/if}
 
     {#if data.route.externalResources?.externalResource8a?.url != null}
       <a
@@ -125,58 +180,21 @@
         <span class="md:hidden"> Show on theCrag </span>
       </a>
     {/if}
-
-    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-      <form
-        class="leading-none"
-        method="POST"
-        action="?/syncExternalResources"
-        use:enhance={({}) => {
-          syncing = true
-
-          return ({ result }) => {
-            syncing = false
-
-            if (result.type === 'success') {
-              invalidateAll()
-            }
-          }
-        }}
-      >
-        <button class="btn btn-sm preset-outlined-primary-500" disabled={syncing} type="submit">
-          {#if syncing}
-            <span class="me-2">
-              <ProgressRing size="size-sm" value={null} />
-            </span>
-          {:else}
-            <i class="fa-solid fa-sync"></i>
-          {/if}
-
-          Sync external resources
-        </button>
-      </form>
-
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add-file`}>
-        <i class="fa-solid fa-cloud-arrow-up"></i>Upload file
-      </a>
-
-      {#if data.topos.length > 0}
-        <a class="btn btn-sm preset-outlined-primary-500" href={`${blockPath}/topos/draw`}>
-          <i class="fa-solid fa-file-pen"></i> Edit topo
-        </a>
-      {/if}
-
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-first-ascent`}>
-        <i class="fa-solid fa-pen"></i>Edit FA
-      </a>
-
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit route details
-      </a>
-    {/if}
   {/snippet}
 
   {#snippet headline()}
+    {#if data.block.geolocationFk == null}
+      <aside class="card preset-tonal-warning mb-4 flex items-center gap-2 p-2 whitespace-pre-line md:p-4">
+        <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
+
+        <p>
+          The geolocation of this block is missing. Do you know where it is?
+
+          <a class="anchor" href={`${blockPath}/edit-location`}>Add location</a>
+        </p>
+      </aside>
+    {/if}
+
     <Tabs
       fluid
       listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
@@ -203,7 +221,7 @@
               <section class="relative w-full" use:fitHeightAction>
                 <TopoViewer {selectedTopoIndex} initialRouteId={data.route.id} topos={data.topos}>
                   {#snippet actions()}
-                    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
+                    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
                       <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/topos/draw`}>
                         <i class="fa-solid fa-pen"></i>
                       </a>
@@ -355,7 +373,7 @@
                 <span class="flex-auto">
                   <dt>Description</dt>
                   <dd>
-                    <div class="rendered-markdown">
+                    <div class="markdown-body">
                       {@html data.route.description}
                     </div>
                   </dd>
@@ -435,7 +453,11 @@
                       {#if file.stat != null}
                         <FileViewer
                           {file}
-                          readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
+                          readOnly={!checkRegionPermission(
+                            data.userRegions,
+                            [REGION_PERMISSION_DELETE],
+                            data.block.regionFk,
+                          )}
                           stat={file.stat}
                           onDelete={() => {
                             files = files.filter((_file) => file.id !== _file.id)

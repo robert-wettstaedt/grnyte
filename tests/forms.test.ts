@@ -4,8 +4,8 @@ import {
   blockActionSchema,
   firstAscentActionSchema,
   routeActionSchema,
-  validateFormData,
-} from '$lib/forms.server'
+} from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { describe, expect, it } from 'vitest'
 
 describe('validateAreaForm', () => {
@@ -13,14 +13,16 @@ describe('validateAreaForm', () => {
     const formData = new FormData()
     formData.set('name', 'Test Area')
     formData.set('type', 'crag')
+    formData.set('regionFk', '1')
 
     const result = await validateFormData(areaActionSchema, formData)
-    expect(result).toEqual({ description: '', name: 'Test Area', type: 'crag' })
+    expect(result).toEqual({ description: '', name: 'Test Area', type: 'crag', regionFk: 1 })
   })
 
   it('should throw an error if name is missing', async () => {
     const formData = new FormData()
     formData.set('type', 'crag')
+    formData.set('regionFk', '1')
 
     await expect(validateFormData(areaActionSchema, formData)).rejects.toThrowError()
   })
@@ -28,15 +30,25 @@ describe('validateAreaForm', () => {
   it('should default value if type is missing', async () => {
     const formData = new FormData()
     formData.set('name', 'Test Area')
+    formData.set('regionFk', '1')
 
     const result = await validateFormData(areaActionSchema, formData)
-    expect(result).toEqual({ description: '', name: 'Test Area', type: 'area' })
+    expect(result).toEqual({ description: '', name: 'Test Area', type: 'area', regionFk: 1 })
   })
 
   it('should throw an error if type is invalid', async () => {
     const formData = new FormData()
     formData.set('name', 'Test Area')
     formData.set('type', 'invalid')
+    formData.set('regionFk', '1')
+
+    await expect(validateFormData(areaActionSchema, formData)).rejects.toThrowError()
+  })
+
+  it('should throw an error if regionFk is missing', async () => {
+    const formData = new FormData()
+    formData.set('name', 'Test Area')
+    formData.set('type', 'crag')
 
     await expect(validateFormData(areaActionSchema, formData)).rejects.toThrowError()
   })
@@ -45,6 +57,7 @@ describe('validateAreaForm', () => {
     const formData = new FormData()
     formData.set('name', '')
     formData.set('type', 'crag')
+    formData.set('regionFk', '1')
 
     await expect(validateFormData(areaActionSchema, formData)).rejects.toThrowError()
   })
@@ -53,9 +66,10 @@ describe('validateAreaForm', () => {
     const formData = new FormData()
     formData.set('name', '  Test Area  ')
     formData.set('type', 'crag')
+    formData.set('regionFk', '1')
 
     const result = await validateFormData(areaActionSchema, formData)
-    expect(result).toEqual({ description: '', name: 'Test Area', type: 'crag' })
+    expect(result).toEqual({ description: '', name: 'Test Area', type: 'crag', regionFk: 1 })
   })
 })
 

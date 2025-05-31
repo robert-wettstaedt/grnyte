@@ -1,7 +1,7 @@
 import { createDrizzleSupabaseClient, keyv } from '$lib/db/db.server'
 import { generateSlug, routeExternalResource8a, type RouteExternalResource8a } from '$lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import type { ExternalResourceHandler } from './index.server'
 
 const QueryResponse8a = z.object({
@@ -94,6 +94,7 @@ export default {
           ...item,
           externalResourcesFk: -1,
           id: -1,
+          regionFk: -1,
           url: `https://www.8a.nu/crags/bouldering/${item.countrySlug}/${item.cragSlug}/sectors/${item.sectorSlug}/routes/${item.zlaggableSlug}`,
         }
 
@@ -132,6 +133,7 @@ export default {
       userRating: null,
       userGradeFk: null,
       areaFks: [],
+      regionFk: -1,
     }
   },
 

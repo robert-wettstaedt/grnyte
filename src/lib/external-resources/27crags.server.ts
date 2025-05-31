@@ -8,7 +8,7 @@ import {
 import { parse } from 'cookie'
 import { eq } from 'drizzle-orm'
 import http from 'https'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import type { ExternalResourceHandler } from './index.server'
 
 const QueryResponse27crags = z.object({
@@ -59,6 +59,7 @@ export default {
           ...item,
           externalResourcesFk: -1,
           id: -1,
+          regionFk: -1,
           url: `https://27crags.com/${item.path}`,
         }
 
@@ -100,6 +101,7 @@ export default {
       userGradeFk: null,
       userRating: null,
       areaFks: [],
+      regionFk: -1,
     }
 
     return route

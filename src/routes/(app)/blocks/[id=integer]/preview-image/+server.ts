@@ -1,4 +1,3 @@
-import { READ_PERMISSION } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { imagePreviewHandler, loadFiles } from '$lib/nextcloud/nextcloud.server'
@@ -7,10 +6,6 @@ import { eq } from 'drizzle-orm'
 
 export async function GET(event) {
   const { locals, params } = event
-
-  if (!locals.userPermissions?.includes(READ_PERMISSION)) {
-    return new Response(null, { status: 404 })
-  }
 
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 

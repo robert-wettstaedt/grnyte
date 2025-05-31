@@ -2,12 +2,14 @@
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
+  import AppBar from '$lib/components/AppBar/AppBar.svelte'
   import GenericList from '$lib/components/GenericList'
   import GradeHistogram from '$lib/components/GradeHistogram'
   import Image from '$lib/components/Image'
   import RouteName from '$lib/components/RouteName'
   import RoutesFilter from '$lib/components/RoutesFilter'
-  import { AppBar, Pagination, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
   let { data } = $props()
@@ -24,13 +26,27 @@
     newUrl.hash = event.value
     goto(newUrl.toString(), { replaceState: true })
   }
+
+  let hasActions = $derived(
+    page.data.userRegions.some((region) =>
+      checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], region.regionFk),
+    ),
+  )
 </script>
 
 <svelte:head>
   <title>Areas - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<AppBar>
+<AppBar {hasActions}>
+  {#snippet lead()}{/snippet}
+
+  {#snippet actions()}
+    <a class="btn btn-sm preset-outlined-primary-500" href="/areas/add">
+      <i class="fa-solid fa-plus w-4"></i>Add area
+    </a>
+  {/snippet}
+
   {#snippet headline()}
     <Tabs
       fluid
@@ -56,13 +72,19 @@
             >
               {#snippet left(item)}
                 {item.name}
+
+                {#if data.userRegions.length > 1}
+                  <div class="text-surface-400 text-xs">
+                    {data.userRegions.find((region) => region.regionFk === item.regionFk)?.name ?? ''}
+                  </div>
+                {/if}
               {/snippet}
 
               {#snippet right(item)}
                 <div class="flex flex-col">
                   <GradeHistogram
                     axes={false}
-                    data={item.grades}
+                    data={item.grades ?? []}
                     spec={{
                       width: 100,
                     }}

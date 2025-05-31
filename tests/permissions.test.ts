@@ -1,6 +1,7 @@
-import { EDIT_PERMISSION, READ_PERMISSION } from '$lib/auth'
+import { REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { appRole } from '$lib/db/schema'
+import type { InferResultType } from '$lib/db/types'
 import { supabase } from '$lib/hooks/auth'
 import type { RequestEvent } from '@sveltejs/kit'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -44,6 +45,9 @@ vi.mock('$lib/db/db.server', () => ({
       rolePermissions: {
         findMany: vi.fn(),
       },
+      regionMembers: {
+        findMany: vi.fn(),
+      },
     },
   },
 }))
@@ -61,14 +65,20 @@ describe('Permission Tests', () => {
   })
 
   describe('Auth Hook Permissions', () => {
-    const createMockEvent = () =>
-      ({
+    const createMockEvent = (): RequestEvent => {
+      const mockEvent = {
         locals: {},
         cookies: {
           getAll: vi.fn().mockReturnValue([]),
           set: vi.fn(),
         },
-      }) as unknown as RequestEvent
+        url: new URL('http://localhost:3000/test-path'),
+        request: {
+          method: 'GET',
+        },
+      }
+      return mockEvent as unknown as RequestEvent
+    }
 
     it('should grant maintainer all permissions', async () => {
       const event = createMockEvent()
@@ -87,16 +97,31 @@ describe('Permission Tests', () => {
         authUserFk: '1',
       })
       vi.mocked(db.query.rolePermissions.findMany).mockResolvedValue([
-        { id: 1, role: appRole.enumValues[1], permission: READ_PERMISSION },
-        { id: 2, role: appRole.enumValues[1], permission: EDIT_PERMISSION },
+        { id: 1, role: appRole.enumValues[1], permission: REGION_PERMISSION_READ },
+        { id: 2, role: appRole.enumValues[1], permission: REGION_PERMISSION_EDIT },
+      ])
+      vi.mocked(db.query.regionMembers.findMany).mockResolvedValue([
+        {
+          id: 1,
+          authUserFk: '1',
+          createdAt: new Date(),
+          isActive: true,
+          invitedBy: null,
+          regionFk: 1,
+          userFk: 1,
+          role: 'region_admin',
+          region: {
+            name: 'test',
+          },
+        } as InferResultType<'regionMembers', { region: true }>,
       ])
 
       await supabase({ event, resolve: vi.fn() })
       const { userPermissions, userRole } = await event.locals.safeGetSession()
 
       expect(userRole).toBe(appRole.enumValues[1])
-      expect(userPermissions).toContain(READ_PERMISSION)
-      expect(userPermissions).toContain(EDIT_PERMISSION)
+      expect(userPermissions).toContain(REGION_PERMISSION_READ)
+      expect(userPermissions).toContain(REGION_PERMISSION_EDIT)
     })
 
     it('should grant regular users only read permissions', async () => {
@@ -116,15 +141,30 @@ describe('Permission Tests', () => {
         authUserFk: '1',
       })
       vi.mocked(db.query.rolePermissions.findMany).mockResolvedValue([
-        { id: 1, role: appRole.enumValues[0], permission: READ_PERMISSION },
+        { id: 1, role: appRole.enumValues[0], permission: REGION_PERMISSION_READ },
+      ])
+      vi.mocked(db.query.regionMembers.findMany).mockResolvedValue([
+        {
+          id: 1,
+          authUserFk: '1',
+          createdAt: new Date(),
+          isActive: true,
+          invitedBy: null,
+          regionFk: 1,
+          userFk: 1,
+          role: 'region_admin',
+          region: {
+            name: 'test',
+          },
+        } as InferResultType<'regionMembers', { region: true }>,
       ])
 
       await supabase({ event, resolve: vi.fn() })
       const { userPermissions, userRole } = await event.locals.safeGetSession()
 
       expect(userRole).toBe(appRole.enumValues[0])
-      expect(userPermissions).toContain(READ_PERMISSION)
-      expect(userPermissions).not.toContain(EDIT_PERMISSION)
+      expect(userPermissions).toContain(REGION_PERMISSION_READ)
+      expect(userPermissions).not.toContain(REGION_PERMISSION_EDIT)
     })
   })
 })

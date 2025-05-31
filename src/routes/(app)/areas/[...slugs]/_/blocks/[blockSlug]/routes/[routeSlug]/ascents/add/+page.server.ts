@@ -5,7 +5,8 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, type Ascent } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { checkExternalSessions, logExternalAscent } from '$lib/external-resources/index.server'
-import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
+import { ascentActionSchema, type ActionFailure, type AscentActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -111,7 +112,7 @@ export const actions = {
         // Insert the ascent into the database
         const results = await db
           .insert(ascents)
-          .values({ ...values, routeFk: route.id, createdBy: locals.user.id })
+          .values({ ...values, routeFk: route.id, createdBy: locals.user.id, regionFk: route.regionFk })
           .returning()
         ascent = results[0]
 
@@ -126,6 +127,7 @@ export const actions = {
           entityType: 'ascent',
           parentEntityId: String(route.id),
           parentEntityType: 'route',
+          regionFk: ascent.regionFk,
         })
       } catch (exception) {
         // Return a 400 failure if ascent insertion fails
@@ -135,9 +137,14 @@ export const actions = {
       if (values.folderName != null) {
         try {
           const dstFolder = `${config.files.folders.userContent}/${locals.user.authUserFk}`
-          await handleFileUpload(db, locals.supabase, values.folderName!, dstFolder, values.bunnyVideoIds, {
-            ascentFk: ascent.id,
-          })
+          await handleFileUpload(
+            db,
+            locals.supabase,
+            values.folderName!,
+            dstFolder,
+            { ascentFk: ascent.id, regionFk: ascent.regionFk },
+            values.bunnyVideoIds,
+          )
         } catch (exception) {
           // Return a 400 failure if file insertion fails
           return fail(400, { ...values, error: convertException(exception) })

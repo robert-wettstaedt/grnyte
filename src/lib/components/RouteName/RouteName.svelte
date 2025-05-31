@@ -45,10 +45,10 @@
     {#if (route.userRating ?? route.rating) != null}
       <div>
         <Rating
+          controlClasses="!gap-0 text-xs md:text-sm"
           count={3}
           readOnly
           value={(route.userRating ?? route.rating)!}
-          controlClasses="!gap-0 text-xs md:text-sm"
         >
           {#snippet iconFull()}
             <i class="fa-solid fa-star text-warning-500"></i>

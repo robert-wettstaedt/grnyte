@@ -70,6 +70,7 @@ describe('RouteView Component', () => {
     topType: 'top',
     routeFk: 1,
     topoFk: 1,
+    regionFk: 1,
     route: {
       id: 1,
       name: 'Test Route',
@@ -85,6 +86,7 @@ describe('RouteView Component', () => {
       areaFks: [],
       userGradeFk: null,
       userRating: null,
+      regionFk: 1,
     },
     points: [
       { id: '1', type: 'start', x: 100, y: 200 },

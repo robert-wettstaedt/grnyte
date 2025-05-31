@@ -10,6 +10,7 @@ describe('Labels Component', () => {
       topType: 'top',
       routeFk: 1,
       topoFk: 1,
+      regionFk: 1,
       route: {
         id: 1,
         name: 'Route 1',
@@ -25,6 +26,7 @@ describe('Labels Component', () => {
         areaFks: [],
         userRating: null,
         userGradeFk: null,
+        regionFk: 1,
       },
       points: [
         { id: '1', type: 'start', x: 100, y: 200 },
@@ -37,6 +39,7 @@ describe('Labels Component', () => {
       topType: 'topout',
       routeFk: 2,
       topoFk: 1,
+      regionFk: 1,
       route: {
         id: 1,
         name: 'Route 1',
@@ -52,6 +55,7 @@ describe('Labels Component', () => {
         areaFks: [],
         userRating: null,
         userGradeFk: null,
+        regionFk: 1,
       },
       points: [
         { id: '4', type: 'start', x: 300, y: 200 },

@@ -8,7 +8,9 @@ import {
   type EnrichedArea,
   type EnrichedBlock,
 } from '$lib/db/utils'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('$lib/db/db.server.ts', () => ({}))
 
 describe('buildNestedAreaQuery', () => {
   it('should build a nested area query with the correct depth', () => {
@@ -24,14 +26,19 @@ describe('buildNestedAreaQuery', () => {
                     parent: {
                       with: {
                         parent: true,
+                        parkingLocations: true,
                       },
                     },
+                    parkingLocations: true,
                   },
                 },
+                parkingLocations: true,
               },
             },
+            parkingLocations: true,
           },
         },
+        parkingLocations: true,
       },
     })
   })
@@ -45,10 +52,13 @@ describe('buildNestedAreaQuery', () => {
             parent: {
               with: {
                 parent: true,
+                parkingLocations: true,
               },
             },
+            parkingLocations: true,
           },
         },
+        parkingLocations: true,
       },
     })
   })
@@ -58,6 +68,7 @@ describe('buildNestedAreaQuery', () => {
     expect(query).toEqual({
       with: {
         parent: true,
+        parkingLocations: true,
       },
     })
   })

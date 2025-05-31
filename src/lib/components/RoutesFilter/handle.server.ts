@@ -1,11 +1,11 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, routes, type Ascent } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichRoute, type EnrichedRoute } from '$lib/db/utils'
-import { validateObject } from '$lib/forms.server'
+import { validateObject } from '$lib/forms/validate.server'
 import { getPaginationQuery, paginationParamsSchema, type PaginatedData } from '$lib/pagination.server'
 import type { RequestEvent } from '@sveltejs/kit'
 import { and, arrayContains, asc, count, eq, gte, lte, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 const searchParamsSchema = z.intersection(
   z.object({

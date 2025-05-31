@@ -16,7 +16,6 @@ jobs:
       NEXTCLOUD_URL: foobar
       PUBLIC_TOPO_EMAIL: foobar
       RESEND_SENDER_EMAIL: foobar
-      RESEND_RECIPIENT_EMAIL: foobar
       RESEND_API_KEY: foobar
       PUBLIC_APPLICATION_NAME: foobar
       PUBLIC_DEMO_MODE: foobar

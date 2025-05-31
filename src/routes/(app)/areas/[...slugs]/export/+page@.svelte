@@ -11,6 +11,7 @@
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import 'github-markdown-css/github-markdown-dark.css'
   import '../../../../../app.css'
 
   let { data } = $props()
@@ -87,7 +88,7 @@
 
           <div class="mt-4 p-2">
             {#if data.area.description != null && data.area.description.length > 0}
-              <div class="rendered-markdown mt-4 {data.area.description.length > 1000 ? 'text-sm' : ''}">
+              <div class="markdown-body mt-4 {data.area.description.length > 1000 ? 'text-sm' : ''}">
                 {@html data.area.description}
               </div>
             {/if}
@@ -137,14 +138,15 @@
 
     {#await import('$lib/components/BlocksMap') then BlocksMap}
       <BlocksMap.default
-        collapsibleAttribution={false}
         blocks={data.area.blocks}
+        collapsibleAttribution={false}
         height="210mm"
         onRenderComplete={onLoadMap}
         parkingLocations={data.area.parkingLocations}
         selectedArea={data.area}
         showBlocks={false}
-        showRelief={false}
+        showRegionLayers={false}
+        lineStrings={data.area.walkingPaths}
         zoom={16}
       />
     {/await}

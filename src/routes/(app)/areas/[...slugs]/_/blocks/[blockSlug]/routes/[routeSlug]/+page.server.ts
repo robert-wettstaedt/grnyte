@@ -1,4 +1,5 @@
-import { EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
+import type { AscentEntity } from '$lib/components/ActivityFeed'
 import { insertActivity, loadFeed } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import {
@@ -110,11 +111,15 @@ export const load = (async ({ locals, params, parent, url }) => {
       )!,
     ])
 
+    const feedFiles = feed.activities
+      .filter((activity) => activity.entity.type === 'ascent' && activity.entity.object?.type !== 'attempt')
+      .flatMap((activity) => (activity.entity as AscentEntity).object?.files ?? [])
+
     // Return the enriched data
     return {
       block,
       route: { ...route, description },
-      files: routeFiles,
+      files: [...routeFiles, ...feedFiles],
       references: getReferences(route.id, 'routes'),
       topos: enrichedTopos,
       feed,
@@ -124,10 +129,6 @@ export const load = (async ({ locals, params, parent, url }) => {
 
 export const actions = {
   syncExternalResources: async ({ locals, params }) => {
-    if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-      error(404)
-    }
-
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     return await rls(async (db) => {
@@ -147,7 +148,11 @@ export const actions = {
       const route = block?.routes?.at(0)
 
       // Handle case where route is not found
-      if (block == null || route == null) {
+      if (
+        block == null ||
+        route == null ||
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)
+      ) {
         error(404)
       }
 
@@ -231,6 +236,7 @@ export const actions = {
           entityType: 'user',
           columnName: 'first ascensionist',
           newValue: firstAscensionist.name,
+          regionFk: route.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })
@@ -299,7 +305,7 @@ export const actions = {
             ? (
                 await db
                   .insert(firstAscensionists)
-                  .values({ name: locals.user.username, userFk: locals.user.id })
+                  .values({ name: locals.user.username, userFk: locals.user.id, regionFk: route.regionFk })
                   .returning()
               ).at(0)
             : await db.query.firstAscensionists.findFirst({
@@ -315,9 +321,11 @@ export const actions = {
           await db.update(users).set({ firstAscensionistFk: firstAscensionist.id }).where(eq(users.id, locals.user.id))
         }
 
-        await db
-          .insert(routesToFirstAscensionists)
-          .values({ firstAscensionistFk: locals.user.firstAscensionistFk!, routeFk: route.id })
+        await db.insert(routesToFirstAscensionists).values({
+          firstAscensionistFk: locals.user.firstAscensionistFk!,
+          regionFk: route.regionFk,
+          routeFk: route.id,
+        })
 
         const oldFirstAscent = [route.firstAscentYear, ...route.firstAscents.map((fa) => fa.firstAscensionist.name)]
           .filter(Boolean)
@@ -334,6 +342,7 @@ export const actions = {
           newValue: newFirstAscent,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })

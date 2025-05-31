@@ -3,16 +3,21 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
+  import { invalidateCache } from '$lib/cache/cache'
   import AppBar from '$lib/components/AppBar'
-  import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { config } from '$lib/config'
+  import { Popover, ProgressRing, Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
 
   let { data, form } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
+  let loading = $state(false)
+
   let coordinate: Coordinate | null = $state(null)
+  let polyline: string | null = $state(null)
   let tabSet = $state('map')
 
   const getValue: ChangeEventHandler<HTMLInputElement> = (event): number => {
@@ -43,7 +48,17 @@
   class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
   action="?/updateParkingLocation"
   method="POST"
-  use:enhance
+  use:enhance={() => {
+    loading = true
+
+    return async ({ update }) => {
+      loading = false
+      await invalidateCache(config.cache.keys.layoutBlocks)
+      await invalidateCache(config.cache.keys.layoutBlocksHash)
+
+      return update()
+    }
+  }}
 >
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     {#snippet list()}
@@ -55,12 +70,26 @@
       <Tabs.Panel value="map">
         <div use:fitHeightAction>
           {#await import('$lib/components/BlocksMapWithAddableMarker') then BlocksMap}
-            <BlocksMap.default onChange={(value) => (coordinate = value)} />
+            <BlocksMap.default
+              modes={[
+                { icon: 'fa-solid fa-parking', value: 'click' },
+                { icon: 'fa-solid fa-draw-polygon', value: 'draw' },
+              ]}
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  polyline = value
+                } else {
+                  coordinate = value
+                }
+              }}
+              selectedArea={data}
+            />
           {/await}
         </div>
 
         <input hidden name="lat" value={form?.lat ?? coordinate?.at(1)} />
         <input hidden name="long" value={form?.long ?? coordinate?.at(0)} />
+        <input hidden name="polyline" value={form?.polyline ?? polyline} />
       </Tabs.Panel>
 
       <Tabs.Panel value="latlong">
@@ -85,7 +114,7 @@
     </div>
 
     <div class="flex flex-col-reverse gap-8 md:flex-row md:gap-4">
-      {#if data.userPermissions?.includes(DELETE_PERMISSION)}
+      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_DELETE], data.regionFk)}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"
@@ -111,7 +140,17 @@
         </Popover>
       {/if}
 
-      <button class="btn preset-filled-primary-500" disabled={coordinate == null} type="submit">
+      <button
+        class="btn preset-filled-primary-500"
+        disabled={loading || (coordinate == null && polyline == null)}
+        type="submit"
+      >
+        {#if loading}
+          <span class="me-2">
+            <ProgressRing size="size-4" value={null} />
+          </span>
+        {/if}
+
         Update parking location
       </button>
     </div>

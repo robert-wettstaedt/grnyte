@@ -16,12 +16,13 @@
     selectedBlock?: Block | null
     height?: number | string | null
     zoom?: number | null
-    showRelief?: boolean
+    showRegionLayers?: boolean
     showBlocks?: boolean
     showAreas?: boolean
     declutter?: boolean
     getBlockKey?: GetBlockKey
     parkingLocations?: Geolocation[]
+    lineStrings?: string[] | null
 
     onAction?: (map: OlMap) => void
     onRenderComplete?: () => void
@@ -29,6 +30,7 @@
 </script>
 
 <script lang="ts">
+  import { page } from '$app/state'
   import type { Area, Block, Geolocation } from '$lib/db/schema'
   import type { NestedArea } from '$lib/db/types'
   import { getDistance } from '$lib/geometry'
@@ -37,7 +39,8 @@
   import View from 'ol/View.js'
   import { Attribution, FullScreen, defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
-  import { Geometry } from 'ol/geom'
+  import Polyline from 'ol/format/Polyline'
+  import { Geometry, LineString } from 'ol/geom'
   import Point from 'ol/geom/Point.js'
   import { fromExtent } from 'ol/geom/Polygon'
   import { DragRotateAndZoom, defaults as defaultInteractions } from 'ol/interaction.js'
@@ -64,12 +67,13 @@
     selectedBlock = null,
     height = null,
     zoom = DEFAULT_ZOOM,
-    showRelief = $bindable(true),
+    showRegionLayers = $bindable(true),
     showBlocks = true,
     showAreas = true,
     declutter = true,
     getBlockKey = null,
     parkingLocations = [],
+    lineStrings = [],
     onAction,
     onRenderComplete,
   }: BlocksMapProps = $props()
@@ -82,7 +86,12 @@
   let layersIsVisible = $state(false)
   const layers: Layer[] = [
     { label: 'OSM', name: 'osm' },
-    { label: 'Bayern Relief', name: 'bayern_relief' },
+    ...page.data.userRegions.flatMap((region) =>
+      (region.settings?.mapLayers ?? []).map((regionLayer) => ({
+        label: regionLayer.name,
+        name: regionLayer.name,
+      })),
+    ),
     { label: 'Markers', name: 'markers' },
   ]
 
@@ -101,26 +110,23 @@
           properties: { layerOpts: layers.find((layer) => layer.name === 'osm') },
           source: new OSM(),
         }),
-        new TileLayer(
-          showRelief
-            ? {
-                properties: { layerOpts: layers.find((layer) => layer.name === 'bayern_relief') },
-                source: new TileWMS({
-                  attributions: [
-                    '© <a href="https://geodaten.bayern.de/" target="_blank">Bayerische Vermessungsverwaltung</a>',
-                    '© <a href="http://www.bkg.bund.de/" target="_blank">Bundesamt für Kartographie und Geodäsie (2022)</a>',
-                    '<a href="https://sg.geodatenzentrum.de/web_public/Datenquellen_TopPlus_Open.pdf" target="_blank">Datenquellen</a>',
-                    ATTRIBUTION,
-                  ],
-                  url: 'https://geoservices.bayern.de/od/wms/dgm/v1/relief',
-                  params: {
-                    LAYERS: 'by_relief_schraeglicht',
-                  },
-                }),
-                minZoom: 14,
-                opacity: 0.7,
-              }
-            : {},
+        ...page.data.userRegions.flatMap((region) =>
+          (region.settings?.mapLayers ?? []).map((regionLayer) => {
+            return new TileLayer(
+              showRegionLayers
+                ? {
+                    properties: { layerOpts: layers.find((layer) => layer.name === regionLayer.name) },
+                    source: new TileWMS({
+                      attributions: [...(regionLayer.attributions ?? [] ?? ATTRIBUTION)],
+                      url: regionLayer.url,
+                      params: regionLayer.params ?? {},
+                    }),
+                    minZoom: regionLayer.minZoom ?? undefined,
+                    opacity: regionLayer.opacity ?? undefined,
+                  }
+                : {},
+            )
+          }),
         ),
       ],
       view: new View({
@@ -162,14 +168,21 @@
       })
 
       const iconStyle = new Style({
-        image: new CircleStyle({
-          fill: new Fill({ color: getBlockKey == null ? 'transparent' : '#ffffffaa' }),
-          radius: selectedBlock?.id === block.id ? 12 : 10,
-          stroke: new Stroke({
-            color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444',
-            width: selectedBlock?.id === block.id ? 3 : 2,
-          }),
-        }),
+        image: new CircleStyle(
+          getBlockKey == null
+            ? {
+                fill: new Fill({ color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444' }),
+                radius: selectedBlock?.id === block.id ? 8 : 6,
+              }
+            : {
+                fill: new Fill({ color: '#ffffffaa' }),
+                stroke: new Stroke({
+                  color: block.id === selectedBlock?.id ? '#60a5fa' : '#ef4444',
+                  width: selectedBlock?.id === block.id ? 3 : 2,
+                }),
+                radius: 10,
+              },
+        ),
         text: new Text(
           getBlockKey == null
             ? {
@@ -216,6 +229,29 @@
     iconFeature.setStyle(iconStyle)
 
     return iconFeature
+  }
+
+  const createLineStringFeatures = () => {
+    const distinctLineStrings = Array.from(new Set(lineStrings))
+    const style = new Style({
+      stroke: new Stroke({ color: '#1e40afaa', width: 2 }),
+    })
+
+    const features = distinctLineStrings.map((path) => {
+      const decodedPolyline = new Polyline({ geometryLayout: 'XY' }).readGeometry(path, {
+        dataProjection: 'EPSG:4326',
+        featureProjection: 'EPSG:3857',
+      }) as LineString
+
+      const feature = new Feature({
+        geometry: decodedPolyline,
+        type: 'route',
+      })
+      feature.setStyle(style)
+      return feature
+    })
+
+    return features
   }
 
   const createSectorGeometry = (iconFeatures: Feature<Point>[]) => {
@@ -373,8 +409,9 @@
     )
 
     const sectorsLayer = new VectorLayer({
-      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
       declutter,
+      maxZoom: declutter ? 14 : undefined,
+      properties: { layerOpts: layers.find((layer) => layer.name === 'markers'), name: crag.name },
       source: sectorsSource,
       style: showAreas
         ? {
@@ -397,6 +434,21 @@
   }
 
   const createMarkers = (map: OlMap) => {
+    const parkingLocationsMap = new Map(parkingLocations.map((location) => [location.id, location]))
+    const distinctParkingLocations = Array.from(parkingLocationsMap.values())
+    const parkingIconFeatures = distinctParkingLocations.map(createParkingMarker)
+    const vectorSource = new VectorSource<Feature<Geometry>>({ features: parkingIconFeatures })
+
+    const lineStringFeatures = createLineStringFeatures()
+    vectorSource.addFeatures(lineStringFeatures)
+
+    const vectorLayer = new VectorLayer({
+      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
+      source: vectorSource,
+      minZoom: declutter ? 14 : undefined,
+    })
+    map.addLayer(vectorLayer)
+
     const allCrags = blocks
       .map((block) => findArea(block.area, 'crag').at(0))
       .filter((d) => d != null) as NestedBlock['area'][]
@@ -404,14 +456,6 @@
     const crags = Array.from(cragsMap.values())
 
     crags.forEach((area) => createCragLayer(map, area))
-
-    const parkingIconFeatures = selectedArea == null ? [] : parkingLocations.map(createParkingMarker)
-    const vectorSource = new VectorSource<Feature<Geometry>>({ features: parkingIconFeatures })
-    const vectorLayer = new VectorLayer({
-      properties: { layerOpts: layers.find((layer) => layer.name === 'markers') },
-      source: vectorSource,
-    })
-    map.addLayer(vectorLayer)
   }
 
   const createPopup = (map: OlMap) => {
@@ -474,12 +518,27 @@
         .filter((block) => block.geolocation?.lat != null && block.geolocation!.long != null)
         .map((block) => fromLonLat([block.geolocation!.long, block.geolocation!.lat]))
 
+      const selectedParkingLocations = parkingLocations.filter((parkingLocation) => {
+        if (selectedBlock != null) {
+          return false
+        }
+
+        if (selectedArea == null) {
+          return true
+        }
+
+        return parkingLocation.areaFk === selectedArea.id
+      })
+
       coordinates.push(
-        ...parkingLocations.map((parkingLocation) => fromLonLat([parkingLocation.long, parkingLocation.lat])),
+        ...selectedParkingLocations.map((parkingLocation) => fromLonLat([parkingLocation.long, parkingLocation.lat])),
       )
 
       if (isRootMap) {
-        const sorted = coordinates.toSorted((a, b) => getDistance({ x: a[0], y: a[1] }, { x: b[0], y: b[1] }))
+        const sorted = coordinates.toSorted(
+          (a, b) =>
+            getDistance({ x: a[0], y: a[1] }, { x: 0, y: 0 }) - getDistance({ x: b[0], y: b[1] }, { x: 0, y: 0 }),
+        )
         const median = sorted[Math.floor(sorted.length / 2)]
 
         const filtered = coordinates.filter(

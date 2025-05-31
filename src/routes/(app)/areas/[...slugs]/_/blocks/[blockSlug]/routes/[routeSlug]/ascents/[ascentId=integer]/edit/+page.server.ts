@@ -1,17 +1,18 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { activities, ascents } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { ascentActionSchema, validateFormData, type ActionFailure, type AscentActionValues } from '$lib/forms.server'
+import { ascentActionSchema, type ActionFailure, type AscentActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { deleteFiles } from '$lib/helper.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
+import { differenceInMinutes } from 'date-fns'
 import { and, eq } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
-import { differenceInMinutes } from 'date-fns'
 
 export const load = (async ({ locals, params }) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -32,7 +33,8 @@ export const load = (async ({ locals, params }) => {
 
     if (
       ascent == null ||
-      (locals.session?.user.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
+      (locals.session?.user.id !== ascent.author.authUserFk &&
+        !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], ascent.route.regionFk))
     ) {
       error(404)
     }
@@ -75,7 +77,8 @@ export const actions = {
 
       if (
         ascent == null ||
-        (locals.session?.user.id !== ascent.author.authUserFk && !locals.userPermissions?.includes(EDIT_PERMISSION))
+        (locals.session?.user.id !== ascent.author.authUserFk &&
+          !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], ascent.route.regionFk))
       ) {
         return fail(404, { ...values, error: `Ascent not found ${params.ascentId}` })
       }
@@ -102,6 +105,7 @@ export const actions = {
             userFk: user.id,
             parentEntityId: String(ascent.route.id),
             parentEntityType: 'route',
+            regionFk: ascent.regionFk,
           })
         }
       } catch (exception) {
@@ -116,8 +120,8 @@ export const actions = {
             locals.supabase,
             values.folderName!,
             dstFolder,
+            { ascentFk: ascent.id, regionFk: ascent.regionFk },
             values.bunnyVideoIds,
-            { ascentFk: ascent.id },
           )
 
           await Promise.all(
@@ -130,6 +134,7 @@ export const actions = {
                 columnName: 'file',
                 parentEntityId: String(ascent.routeFk),
                 parentEntityType: 'route',
+                regionFk: file.regionFk,
               }),
             ),
           )
@@ -168,8 +173,7 @@ export const actions = {
       if (
         ascent == null ||
         (locals.session?.user.id !== ascent.author.authUserFk &&
-          !locals.userPermissions?.includes(EDIT_PERMISSION) &&
-          !locals.userPermissions?.includes(DELETE_PERMISSION))
+          !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], ascent.regionFk))
       ) {
         return fail(404)
       }
@@ -191,6 +195,7 @@ export const actions = {
           oldValue: ascent.type,
           parentEntityId: String(ascent.routeFk),
           parentEntityType: 'route',
+          regionFk: ascent.regionFk,
         })
       } catch (error) {
         return fail(400, { error: convertException(error) })

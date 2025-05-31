@@ -1,11 +1,11 @@
-import { getFromCacheWithDefault, invalidateCache } from '$lib/cache/cache.server'
+import { caches, getFromCacheWithDefault, invalidateCache } from '$lib/cache/cache.server'
 import type { ActivityDTO, ActivityGroup, Entity } from '$lib/components/ActivityFeed'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import type { IncludeRelation, InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
-import { validateObject } from '$lib/forms.server'
+import { validateObject } from '$lib/forms/validate.server'
 import { convertMarkdownToHtml } from '$lib/markdown'
 import { loadFiles } from '$lib/nextcloud/nextcloud.server'
 import { getPaginationQuery, paginationParamsSchema } from '$lib/pagination.server'
@@ -13,7 +13,7 @@ import { error } from '@sveltejs/kit'
 import { sub } from 'date-fns'
 import { and, asc, count, desc, eq, gt, inArray, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 export const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Activity['entityType']) => {
   switch (entityType) {
@@ -157,7 +157,7 @@ const resolveEntities = async (
       const query = getQuery(db, entityType)
       const objects = await query.findMany({
         where: getWhereArr(entityType, distinctIds),
-        with: getWith(entityType),
+        with: getWith(entityType) as any,
       })
 
       return objects.map((object) => ({ entityType, object }))
@@ -285,7 +285,8 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
     const countResults = await db.select({ count: count() }).from(schema.activities).where(and(where))
 
     const groupedActivities = await getFromCacheWithDefault(
-      config.cache.keys.activityFeed,
+      caches.activityFeed,
+      locals.userRegions,
       async () => {
         const activities = await db.query.activities.findMany({
           ...getPaginationQuery(searchParams),
@@ -305,6 +306,8 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
           resolveEntities(db, activities, distinctEntityTypes, false),
           resolveEntities(db, activities, distinctParentEntityTypes, true),
         ])
+
+        const regions = await db.query.regions.findMany()
 
         const activitiesDTOs = activities
           .map((activity): ActivityDTO | null => {
@@ -326,12 +329,21 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
               return null
             }
 
+            const entityName =
+              wrapper.entity.object != null && 'name' in wrapper.entity.object ? wrapper.entity.object.name : null
+
+            const parentEntityName =
+              parentWrapper?.entity.object != null && 'name' in parentWrapper.entity.object
+                ? parentWrapper.entity.object.name
+                : null
+
             return {
               ...activity,
               entity: wrapper?.entity,
-              entityName: wrapper?.object?.name,
+              entityName,
               parentEntity: parentWrapper?.entity,
-              parentEntityName: parentWrapper?.object?.name,
+              parentEntityName,
+              region: regions.find((region) => region.id === activity.regionFk),
             }
           })
           .filter((item) => item != null)
@@ -339,6 +351,7 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
         return groupActivities(activitiesDTOs)
       },
       async () => allQueries.length === 0 && searchParams.page === 1 && searchParams.pageSize === 15,
+      null,
     )
 
     return {
@@ -354,7 +367,10 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
 }
 
 interface HandleOpts
-  extends Pick<schema.InsertActivity, 'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType'> {
+  extends Pick<
+    schema.InsertActivity,
+    'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType' | 'regionFk'
+  > {
   oldEntity: Record<string, unknown>
   newEntity: Record<string, unknown>
   db: PostgresJsDatabase<typeof schema>
@@ -369,6 +385,7 @@ export const createUpdateActivity = async ({
   userFk,
   parentEntityId,
   parentEntityType,
+  regionFk,
 }: HandleOpts) => {
   const changes: Pick<schema.InsertActivity, 'columnName' | 'oldValue' | 'newValue'>[] = []
 
@@ -427,10 +444,11 @@ export const createUpdateActivity = async ({
           newValue: change.newValue,
           parentEntityId,
           parentEntityType,
+          regionFk,
         }),
       ),
     )
-    await invalidateCache(config.cache.keys.activityFeed)
+    await invalidateCache(caches.activityFeed)
   }
 }
 
@@ -439,9 +457,10 @@ export const insertActivity = async (
   activity: schema.InsertActivity | schema.InsertActivity[],
 ) => {
   const arr = Array.isArray(activity) ? activity : [activity]
+  const regionFks = arr.map((activity) => activity.regionFk)
 
   if (arr.length > 0) {
     await db.insert(schema.activities).values(arr)
-    await invalidateCache(config.cache.keys.activityFeed)
+    await invalidateCache(caches.activityFeed)
   }
 }

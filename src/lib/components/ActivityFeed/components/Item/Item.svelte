@@ -9,7 +9,7 @@
 
 <script lang="ts">
   import { page } from '$app/state'
-  import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import type { ActivityDTO } from '$lib/components/ActivityFeed'
   import FileViewer from '$lib/components/FileViewer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
@@ -17,6 +17,7 @@
   import { Rating } from '@skeletonlabs/skeleton-svelte'
   import { compareAsc, format, formatDistance, formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
+  import { diffWords } from 'diff'
 
   const { activity, withBreadcrumbs = false, withDetails = false, withFiles = false }: ItemProps = $props()
 
@@ -44,6 +45,14 @@
       default:
         return 'fa-pen'
     }
+  })
+
+  const diff = $derived.by(() => {
+    if (activity.oldValue != null || activity.newValue != null) {
+      return diffWords(activity.oldValue ?? '', activity.newValue ?? '')
+    }
+
+    return []
   })
 </script>
 
@@ -128,11 +137,49 @@
             </span>
           {/if}
         </span>
-      {:else if activity.entity.type === 'user' && activity.type === 'created'}
-        has requested account approval
-      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role' && activity.newValue === 'user'}
-        has approved user
+      {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'role'}
+        has approved
         <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          to region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role'}
+        has updated the role of
+        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        to {activity.newValue}
+
+        {#if activity.region != null}
+          in region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'role'}
+        has removed
+        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+
+        {#if activity.region != null}
+          from region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'invitation'}
+        has invited
+        <a class="anchor" href={`mailto:${activity.newValue}`}>{activity.newValue}</a>
+
+        {#if activity.region != null}
+          to region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'invitation'}
+        has accepted the invitation to join
+
+        {#if activity.region != null}
+          region {activity.region.name}
+        {/if}
+      {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'invitation'}
+        has removed the invitation to
+        <a class="anchor" href={`mailto:${activity.newValue}`}>{activity.newValue}</a>
+
+        {#if activity.region != null}
+          from region {activity.region.name}
+        {/if}
       {:else}
         <span>
           {activity.type}
@@ -207,42 +254,48 @@
                 newGrade={activity.newValue == null ? null : Number(activity.newValue)}
               />
             </div>
-          {:else}
+          {:else if ['notes', 'name', 'tags', 'description', 'first ascent'].includes(activity.columnName ?? '')}
             <span>
-              {#if activity.oldValue != null}
-                {#if activity.columnName === 'rating'}
-                  <span class="inline-flex">
-                    <Rating count={3} readOnly value={Number(activity.oldValue)}>
-                      {#snippet iconFull()}
-                        <i class="fa-solid fa-star text-warning-500"></i>
-                      {/snippet}
-                    </Rating>
-                  </span>
-                {:else}
-                  <s class="text-red-500">
-                    "{activity.oldValue}"
-                  </s>
-                {/if}
-              {/if}
-
-              {#if activity.newValue != null}
-                <i class="fa-solid fa-arrow-right-long mx-2"></i>
-              {/if}
-
-              {#if activity.newValue != null}
-                {#if activity.columnName === 'rating'}
-                  <span class="inline-flex">
-                    <Rating count={3} readOnly value={Number(activity.newValue)}>
-                      {#snippet iconFull()}
-                        <i class="fa-solid fa-star text-warning-500"></i>
-                      {/snippet}
-                    </Rating>
-                  </span>
-                {:else}
-                  <span class="text-green-500">"{activity.newValue}"</span>
-                {/if}
-              {/if}
+              {#each diff as change}
+                <span class={change.added ? 'text-green-500' : change.removed ? 'text-red-500' : ''}>
+                  {change.value}
+                </span>
+              {/each}
             </span>
+          {:else}
+            {#if activity.oldValue != null}
+              {#if activity.columnName === 'rating'}
+                <span class="inline-flex">
+                  <Rating count={3} readOnly value={Number(activity.oldValue)}>
+                    {#snippet iconFull()}
+                      <i class="fa-solid fa-star text-warning-500"></i>
+                    {/snippet}
+                  </Rating>
+                </span>
+              {:else}
+                <s class="text-red-500">
+                  "{activity.oldValue}"
+                </s>
+              {/if}
+            {/if}
+
+            {#if activity.newValue != null}
+              <i class="fa-solid fa-arrow-right-long mx-2"></i>
+
+              {#if activity.columnName === 'rating'}
+                <span class="inline-flex">
+                  <Rating count={3} readOnly value={Number(activity.newValue)}>
+                    {#snippet iconFull()}
+                      <i class="fa-solid fa-star text-warning-500"></i>
+                    {/snippet}
+                  </Rating>
+                </span>
+              {:else}
+                <s class="text-red-500">
+                  "{activity.newValue}"
+                </s>
+              {/if}
+            {/if}
           {/if}
         {/if}
       {/if}
@@ -253,7 +306,7 @@
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
 
-      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || page.data.userPermissions?.includes(EDIT_PERMISSION))}
+      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
         <a
           aria-label="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
@@ -272,7 +325,7 @@
 
     {#if withFiles && activity.entity.type == 'ascent' && activity.entity.object != null && activity.type === 'created'}
       {#if activity.entity.object.notes != null && activity.entity.object.notes!.length > 0}
-        <div class="rendered-markdown preset-filled-surface-200-800 mt-4 p-4">
+        <div class="markdown-body preset-filled-surface-200-800 mt-4 p-4">
           {@html activity.entity.object.notes}
         </div>
       {/if}
@@ -289,7 +342,7 @@
                 {file}
                 stat={file.stat}
                 readOnly={!(
-                  page.data.userPermissions?.includes(DELETE_PERMISSION) ||
+                  checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
                   activity.entity.object.createdBy === page.data.user?.id
                 )}
                 onDelete={() => {

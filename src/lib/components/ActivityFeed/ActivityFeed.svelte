@@ -1,27 +1,37 @@
+<script lang="ts" module>
+  export interface ActivityFeedProps extends Pick<ItemProps, 'withBreadcrumbs'> {
+    activities: ActivityGroup[]
+    pagination: Pagination
+    onMount?: (updater: (activities: ActivityGroup[]) => void) => void
+  }
+</script>
+
 <script lang="ts">
   import { afterNavigate, goto } from '$app/navigation'
   import { page } from '$app/state'
-  import { DELETE_PERMISSION } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer/FileViewer.svelte'
   import RouteName from '$lib/components/RouteName/RouteName.svelte'
   import type { FileDTO } from '$lib/nextcloud'
   import type { Pagination } from '$lib/pagination.server'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
+  import { onMount } from 'svelte'
   import type { ActivityDTO, ActivityGroup } from '.'
   import type { ItemProps } from './components/Item'
   import Item from './components/Item'
 
-  interface Props extends Pick<ItemProps, 'withBreadcrumbs'> {
-    activities: ActivityGroup[]
-    pagination: Pagination
-  }
-
-  const { activities, pagination, ...rest }: Props = $props()
+  const { activities, pagination, onMount: propsOnMount, ...rest }: ActivityFeedProps = $props()
 
   let activityPages = $state<(typeof activities)[]>([])
   let prevPage = $state(1)
   let filterValue = $state<string[]>([])
+
+  onMount(() => {
+    propsOnMount?.((newActivities) => {
+      activityPages = [newActivities]
+    })
+  })
 
   afterNavigate(() => {
     if (pagination.page === prevPage + 1) {
@@ -192,8 +202,13 @@
                             <FileViewer
                               {file}
                               stat={file.stat}
-                              readOnly={!page.data.userPermissions?.includes(DELETE_PERMISSION) ||
-                                ascentActivity?.entity.object?.createdBy !== page.data.user?.id}
+                              readOnly={!(
+                                checkRegionPermission(
+                                  page.data.userRegions,
+                                  [REGION_PERMISSION_ADMIN],
+                                  file.regionFk,
+                                ) || ascentActivity?.entity.object?.createdBy === page.data.user?.id
+                              )}
                               onDelete={() => {
                                 if (ascentActivity?.entity.object != null) {
                                   ascentActivity.entity.object.files = ascentActivity.entity.object.files.filter(

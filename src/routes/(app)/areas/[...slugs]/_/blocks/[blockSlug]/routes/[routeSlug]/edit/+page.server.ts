@@ -1,9 +1,10 @@
-import { DELETE_PERMISSION, EDIT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, generateSlug, routes, routesToTags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
-import { routeActionSchema, validateFormData, type ActionFailure, type RouteActionValues } from '$lib/forms.server'
+import { routeActionSchema, type ActionFailure, type RouteActionValues } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
 import { deleteRoute, updateRoutesUserData } from '$lib/routes.server'
 import { error, fail, redirect } from '@sveltejs/kit'
@@ -11,10 +12,6 @@ import { and, eq, not } from 'drizzle-orm'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params, parent }) => {
-  if (!locals.userPermissions?.includes(EDIT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -39,7 +36,7 @@ export const load = (async ({ locals, params, parent }) => {
     const route = block?.routes?.at(0)
 
     // Throw a 404 error if the route is not found
-    if (route == null) {
+    if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)) {
       error(404)
     }
 
@@ -63,7 +60,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (!locals.userPermissions?.includes(EDIT_PERMISSION) || locals.user == null) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -100,7 +97,7 @@ export const actions = {
       const route = block?.routes?.at(0)
 
       // Return a 404 failure if the route is not found
-      if (route == null) {
+      if (route == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)) {
         return fail(404, { ...values, error: `Route not found ${params.routeSlug}` })
       }
 
@@ -147,7 +144,9 @@ export const actions = {
 
         if (tags != null && tags.length > 0) {
           // Insert new route-to-tag associations for the route
-          await db.insert(routesToTags).values(tags.map((tag) => ({ routeFk: route.id, tagFk: tag })))
+          await db
+            .insert(routesToTags)
+            .values(tags.map((tag) => ({ routeFk: route.id, tagFk: tag, regionFk: route.regionFk })))
         }
 
         await updateRoutesUserData(route.id, db)
@@ -163,6 +162,7 @@ export const actions = {
           userFk: locals.user.id,
           parentEntityId: String(block.id),
           parentEntityType: 'block',
+          regionFk: route.regionFk,
         })
       } catch (exception) {
         // Return a failure if the update operation fails
@@ -188,11 +188,7 @@ export const actions = {
     const rls = await createDrizzleSupabaseClient(locals.supabase)
 
     const returnValue = await rls(async (db) => {
-      if (
-        !locals.userPermissions?.includes(EDIT_PERMISSION) ||
-        !locals.userPermissions?.includes(DELETE_PERMISSION) ||
-        locals.user == null
-      ) {
+      if (locals.user == null) {
         return fail(404)
       }
 
@@ -200,7 +196,13 @@ export const actions = {
 
       try {
         const result = await deleteRoute(
-          { areaId, blockSlug: params.blockSlug, routeSlug: params.routeSlug, userId: locals.user.id },
+          {
+            areaId,
+            blockSlug: params.blockSlug,
+            routeSlug: params.routeSlug,
+            userId: locals.user.id,
+            userRegions: locals.userRegions,
+          },
           db,
         )
 

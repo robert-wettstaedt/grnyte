@@ -2,6 +2,8 @@ import { getNextcloud, loadFiles, searchNextcloudFile } from '$lib/nextcloud/nex
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileStat } from 'webdav'
 
+vi.mock('$lib/db/db.server.ts', () => ({}))
+
 // Mock data
 const mockFileStat: FileStat = {
   filename: '/test/image.jpg',
@@ -64,6 +66,7 @@ describe('NextCloud Integration', () => {
         routeFk: null,
         bunnyStreamFk: null,
         visibility: null,
+        regionFk: 1,
       })
       expect(result).toEqual({ ...mockFileStat, filename: mockFileStat.filename })
     })
@@ -79,6 +82,7 @@ describe('NextCloud Integration', () => {
           routeFk: null,
           bunnyStreamFk: null,
           visibility: null,
+          regionFk: 1,
         }),
       ).rejects.toThrowError()
     })
@@ -96,6 +100,7 @@ describe('NextCloud Integration', () => {
           routeFk: null,
           visibility: null,
           bunnyStreamFk: null,
+          regionFk: 1,
         },
         {
           id: '2',
@@ -106,6 +111,7 @@ describe('NextCloud Integration', () => {
           routeFk: null,
           visibility: null,
           bunnyStreamFk: null,
+          regionFk: 1,
         },
       ]
       const results = await loadFiles(paths)
@@ -129,6 +135,7 @@ describe('NextCloud Integration', () => {
           routeFk: null,
           bunnyStreamFk: null,
           visibility: null,
+          regionFk: 1,
         },
         {
           id: '1',
@@ -139,6 +146,7 @@ describe('NextCloud Integration', () => {
           routeFk: null,
           bunnyStreamFk: null,
           visibility: null,
+          regionFk: 1,
         },
       ]
       const results = await loadFiles(paths)

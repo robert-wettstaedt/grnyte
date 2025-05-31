@@ -22,6 +22,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
         entityType: 'ascent',
         parentEntityId: String(ascent.routeFk),
         parentEntityType: 'route',
+        regionFk: ascent.regionFk,
         type: 'created',
         userFk: ascent.createdBy,
       }),

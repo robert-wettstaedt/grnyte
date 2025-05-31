@@ -2,12 +2,21 @@ import { sveltekit } from '@sveltejs/kit/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { svelteTesting } from '@testing-library/svelte/vite'
 import { SvelteKitPWA } from '@vite-pwa/sveltekit'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
+
+const file = fileURLToPath(new URL('package.json', import.meta.url))
+const json = readFileSync(file, 'utf8')
+const pkg = JSON.parse(json)
 
 export default defineConfig({
   server: {
     host: true,
     port: 3000,
+  },
+  define: {
+    __APP_REPO__: JSON.stringify(pkg.repository.url),
   },
   plugins: [
     tailwindcss(),
@@ -80,6 +89,10 @@ export default defineConfig({
       },
     }),
   ],
+  ssr: {
+    noExternal: ['codemirror-json-schema'],
+    optimizeDeps: { include: ['codemirror-json-schema'] },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.js'],

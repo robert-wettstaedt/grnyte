@@ -13,11 +13,11 @@
 <AppBar {...props} leadClasses="flex-wrap" toolbarClasses="items-center">
   {#snippet trail()}
     {#if actions != null && hasActions}
-      <div class="hidden space-x-4 md:flex rtl:space-x-reverse">
+      <div class="hidden space-x-4 lg:flex rtl:space-x-reverse">
         {@render actions()}
       </div>
 
-      <div class="md:hidden">
+      <div class="lg:hidden">
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

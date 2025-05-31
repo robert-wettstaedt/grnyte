@@ -1,7 +1,7 @@
 import { BUNNY_STREAM_API_KEY } from '$env/static/private'
 import { PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
 import { createCollection, createVideo, createVideoUploadSignature, getCollections } from '$lib/bunny'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import { CreateVideoResponseSchema } from './lib'
 
 export const POST = async ({ locals }) => {

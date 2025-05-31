@@ -1,7 +1,7 @@
 import { PRIVATE_VAPID_KEY } from '$env/static/private'
 import { PUBLIC_TOPO_EMAIL, PUBLIC_VAPID_KEY } from '$env/static/public'
 import * as schema from '$lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import webpush from 'web-push'
 import type { Notification } from '.'
@@ -35,12 +35,27 @@ export const sendNotificationsToAllSubscriptions = async (
   notifications: Notification[],
   db: PostgresJsDatabase<typeof schema>,
   userFk?: number,
+  regionFk?: number,
 ) => {
+  let userFks: number[] = []
+
+  if (userFk != null) {
+    userFks.push(userFk)
+  }
+
+  if (regionFk != null) {
+    const regionMembers = await db.query.regionMembers.findMany({
+      columns: { userFk: true },
+      where: eq(schema.regionMembers.regionFk, regionFk),
+    })
+    userFks.push(...regionMembers.map((item) => item.userFk))
+  }
+
   const subscriptions = await db.query.pushSubscriptions.findMany(
-    userFk == null ? undefined : { where: eq(schema.pushSubscriptions.userFk, userFk) },
+    userFks.length === 0 ? undefined : { where: inArray(schema.pushSubscriptions.userFk, userFks) },
   )
   const usersSettings = await db.query.userSettings.findMany(
-    userFk == null ? undefined : { where: eq(schema.userSettings.userFk, userFk) },
+    userFks.length === 0 ? undefined : { where: inArray(schema.userSettings.userFk, userFks) },
   )
   const grades = await db.query.grades.findMany()
 

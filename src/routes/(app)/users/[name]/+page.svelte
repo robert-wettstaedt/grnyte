@@ -76,11 +76,11 @@
   {#snippet actions()}
     {#if page.data.session?.user?.id === data.requestedUser?.authUserFk}
       <a class="btn btn-sm preset-outlined-primary-500" href="/profile/edit">
-        <i class="fa-solid fa-pen"></i>Edit profile
+        <i class="fa-solid fa-pen w-4"></i>Edit profile
       </a>
 
       <a class="btn btn-sm preset-outlined-primary-500" href="/profile/change-password">
-        <i class="fa-solid fa-key"></i>Change password
+        <i class="fa-solid fa-key w-4"></i>Change password
       </a>
     {/if}
   {/snippet}

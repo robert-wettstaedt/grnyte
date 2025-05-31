@@ -131,7 +131,9 @@ export const insertExternalResources = async (route: schema.Route, block: schema
   )
 
   if (resource == null) {
-    ;[resource] = await db((tx) => tx.insert(schema.routeExternalResources).values({ routeFk: route.id }).returning())
+    ;[resource] = await db((tx) =>
+      tx.insert(schema.routeExternalResources).values({ regionFk: route.regionFk, routeFk: route.id }).returning(),
+    )
     await db((tx) =>
       tx.update(schema.routes).set({ externalResourcesFk: resource!.id }).where(eq(schema.routes.id, route.id)),
     )
@@ -156,6 +158,7 @@ export const insertExternalResources = async (route: schema.Route, block: schema
             ...externalResources.data8a,
             id: undefined,
             externalResourcesFk: resource.id,
+            regionFk: route.regionFk,
           })
           .returning(),
       )
@@ -183,6 +186,7 @@ export const insertExternalResources = async (route: schema.Route, block: schema
             ...externalResources.data27crags,
             id: undefined,
             externalResourcesFk: resource.id,
+            regionFk: route.regionFk,
           })
           .returning(),
       )
@@ -210,6 +214,7 @@ export const insertExternalResources = async (route: schema.Route, block: schema
             ...externalResources.dataTheCrag,
             id: undefined,
             externalResourcesFk: resource.id,
+            regionFk: route.regionFk,
           })
           .returning(),
       )
@@ -241,6 +246,7 @@ export const insertExternalResources = async (route: schema.Route, block: schema
           blockFk: block.id,
           lat: externalResources.data27crags!.latitude!,
           long: externalResources.data27crags!.longitude!,
+          regionFk: block.regionFk,
         })
         .returning(),
     )

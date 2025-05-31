@@ -1,5 +1,7 @@
 import { convertAreaSlug } from '$lib/helper.server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('$lib/db/db.server.ts', () => ({}))
 
 describe('convertAreaSlug', () => {
   it('should convert a valid slug string into the correct object', () => {

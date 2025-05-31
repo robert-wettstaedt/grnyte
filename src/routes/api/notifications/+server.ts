@@ -1,5 +1,5 @@
 import { CRON_API_KEY } from '$env/static/private'
-import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
+import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
 import { getVideoThumbnailUrl } from '$lib/bunny'
 import { getParentWith, getQuery, getWhere, postProcessEntity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
@@ -7,7 +7,6 @@ import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import type { Notification } from '$lib/notifications'
 import { getGradeTemplateString, sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
-import { json } from '@sveltejs/kit'
 import { differenceInDays, differenceInMinutes, sub } from 'date-fns'
 import { and, eq, gte, inArray, isNull } from 'drizzle-orm'
 
@@ -26,14 +25,21 @@ export const POST = async ({ request }) => {
   }
 
   const activities = await getActivities()
-  const groups = groupActivities(activities)
-  const notifications = await createNotifications(groups)
-  await sendNotificationsToAllSubscriptions(notifications, db)
+  const regionFks = Array.from(new Set(activities.map((activity) => activity.regionFk)))
+  const allGroups = await Promise.all(
+    regionFks.map(async (regionFk) => {
+      const groups = groupActivities(activities)
+      const notifications = await createNotifications(groups)
+      await sendNotificationsToAllSubscriptions(notifications, db, undefined, regionFk)
+      return groups
+    }),
+  )
+  const groups = allGroups.flat()
 
   const notifiedActivityIds = groups.flatMap((group) => group.activities.map((activity) => activity.id))
   await db.update(schema.activities).set({ notified: true }).where(inArray(schema.activities.id, notifiedActivityIds))
 
-  return json(notifications)
+  return new Response(null, { status: 200 })
 }
 
 interface Group {
@@ -57,9 +63,11 @@ const groupActivities = (activities: schema.Activity[]) => {
   let groups: Group[] = []
 
   activities.forEach((activity) => {
-    const isAscentOrUser = activity.entityType === 'ascent' || activity.entityType === 'user'
+    const isAscent = activity.entityType === 'ascent'
+    const isUser = activity.entityType === 'user'
+    const isAscentOrUser = isAscent || isUser
 
-    if (isAscentOrUser && activity.type !== 'created') {
+    if (isAscent && activity.type !== 'created') {
       return
     }
 
@@ -188,12 +196,74 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
 }
 
 const getUserNotification = async (group: Group, username: string): Promise<Notification | undefined> => {
-  return {
-    body: `${username} has joined ${PUBLIC_APPLICATION_NAME}`,
-    data: { pathname: `/users/${group.userFk}` },
+  interface ActivityFilter {
+    filter: (activity: schema.Activity) => boolean
+    withEntity: boolean
+    getBody: (item: schema.Activity, user?: schema.User) => string
+  }
+  const activityFilters: ActivityFilter[] = [
+    {
+      filter: (activity) => activity.type === 'created' && activity.columnName === 'role',
+      getBody: (_, user) => `${username} has approved ${user?.username}`,
+      withEntity: true,
+    },
+    {
+      filter: (activity) => activity.type === 'created' && activity.columnName === 'invitation',
+      getBody: (item) => `${username} has invited ${item.newValue}`,
+      withEntity: false,
+    },
+    {
+      filter: (activity) => activity.type === 'created' && activity.columnName === 'role',
+      getBody: (_, user) => `${username} has approved ${user?.username}`,
+      withEntity: true,
+    },
+    {
+      filter: (activity) => activity.type === 'updated' && activity.columnName === 'invitation',
+      getBody: () => `${username} has accepted the invitation to join`,
+      withEntity: false,
+    },
+    {
+      filter: (activity) => activity.type === 'deleted' && activity.columnName === 'role',
+      getBody: (_, user) => `${username} has removed ${user?.username}`,
+      withEntity: true,
+    },
+    {
+      filter: () => true,
+      getBody: () => `${username} has updated a user`,
+      withEntity: false,
+    },
+  ]
 
-    userId: group.userFk,
-    type: 'user',
+  for await (const item of activityFilters) {
+    const array = group.activities.filter(item.filter)
+    const activity = array.at(0)
+    let user: schema.User | undefined
+
+    if (activity == null) {
+      continue
+    }
+
+    if (item.withEntity) {
+      const result = await getQuery(db, 'user').findFirst({
+        where: getWhere('user', activity.entityId),
+      })
+      const entity = await postProcessEntity(db, 'user', result)
+
+      if (entity?.object == null || !('username' in entity.object)) {
+        continue
+      }
+
+      user = entity.object
+    }
+
+    const body = item.getBody(activity, user)
+
+    return {
+      body: [body, array.length === 1 ? null : `and ${array.length - 1} more`].filter(Boolean).join(' '),
+      data: { pathname: '/feed' },
+      type: 'user',
+      userId: group.userFk,
+    }
   }
 }
 
@@ -208,7 +278,7 @@ const getModerateNotification = async (group: Group, username: string): Promise<
 
   const parentEntity = await getQuery(db, activity.parentEntityType).findFirst({
     where: getWhere(activity.parentEntityType, activity.parentEntityId),
-    with: getParentWith(activity.parentEntityType),
+    with: getParentWith(activity.parentEntityType) as any,
   })
 
   const entity = parentEntity == null ? null : await postProcessEntity(db, activity.parentEntityType, parentEntity)

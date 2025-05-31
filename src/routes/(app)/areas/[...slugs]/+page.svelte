@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { afterNavigate, goto } from '$app/navigation'
+  import { afterNavigate, goto, replaceState } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { DELETE_PERMISSION, EDIT_PERMISSION, EXPORT_PERMISSION } from '$lib/auth'
+  import {
+    checkRegionPermission,
+    REGION_PERMISSION_ADMIN,
+    REGION_PERMISSION_DELETE,
+    REGION_PERMISSION_EDIT,
+  } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
   import GenericList from '$lib/components/GenericList'
@@ -13,7 +18,7 @@
   import RouteName from '$lib/components/RouteName'
   import RoutesFilter from '$lib/components/RoutesFilter'
   import type { Block } from '$lib/db/schema'
-  import { Pagination, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination, Segment, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
   let { data } = $props()
@@ -31,12 +36,12 @@
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
-  let loadingDownload = $state(false)
+  let blocksViewMode: 'list' | 'grid' = $state(page.state.blocksViewMode ?? 'list')
   let downloadError: string | null = $state(null)
   let orderMode = $state(false)
   let sortOrder: 'custom' | 'alphabetical' = $state('custom')
-
   let tabValue: string | undefined = $state(undefined)
+
   afterNavigate(() => {
     tabValue = page.url.hash.length > 0 ? page.url.hash : data.area.type === 'sector' ? '#info' : '#areas'
   })
@@ -92,9 +97,7 @@
     await updateBlocksFromServer(res)
   }
 
-  const hasActions = $derived(
-    data.userPermissions?.includes(EDIT_PERMISSION) || data.userPermissions?.includes(EXPORT_PERMISSION),
-  )
+  const hasActions = $derived(checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk))
 </script>
 
 <svelte:head>
@@ -113,25 +116,39 @@
   {/snippet}
 
   {#snippet actions()}
-    {#if data.userPermissions?.includes(EXPORT_PERMISSION) && data.area.type === 'sector'}
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
-        <i class="fa-solid fa-file-export"></i>Export PDF
-      </a>
-    {/if}
-
-    {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/sync-external-resources`}>
-        <i class="fa-solid fa-sync"></i>Sync external resources
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk)}
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
+        <i class="fa-solid fa-pen w-4"></i>Edit area details
       </a>
 
-      {#if data.area.type !== 'area'}
-        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-parking-location`}>
-          <i class="fa-solid fa-parking"></i>Add parking location
+      {#if data.area.type !== 'sector' && data.canAddArea}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add`}>
+          <i class="fa-solid fa-plus w-4"></i>Add area
         </a>
       {/if}
 
-      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
-        <i class="fa-solid fa-pen"></i>Edit area
+      {#if data.area.type === 'sector'}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/_/blocks/add`}>
+          <i class="fa-solid fa-plus w-4"></i>Add block
+        </a>
+      {/if}
+
+      {#if data.area.type !== 'area'}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit-parking-location`}>
+          <i class="fa-solid fa-parking w-4"></i>Add parking location
+        </a>
+      {/if}
+    {/if}
+
+    {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_ADMIN], data.area.regionFk)}
+      {#if data.area.type === 'sector'}
+        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
+          <i class="fa-solid fa-file-export w-4"></i>Export PDF
+        </a>
+      {/if}
+
+      <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/sync-external-resources`}>
+        <i class="fa-solid fa-sync w-4"></i>Sync external resources
       </a>
     {/if}
   {/snippet}
@@ -169,7 +186,7 @@
                   <span class="flex-auto">
                     <dt>Description</dt>
                     <dd>
-                      <div class="rendered-markdown mt-4">
+                      <div class="markdown-body mt-4">
                         {@html data.area.description}
                       </div>
                     </dd>
@@ -197,7 +214,7 @@
 
                   <dd class="mt-1 flex gap-1">
                     <GradeHistogram
-                      data={data.area.grades}
+                      data={data.area.grades ?? []}
                       spec={{
                         width: 'container' as any,
                       }}
@@ -215,7 +232,11 @@
                         {#if file.stat != null}
                           <FileViewer
                             {file}
-                            readOnly={!data.userPermissions?.includes(DELETE_PERMISSION)}
+                            readOnly={!checkRegionPermission(
+                              data.userRegions,
+                              [REGION_PERMISSION_DELETE],
+                              file.regionFk,
+                            )}
                             stat={file.stat}
                             onDelete={() => (files = files.filter((_file) => file.id !== _file.id))}
                           />
@@ -240,7 +261,7 @@
           <div use:fitHeightAction>
             {#await import('$lib/components/BlocksMap') then BlocksMap}
               {#key data.area.id}
-                <BlocksMap.default parkingLocations={data.area.parkingLocations} selectedArea={data.area} />
+                <BlocksMap.default selectedArea={data.area} />
               {/key}
             {/await}
           </div>
@@ -248,10 +269,24 @@
 
         {#if data.area.type === 'sector'}
           <Tabs.Panel value="#blocks">
-            {#if data.userPermissions?.includes(EDIT_PERMISSION)}
-              <div class="flex justify-between">
-                <a class="btn preset-filled-primary-500" href={`${basePath}/_/blocks/add`}>Add block</a>
+            <div class="flex justify-between">
+              <Segment
+                name="blocks-view-mode"
+                onValueChange={(event) => {
+                  blocksViewMode = event.value as 'list' | 'grid'
+                  replaceState('#blocks', { blocksViewMode })
+                }}
+                value={blocksViewMode}
+              >
+                <Segment.Item value="list">
+                  <i class="fa-solid fa-list"></i>
+                </Segment.Item>
+                <Segment.Item value="grid">
+                  <i class="fa-solid fa-table-cells-large"></i>
+                </Segment.Item>
+              </Segment>
 
+              {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], data.area.regionFk)}
                 <button
                   class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
                   disabled={sortOrder !== 'custom'}
@@ -261,8 +296,8 @@
 
                   Reorder blocks
                 </button>
-              </div>
-            {/if}
+              {/if}
+            </div>
 
             <section class="py-2 md:py-4">
               {#if blocks.length === 0}
@@ -284,64 +319,99 @@
                   </select>
                 </label>
 
-                <GenericList
-                  classes="-mx-4"
-                  listClasses={orderMode ? undefined : 'mt-4 bg-surface-200-800'}
-                  items={sortedBlocks.map((item) => ({ ...item, pathname: `${basePath}/_/blocks/${item.slug}` }))}
-                  onConsiderSort={orderMode ? (items) => (blocks = items) : undefined}
-                  onFinishSort={orderMode ? onChangeCustomSortOrder : undefined}
-                  wrap={!orderMode}
-                >
-                  {#snippet left(item)}
-                    {#if item.geolocationFk == null}
-                      <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
-                    {/if}
-
-                    {item.name}
-                  {/snippet}
-
-                  {#snippet children(item)}
-                    {#if !orderMode}
-                      {#if item.routes.length === 0}
-                        <div class="flex items-center gap-2 px-2 py-3 md:px-4">
-                          <Image
-                            path={item.topos?.[0]?.file?.path == null
-                              ? null
-                              : `/nextcloud${item.topos[0].file.path}/preview`}
-                            size={64}
-                          />
-
-                          <div class="w-[calc(100%-64px)]">No routes yet</div>
-                        </div>
-                      {:else}
-                        <GenericList
-                          classes="w-full"
-                          items={item.routes.map((route) => ({
-                            ...route,
-                            id: route.id,
-                            name: route.name,
-                            pathname: `${basePath}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`,
-                          }))}
-                        >
-                          {#snippet left(route)}
-                            <div class="flex items-center gap-2">
-                              <Image
-                                path={route.topo?.file?.path == null
-                                  ? null
-                                  : `/nextcloud${route.topo.file.path}/preview`}
-                                size={64}
-                              />
-
-                              <div class="w-[calc(100%-64px)]">
-                                <RouteName {route} />
-                              </div>
-                            </div>
-                          {/snippet}
-                        </GenericList>
+                {#if blocksViewMode === 'list' || orderMode}
+                  <GenericList
+                    classes="-mx-4"
+                    listClasses={orderMode ? undefined : 'mt-4 bg-surface-200-800'}
+                    items={sortedBlocks.map((item) => ({ ...item, pathname: `${basePath}/_/blocks/${item.slug}` }))}
+                    onConsiderSort={orderMode ? (items) => (blocks = items) : undefined}
+                    onFinishSort={orderMode ? onChangeCustomSortOrder : undefined}
+                    wrap={!orderMode}
+                  >
+                    {#snippet left(item)}
+                      {#if item.geolocationFk == null}
+                        <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
                       {/if}
-                    {/if}
-                  {/snippet}
-                </GenericList>
+
+                      {item.name}
+                    {/snippet}
+
+                    {#snippet children(item)}
+                      {#if !orderMode}
+                        {#if item.routes.length === 0}
+                          <div class="flex items-center gap-2 px-2 py-3 md:px-4">
+                            <Image
+                              path={item.topos?.[0]?.file?.path == null
+                                ? null
+                                : `/nextcloud${item.topos[0].file.path}/preview`}
+                              size={64}
+                            />
+
+                            <div class="w-[calc(100%-64px)]">No routes yet</div>
+                          </div>
+                        {:else}
+                          <GenericList
+                            classes="w-full"
+                            items={item.routes.map((route) => ({
+                              ...route,
+                              id: route.id,
+                              name: route.name,
+                              pathname: `${basePath}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`,
+                            }))}
+                          >
+                            {#snippet left(route)}
+                              <div class="flex items-center gap-2">
+                                <Image
+                                  path={route.topo?.file?.path == null
+                                    ? null
+                                    : `/nextcloud${route.topo.file.path}/preview`}
+                                  size={64}
+                                />
+
+                                <div class="w-[calc(100%-64px)]">
+                                  <RouteName {route} />
+                                </div>
+                              </div>
+                            {/snippet}
+                          </GenericList>
+                        {/if}
+                      {/if}
+                    {/snippet}
+                  </GenericList>
+                {:else}
+                  <ul class="-mx-4">
+                    {#each sortedBlocks as block}
+                      <li class="bg-surface-200-800 mt-4 pb-4">
+                        <div
+                          class="hover:preset-tonal-primary border-surface-800 flex flex-wrap items-center justify-between rounded whitespace-nowrap"
+                        >
+                          <a
+                            href={`${basePath}/_/blocks/${block.slug}`}
+                            class="anchor w-full grow overflow-hidden px-2 py-3 text-ellipsis hover:text-white md:w-auto md:px-4"
+                          >
+                            {#if block.geolocationFk == null}
+                              <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
+                            {/if}
+
+                            {block.name}
+                          </a>
+                        </div>
+
+                        <div class="mt-2 flex flex-wrap gap-2">
+                          {#each block.topos as topo}
+                            <div class="flex flex-1 items-center justify-center md:flex-none md:justify-start">
+                              <Image path={`/nextcloud${topo.file.path}/preview`} size={320} />
+                            </div>
+                          {/each}
+
+                          {#if block.topos.length === 0}
+                            <div class="px-2">No topo yet</div>
+                          {/if}
+                        </div>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
               {/if}
             </section>
           </Tabs.Panel>
@@ -350,12 +420,6 @@
         {#if data.area.type !== 'sector'}
           <Tabs.Panel value="#areas">
             <section class="py-2 md:py-4">
-              {#if data.userPermissions?.includes(EDIT_PERMISSION) && data.canAddArea}
-                <div class="mb-4 flex justify-center">
-                  <a class="btn preset-filled-primary-500" href={`${basePath}/add`}>Add area</a>
-                </div>
-              {/if}
-
               {#if data.area.areas.length === 0}
                 No areas yet
               {:else}
@@ -372,7 +436,7 @@
                     <div class="flex flex-col">
                       <GradeHistogram
                         axes={false}
-                        data={item.grades}
+                        data={item.grades ?? []}
                         spec={{
                           width: 100,
                         }}

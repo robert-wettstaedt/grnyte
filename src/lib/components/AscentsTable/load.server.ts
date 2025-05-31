@@ -1,11 +1,11 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, routes, users, type Ascent } from '$lib/db/schema'
 import { buildNestedAreaQuery, enrichAscent, type EnrichedAscent } from '$lib/db/utils'
-import { validateObject } from '$lib/forms.server'
+import { validateObject } from '$lib/forms/validate.server'
 import { getPaginationQuery, paginationParamsSchema, type PaginatedData } from '$lib/pagination.server'
 import { type RequestEvent } from '@sveltejs/kit'
 import { and, asc, count, desc, eq, inArray, SQL } from 'drizzle-orm'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 export type PaginatedAscents = PaginatedData<{ ascents: EnrichedAscent[] }>
 

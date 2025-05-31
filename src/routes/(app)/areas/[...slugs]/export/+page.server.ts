@@ -1,4 +1,4 @@
-import { EXPORT_PERMISSION } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import type { Block } from '$lib/components/AreaBlockListing/components/BlockEntry'
 import type { NestedBlock } from '$lib/components/BlocksMap'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
@@ -53,10 +53,6 @@ const blocksQuery: {
 }
 
 export const load = (async ({ locals, params }) => {
-  if (!locals.userPermissions?.includes(EXPORT_PERMISSION)) {
-    error(404)
-  }
-
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
@@ -106,7 +102,7 @@ export const load = (async ({ locals, params }) => {
     const area = areasResult.at(-1)
 
     // If no area is found, throw a 404 error
-    if (area == null) {
+    if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk)) {
       error(404)
     }
 
