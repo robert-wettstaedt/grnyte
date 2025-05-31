@@ -7,6 +7,45 @@
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
 
   const { data, form } = $props()
+
+  const features = [
+    {
+      icon: 'fa-solid fa-lock',
+      title: 'Access Protection',
+      description:
+        'Keep sensitive areas private with invitation-only communities. Perfect for private land where public exposure risks closure.',
+    },
+    {
+      icon: 'fa-solid fa-users-gear',
+      title: 'Professional Collaboration',
+      description:
+        'Replace email chains and version conflicts. Your entire team sees updates instantly with proper change tracking.',
+    },
+    {
+      icon: 'fa-solid fa-database',
+      title: 'Data Integrity',
+      description:
+        'Import your Excel files and upgrade to professional area management. Never lose development work to corrupted files again.',
+    },
+    {
+      icon: 'fa-solid fa-map-marked-alt',
+      title: 'Complete Area Management',
+      description:
+        'Organize areas, sectors, and problems with detailed topos, grades, and conditions. Built specifically for boulder development.',
+    },
+    {
+      icon: 'fa-solid fa-chart-line',
+      title: 'Development Documentation',
+      description:
+        'Document first ascents, cleaning progress, and project status. See how your area evolves over time with detailed analytics.',
+    },
+    {
+      icon: 'fa-solid fa-upload',
+      title: 'Easy Migration',
+      description:
+        'Import existing problem lists from Excel or CSV. Migrate decades of development work in minutes, not months.',
+    },
+  ]
 </script>
 
 <svelte:window />
@@ -81,58 +120,30 @@
     <div class="container mx-auto px-4">
       <h2 class="h2 mb-12 text-center">Built for Area Developers Who Value Access</h2>
 
-      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        <div class="card preset-filled-surface-100-900 p-6">
-          <i class="fa-solid fa-lock text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Access Protection</h3>
-          <p class="opacity-75">
-            Keep sensitive areas private with invitation-only communities. Perfect for private land where public
-            exposure risks closure.
-          </p>
+      <!-- Mobile Carousel with Scroll Snap (shown on mobile, hidden on md and up) -->
+      <div class="md:hidden">
+        <div class="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+          {#each features as feature}
+            <div class="w-8/10 flex-shrink-0 snap-center sm:w-80">
+              <div class="card preset-filled-surface-100-900 h-full p-6">
+                <i class="{feature.icon} text-primary-500 mb-4 text-4xl"></i>
+                <h3 class="h4 mb-3">{feature.title}</h3>
+                <p class="opacity-75">{feature.description}</p>
+              </div>
+            </div>
+          {/each}
         </div>
+      </div>
 
-        <div class="card preset-filled-surface-100-900 p-6">
-          <i class="fa-solid fa-users-gear text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Professional Collaboration</h3>
-          <p class="opacity-75">
-            Replace email chains and version conflicts. Your entire team sees updates instantly with proper change
-            tracking.
-          </p>
-        </div>
-
-        <div class="card preset-filled-surface-100-900 p-6">
-          <i class="fa-solid fa-database text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Data Integrity</h3>
-          <p class="opacity-75">
-            Import your Excel files and upgrade to professional area management. Never lose development work to
-            corrupted files again.
-          </p>
-        </div>
-
-        <div class="card preset-filled-surface-100-900 p-6">
-          <i class="fa-solid fa-map-marked-alt text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Complete Area Management</h3>
-          <p class="opacity-75">
-            Organize areas, sectors, and problems with detailed topos, grades, and conditions. Built specifically for
-            boulder development.
-          </p>
-        </div>
-
-        <div class="card preset-filled-surface-100-900 p-6">
-          <i class="fa-solid fa-chart-line text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Development Documentation</h3>
-          <p class="opacity-75">
-            Document first ascents, cleaning progress, and project status. See how your area evolves over time.
-          </p>
-        </div>
-
-        <div class="card preset-filled-surface-100-900 p-6">
-          <i class="fa-solid fa-upload text-primary-500 mb-4 text-4xl"></i>
-          <h3 class="h4 mb-3">Easy Migration</h3>
-          <p class="opacity-75">
-            Import existing problem lists from Excel or CSV. Migrate decades of development work in minutes, not months.
-          </p>
-        </div>
+      <!-- Desktop Grid (hidden on mobile, shown on md and up) -->
+      <div class="hidden gap-8 md:grid md:grid-cols-2 lg:grid-cols-3">
+        {#each features as feature}
+          <div class="card preset-filled-surface-100-900 p-6">
+            <i class="{feature.icon} text-primary-500 mb-4 text-4xl"></i>
+            <h3 class="h4 mb-3">{feature.title}</h3>
+            <p class="opacity-75">{feature.description}</p>
+          </div>
+        {/each}
       </div>
     </div>
   </section>
