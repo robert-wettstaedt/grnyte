@@ -100,7 +100,7 @@
           {#each data.regionInvitations as regionInvitation}
             <tr class="hover:preset-tonal-primary">
               <td>{regionInvitation.email}</td>
-              <td>{regionInvitation.invitedBy?.username}</td>
+              <td class="opacity-50">{regionInvitation.invitedBy?.username}</td>
               <td>Invitation pending</td>
 
               <td>

@@ -65,14 +65,20 @@ describe('Permission Tests', () => {
   })
 
   describe('Auth Hook Permissions', () => {
-    const createMockEvent = () =>
-      ({
+    const createMockEvent = (): RequestEvent => {
+      const mockEvent = {
         locals: {},
         cookies: {
           getAll: vi.fn().mockReturnValue([]),
           set: vi.fn(),
         },
-      }) as unknown as RequestEvent
+        url: new URL('http://localhost:3000/test-path'),
+        request: {
+          method: 'GET',
+        },
+      }
+      return mockEvent as unknown as RequestEvent
+    }
 
     it('should grant maintainer all permissions', async () => {
       const event = createMockEvent()

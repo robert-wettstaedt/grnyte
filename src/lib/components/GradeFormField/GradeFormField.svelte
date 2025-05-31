@@ -32,6 +32,7 @@
         backdropClasses="backdrop-blur-sm"
       >
         {#snippet trigger()}<i></i>{/snippet}
+
         {#snippet content()}
           <button
             aria-label="Close"
