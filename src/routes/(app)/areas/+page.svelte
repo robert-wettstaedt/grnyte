@@ -3,7 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-  import AppBar from '$lib/components/AppBar/AppBar.svelte'
+  import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import GradeHistogram from '$lib/components/GradeHistogram'
   import Image from '$lib/components/Image'

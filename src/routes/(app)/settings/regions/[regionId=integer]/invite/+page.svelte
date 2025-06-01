@@ -1,7 +1,7 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar/AppBar.svelte'
+  import AppBar from '$lib/components/AppBar'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   const { data, form } = $props()

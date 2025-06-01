@@ -9,7 +9,7 @@
     REGION_PERMISSION_ADMIN,
     REGION_PERMISSION_EDIT,
   } from '$lib/auth'
-  import AppBar from '$lib/components/AppBar/AppBar.svelte'
+  import AppBar from '$lib/components/AppBar'
   import { appRole, appRoleLabels } from '$lib/db/schema'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
