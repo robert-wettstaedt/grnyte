@@ -45,6 +45,18 @@
     <li>Promptly notify us of any unauthorized use</li>
   </ul>
 
+  <p><strong>Account Sharing:</strong> Your account is personal and non-transferable. You may not:</p>
+  <ul>
+    <li>Share your login credentials with others</li>
+    <li>Allow others to access the Application using your account</li>
+    <li>Create accounts on behalf of other individuals</li>
+    <li>Use multiple accounts to circumvent regional access controls</li>
+  </ul>
+  <p>
+    Each user must maintain their own individual account. Violation of this policy may result in account suspension or
+    termination.
+  </p>
+
   <h2>4. Acceptable Use</h2>
 
   <h3>4.1 Permitted Uses</h3>
