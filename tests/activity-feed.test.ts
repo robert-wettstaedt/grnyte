@@ -127,6 +127,7 @@ const mockRegion = {
   createdAt: new Date(),
   createdBy: 1,
   id: 1,
+  maxMembers: 10,
   name: 'Test Region',
   settings: {
     mapLayers: [],

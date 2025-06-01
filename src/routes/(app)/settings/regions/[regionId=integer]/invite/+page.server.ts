@@ -8,6 +8,7 @@ import { notifyInvite } from '$lib/notifications/samples.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { randomUUID } from 'crypto'
 import { addDays } from 'date-fns'
+import { count, eq } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 import { z } from 'zod/v4'
 import type { PageServerLoad } from './$types'
@@ -28,7 +29,12 @@ export const load = (async ({ locals, params }) => {
       error(404)
     }
 
-    return { region }
+    const [regionMembers] = await db
+      .select({ count: count() })
+      .from(schema.regionMembers)
+      .where(eq(schema.regionMembers.regionFk, Number(params.regionId)))
+
+    return { region, regionMembers }
   })
 }) satisfies PageServerLoad
 
@@ -42,7 +48,7 @@ export const actions = {
 
     const returnValue = await rls(async (db) => {
       const region = await db.query.regions.findFirst({
-        where: (regions, { eq }) => eq(regions.id, Number(params.regionId)),
+        where: (table, { eq }) => eq(table.id, Number(params.regionId)),
       })
 
       if (
@@ -90,6 +96,18 @@ export const actions = {
           return fail(400, {
             ...values,
             error: 'User is already a member of this region',
+          })
+        }
+
+        const [regionMembers] = await db
+          .select({ count: count() })
+          .from(schema.regionMembers)
+          .where(eq(schema.regionMembers.regionFk, Number(params.regionId)))
+
+        if (regionMembers.count >= region.maxMembers) {
+          return fail(400, {
+            ...values,
+            error: `This region has reached the maximum number of members (${region.maxMembers})`,
           })
         }
 

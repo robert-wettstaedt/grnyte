@@ -1,5 +1,5 @@
 import { jwtDecode, type JwtPayload } from 'jwt-decode'
-import { authLogger } from '$lib/logging'
+import { authLogger } from './logging'
 
 export const APP_PERMISSION_ADMIN = 'app.admin'
 

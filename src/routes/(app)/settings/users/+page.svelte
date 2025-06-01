@@ -36,7 +36,9 @@
               <th>Email</th>
 
               {#each data.regions as region}
-                <th>{region.name}</th>
+                <th>
+                  <a class="hover:underline" href="/settings/regions/{region.id}">{region.name}</a>
+                </th>
               {/each}
             </tr>
           </thead>

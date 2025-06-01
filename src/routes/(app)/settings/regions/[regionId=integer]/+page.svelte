@@ -22,6 +22,8 @@
     checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN]) ||
       checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], data.region.id),
   )
+
+  const membersDifference = $derived(data.region.maxMembers - data.regionMembers.length)
 </script>
 
 <svelte:head>
@@ -76,7 +78,15 @@
     {/if}
 
     <header class="mt-8 flex items-center justify-between gap-4">
-      <h2 class="text-lg font-bold">Members</h2>
+      <h2 class="text-lg font-bold">
+        Members <span
+          class="text-sm opacity-50 {membersDifference === 1
+            ? 'text-warning-500'
+            : membersDifference < 1
+              ? 'text-error-500'
+              : ''}">({data.regionMembers.length}/{data.region.maxMembers})</span
+        >
+      </h2>
 
       {#if isAdmin}
         <a class="btn btn-sm preset-filled-primary-500" href="{baseUrl}/invite">

@@ -21,6 +21,7 @@ vi.mock('$lib/db/db.server', () => ({
 
 vi.mock('$lib/db/schema', () => ({
   regionInvitations: {},
+  regionMembers: {},
 }))
 
 vi.mock('$lib/errors', () => ({
@@ -55,6 +56,11 @@ vi.mock('crypto', async (importOriginal) => {
 
 vi.mock('date-fns', () => ({
   addDays: vi.fn((date, days) => new Date('2024-01-08T00:00:00.000Z')), // Mock 7 days later
+}))
+
+vi.mock('drizzle-orm', () => ({
+  count: vi.fn(() => 'count_function'),
+  eq: vi.fn(() => 'eq_condition'),
 }))
 
 vi.mock('drizzle-orm/supabase', () => ({
@@ -112,11 +118,13 @@ describe('invite +page.server.ts - default action', () => {
       },
     },
     insert: vi.fn(),
+    select: vi.fn(),
   }
 
   // Mock return value chains
   const mockInsertReturning = vi.fn()
   const mockDbSelectFrom = vi.fn()
+  const mockSelectWhere = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -127,6 +135,14 @@ describe('invite +page.server.ts - default action', () => {
         returning: mockInsertReturning,
       }),
     })
+
+    // Setup transaction select mock chain
+    mockTransaction.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: mockSelectWhere,
+      }),
+    })
+    mockSelectWhere.mockResolvedValue([{ count: 5 }]) // Default mock for member count
 
     // Setup database select mock chain - simpler approach
     vi.mocked(db.select).mockReturnValue({
@@ -534,5 +550,101 @@ describe('invite +page.server.ts - default action', () => {
     expect(inviteUrl.origin).toBe('https://test.com')
     expect(inviteUrl.pathname).toBe('/invite/accept')
     expect(inviteUrl.searchParams.get('token')).toBeTruthy() // Token exists but may not match mock
+  })
+
+  it('should reject invitation when region has reached maximum members', async () => {
+    const mockEvent = createMockEvent()
+    const formData = new FormData()
+    formData.set('email', 'new@test.com')
+
+    vi.mocked(mockEvent.request.formData).mockResolvedValue(formData)
+    vi.mocked(validateFormData).mockResolvedValue({ email: 'new@test.com' })
+
+    // Setup region to exist with maxMembers property
+    const region = { id: 1, name: 'Test Region', maxMembers: 10 }
+    mockTransaction.query.regions.findFirst.mockResolvedValue(region)
+
+    // Setup no existing auth user
+    mockDbSelectFrom.mockResolvedValue([])
+    mockTransaction.query.users.findFirst.mockResolvedValue(null)
+    mockTransaction.query.regionMembers.findFirst.mockResolvedValue(null)
+
+    // Mock member count to be at the maximum (10)
+    mockSelectWhere.mockResolvedValue([{ count: 10 }])
+
+    const result = await actions.default(mockEvent as any)
+
+    expect(vi.mocked(fail)).toHaveBeenCalledWith(400, {
+      email: 'new@test.com',
+      error: 'This region has reached the maximum number of members (10)',
+    })
+  })
+
+  it('should allow invitation when region is just below maximum members', async () => {
+    const mockEvent = createMockEvent()
+    const formData = new FormData()
+    formData.set('email', 'new@test.com')
+
+    vi.mocked(mockEvent.request.formData).mockResolvedValue(formData)
+    vi.mocked(validateFormData).mockResolvedValue({ email: 'new@test.com' })
+
+    // Setup region to exist with maxMembers property
+    const region = { id: 1, name: 'Test Region', maxMembers: 10 }
+    mockTransaction.query.regions.findFirst.mockResolvedValue(region)
+
+    // Setup no existing user
+    mockDbSelectFrom.mockResolvedValue([])
+    mockTransaction.query.users.findFirst.mockResolvedValue(null)
+    mockTransaction.query.regionMembers.findFirst.mockResolvedValue(null)
+
+    // Mock member count to be just below maximum (9)
+    mockSelectWhere.mockResolvedValue([{ count: 9 }])
+
+    // Setup successful invitation creation
+    const invitation = { id: 1, email: 'new@test.com' }
+    mockInsertReturning.mockResolvedValue([invitation])
+
+    // Mock the rls function to return the redirect path
+    mockRls.mockImplementation((callback) => {
+      callback(mockTransaction)
+      return Promise.resolve('/settings/regions/1')
+    })
+
+    await expect(actions.default(mockEvent as any)).rejects.toThrow('Redirect to /settings/regions/1')
+
+    // Verify invitation was created successfully
+    expect(mockTransaction.insert).toHaveBeenCalledWith(schema.regionInvitations)
+    expect(vi.mocked(redirect)).toHaveBeenCalledWith(303, '/settings/regions/1')
+  })
+
+  it('should reject invitation when region exceeds maximum members', async () => {
+    const mockEvent = createMockEvent()
+    const formData = new FormData()
+    formData.set('email', 'test@example.com')
+
+    vi.mocked(mockEvent.request.formData).mockResolvedValue(formData)
+    vi.mocked(validateFormData).mockResolvedValue({ email: 'test@example.com' })
+
+    // Setup region to exist with maxMembers property
+    const region = { id: 1, name: 'Test Region', maxMembers: 10 }
+    mockTransaction.query.regions.findFirst.mockResolvedValue(region)
+
+    // Setup no existing user
+    mockDbSelectFrom.mockResolvedValue([])
+    mockTransaction.query.users.findFirst.mockResolvedValue(null)
+    mockTransaction.query.regionMembers.findFirst.mockResolvedValue(null)
+
+    // Mock member count to exceed maximum (11)
+    mockSelectWhere.mockResolvedValue([{ count: 11 }])
+
+    const result = await actions.default(mockEvent as any)
+
+    expect(vi.mocked(fail)).toHaveBeenCalledWith(400, {
+      email: 'test@example.com',
+      error: 'This region has reached the maximum number of members (10)',
+    })
+
+    // Verify invitation was not created
+    expect(mockTransaction.insert).not.toHaveBeenCalled()
   })
 })

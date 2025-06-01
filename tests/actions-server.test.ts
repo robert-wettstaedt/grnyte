@@ -14,7 +14,9 @@ vi.mock('$lib/components/ActivityFeed/load.server', () => ({
 
 vi.mock('$lib/db/db.server', () => ({
   createDrizzleSupabaseClient: vi.fn(),
-  db: {},
+  db: {
+    select: vi.fn(),
+  },
 }))
 
 vi.mock('$lib/db/schema', () => ({
@@ -62,6 +64,7 @@ vi.mock('@sveltejs/kit', () => ({
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(() => 'eq_condition'),
   and: vi.fn(() => 'and_condition'),
+  count: vi.fn(() => 'count_function'),
 }))
 
 vi.mock('zod/v4', () => ({
@@ -111,6 +114,7 @@ describe('actions.server.ts', () => {
     insert: vi.fn(),
     delete: vi.fn(),
     update: vi.fn(),
+    select: vi.fn(),
   }
 
   // Mock return value chains
@@ -118,6 +122,8 @@ describe('actions.server.ts', () => {
   const mockDeleteWhere = vi.fn()
   const mockUpdateSet = vi.fn()
   const mockSetWhere = vi.fn()
+  const mockSelectFrom = vi.fn()
+  const mockSelectWhere = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -131,6 +137,19 @@ describe('actions.server.ts', () => {
     mockTransaction.delete.mockReturnValue({ where: mockDeleteWhere })
     mockTransaction.update.mockReturnValue({ set: mockUpdateSet })
     mockUpdateSet.mockReturnValue({ where: mockSetWhere })
+    mockTransaction.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: mockSelectWhere,
+      }),
+    })
+    mockSelectWhere.mockResolvedValue([{ count: 5 }]) // Default mock for member count
+
+    // Setup db.select mock chain
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ count: 5 }]),
+      }),
+    } as any)
 
     // Setup common mocks
     vi.mocked(createDrizzleSupabaseClient).mockResolvedValue(mockRls)

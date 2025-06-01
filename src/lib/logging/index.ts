@@ -1,4 +1,4 @@
-import { config } from '$lib/config'
+import { config } from '../config'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

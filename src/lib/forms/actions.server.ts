@@ -21,7 +21,7 @@ import {
   notifyRoleUpdated,
 } from '$lib/notifications/samples.server'
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
+import { and, count, eq } from 'drizzle-orm'
 import { z, ZodError } from 'zod/v4'
 
 export const createRegion = async ({ locals, request }: RequestEvent) => {
@@ -121,6 +121,7 @@ export const updateRegionMember = async (event: RequestEvent) => {
     const region = await tx.query.regions.findFirst({
       columns: {
         id: true,
+        maxMembers: true,
         name: true,
       },
       where: (table, { eq }) => eq(table.id, values.regionId),
@@ -129,6 +130,11 @@ export const updateRegionMember = async (event: RequestEvent) => {
     if (region == null) {
       return fail(400, { ...values, error: 'Region not found' })
     }
+
+    const [regionMembers] = await db
+      .select({ count: count() })
+      .from(schema.regionMembers)
+      .where(eq(schema.regionMembers.regionFk, values.regionId))
 
     const user = await tx.query.users.findFirst({
       where: (table, { eq }) => eq(table.id, values.userId),
@@ -197,6 +203,13 @@ export const updateRegionMember = async (event: RequestEvent) => {
         })
 
         return
+      }
+
+      if (regionMembers.count >= region.maxMembers) {
+        return fail(400, {
+          ...values,
+          error: `This region has reached the maximum number of members (${region.maxMembers})`,
+        })
       }
 
       await tx.insert(schema.regionMembers).values({

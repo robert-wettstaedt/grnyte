@@ -1,13 +1,13 @@
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
-import { and, eq, gt } from 'drizzle-orm'
-import type { PageServerLoad } from './$types'
-import { notifyAcceptedInvite } from '$lib/notifications/samples.server'
-import { z } from 'zod/v4'
 import type { RegionActionValues } from '$lib/forms/schemas'
 import { validateFormData } from '$lib/forms/validate.server'
+import { notifyAcceptedInvite } from '$lib/notifications/samples.server'
+import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
+import { and, count, eq, gt } from 'drizzle-orm'
+import { z } from 'zod/v4'
+import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, url }) => {
   const token = url.searchParams.get('token')
@@ -52,6 +52,7 @@ export const actions = {
       if (locals.user == null) {
         error(404)
       }
+
       // Get the form data from the request
       const data = await request.formData()
       let values: AcceptInvitationSchema
@@ -83,6 +84,29 @@ export const actions = {
 
       if (locals.session?.user.email !== invitation.email) {
         return fail(400, { ...values, message: 'This invitation was sent to a different email address' })
+      }
+
+      const region = await db.query.regions.findFirst({
+        columns: {
+          maxMembers: true,
+        },
+        where: eq(schema.regions.id, invitation.regionFk),
+      })
+
+      if (region == null) {
+        return fail(404, { ...values, message: 'Region not found' })
+      }
+
+      const [regionMembers] = await db
+        .select({ count: count() })
+        .from(schema.regionMembers)
+        .where(eq(schema.regionMembers.regionFk, invitation.regionFk))
+
+      if (regionMembers.count >= region.maxMembers) {
+        return fail(400, {
+          ...values,
+          message: `This region has reached the maximum number of members (${region.maxMembers})`,
+        })
       }
 
       // Add user to region

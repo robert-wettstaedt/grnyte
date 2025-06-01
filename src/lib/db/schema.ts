@@ -254,6 +254,7 @@ export const regions = table(
   {
     ...baseFields,
     createdBy: baseContentFields.createdBy,
+    maxMembers: integer('max_members').notNull().default(10),
     name: baseContentFields.name,
     settings: jsonb('settings').$type<RegionSettings>(),
   },
