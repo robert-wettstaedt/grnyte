@@ -54,6 +54,18 @@
 
     return []
   })
+
+  const routeNameClasses = $derived.by(() => {
+    if (
+      activity.entity.type === 'route' &&
+      activity.entity.object != null &&
+      ('userGradeFk' in activity.entity.object || 'userRating' in activity.entity.object)
+    ) {
+      return '-inset-y-px'
+    }
+
+    return ''
+  })
 </script>
 
 <div class="flex items-start gap-4">
@@ -81,7 +93,7 @@
 
           {#if activity.parentEntity != null}
             <a
-              class="anchor inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"
+              class="anchor relative inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap {routeNameClasses}"
               href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}
             >
               {#if activity.parentEntity.type === 'route' && activity.parentEntity.object != null}
@@ -211,7 +223,7 @@
 
           {#if activity.entity.type != 'file'}
             <a
-              class="anchor inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"
+              class="anchor relative inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap {routeNameClasses}"
               href={`/${activity.entityType}s/${activity.entityId}`}
             >
               {#if activity.entity.type === 'route' && activity.entity.object != null}
