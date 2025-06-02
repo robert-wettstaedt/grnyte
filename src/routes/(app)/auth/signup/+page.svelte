@@ -51,6 +51,17 @@
           <input name="passwordConfirmation" type="password" placeholder="Enter your password" class="input" required />
         </label>
 
+        <!-- Terms & Conditions acceptance -->
+        <label class="label mt-6 flex items-start gap-3">
+          <input name="acceptTerms" type="checkbox" class="checkbox mt-1" />
+          <span class="text-sm leading-5">
+            I have read and agree to the
+            <a href="/legal/terms" target="_blank" class="anchor">Terms of Service</a>
+            and
+            <a href="/legal/privacy" target="_blank" class="anchor">Privacy Policy</a>.
+          </span>
+        </label>
+
         <div class="mt-8 flex items-center justify-between">
           <button type="submit" class="btn preset-filled-primary-500 w-full">
             <i class="fa-solid fa-right-to-bracket"></i>

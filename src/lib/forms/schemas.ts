@@ -122,7 +122,15 @@ export const changePasswordActionSchema = z.intersection(
 )
 export type ChangePasswordActionValues = z.infer<typeof changePasswordActionSchema>
 
-export const createUserActionSchema = z.intersection(profileActionSchema, passwordActionSchema)
+const baseCreateUserActionSchema = z.intersection(profileActionSchema, passwordActionSchema)
+export const createUserActionSchema = z.intersection(
+  baseCreateUserActionSchema,
+  z.object({
+    acceptTerms: z.literal('on', {
+      message: 'You must accept the Terms of Service and Privacy Policy to create an account',
+    }),
+  }),
+)
 export type CreateUserActionValues = z.infer<typeof createUserActionSchema>
 
 export const subscribePushSubscriptionActionSchema = z.object({

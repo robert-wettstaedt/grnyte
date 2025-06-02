@@ -22,6 +22,12 @@
     by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
   </p>
 
+  <p>
+    <strong>Registration Acceptance:</strong> When creating an account, you must explicitly agree to these Terms of Service
+    and our Privacy Policy by checking the required acceptance checkbox. This constitutes your electronic signature and agreement
+    to be bound by these terms.
+  </p>
+
   <h2>2. Description of Service</h2>
   <p>
     {PUBLIC_APPLICATION_NAME} is a secure boulder topo and session tracker designed to help climbers:

@@ -218,9 +218,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
-    !event.url.pathname.startsWith('/auth') &&
-    !event.url.pathname.startsWith('/f/') &&
-    !event.url.pathname.startsWith('/api/notifications')
+    !['/legal', '/auth', '/f/', '/api/notifications'].some((path) => event.url.pathname.startsWith(path))
   ) {
     authLogger.info('Redirecting unauthenticated user to auth', {
       originalPath: event.url.pathname,
