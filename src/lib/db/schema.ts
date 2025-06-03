@@ -46,8 +46,8 @@ import {
  *
  */
 
-export const generateSlug = (name: string): string =>
-  name
+export const generateSlug = (name: string): string => {
+  const slug = name
     .toLowerCase()
     .normalize('NFD') // Normalize the string
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
@@ -56,6 +56,13 @@ export const generateSlug = (name: string): string =>
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
     .replace(/^-|-$/g, '') // Remove leading and trailing hyphens
+
+  if (String(Number(slug)) === slug) {
+    return `${slug}-${createCuid2()}`
+  }
+
+  return slug
+}
 
 const baseFields = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
