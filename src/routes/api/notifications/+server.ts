@@ -9,13 +9,23 @@ import type { Notification } from '$lib/notifications'
 import { getGradeTemplateString, sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { differenceInDays, differenceInMinutes, sub } from 'date-fns'
 import { and, eq, gte, inArray, isNull } from 'drizzle-orm'
+import { timingSafeEqual } from 'node:crypto'
 
 const QUERY_INTERVAL_MINUTES = 30
 const DEBOUNCE_MINUTES = 5
 
 const verifyApiKey = (request: Request) => {
   const apiKey = request.headers.get('x-api-key')
-  return apiKey === CRON_API_KEY
+
+  if (apiKey == null) {
+    return false
+  }
+
+  try {
+    return timingSafeEqual(Buffer.from(apiKey), Buffer.from(CRON_API_KEY))
+  } catch (error) {
+    return false
+  }
 }
 
 export const POST = async ({ request }) => {
