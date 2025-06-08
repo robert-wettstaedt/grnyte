@@ -9,7 +9,8 @@ export const POST = async ({ locals }) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
-  const expirationTime = new Date().getTime() + 1000 * 60 * 60
+  const expirationTimeInMs = new Date().getTime() + 1000 * 60 * 60 // 1 hour
+  const expirationTimeInS = Math.floor(expirationTimeInMs / 1000)
 
   const collections = await getCollections({
     apiKey: BUNNY_STREAM_API_KEY,
@@ -39,12 +40,16 @@ export const POST = async ({ locals }) => {
 
   const signature = await createVideoUploadSignature({
     apiKey: BUNNY_STREAM_API_KEY,
-    expirationTime,
+    expirationTime: expirationTimeInS,
     libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
     videoId: video.guid,
   })
 
-  const response = { expirationTime, signature, video } satisfies z.infer<typeof CreateVideoResponseSchema>
+  const response = {
+    expirationTime: expirationTimeInS,
+    signature,
+    video,
+  } satisfies z.infer<typeof CreateVideoResponseSchema>
 
   return new Response(JSON.stringify(response))
 }
