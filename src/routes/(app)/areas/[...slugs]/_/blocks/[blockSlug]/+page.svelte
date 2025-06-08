@@ -13,8 +13,6 @@
   let { data } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
-  let highlightedRoutes: number[] = $state([])
-
   let tabValue: string | undefined = $state(undefined)
   afterNavigate(() => {
     tabValue = page.url.hash.length > 0 ? page.url.hash : '#topo'
@@ -106,7 +104,7 @@
           <div class="flex flex-wrap gap-2 md:flex-nowrap">
             {#if data.topos.length > 0}
               <section class="relative w-full md:w-2/4" use:fitHeightAction>
-                <TopoViewer topos={data.topos}>
+                <TopoViewer selectionBehavior="scroll" topos={data.topos}>
                   {#snippet actions()}
                     {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], data.block.regionFk)}
                       <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${basePath}/topos/draw`}>
@@ -126,22 +124,34 @@
                   <ul>
                     {#each data.block.routes as route}
                       <li
-                        class={`p-2 whitespace-nowrap ${
-                          [$selectedRouteStore, ...highlightedRoutes].includes(route.id)
-                            ? 'preset-filled-primary-100-900'
-                            : ''
-                        }`}
+                        class="relative p-2 whitespace-nowrap {$selectedRouteStore === route.id
+                          ? 'preset-filled-primary-100-900'
+                          : ''}"
                       >
                         <a
-                          class={[$selectedRouteStore, ...highlightedRoutes].includes(route.id)
+                          class="block {$selectedRouteStore === route.id
                             ? 'text-white'
-                            : 'text-primary-500'}
+                            : 'text-primary-500'} {navigator.maxTouchPoints > 0 ? 'pr-10' : ''}"
                           href={`${basePath}/routes/${route.slug.length === 0 ? route.id : route.slug}`}
+                          onblur={() => selectedRouteStore.set(null)}
                           onclick={() => selectedRouteStore.set(route.id)}
+                          onfocus={() => selectedRouteStore.set(route.id)}
                           onkeydown={(event) => event.key === 'Enter' && selectedRouteStore.set(route.id)}
+                          onmouseout={() => selectedRouteStore.set(null)}
+                          onmouseover={() => selectedRouteStore.set(route.id)}
                         >
                           <RouteName {route} />
                         </a>
+
+                        {#if navigator.maxTouchPoints > 0}
+                          <button
+                            aria-label="View route"
+                            class="btn-icon preset-tonal absolute top-1/2 right-2 -translate-y-1/2"
+                            onclick={() => selectedRouteStore.set(route.id)}
+                          >
+                            <i class="fa-solid fa-eye"></i>
+                          </button>
+                        {/if}
                       </li>
                     {/each}
                   </ul>

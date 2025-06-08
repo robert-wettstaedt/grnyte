@@ -9,6 +9,7 @@
     onChange?: (value: TopoDTO[], changedRoute: TopoRouteDTO) => void
     onLoad?: () => void
     selectedTopoIndex?: number
+    selectionBehavior?: 'scroll' | 'none'
     showControls?: boolean
     topos: TopoDTO[]
   }
@@ -37,6 +38,7 @@
     onChange,
     onLoad,
     selectedTopoIndex = $bindable(0),
+    selectionBehavior = 'none',
     showControls = true,
     topos = $bindable(),
   }: TopoViewerProps = $props()
@@ -259,6 +261,10 @@
       if (toposWithRoute.length === 1) {
         const index = topos.findIndex((topo) => topo.id === toposWithRoute.at(0)?.id)
         selectedTopoIndex = index < 0 ? selectedTopoIndex : index
+      }
+
+      if (value != null && selectionBehavior === 'scroll') {
+        imgWrapper?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
     })
 
