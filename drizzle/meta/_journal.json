@@ -414,6 +414,13 @@
       "when": 1748766266019,
       "tag": "0059_cynical_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1749379459096,
+      "tag": "0060_small_tempest",
+      "breakpoints": true
     }
   ]
 }

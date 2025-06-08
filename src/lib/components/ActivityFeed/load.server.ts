@@ -282,9 +282,8 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
     }
 
     const where = and(...allQueries)
-    const countResults = await db.select({ count: count() }).from(schema.activities).where(and(where))
 
-    const groupedActivities = await getFromCacheWithDefault(
+    const cachedResult = await getFromCacheWithDefault(
       caches.activityFeed,
       locals.userRegions,
       async () => {
@@ -348,19 +347,24 @@ export const loadFeed = async ({ locals, url }: { locals: App.Locals; url: URL }
           })
           .filter((item) => item != null)
 
-        return groupActivities(activitiesDTOs)
+        const countResults = await db.select({ count: count() }).from(schema.activities).where(and(where))
+
+        return {
+          activities: groupActivities(activitiesDTOs),
+          count: countResults[0].count,
+        }
       },
       async () => allQueries.length === 0 && searchParams.page === 1 && searchParams.pageSize === 15,
       null,
     )
 
     return {
-      activities: groupedActivities,
+      activities: cachedResult.activities,
       pagination: {
         page: searchParams.page,
         pageSize: searchParams.pageSize,
-        total: countResults[0].count,
-        totalPages: Math.ceil(countResults[0].count / searchParams.pageSize),
+        total: cachedResult.count,
+        totalPages: Math.ceil(cachedResult.count / searchParams.pageSize),
       },
     }
   })

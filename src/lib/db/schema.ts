@@ -539,6 +539,12 @@ export const routes = table(
     index('routes_description_idx').on(table.description),
     index('routes_region_fk_idx').on(table.regionFk),
     index('routes_slug_idx').on(table.slug),
+    index('routes_area_fks_gin_idx').using('gin', table.areaFks),
+    index('routes_grade_fk_idx').on(table.gradeFk),
+    index('routes_user_grade_fk_idx').on(table.userGradeFk),
+    index('routes_rating_idx').on(table.rating),
+    index('routes_first_ascent_year_idx').on(table.firstAscentYear),
+    index('routes_created_by_idx').on(table.createdBy),
 
     ...createBasicTablePolicies('routes'),
     policy(
