@@ -1,10 +1,11 @@
 ---
-description: 
-globs: 
+description:
+globs:
+alwaysApply: true
 ---
 This project uses SvelteKit. Always prefer to use its module import paradigm. Example:
 
-Instead of 
+Instead of
 ```
 import { foo } from './bar'
 ```

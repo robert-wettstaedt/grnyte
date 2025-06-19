@@ -1,6 +1,7 @@
 ---
 description: JavaScript/TypeScript Code Quality
-globs: *
+globs:
+alwaysApply: true
 ---
 <!-- https://github.com/PatrickJS/awesome-cursorrules/blob/main/rules/javascript-typescript-code-quality-cursorrules-pro/.cursorrules -->
 
