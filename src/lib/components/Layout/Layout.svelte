@@ -11,9 +11,10 @@
   import Logo from '$lib/assets/logo.png'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
+  import { toaster } from '$lib/components/Toaster/Toaster'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
-  import { Navigation } from '@skeletonlabs/skeleton-svelte'
+  import { Navigation, Toaster } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
@@ -71,6 +72,7 @@
 
 <div>
   <ProgressBar class="text-secondary-500 !z-[100]" />
+  <Toaster {toaster}></Toaster>
 
   <HeaderBar />
 

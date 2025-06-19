@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { afterNavigate } from '$app/navigation'
+  import { toaster } from '$lib/components/Toaster'
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
-  const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW({
+  const { needRefresh, updateServiceWorker } = useRegisterSW({
     onRegisteredSW(swUrl, r) {
       r &&
         setInterval(async () => {
@@ -26,31 +28,23 @@
     },
   })
 
-  const close = () => {
-    offlineReady.set(false)
-    needRefresh.set(false)
+  afterNavigate(() => {
+    requestAnimationFrame(() => {
+      if ($needRefresh) {
+        refreshApp()
+      }
+    })
+  })
+
+  function refreshApp() {
+    const forms = document.querySelectorAll('form[method="post"]')
+
+    if (forms.length === 0) {
+      toaster.promise(updateServiceWorker(true), {
+        loading: { title: 'Updating the app...' },
+        success: { title: 'Updated the app' },
+        error: { title: 'Unable to update the app' },
+      })
+    }
   }
 </script>
-
-{#if $needRefresh}
-  <div
-    class="border-surface-500 bg-surface-100 dark:bg-surface-800 fixed right-4 bottom-4 left-4 z-50 flex items-center gap-4 rounded-lg border p-4 shadow-lg md:left-auto"
-    role="alert"
-  >
-    <div class="flex-1 text-sm">New app version available, click on reload button to update.</div>
-    <div class="flex flex-col gap-2 md:flex-row">
-      <button
-        class="bg-primary-500 hover:bg-primary-600 rounded px-3 py-1 text-sm text-white"
-        onclick={() => updateServiceWorker(true)}
-      >
-        Reload
-      </button>
-      <button
-        class="border-surface-500 hover:bg-surface-200 dark:hover:bg-surface-700 rounded border px-3 py-1 text-sm"
-        onclick={close}
-      >
-        Close
-      </button>
-    </div>
-  </div>
-{/if}
