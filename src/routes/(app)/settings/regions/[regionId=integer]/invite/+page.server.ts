@@ -120,7 +120,7 @@ export const actions = {
           .values({
             email: values.email,
             expiresAt,
-            invitedBy: locals.user.id,
+            invitedByFk: locals.user.id,
             regionFk: Number(params.regionId),
             status: 'pending',
             token,

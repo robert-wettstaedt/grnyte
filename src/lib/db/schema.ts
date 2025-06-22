@@ -66,7 +66,7 @@ export const generateSlug = (name: string): string => {
 
 const baseFields = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  id: serial('id').primaryKey(),
+  id: serial('id').notNull().primaryKey(),
 }
 
 const baseContentFields = {
@@ -130,6 +130,10 @@ export const userRoles = table(
   ],
 ).enableRLS()
 
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  rolePermission: one(rolePermissions, { fields: [userRoles.role], references: [rolePermissions.role] }),
+}))
+
 export const rolePermissions = table(
   'role_permissions',
   {
@@ -139,6 +143,10 @@ export const rolePermissions = table(
   },
   () => [policy('authenticated users can read role_permissions', getPolicyConfig('select', sql`true`))],
 )
+
+export const rolePermissionsRelations = relations(rolePermissions, ({ many }) => ({
+  regionMembers: many(regionMembers),
+}))
 
 export const users = table(
   'users',
@@ -311,6 +319,10 @@ export const regions = table(
 export type Region = InferSelectModel<typeof regions>
 export type InsertRegion = InferInsertModel<typeof regions>
 
+export const regionsRelations = relations(regions, ({ many }) => ({
+  members: many(regionMembers),
+}))
+
 export const regionMembers = table(
   'region_members',
   {
@@ -322,7 +334,7 @@ export const regionMembers = table(
     authUserFk: uuid('auth_user_fk')
       .notNull()
       .references((): AnyColumn => authUsers.id),
-    invitedBy: integer('invited_by').references((): AnyColumn => users.id),
+    invitedByFk: integer('invited_by').references((): AnyColumn => users.id),
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),
@@ -331,6 +343,7 @@ export const regionMembers = table(
     index('region_members_auth_user_fk_idx').on(table.authUserFk),
     index('region_members_region_fk_idx').on(table.regionFk),
     index('region_members_user_fk_idx').on(table.userFk),
+    index('region_members_region_auth_user_idx').on(table.regionFk, table.authUserFk),
 
     policy(
       `${APP_PERMISSION_ADMIN} can fully access region_members`,
@@ -347,9 +360,10 @@ export type InsertRegionMember = InferInsertModel<typeof regionMembers>
 
 export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
   authUser: one(authUsers, { fields: [regionMembers.authUserFk], references: [authUsers.id] }),
-  invitedBy: one(users, { fields: [regionMembers.invitedBy], references: [users.id] }),
+  invitedBy: one(users, { fields: [regionMembers.invitedByFk], references: [users.id] }),
   region: one(regions, { fields: [regionMembers.regionFk], references: [regions.id] }),
   user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
+  rolePermission: one(rolePermissions, { fields: [regionMembers.role], references: [rolePermissions.role] }),
 }))
 
 export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired'])
@@ -360,14 +374,14 @@ export const regionInvitations = table(
     ...baseFields,
     ...baseRegionFields,
     token: uuid('token').notNull().unique(),
-    invitedBy: integer('invited_by')
+    invitedByFk: integer('invited_by')
       .notNull()
       .references((): AnyColumn => users.id),
     email: text('email').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     status: invitationStatusEnum('status').notNull().default('pending'),
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-    acceptedBy: integer('accepted_by').references((): AnyColumn => users.id),
+    acceptedByFk: integer('accepted_by').references((): AnyColumn => users.id),
   },
   (table) => [
     index('region_invitations_token_idx').on(table.token),
@@ -386,8 +400,8 @@ export const regionInvitations = table(
 
 export const regionInvitationsRelations = relations(regionInvitations, ({ one }) => ({
   region: one(regions, { fields: [regionInvitations.regionFk], references: [regions.id] }),
-  invitedBy: one(users, { fields: [regionInvitations.invitedBy], references: [users.id] }),
-  acceptedBy: one(users, { fields: [regionInvitations.acceptedBy], references: [users.id] }),
+  invitedBy: one(users, { fields: [regionInvitations.invitedByFk], references: [users.id] }),
+  acceptedBy: one(users, { fields: [regionInvitations.acceptedByFk], references: [users.id] }),
 }))
 
 export const grades = table(

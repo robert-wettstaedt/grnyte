@@ -1,5 +1,7 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { schema, type Schema } from '$lib/db/zero/zero-schema'
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr'
+import { Z } from 'zero-svelte'
 
 export const load = async ({ data, depends, fetch }) => {
   /**
@@ -34,6 +36,14 @@ export const load = async ({ data, depends, fetch }) => {
     data: { session },
   } = await supabase.auth.getSession()
 
+  const z = new Z<Schema>({
+    auth: session?.access_token,
+    userID: session?.user.id ?? 'anon',
+    server: 'http://localhost:4848',
+    schema,
+    // mutators: createMutators({ sub: session.user.id }),
+  })
+
   return {
     grades: data.grades,
     gradingScale: data.gradingScale,
@@ -43,5 +53,6 @@ export const load = async ({ data, depends, fetch }) => {
     userPermissions: data.userPermissions,
     userRegions: data.userRegions,
     userRole: data.userRole,
+    z,
   }
 }

@@ -1,5 +1,6 @@
 import { jwtDecode, type JwtPayload } from 'jwt-decode'
 import { authLogger } from './logging'
+import type { appRole } from './db/schema'
 
 export const APP_PERMISSION_ADMIN = 'app.admin'
 
@@ -59,6 +60,7 @@ export interface SupabaseToken extends JwtPayload {
   iat?: number
   jti?: string
   role?: string
+  user_role?: (typeof appRole.enumValues)[number]
 }
 
 export function decodeToken(accessToken: string): SupabaseToken {
