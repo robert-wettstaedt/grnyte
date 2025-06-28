@@ -9,18 +9,18 @@
   import AreaList from './AreaList.svelte'
   import RouteList from './RouteList.svelte'
 
-  type TabValue = '#areas' | '#routes'
+  type TabValue = 'areas' | 'routes'
   let tabValue: TabValue | undefined = $state(undefined)
   let loadedTabs = $state(false)
   afterNavigate(() => {
-    tabValue = page.url.hash.length > 0 ? (page.url.hash as TabValue) : '#areas'
+    tabValue = (page.url.searchParams.get('tab') as TabValue) ?? 'areas'
   })
   onMount(() => {
-    tabValue = page.url.hash.length > 0 ? (page.url.hash as TabValue) : '#areas'
+    tabValue = (page.url.searchParams.get('tab') as TabValue) ?? 'areas'
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onValueChange'] = (event) => {
     const newUrl = new URL(page.url)
-    newUrl.hash = event.value
+    newUrl.searchParams.set('tab', event.value)
     goto(newUrl.toString(), { replaceState: true })
   }
 
@@ -53,19 +53,19 @@
       value={tabValue}
     >
       {#snippet list()}
-        <Tabs.Control value="#areas">Areas</Tabs.Control>
-        <Tabs.Control value="#routes">Routes</Tabs.Control>
+        <Tabs.Control value="areas">Areas</Tabs.Control>
+        <Tabs.Control value="routes">Routes</Tabs.Control>
       {/snippet}
 
       {#snippet content()}
-        <Tabs.Panel value="#areas">
-          {#if tabValue === '#areas' || loadedTabs}
+        <Tabs.Panel value="areas">
+          {#if tabValue === 'areas' || loadedTabs}
             <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
           {/if}
         </Tabs.Panel>
 
-        <Tabs.Panel value="#routes">
-          {#if tabValue === '#routes' || loadedTabs}
+        <Tabs.Panel value="routes">
+          {#if tabValue === 'routes' || loadedTabs}
             <RouteList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
           {/if}
         </Tabs.Panel>

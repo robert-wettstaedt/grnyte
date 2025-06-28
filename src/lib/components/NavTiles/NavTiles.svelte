@@ -22,3 +22,7 @@
 <Navigation.Tile href="/settings" label="Settings" selected={page.url.pathname.startsWith('/settings')}>
   <i class="fa-solid fa-gear"></i>
 </Navigation.Tile>
+
+<Navigation.Tile href="/zero" label="Zero" selected={page.url.pathname.startsWith('/zero')}>
+  <i class="fa-solid fa-0"></i>
+</Navigation.Tile>

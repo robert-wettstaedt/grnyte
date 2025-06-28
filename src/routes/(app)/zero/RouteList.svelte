@@ -6,7 +6,7 @@
   import RouteName from '$lib/components/RouteName'
   import RoutesFilter from '$lib/components/RoutesFilter'
   import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.svelte'
-  import { Pagination } from '@skeletonlabs/skeleton-svelte'
+  import { enrichRoute } from '$lib/db/utils.svelte'
 
   interface Props {
     onLoad: () => void
@@ -14,6 +14,8 @@
   const { onLoad }: Props = $props()
 
   const data = $derived(routesFilterLoad())
+
+  const enrichedRoutes = $derived(data.current.map((route) => ({ ...enrichRoute(route), ascents: route.ascents })))
 
   $effect(() => {
     if (data.details.type === 'complete') {
@@ -27,7 +29,7 @@
 </div>
 
 <div class="mt-8">
-  {#if data.details.type !== 'complete'}
+  {#if data.current.length === 0 && data.details.type !== 'complete'}
     <nav class="list-nav">
       <ul class="overflow-auto">
         {#each Array(10) as _}
@@ -36,7 +38,7 @@
       </ul>
     </nav>
   {:else}
-    <GenericList items={data.current.routes}>
+    <GenericList items={enrichedRoutes}>
       {#snippet left(item)}
         <div class="flex gap-2">
           <Image path="/blocks/{item.block.id}/preview-image" size={64} />
@@ -53,19 +55,16 @@
     </GenericList>
 
     <div class="my-8 flex justify-center">
-      <Pagination
-        buttonClasses="btn-sm md:btn-md px-3"
-        count={data.current.pagination.total}
-        data={[]}
-        page={data.current.pagination.page}
-        pageSize={data.current.pagination.pageSize}
-        siblingCount={0}
-        onPageChange={(detail) => {
+      <button
+        class="btn preset-filled-primary-500"
+        onclick={() => {
           const url = new URL(page.url)
-          url.searchParams.set('page', String(detail.page))
-          goto(url)
+          url.searchParams.set('pageSize', String(data.current.length + 15))
+          goto(url, { noScroll: true, replaceState: true })
         }}
-      />
+      >
+        Load more
+      </button>
     </div>
   {/if}
 </div>
