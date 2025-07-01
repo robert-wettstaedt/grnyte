@@ -255,6 +255,16 @@ export const schema = {
             "visibility"
           >,
         },
+        geoPaths: {
+          type: "json",
+          optional: true,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "areas",
+            "geoPaths"
+          >,
+          serverName: "geo_paths",
+        },
         parentFk: {
           type: "number",
           optional: true,
@@ -1689,6 +1699,16 @@ export const schema = {
             "userRating"
           >,
           serverName: "user_rating",
+        },
+        areaIds: {
+          type: "json",
+          optional: true,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "routes",
+            "areaIds"
+          >,
+          serverName: "area_ids",
         },
         blockFk: {
           type: "number",

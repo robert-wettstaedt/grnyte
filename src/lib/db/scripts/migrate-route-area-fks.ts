@@ -28,17 +28,19 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     },
   })
 
-  await Promise.all(
-    blocks.map(async (block) => {
-      const areaFks: number[] = [block.areaFk]
-      let current = block.area as InferResultType<'areas', { parent: true }> | null
-      while (current?.parent != null) {
-        areaFks.push(current.parent.id)
-        current = current.parent as InferResultType<'areas', { parent: true }> | null
-      }
-      areaFks.reverse()
+  await db.transaction(async (tx) => {
+    await Promise.all(
+      blocks.map(async (block) => {
+        const areaIds: number[] = [block.areaFk]
+        let current = block.area as InferResultType<'areas', { parent: true }> | null
+        while (current?.parent != null) {
+          areaIds.push(current.parent.id)
+          current = current.parent as InferResultType<'areas', { parent: true }> | null
+        }
+        areaIds.reverse()
 
-      await db.update(schema.routes).set({ areaFks }).where(eq(schema.routes.blockFk, block.id))
-    }),
-  )
+        await tx.update(schema.routes).set({ areaIds }).where(eq(schema.routes.blockFk, block.id))
+      }),
+    )
+  })
 }

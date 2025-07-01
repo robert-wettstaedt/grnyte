@@ -428,6 +428,13 @@
       "when": 1750533351312,
       "tag": "0061_motionless_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1751387195347,
+      "tag": "0062_jittery_turbo",
+      "breakpoints": true
     }
   ]
 }

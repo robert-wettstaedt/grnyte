@@ -460,6 +460,7 @@ export const areas = table(
     type: text('type', { enum: areaTypeEnum }).notNull().default('area'),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
     walkingPaths: text('walking_paths').array(),
+    geoPaths: jsonb('geo_paths').$type<string[]>(),
 
     parentFk: integer('parent_fk').references((): AnyColumn => areas.id),
   },
@@ -541,6 +542,7 @@ export const routes = table(
     userRating: integer('user_rating'),
 
     areaFks: integer('area_fks').array(),
+    areaIds: jsonb('area_ids').$type<number[]>(),
     blockFk: integer('block_fk')
       .notNull()
       .references((): AnyColumn => blocks.id),
