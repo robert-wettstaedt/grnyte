@@ -54,8 +54,8 @@ export const getStatsOfAreas = (areaIds: number[]) => {
         },
       }
     },
-    {} as Record<number, AreaStats | undefined>,
+    {} as Record<string, AreaStats | undefined>,
   )
 
-  return { ...allRoutes, current: areaStats }
+  return areaStats
 }

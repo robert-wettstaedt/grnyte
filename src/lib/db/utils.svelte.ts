@@ -3,6 +3,13 @@ import type { Route } from '$lib/db/schema'
 import type { NestedArea, NestedAscent, NestedBlock, NestedRoute } from '$lib/db/types'
 import { type TopoDTO } from '$lib/topo'
 
+/**
+ * The maximum depth for nesting areas.
+ *
+ * @constant {number}
+ */
+export const MAX_AREA_NESTING_DEPTH = 4
+
 interface WithPathname {
   pathname: string
 }

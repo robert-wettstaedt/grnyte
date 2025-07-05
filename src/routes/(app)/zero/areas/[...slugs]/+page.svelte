@@ -21,20 +21,20 @@
   import { onMount } from 'svelte'
   import { Query } from 'zero-svelte'
   import type { Block } from '$lib/db/schema'
+  import { convertAreaSlug } from '$lib/helper'
+  import AreaList from '$lib/components/AreaList'
+  import RouteList from '$lib/components/RouteList'
 
-  const { data } = $props()
+  let { areaSlug, canAddArea, parentSlug } = $derived(convertAreaSlug(page.params))
 
-  const id = $derived(Number(page.params.id))
-
-  const item = $derived(
-    data.z == null
+  const areas = $derived(
+    areaSlug == null
       ? null
       : new Query(
-          data.z.current.query.areas
-            .where('id', id)
-            .one()
+          page.data.z.current.query.areas
+            .where('slug', areaSlug)
             .related('author')
-            .related('areas', (q) => q.orderBy('name', 'asc'))
+            .related('parent')
             .related('blocks', (q) =>
               q
                 .orderBy('order', 'asc')
@@ -50,7 +50,11 @@
   )
 
   const area = $derived.by(() => {
-    const blocks = item?.current?.blocks.map((block) => {
+    const area = areas?.current.find((area) =>
+      parentSlug == null && area.parentFk == null ? true : area.parent?.slug === parentSlug,
+    )
+
+    const blocks = area?.blocks.map((block) => {
       const sortedRoutes = block.routes.map((route) => {
         const topo = block.topos.find((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === route.id))
         return { ...route, topo }
@@ -60,7 +64,7 @@
     })
 
     return {
-      ...item?.current,
+      ...area,
       blocks,
     }
   })
@@ -104,17 +108,20 @@
   let downloadError: string | null = $state(null)
   let orderMode = $state(false)
   let sortOrder: 'custom' | 'alphabetical' = $state('custom')
-  let tabValue: string | undefined = $state(undefined)
 
+  type TabValue = 'areas' | 'blocks' | 'info' | 'map' | 'routes'
+  let tabValue: TabValue | undefined = $state(undefined)
+  let loadedTabs = $state(false)
+  let tabFromUrl = $derived(page.url.searchParams.get('tab') as TabValue | undefined)
   afterNavigate(() => {
-    tabValue = page.url.hash.length > 0 ? page.url.hash : area?.type === 'sector' ? '#info' : '#areas'
+    tabValue = tabFromUrl ?? (area?.type === 'sector' ? 'info' : 'areas')
   })
   onMount(() => {
-    tabValue = page.url.hash.length > 0 ? page.url.hash : area?.type === 'sector' ? '#info' : '#areas'
+    tabValue = tabFromUrl ?? (area?.type === 'sector' ? 'info' : 'areas')
   })
   const onChangeTab: Parameters<typeof Tabs>[1]['onValueChange'] = (event) => {
     const newUrl = new URL(page.url)
-    newUrl.hash = event.value
+    newUrl.searchParams.set('tab', event.value)
     goto(newUrl.toString(), { replaceState: true })
   }
 
@@ -163,21 +170,8 @@
     await updateBlocksFromServer(res)
   }
 
-  const hasActions = $derived(checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk))
+  const hasActions = $derived(checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk))
 </script>
-
-<svelte:window
-  onkeypress={(event) => {
-    switch (event.key) {
-      case 'j':
-        goto(`/zero/${Math.max(id - 1, 0)}`)
-        break
-      case 'k':
-        goto(`/zero/${id + 1}`)
-        break
-    }
-  }}
-/>
 
 <svelte:head>
   <title>{area?.name} - {PUBLIC_APPLICATION_NAME}</title>
@@ -189,7 +183,7 @@
   </aside>
 {/if}
 
-{#if area == null && item?.details.type === 'complete'}
+{#if area == null && areas?.details.type === 'complete'}
   <h1>404</h1>
 {:else if area == null}
   Loading ...
@@ -200,16 +194,16 @@
     {/snippet}
 
     {#snippet actions()}
-      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk)}
+      {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk)}
         <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/edit`}>
           <i class="fa-solid fa-pen w-4"></i>Edit area details
         </a>
 
-        <!-- {#if area?.type !== 'sector' && data.canAddArea}
-        <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add`}>
-          <i class="fa-solid fa-plus w-4"></i>Add area
-        </a>
-      {/if} -->
+        {#if area?.type !== 'sector' && canAddArea}
+          <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/add`}>
+            <i class="fa-solid fa-plus w-4"></i>Add area
+          </a>
+        {/if}
 
         {#if area?.type === 'sector'}
           <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/_/blocks/add`}>
@@ -224,7 +218,7 @@
         {/if}
       {/if}
 
-      {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_ADMIN], area?.regionFk)}
+      {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], area?.regionFk)}
         {#if area?.type === 'sector'}
           <a class="btn btn-sm preset-outlined-primary-500" href={`${basePath}/export`}>
             <i class="fa-solid fa-file-export w-4"></i>Export PDF
@@ -247,23 +241,23 @@
       >
         {#snippet list()}
           {#if area?.type === 'sector'}
-            <Tabs.Control value="#info">Info</Tabs.Control>
+            <Tabs.Control value="info">Info</Tabs.Control>
           {/if}
 
           {#if area?.type === 'sector'}
-            <Tabs.Control value="#blocks">Blocks</Tabs.Control>
+            <Tabs.Control value="blocks">Blocks</Tabs.Control>
           {:else}
-            <Tabs.Control value="#areas">Areas</Tabs.Control>
+            <Tabs.Control value="areas">Areas</Tabs.Control>
           {/if}
 
-          <Tabs.Control value="#map">Map</Tabs.Control>
+          <Tabs.Control value="map">Map</Tabs.Control>
 
-          <Tabs.Control value="#routes">Routes</Tabs.Control>
+          <Tabs.Control value="routes">Routes</Tabs.Control>
         {/snippet}
 
         {#snippet content()}
           {#if area?.type === 'sector'}
-            <Tabs.Panel value="#info">
+            <Tabs.Panel value="info">
               <dl>
                 {#if area?.description != null && area?.description.length > 0}
                   <div class="flex p-2">
@@ -341,9 +335,9 @@
             </Tabs.Panel>
           {/if}
 
-          <Tabs.Panel value="#map">
+          <Tabs.Panel value="map">
             <div use:fitHeightAction>
-              {#await import('$lib/components/BlocksMap') then BlocksMap}
+              {#await import('$lib/components/BlocksMap/ZeroLoader.svelte') then BlocksMap}
                 {#key area?.id}
                   <BlocksMap.default selectedArea={area} />
                 {/key}
@@ -352,13 +346,13 @@
           </Tabs.Panel>
 
           {#if area?.type === 'sector'}
-            <Tabs.Panel value="#blocks">
+            <Tabs.Panel value="blocks">
               <div class="flex justify-between">
                 <Segment
                   name="blocks-view-mode"
                   onValueChange={(event) => {
                     blocksViewMode = event.value as 'list' | 'grid'
-                    replaceState('#blocks', { blocksViewMode })
+                    replaceState('blocks', { blocksViewMode })
                   }}
                   value={blocksViewMode}
                 >
@@ -370,7 +364,7 @@
                   </Segment.Item>
                 </Segment>
 
-                {#if checkRegionPermission(data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk)}
+                {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk)}
                   <button
                     class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
                     disabled={sortOrder !== 'custom'}
@@ -508,88 +502,17 @@
           {/if}
 
           {#if area?.type !== 'sector'}
-            <Tabs.Panel value="#areas">
-              <section class="py-2 md:py-4">
-                {#if area?.areas.length === 0}
-                  No areas yet
-                {:else}
-                  <!-- <GenericList
-                  items={area?.areas.map((item) => ({ ...item, pathname: `${basePath}/${item.slug}-${item.id}` }))}
-                  listClasses="border-b-[1px] border-surface-700 last:border-none py-2"
-                  wrap={false}
-                >
-                  {#snippet left(item)}
-                    {item.name}
-                  {/snippet}
-
-                  {#snippet right(item)}
-                    <div class="flex flex-col">
-                      <GradeHistogram
-                        axes={false}
-                        data={item.grades ?? []}
-                        spec={{
-                          width: 100,
-                        }}
-                        opts={{
-                          height: 38,
-                        }}
-                      />
-
-                      <div class="flex items-center justify-end text-sm opacity-70">
-                        {item.numOfRoutes}
-
-                        {#if item.numOfRoutes === 1}
-                          route
-                        {:else}
-                          routes
-                        {/if}
-                      </div>
-                    </div>
-                  {/snippet}
-                </GenericList> -->
-                {/if}
-              </section>
+            <Tabs.Panel value="areas">
+              {#if tabValue === 'areas' || loadedTabs}
+                <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} parentFk={area.id} />
+              {/if}
             </Tabs.Panel>
           {/if}
 
-          <Tabs.Panel value="#routes">
-            <div class="mt-8">
-              <RoutesFilter />
-            </div>
-
-            <div class="preset-filled-surface-100-900 mt-8">
-              <!-- <GenericList items={data.routes.routes}>
-              {#snippet left(item)}
-                <div class="flex gap-2">
-                  <Image path="/blocks/{item.block.id}/preview-image" size={64} />
-
-                  <div class="flex flex-col gap-1">
-                    <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-                      {item.block.area.name} / {item.block.name}
-                    </p>
-
-                    <RouteName route={item} />
-                  </div>
-                </div>
-              {/snippet}
-            </GenericList> -->
-            </div>
-
-            <div class="my-8 flex justify-center">
-              <!-- <Pagination
-              buttonClasses="btn-sm md:btn-md px-3"
-              count={data.routes.pagination.total}
-              data={[]}
-              page={data.routes.pagination.page}
-              pageSize={data.routes.pagination.pageSize}
-              siblingCount={0}
-              onPageChange={(detail) => {
-                const url = new URL(page.url)
-                url.searchParams.set('page', String(detail.page))
-                goto(url)
-              }}
-            /> -->
-            </div>
+          <Tabs.Panel value="routes">
+            {#if tabValue === 'routes' || loadedTabs}
+              <RouteList areaFk={area.id} onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+            {/if}
           </Tabs.Panel>
         {/snippet}
       </Tabs>

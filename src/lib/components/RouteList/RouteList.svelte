@@ -9,17 +9,18 @@
   import { enrichRoute } from '$lib/db/utils.svelte'
 
   interface Props {
-    onLoad: () => void
+    areaFk?: number | null
+    onLoad?: () => void
   }
-  const { onLoad }: Props = $props()
+  const { areaFk, onLoad }: Props = $props()
 
-  const data = $derived(routesFilterLoad())
+  const data = $derived(routesFilterLoad(areaFk ?? undefined))
 
   const enrichedRoutes = $derived(data.current.map((route) => ({ ...enrichRoute(route), ascents: route.ascents })))
 
   $effect(() => {
     if (data.details.type === 'complete') {
-      onLoad()
+      onLoad?.()
     }
   })
 </script>
