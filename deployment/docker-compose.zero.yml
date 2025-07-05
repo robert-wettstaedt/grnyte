@@ -1,0 +1,71 @@
+services:
+  zero-prod:
+    image: rocicorp/zero
+    container_name: zero-server-prod
+    expose:
+      - '4848'
+    env_file:
+      - .env.prod
+    environment:
+      - ZERO_REPLICA_FILE=/data/sync-replica.db
+      - ZERO_SCHEMA_PATH=/app/zero-schema.ts
+    volumes:
+      - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
+      - zero_data_prod:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4848']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - zero_network
+
+  zero-demo:
+    image: rocicorp/zero
+    container_name: zero-server-demo
+    expose:
+      - '4848'
+    env_file:
+      - .env.demo
+    environment:
+      - ZERO_REPLICA_FILE=/data/sync-replica.db
+      - ZERO_SCHEMA_PATH=/app/zero-schema.ts
+    volumes:
+      - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
+      - zero_data_demo:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4848']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - zero_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-main
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.zero.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    restart: unless-stopped
+    depends_on:
+      - zero-prod
+      - zero-demo
+    networks:
+      - zero_network
+
+networks:
+  zero_network:
+    driver: bridge
+    enable_ipv6: true
+
+volumes:
+  zero_data_prod:
+  zero_data_demo:
