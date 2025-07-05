@@ -1,0 +1,92 @@
+name: Deploy Zero
+
+on:
+  push:
+    branches: [main, master, feature/zero]
+    paths:
+      - "deployment/**"
+      - "src/lib/db/zero/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            # Update repository
+            cd ~/grnyte || { git clone ${{ github.server_url }}/${{ github.repository }}.git ~/grnyte && cd ~/grnyte; }
+            git fetch && git reset --hard origin/${{ github.ref_name }}
+
+            # Create environment file
+            cd deployment
+            echo 'ZERO_UPSTREAM_DB=${{ secrets.ZERO_UPSTREAM_DB }}' > .env.prod
+            echo 'ZERO_AUTH_SECRET=${{ secrets.ZERO_AUTH_SECRET }}' >> .env.prod
+            echo 'ZERO_PUSH_URL=${{ secrets.ZERO_PUSH_URL }}' >> .env.prod
+            echo 'ZERO_REPLICA_FILE=/data/sync-replica.db' >> .env.prod
+            echo 'ZERO_SCHEMA_PATH=/app/zero-schema.ts' >> .env.prod
+            echo 'ZERO_DOMAIN=${{ secrets.ZERO_DOMAIN }}' >> .env.prod
+            echo 'CERTBOT_EMAIL=${{ secrets.CERTBOT_EMAIL }}' >> .env.prod
+
+            # Deploy containers
+            docker compose --env-file .env.prod -f docker-compose.prod.yml down || true
+
+            # Configure Docker for IPv6 if needed
+            if ! docker system info 2>/dev/null | grep -q "IPv6: true"; then
+              sudo mkdir -p /etc/docker
+              echo '{"ipv6": true, "fixed-cidr-v6": "2001:db8:1::/64"}' | sudo tee /etc/docker/daemon.json
+              sudo systemctl restart docker
+              sleep 10
+            fi
+
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d zero
+
+            # Wait for Zero server to be healthy
+            echo "Waiting for Zero server..."
+            for i in {1..20}; do
+              if docker exec zero-server curl -f http://localhost:4848 >/dev/null 2>&1; then
+                echo "Zero server is healthy!"
+                break
+              fi
+              echo "Attempt $i/20..."
+              sleep 5
+            done
+
+            # Start Nginx after Zero is healthy
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d nginx
+            sleep 5
+
+            # Test HTTP connectivity first
+            source .env.prod
+            echo "Testing HTTP connectivity..."
+            curl -f http://$ZERO_DOMAIN || { echo "HTTP test failed"; exit 1; }
+
+            # Setup SSL if needed
+            if [ ! -f "/var/lib/docker/volumes/deployment_certbot_conf/_data/live/$ZERO_DOMAIN/fullchain.pem" ]; then
+              echo "Getting SSL certificate..."
+              docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm certbot
+            fi
+
+            # Apply SSL config
+            echo "Applying SSL config..."
+            sed "s/DOMAIN_PLACEHOLDER/$ZERO_DOMAIN/g" nginx-ssl.conf > nginx.conf
+            docker compose --env-file .env.prod -f docker-compose.prod.yml restart nginx
+
+            # Final test
+            sleep 10
+            curl -f https://$ZERO_DOMAIN || exit 1
+          EOF
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
