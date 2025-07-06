@@ -40,7 +40,11 @@
                 .orderBy('order', 'asc')
                 .orderBy('name', 'asc')
                 .related('routes', (q) =>
-                  q.orderBy('gradeFk', 'asc').related('ascents', (q) => q.where('createdBy', '=', page.data.user?.id)),
+                  q
+                    .orderBy('gradeFk', 'asc')
+                    .related('ascents', (q) =>
+                      page.data.user?.id == null ? q : q.where('createdBy', '=', page.data.user.id),
+                    ),
                 )
                 .related('topos', (q) => q.orderBy('id', 'asc').related('file').related('routes')),
             )

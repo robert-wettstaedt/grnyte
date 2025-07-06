@@ -16,6 +16,7 @@ export const load = async ({ locals, cookies, url }) => {
     userPermissions: locals.userPermissions,
     userRegions: locals.userRegions,
     userRole: locals.userRole,
+    z: { current: undefined },
   }
 }
 

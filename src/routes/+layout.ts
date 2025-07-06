@@ -1,4 +1,4 @@
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL, PUBLIC_ZERO_URL } from '$env/static/public'
 import { schema, type Schema } from '$lib/db/zero/zero-schema'
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr'
 import { Z } from 'zero-svelte'
@@ -39,7 +39,7 @@ export const load = async ({ data, depends, fetch }) => {
   const z = new Z<Schema>({
     auth: session?.access_token,
     userID: session?.user.id ?? 'anon',
-    server: 'http://localhost:4848',
+    server: PUBLIC_ZERO_URL,
     schema,
     // mutators: createMutators({ sub: session.user.id }),
   })

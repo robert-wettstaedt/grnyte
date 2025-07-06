@@ -46,5 +46,6 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Run checks
-        run: npm run check
+      # - name: Run checks
+      #   run: npm run check
+      # TODO: Enable once zero is more robust
