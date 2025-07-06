@@ -1,21 +1,19 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { getStatsOfAreas } from '$lib/blocks.svelte'
+  import AreaStats from '$lib/components/AreaStats'
   import GenericList from '$lib/components/GenericList'
-  import GradeHistogram from '$lib/components/GradeHistogram'
   import { Query } from 'zero-svelte'
 
   interface Props {
+    basePath: string
     onLoad?: () => void
     parentFk?: number | null
   }
-  const { onLoad, parentFk }: Props = $props()
+  const { basePath, onLoad, parentFk }: Props = $props()
 
   const areas = $derived(
     new Query(page.data.z.current.query.areas.where('parentFk', 'IS', parentFk ?? null).orderBy('name', 'asc')),
   )
-
-  const stats = $derived(getStatsOfAreas(areas.current.map((item) => item.id).filter((id) => id != null)))
 
   $effect(() => {
     if (areas.details.type === 'complete') {
@@ -37,7 +35,7 @@
     items={areas.current.map((item) => ({
       ...item,
       id: item.id!,
-      pathname: `${page.url.pathname}/${item.slug}`,
+      pathname: `${basePath}/${item.slug}-${item.id}`,
     }))}
     listClasses="border-b-[1px] border-surface-700 last:border-none py-2"
     wrap={false}
@@ -54,26 +52,28 @@
 
     {#snippet right(item)}
       <div class="flex flex-col">
-        <GradeHistogram
+        <AreaStats
+          areaId={item.id}
           axes={false}
-          data={stats[item.id]?.grades ?? []}
           spec={{
             width: 100,
           }}
           opts={{
             height: 38,
           }}
-        />
+        >
+          {#snippet children(routes)}
+            <div class="flex items-center justify-end text-sm opacity-70">
+              {routes.length}
 
-        <div class="flex items-center justify-end text-sm opacity-70">
-          {stats[item.id]?.numOfRoutes ?? 0}
-
-          {#if stats[item.id]?.numOfRoutes === 1}
-            route
-          {:else}
-            routes
-          {/if}
-        </div>
+              {#if routes.length === 1}
+                route
+              {:else}
+                routes
+              {/if}
+            </div>
+          {/snippet}
+        </AreaStats>
       </div>
     {/snippet}
   </GenericList>

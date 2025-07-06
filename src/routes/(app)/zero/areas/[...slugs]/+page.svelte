@@ -508,7 +508,7 @@
           {#if area?.type !== 'sector'}
             <Tabs.Panel value="areas">
               {#if tabValue === 'areas' || loadedTabs}
-                <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} parentFk={area.id} />
+                <AreaList {basePath} onLoad={() => setTimeout(() => (loadedTabs = true), 100)} parentFk={area.id} />
               {/if}
             </Tabs.Panel>
           {/if}

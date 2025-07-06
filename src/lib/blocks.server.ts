@@ -244,7 +244,7 @@ export const getStatsOfAreas = async (
     areaIds.length === 0
       ? []
       : await db.query.routes.findMany({
-          where: arrayOverlaps(schema.routes.areaIds, areaIds),
+          where: arrayOverlaps(schema.routes.areaFks, areaIds),
           columns: {
             areaIds: true,
             userGradeFk: true,

@@ -25,7 +25,7 @@
 </Navigation.Tile>
 
 {#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN])}
-  <Navigation.Tile href="/zero" label="Zero" selected={page.url.pathname.startsWith('/zero')}>
+  <Navigation.Tile href="/zero/areas" label="Zero" selected={page.url.pathname.startsWith('/zero')}>
     <i class="fa-solid fa-0"></i>
   </Navigation.Tile>
 {/if}
