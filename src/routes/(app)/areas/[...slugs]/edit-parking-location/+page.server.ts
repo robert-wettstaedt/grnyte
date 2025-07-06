@@ -100,7 +100,7 @@ export const actions = {
         if (values.polyline != null) {
           await db
             .update(areas)
-            .set({ walkingPaths: [...(area.walkingPaths ?? []), values.polyline] })
+            .set({ geoPaths: [...(area.geoPaths ?? []), values.polyline] })
             .where(eq(areas.id, area.id))
 
           await insertActivity(db, {
@@ -153,7 +153,7 @@ export const actions = {
         await invalidateCache(caches.layoutBlocks)
 
         await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
-        await db.update(areas).set({ walkingPaths: null }).where(eq(areas.id, area.id))
+        await db.update(areas).set({ geoPaths: null }).where(eq(areas.id, area.id))
 
         await insertActivity(db, {
           type: 'deleted',

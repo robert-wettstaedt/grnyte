@@ -535,6 +535,7 @@ describe('Activity Feed', () => {
         blockFk: 1,
         externalResourcesFk: null,
         areaFks: [],
+        areaIds: [],
         userRating: null,
         userGradeFk: null,
         regionFk: 1,
@@ -569,6 +570,7 @@ describe('Activity Feed', () => {
         parentFk: null,
         createdBy: 1,
         walkingPaths: [],
+        geoPaths: [],
         regionFk: 1,
       },
     })

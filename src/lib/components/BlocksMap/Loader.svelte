@@ -1,6 +1,5 @@
 <script lang="ts">
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import 'ol/ol.css'
   import { onMount } from 'svelte'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 

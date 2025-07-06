@@ -1,0 +1,189 @@
+name: Deploy Zero
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "deployment/**"
+      - "src/lib/db/zero/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        default: "prod"
+        type: choice
+        options:
+          - prod
+          - demo
+          - both
+
+jobs:
+  setup-repo:
+    runs-on: ubuntu-latest
+    environment: "Production – grnyte.rocks"
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Setup deployment repository
+        run: |
+          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+            DEPLOY_DIR="$HOME/zero-deployment"
+
+            # Clean up and setup fresh repository
+            rm -rf "$DEPLOY_DIR"
+            mkdir -p "$DEPLOY_DIR"
+            cd "$DEPLOY_DIR"
+
+            # Clone repository
+            git clone -b ${{ github.ref_name }} ${{ github.server_url }}/${{ github.repository }}.git .
+
+            # Verify deployment files exist
+            if [ ! -d "deployment" ]; then
+              echo "❌ deployment directory not found"
+              exit 1
+            fi
+
+            echo "✅ Repository setup complete ($(git rev-parse --short HEAD))"
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
+
+  prepare-envs:
+    needs: setup-repo
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment:
+          - name: prod
+            env_name: "Production – grnyte.rocks"
+          - name: demo
+            env_name: "Production – demo.grnyte.rocks"
+    environment: ${{ matrix.environment.env_name }}
+
+    steps:
+      - name: Check if deployment needed
+        id: should_deploy
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.environment }}" == "${{ matrix.environment.name }}" || "${{ inputs.environment }}" == "both" ]]; then
+              echo "deploy=true" >> $GITHUB_OUTPUT
+            else
+              echo "deploy=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup SSH
+        if: steps.should_deploy.outputs.deploy == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Prepare ${{ matrix.environment.name }} environment
+        if: steps.should_deploy.outputs.deploy == 'true'
+        run: |
+          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+            cd $HOME/zero-deployment/deployment
+
+            # Create environment file for ${{ matrix.environment.name }}
+            rm -f .env.${{ matrix.environment.name }}
+            echo "ZERO_UPSTREAM_DB=${{ secrets.ZERO_UPSTREAM_DB }}" > .env.${{ matrix.environment.name }}
+            echo "ZERO_AUTH_SECRET=${{ secrets.ZERO_AUTH_SECRET }}" >> .env.${{ matrix.environment.name }}
+            echo "ZERO_PUSH_URL=https://${{ vars.ZERO_DOMAIN }}" >> .env.${{ matrix.environment.name }}
+            echo "ZERO_DOMAIN=${{ vars.ZERO_DOMAIN }}" >> .env.${{ matrix.environment.name }}
+
+            echo "✅ Environment configured for ${{ matrix.environment.name }} (${{ vars.ZERO_DOMAIN }})"
+          ENDSSH
+
+      - name: Cleanup
+        if: always() && steps.should_deploy.outputs.deploy == 'true'
+        run: rm -f ~/.ssh/id_rsa
+
+  deploy-infrastructure:
+    needs: prepare-envs
+    runs-on: ubuntu-latest
+    environment: "Production – grnyte.rocks"
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Zero Infrastructure
+        run: |
+          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+            set -e
+            cd $HOME/zero-deployment/deployment
+
+            echo "🚀 Deploying Zero infrastructure..."
+
+            # Verify docker-compose file exists
+            if [ ! -f "docker-compose.zero.yml" ]; then
+              echo "❌ docker-compose.zero.yml not found"
+              exit 1
+            fi
+
+            # Stop existing services
+            docker compose -f docker-compose.zero.yml down --remove-orphans || true
+
+            # Clean up Docker resources
+            docker network prune -f || true
+            docker rm -f zero-server-prod zero-server-demo nginx-main certbot-main || true
+
+            # Start services
+            echo "Starting Zero servers and nginx..."
+            docker compose -f docker-compose.zero.yml up -d
+
+            # Wait for Zero servers to be ready
+            echo "⏳ Waiting for Zero servers..."
+            for i in {1..30}; do
+                if docker exec zero-server-prod curl -f http://localhost:4848 >/dev/null 2>&1 && \
+                   docker exec zero-server-demo curl -f http://localhost:4848 >/dev/null 2>&1; then
+                    echo "✅ Zero servers are ready"
+                    break
+                fi
+                if [ $i -eq 30 ]; then
+                    echo "❌ Zero servers failed to start"
+                    docker logs zero-server-prod | tail -5
+                    docker logs zero-server-demo | tail -5
+                    exit 1
+                fi
+                sleep 2
+            done
+
+            # Test HTTP accessibility
+            echo "🧪 Testing HTTP accessibility..."
+            for domain in "zero.grnyte.rocks" "zero.demo.grnyte.rocks"; do
+                if curl -f -m 10 "http://$domain/" >/dev/null 2>&1; then
+                    echo "✅ $domain is accessible via HTTP"
+                else
+                    echo "⚠️  $domain not accessible (might be normal if DNS hasn't propagated)"
+                fi
+            done
+
+            echo "🎉 Deployment completed!"
+            echo "Services status:"
+            docker ps --filter "name=zero-server\|nginx-main" --format "table {{.Names}}\t{{.Status}}"
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_rsa

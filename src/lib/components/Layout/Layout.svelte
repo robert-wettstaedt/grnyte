@@ -37,17 +37,17 @@
     return () => value?.data.subscription.unsubscribe()
   })
 
-  afterNavigate(() => {
-    if (page.url.hash.length === 0) {
-      document.scrollingElement?.scrollTo(0, 0)
-    }
-  })
+  // afterNavigate(() => {
+  //   if (page.url.hash.length === 0) {
+  //     document.scrollingElement?.scrollTo(0, 0)
+  //   }
+  // })
 
-  $effect(() => {
-    if (page.form != null) {
-      document.scrollingElement?.scrollTo(0, 0)
-    }
-  })
+  // $effect(() => {
+  //   if (page.form != null) {
+  //     document.scrollingElement?.scrollTo(0, 0)
+  //   }
+  // })
 </script>
 
 <svelte:head>
