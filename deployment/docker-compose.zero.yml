@@ -9,6 +9,8 @@ services:
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/app/zero-schema.ts
+      - ZERO_CVR_MAX_CONNS=10
+      - ZERO_UPSTREAM_MAX_CONNS=10
     volumes:
       - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
       - zero_data_prod:/data
@@ -32,6 +34,8 @@ services:
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/app/zero-schema.ts
+      - ZERO_CVR_MAX_CONNS=10
+      - ZERO_UPSTREAM_MAX_CONNS=10
     volumes:
       - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
       - zero_data_demo:/data
