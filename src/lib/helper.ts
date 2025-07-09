@@ -10,8 +10,21 @@ import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils.svelte'
  */
 export const convertAreaSlug = (params: Record<string, string>) => {
   const path = params.slugs.split('/').filter(Boolean)
-  const areaSlug = path.at(-1)
-  const parentSlug = path.at(-2)
+
+  function strip(item: string | undefined) {
+    const slugItems = item?.split('-')
+    const slug = slugItems?.slice(0, -1).join('-')
+    const id = Number(slugItems?.at(-1))
+
+    return { slug, id: Number.isNaN(id) ? undefined : id }
+  }
+
+  const { id: areaId, slug: areaSlug } = strip(path.at(-1))
+  const { id: parentId, slug: parentSlug } = strip(path.at(-2))
+
+  if (areaId == null || areaSlug == null) {
+    throw new Error('Not found')
+  }
 
   const canAddArea = path.length < MAX_AREA_NESTING_DEPTH
 

@@ -92,6 +92,7 @@ export const actions = {
         current = current.parent as InferResultType<'areas', { parent: true }> | null
       }
       areaFks.reverse()
+      const areaIds = areaFks.map((id) => `^${id}$`).join(',')
 
       values.rating = values.rating == null || String(values.rating).length === 0 ? undefined : values.rating
 
@@ -120,7 +121,15 @@ export const actions = {
         // Insert the new route into the database
         const result = await db
           .insert(routes)
-          .values({ ...values, areaFks, createdBy: locals.user.id, blockFk: block.id, regionFk: block.regionFk, slug })
+          .values({
+            ...values,
+            areaFks,
+            areaIds,
+            createdBy: locals.user.id,
+            blockFk: block.id,
+            regionFk: block.regionFk,
+            slug,
+          })
           .returning()
         route = result[0]
 

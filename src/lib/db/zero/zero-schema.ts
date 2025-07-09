@@ -18,6 +18,8 @@ import { schema, type Schema } from './zero-schema.gen'
 
 export { schema, type Schema }
 
+export type Area = Row<typeof schema.tables.areas>
+export type Block = Row<typeof schema.tables.blocks>
 export type Route = Row<typeof schema.tables.routes>
 
 export const permissions = definePermissions<SupabaseToken, Schema>(schema, () => {

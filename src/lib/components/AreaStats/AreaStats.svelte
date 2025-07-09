@@ -12,12 +12,12 @@
   }
   const { areaId, children, ...rest }: Props = $props()
 
-  const allRoutes = $derived(new Query(page.data.z.current.query.routes))
+  const { current: routes, details } = $derived(
+    new Query(page.data.z.current.query.routes.where('areaIds', 'ILIKE', `%^${areaId}$%`)),
+  )
 
-  const areaRoutes = $derived(allRoutes.current.filter((route) => route.areaIds?.includes(areaId)))
-
-  const areaStats = $derived(
-    areaRoutes.map((route): GradeHistogramProps['data'][0] => {
+  const stats = $derived(
+    routes.map((route): GradeHistogramProps['data'][0] => {
       const grade = page.data.grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
       const gradeValue = grade?.[page.data.user?.userSettings?.gradingScale ?? 'FB'] ?? undefined
 
@@ -26,12 +26,12 @@
   )
 </script>
 
-{#if allRoutes.current.length === 0 && allRoutes.details.type !== 'complete'}
+{#if routes.length === 0 && details.type !== 'complete'}
   <ProgressRing size={rest.opts?.height == null || rest.opts.height > 64 ? undefined : 'size-12'} value={null} />
 {:else}
-  <GradeHistogram {...rest} data={areaStats ?? []} />
+  <GradeHistogram {...rest} data={stats ?? []} />
 
   {#if children != null}
-    {@render children(areaRoutes)}
+    {@render children(routes)}
   {/if}
 {/if}

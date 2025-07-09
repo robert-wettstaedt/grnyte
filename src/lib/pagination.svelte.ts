@@ -1,21 +1,15 @@
 import { z } from 'zod/v4'
 
+export const DEFAULT_PAGE_SIZE = 15
+
 export const paginationParamsSchema = z.object({
-  page: z.number().default(1),
-  pageSize: z.number().default(15),
+  pageSize: z.number().default(DEFAULT_PAGE_SIZE),
 })
 export type PaginationParams = z.TypeOf<typeof paginationParamsSchema>
 
-export const getPaginationQuery = (params: PaginationParams) => ({
-  offset: (params.page - 1) * params.pageSize,
-  limit: params.pageSize,
-})
-
-export interface Pagination {
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
+export const hasReachedEnd = (currentLength: number, pageSize = DEFAULT_PAGE_SIZE): boolean => {
+  if (currentLength === 0) {
+    return false
+  }
+  return currentLength % pageSize !== 0
 }
-
-export type PaginatedData<T> = { pagination: Pagination } & T

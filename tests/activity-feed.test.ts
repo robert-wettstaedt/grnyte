@@ -535,7 +535,7 @@ describe('Activity Feed', () => {
         blockFk: 1,
         externalResourcesFk: null,
         areaFks: [],
-        areaIds: [],
+        areaIds: '',
         userRating: null,
         userGradeFk: null,
         regionFk: 1,

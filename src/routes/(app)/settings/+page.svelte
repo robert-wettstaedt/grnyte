@@ -13,6 +13,7 @@
   } from '$lib/components/PushNotificationSubscriber'
   import { timeoutFunction } from '$lib/errors'
   import { isIOS } from '$lib/features'
+  import { dropAllDatabases } from '@rocicorp/zero'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
@@ -45,7 +46,8 @@
     } catch (error) {
       console.error(error)
     }
-    page.data.supabase?.auth.signOut()
+
+    await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
   }
 
   /**

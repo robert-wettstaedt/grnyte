@@ -13,7 +13,7 @@ import { unified, type Plugin } from 'unified'
 export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
 
-type EncloseOptions = 'anchor' | 'strong'
+export type EncloseOptions = 'anchor' | 'strong'
 
 export const convertMarkdownToHtml = async (
   markdown: string | null | undefined,
@@ -35,6 +35,31 @@ export const convertMarkdownToHtml = async (
     .use(remarkReferences, { encloseReferences })
     .use(remarkHtml)
     .process(enrichedMarkdown)
+
+  if (typeof result.value !== 'string') {
+    throw new Error('Failed to convert markdown to html')
+  }
+
+  return result.value
+}
+
+export const convertMarkdownToHtmlSync = (
+  markdown: string | null | undefined,
+  encloseReferences?: EncloseOptions,
+): string => {
+  if (markdown == null) {
+    return ''
+  }
+
+  const result = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkMentions, {
+      usernameLink: (username) => `/users/${username}`,
+    })
+    .use(remarkReferences, { encloseReferences })
+    .use(remarkHtml)
+    .processSync(markdown)
 
   if (typeof result.value !== 'string') {
     throw new Error('Failed to convert markdown to html')
@@ -145,4 +170,49 @@ export const replaceMention = (markdown: string | null | undefined, oldUsername:
       return desc
     }, markdown?.split(''))
     ?.join('')
+}
+
+export interface MarkdownReferencesIds {
+  areas: number[]
+  blocks: number[]
+  routes: number[]
+}
+
+export const getReferences = (markdown: string): MarkdownReferencesIds => {
+  const matchesIterator = markdown.matchAll(new RegExp(referenceRegex, 'gi'))
+  const matches = Array.from(matchesIterator ?? []).reverse()
+
+  const references: MarkdownReferencesIds = { areas: [], blocks: [], routes: [] }
+
+  matches.forEach((match) => {
+    const [type, id] = match[0]
+      .trim()
+      .substring(1, match[0].length - 1)
+      .split(':') as ['areas' | 'blocks' | 'routes', string]
+
+    const idNumber = Number(id)
+    if (Number.isNaN(idNumber)) {
+      return
+    }
+
+    references[type] = [...references[type], idNumber]
+  })
+
+  return references
+}
+
+export interface MarkdownReference {
+  type: 'areas' | 'blocks' | 'routes'
+  id: number
+  name: string
+}
+
+export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownReference[]): string => {
+  let enrichedMarkdown = markdown
+
+  refs.forEach(({ id, name, type }) => {
+    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${btoa(name)}!`)
+  })
+
+  return enrichedMarkdown
 }

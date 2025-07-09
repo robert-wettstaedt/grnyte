@@ -101,7 +101,7 @@ export default {
       userGradeFk: null,
       userRating: null,
       areaFks: [],
-      areaIds: [],
+      areaIds: '',
       regionFk: -1,
     }
 

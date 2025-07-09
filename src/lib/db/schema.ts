@@ -542,7 +542,7 @@ export const routes = table(
     userRating: integer('user_rating'),
 
     areaFks: integer('area_fks').array(),
-    areaIds: jsonb('area_ids').$type<number[]>(),
+    areaIds: text('area_ids'),
     blockFk: integer('block_fk')
       .notNull()
       .references((): AnyColumn => blocks.id),

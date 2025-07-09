@@ -61,7 +61,7 @@
       {#snippet content()}
         <Tabs.Panel value="areas">
           {#if tabValue === 'areas' || loadedTabs}
-            <AreaList basePath="/areas" onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+            <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
           {/if}
         </Tabs.Panel>
 

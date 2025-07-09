@@ -5,24 +5,23 @@
   import { Query } from 'zero-svelte'
 
   interface Props {
-    basePath: string
     onLoad?: () => void
     parentFk?: number | null
   }
-  const { basePath, onLoad, parentFk }: Props = $props()
+  const { onLoad, parentFk }: Props = $props()
 
-  const areas = $derived(
+  const { current: areas, details } = $derived(
     new Query(page.data.z.current.query.areas.where('parentFk', 'IS', parentFk ?? null).orderBy('name', 'asc')),
   )
 
   $effect(() => {
-    if (areas.details.type === 'complete') {
+    if (details.type === 'complete') {
       onLoad?.()
     }
   })
 </script>
 
-{#if areas.current.length === 0 && areas.details.type !== 'complete'}
+{#if areas.length === 0 && details.type !== 'complete'}
   <nav class="list-nav">
     <ul class="overflow-auto">
       {#each Array(10) as _}
@@ -32,10 +31,10 @@
   </nav>
 {:else}
   <GenericList
-    items={areas.current.map((item) => ({
+    items={areas.map((item) => ({
       ...item,
       id: item.id!,
-      pathname: `${basePath}/${item.slug}-${item.id}`,
+      pathname: `${page.url.pathname}/${item.slug}-${item.id}`,
     }))}
     listClasses="border-b-[1px] border-surface-700 last:border-none py-2"
     wrap={false}

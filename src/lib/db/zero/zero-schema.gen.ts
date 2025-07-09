@@ -1701,7 +1701,7 @@ export const schema = {
           serverName: "user_rating",
         },
         areaIds: {
-          type: "json",
+          type: "string",
           optional: true,
           customType: null as unknown as ZeroCustomType<
             ZeroSchema,
