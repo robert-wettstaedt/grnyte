@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
   let { form } = $props()
@@ -23,7 +24,7 @@
         <p class="opacity-75">Sign up to continue to {PUBLIC_APPLICATION_NAME}</p>
       </header>
 
-      <form method="POST" class="space-y-4">
+      <form method="POST" class="space-y-4" use:enhance>
         <label class="label">
           <span>Email</span>
           <input name="email" type="email" placeholder="you@example.com" class="input" required value={form?.email} />
