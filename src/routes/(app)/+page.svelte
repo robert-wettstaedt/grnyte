@@ -191,7 +191,7 @@
   </section>
 {:else if data.userRegions.length > 0}
   <div class="-m-[0.5rem] md:-m-[1rem]" use:fitHeightAction={{ paddingBottom: 0 }}>
-    {#await import('$lib/components/BlocksMap/ZeroLoader.svelte') then BlocksMap}
+    {#await import('$lib/components/BlocksMap') then BlocksMap}
       <BlocksMap.default />
     {/await}
   </div>

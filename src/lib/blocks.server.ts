@@ -246,18 +246,18 @@ export const getStatsOfAreas = async (
       : await db.query.routes.findMany({
           where: arrayOverlaps(schema.routes.areaFks, areaIds),
           columns: {
-            areaIds: true,
+            areaFks: true,
             userGradeFk: true,
             gradeFk: true,
           },
         })
 
-  const allAreaIds = routes.flatMap((route) => route.areaIds ?? [])
+  const allAreaIds = routes.flatMap((route) => route.areaFks ?? [])
   const distinctAreaIds = [...new Set(allAreaIds)]
 
   const areaStats = distinctAreaIds.reduce(
     (obj, areaId) => {
-      const areaRoutes = routes.filter((route) => route.areaIds?.includes(areaId))
+      const areaRoutes = routes.filter((route) => route.areaFks?.includes(areaId))
 
       const gradesObj = areaRoutes.map((route): AreaStats['grades'][0] => {
         const grade = grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
