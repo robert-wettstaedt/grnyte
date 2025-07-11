@@ -127,6 +127,27 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Check Docker IPv6 support
+        run: |
+          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+            echo "Checking if Docker IPv6 is enabled..."
+            if [ ! -f /etc/docker/daemon.json ] || ! grep -q '"ipv6"[[:space:]]*:[[:space:]]*true' /etc/docker/daemon.json; then
+              echo "❌ Docker IPv6 is NOT enabled!"
+              echo "To enable IPv6 for Docker, do the following as root on your server:"
+              echo '1. Create or edit /etc/docker/daemon.json with:'
+              echo '   {'
+              echo '     "ipv6": true,'
+              echo '     "fixed-cidr-v6": "<your:ipv6:subnet::/64>"'
+              echo '   }'
+              echo '2. Replace <your:ipv6:subnet::/64> with your actual routed IPv6 subnet (e.g., 2a01:4f8:c0c:9b28::/64)'
+              echo '3. Restart Docker: systemctl restart docker'
+              echo '4. Recreate your containers: docker-compose down && docker-compose up -d'
+              exit 1
+            else
+              echo "✅ Docker IPv6 is enabled."
+            fi
+          ENDSSH
+
       - name: Deploy Zero Infrastructure
         run: |
           ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
