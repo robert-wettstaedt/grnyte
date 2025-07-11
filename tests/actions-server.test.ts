@@ -67,7 +67,7 @@ vi.mock('drizzle-orm', () => ({
   count: vi.fn(() => 'count_function'),
 }))
 
-vi.mock('zod/v4', () => ({
+vi.mock('zod', () => ({
   z: {
     parseAsync: vi.fn().mockResolvedValue({}),
   },
@@ -94,7 +94,7 @@ import {
   notifyRoleUpdated,
 } from '$lib/notifications/samples.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { z, ZodError } from 'zod/v4'
+import { z, ZodError } from 'zod'
 
 describe('actions.server.ts', () => {
   // Mock implementations

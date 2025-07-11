@@ -3,8 +3,7 @@ import { convertException } from '$lib/errors'
 import { usernameRegex } from '$lib/markdown'
 import { fail } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { z } from 'zod/v4'
-import * as core from 'zod/v4/core'
+import { core, z } from 'zod'
 import type { PasswordActionValues } from './schemas'
 
 function getSchemaShape<Output = unknown, Input = Output>(schema: z.ZodType<Output, Input>): z.ZodRawShape | undefined {

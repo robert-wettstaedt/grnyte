@@ -5,7 +5,7 @@
   import { jsonSchema as jsonSchemaExtension } from 'codemirror-json-schema'
   import type { JSONSchema7 } from 'json-schema'
   import { onDestroy, onMount } from 'svelte'
-  import { z } from 'zod/v4'
+  import { z } from 'zod'
 
   interface Props {
     onChange?: (isValid: boolean) => void

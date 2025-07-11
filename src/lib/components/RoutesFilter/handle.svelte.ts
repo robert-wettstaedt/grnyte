@@ -1,7 +1,7 @@
 import { page } from '$app/state'
 import { validateObject } from '$lib/forms/validate.svelte'
 import { paginationParamsSchema } from '$lib/pagination.svelte'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 const searchParamsSchema = z.intersection(
   z.object({

@@ -70,7 +70,7 @@ vi.mock('drizzle-orm/supabase', () => ({
   },
 }))
 
-vi.mock('zod/v4', () => ({
+vi.mock('zod', () => ({
   z: {
     object: vi.fn(() => ({
       email: {

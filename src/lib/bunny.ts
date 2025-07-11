@@ -2,7 +2,7 @@ import { upfetch } from '$lib/config'
 import { digestMessage } from '$lib/helper'
 import type { Readable } from 'stream'
 import * as tus from 'tus-js-client'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 interface BunnyOptions {
   apiKey: string

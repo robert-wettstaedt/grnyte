@@ -5,7 +5,7 @@ import { validateObject } from '$lib/forms/validate.server'
 import { getPaginationQuery, paginationParamsSchema, type PaginatedData } from '$lib/pagination.server'
 import type { RequestEvent } from '@sveltejs/kit'
 import { and, arrayContains, asc, count, eq, gte, lte, sql } from 'drizzle-orm'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 const searchParamsSchema = z.intersection(
   z.object({

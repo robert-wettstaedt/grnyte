@@ -1,6 +1,6 @@
 import * as schema from '$lib/db/schema'
 import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export type ActionFailure<T> = T & { error: string }
 
