@@ -16,6 +16,6 @@ export const keyv = new Keyv({ store: keyvPostgres })
 await migrate(db, { migrationsFolder: 'drizzle' })
 await keyv.clear()
 
-await setupRbac(db)
+// await setupRbac(db)
 
 await postgres.end()

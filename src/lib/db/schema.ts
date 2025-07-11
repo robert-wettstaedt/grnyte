@@ -507,6 +507,7 @@ export const blocks = table(
   (table) => [
     index('blocks_region_fk_idx').on(table.regionFk),
     index('blocks_slug_idx').on(table.slug),
+    index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
     ...createBasicTablePolicies('blocks'),
     policy(
@@ -556,6 +557,7 @@ export const routes = table(
     index('routes_region_fk_idx').on(table.regionFk),
     index('routes_slug_idx').on(table.slug),
     index('routes_area_fks_gin_idx').using('gin', table.areaFks),
+    index('routes_area_ids_idx').on(table.areaIds),
     index('routes_grade_fk_idx').on(table.gradeFk),
     index('routes_user_grade_fk_idx').on(table.userGradeFk),
     index('routes_rating_idx').on(table.rating),

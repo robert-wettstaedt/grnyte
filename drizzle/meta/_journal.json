@@ -442,6 +442,13 @@
       "when": 1751907359207,
       "tag": "0063_military_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1752257290245,
+      "tag": "0064_glossy_killmonger",
+      "breakpoints": true
     }
   ]
 }

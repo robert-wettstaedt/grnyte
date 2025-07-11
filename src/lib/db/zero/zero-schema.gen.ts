@@ -15,8 +15,9 @@
  * ------------------------------------------------------------
  */
 
-import type { DrizzleToZeroSchema, ZeroCustomType } from "drizzle-zero";
+import type { ZeroCustomType } from "drizzle-zero";
 import type * as drizzleSchema from "../schema";
+import type { DrizzleToZeroSchema } from "drizzle-zero";
 
 type ZeroSchema = DrizzleToZeroSchema<typeof drizzleSchema>;
 
