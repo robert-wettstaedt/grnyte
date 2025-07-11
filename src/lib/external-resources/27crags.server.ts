@@ -8,7 +8,7 @@ import {
 import { parse } from 'cookie'
 import { eq } from 'drizzle-orm'
 import http from 'https'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { ExternalResourceHandler } from './index.server'
 
 const QueryResponse27crags = z.object({

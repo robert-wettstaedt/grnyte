@@ -6,7 +6,7 @@ import { validateFormData } from '$lib/forms/validate.server'
 import { notifyAcceptedInvite } from '$lib/notifications/samples.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { and, count, eq, gt } from 'drizzle-orm'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, url }) => {

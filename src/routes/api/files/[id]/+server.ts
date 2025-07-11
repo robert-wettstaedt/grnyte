@@ -7,7 +7,7 @@ import { fileLogger } from '$lib/logging'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { RequestEvent } from './$types'
 
 const updateFileSchema = z.object({

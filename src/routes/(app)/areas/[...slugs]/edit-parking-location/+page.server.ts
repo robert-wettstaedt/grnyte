@@ -9,7 +9,7 @@ import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {

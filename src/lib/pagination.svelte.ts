@@ -1,4 +1,4 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const DEFAULT_PAGE_SIZE = 15
 

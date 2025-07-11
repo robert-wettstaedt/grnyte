@@ -13,7 +13,7 @@ import { error } from '@sveltejs/kit'
 import { sub } from 'date-fns'
 import { and, asc, count, desc, eq, gt, inArray, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Activity['entityType']) => {
   switch (entityType) {

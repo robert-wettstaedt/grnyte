@@ -1,6 +1,6 @@
 import { errorLogger } from '$lib/logging'
 import { isHttpError } from '@sveltejs/kit'
-import { ZodError } from 'zod/v4'
+import { ZodError } from 'zod'
 
 export class AppError extends Error {
   constructor(
