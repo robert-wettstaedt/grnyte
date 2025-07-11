@@ -22,7 +22,7 @@ import {
 } from '$lib/notifications/samples.server'
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit'
 import { and, count, eq } from 'drizzle-orm'
-import { z, ZodError } from 'zod/v4'
+import { z, ZodError } from 'zod'
 
 export const createRegion = async ({ locals, request }: RequestEvent) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)

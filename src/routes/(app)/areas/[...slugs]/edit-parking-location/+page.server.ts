@@ -9,7 +9,7 @@ import { validateFormData } from '$lib/forms/validate.server'
 import { convertAreaSlug } from '$lib/helper.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, parent }) => {
@@ -100,7 +100,7 @@ export const actions = {
         if (values.polyline != null) {
           await db
             .update(areas)
-            .set({ walkingPaths: [...(area.walkingPaths ?? []), values.polyline] })
+            .set({ geoPaths: [...(area.geoPaths ?? []), values.polyline] })
             .where(eq(areas.id, area.id))
 
           await insertActivity(db, {
@@ -153,7 +153,7 @@ export const actions = {
         await invalidateCache(caches.layoutBlocks)
 
         await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
-        await db.update(areas).set({ walkingPaths: null }).where(eq(areas.id, area.id))
+        await db.update(areas).set({ geoPaths: null }).where(eq(areas.id, area.id))
 
         await insertActivity(db, {
           type: 'deleted',

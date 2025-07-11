@@ -1,7 +1,7 @@
 import { createDrizzleSupabaseClient, keyv } from '$lib/db/db.server'
 import { generateSlug, routeExternalResource8a, type RouteExternalResource8a } from '$lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { ExternalResourceHandler } from './index.server'
 
 const QueryResponse8a = z.object({
@@ -133,6 +133,7 @@ export default {
       userRating: null,
       userGradeFk: null,
       areaFks: [],
+      areaIds: '',
       regionFk: -1,
     }
   },

@@ -6,7 +6,7 @@ import { validateFormData } from '$lib/forms/validate.server'
 import { notifyAcceptedInvite } from '$lib/notifications/samples.server'
 import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit'
 import { and, count, eq, gt } from 'drizzle-orm'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, url }) => {
@@ -112,7 +112,7 @@ export const actions = {
       // Add user to region
       await db.insert(schema.regionMembers).values({
         authUserFk: locals.user.authUserFk,
-        invitedBy: invitation.invitedBy.id,
+        invitedByFk: invitation.invitedBy.id,
         isActive: true,
         regionFk: invitation.regionFk,
         role: 'region_user',
@@ -125,7 +125,7 @@ export const actions = {
         .set({
           status: 'accepted',
           acceptedAt: new Date(),
-          acceptedBy: locals.user.id,
+          acceptedByFk: locals.user.id,
         })
         .where(eq(schema.regionInvitations.token, values.token))
 

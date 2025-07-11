@@ -15,12 +15,12 @@ export const GET = async ({ locals }) => {
     const data = blocks.flatMap((block) => {
       let current = block.area as InferResultType<'areas', { parent: true; parkingLocations: true }> | null
       const parkingLocations = current?.parkingLocations ?? []
-      const walkingPaths = current?.walkingPaths ?? []
+      const walkingPaths = current?.geoPaths ?? []
 
       while (current?.parent != null) {
         current = current.parent as InferResultType<'areas', { parent: true; parkingLocations: true }> | null
         parkingLocations.push(...(current?.parkingLocations ?? []))
-        walkingPaths.push(...(current?.walkingPaths ?? []))
+        walkingPaths.push(...(current?.geoPaths ?? []))
       }
 
       return { parkingLocations, walkingPaths }

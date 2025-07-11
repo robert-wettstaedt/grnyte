@@ -146,7 +146,7 @@
         selectedArea={data.area}
         showBlocks={false}
         showRegionLayers={false}
-        lineStrings={data.area.walkingPaths}
+        lineStrings={data.area.geoPaths}
         zoom={16}
       />
     {/await}

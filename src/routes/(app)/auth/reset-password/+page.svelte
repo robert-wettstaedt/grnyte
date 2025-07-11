@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
@@ -25,7 +26,7 @@
 {/if}
 
 {#if error == null}
-  <form class="card mt-4 flex flex-col gap-4" method="post">
+  <form class="card mt-4 flex flex-col gap-4" method="post" use:enhance>
     <label class="label">
       <span>New password</span>
       <input name="password" type="password" placeholder="Enter your new password" class="input" required />

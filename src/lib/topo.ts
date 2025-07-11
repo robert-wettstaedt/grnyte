@@ -1,4 +1,6 @@
+import { calcMiddlePoint } from '$lib/components/TopoViewer/components/Route/lib'
 import type { InferResultType } from '$lib/db/types'
+import type { Route } from '$lib/db/zero'
 import type { FileDTO } from '$lib/nextcloud'
 
 export interface PointDTO {
@@ -95,4 +97,45 @@ export const convertPointsToPath = (points: PointDTO[]): string => {
   }
 
   return path
+}
+
+export const enrichTopo = (topo: InferResultType<'topos', { file: true; routes: true }>): TopoDTO => {
+  if (topo.file == null) {
+    throw new Error('Topo file is required')
+  }
+
+  const routes = topo.routes
+    .map(({ path, ...route }): TopoRouteDTO => {
+      return { ...route, points: convertPathToPoints(path ?? '') } as TopoRouteDTO
+    })
+    .toSorted((a, b) => {
+      const meanA = calcMiddlePoint(a.points)?.x ?? 0
+      const meanB = calcMiddlePoint(b.points)?.x ?? 0
+
+      // Sort routes by the mean x value of the topo
+      return meanA - meanB
+    })
+
+  return { ...topo, file: topo.file, routes }
+}
+
+export const sortRoutesByTopo = <T extends Route>(routes: T[], topos: TopoDTO[]): T[] => {
+  return routes.toSorted((a, b) => {
+    const topoIndexA = topos.findIndex((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === a.id))
+    const topoIndexB = topos.findIndex((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === b.id))
+
+    // Sort routes by order of the topo they are in
+    if (topoIndexA !== topoIndexB) {
+      return topoIndexA - topoIndexB
+    }
+
+    const topoRouteA = topos[topoIndexA]?.routes.find((topoRoute) => topoRoute.routeFk === a.id)
+    const topoRouteB = topos[topoIndexA]?.routes.find((topoRoute) => topoRoute.routeFk === b.id)
+
+    const meanA = calcMiddlePoint(topoRouteA?.points ?? [])?.x ?? 0
+    const meanB = calcMiddlePoint(topoRouteB?.points ?? [])?.x ?? 0
+
+    // Sort routes by the mean x value of the topo
+    return meanA - meanB
+  })
 }

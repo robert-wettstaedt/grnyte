@@ -1,6 +1,5 @@
 import { db } from '$lib/db/db.server'
 import type { UserSettings } from '$lib/db/schema'
-import { redirect } from '@sveltejs/kit'
 
 export const load = async ({ locals, cookies, url }) => {
   const { session, user: authUser } = await locals.safeGetSession()
@@ -17,5 +16,8 @@ export const load = async ({ locals, cookies, url }) => {
     userPermissions: locals.userPermissions,
     userRegions: locals.userRegions,
     userRole: locals.userRole,
+    z: { current: undefined },
   }
 }
+
+export const ssr = false

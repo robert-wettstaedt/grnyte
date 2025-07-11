@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
   let { form } = $props()
@@ -22,7 +23,7 @@
         <h2 class="h2 mb-2">Forgot Password</h2>
       </header>
 
-      <form method="POST" class="flex flex-col gap-4">
+      <form method="POST" class="flex flex-col gap-4" use:enhance>
         <label class="label">
           <span>Enter your email</span>
           <input class="input" name="email" placeholder="you@example.com" required type="email" value={form?.email} />

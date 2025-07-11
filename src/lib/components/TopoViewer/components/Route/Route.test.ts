@@ -84,6 +84,7 @@ describe('RouteView Component', () => {
       blockFk: 1,
       externalResourcesFk: 1,
       areaFks: [],
+      areaIds: '',
       userGradeFk: null,
       userRating: null,
       regionFk: 1,

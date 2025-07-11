@@ -1,14 +1,16 @@
+<script lang="ts" module>
+  export interface GradeHistogramProps extends Partial<VegaProps> {
+    axes?: boolean
+    data: Array<{ grade: string | undefined | null }>
+  }
+</script>
+
 <script lang="ts">
   import { page } from '$app/state'
   import Vega, { type VegaProps } from '$lib/components/Vega'
   import { getGradeColor } from '$lib/grades'
 
-  interface Props extends Partial<VegaProps> {
-    axes?: boolean
-    data: Array<{ grade: string | undefined | null }>
-  }
-
-  const { axes = true, data, ...rest }: Props = $props()
+  const { axes = true, data, ...rest }: GradeHistogramProps = $props()
 </script>
 
 <Vega

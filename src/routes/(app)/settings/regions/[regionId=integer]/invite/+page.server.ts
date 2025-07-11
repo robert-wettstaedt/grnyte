@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto'
 import { addDays } from 'date-fns'
 import { count, eq } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params }) => {
@@ -120,7 +120,7 @@ export const actions = {
           .values({
             email: values.email,
             expiresAt,
-            invitedBy: locals.user.id,
+            invitedByFk: locals.user.id,
             regionFk: Number(params.regionId),
             status: 'pending',
             token,

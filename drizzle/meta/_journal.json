@@ -421,6 +421,34 @@
       "when": 1749379459096,
       "tag": "0060_small_tempest",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1750533351312,
+      "tag": "0061_motionless_radioactive_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1751387195347,
+      "tag": "0062_jittery_turbo",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1751907359207,
+      "tag": "0063_military_shinobi_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1752257290245,
+      "tag": "0064_glossy_killmonger",
+      "breakpoints": true
     }
   ]
 }

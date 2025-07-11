@@ -65,7 +65,7 @@ interface DeleteRouteParams {
   areaId: number
   blockSlug: string
   userId: number
-  userRegions: App.UserRegions[]
+  userRegions: App.UserRegion[]
 }
 
 export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: PostgresJsDatabase<typeof schema>) => {
