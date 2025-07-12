@@ -4,7 +4,7 @@
   import CorrectedGrade from './components/CorrectedGrade'
 
   interface Props {
-    route: RowWithRelations<Schema, 'routes', { ascents: true }>
+    route: RowWithRelations<'routes', Schema, { ascents: true }>
   }
 
   let { route }: Props = $props()

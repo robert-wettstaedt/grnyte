@@ -21,7 +21,11 @@
   )
 
   const routes = $derived(
-    new Query(page.data.z.current.query.routes.where('description', 'ILIKE', `%!${type}:${id}!%`).related('ascents')),
+    new Query(
+      page.data.z.current.query.routes
+        .where('description', 'ILIKE', `%!${type}:${id}!%`)
+        .related('ascents', (q) => q.where('createdBy', '=', page.data.user?.id!)),
+    ),
   )
 
   const references = $derived(

@@ -11,14 +11,20 @@ export interface PointDTO {
   y: number
 }
 
-export type TopoRouteDTO<T extends PullRow<'topoRoutes', Schema>> = Omit<T, 'id' | 'path'> & {
+export type TopoRouteDTO<
+  T extends RowWithRelations<'topoRoutes', Schema, { route: true }> = RowWithRelations<
+    'topoRoutes',
+    Schema,
+    { route: true }
+  >,
+> = Omit<T, 'id' | 'path'> & {
   id?: InferResultType<'topoRoutes'>['id']
   points: PointDTO[]
 }
 
-export type TopoDTO<T extends PullRow<'topos', Schema>> = T & {
+export type TopoDTO<T extends PullRow<'topos', Schema> = PullRow<'topos', Schema>> = T & {
   file: FileDTO
-  routes: TopoRouteDTO<PullRow<'topoRoutes', Schema>>[]
+  routes: TopoRouteDTO[]
 }
 
 export const convertPathToPoints = (path: string): PointDTO[] => {
@@ -100,19 +106,17 @@ export const convertPointsToPath = (points: PointDTO[]): string => {
   return path
 }
 
-export function enrichTopo<T extends RowWithRelations<Schema, 'topos', { file: true; routes: true }>>(
+export function enrichTopo<T extends RowWithRelations<'topos', Schema, { file: true; routes: true }>>(
   topo: T,
 ): TopoDTO<T> {
   if (topo.file == null) {
     throw new Error('Topo file is required')
   }
 
-  type Route = NonNullable<T['routes']>[0]
-
   const routes =
     topo.routes
-      .map(({ path, ...route }): TopoRouteDTO<Route> => {
-        return { ...route, points: convertPathToPoints(path ?? '') } as TopoRouteDTO<Route>
+      .map(({ path, ...route }): TopoRouteDTO => {
+        return { ...route, points: convertPathToPoints(path ?? '') } as TopoRouteDTO
       })
       .toSorted((a, b) => {
         const meanA = calcMiddlePoint(a.points)?.x ?? 0

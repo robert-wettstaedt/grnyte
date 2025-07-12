@@ -17,7 +17,7 @@
   import { onMount } from 'svelte'
   import { Query } from 'zero-svelte'
 
-  let { areaSlug, canAddArea, parentSlug } = $derived(convertAreaSlug(page.params))
+  let { areaSlug, canAddArea, parentSlug } = $derived(convertAreaSlug())
 
   const { current: area, details } = $derived.by(() => {
     let query = page.data.z.current.query.areas

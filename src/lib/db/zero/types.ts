@@ -29,8 +29,8 @@ type LastInTuple<T extends Relationship> = T extends readonly [infer L]
 
 // Recursive type to merge all relations into the base row
 export type RowWithRelations<
-  TSchema extends ZeroSchema,
   TTable extends string,
+  TSchema extends ZeroSchema,
   TWith extends Partial<Record<AvailableRelationships<TTable, TSchema>, true>>,
 > = PullRow<TTable, TSchema> & {
   [K in keyof TWith &

@@ -14,7 +14,7 @@ type WithPathname<T> = T & {
 /**
  * Enriches a NestedArea object by adding a pathname.
  */
-export function areaWithPathname<T extends RowWithRelations<Schema, 'areas', { parent: true }>>(
+export function areaWithPathname<T extends RowWithRelations<'areas', Schema, { parent: true }>>(
   area: T,
 ): WithPathname<T> {
   const slugs: string[] = []
@@ -40,14 +40,14 @@ export function areaWithPathname<T extends RowWithRelations<Schema, 'areas', { p
 /**
  * Enriches a NestedBlock object by adding a pathname and enriching its area.
  */
-export function blockWithPathname<T extends RowWithRelations<Schema, 'blocks', { area: true }>>(
+export function blockWithPathname<T extends RowWithRelations<'blocks', Schema, { area: true }>>(
   block: T,
 ): WithPathname<T> | null {
   if (block.area == null) {
     return null
   }
 
-  const area = areaWithPathname(block.area as RowWithRelations<Schema, 'areas', { parent: true }>)
+  const area = areaWithPathname(block.area as RowWithRelations<'areas', Schema, { parent: true }>)
 
   const pathname = area.pathname + ['', '_', 'blocks', block.slug].join('/')
   return { ...block, area, pathname }
@@ -56,14 +56,14 @@ export function blockWithPathname<T extends RowWithRelations<Schema, 'blocks', {
 /**
  * Enriches a NestedRoute object by adding a pathname and enriching its block.
  */
-export function routeWithPathname<T extends RowWithRelations<Schema, 'routes', { block: true }>>(
+export function routeWithPathname<T extends RowWithRelations<'routes', Schema, { block: true }>>(
   route: T,
 ): WithPathname<T> | null {
   if (route.block == null) {
     return null
   }
 
-  const block = blockWithPathname(route.block as RowWithRelations<Schema, 'blocks', { area: true }>)
+  const block = blockWithPathname(route.block as RowWithRelations<'blocks', Schema, { area: true }>)
 
   if (block == null) {
     return null

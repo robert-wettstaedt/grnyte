@@ -337,20 +337,20 @@
   {#if selectedTopo != null}
     {#if selectedTopo.file.error == null}
       <img
-        alt={selectedTopo.file.stat?.filename}
+        alt={selectedTopo.file.path}
         bind:this={img}
         class="pointer-events-none absolute top-0 left-0 h-full w-full touch-none object-cover blur"
         onload={getDimensions}
-        src={`/nextcloud${selectedTopo.file.stat?.filename}`}
+        src={`/nextcloud${selectedTopo.file.path}`}
       />
 
       <img
-        alt={selectedTopo.file.stat?.filename}
+        alt={selectedTopo.file.path}
         bind:this={img}
         class="pointer-events-none relative z-10 m-auto max-h-full origin-top-left touch-none"
         id={limitImgHeight ? 'img' : undefined}
         onload={onLoadImage}
-        src={`/nextcloud${selectedTopo.file.stat?.filename}`}
+        src={`/nextcloud${selectedTopo.file.path}`}
         style={zoomTransform == null
           ? undefined
           : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
