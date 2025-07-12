@@ -22,14 +22,9 @@
         .where('areaFk', 'IS', areaFk ?? null)
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
-        .related('routes', (q) => {
-          const userId = page.data.user?.id
-          let query = q.orderBy('gradeFk', 'asc')
-          if (userId != null) {
-            query = query.related('ascents', (q) => q.where('createdBy', '=', userId))
-          }
-          return query
-        })
+        .related('routes', (q) =>
+          q.orderBy('gradeFk', 'asc').related('ascents', (q) => q.where('createdBy', '=', page.data.user?.id!)),
+        )
         .related('topos', (q) => q.orderBy('id', 'asc').related('file').related('routes')),
     ),
   )
@@ -48,11 +43,11 @@
 
   const blocksWithTopos = $derived(
     blocks.map((block) => {
-      const topos = block.topos.map((topo) => enrichTopo(topo))
+      const topos = block.topos.map((topo) => enrichTopo({ ...topo, routes: [...topo.routes] }))
 
-      const sortedRoutes = sortRoutesByTopo(block.routes, topos).map((route) => {
+      const sortedRoutes = sortRoutesByTopo([...block.routes], topos).map((route) => {
         const topo = topos.find((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === route.id))
-        return { ...route, topo }
+        return { ...route, ascents: [...route.ascents], topo }
       })
 
       return { ...block, routes: sortedRoutes, topos }

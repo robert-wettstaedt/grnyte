@@ -6,7 +6,7 @@
   import RouteName from '$lib/components/RouteName'
   import RoutesFilter from '$lib/components/RoutesFilter'
   import { getRoutesFilterQuery } from '$lib/components/RoutesFilter/handle.svelte'
-  import { enrichRoute } from '$lib/db/utils.svelte'
+  import { routeWithPathname } from '$lib/db/utils.svelte'
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
@@ -19,7 +19,13 @@
 
   const { current: routes, details } = $derived(new Query(getRoutesFilterQuery(areaFk ?? undefined)))
 
-  const enrichedRoutes = $derived(routes.map((route) => ({ ...enrichRoute(route), ascents: route.ascents })))
+  const enrichedRoutes = $derived(
+    routes
+      .map((route) => routeWithPathname(route))
+      .filter((route) => route != null)
+      .filter((route) => route.id != null)
+      .map((route) => ({ ...route, id: route.id!, ascents: [...route.ascents] })),
+  )
 
   $effect(() => {
     if (details.type === 'complete') {

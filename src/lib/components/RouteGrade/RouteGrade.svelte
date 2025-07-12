@@ -1,12 +1,10 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import type { InferResultType } from '$lib/db/types'
+  import type { RowWithRelations, Schema } from '$lib/db/zero'
   import CorrectedGrade from './components/CorrectedGrade'
 
-  type RouteWithAscents = InferResultType<'routes', { ascents: true }>
-
   interface Props {
-    route: Partial<Pick<RouteWithAscents, 'ascents' | 'gradeFk' | 'userGradeFk'>> | undefined
+    route: RowWithRelations<Schema, 'routes', { ascents: true }>
   }
 
   let { route }: Props = $props()

@@ -4,14 +4,12 @@
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'
-  import type { InferResultType } from '$lib/db/types'
+  import type { RowWithRelations, Schema } from '$lib/db/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
-
-  type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
   interface Props {
     classes?: string
-    route: (Omit<RouteWithAscents, 'ascents'> & Partial<Pick<RouteWithAscents, 'ascents'>>) | undefined
+    route: RowWithRelations<Schema, 'routes', { ascents: true }>
   }
 
   let { classes, route }: Props = $props()
