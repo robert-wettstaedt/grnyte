@@ -4,21 +4,19 @@
   import { upfetch } from '$lib/config'
   import type { File } from '$lib/db/schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import type { FileStat } from 'webdav'
   import { FileStatusResponseSchema, type FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
 
   interface Props {
     file: File
     onClick: () => void
-    stat: FileStat
     status?: FileStatusResponse
   }
 
-  let { file, onClick, stat, status = $bindable() }: Props = $props()
+  let { file, onClick, status = $bindable() }: Props = $props()
 
-  const resourcePath = $derived(`/nextcloud${stat.filename}`)
+  const resourcePath = $derived(`/nextcloud${file.path}`)
 
-  let mediaIsLoading = $state(stat.mime?.includes('image') ?? false)
+  let mediaIsLoading = $state(file.bunnyStreamFk == null)
   let mediaHasError = $state(false)
   const mediaAction = (el: HTMLElement) => {
     const onError = async () => {
@@ -59,7 +57,7 @@
       <aside class="alert variant-filled-error flex h-full items-center justify-center p-1">
         <div class="alert-message text-center">
           <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
-          <p class="text-sm">{status?.message ?? stat.basename}</p>
+          <p class="text-sm">{status?.message}</p>
         </div>
       </aside>
     {:else}
@@ -76,12 +74,8 @@
           src={getVideoThumbnailUrl({ hostname: PUBLIC_BUNNY_STREAM_HOSTNAME, videoId: file.bunnyStreamFk })}
           use:mediaAction
         />
-      {:else if stat.mime?.includes('image')}
+      {:else}
         <img alt="" class="h-40 w-full object-cover md:h-80" src={resourcePath} use:mediaAction />
-      {:else if stat.mime?.includes('video')}
-        <i
-          class="fa-solid fa-circle-play flex h-40 w-full items-center justify-center text-[48px] md:h-80 md:text-[96px]"
-        ></i>
       {/if}
     {/if}
   </div>

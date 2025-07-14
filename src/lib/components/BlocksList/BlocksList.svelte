@@ -4,8 +4,8 @@
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
-  import RouteName from '$lib/components/RouteName'
-  import { enrichTopo, sortRoutesByTopo } from '$lib/topo'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
 
@@ -22,10 +22,7 @@
         .where('areaFk', 'IS', areaFk ?? null)
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
-        .related('routes', (q) =>
-          q.orderBy('gradeFk', 'asc').related('ascents', (q) => q.where('createdBy', '=', page.data.user?.id!)),
-        )
-        .related('topos', (q) => q.orderBy('id', 'asc').related('file').related('routes')),
+        .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
     ),
   )
 
@@ -41,28 +38,15 @@
     }
   })
 
-  const blocksWithTopos = $derived(
-    blocks.map((block) => {
-      const topos = block.topos.map((topo) => enrichTopo({ ...topo, routes: [...topo.routes] }))
-
-      const sortedRoutes = sortRoutesByTopo([...block.routes], topos).map((route) => {
-        const topo = topos.find((topo) => topo.routes.some((topoRoute) => topoRoute.routeFk === route.id))
-        return { ...route, ascents: [...route.ascents], topo }
-      })
-
-      return { ...block, routes: sortedRoutes, topos }
-    }),
-  )
-
   let blocksViewMode: 'list' | 'grid' = $state(page.state.blocksViewMode ?? 'list')
   let orderMode = $state(false)
   let sortOrder: 'custom' | 'alphabetical' = $state('custom')
 
   let sortedBlocks = $derived.by(() => {
     if (sortOrder === 'custom') {
-      return blocksWithTopos
+      return blocks
     } else {
-      return blocksWithTopos.toSorted((a, b) => {
+      return blocks.toSorted((a, b) => {
         const aNum = Number(a.name.match(/\d+/)?.at(0))
         const bNum = Number(b.name.match(/\d+/)?.at(0))
 
@@ -75,7 +59,7 @@
     }
   })
 
-  const onChangeCustomSortOrder = async (items: typeof blocksWithTopos) => {
+  const onChangeCustomSortOrder = async (items: typeof sortedBlocks) => {
     blocks = items
 
     const searchParams = new URLSearchParams()
@@ -126,7 +110,7 @@
   </div>
 
   <section class="py-2 md:py-4">
-    {#if blocksWithTopos.length === 0}
+    {#if sortedBlocks.length === 0}
       No blocks yet
     {:else}
       <label class="label my-4">
@@ -163,39 +147,45 @@
 
           {#snippet children(item)}
             {#if !orderMode}
-              {#if item?.routes.length === 0}
-                <div class="flex items-center gap-2 px-2 py-3 md:px-4">
-                  <Image
-                    path={item.topos?.[0]?.file?.path == null ? null : `/nextcloud${item.topos[0].file.path}/preview`}
-                    size={64}
-                  />
-
-                  <div class="w-[calc(100%-64px)]">No routes yet</div>
-                </div>
-              {:else}
-                <GenericList
-                  classes="w-full"
-                  items={item.routes.map((route) => ({
-                    ...route,
-                    id: route.id!,
-                    name: route.name,
-                    pathname: `${page.url.pathname}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`,
-                  }))}
-                >
-                  {#snippet left(route)}
-                    <div class="flex items-center gap-2">
+              <TopoViewerLoader blockId={item.id}>
+                {#snippet children(_, routes)}
+                  {#if routes.length === 0}
+                    <div class="flex items-center gap-2 px-2 py-3 md:px-4">
                       <Image
-                        path={route.topo?.file?.path == null ? null : `/nextcloud/${route.topo.file.path}/preview`}
+                        path={item.topos?.[0]?.file?.path == null
+                          ? null
+                          : `/nextcloud${item.topos[0].file.path}/preview`}
                         size={64}
                       />
 
-                      <div class="w-[calc(100%-64px)]">
-                        <RouteName {route} />
-                      </div>
+                      <div class="w-[calc(100%-64px)]">No routes yet</div>
                     </div>
-                  {/snippet}
-                </GenericList>
-              {/if}
+                  {:else}
+                    <GenericList
+                      classes="w-full"
+                      items={routes.map((route) => ({
+                        ...route,
+                        id: route.id!,
+                        name: route.name,
+                        pathname: `${page.url.pathname}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`,
+                      }))}
+                    >
+                      {#snippet left(route)}
+                        <div class="flex items-center gap-2">
+                          <Image
+                            path={route.topo?.file?.path == null ? null : `/nextcloud/${route.topo.file.path}/preview`}
+                            size={64}
+                          />
+
+                          <div class="w-[calc(100%-64px)]">
+                            <RouteName {route} />
+                          </div>
+                        </div>
+                      {/snippet}
+                    </GenericList>
+                  {/if}
+                {/snippet}
+              </TopoViewerLoader>
             {/if}
           {/snippet}
         </GenericList>

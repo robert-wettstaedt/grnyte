@@ -16,7 +16,7 @@
 </script>
 
 <script lang="ts">
-  import RouteName from '$lib/components/RouteName'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getDistance } from '$lib/geometry'
   import type { PointDTO, TopoDTO, TopoRouteDTO } from '$lib/topo'
   import * as d3 from 'd3'

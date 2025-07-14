@@ -6,20 +6,18 @@
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
   import type { MouseEventHandler } from 'svelte/elements'
-  import type { FileStat } from 'webdav'
   import type { FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
 
   interface Props {
     file: File
     onDelete?: () => void
     readOnly?: boolean
-    stat: FileStat
     status?: FileStatusResponse
 
     topLeft?: Snippet
   }
 
-  let { file, readOnly = true, stat, status = $bindable(), topLeft, ...props }: Props = $props()
+  let { file, readOnly = true, status = $bindable(), topLeft, ...props }: Props = $props()
 
   let shareData = $derived({
     text: page.data.user?.username
@@ -29,7 +27,7 @@
     url: `${page.url.origin}/f/${file.id}`,
   } satisfies ShareData)
 
-  const resourcePath = $derived(`/nextcloud${stat.filename}`)
+  const resourcePath = $derived(`/nextcloud${file.path}`)
 
   const onDelete = async () => {
     await fetch(`/api/files/${file.id}`, { method: 'DELETE' })
@@ -50,7 +48,7 @@
     }
   }
 
-  let mediaIsLoading = $state(stat.mime?.includes('image') ?? false)
+  let mediaIsLoading = $state(file.bunnyStreamFk == null)
   let mediaHasError = $state(false)
   const mediaAction = (el: HTMLElement) => {
     const onError = () => (mediaHasError = true)
@@ -92,7 +90,7 @@
     <aside class="alert variant-filled-error flex h-full items-center justify-center p-1">
       <div class="alert-message max-w-[200px] text-center">
         <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
-        <p class="text-sm">{status?.message ?? stat.basename}</p>
+        <p class="text-sm">{status?.message}</p>
       </div>
     </aside>
   {:else}
@@ -111,23 +109,8 @@
         src={getVideoIframeUrl({ libraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID, videoId: file.bunnyStreamFk })}
         title=""
       ></iframe>
-    {:else if stat.mime?.includes('image')}
+    {:else}
       <img alt="" class="h-full w-full object-contain" src={resourcePath} use:mediaAction />
-    {:else if stat.mime?.includes('video')}
-      <video
-        autoplay
-        controls
-        class="h-full w-full"
-        disablepictureinpicture
-        disableremoteplayback
-        loop
-        playsinline
-        preload="metadata"
-        use:mediaAction
-      >
-        <source src={resourcePath} type={stat.mime} />
-        <track kind="captions" />
-      </video>
     {/if}
   {/if}
 

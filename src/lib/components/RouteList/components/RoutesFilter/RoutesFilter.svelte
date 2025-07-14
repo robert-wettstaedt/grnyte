@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
-  import GradeRangeSlider from '$lib/components/GradeRangeSlider'
+  import GradeRangeSlider from '../GradeRangeSlider'
 </script>
 
 <form class="flex flex-col items-center gap-4 px-6">

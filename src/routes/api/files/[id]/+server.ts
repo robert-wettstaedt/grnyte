@@ -41,8 +41,7 @@ const getFile = async (
   if (
     locals.user == null ||
     file == null ||
-    !checkRegionPermission(locals.userRegions, [permission], file.regionFk) ||
-    authorId !== locals.user.id
+    (!checkRegionPermission(locals.userRegions, [permission], file.regionFk) && authorId !== locals.user.id)
   ) {
     fileLogger.warn('File access denied', {
       fileId: params.id,

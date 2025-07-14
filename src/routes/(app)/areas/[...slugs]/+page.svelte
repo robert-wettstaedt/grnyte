@@ -16,7 +16,7 @@
   import Image from '$lib/components/Image'
   import References from '$lib/components/References'
   import RouteName from '$lib/components/RouteName'
-  import RoutesFilter from '$lib/components/RoutesFilter'
+  import RoutesFilter from '$lib/components/RouteList/components/RoutesFilter'
   import type { Block } from '$lib/db/schema'
   import { Pagination, Segment, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'

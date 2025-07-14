@@ -1,5 +1,3 @@
-import { afterNavigate } from '$app/navigation'
-import { onMount } from 'svelte'
 import type { Action } from 'svelte/action'
 
 interface Opts {
@@ -9,7 +7,6 @@ interface Opts {
 
 export const fitHeightAction: Action<HTMLElement, Opts | undefined> = (node, opts) => {
   const { heightSubtrahend = 0, paddingBottom = 32 } = opts ?? {}
-  let observer: ResizeObserver | null = $state(null)
 
   const calcHeight = () => {
     const bcr = node.getBoundingClientRect()
@@ -19,18 +16,18 @@ export const fitHeightAction: Action<HTMLElement, Opts | undefined> = (node, opt
     node.style.height = `${window.innerHeight - bcr.top - paddingBottom - h}px`
   }
 
-  onMount(() => {
-    observer = new ResizeObserver(calcHeight)
+  const cleanup = $effect.root(() => {
+    const observer = new ResizeObserver(calcHeight)
     observer.observe(node)
-  })
 
-  afterNavigate(() => {
-    requestAnimationFrame(calcHeight)
+    return () => {
+      observer.disconnect()
+    }
   })
 
   return {
     destroy: () => {
-      observer?.disconnect()
+      cleanup()
     },
   }
 }

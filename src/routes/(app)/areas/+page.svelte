@@ -8,7 +8,7 @@
   import GradeHistogram from '$lib/components/GradeHistogram'
   import Image from '$lib/components/Image'
   import RouteName from '$lib/components/RouteName'
-  import RoutesFilter from '$lib/components/RoutesFilter'
+  import RoutesFilter from '$lib/components/RouteList/components/RoutesFilter'
   import { Pagination, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
