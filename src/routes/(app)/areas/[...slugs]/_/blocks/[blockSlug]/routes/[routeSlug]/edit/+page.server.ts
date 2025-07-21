@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
+import { createUpdateActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, generateSlug, routes, routesToTags } from '$lib/db/schema'
 import { convertException } from '$lib/errors'

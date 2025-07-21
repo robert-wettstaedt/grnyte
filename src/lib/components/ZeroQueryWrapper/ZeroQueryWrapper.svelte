@@ -16,8 +16,6 @@
 
   const { current, details } = $derived(new Query(query))
 
-  $inspect(current)
-
   const isEmpty = $derived(Array.isArray(current) ? current.length === 0 : current == null)
 
   $effect(() => {

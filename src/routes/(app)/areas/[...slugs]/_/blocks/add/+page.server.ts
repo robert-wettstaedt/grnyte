@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'

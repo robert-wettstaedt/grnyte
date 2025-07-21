@@ -56,7 +56,9 @@
     {#if mediaHasError || status != null}
       <aside class="alert variant-filled-error flex h-full items-center justify-center p-1">
         <div class="alert-message text-center">
-          <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
+          <h5 class="h5">
+            {status?.title ?? (file.bunnyStreamFk == null ? 'Unable to load image' : 'Unable to play video')}
+          </h5>
           <p class="text-sm">{status?.message}</p>
         </div>
       </aside>

@@ -1,11 +1,11 @@
 import { REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
-import type { ActivityDTO, Entity } from '$lib/components/ActivityFeed'
+import type { ActivityDTO, Entity } from '$lib/components/ActivityFeedLegacy'
 import {
   createUpdateActivity,
   groupActivities,
   insertActivity,
   loadFeed,
-} from '$lib/components/ActivityFeed/load.server'
+} from '$lib/components/ActivityFeedLegacy/load.server'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'

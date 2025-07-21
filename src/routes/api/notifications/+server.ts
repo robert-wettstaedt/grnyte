@@ -1,7 +1,7 @@
 import { CRON_API_KEY } from '$env/static/private'
 import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
 import { getVideoThumbnailUrl } from '$lib/bunny'
-import { getParentWith, getQuery, getWhere, postProcessEntity } from '$lib/components/ActivityFeed/load.server'
+import { getParentWith, getQuery, getWhere, postProcessEntity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { config } from '$lib/config'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'

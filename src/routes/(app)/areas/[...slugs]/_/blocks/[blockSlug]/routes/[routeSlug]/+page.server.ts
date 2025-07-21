@@ -1,6 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-import type { AscentEntity } from '$lib/components/ActivityFeed'
-import { insertActivity, loadFeed } from '$lib/components/ActivityFeed/load.server'
+import type { AscentEntity } from '$lib/components/ActivityFeedLegacy'
+import { insertActivity, loadFeed } from '$lib/components/ActivityFeedLegacy/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import {
   activities,

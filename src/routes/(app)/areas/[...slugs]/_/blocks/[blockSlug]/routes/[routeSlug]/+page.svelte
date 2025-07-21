@@ -13,7 +13,7 @@
     REGION_PERMISSION_DELETE,
     REGION_PERMISSION_EDIT,
   } from '$lib/auth'
-  import ActivityFeed from '$lib/components/ActivityFeed'
+  import ActivityFeed from '$lib/components/ActivityFeedLegacy'
   import AppBar from '$lib/components/AppBar'
   import FileViewer from '$lib/components/FileViewer'
   import References from '$lib/components/References'

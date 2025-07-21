@@ -4,6 +4,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import { ActivityFeedLoader as ActivityFeed } from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
   import FileList from '$lib/components/FileList'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
@@ -125,7 +126,7 @@
               </a>
             </div>
 
-            <!-- <ActivityFeed activities={data.feed.activities} pagination={data.feed.pagination} /> -->
+            <ActivityFeed entity={route.id == null ? undefined : { id: String(route.id), type: 'route' }} />
           </section>
         </Tabs.Panel>
 

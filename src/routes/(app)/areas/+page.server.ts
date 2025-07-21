@@ -1,5 +1,5 @@
 import { getStatsOfAreas, nestedAreaQuery } from '$lib/blocks.server'
-import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
+import { load as routesFilterLoad } from '$lib/components/RouteList/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas } from '$lib/db/schema'
 import { and, isNull } from 'drizzle-orm'
