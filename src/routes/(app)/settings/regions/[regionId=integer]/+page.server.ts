@@ -14,7 +14,7 @@ import { validateFormData } from '$lib/forms/validate.server'
 import type { ActionFailure } from '$lib/forms/schemas'
 import * as schema from '$lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 
 export const load = (async ({ locals, params }) => {
   if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_READ], Number(params.regionId))) {

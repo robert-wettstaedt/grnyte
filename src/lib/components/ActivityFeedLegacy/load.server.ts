@@ -1,5 +1,4 @@
 import { caches, getFromCacheWithDefault, invalidateCache } from '$lib/cache/cache.server'
-import type { ActivityDTO, ActivityGroup, Entity } from '$lib/components/ActivityFeed'
 import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
@@ -14,6 +13,7 @@ import { sub } from 'date-fns'
 import { and, asc, count, desc, eq, gt, inArray, type SQLWrapper } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { z } from 'zod'
+import type { ActivityDTO, ActivityGroup, Entity } from '.'
 
 export const getQuery = (db: PostgresJsDatabase<typeof schema>, entityType: schema.Activity['entityType']) => {
   switch (entityType) {

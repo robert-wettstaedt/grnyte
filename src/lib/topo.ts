@@ -108,9 +108,9 @@ export const convertPointsToPath = (points: PointDTO[]): string => {
 
 export function enrichTopo<T extends RowWithRelations<'topos', Schema, { file: true; routes: true }>>(
   topo: T,
-): TopoDTO<T> {
+): TopoDTO<T> | null {
   if (topo.file == null) {
-    throw new Error('Topo file is required')
+    return null
   }
 
   const routes =

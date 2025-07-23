@@ -1,16 +1,18 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import type { RowWithRelations, Schema } from '$lib/db/zero'
+  import type { Schema } from '$lib/db/zero'
+  import type { PullRow } from '@rocicorp/zero'
   import CorrectedGrade from './components/CorrectedGrade'
 
   interface Props {
-    route: RowWithRelations<'routes', Schema, { ascents: true }>
+    ascents: PullRow<'ascents', Schema>[]
+    route: PullRow<'routes', Schema>
   }
 
-  let { route }: Props = $props()
+  let { ascents, route }: Props = $props()
 
   const send = $derived(
-    route?.ascents
+    ascents
       ?.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
       .find((ascent) => ascent.type === 'send'),
   )

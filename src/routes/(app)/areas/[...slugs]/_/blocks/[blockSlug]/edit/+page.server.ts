@@ -1,6 +1,6 @@
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { caches, invalidateCache } from '$lib/cache/cache.server'
-import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'

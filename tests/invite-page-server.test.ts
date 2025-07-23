@@ -6,7 +6,7 @@ vi.mock('$lib/auth', () => ({
   checkRegionPermission: vi.fn(),
 }))
 
-vi.mock('$lib/components/ActivityFeed/load.server', () => ({
+vi.mock('$lib/components/ActivityFeedLegacy/load.server', () => ({
   insertActivity: vi.fn(),
 }))
 
@@ -92,7 +92,7 @@ vi.mock('zod', () => ({
 // Import the actions after all mocks are set up
 import { actions } from '$lib/../routes/(app)/settings/regions/[regionId=integer]/invite/+page.server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'

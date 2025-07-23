@@ -41,7 +41,15 @@
 
 {#if references != null}
   {#if children == null}
-    <References {references} />
+    <div class="flex p-2">
+      <span class="flex-auto">
+        <dt>Mentioned in</dt>
+
+        <dd class="mt-1 flex gap-1">
+          <References {references} />
+        </dd>
+      </span>
+    </div>
   {:else}
     {@render children?.(references)}
   {/if}

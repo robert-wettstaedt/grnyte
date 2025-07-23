@@ -10,14 +10,16 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-  import type { ActivityDTO } from '$lib/components/ActivityFeed'
   import FileViewer from '$lib/components/FileViewer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
-  import RouteName from '$lib/components/RouteName'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import type { Schema } from '$lib/db/zero'
+  import type { PullRow } from '@rocicorp/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
   import { compareAsc, format, formatDistance, formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
   import { diffWords } from 'diff'
+  import type { ActivityDTO } from '../../'
 
   const { activity, withBreadcrumbs = false, withDetails = false, withFiles = false }: ItemProps = $props()
 
@@ -77,7 +79,11 @@
     <div class="mb-2">
       {#if withDetails}
         <span class="font-semibold">
-          <a class="anchor" href={`/users/${activity.user.username}`}>{activity.user.username}</a>
+          {#if activity.user == null}
+            Someone
+          {:else}
+            <a class="anchor" href={`/users/${activity.user.username}`}>{activity.user.username}</a>
+          {/if}
         </span>
       {/if}
 
@@ -97,7 +103,8 @@
               href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}
             >
               {#if activity.parentEntity.type === 'route' && activity.parentEntity.object != null}
-                <RouteName route={activity.parentEntity.object} />
+                {@const route = activity.parentEntity.object as PullRow<'routes', Schema>}
+                <RouteName {route} />
               {:else}
                 {activity.parentEntityName}
               {/if}
@@ -143,22 +150,26 @@
             </div>
           {/if}
 
-          {#if activity.entity.object != null && compareAsc(format(new Date(activity.createdAt), 'yyyy-MM-dd'), new Date(activity.entity.object.dateTime)) !== 0}
+          {#if activity.entity.object != null && activity.createdAt != null && activity.entity.object.dateTime && compareAsc(format(new Date(activity.createdAt), 'yyyy-MM-dd'), new Date(activity.entity.object.dateTime)) !== 0}
             <span>
               {formatDistance(new Date(activity.entity.object.dateTime), new Date(), { addSuffix: true })}
             </span>
           {/if}
         </span>
       {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'role'}
+        {@const user = activity.entity.object as PullRow<'users', Schema>}
+
         has approved
-        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+        <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
 
         {#if activity.region != null}
           to region {activity.region.name}
         {/if}
       {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role'}
+        {@const user = activity.entity.object as PullRow<'users', Schema>}
+
         has updated the role of
-        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+        <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
 
         to {activity.newValue}
 
@@ -166,8 +177,10 @@
           in region {activity.region.name}
         {/if}
       {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'role'}
+        {@const user = activity.entity.object as PullRow<'users', Schema>}
+
         has removed
-        <a class="anchor" href={`/users/${activity.entity.object?.username}`}>{activity.entity.object?.username}</a>
+        <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
 
         {#if activity.region != null}
           from region {activity.region.name}
@@ -211,7 +224,7 @@
             {#if activity.entity.type === 'ascent' && activity.entity.object != null}
               {#if activity.entity.object.createdBy === page.data.user?.id}
                 their own
-              {:else}
+              {:else if activity.entity.object.author != null}
                 <a class="anchor" href={`/users/${activity.entity.object.author.authUserFk}`}>
                   {activity.entity.object.author.username}'s
                 </a>
@@ -227,7 +240,8 @@
               href={`/${activity.entityType}s/${activity.entityId}`}
             >
               {#if activity.entity.type === 'route' && activity.entity.object != null}
-                <RouteName route={activity.entity.object} />
+                {@const route = activity.entity.object as PullRow<'routes', Schema>}
+                <RouteName {route} />
               {:else}
                 {activity.entityName}
               {/if}
@@ -250,7 +264,8 @@
                   &nbsp;
                 {/if}
 
-                <RouteName route={activity.parentEntity.object} />
+                {@const route = activity.parentEntity.object as PullRow<'routes', Schema>}
+                <RouteName {route} />
               {:else}
                 {activity.parentEntityName}
               {/if}
@@ -314,11 +329,11 @@
     </div>
 
     <p class="text-surface-500 flex items-center justify-between text-sm">
-      {#if withDetails}
+      {#if withDetails && activity.createdAt != null}
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
 
-      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author.authUserFk || checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
+      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author?.authUserFk || checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
         <a
           aria-label="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
@@ -329,9 +344,11 @@
       {/if}
     </p>
 
-    {#if activity.entity.type == 'file' && activity.entity.object?.stat != null}
+    {#if activity.entity.type == 'file' && activity.entity.object != null}
+      {@const file = activity.entity.object as PullRow<'files', Schema>}
+
       <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <FileViewer file={activity.entity.object} stat={activity.entity.object.stat} />
+        <FileViewer {file} />
       </div>
     {/if}
 
@@ -349,21 +366,18 @@
             : 'grid-cols-2 md:grid-cols-4'}"
         >
           {#each activity.entity.object.files as file}
-            {#if file.stat != null}
-              <FileViewer
-                {file}
-                stat={file.stat}
-                readOnly={!(
-                  checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
-                  activity.entity.object.createdBy === page.data.user?.id
-                )}
-                onDelete={() => {
-                  if (activity.entity.type == 'ascent' && activity.entity.object != null) {
-                    activity.entity.object.files = activity.entity.object!.files.filter((_file) => file.id !== _file.id)
-                  }
-                }}
-              />
-            {/if}
+            <FileViewer
+              {file}
+              readOnly={!(
+                checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
+                activity.entity.object.createdBy === page.data.user?.id
+              )}
+              onDelete={() => {
+                if (activity.entity.type == 'ascent' && activity.entity.object != null) {
+                  activity.entity.object.files = activity.entity.object!.files.filter((_file) => file.id !== _file.id)
+                }
+              }}
+            />
           {/each}
         </div>
       {/if}

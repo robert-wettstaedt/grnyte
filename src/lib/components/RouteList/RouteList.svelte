@@ -3,52 +3,38 @@
   import { page } from '$app/state'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
-  import RouteName from '$lib/components/RouteName'
-  import RoutesFilter from '$lib/components/RoutesFilter'
-  import { getRoutesFilterQuery } from '$lib/components/RoutesFilter/handle.svelte'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
+  import type { RowWithRelations, Schema } from '$lib/db/zero'
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
+  import RoutesFilter from './components/RoutesFilter'
+  import { getRoutesFilterQuery } from './lib'
 
-  interface Props {
+  interface Props extends ZeroQueryWrapperBaseProps {
     areaFk?: number | null
-    onLoad?: () => void
   }
-  const { areaFk, onLoad }: Props = $props()
+  const { areaFk, ...rest }: Props = $props()
 
-  const { current: routes, details } = $derived(new Query(getRoutesFilterQuery(areaFk ?? undefined)))
-
-  const enrichedRoutes = $derived(
-    routes
+  function mapRoutes<T extends RowWithRelations<'routes', Schema, { block: true }>>(routes: T[]) {
+    return routes
       .map((route) => routeWithPathname(route))
       .filter((route) => route != null)
       .filter((route) => route.id != null)
-      .map((route) => ({ ...route, id: route.id!, ascents: [...route.ascents] })),
-  )
-
-  $effect(() => {
-    if (details.type === 'complete') {
-      onLoad?.()
-    }
-  })
+      .map((route) => ({ ...route, id: route.id! }))
+  }
 </script>
 
 <div class="mt-8">
   <RoutesFilter />
 </div>
 
-<div class="mt-8">
-  {#if routes.length === 0 && details.type !== 'complete'}
-    <nav class="list-nav">
-      <ul class="overflow-auto">
-        {#each Array(10) as _}
-          <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
-        {/each}
-      </ul>
-    </nav>
-  {:else}
-    <GenericList items={enrichedRoutes}>
+<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={getRoutesFilterQuery(areaFk ?? undefined)}>
+  {#snippet children(_routes)}
+    {@const routes = mapRoutes(_routes)}
+
+    <GenericList items={routes.flat()}>
       {#snippet left(item)}
         <div class="flex gap-2">
           <Image path="/blocks/{item.block?.id}/preview-image" size={64} />
@@ -63,6 +49,10 @@
         </div>
       {/snippet}
     </GenericList>
+  {/snippet}
+
+  {#snippet after(_routes, details)}
+    {@const routes = mapRoutes(_routes)}
 
     {#if page.url.searchParams.get('pageSize') != null || !hasReachedEnd(routes.length)}
       <div class="my-8 flex justify-center">
@@ -85,5 +75,5 @@
         </button>
       </div>
     {/if}
-  {/if}
-</div>
+  {/snippet}
+</ZeroQueryWrapper>

@@ -1,8 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import type { ActivityFeedProps } from '$lib/components/ActivityFeed'
-  import ActivityFeed from '$lib/components/ActivityFeed'
+  import ActivityFeed, { type ActivityFeedProps } from '$lib/components/ActivityFeedLegacy'
   import AppBar from '$lib/components/AppBar'
   import { isSubscribed, isSupported } from '$lib/components/PushNotificationSubscriber'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'

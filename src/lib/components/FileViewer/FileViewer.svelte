@@ -11,10 +11,14 @@
     file: File
     onDelete?: () => void
     readOnly?: boolean
-    stat: FileStat
+
+    /**
+     * @deprecated
+     */
+    stat?: FileStat
   }
 
-  let { file, readOnly = true, stat, ...props }: Props = $props()
+  let { file, readOnly = true, ...props }: Props = $props()
 
   let status = $state<FileStatusResponse | undefined>(undefined)
   let isFullscreen = $state(false)
@@ -48,11 +52,11 @@
 
 <svelte:window onkeyup={(event) => event.key === 'Escape' && onCloseFullscreen()} onpopstate={onPopstate} />
 
-<Preview {file} {stat} bind:status onClick={onOpenFullscreen} />
+<Preview {file} bind:status onClick={onOpenFullscreen} />
 
 {#if isFullscreen}
   <div class="fixed top-0 right-0 bottom-0 left-0 z-[5000] bg-black/90 backdrop-blur">
-    <Full {file} {onDelete} {readOnly} {stat} bind:status>
+    <Full {file} {onDelete} {readOnly} bind:status>
       {#snippet topLeft()}
         <button aria-label="Close" class="btn-icon bg-black/20 text-xl backdrop-blur-sm" onclick={onCloseFullscreen}>
           <i class="fa-solid fa-arrow-left"></i>

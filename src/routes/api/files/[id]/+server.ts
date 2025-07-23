@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_ADMIN, type RegionPermission } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { deleteFiles } from '$lib/helper.server'
@@ -41,8 +41,7 @@ const getFile = async (
   if (
     locals.user == null ||
     file == null ||
-    !checkRegionPermission(locals.userRegions, [permission], file.regionFk) ||
-    authorId !== locals.user.id
+    (!checkRegionPermission(locals.userRegions, [permission], file.regionFk) && authorId !== locals.user.id)
   ) {
     fileLogger.warn('File access denied', {
       fileId: params.id,

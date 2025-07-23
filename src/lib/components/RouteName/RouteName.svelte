@@ -6,7 +6,6 @@
   import type { Ascent } from '$lib/db/schema'
   import type { RowWithRelations, Schema } from '$lib/db/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
 
   interface Props {
     classes?: string
@@ -15,22 +14,17 @@
 
   let { classes, route }: Props = $props()
 
-  const { current: ascents } = $derived(
-    new Query(page.data.z.current.query.ascents.where('routeFk', route.id!).where('createdBy', page.data.user?.id!)),
-  )
-
   const lastAscent = $derived.by(() => {
-    if (page.data.user == null) {
+    if (route?.ascents == null || page.data.user == null) {
       return null
     }
 
-    const routeAscents = route.ascents ?? ascents ?? []
-    const ascentsByUser = routeAscents.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
+    const ascents = route.ascents.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
 
     const priorityAscents: Ascent['type'][] = ['repeat', 'flash', 'send', 'attempt']
 
     for (const type of priorityAscents) {
-      const ascent = ascentsByUser.find((ascent) => ascent.type === type)
+      const ascent = ascents.find((ascent) => ascent.type === type)
       if (ascent != null) {
         return ascent
       }
@@ -44,7 +38,7 @@
       <AscentTypeLabel includeText={false} type={lastAscent.type} />
     {/if}
 
-    <RouteGrade {route} />
+    <RouteGrade {route} ascents={route.ascents} />
 
     {#if (route.userRating ?? route.rating) != null}
       <div>

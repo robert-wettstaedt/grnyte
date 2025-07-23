@@ -12,8 +12,8 @@
   export interface BlocksMapProps {
     collapsibleAttribution?: boolean
     blocks: NestedBlock[]
-    selectedArea?: Area | null
-    selectedBlock?: Block | null
+    selectedArea?: { id: number | undefined | null } | null
+    selectedBlock?: { id: number | undefined | null } | null
     height?: number | string | null
     zoom?: number | null
     showRegionLayers?: boolean
@@ -505,7 +505,7 @@
           return true
         }
 
-        if (selectedArea) {
+        if (selectedArea?.id != null) {
           const parentIds = findArea(block.area).map((area) => area.id)
           return parentIds.includes(selectedArea.id)
         }

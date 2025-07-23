@@ -1,70 +1,50 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import type { InferResultType } from '$lib/db/types'
+  import type { Geolocation } from '$lib/db/schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
+  import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocks = $derived(
-    new Query(
-      page.data.z.current.query.blocks
-        .where('geolocationFk', 'IS NOT', null)
-        .related('geolocation')
-        .related('area', (q) => {
-          return q
-            .related('parent', (q) => {
-              return q
-                .related('parent', (q) => {
-                  return q
-                    .related('parent', (q) => {
-                      return q.related('parent').related('parkingLocations')
-                    })
-                    .related('parkingLocations')
-                })
-                .related('parkingLocations')
-            })
-            .related('parkingLocations')
-        }),
-    ),
-  )
+  const { current: blocks, details } = $derived(new Query(page.data.z.current.query.blocks.related('geolocation')))
+  const { current: areas } = $derived(new Query(page.data.z.current.query.areas.related('parkingLocations')))
 
-  const { geoPaths, parkingLocations } = $derived.by(() => {
-    const data = blocks.current.flatMap((block) => {
-      let current = (block.area ?? null) as InferResultType<'areas', { parent: true; parkingLocations: true }> | null
-      const parkingLocations = [...(current?.parkingLocations ?? [])]
-      const geoPaths = [...(current?.geoPaths ?? [])]
+  const data = $derived.by(() => {
+    const nestedBlocks = blocks
+      .map((block): NestedBlock | null => {
+        const area1 = areas.find((area) => area.id === block.areaFk) as NestedBlock['area'] | undefined
+        const area2 = areas.find((area) => area.id === area1?.parentFk) as NestedBlock['area']['parent'] | undefined
 
-      while (current?.parent != null) {
-        current = (current.parent ?? null) as InferResultType<'areas', { parent: true; parkingLocations: true }> | null
-        parkingLocations.push(...(current?.parkingLocations ?? []))
-        geoPaths.push(...(current?.geoPaths ?? []))
-      }
+        if (area1 == null || area2 == null || block.id == null) {
+          return null
+        }
 
-      return { geoPaths, parkingLocations }
-    })
+        return {
+          ...block,
+          createdAt: new Date(block.createdAt ?? 0),
+          area: { ...area1, parent: area2 },
+        } as NestedBlock
+      })
+      .filter((block) => block != null)
 
-    const parkingLocations = data.flatMap((item) => item.parkingLocations)
-    const geoPaths = data.flatMap((item) => item.geoPaths)
+    const parkingLocations = areas.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
+    const geoPaths = areas.flatMap((area) => area.geoPaths ?? [])
 
     return {
-      geoPaths,
+      blocks: nestedBlocks,
       parkingLocations,
-    }
+      lineStrings: geoPaths,
+    } satisfies Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>
   })
 </script>
 
-{#if blocks.current.length === 0 && blocks.details.type !== 'complete'}
+{#if data.blocks.length === 0 && details.type !== 'complete'}
   <div class="flex h-full items-center justify-center">
     <ProgressRing size="size-20" value={null} />
   </div>
 {:else}
-  <BlocksMap
-    {...props}
-    blocks={props.blocks ?? blocks.current}
-    parkingLocations={props.parkingLocations ?? parkingLocations}
-    lineStrings={props.lineStrings ?? geoPaths}
-  />
+  <BlocksMap {...props} {...data} />
 {/if}

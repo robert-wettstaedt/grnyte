@@ -1,5 +1,5 @@
 import { getStatsOfAreas } from '$lib/blocks.server'
-import { load as routesFilterLoad } from '$lib/components/RoutesFilter/handle.server'
+import { load as routesFilterLoad } from '$lib/components/RouteList/components/RoutesFilter/handle.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { areas, ascents, blocks, routes, topos } from '$lib/db/schema'
 import { enrichTopo, sortRoutesByTopo } from '$lib/db/utils'
