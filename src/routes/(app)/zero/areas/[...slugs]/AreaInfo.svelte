@@ -1,12 +1,11 @@
 <script lang="ts">
   import AreaStats from '$lib/components/AreaStats'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
-  import References, { ReferencesLoader } from '$lib/components/References'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import { ReferencesLoader } from '$lib/components/References'
+  import type { Row } from '$lib/db/zero'
 
   interface Props {
-    area: PullRow<'areas', Schema>
+    area: Row<'areas'>
   }
 
   const { area }: Props = $props()

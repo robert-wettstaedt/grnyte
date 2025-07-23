@@ -1,14 +1,13 @@
 <script lang="ts">
   import { page } from '$app/state'
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import type { Row } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
   interface Props extends Partial<GradeHistogramProps> {
     areaId: number
-    children?: Snippet<[PullRow<'routes', Schema>[]]>
+    children?: Snippet<[Row<'routes'>[]]>
   }
   const { areaId, children: propsChildren, ...rest }: Props = $props()
 </script>

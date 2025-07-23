@@ -2,13 +2,12 @@
   import { page } from '$app/state'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Schema } from '$lib/db/zero'
+  import type { Row } from '$lib/db/zero'
   import { enrichTopo, sortRoutesByTopo, type TopoDTO } from '$lib/topo'
-  import type { PullRow } from '@rocicorp/zero'
   import type { Snippet } from 'svelte'
   import TopoViewer, { type TopoViewerProps } from './TopoViewer.svelte'
 
-  interface RouteWithTopo extends PullRow<'routes', Schema> {
+  interface RouteWithTopo extends Row<'routes'> {
     topo?: TopoDTO
   }
 

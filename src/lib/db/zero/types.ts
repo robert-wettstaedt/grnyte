@@ -1,4 +1,5 @@
 import type { PullRow, Schema as ZeroSchema } from '@rocicorp/zero'
+import type { Schema } from './zero-schema'
 
 type AvailableRelationships<
   TTable extends string,
@@ -29,12 +30,14 @@ type LastInTuple<T extends Relationship> = T extends readonly [infer L]
 
 // Recursive type to merge all relations into the base row
 export type RowWithRelations<
-  TTable extends string,
-  TSchema extends ZeroSchema,
+  TTable extends keyof Schema['tables'],
   TWith extends Partial<Record<AvailableRelationships<TTable, TSchema>, true>>,
+  TSchema extends ZeroSchema = Schema,
 > = PullRow<TTable, TSchema> & {
   [K in keyof TWith &
     AvailableRelationships<TTable, TSchema>]: TSchema['relationships'][TTable][K][0]['cardinality'] extends 'many'
     ? Array<PullRow<DestTableName<TTable, TSchema, K & string>, TSchema>>
     : PullRow<DestTableName<TTable, TSchema, K & string>, TSchema> | undefined
 }
+
+export type Row<TTable extends keyof Schema['tables']> = PullRow<TTable, Schema>

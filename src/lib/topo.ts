@@ -1,8 +1,7 @@
 import { calcMiddlePoint } from '$lib/components/TopoViewer/components/Route/lib'
 import type { InferResultType } from '$lib/db/types'
-import type { RowWithRelations, Schema } from '$lib/db/zero'
+import type { Row, RowWithRelations } from '$lib/db/zero'
 import type { FileDTO } from '$lib/nextcloud'
-import type { PullRow } from '@rocicorp/zero'
 
 export interface PointDTO {
   id: string
@@ -12,17 +11,13 @@ export interface PointDTO {
 }
 
 export type TopoRouteDTO<
-  T extends RowWithRelations<'topoRoutes', Schema, { route: true }> = RowWithRelations<
-    'topoRoutes',
-    Schema,
-    { route: true }
-  >,
+  T extends RowWithRelations<'topoRoutes', { route: true }> = RowWithRelations<'topoRoutes', { route: true }>,
 > = Omit<T, 'id' | 'path'> & {
   id?: InferResultType<'topoRoutes'>['id']
   points: PointDTO[]
 }
 
-export type TopoDTO<T extends PullRow<'topos', Schema> = PullRow<'topos', Schema>> = T & {
+export type TopoDTO<T extends Row<'topos'> = Row<'topos'>> = T & {
   file: FileDTO
   routes: TopoRouteDTO[]
 }
@@ -106,7 +101,7 @@ export const convertPointsToPath = (points: PointDTO[]): string => {
   return path
 }
 
-export function enrichTopo<T extends RowWithRelations<'topos', Schema, { file: true; routes: true }>>(
+export function enrichTopo<T extends RowWithRelations<'topos', { file: true; routes: true }>>(
   topo: T,
 ): TopoDTO<T> | null {
   if (topo.file == null) {
@@ -129,7 +124,7 @@ export function enrichTopo<T extends RowWithRelations<'topos', Schema, { file: t
   return { ...topo, file: topo.file, routes }
 }
 
-export function sortRoutesByTopo<T extends PullRow<'topos', Schema>, R extends PullRow<'routes', Schema>>(
+export function sortRoutesByTopo<T extends Row<'topos'>, R extends Row<'routes'>>(
   routes: R[],
   topos: TopoDTO<T>[],
 ): R[] {

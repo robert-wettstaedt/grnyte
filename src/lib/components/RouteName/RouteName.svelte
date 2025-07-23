@@ -4,12 +4,12 @@
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'
-  import type { RowWithRelations, Schema } from '$lib/db/zero'
+  import type { RowWithRelations } from '$lib/db/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     classes?: string
-    route: RowWithRelations<'routes', Schema, { ascents: true }>
+    route: RowWithRelations<'routes', { ascents: true }>
   }
 
   let { classes, route }: Props = $props()

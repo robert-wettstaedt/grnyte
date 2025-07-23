@@ -2,12 +2,11 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import type { Row } from '$lib/db/zero'
   import { Popover } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    route: PullRow<'routes', Schema>
+    route: Row<'routes'>
   }
 
   const { route }: Props = $props()

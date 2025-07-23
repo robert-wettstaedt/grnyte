@@ -1,4 +1,4 @@
-import type { RowWithRelations, Schema } from '$lib/db/zero'
+import type { RowWithRelations } from '$lib/db/zero'
 
 /**
  * The maximum depth for nesting areas.
@@ -14,9 +14,7 @@ type WithPathname<T> = T & {
 /**
  * Enriches a NestedArea object by adding a pathname.
  */
-export function areaWithPathname<T extends RowWithRelations<'areas', Schema, { parent: true }>>(
-  area: T,
-): WithPathname<T> {
+export function areaWithPathname<T extends RowWithRelations<'areas', { parent: true }>>(area: T): WithPathname<T> {
   const slugs: string[] = []
 
   const recursive = (area: T): WithPathname<T> => {
@@ -40,14 +38,14 @@ export function areaWithPathname<T extends RowWithRelations<'areas', Schema, { p
 /**
  * Enriches a NestedBlock object by adding a pathname and enriching its area.
  */
-export function blockWithPathname<T extends RowWithRelations<'blocks', Schema, { area: true }>>(
+export function blockWithPathname<T extends RowWithRelations<'blocks', { area: true }>>(
   block: T,
 ): WithPathname<T> | null {
   if (block.area == null) {
     return null
   }
 
-  const area = areaWithPathname(block.area as RowWithRelations<'areas', Schema, { parent: true }>)
+  const area = areaWithPathname(block.area as RowWithRelations<'areas', { parent: true }>)
 
   const pathname = area.pathname + ['', '_', 'blocks', block.slug].join('/')
   return { ...block, area, pathname }
@@ -56,14 +54,14 @@ export function blockWithPathname<T extends RowWithRelations<'blocks', Schema, {
 /**
  * Enriches a NestedRoute object by adding a pathname and enriching its block.
  */
-export function routeWithPathname<T extends RowWithRelations<'routes', Schema, { block: true }>>(
+export function routeWithPathname<T extends RowWithRelations<'routes', { block: true }>>(
   route: T,
 ): WithPathname<T> | null {
   if (route.block == null) {
     return null
   }
 
-  const block = blockWithPathname(route.block as RowWithRelations<'blocks', Schema, { area: true }>)
+  const block = blockWithPathname(route.block as RowWithRelations<'blocks', { area: true }>)
 
   if (block == null) {
     return null

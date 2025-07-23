@@ -1,12 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import type { Row } from '$lib/db/zero'
   import CorrectedGrade from './components/CorrectedGrade'
 
   interface Props {
-    ascents: PullRow<'ascents', Schema>[]
-    route: PullRow<'routes', Schema>
+    ascents: Row<'ascents'>[]
+    route: Row<'routes'>
   }
 
   let { ascents, route }: Props = $props()

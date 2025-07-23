@@ -7,13 +7,13 @@
   import AppBar from '$lib/components/AppBar'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore, TopoViewerLoader } from '$lib/components/TopoViewer'
-  import type { RowWithRelations, Schema } from '$lib/db/zero'
+  import type { RowWithRelations } from '$lib/db/zero'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import BlockActions from './BlockActions.svelte'
 
   interface Props {
-    block: RowWithRelations<'blocks', Schema, { topos: true }>
+    block: RowWithRelations<'blocks', { topos: true }>
   }
 
   const { block }: Props = $props()

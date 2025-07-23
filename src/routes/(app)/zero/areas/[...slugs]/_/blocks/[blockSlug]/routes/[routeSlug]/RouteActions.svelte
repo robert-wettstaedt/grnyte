@@ -3,11 +3,11 @@
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { RowWithRelations, Schema } from '$lib/db/zero'
+  import type { RowWithRelations } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    block: RowWithRelations<'blocks', Schema, { topos: true }>
+    block: RowWithRelations<'blocks', { topos: true }>
     blockPath: string
   }
 

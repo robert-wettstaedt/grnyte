@@ -6,7 +6,7 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
-  import type { RowWithRelations, Schema } from '$lib/db/zero'
+  import type { RowWithRelations } from '$lib/db/zero'
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import RoutesFilter from './components/RoutesFilter'
@@ -17,7 +17,7 @@
   }
   const { areaFk, ...rest }: Props = $props()
 
-  function mapRoutes<T extends RowWithRelations<'routes', Schema, { block: true }>>(routes: T[]) {
+  function mapRoutes<T extends RowWithRelations<'routes', { block: true }>>(routes: T[]) {
     return routes
       .map((route) => routeWithPathname(route))
       .filter((route) => route != null)

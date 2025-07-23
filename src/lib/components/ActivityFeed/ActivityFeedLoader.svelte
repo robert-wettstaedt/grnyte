@@ -1,9 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Schema } from '$lib/db/zero'
+  import type { Row } from '$lib/db/zero'
   import { validateObject } from '$lib/forms/validate.svelte'
-  import type { PullRow } from '@rocicorp/zero'
   import { compareDesc, format, isWithinInterval, sub, type Interval } from 'date-fns'
   import { z } from 'zod'
   import type { ActivityGroup, ActivityWithDate } from '.'
@@ -11,8 +10,8 @@
 
   interface Props {
     entity?: {
-      id: NonNullable<PullRow<'activities', Schema>['parentEntityId']>
-      type: NonNullable<PullRow<'activities', Schema>['parentEntityType']>
+      id: NonNullable<Row<'activities'>['parentEntityId']>
+      type: NonNullable<Row<'activities'>['parentEntityType']>
     }
   }
 
@@ -71,9 +70,9 @@
     })
   }
 
-  function paginateActivities(activities: PullRow<'activities', Schema>[]) {
+  function paginateActivities(activities: Row<'activities'>[]) {
     const pages = Math.ceil(activities.length / PAGE_SIZE)
-    const paginatedActivities: PullRow<'activities', Schema>[][] = []
+    const paginatedActivities: Row<'activities'>[][] = []
 
     for (let index = 0; index < pages; index++) {
       paginatedActivities.push(activities.slice(index * PAGE_SIZE, (index + 1) * PAGE_SIZE))
@@ -82,7 +81,7 @@
     return paginatedActivities
   }
 
-  function groupActivities(_activities: PullRow<'activities', Schema>[], files: ActivityGroup['files']) {
+  function groupActivities(_activities: Row<'activities'>[], files: ActivityGroup['files']) {
     let activities = [..._activities]
       .filter((activity) => activity.createdAt != null)
       .map((activity) => ({ ...activity, createdAtDate: new Date(activity.createdAt!) }))

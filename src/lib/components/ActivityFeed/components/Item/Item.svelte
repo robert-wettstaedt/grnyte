@@ -13,8 +13,6 @@
   import FileViewer from '$lib/components/FileViewer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
   import { compareAsc, format, formatDistance, formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
@@ -103,7 +101,7 @@
               href={`/${activity.parentEntityType}s/${activity.parentEntityId}`}
             >
               {#if activity.parentEntity.type === 'route' && activity.parentEntity.object != null}
-                {@const route = activity.parentEntity.object as PullRow<'routes', Schema>}
+                {@const route = activity.parentEntity.object}
                 <RouteName {route} />
               {:else}
                 {activity.parentEntityName}
@@ -157,19 +155,27 @@
           {/if}
         </span>
       {:else if activity.entity.type === 'user' && activity.type === 'created' && activity.columnName === 'role'}
-        {@const user = activity.entity.object as PullRow<'users', Schema>}
+        {@const user = activity.entity.object}
 
         has approved
-        <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
+        {#if user == null}
+          a user
+        {:else}
+          <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
+        {/if}
 
         {#if activity.region != null}
           to region {activity.region.name}
         {/if}
       {:else if activity.entity.type === 'user' && activity.type === 'updated' && activity.columnName === 'role'}
-        {@const user = activity.entity.object as PullRow<'users', Schema>}
+        {@const user = activity.entity.object}
 
         has updated the role of
-        <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
+        {#if user == null}
+          a user
+        {:else}
+          <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
+        {/if}
 
         to {activity.newValue}
 
@@ -177,10 +183,14 @@
           in region {activity.region.name}
         {/if}
       {:else if activity.entity.type === 'user' && activity.type === 'deleted' && activity.columnName === 'role'}
-        {@const user = activity.entity.object as PullRow<'users', Schema>}
+        {@const user = activity.entity.object}
 
         has removed
-        <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
+        {#if user == null}
+          a user
+        {:else}
+          <a class="anchor" href={`/users/${user.username}`}>{user.username}</a>
+        {/if}
 
         {#if activity.region != null}
           from region {activity.region.name}
@@ -240,7 +250,7 @@
               href={`/${activity.entityType}s/${activity.entityId}`}
             >
               {#if activity.entity.type === 'route' && activity.entity.object != null}
-                {@const route = activity.entity.object as PullRow<'routes', Schema>}
+                {@const route = activity.entity.object}
                 <RouteName {route} />
               {:else}
                 {activity.entityName}
@@ -264,7 +274,7 @@
                   &nbsp;
                 {/if}
 
-                {@const route = activity.parentEntity.object as PullRow<'routes', Schema>}
+                {@const route = activity.parentEntity.object}
                 <RouteName {route} />
               {:else}
                 {activity.parentEntityName}
@@ -345,7 +355,7 @@
     </p>
 
     {#if activity.entity.type == 'file' && activity.entity.object != null}
-      {@const file = activity.entity.object as PullRow<'files', Schema>}
+      {@const file = activity.entity.object}
 
       <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
         <FileViewer {file} />

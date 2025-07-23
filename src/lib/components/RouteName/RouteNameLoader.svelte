@@ -1,13 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import type { Row } from '$lib/db/zero'
   import { Query } from 'zero-svelte'
   import type { RouteNameProps } from '.'
   import RouteName from './RouteName.svelte'
 
   interface Props extends Omit<RouteNameProps, 'route'> {
-    route: PullRow<'routes', Schema>
+    route: Row<'routes'>
   }
 
   let { route, ...rest }: Props = $props()

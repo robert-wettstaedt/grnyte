@@ -1,14 +1,13 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { Schema } from '$lib/db/zero'
+  import type { Row } from '$lib/db/zero'
   import { convertAreaSlug } from '$lib/helper'
-  import type { PullRow } from '@rocicorp/zero'
 
   let { canAddArea } = $derived(convertAreaSlug())
 
   interface Props {
-    area: PullRow<'areas', Schema>
+    area: Row<'areas'>
   }
 
   const { area }: Props = $props()

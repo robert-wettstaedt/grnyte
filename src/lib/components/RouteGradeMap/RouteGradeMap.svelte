@@ -1,12 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import type { Row } from '$lib/db/zero'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
   interface Props {
-    route: PullRow<'routes', Schema>
+    route: Row<'routes'>
   }
 
   const { route }: Props = $props()

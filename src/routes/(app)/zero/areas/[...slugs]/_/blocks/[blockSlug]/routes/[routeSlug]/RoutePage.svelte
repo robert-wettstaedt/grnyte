@@ -12,15 +12,15 @@
   import RouteGradeMap from '$lib/components/RouteGradeMap'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { selectedRouteStore, TopoViewerLoader as TopoViewer } from '$lib/components/TopoViewer'
-  import type { RowWithRelations, Schema } from '$lib/db/zero'
+  import type { RowWithRelations } from '$lib/db/zero'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import FirstAscentInfo from './FirstAscentInfo.svelte'
   import RouteActions from './RouteActions.svelte'
 
   interface Props {
-    block: RowWithRelations<'blocks', Schema, { topos: true }>
-    route: RowWithRelations<'routes', Schema, { tags: true }>
+    block: RowWithRelations<'blocks', { topos: true }>
+    route: RowWithRelations<'routes', { tags: true }>
   }
 
   const { block, route }: Props = $props()

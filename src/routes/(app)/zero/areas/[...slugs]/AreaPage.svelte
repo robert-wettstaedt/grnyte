@@ -8,15 +8,14 @@
   import AreaList from '$lib/components/AreaList'
   import BlocksList from '$lib/components/BlocksList'
   import RouteList from '$lib/components/RouteList'
-  import type { Schema } from '$lib/db/zero'
-  import type { PullRow } from '@rocicorp/zero'
+  import type { Row } from '$lib/db/zero'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaInfo from './AreaInfo.svelte'
 
   interface Props {
-    area: PullRow<'areas', Schema>
+    area: Row<'areas'>
   }
 
   const { area }: Props = $props()
