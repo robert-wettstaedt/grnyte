@@ -1,12 +1,131 @@
 import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import type { AscentEntity } from '$lib/components/ActivityFeedLegacy'
+import { insertActivity, loadFeed } from '$lib/components/ActivityFeedLegacy/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { blocks, firstAscensionists, routesToFirstAscensionists, users } from '$lib/db/schema'
+import {
+  activities,
+  ascents,
+  blocks,
+  firstAscensionists,
+  routesToFirstAscensionists,
+  topos,
+  users,
+} from '$lib/db/schema'
+import { enrichTopo } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { insertExternalResources } from '$lib/external-resources/index.server'
 import { convertAreaSlug, getRouteDbFilter } from '$lib/helper.server'
-import { error, fail } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
+import { convertMarkdownToHtml } from '$lib/markdown'
+import { loadFiles } from '$lib/nextcloud/nextcloud.server'
+import { getReferences } from '$lib/references.server'
+import { error, fail, redirect } from '@sveltejs/kit'
+import { and, desc, eq, or } from 'drizzle-orm'
+import type { PageServerLoad } from './$types'
+
+export const load = (async ({ locals, params, parent, url }) => {
+  if (url.searchParams.get('type') == null) {
+    redirect(302, `${url.pathname}?type=ascents`)
+  }
+
+  const rls = await createDrizzleSupabaseClient(locals.supabase)
+
+  return await rls(async (db) => {
+    // Retrieve the areaId from the parent function
+    const { areaId } = await parent()
+
+    // Query the database to find the block and its associated routes
+    const block = await db.query.blocks.findFirst({
+      where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, areaId)),
+      with: {
+        geolocation: true,
+        routes: {
+          where: getRouteDbFilter(params.routeSlug),
+          with: {
+            author: true,
+            ascents: {
+              orderBy: desc(ascents.dateTime),
+              with: {
+                author: true,
+                route: true,
+              },
+            },
+            files: true,
+            firstAscents: {
+              with: {
+                firstAscensionist: {
+                  with: {
+                    user: true,
+                  },
+                },
+              },
+            },
+            tags: true,
+            externalResources: {
+              with: {
+                externalResource8a: true,
+                externalResource27crags: true,
+                externalResourceTheCrag: true,
+              },
+            },
+          },
+        },
+        topos: {
+          orderBy: topos.id,
+          with: {
+            file: true,
+            routes: {
+              with: {
+                route: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    // Get the first route from the block's routes
+    const route = block?.routes?.at(0)
+
+    // Handle case where route is not found
+    if (block == null || route == null) {
+      error(404)
+    }
+
+    // Handle case where multiple routes with the same slug are found
+    if (block.routes.length > 1) {
+      error(400, `Multiple routes with slug ${params.routeSlug} found`)
+    }
+
+    // Fetch and enrich files associated with the route
+    const routeFiles = await loadFiles(route.files)
+
+    const enrichedTopos = await Promise.all(block.topos.map((topo) => enrichTopo(topo)))
+
+    // Process route description from markdown to HTML if description is present
+    const description = route.description == null ? null : await convertMarkdownToHtml(route.description, db)
+
+    const feed = await loadFeed({ locals, url }, [
+      or(
+        and(eq(activities.entityId, String(route.id)), eq(activities.entityType, 'route')),
+        and(eq(activities.parentEntityId, String(route.id)), eq(activities.parentEntityType, 'route')),
+      )!,
+    ])
+
+    const feedFiles = feed.activities
+      .filter((activity) => activity.entity.type === 'ascent' && activity.entity.object?.type !== 'attempt')
+      .flatMap((activity) => (activity.entity as AscentEntity).object?.files ?? [])
+
+    // Return the enriched data
+    return {
+      block,
+      route: { ...route, description },
+      files: [...routeFiles, ...feedFiles],
+      references: getReferences(route.id, 'routes'),
+      topos: enrichedTopos,
+      feed,
+    }
+  })
+}) satisfies PageServerLoad
 
 export const actions = {
   syncExternalResources: async ({ locals, params }) => {
