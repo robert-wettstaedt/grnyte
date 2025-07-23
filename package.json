@@ -34,7 +34,7 @@
     "@codemirror/lint": "^6.8.5",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.8",
-    "@fortawesome/fontawesome-free": "^6.5.1",
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "@keyv/postgres": "^2.0.4",
     "@lezer/common": "^1.2.3",
     "@paralleldrive/cuid2": "^2.2.2",
