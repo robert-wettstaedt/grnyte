@@ -20,7 +20,40 @@
   )}
 >
   {#snippet children(files)}
-    {#if files.length > 0}
+    {#if entityType === 'route'}
+      <ZeroQueryWrapper
+        query={page.data.z.current.query.ascents.where('routeFk', entityId).where('type', '!=', 'attempt')}
+      >
+        {#snippet children(ascents)}
+          <ZeroQueryWrapper
+            query={page.data.z.current.query.files.where(
+              'ascentFk',
+              'IN',
+              ascents.map((ascent) => ascent.id).filter((id) => id != null),
+            )}
+          >
+            {#snippet children(ascentFiles)}
+              {@const allFiles = [...files, ...ascentFiles]}
+              {#if allFiles.length > 0}
+                <div class="flex p-2">
+                  <span class="flex-auto">
+                    <dt>Files</dt>
+                    <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+                      {#each allFiles as file}
+                        <FileViewer
+                          {file}
+                          readOnly={!checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
+                        />
+                      {/each}
+                    </dd>
+                  </span>
+                </div>
+              {/if}
+            {/snippet}
+          </ZeroQueryWrapper>
+        {/snippet}
+      </ZeroQueryWrapper>
+    {:else if files.length > 0}
       <div class="flex p-2">
         <span class="flex-auto">
           <dt>Files</dt>
