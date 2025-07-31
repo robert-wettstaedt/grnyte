@@ -3,7 +3,7 @@
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import by from '$lib/assets/by.svg'
   import cc from '$lib/assets/cc.svg'
-  import logo from '$lib/assets/logo.png'
+  import logo from '$lib/assets/logo.svg'
   import nc from '$lib/assets/nc.svg'
   import sa from '$lib/assets/sa.svg'
   import BlockEntry from '$lib/components/AreaBlockListing/components/BlockEntry'

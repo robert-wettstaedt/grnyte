@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Logo from '$lib/assets/logo.png'
+  import Logo from '$lib/assets/logo.svg'
   import Error from '$lib/components/Error'
 
   const errorMessage = $derived(page.error?.message ?? 'Error')

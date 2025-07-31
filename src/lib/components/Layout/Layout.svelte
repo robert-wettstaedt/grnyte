@@ -8,7 +8,7 @@
   import { afterNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Logo from '$lib/assets/logo.png'
+  import Logo from '$lib/assets/logo.svg'
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import { toaster } from '$lib/components/Toaster/Toaster'

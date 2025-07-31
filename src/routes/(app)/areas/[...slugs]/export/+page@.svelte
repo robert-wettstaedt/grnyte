@@ -4,7 +4,7 @@
   import SaveBouldering from '$lib/assets/Save-Bouldering.jpg'
   import by from '$lib/assets/by.svg'
   import cc from '$lib/assets/cc.svg'
-  import Logo from '$lib/assets/logo.png'
+  import Logo from '$lib/assets/logo.svg'
   import nc from '$lib/assets/nc.svg'
   import sa from '$lib/assets/sa.svg'
   import AreaBlockListing from '$lib/components/AreaBlockListing'

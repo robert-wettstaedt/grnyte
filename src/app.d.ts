@@ -46,6 +46,7 @@ declare global {
     interface Locals extends SafeSession {
       safeGetSession: () => Promise<SafeSession>
       supabase: SupabaseClient
+      internalReferer?: URL
     }
     interface PageData extends Omit<Locals, 'safeGetSession' | 'supabase'> {
       grades: Grade[]

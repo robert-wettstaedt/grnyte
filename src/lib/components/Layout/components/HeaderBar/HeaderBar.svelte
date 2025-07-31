@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Logo from '$lib/assets/logo.png'
+  import Logo from '$lib/assets/logo.svg'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 </script>
