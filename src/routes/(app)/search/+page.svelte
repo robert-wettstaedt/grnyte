@@ -1,33 +1,198 @@
 <script lang="ts">
-  import { afterNavigate } from '$app/navigation'
+  import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
-  import RouteName from '$lib/components/RouteName'
-  import type { SearchResults } from '$lib/search.server'
-  import { Tabs } from '@skeletonlabs/skeleton-svelte'
-  import { onMount } from 'svelte'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import debounce from 'lodash.debounce'
+  import type { KeyboardEventHandler } from 'svelte/elements'
+  import { Query } from 'zero-svelte'
+
+  const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
+  const MAX_RECENT_SEARCH = 7
+
+  interface BaseItem {
+    fields: string[]
+    id: string
+    name: string
+    pathname: string
+  }
+
+  interface AreaItem extends BaseItem {
+    data: (typeof areasResult.current)[0]
+    type: 'area'
+  }
+
+  interface BlockItem extends BaseItem {
+    data: (typeof blocksResult.current)[0]
+    type: 'block'
+  }
+
+  interface RouteItem extends BaseItem {
+    data: (typeof routesResult.current)[0]
+    type: 'route'
+  }
+
+  interface UserItem extends BaseItem {
+    data: (typeof usersResult.current)[0]
+    type: 'user'
+  }
+
+  type SearchItem = AreaItem | BlockItem | RouteItem | UserItem
 
   let { data } = $props()
 
-  let searchQuery = $state(page.url.searchParams.get('q') ?? '')
-  let element: HTMLInputElement | null = $state(null)
+  let value = $state(page.url.searchParams.get('q') ?? '')
+  let searchQuery = $derived(page.url.searchParams.get('q') ?? '')
+  let recentSearch: string[] = $state(globalThis.localStorage.getItem(KEY)?.split(',') ?? [])
 
-  let tabValue: string | undefined = $state(undefined)
-  afterNavigate(() => {
-    const item = ['routes', 'blocks', 'areas', 'users'].find((item) => {
-      const results = data.searchResults?.[item as keyof SearchResults]
-      return results != null && results.length > 0
+  $effect(() => {
+    value = searchQuery
+  })
+
+  const areasResult = $derived(
+    new Query(
+      page.data.z.current.query.areas
+        .where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('parent', (q) => q.related('parent'))
+        .related('region'),
+    ),
+  )
+
+  const blocksResult = $derived(
+    new Query(
+      page.data.z.current.query.blocks
+        .where('name', 'ILIKE', `%${searchQuery}%`)
+        .related('area', (q) => q.related('parent'))
+        .related('region'),
+    ),
+  )
+
+  const routesResult = $derived(
+    new Query(
+      page.data.z.current.query.routes
+        .where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('block', (q) => q.related('area', (q) => q.related('parent')))
+        .related('region'),
+    ),
+  )
+
+  const usersResult = $derived(
+    new Query(page.data.z.current.query.users.where('username', 'ILIKE', `%${searchQuery}%`)),
+  )
+
+  const isLoading = $derived(
+    (areasResult.current.length === 0 && areasResult.details.type !== 'complete') ||
+      (blocksResult.current.length === 0 && blocksResult.details.type !== 'complete') ||
+      (routesResult.current.length === 0 && routesResult.details.type !== 'complete') ||
+      (usersResult.current.length === 0 && usersResult.details.type !== 'complete'),
+  )
+
+  const searchResults = $derived.by(() => {
+    if (searchQuery.trim() === '') {
+      return []
+    }
+
+    const items: SearchItem[] = [
+      ...areasResult.current.map(
+        (item): AreaItem => ({
+          data: item,
+          fields: [item.name, item.description].filter((s) => s != null),
+          name: item.name,
+          id: `/areas/${item.id}`,
+          pathname: `/areas/${item.id}`,
+          type: 'area',
+        }),
+      ),
+      ...blocksResult.current.map(
+        (item): BlockItem => ({
+          data: item,
+          fields: [item.name],
+          name: item.name,
+          id: `/blocks/${item.id}`,
+          pathname: `/blocks/${item.id}`,
+          type: 'block',
+        }),
+      ),
+      ...routesResult.current.map(
+        (item): RouteItem => ({
+          data: item,
+          fields: [item.name, item.description].filter((s) => s != null),
+          name: item.name,
+          id: `/routes/${item.id}`,
+          pathname: `/routes/${item.id}`,
+          type: 'route',
+        }),
+      ),
+      ...usersResult.current.map(
+        (item): UserItem => ({
+          data: item,
+          fields: [item.username],
+          name: item.username,
+          id: `/users/${item.username}`,
+          pathname: `/users/${item.username}`,
+          type: 'user',
+        }),
+      ),
+    ]
+
+    const sorted = items.toSorted((a, b) => {
+      const indexA = Math.min(
+        ...a.fields.map((field) => field.toLowerCase().indexOf(searchQuery.toLowerCase())).filter((i) => i >= 0),
+      )
+      const indexB = Math.min(
+        ...b.fields.map((field) => field.toLowerCase().indexOf(searchQuery.toLowerCase())).filter((i) => i >= 0),
+      )
+      return indexA - indexB
     })
 
-    tabValue = item == null ? undefined : `#${item}`
+    const limited = sorted.reduce(
+      (acc, item) => {
+        if (acc.filter((i) => i.type === item.type).length >= 5) {
+          return acc
+        }
+
+        return [...acc, item]
+      },
+      [] as typeof sorted,
+    )
+
+    return limited
   })
 
-  onMount(() => {
-    element?.focus()
-  })
+  const submitQuery = (query: string, name: string) => {
+    const searchParams = new URLSearchParams(page.url.searchParams)
+    if (query.length === 0) {
+      searchParams.delete(name)
+    } else {
+      searchParams.set(name, query)
+
+      recentSearch = recentSearch.filter((item) => item !== query)
+      recentSearch.unshift(query)
+      recentSearch = recentSearch.slice(0, MAX_RECENT_SEARCH)
+      globalThis.localStorage.setItem(KEY, recentSearch.join(','))
+    }
+
+    const url = new URL(page.url)
+    url.search = searchParams.toString()
+
+    goto(url, { keepFocus: true, replaceState: true })
+  }
+
+  const onchange: KeyboardEventHandler<HTMLInputElement> = (event) => {
+    const target = event.target as HTMLInputElement
+    const query = target.value.trim()
+    const name = target.name
+
+    submitQuery(query, name)
+  }
 </script>
 
 <svelte:head>
@@ -42,125 +207,128 @@
 
 <form class="mt-8">
   <label class="label">
-    <input
-      bind:this={element}
-      bind:value={searchQuery}
-      class="input"
-      name="q"
-      onkeypress={(event) => event.key === 'Enter' && (element as HTMLFormElement | null)?.submit?.()}
-      placeholder="Search..."
-      type="search"
-    />
+    <div class="input-group grid-cols-[1fr_auto]">
+      <input
+        bind:value
+        class="ig-input"
+        name="q"
+        onkeyup={debounce(onchange, 1000)}
+        placeholder="Search..."
+        type="search"
+        use:focus
+      />
+
+      {#if searchQuery.trim().length > 0}
+        <button
+          aria-label="Clear search"
+          class="ig-btn preset-outlined-surface-200-800"
+          onclick={() => submitQuery('', 'q')}
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      {/if}
+    </div>
   </label>
 </form>
 
-{#if data.searchResults == null}
-  {#if data.recentSearch != null && data.recentSearch.length > 0}
+{#if searchQuery.trim().length === 0}
+  {#if recentSearch.length > 0}
     <div class="card preset-filled-surface-100-900 mt-8 flex flex-col p-2 md:p-4">
       <div class="text-surface-500-900 mb-2 text-center text-sm">
         <i class="fa-solid fa-clock-rotate-left"></i>
         Recent searches
       </div>
 
-      {#each data.recentSearch as item}
+      {#each recentSearch as item}
         <a class="anchor py-2" href={`/search?q=${item}`}>
           {item}
         </a>
       {/each}
     </div>
   {/if}
+{:else if isLoading}
+  <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
+    <nav class="list-nav">
+      <ul class="overflow-auto">
+        {#each Array(10) as _}
+          <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
+        {/each}
+      </ul>
+    </nav>
+  </div>
+{:else if searchResults.length === 0}
+  <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
+    No results found for <span class="text-primary-500">{searchQuery}</span>.
+  </div>
 {:else}
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
-    {#if tabValue == null}
-      <div class="text-surface-500-900 text-center text-sm">No results found</div>
-    {:else}
-      <Tabs
-        fluid
-        listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
-        listGap="0"
-        onValueChange={(event) => (tabValue = event.value)}
-        value={tabValue}
-      >
-        {#snippet list()}
-          {#if data.searchResults.routes.length > 0}
-            <Tabs.Control value="#routes">
-              Routes ({data.searchResults.routes.length})
-            </Tabs.Control>
+    <GenericList items={searchResults}>
+      {#snippet left(item)}
+        <div class="flex items-center gap-2">
+          {#if item.type === 'area'}
+            <i class="fa-solid fa-layer-group text-[51px] text-white"></i>
+          {:else if item.type === 'block'}
+            <Image path="/blocks/{item.data.id}/preview-image" size={64} />
+          {:else if item.type === 'route'}
+            <Image path="/blocks/{item.data.block?.id}/preview-image" size={64} />
+          {:else if item.type === 'user'}
+            <i class="fa-solid fa-circle-user text-[51px] text-white"></i>
           {/if}
 
-          {#if data.searchResults.blocks.length > 0}
-            <Tabs.Control value="#blocks">
-              Blocks ({data.searchResults.blocks.length})
-            </Tabs.Control>
-          {/if}
+          {#if item.type === 'user'}
+            {item.name}
+          {:else}
+            <div class="flex flex-col gap-1">
+              <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
+                {#if data.userRegions.length > 1 && item.data.region != null}
+                  {item.data.region.name}
 
-          {#if data.searchResults.areas.length > 0}
-            <Tabs.Control value="#areas">
-              Areas ({data.searchResults.areas.length})
-            </Tabs.Control>
-          {/if}
+                  {#if item.type === 'area'}
+                    {#if item.data.parent != null}
+                      ·
+                    {/if}
+                  {:else}
+                    ·
+                  {/if}
+                {/if}
 
-          {#if data.searchResults.users.length > 0}
-            <Tabs.Control value="#users">
-              Users ({data.searchResults.users.length})
-            </Tabs.Control>
-          {/if}
-        {/snippet}
+                {#if item.type === 'area'}
+                  {#if item.data.parent?.parent != null}
+                    {item.data.parent.parent.name} /
+                  {/if}
+                  {#if item.data.parent != null}
+                    {item.data.parent.name}
+                  {/if}
+                {:else if item.type === 'block'}
+                  {#if item.data.area?.parent != null}
+                    {item.data.area.parent.name} /
+                  {/if}
+                  {#if item.data.area != null}
+                    {item.data.area.name}
+                  {/if}
+                {:else if item.type === 'route'}
+                  {#if item.data.block?.area?.parent == null}
+                    {#if item.data.block?.area != null}
+                      {item.data.block.area.name} /
+                    {/if}
+                  {:else}
+                    {item.data.block.area.parent.name} /
+                  {/if}
+                  {#if item.data.block != null}
+                    {item.data.block.name}
+                  {/if}
+                {/if}
+              </p>
 
-        {#snippet content()}
-          <Tabs.Panel value="#routes">
-            <GenericList items={data.searchResults.routes}>
-              {#snippet left(item)}
-                <div class="flex gap-2">
-                  <Image path="/blocks/{item.block.id}/preview-image" size={64} />
-
-                  <div class="flex flex-col gap-1">
-                    <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-                      {item.block.area.name} / {item.block.name}
-                    </p>
-
-                    <RouteName route={item} />
-                  </div>
-                </div>
-              {/snippet}
-            </GenericList>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="#blocks">
-            <GenericList items={data.searchResults.blocks}>
-              {#snippet left(item)}
-                <div class="flex items-center gap-2">
-                  <Image path="/blocks/{item.id}/preview-image" size={64} />
-
-                  {item.name}
-                </div>
-              {/snippet}
-            </GenericList>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="#areas">
-            <GenericList items={data.searchResults.areas}>
-              {#snippet left(item)}
+              {#if item.type === 'route'}
+                <RouteName route={item.data} />
+              {:else}
                 {item.name}
-              {/snippet}
-            </GenericList>
-          </Tabs.Panel>
-
-          <Tabs.Panel value="#users">
-            <GenericList
-              items={data.searchResults.users.map((user) => ({
-                ...user,
-                name: user.username,
-                pathname: `/users/${user.username}`,
-              }))}
-            >
-              {#snippet left(item)}
-                {item.name}
-              {/snippet}
-            </GenericList>
-          </Tabs.Panel>
-        {/snippet}
-      </Tabs>
-    {/if}
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/snippet}
+    </GenericList>
   </div>
 {/if}
