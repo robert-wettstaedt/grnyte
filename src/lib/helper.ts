@@ -1,4 +1,3 @@
-import { goto } from '$app/navigation'
 import { page } from '$app/state'
 import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils.svelte'
 
@@ -9,7 +8,7 @@ import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils.svelte'
  * @throws Will throw an error if the last path item is null or if the area ID is not a number.
  */
 export const convertAreaSlug = () => {
-  const path = page.params.slugs.split('/').filter(Boolean)
+  const path = (page.params.slugs ?? '').split('/').filter(Boolean)
 
   function strip(item: string | undefined) {
     const slugItems = item?.split('-')
@@ -21,11 +20,6 @@ export const convertAreaSlug = () => {
 
   const { id: areaId, slug: areaSlug } = strip(path.at(-1))
   const { id: parentId, slug: parentSlug } = strip(path.at(-2))
-
-  if (areaId == null || areaSlug == null) {
-    throw new Error('Not found')
-  }
-
   const canAddArea = path.length < MAX_AREA_NESTING_DEPTH
 
   return {

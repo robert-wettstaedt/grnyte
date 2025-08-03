@@ -27,6 +27,7 @@
   )
 
   // https://github.com/sveltejs/kit/issues/12999
+  // svelte-ignore state_referenced_locally
   let blocks = $state(blocksResult.current)
   $effect(() => {
     blocks = blocksResult.current

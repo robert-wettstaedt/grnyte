@@ -115,7 +115,7 @@ export const actions = {
       }
 
       // Verify that all topos exist before proceeding with any deletions
-      const topoIds = parsedTopos.map((topo) => topo.id)
+      const topoIds = parsedTopos.map((topo) => topo.id).filter((id) => id != null)
       const existingTopos = await db.query.topos.findMany({ where: inArray(topos.id, topoIds) })
 
       if (existingTopos.length !== topoIds.length) {
