@@ -70,3 +70,23 @@ export function routeWithPathname<T extends RowWithRelations<'routes', { block: 
   const pathname = block.pathname + ['', 'routes', route.slug.length === 0 ? route.id : route.slug].join('/')
   return { ...route, block, pathname }
 }
+
+/**
+ * Enriches a NestedAscent object by adding a pathname and enriching its route.
+ */
+export function ascentWithPathname<T extends RowWithRelations<'ascents', { route: true }>>(
+  ascent: T,
+): WithPathname<T> | null {
+  if (ascent.route == null) {
+    return null
+  }
+
+  const block = routeWithPathname(ascent.route as RowWithRelations<'routes', { block: true }>)
+
+  if (block == null) {
+    return null
+  }
+
+  const pathname = block.pathname + ['', 'ascents', ascent.id].join('/')
+  return { ...ascent, block, pathname }
+}

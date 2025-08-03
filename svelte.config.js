@@ -26,6 +26,9 @@ const config = {
     version: {
       name: Date.now().toString(),
     },
+    experimental: {
+      remoteFunctions: true,
+    },
   },
 }
 export default config

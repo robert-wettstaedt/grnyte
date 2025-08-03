@@ -12,6 +12,7 @@
   import Breadcrumb from '$lib/components/Breadcrumb'
   import NavTiles from '$lib/components/NavTiles'
   import { toaster } from '$lib/components/Toaster/Toaster'
+  import { formState } from '$lib/forms/enhance.svelte'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation, Toaster } from '@skeletonlabs/skeleton-svelte'
@@ -37,17 +38,12 @@
     return () => value?.data.subscription.unsubscribe()
   })
 
-  // afterNavigate(() => {
-  //   if (page.url.hash.length === 0) {
-  //     document.scrollingElement?.scrollTo(0, 0)
-  //   }
-  // })
-
-  // $effect(() => {
-  //   if (page.form != null) {
-  //     document.scrollingElement?.scrollTo(0, 0)
-  //   }
-  // })
+  afterNavigate((navigation) => {
+    if (navigation.from?.route != navigation.to?.route) {
+      // Reset form state on navigation
+      formState.error = undefined
+    }
+  })
 </script>
 
 <svelte:head>
@@ -83,9 +79,9 @@
   >
     <Breadcrumb url={page.url} />
 
-    {#if page.form?.error}
+    {#if page.form?.error ?? formState.error}
       <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-        <p>{page.form.error}</p>
+        <p>{page.form?.error ?? formState.error}</p>
       </aside>
     {/if}
 

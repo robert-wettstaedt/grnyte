@@ -23,6 +23,7 @@ import {
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit'
 import { and, count, eq } from 'drizzle-orm'
 import { z, ZodError } from 'zod'
+import type { Action } from './enhance.server'
 
 export const createRegion = async ({ locals, request }: RequestEvent) => {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
@@ -85,6 +86,47 @@ export const createRegion = async ({ locals, request }: RequestEvent) => {
   }
 
   return returnValue
+}
+
+export const createRegionAction: Action = async (formData, db, user) => {
+  let values: RegionActionValues
+  let settings: RegionSettings
+
+  try {
+    // Validate the form data
+    values = await validateFormData(regionActionSchema, formData)
+    const parsedSettings = JSON.parse(values.settings ?? '{}')
+    settings = await z.parseAsync(regionSettingsSchema, parsedSettings)
+  } catch (exception) {
+    // If validation fails, return the exception as RegionActionFailure
+    if (exception instanceof ZodError) {
+      return fail(400, { error: convertException(exception) })
+    }
+
+    return exception as ActionFailure<RegionActionValues>
+  }
+
+  // Check if an area with the same slug already exists
+  const existingRegion = await db.query.regions.findFirst({ where: eq(regions.name, values.name) })
+
+  if (existingRegion != null) {
+    // If an area with the same name exists, return a 400 error with a message
+    return error(400, `Region with name "${existingRegion.name}" already exists`)
+  }
+
+  const [region] = await db
+    .insert(regions)
+    .values({ ...values, createdBy: user.id, settings })
+    .returning()
+
+  await db.insert(regionMembers).values({
+    authUserFk: user.authUserFk,
+    regionFk: region.id,
+    role: 'region_admin',
+    userFk: user.id,
+  })
+
+  return `/settings/regions/${region.id}`
 }
 
 export const updateRegionMember = async (event: RequestEvent) => {
