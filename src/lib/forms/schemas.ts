@@ -1,8 +1,9 @@
 import * as schema from '$lib/db/schema'
 import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
+import { type ActionFailure as KitActionFailure } from '@sveltejs/kit'
 import { z } from 'zod'
 
-export type ActionFailure<T> = T & { error: string }
+export type ActionFailure<T> = KitActionFailure<T & { error: string }>
 
 export const addFileActionSchema = z.object({
   bunnyVideoIds: z.array(z.string()).nullish(),
@@ -19,7 +20,9 @@ export type AddOptionalFileActionValues = z.infer<typeof addOptionalFileActionSc
 export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
   description: z.string().nullable().default(''),
+  id: z.number().nullish(),
   name: z.string().trim(),
+  parentFk: z.number().nullish(),
   regionFk: z.number(),
   type: z.enum(areaTypeEnum).default('area'),
 })

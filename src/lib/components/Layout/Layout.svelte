@@ -23,6 +23,7 @@
   import '../../../app.css'
   import { Footer } from './components/Footer'
   import HeaderBar from './components/HeaderBar'
+  import PageStateLoader from './components/PageStateLoader'
 
   let { children }: LayoutProps = $props()
 
@@ -65,6 +66,8 @@
 
   {@html webManifest}
 </svelte:head>
+
+<PageStateLoader />
 
 <div>
   <ProgressBar class="text-secondary-500 !z-[100]" />

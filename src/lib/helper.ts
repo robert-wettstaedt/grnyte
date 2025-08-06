@@ -7,8 +7,8 @@ import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils.svelte'
  *
  * @throws Will throw an error if the last path item is null or if the area ID is not a number.
  */
-export const convertAreaSlug = () => {
-  const path = (page.params.slugs ?? '').split('/').filter(Boolean)
+export const convertAreaSlugRaw = (params: Record<string, string | undefined>) => {
+  const path = (params.slugs ?? '').split('/').filter(Boolean)
 
   function strip(item: string | undefined) {
     const slugItems = item?.split('-')
@@ -30,6 +30,16 @@ export const convertAreaSlug = () => {
     parentSlug,
     path,
   }
+}
+
+/**
+ * Converts a slug string into an object containing area slug, area ID,
+ * a flag indicating if more areas can be added, and the path array.
+ *
+ * @throws Will throw an error if the last path item is null or if the area ID is not a number.
+ */
+export const convertAreaSlug = () => {
+  return convertAreaSlugRaw(page.params)
 }
 
 export async function digestMessage(message: string) {

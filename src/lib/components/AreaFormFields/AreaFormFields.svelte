@@ -1,30 +1,31 @@
 <script lang="ts">
   import { page } from '$app/state'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
-  import type { Area } from '$lib/db/schema'
+  import type { Row } from '$lib/db/zero'
   import AreaTypeFormField from './components/AreaTypeFormField'
 
-  interface Props {
-    description: Area['description']
-    hasParent: boolean
-    name: Area['name']
-    regionFk: Area['regionFk'] | undefined
-    type: Area['type']
-  }
+  type Props = Partial<Row<'areas'>>
 
-  let { description = $bindable(), name, regionFk, type, hasParent }: Props = $props()
+  let { id, name, regionFk, parentFk, ...rest }: Props = $props()
+  let type = $state(rest.type ?? 'area')
+  let description = $state(rest.description ?? '')
 
   let adminRegions = $derived(page.data.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
+
+{#if id != null}
+  <input type="hidden" name="id" value={id} />
+{/if}
 
 <label class="label">
   <span>Name</span>
   <input class="input" name="name" type="text" placeholder="Enter name..." value={name} />
 </label>
 
-{#if hasParent}
+{#if parentFk}
   <AreaTypeFormField bind:value={type} />
 
+  <input type="hidden" name="parentFk" value={parentFk ?? ''} />
   <input type="hidden" name="regionFk" value={regionFk ?? ''} />
 {:else}
   <label class="label mt-4">
@@ -44,7 +45,7 @@
 
 <label class="label mt-4">
   <span>Description</span>
-  <textarea hidden name="description" value={description}></textarea>
+  <textarea hidden name="description" value={description ?? ''}></textarea>
 
   <MarkdownEditor bind:value={description} />
 </label>

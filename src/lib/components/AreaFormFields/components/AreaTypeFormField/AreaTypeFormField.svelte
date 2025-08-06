@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Area } from '$lib/db/schema'
+  import type { Row } from '$lib/db/zero'
   import { Modal } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    value: Area['type']
+    value: Row<'areas'>['type']
   }
 
   let { value = $bindable() }: Props = $props()

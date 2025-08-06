@@ -418,11 +418,3 @@ export const permissions = definePermissions<SupabaseToken, Schema>(schema, () =
     },
   } satisfies PermissionsConfig<SupabaseToken, Schema>
 })
-
-export function createMutators(authData: SupabaseToken) {
-  return {
-    routes: {
-      update: (tx, value) => tx.mutate.routes.update(value),
-    },
-  } as const satisfies CustomMutatorDefs<Schema>
-}

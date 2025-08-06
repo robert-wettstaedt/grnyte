@@ -1,8 +1,7 @@
 import type { AppPermission, RegionPermission } from '$lib/auth'
 import type { Grade, Region, RegionMember, UserSettings } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
-import type { createMutators, Schema } from '$lib/db/zero'
-import type { CustomMutatorDefs } from '@rocicorp/zero'
+import type { Schema } from '$lib/db/zero'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import type { Z } from 'zero-svelte'
 
@@ -46,13 +45,12 @@ declare global {
     interface Locals extends SafeSession {
       safeGetSession: () => Promise<SafeSession>
       supabase: SupabaseClient
-      internalReferer?: URL
     }
     interface PageData extends Omit<Locals, 'safeGetSession' | 'supabase'> {
       grades: Grade[]
       gradingScale: NonNullable<UserSettings['gradingScale']>
       supabase?: Locals['supabase']
-      z: Z<Schema, ReturnType<typeof createMutators>>
+      z: Z<Schema>
     }
     interface PageState {
       blocksViewMode?: 'list' | 'grid'

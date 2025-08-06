@@ -88,22 +88,14 @@ export const createRegion = async ({ locals, request }: RequestEvent) => {
   return returnValue
 }
 
-export const createRegionAction: Action = async (formData, db, user) => {
-  let values: RegionActionValues
+export const createRegionAction: Action<RegionActionValues> = async (values, db, user) => {
   let settings: RegionSettings
 
   try {
-    // Validate the form data
-    values = await validateFormData(regionActionSchema, formData)
     const parsedSettings = JSON.parse(values.settings ?? '{}')
     settings = await z.parseAsync(regionSettingsSchema, parsedSettings)
   } catch (exception) {
-    // If validation fails, return the exception as RegionActionFailure
-    if (exception instanceof ZodError) {
-      return fail(400, { error: convertException(exception) })
-    }
-
-    return exception as ActionFailure<RegionActionValues>
+    error(400, convertException(exception))
   }
 
   // Check if an area with the same slug already exists
@@ -126,7 +118,7 @@ export const createRegionAction: Action = async (formData, db, user) => {
     userFk: user.id,
   })
 
-  return `/settings/regions/${region.id}`
+  return ['', 'settings', 'regions', region.id].join('/')
 }
 
 export const updateRegionMember = async (event: RequestEvent) => {
