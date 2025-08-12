@@ -31,7 +31,7 @@
 
 <script lang="ts">
   import { page } from '$app/state'
-  import type { Area, Block, Geolocation } from '$lib/db/schema'
+  import type { Area, Geolocation } from '$lib/db/schema'
   import type { NestedArea } from '$lib/db/types'
   import { getDistance } from '$lib/geometry'
   import Feature, { type FeatureLike } from 'ol/Feature.js'
@@ -117,7 +117,7 @@
                 ? {
                     properties: { layerOpts: layers.find((layer) => layer.name === regionLayer.name) },
                     source: new TileWMS({
-                      attributions: [...(regionLayer.attributions ?? [] ?? ATTRIBUTION)],
+                      attributions: [...(regionLayer.attributions ?? ATTRIBUTION)],
                       url: regionLayer.url,
                       params: regionLayer.params ?? {},
                     }),
@@ -220,7 +220,7 @@
     const iconStyle = new Style({
       text: new Text({
         backgroundFill: new Fill({ color: 'transparent' }),
-        font: '900 1.75rem "Font Awesome 6 Free"',
+        font: '900 1.75rem "Font Awesome 7 Free"',
         text: '\uf540',
         fill: new Fill({ color: '#1e40af' }),
       }),
