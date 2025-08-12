@@ -1,5 +1,5 @@
-<script lang="ts">
-  import Page from '../zero/feed/+page.svelte'
+<script>
+  import { ActivityFeedLoader as ActivityFeed } from '$lib/components/ActivityFeed'
 </script>
 
-<Page />
+<ActivityFeed />
