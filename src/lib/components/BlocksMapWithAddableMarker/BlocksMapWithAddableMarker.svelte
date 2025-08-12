@@ -1,7 +1,6 @@
 <script lang="ts">
-  import BlocksMap from '$lib/components/BlocksMap'
-  import type { Area } from '$lib/db/schema'
-  import type { InferResultType } from '$lib/db/types'
+  import type { BlocksMapProps } from '$lib/components/BlocksMap'
+  import BlocksMap from '$lib/components/BlocksMap/ZeroLoader.svelte'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import Feature from 'ol/Feature.js'
   import Map from 'ol/Map.js'
@@ -20,10 +19,8 @@
     value: 'click' | 'draw'
   }
 
-  interface Props {
+  interface Props extends Pick<BlocksMapProps, 'selectedArea' | 'selectedBlock'> {
     onChange?: (coordinate: Coordinate | string) => void
-    selectedArea?: Area | null
-    selectedBlock?: InferResultType<'blocks', { geolocation: true }> | null
     modes?: Mode[]
   }
 

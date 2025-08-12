@@ -22,6 +22,7 @@ export async function enhance(state: EnhanceState, callback: () => Promise<unkno
     const error = convertException(exception)
     state.error = error
     formState.error = error
+    document.scrollingElement?.scrollTo({ behavior: 'smooth', top: 0, left: 0 })
   }
 
   state.loading = false

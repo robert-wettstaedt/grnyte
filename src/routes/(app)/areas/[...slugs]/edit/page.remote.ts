@@ -37,7 +37,7 @@ const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
 
   if (existingAreasResult.length > 0) {
     // If an area with the same name exists, return a 400 error with a message
-    return error(400, `Area with name "${existingAreasResult[0].name}" already exists`)
+    error(400, `Area with name "${existingAreasResult[0].name}" already exists`)
   }
 
   // Update the area in the database with the validated values
