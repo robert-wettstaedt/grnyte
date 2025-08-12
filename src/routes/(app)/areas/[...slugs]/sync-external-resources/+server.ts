@@ -1,4 +1,3 @@
-import { getBlocksOfArea } from '$lib/blocks.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import type { InferResultType } from '$lib/db/types'
 import { insertExternalResources, queryExternalResource } from '$lib/external-resources/index.server'
@@ -16,19 +15,22 @@ export async function POST({ locals, params, request }) {
   const rls = await createDrizzleSupabaseClient(locals.supabase)
 
   return await rls(async (db) => {
-    const { blocks } = await getBlocksOfArea(areaId, db)
-
-    const routes = blocks.flatMap((block) => block.routes.map((route) => ({ route, block })))
+    const routes = await db.query.routes.findMany({
+      where: (table, { ilike }) => ilike(table.areaIds, `%^${areaId}$%`),
+      with: {
+        block: true,
+      },
+    })
 
     const stream = new ReadableStream({
       async start(controller) {
-        for await (const { block, route } of routes) {
+        for await (const route of routes) {
           if (request.signal.aborted) {
             controller.close()
             return
           }
 
-          const data = await queryExternalResource(route.name, block.id, locals)
+          const data = await queryExternalResource(route.name, route.block.id, locals)
 
           const dto: InferResultType<
             'routeExternalResources',
@@ -45,7 +47,7 @@ export async function POST({ locals, params, request }) {
             externalResourceTheCragFk: null,
           }
 
-          await insertExternalResources(route, block, locals)
+          await insertExternalResources(route, route.block, locals)
 
           controller.enqueue(JSON.stringify(dto) + '\n')
         }

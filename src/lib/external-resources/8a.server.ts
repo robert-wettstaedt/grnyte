@@ -51,7 +51,7 @@ export default {
         showOnMap: 'false',
       })
 
-      const url = `https://www.8a.nu/unificationAPI/collection/v1/web/search?${searchParams.toString()}`
+      const url = `https://www.8a.nu/api/unification/collection/v1/web/search?${searchParams.toString()}`
       const response = await fetch(url)
       const data = await response.json()
 

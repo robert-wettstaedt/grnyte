@@ -2,13 +2,13 @@
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
-  import type { InferResultType } from '$lib/db/types'
+  import type { RowWithRelations } from '$lib/db/zero'
 
   interface Props {
     iconSize: number
     showNotFoundIcon?: boolean
     routeExternalResources:
-      | InferResultType<
+      | RowWithRelations<
           'routeExternalResources',
           { externalResource8a: true; externalResource27crags: true; externalResourceTheCrag: true }
         >
