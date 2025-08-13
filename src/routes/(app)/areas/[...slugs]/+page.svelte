@@ -31,7 +31,7 @@
 </script>
 
 {#if query == null}
-  <Error error={{ message: 'Not found' }} status={404} />
+  <Error status={404} />
 {:else}
   <ZeroQueryWrapper {query} loadingIndicator={{ type: 'skeleton' }} showEmpty>
     {#snippet children(area)}

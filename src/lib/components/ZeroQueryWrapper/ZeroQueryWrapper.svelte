@@ -26,7 +26,7 @@
 </script>
 
 {#if showEmpty && isEmpty && details.type === 'complete'}
-  <Error error={{ message: 'Not found' }} status={404} />
+  <Error status={404} />
 {:else if loadingIndicator != null && isEmpty && details.type !== 'complete'}
   {#if loadingIndicator.type === 'skeleton'}
     <nav class="list-nav">

@@ -1,6 +1,8 @@
 <script>
   import { page } from '$app/state'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import Error from '$lib/components/Error'
+  import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { convertAreaSlug } from '$lib/helper'
   import AddBlockPage from './AddBlockPage.svelte'
@@ -9,7 +11,7 @@
 </script>
 
 {#if areaId == null}
-  <Error error={{ message: 'Not found' }} status={404} />
+  <Error status={404} />
 {:else}
   <ZeroQueryWrapper
     loadingIndicator={{ type: 'skeleton' }}
@@ -19,7 +21,9 @@
     {#snippet children(blocks)}
       {@const area = blocks.find((block) => block.area != null)?.area}
       {#if area == null}
-        <Error error={{ message: 'Not found' }} status={404} />
+        <Error status={404} />
+      {:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
+        <Error status={401} />
       {:else}
         <AddBlockPage {area} name="Block {blocks.length + 1}" />
       {/if}

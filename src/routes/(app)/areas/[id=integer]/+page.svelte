@@ -17,7 +17,7 @@
   {#snippet children([area])}
     {@const { pathname } = areaWithPathname(area) ?? {}}
     {#if pathname == null}
-      <Error error={{ message: 'Not found' }} status={404} />
+      <Error status={404} />
     {:else}
       {#await goto(pathname, { replaceState: true })}
         <div class="flex justify-center">

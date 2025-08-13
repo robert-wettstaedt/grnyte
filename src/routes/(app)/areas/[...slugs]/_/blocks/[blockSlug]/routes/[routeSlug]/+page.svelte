@@ -9,7 +9,7 @@
 </script>
 
 {#if areaId == null || page.params.blockSlug == null || page.params.routeSlug == null}
-  <Error error={{ message: 'Not found' }} status={404} />
+  <Error status={404} />
 {:else}
   <ZeroQueryWrapper
     loadingIndicator={{ type: 'skeleton' }}

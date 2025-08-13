@@ -7,6 +7,24 @@
     status?: number | null
   }
 
+  const errors: Record<number, string | undefined> = {
+    401: 'You do not have permission to access this resource.',
+    404: 'The page you are looking for does not exist.',
+    500: 'An unexpected error occurred on the server.',
+  }
+
+  const errorMessage = $derived.by(() => {
+    if (error?.message != null) {
+      return error.message
+    }
+
+    if (status != null && errors[status] != null) {
+      return errors[status]
+    }
+
+    return 'An unexpected error occurred'
+  })
+
   const { error = page.error, status = page.status }: Props = $props()
 </script>
 
@@ -31,7 +49,7 @@
 
     <!-- Error Message -->
     <div class="card variant-soft-error p-4">
-      <p class="text-center font-medium">{error?.message || 'An unexpected error occurred'}</p>
+      <p class="text-center font-medium">{errorMessage}</p>
     </div>
 
     <!-- Action Buttons -->
