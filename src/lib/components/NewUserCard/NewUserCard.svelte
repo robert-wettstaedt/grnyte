@@ -4,7 +4,7 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { createRegion } from './data.remote'
 
-  let state = $state<EnhanceState>({ loading: false })
+  let state = $state<EnhanceState>({})
 </script>
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-md p-6">

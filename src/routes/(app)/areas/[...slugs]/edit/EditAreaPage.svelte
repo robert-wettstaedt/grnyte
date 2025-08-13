@@ -17,7 +17,7 @@
 
   let { area }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
-  let state = $state<EnhanceState>({ loading: false })
+  let state = $state<EnhanceState>({})
 </script>
 
 <svelte:head>

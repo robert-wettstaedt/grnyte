@@ -41,7 +41,7 @@
     }
   }}
 >
-  <BlockFormFields name={form?.name ?? data.name} />
+  <BlockFormFields areaFk={data.areaId} name={form?.name ?? data.name} />
 
   <div class="mt-8 flex justify-between md:items-center">
     <div>
@@ -53,7 +53,7 @@
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-          contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+          contentBase="card bg-surface-200-800 max-w-[320px] space-y-4 p-4"
           positioning={{ placement: 'top' }}
           triggerBase="btn preset-filled-error-500 !text-white"
         >

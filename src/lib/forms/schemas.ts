@@ -30,6 +30,7 @@ export const areaActionSchema = z.object({
 export type BlockActionValues = z.infer<typeof blockActionSchema>
 export const blockActionSchema = z.intersection(
   z.object({
+    areaId: z.number(),
     name: z.string(),
   }),
   addOptionalFileActionSchema,

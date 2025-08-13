@@ -3,8 +3,9 @@ import { convertException } from '$lib/errors'
 import type { RemoteQuery, RemoteQueryOverride } from '@sveltejs/kit'
 
 export interface EnhanceState {
-  loading: boolean
   error?: string
+  loading?: boolean
+  progress?: number
 }
 
 export async function enhance(state: EnhanceState, callback: () => Promise<unknown>) {
