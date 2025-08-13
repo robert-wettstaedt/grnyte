@@ -19,7 +19,7 @@
   {#snippet children([route])}
     {@const { pathname } = routeWithPathname(route) ?? {}}
     {#if pathname == null}
-      <Error error={{ message: 'Not found' }} status={404} />
+      <Error status={404} />
     {:else}
       {#await goto(pathname, { replaceState: true })}
         <div class="flex justify-center">

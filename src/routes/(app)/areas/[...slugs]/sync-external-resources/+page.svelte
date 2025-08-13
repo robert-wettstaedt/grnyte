@@ -11,7 +11,7 @@
 </script>
 
 {#if areaId == null}
-  <Error error={{ message: 'Not found' }} status={404} />
+  <Error status={404} />
 {:else}
   <ZeroQueryWrapper
     loadingIndicator={{ type: 'skeleton' }}
@@ -33,7 +33,7 @@
           {/snippet}
         </ZeroQueryWrapper>
       {:else}
-        <Error error={{ message: 'Not found' }} status={404} />
+        <Error status={404} />
       {/if}
     {/snippet}
   </ZeroQueryWrapper>

@@ -2,6 +2,9 @@ import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { areas, generateSlug, geolocations } from '$lib/db/schema'
+import { buildNestedAreaQuery } from '$lib/db/utils'
+import { areaWithPathname } from '$lib/db/utils.svelte'
+import type { RowWithRelations } from '$lib/db/zero'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { areaActionSchema, type AreaActionValues } from '$lib/forms/schemas'
 import { deleteFiles } from '$lib/helper.server'
@@ -17,7 +20,10 @@ export const deleteArea = command(z.number(), (id) => enhance(id, deleteAreaActi
 const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
 
-  const area = values.id == null ? undefined : await db.query.areas.findFirst({ where: eq(areas.id, values.id) })
+  const area =
+    values.id == null
+      ? undefined
+      : await db.query.areas.findFirst({ where: eq(areas.id, values.id), with: { parent: buildNestedAreaQuery() } })
 
   if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
     error(404)
@@ -58,8 +64,9 @@ const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
     regionFk: area.regionFk,
   })
 
-  // Redirect to the updated area page
-  return ['', 'areas', area.id].join('/')
+  const nested = { ...area, slug } as unknown as RowWithRelations<'areas', { parent: true }>
+  const { pathname } = areaWithPathname(nested) ?? {}
+  return pathname
 }
 
 const deleteAreaAction: Action<number> = async (areaId, db, user) => {

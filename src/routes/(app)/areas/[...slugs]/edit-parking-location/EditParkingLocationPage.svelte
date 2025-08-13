@@ -20,7 +20,7 @@
 
   let { area }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
-  let formState = $state<EnhanceState>({ loading: false })
+  let formState = $state<EnhanceState>({})
 
   let coordinate: Coordinate | null = $state(null)
   let polyline: string | null = $state(null)

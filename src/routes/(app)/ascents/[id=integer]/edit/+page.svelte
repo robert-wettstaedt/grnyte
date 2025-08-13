@@ -21,7 +21,7 @@
   {#snippet children([ascent])}
     {@const { pathname } = ascentWithPathname(ascent) ?? {}}
     {#if pathname == null}
-      <Error error={{ message: 'Not found' }} status={404} />
+      <Error status={404} />
     {:else}
       {#await goto(pathname + '/edit', { replaceState: true })}
         <div class="flex justify-center">

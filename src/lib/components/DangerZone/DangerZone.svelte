@@ -9,7 +9,7 @@
 
   const { name, onDelete }: Props = $props()
 
-  let enhancedState = $state<EnhanceState>({ loading: false })
+  let enhancedState = $state<EnhanceState>({})
   let open = $state(false)
 </script>
 
@@ -32,7 +32,7 @@
               {open}
               arrow
               arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-              contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+              contentBase="card bg-surface-200-800 max-w-[320px] space-y-4 p-4"
               onOpenChange={(value) => (open = enhancedState.loading ? false : value.open)}
               positioning={{ placement: 'top' }}
               triggerBase="btn preset-filled-error-500 !text-white {enhancedState.loading ? 'disabled' : ''}"
