@@ -57,7 +57,7 @@
                     class="btn btn-sm preset-filled-error-500 !text-white"
                     onclick={() => {
                       open = false
-                      enhance(onDelete, enhancedState)
+                      enhance(enhancedState, onDelete)
                     }}
                   >
                     Yes

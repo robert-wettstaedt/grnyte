@@ -8,10 +8,10 @@ export interface EnhanceState {
   progress?: number
 }
 
-export async function enhance(callback: () => Promise<unknown>, state?: EnhanceState) {
+export async function enhance(state: EnhanceState, callback: () => Promise<unknown>) {
   try {
-    state != null && (state.loading = true)
-    state != null && (state.error = undefined)
+    state.loading = true
+    state.error = undefined
     formState.error = undefined
 
     const returnValue = await callback()
@@ -21,15 +21,15 @@ export async function enhance(callback: () => Promise<unknown>, state?: EnhanceS
     }
   } catch (exception) {
     const error = convertException(exception)
-    state != null && (state.error = error)
+    state.error = error
     formState.error = error
     document.scrollingElement?.scrollTo({ behavior: 'smooth', top: 0, left: 0 })
   }
 
-  state != null && (state.loading = false)
+  state.loading = false
 }
 
-export function enhanceForm(state?: EnhanceState) {
+export function enhanceForm(state: EnhanceState) {
   return async function ({
     submit,
   }: {
@@ -37,7 +37,7 @@ export function enhanceForm(state?: EnhanceState) {
       updates: (...queries: Array<RemoteQuery<any> | RemoteQueryOverride>) => Promise<void>
     }
   }) {
-    enhance(submit, state)
+    enhance(state, submit)
   }
 }
 

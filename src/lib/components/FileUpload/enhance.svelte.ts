@@ -25,11 +25,11 @@ export function enhanceWithFile(state: EnhanceState) {
     data.delete('files')
 
     if (page.data.session?.access_token == null || files.length === 0) {
-      return enhance(submit, state)
+      return enhance(state, submit)
     }
 
     if (typeof folderName === 'string' && folderName.length > 0) {
-      return enhance(submit, state)
+      return enhance(state, submit)
     }
 
     folderName = `${page.data.session.user.id}-${Date.now()}`
@@ -41,7 +41,7 @@ export function enhanceWithFile(state: EnhanceState) {
 
     await Promise.all(files.map((file) => uploadFile(file, { folderName, formData: data, state })))
 
-    return enhance(submit, state)
+    return enhance(state, submit)
   }
 }
 

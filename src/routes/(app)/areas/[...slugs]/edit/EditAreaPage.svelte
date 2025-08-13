@@ -8,7 +8,7 @@
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
   import type { Row } from '$lib/db/zero'
-  import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import { deleteArea, updateArea } from './page.remote'
 
   interface Props {
@@ -17,6 +17,7 @@
 
   let { area }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
+  let state = $state<EnhanceState>({})
 </script>
 
 <svelte:head>
@@ -30,9 +31,9 @@
   {/snippet}
 </AppBar>
 
-<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateArea.enhance(enhanceForm())}>
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateArea.enhance(enhanceForm(state))}>
   <AreaFormFields {...area} />
-  <FormActionBar label="Update area" pending={updateArea.pending} />
+  <FormActionBar label="Update area" {state} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)}

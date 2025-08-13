@@ -1,8 +1,10 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
-  import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { createRegion } from './data.remote'
+
+  let state = $state<EnhanceState>({})
 </script>
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-md p-6">
@@ -14,12 +16,12 @@
 
   <p class="mb-4 text-center opacity-75">Or you can create a new region here:</p>
 
-  <form {...createRegion.enhance(enhanceForm())} class="flex items-end">
+  <form {...createRegion.enhance(enhanceForm(state))} class="flex items-end">
     <label class="label">
       <span>Region name</span>
       <input
         class="input h-[34px] rounded-tr-none rounded-br-none"
-        disabled={createRegion.pending > 0}
+        disabled={state.loading}
         name="name"
         placeholder="Enter name..."
         type="text"
@@ -29,10 +31,10 @@
     <button
       aria-label="Create region"
       class="btn-icon preset-filled-primary-500 h-[18px] rounded-tl-none rounded-bl-none"
-      disabled={createRegion.pending > 0}
+      disabled={state.loading}
       type="submit"
     >
-      {#if createRegion.pending > 0}
+      {#if state.loading}
         <ProgressRing size="size-4" value={null} />
       {:else}
         <i class="fa-solid fa-chevron-right"></i>
