@@ -21,6 +21,7 @@
   >
     {#snippet children(blocks)}
       {@const block = blocks.at(0)}
+
       {#if block == null}
         <Error status={404} />
       {:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}

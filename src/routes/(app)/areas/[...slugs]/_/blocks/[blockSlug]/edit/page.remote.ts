@@ -21,7 +21,7 @@ const updateBlockAction: Action<EditBlockActionValues> = async (values, db, user
   const { locals } = getRequestEvent()
 
   const block = await db.query.blocks.findFirst({
-    where: (table, { and, eq }) => and(eq(table.id, values.blockId)),
+    where: (table, { eq }) => eq(table.id, values.blockId),
     with: { area: buildNestedAreaQuery() },
   })
 
@@ -72,7 +72,7 @@ const deleteBlockAction: Action<number> = async (blockId, db, user) => {
   const { locals } = getRequestEvent()
 
   const block = await db.query.blocks.findFirst({
-    where: (table, { and, eq }) => and(eq(table.id, blockId)),
+    where: (table, { eq }) => eq(table.id, blockId),
     with: {
       routes: true,
     },
