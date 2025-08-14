@@ -44,6 +44,13 @@
       // Reset form state on navigation
       formState.error = undefined
     }
+
+    if (navigation.to?.url.searchParams.get('reload') === 'true') {
+      const searchParams = new URLSearchParams(navigation.to.url.searchParams)
+      searchParams.delete('reload')
+      const search = searchParams.toString().length > 0 ? `?${searchParams}` : ''
+      window.location.href = navigation.to.url.pathname + search
+    }
   })
 </script>
 

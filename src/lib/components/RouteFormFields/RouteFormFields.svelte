@@ -1,29 +1,31 @@
 <script lang="ts">
   import GradeFormField from '$lib/components/GradeFormField'
+  import { pageState } from '$lib/components/Layout'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
-  import type { Route, Tag } from '$lib/db/schema'
+  import type { Row } from '$lib/db/zero'
   import RouteNameFormField from './components/RouteNameFormField'
 
   interface Props {
-    blockId: number
-    description: Route['description']
-    gradeFk: Route['gradeFk']
-    name: Route['name']
-    rating: Route['rating']
+    blockId: Row<'blocks'>['id']
+    description: Row<'routes'>['description']
+    gradeFk: Row<'routes'>['gradeFk']
+    name: Row<'routes'>['name']
+    rating: Row<'routes'>['rating']
     routeTags: string[]
-    tags: Tag[]
   }
 
   let {
+    blockId,
     description = $bindable(),
     gradeFk = $bindable(),
     name = $bindable(),
     rating = $bindable(),
     routeTags,
-    tags,
   }: Props = $props()
 </script>
+
+<input type="hidden" name="blockId" value={blockId} />
 
 <RouteNameFormField bind:value={name} />
 
@@ -41,7 +43,7 @@
 <label class="label mt-4">
   <span>Tags</span>
   <select class="select max-h-[300px] overflow-auto" multiple name="tags" value={routeTags}>
-    {#each tags as tag}
+    {#each pageState.tags as tag}
       <option value={tag.id}>{tag.id}</option>
     {/each}
   </select>

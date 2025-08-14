@@ -37,7 +37,7 @@ export function enhanceForm(state?: EnhanceState) {
       updates: (...queries: Array<RemoteQuery<any> | RemoteQueryOverride>) => Promise<void>
     }
   }) {
-    enhance(submit, state)
+    await enhance(submit, state)
   }
 }
 

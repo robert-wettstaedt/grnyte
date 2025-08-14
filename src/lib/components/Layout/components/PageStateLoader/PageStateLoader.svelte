@@ -5,6 +5,8 @@
 
   const { current: grades } = $derived(new Query(page.data.z.current.query.grades))
 
+  const { current: tags } = $derived(new Query(page.data.z.current.query.tags))
+
   const userResult = $derived(
     page.data.session?.user.id == null
       ? undefined
@@ -53,6 +55,10 @@
 
   $effect(() => {
     pageState.grades = grades
+  })
+
+  $effect(() => {
+    pageState.tags = tags
   })
 
   $effect(() => {
