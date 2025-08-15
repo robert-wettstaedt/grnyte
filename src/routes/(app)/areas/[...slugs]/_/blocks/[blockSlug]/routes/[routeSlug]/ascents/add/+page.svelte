@@ -1,90 +1,40 @@
-<script lang="ts">
+<script>
   import { page } from '$app/state'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
-  import AscentFormFields from '$lib/components/AscentFormFields'
-  import { enhanceWithFile } from '$lib/components/FileUpload/action'
-  import RouteName from '$lib/components/RouteName'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { DateTime } from 'luxon'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import Error from '$lib/components/Error'
+  import { pageState } from '$lib/components/Layout'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import { convertAreaSlug, getRouteDbFilter } from '$lib/helper'
+  import AddAscentPage from './AddAscentPage.svelte'
 
-  let { data, form } = $props()
-  let basePath = $derived(
-    `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
-  )
-
-  let grade = $derived(data.grades.find((grade) => grade.id === data.route.gradeFk))
-  let loading = $state(false)
-  let uploadProgress = $state<number | null>(null)
-  let uploadError = $state<string | null>(null)
+  let { areaId } = $derived(convertAreaSlug())
 </script>
 
-<svelte:head>
-  <title>
-    Log ascent of
-    {data.route.rating == null ? '' : `${Array(data.route.rating).fill('★').join('')} `}
-    {data.route.name}
-    {grade == null ? '' : ` (${grade[data.gradingScale]})`}
-    - {PUBLIC_APPLICATION_NAME}
-  </title>
-</svelte:head>
+{#if areaId == null || page.params.blockSlug == null || page.params.routeSlug == null}
+  <Error status={404} />
+{:else}
+  <ZeroQueryWrapper
+    loadingIndicator={{ type: 'skeleton' }}
+    showEmpty
+    query={page.data.z.current.query.blocks
+      .where('slug', page.params.blockSlug)
+      .where('areaFk', areaId)
+      .whereExists('routes', getRouteDbFilter)
+      .related('routes', (q) => getRouteDbFilter(q).related('tags'))
+      .limit(1)}
+  >
+    {#snippet children([block])}
+      {@const route = { ...block.routes[0], tags: [...block.routes[0].tags] }}
 
-<AppBar>
-  {#snippet lead()}
-    <span>Log ascent of</span>
-    <a class="anchor" href={basePath}>
-      <RouteName route={data.route} />
-    </a>
-  {/snippet}
-</AppBar>
-
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  enctype="multipart/form-data"
-  method="POST"
-  use:enhanceWithFile={{
-    session: data.session,
-    supabase: data.supabase,
-    onSubmit: async () => {
-      loading = true
-
-      return async ({ update }) => {
-        const returnValue = await update()
-        loading = false
-        return returnValue
-      }
-    },
-    onError: (error) => {
-      uploadError = error
-      loading = false
-    },
-    onProgress: (percentage) => (uploadProgress = percentage),
-  }}
->
-  <AscentFormFields
-    fileUploadProps={{
-      error: uploadError,
-      folderName: form?.folderName,
-      loading,
-      progress: uploadProgress,
-    }}
-    dateTime={form?.dateTime ?? DateTime.now().toSQLDate()}
-    gradeFk={form?.gradeFk ?? null}
-    notes={form?.notes ?? null}
-    rating={form?.rating ?? null}
-    type={form?.type ?? null}
-  />
-
-  <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-    <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
-      {#if loading}
-        <span class="me-2">
-          <ProgressRing size="size-4" value={null} />
-        </span>
+      {#if route == null}
+        <Error status={404} />
+      {:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)}
+        <Error status={401} />
+      {:else if block.routes.length > 1}
+        <Error status={400} error={{ message: `Multiple routes with slug ${page.params.routeSlug} found` }} />
+      {:else}
+        <AddAscentPage {route} />
       {/if}
-
-      Save ascent
-    </button>
-  </div>
-</form>
+    {/snippet}
+  </ZeroQueryWrapper>
+{/if}

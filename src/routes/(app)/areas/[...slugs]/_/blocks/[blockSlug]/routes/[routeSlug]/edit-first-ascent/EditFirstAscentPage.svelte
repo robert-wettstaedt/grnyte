@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
@@ -72,4 +72,6 @@
   <FormActionBar label="Update FA" pending={updateFirstAscent.pending} />
 </form>
 
-<DangerZone name="FA" onDelete={() => route.id != null && deleteFirstAscent(route.id)} />
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)}
+  <DangerZone name="FA" onDelete={() => route.id != null && deleteFirstAscent(route.id)} />
+{/if}
