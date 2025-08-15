@@ -15,17 +15,16 @@
 {:else}
   <ZeroQueryWrapper
     loadingIndicator={{ type: 'skeleton' }}
-    query={page.data.z.current.query.blocks.where('areaFk', areaId).related('area')}
+    query={page.data.z.current.query.areas.where('id', areaId).related('blocks').one()}
     showEmpty
   >
-    {#snippet children(blocks)}
-      {@const area = blocks.find((block) => block.area != null)?.area}
+    {#snippet children(area)}
       {#if area == null}
         <Error status={404} />
       {:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
         <Error status={401} />
       {:else}
-        <AddBlockPage {area} name="Block {blocks.length + 1}" />
+        <AddBlockPage {area} name="Block {area.blocks.length + 1}" />
       {/if}
     {/snippet}
   </ZeroQueryWrapper>
