@@ -1,80 +1,40 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
-  import FileUpload, { enhanceWithFile } from '$lib/components/FileUpload'
-  import RouteName from '$lib/components/RouteName'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import Error from '$lib/components/Error'
+  import { pageState } from '$lib/components/Layout'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import { convertAreaSlug, getRouteDbFilter } from '$lib/helper'
+  import AddFilePage from './AddFilePage.svelte'
 
-  let { data, form } = $props()
-  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
-
-  let grade = $derived(data.grades.find((grade) => grade.id === data.route.gradeFk))
-  let loading = $state(false)
-  let uploadProgress = $state<number | null>(null)
-  let uploadError = $state<string | null>(null)
+  let { areaId } = $derived(convertAreaSlug())
 </script>
 
-<svelte:head>
-  <title>
-    Edit files of
-    {data.route.rating == null ? '' : `${Array(data.route.rating).fill('★').join('')} `}
-    {data.route.name}
-    {grade == null ? '' : ` (${grade[data.gradingScale]})`}
-    - {PUBLIC_APPLICATION_NAME}
-  </title>
-</svelte:head>
+{#if areaId == null || page.params.blockSlug == null || page.params.routeSlug == null}
+  <Error status={404} />
+{:else}
+  <ZeroQueryWrapper
+    loadingIndicator={{ type: 'skeleton' }}
+    showEmpty
+    query={page.data.z.current.query.blocks
+      .where('slug', page.params.blockSlug)
+      .where('areaFk', areaId)
+      .whereExists('routes', getRouteDbFilter)
+      .related('routes', getRouteDbFilter)
+      .limit(1)}
+  >
+    {#snippet children([block])}
+      {@const route = block.routes.at(0)}
 
-{#if form?.error}
-  <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-    <p>{form.error}</p>
-  </aside>
-{/if}
-
-<AppBar>
-  {#snippet lead()}
-    <span>Edit files of</span>
-    <a class="anchor" href={basePath}>
-      <RouteName route={data.route} />
-    </a>
-  {/snippet}
-</AppBar>
-
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  enctype="multipart/form-data"
-  method="POST"
-  use:enhanceWithFile={{
-    session: data.session,
-    supabase: data.supabase,
-    onSubmit: async () => {
-      loading = true
-
-      return async ({ update }) => {
-        const returnValue = await update()
-        loading = false
-        return returnValue
-      }
-    },
-    onError: (error) => {
-      uploadError = error
-      loading = false
-    },
-    onProgress: (percentage) => (uploadProgress = percentage),
-  }}
->
-  <FileUpload error={uploadError} progress={uploadProgress} folderName={form?.folderName} {loading} />
-
-  <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-    <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
-      {#if loading}
-        <span class="me-2">
-          <ProgressRing size="size-4" value={null} />
-        </span>
+      {#if route == null}
+        <Error status={404} />
+      {:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)}
+        <Error status={401} />
+      {:else if block.routes.length > 1}
+        <Error status={400} error={{ message: `Multiple routes with slug ${page.params.routeSlug} found` }} />
+      {:else}
+        <AddFilePage {route} />
       {/if}
-
-      Upload
-    </button>
-  </div>
-</form>
+    {/snippet}
+  </ZeroQueryWrapper>
+{/if}

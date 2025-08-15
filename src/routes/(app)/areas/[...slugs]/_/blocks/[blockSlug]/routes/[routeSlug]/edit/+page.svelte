@@ -21,7 +21,6 @@
       .where('areaFk', areaId)
       .whereExists('routes', getRouteDbFilter)
       .related('routes', (q) => getRouteDbFilter(q).related('tags'))
-      .related('topos')
       .limit(1)}
   >
     {#snippet children([block])}
