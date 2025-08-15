@@ -3,7 +3,6 @@ import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import * as schema from '$lib/db/schema'
 import {
   ascents,
-  blocks,
   routeExternalResource27crags,
   routeExternalResource8a,
   routeExternalResources,
@@ -13,10 +12,10 @@ import {
   routesToTags,
   topoRoutes,
 } from '$lib/db/schema'
-import { deleteFiles, getRouteDbFilter } from '$lib/helper.server'
+import { deleteFiles } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
-import { fail } from '@sveltejs/kit'
-import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
+import { error } from '@sveltejs/kit'
+import { eq, inArray, isNotNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 export const updateRoutesUserData = async (routeFk: number, db: PostgresJsDatabase<typeof schema>) => {
@@ -59,60 +58,39 @@ export const updateRoutesUserData = async (routeFk: number, db: PostgresJsDataba
   }
 }
 
-type RouteId = { routeSlug: string } | { routeId: number }
-
 interface DeleteRouteParams {
-  areaId: number
-  blockSlug: string
+  routeId: number
   userId: number
   userRegions: App.UserRegion[]
 }
 
-export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: PostgresJsDatabase<typeof schema>) => {
-  const routeId = 'routeId' in params ? params.routeId : params.routeSlug
-
-  // Query the database to find the block with the given slug and areaId
-  const block = await db.query.blocks.findFirst({
-    where: and(eq(blocks.slug, params.blockSlug), eq(blocks.areaFk, params.areaId)),
+export const deleteRoute = async (params: DeleteRouteParams, db: PostgresJsDatabase<typeof schema>) => {
+  const route = await db.query.routes.findFirst({
+    where: (table, { eq }) => eq(table.id, params.routeId),
     with: {
-      routes: {
-        where: getRouteDbFilter(String(routeId)),
+      ascents: true,
+      externalResources: true,
+      files: true,
+      firstAscents: {
         with: {
-          ascents: true,
-          externalResources: true,
-          files: true,
-          firstAscents: {
-            with: {
-              firstAscensionist: true,
-            },
-          },
-          tags: true,
+          firstAscensionist: true,
         },
       },
+      tags: true,
     },
   })
 
-  // Get the first route from the block's routes
-  const route = block?.routes?.at(0)
-
-  // Return a 404 failure if the route is not found
-  if (route == null || !checkRegionPermission(params.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)) {
-    return fail(404, { error: `Route not found ${routeId}` })
+  if (route == null) {
+    error(404)
   }
 
-  // If no block is found, return a 400 error with a message
-  if (block == null) {
-    return fail(400, { error: `Parent not found ${params.blockSlug}` })
-  }
-
-  // Return a 400 failure if multiple routes with the same slug are found
-  if (block.routes.length > 1) {
-    return fail(400, { error: `Multiple routes with slug ${routeId} found` })
+  if (!checkRegionPermission(params.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)) {
+    error(401)
   }
 
   const references = await getReferences(route.id, 'routes')
   if (references.areas.length + references.ascents.length + references.routes.length > 0) {
-    return fail(400, { error: 'Route is referenced by other entities. Delete references first.' })
+    error(400, 'Route is referenced by other entities. Delete references first.')
   }
 
   await deleteFiles({ routeFk: route.id }, db)
@@ -160,8 +138,10 @@ export const deleteRoute = async (params: DeleteRouteParams & RouteId, db: Postg
     entityId: String(route.id),
     entityType: 'route',
     oldValue: route.name,
-    parentEntityId: String(block.id),
+    parentEntityId: String(route.blockFk),
     parentEntityType: 'block',
     regionFk: route.regionFk,
   })
+
+  return route
 }

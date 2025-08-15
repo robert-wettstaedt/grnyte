@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import { convertAreaSlug } from '$lib/helper'
+  import { convertAreaSlug, getRouteDbFilter } from '$lib/helper'
   import RoutePage from './RoutePage.svelte'
 
   let { areaId } = $derived(convertAreaSlug())
@@ -17,25 +17,20 @@
     query={page.data.z.current.query.blocks
       .where('slug', page.params.blockSlug)
       .where('areaFk', areaId)
-      .whereExists('routes', (q) =>
-        Number.isNaN(Number(page.params.routeSlug))
-          ? q.where('slug', page.params.routeSlug!)
-          : q.where('id', Number(page.params.routeSlug)),
-      )
-      .related('routes', (q) => {
-        let route = Number.isNaN(Number(page.params.routeSlug))
-          ? q.where('slug', page.params.routeSlug!)
-          : q.where('id', Number(page.params.routeSlug))
-
-        return route.related('tags')
-      })
+      .whereExists('routes', getRouteDbFilter)
+      .related('routes', (q) => getRouteDbFilter(q).related('tags'))
       .related('topos')
-      .one()}
+      .limit(1)}
   >
-    {#snippet children(_block)}
-      {#if _block}
-        {@const block = { ..._block, topos: [..._block.topos] }}
-        {@const route = { ..._block.routes[0], tags: [..._block.routes[0].tags] }}
+    {#snippet children([_block])}
+      {@const block = { ..._block, topos: [..._block.topos] }}
+      {@const route = { ..._block.routes[0], tags: [..._block.routes[0].tags] }}
+
+      {#if route == null}
+        <Error status={404} />
+      {:else if block.routes.length > 1}
+        <Error status={400} error={{ message: `Multiple routes with slug ${page.params.routeSlug} found` }} />
+      {:else}
         <RoutePage {block} {route} />
       {/if}
     {/snippet}

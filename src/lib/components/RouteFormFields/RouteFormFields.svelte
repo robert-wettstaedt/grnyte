@@ -12,6 +12,7 @@
     gradeFk: Row<'routes'>['gradeFk']
     name: Row<'routes'>['name']
     rating: Row<'routes'>['rating']
+    routeId?: Row<'routes'>['id']
     routeTags: string[]
   }
 
@@ -21,11 +22,13 @@
     gradeFk = $bindable(),
     name = $bindable(),
     rating = $bindable(),
+    routeId,
     routeTags,
   }: Props = $props()
 </script>
 
 <input type="hidden" name="blockId" value={blockId} />
+<input type="hidden" name="routeId" value={routeId} />
 
 <RouteNameFormField bind:value={name} />
 
