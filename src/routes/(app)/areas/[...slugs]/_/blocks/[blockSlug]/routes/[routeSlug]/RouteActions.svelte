@@ -1,19 +1,21 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
-  import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
+  import Logo27crags from '$lib/assets/27crags-logo.png'
+  import Logo8a from '$lib/assets/8a-logo.png'
+  import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { RowWithRelations } from '$lib/db/zero'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import type { Row, RowWithRelations } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { syncExternalResources } from './page.remote'
 
   interface Props {
     block: RowWithRelations<'blocks', { topos: true }>
     blockPath: string
+    route: Row<'routes'>
   }
 
-  const { block, blockPath }: Props = $props()
-
-  let syncing = $state(false)
+  const { block, blockPath, route }: Props = $props()
 </script>
 
 <a class="btn btn-sm preset-filled-primary-500" href={`${page.url.pathname}/ascents/add`}>
@@ -41,68 +43,66 @@
 {/if}
 
 {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)}
-  <form
-    class="leading-none"
-    method="POST"
-    action="?/syncExternalResources"
-    use:enhance={({}) => {
-      syncing = true
-
-      return ({ result }) => {
-        syncing = false
-
-        if (result.type === 'success') {
-          invalidateAll()
-        }
-      }
-    }}
+  <button
+    class="btn btn-sm preset-outlined-primary-500"
+    disabled={syncExternalResources.pending > 0}
+    onclick={() => route.id != null && syncExternalResources(route.id)}
   >
-    <button class="btn btn-sm preset-outlined-primary-500" disabled={syncing} type="submit">
-      {#if syncing}
-        <span class="me-2">
-          <ProgressRing size="size-sm" value={null} />
-        </span>
-      {:else}
-        <i class="fa-solid fa-sync"></i>
+    {#if syncExternalResources.pending > 0}
+      <ProgressRing size="size-4" value={null} />
+    {:else}
+      <i class="fa-solid fa-sync"></i>
+    {/if}
+
+    Sync external resources
+  </button>
+{/if}
+
+{#if route.id != null}
+  <ZeroQueryWrapper
+    query={page.data.z.current.query.routeExternalResources
+      .where('routeFk', route.id)
+      .related('externalResource27crags')
+      .related('externalResource8a')
+      .related('externalResourceTheCrag')
+      .one()}
+  >
+    {#snippet children(externalResources)}
+      {#if externalResources?.externalResource8a?.url != null}
+        <a
+          class="btn btn-sm preset-outlined-primary-500"
+          href={externalResources.externalResource8a.url}
+          target="_blank"
+        >
+          <img src={Logo8a} alt="8a" width={16} height={16} />
+
+          <span class="md:hidden"> Show on 8a.nu </span>
+        </a>
       {/if}
 
-      Sync external resources
-    </button>
-  </form>
+      {#if externalResources?.externalResource27crags?.url != null}
+        <a
+          class="btn btn-sm preset-outlined-primary-500"
+          href={externalResources.externalResource27crags.url}
+          target="_blank"
+        >
+          <img src={Logo27crags} alt="27crags" width={16} height={16} />
+
+          <span class="md:hidden"> Show on 27crags </span>
+        </a>
+      {/if}
+
+      {#if externalResources?.externalResourceTheCrag?.url != null}
+        <a
+          class="btn btn-sm preset-outlined-primary-500"
+          href={externalResources.externalResourceTheCrag.url}
+          target="_blank"
+        >
+          <img src={LogoTheCrag} alt="The Crag" width={16} height={16} />
+
+          <span class="md:hidden"> Show on theCrag </span>
+        </a>
+      {/if}
+    {/snippet}
+  </ZeroQueryWrapper>
 {/if}
-
-<!-- {#if route.externalResources?.externalResource8a?.url != null}
-  <a
-    class="btn btn-sm preset-outlined-primary-500"
-    href={route.externalResources.externalResource8a.url}
-    target="_blank"
-  >
-    <img src={Logo8a} alt="8a" width={16} height={16} />
-
-    <span class="md:hidden"> Show on 8a.nu </span>
-  </a>
-{/if}
-
-{#if route.externalResources?.externalResource27crags?.url != null}
-  <a
-    class="btn btn-sm preset-outlined-primary-500"
-    href={route.externalResources.externalResource27crags.url}
-    target="_blank"
-  >
-    <img src={Logo27crags} alt="27crags" width={16} height={16} />
-
-    <span class="md:hidden"> Show on 27crags </span>
-  </a>
-{/if}
-
-{#if route.externalResources?.externalResourceTheCrag?.url != null}
-  <a
-    class="btn btn-sm preset-outlined-primary-500"
-    href={route.externalResources.externalResourceTheCrag.url}
-    target="_blank"
-  >
-    <img src={LogoTheCrag} alt="The Crag" width={16} height={16} />
-
-    <span class="md:hidden"> Show on theCrag </span>
-  </a>
-{/if}-->

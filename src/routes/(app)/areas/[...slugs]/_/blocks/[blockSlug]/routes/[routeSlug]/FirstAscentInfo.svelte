@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import type { Row } from '$lib/db/zero'
   import { Popover } from '@skeletonlabs/skeleton-svelte'
+  import { claimFirstAscensionist, claimFirstAscent } from './page.remote'
 
   interface Props {
     route: Row<'routes'>
@@ -54,11 +54,16 @@
                     </article>
 
                     <footer class="flex justify-end">
-                      <form action="?/claimFirstAscensionist" method="POST" use:enhance>
-                        <input type="hidden" name="firstAscensionistFk" value={firstAscent.firstAscensionist?.id} />
-
-                        <button class="btn btn-sm preset-filled-primary-500 !text-white" type="submit"> Yes </button>
-                      </form>
+                      <button
+                        class="btn btn-sm preset-filled-primary-500 !text-white"
+                        onclick={() =>
+                          claimFirstAscensionist({
+                            firstAscensionistFk: firstAscent.firstAscensionist?.id,
+                            routeId: route.id,
+                          })}
+                      >
+                        Yes
+                      </button>
                     </footer>
                   {/snippet}
                 </Popover>
@@ -104,9 +109,12 @@
             </article>
 
             <footer class="flex justify-end">
-              <form action="?/claimFirstAscent" method="POST" use:enhance>
-                <button class="btn btn-sm preset-filled-primary-500 !text-white" type="submit"> Yes </button>
-              </form>
+              <button
+                class="btn btn-sm preset-filled-primary-500 !text-white"
+                onclick={() => route.id != null && claimFirstAscent(route.id)}
+              >
+                Yes
+              </button>
             </footer>
           {/snippet}
         </Popover>

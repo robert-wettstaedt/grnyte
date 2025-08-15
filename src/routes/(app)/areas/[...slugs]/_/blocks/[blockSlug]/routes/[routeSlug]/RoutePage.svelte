@@ -67,7 +67,7 @@
   {/snippet}
 
   {#snippet actions()}
-    <RouteActions {block} {blockPath} />
+    <RouteActions {block} {blockPath} {route} />
   {/snippet}
 
   {#snippet headline()}
