@@ -11,6 +11,7 @@
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
@@ -364,9 +365,7 @@
 
     {#if withFiles && activity.entity.type == 'ascent' && activity.entity.object != null && activity.type === 'created'}
       {#if activity.entity.object.notes != null && activity.entity.object.notes!.length > 0}
-        <div class="markdown-body preset-filled-surface-200-800 mt-4 p-4">
-          {@html activity.entity.object.notes}
-        </div>
+        <MarkdownRenderer markdown={activity.entity.object.notes} />
       {/if}
 
       {#if activity.entity.object.files.length > 0}
