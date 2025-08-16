@@ -8,13 +8,15 @@
   import { pageState } from '$lib/components/Layout'
   import MultiSelect from '$lib/components/MultiSelect'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import type { RowWithRelations } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import type { PageProps } from './$types'
   import { deleteFirstAscent, updateFirstAscent } from './page.remote'
 
   interface Props {
-    firstAscensionists: RowWithRelations<'firstAscensionists', { user: true }>[]
-    route: RowWithRelations<'routes', { firstAscents: true }>
+    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
+    firstAscensionists: ZeroQueryResult<PageProps['data']['faQuery']>
   }
 
   type FA = RowWithRelations<'routesToFirstAscensionists', { firstAscensionist: true }>

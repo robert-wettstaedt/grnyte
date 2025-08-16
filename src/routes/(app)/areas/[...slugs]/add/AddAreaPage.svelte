@@ -4,12 +4,13 @@
   import AppBar from '$lib/components/AppBar'
   import AreaFormFields from '$lib/components/AreaFormFields'
   import FormActionBar from '$lib/components/FormActionBar'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import type { PageProps } from './$types'
   import { createArea } from './page.remote'
 
   interface Props {
-    parent?: Row<'areas'>
+    parent?: ZeroQueryResult<PageProps['data']['query']>
   }
 
   let { parent }: Props = $props()

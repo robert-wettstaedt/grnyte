@@ -52,8 +52,15 @@ export async function digestMessage(message: string) {
   return hashHex
 }
 
+export const getRouteDbFilterRaw = (
+  params: Record<string, string | undefined>,
+  q: Query<Schema, 'routes'>,
+): Query<Schema, 'routes'> => {
+  return Number.isNaN(Number(params.routeSlug))
+    ? q.where('slug', params.routeSlug!)
+    : q.where('id', Number(params.routeSlug))
+}
+
 export const getRouteDbFilter = (q: Query<Schema, 'routes'>): Query<Schema, 'routes'> => {
-  return Number.isNaN(Number(page.params.routeSlug))
-    ? q.where('slug', page.params.routeSlug!)
-    : q.where('id', Number(page.params.routeSlug))
+  return getRouteDbFilterRaw(page.params, q)
 }

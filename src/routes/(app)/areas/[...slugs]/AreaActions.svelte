@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { convertAreaSlug } from '$lib/helper'
+  import type { PageProps } from './$types'
 
   let { canAddArea } = $derived(convertAreaSlug())
 
   interface Props {
-    area: Row<'areas'>
+    area: ZeroQueryResult<PageProps['data']['query']>
   }
 
   const { area }: Props = $props()

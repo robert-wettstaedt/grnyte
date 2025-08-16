@@ -9,11 +9,12 @@
   import { pageState } from '$lib/components/Layout'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import type { RowWithRelations } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import type { PageProps } from './$types'
   import { deleteRoute, updateRoute } from './page.remote'
 
   interface Props {
-    route: RowWithRelations<'routes', { tags: true }>
+    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
   }
 
   let { route }: Props = $props()

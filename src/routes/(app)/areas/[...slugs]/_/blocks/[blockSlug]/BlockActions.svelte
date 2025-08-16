@@ -1,10 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { RowWithRelations } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import type { PageProps } from './$types'
 
   interface Props {
-    block: RowWithRelations<'blocks', { topos: true }>
+    block: ZeroQueryResult<PageProps['data']['query']>
   }
 
   const { block }: Props = $props()

@@ -7,12 +7,13 @@
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import type { PageProps } from './$types'
   import { addFile } from './page.remote'
 
   interface Props {
-    route: Row<'routes'>
+    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
   }
 
   let { route }: Props = $props()

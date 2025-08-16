@@ -7,16 +7,16 @@
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
-  import { type WithPathname } from '$lib/db/utils.svelte'
-  import type { RowWithRelations } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
+  import type { PageProps } from './$types'
   import { deleteGeolocation, updateLocation } from './page.remote'
 
   interface Props {
-    block: WithPathname<RowWithRelations<'blocks', { area: true; geolocation: true }>>
+    block: ZeroQueryResult<PageProps['data']['query']>[0]
   }
 
   let { block }: Props = $props()

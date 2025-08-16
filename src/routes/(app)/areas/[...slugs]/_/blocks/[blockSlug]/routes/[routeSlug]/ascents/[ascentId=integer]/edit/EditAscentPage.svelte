@@ -9,12 +9,13 @@
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import type { RowWithRelations } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import type { PageProps } from './$types'
   import { deleteAscent, updateAscent } from './page.remote'
 
   interface Props {
-    ascent: RowWithRelations<'ascents', { author: true; route: true }>
+    ascent: ZeroQueryResult<PageProps['data']['query']>
   }
 
   let { ascent }: Props = $props()

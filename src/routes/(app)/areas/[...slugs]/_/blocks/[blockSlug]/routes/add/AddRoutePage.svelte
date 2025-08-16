@@ -4,13 +4,14 @@
   import AppBar from '$lib/components/AppBar'
   import FormActionBar from '$lib/components/FormActionBar'
   import RouteFormFields from '$lib/components/RouteFormFields'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import type { PageProps } from './$types'
   import { createRoute, createRouteAndReload } from './page.remote'
 
   interface Props {
-    block: Row<'blocks'>
+    block: ZeroQueryResult<PageProps['data']['query']>[0]
   }
 
   let { block }: Props = $props()

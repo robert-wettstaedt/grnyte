@@ -8,14 +8,15 @@
   import AreaList from '$lib/components/AreaList'
   import BlocksList from '$lib/components/BlocksList'
   import RouteList from '$lib/components/RouteList'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
+  import type { PageProps } from './$types'
   import AreaActions from './AreaActions.svelte'
   import AreaInfo from './AreaInfo.svelte'
 
   interface Props {
-    area: Row<'areas'>
+    area: ZeroQueryResult<PageProps['data']['query']>
   }
 
   const { area }: Props = $props()

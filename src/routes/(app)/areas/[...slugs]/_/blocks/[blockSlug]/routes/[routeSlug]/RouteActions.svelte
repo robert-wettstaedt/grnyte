@@ -4,15 +4,15 @@
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Row, RowWithRelations } from '$lib/db/zero'
+  import ZeroQueryWrapper, { type ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import type { PageProps } from './$types'
   import { syncExternalResources } from './page.remote'
 
   interface Props {
-    block: RowWithRelations<'blocks', { topos: true }>
+    block: ZeroQueryResult<PageProps['data']['query']>
     blockPath: string
-    route: Row<'routes'>
+    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
   }
 
   const { block, blockPath, route }: Props = $props()

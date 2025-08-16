@@ -5,12 +5,13 @@
   import BlockFormFields from '$lib/components/BlockFormFields'
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import type { PageProps } from './$types'
   import { createBlock } from './page.remote'
 
   interface Props {
-    area: Row<'areas'>
+    area: NonNullable<ZeroQueryResult<PageProps['data']['query']>[0]['area']>
     name: string
   }
 
