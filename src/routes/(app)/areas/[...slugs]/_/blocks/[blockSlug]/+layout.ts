@@ -13,7 +13,7 @@ export const load = (async ({ parent, params }) => {
   const blockQuery = z.current.query.blocks
     .where('areaFk', areaId)
     .where('slug', params.blockSlug)
-    .related('topos')
+    .related('topos', (q) => q.related('file'))
     .related('geolocation')
     .one()
 
