@@ -38,7 +38,8 @@ export const POST = async ({ request }) => {
   const regionFks = Array.from(new Set(activities.map((activity) => activity.regionFk)))
   const allGroups = await Promise.all(
     regionFks.map(async (regionFk) => {
-      const groups = groupActivities(activities)
+      const regionActivities = activities.filter((activity) => activity.regionFk === regionFk)
+      const groups = groupActivities(regionActivities)
       const notifications = await createNotifications(groups)
       await sendNotificationsToAllSubscriptions(notifications, db, undefined, regionFk)
       return groups
