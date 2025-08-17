@@ -7,6 +7,7 @@
   import { ActivityFeedLoader as ActivityFeed } from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
   import FileList from '$lib/components/FileList'
+  import { pageState } from '$lib/components/Layout'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { ReferencesLoader } from '$lib/components/References'
   import RouteGradeMap from '$lib/components/RouteGradeMap'
@@ -21,7 +22,7 @@
   const { block, route } = getRouteContext()
 
   let blockPath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
-  let grade = $derived(page.data.grades.find((grade) => grade.id === route.gradeFk))
+  let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
 
   type TabValue = 'info' | 'topo' | 'activity' | 'map'
   let tabValue: TabValue | undefined = $state(undefined)
@@ -51,7 +52,7 @@
   <title>
     {route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `}
     {route.name}
-    {grade == null ? '' : ` (${grade[page.data.gradingScale]})`}
+    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
@@ -102,7 +103,7 @@
           <Tabs.Panel value="topo">
             <TopoViewer blockId={block.id} initialRouteId={route.id ?? undefined}>
               {#snippet actions()}
-                {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
+                {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
                   <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/topos/draw`}>
                     <i class="fa-solid fa-pen"></i>
                   </a>

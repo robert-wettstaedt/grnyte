@@ -18,8 +18,8 @@
 </script>
 
 <script lang="ts">
-  import { page } from '$app/state'
   import type { GetBlockKey } from '$lib/components/BlocksMap'
+  import { pageState } from '$lib/components/Layout'
   import TopoViewer, { type TopoViewerProps } from '$lib/components/TopoViewer'
   import type { InferResultType } from '$lib/db/types'
   import type { EnrichedBlock } from '$lib/db/utils'
@@ -59,8 +59,8 @@
                 {route.name.length === 0 ? 'Unbekannt' : route.name}
 
                 {#if (route?.userGradeFk ?? route?.gradeFk) != null}
-                  {page.data.grades.find((grade) => grade.id === (route?.userGradeFk ?? route?.gradeFk))?.[
-                    page.data.gradingScale
+                  {pageState.grades.find((grade) => grade.id === (route?.userGradeFk ?? route?.gradeFk))?.[
+                    pageState.gradingScale
                   ]}
                 {/if}
 

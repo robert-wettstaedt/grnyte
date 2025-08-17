@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { Row } from '$lib/db/zero'
   import AreaTypeFormField from './components/AreaTypeFormField'
@@ -10,7 +10,7 @@
   let type = $state(rest.type ?? 'area')
   let description = $state(rest.description ?? '')
 
-  let adminRegions = $derived(page.data.userRegions.filter((region) => region.role === 'region_admin'))
+  let adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
 
 {#if id != null}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import { pageState } from '$lib/components/Layout'
   import { getAreaContext } from '$lib/contexts/area'
   import { convertAreaSlug } from '$lib/helper'
 
@@ -9,7 +10,7 @@
   const { area } = getAreaContext()
 </script>
 
-{#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
   <a class="btn btn-sm preset-outlined-primary-500" href="{page.url.pathname}/edit">
     <i class="fa-solid fa-pen w-4"></i>Edit area details
   </a>
@@ -33,7 +34,7 @@
   {/if}
 {/if}
 
-{#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk)}
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk)}
   {#if area.type === 'sector'}
     <a class="btn btn-sm preset-outlined-primary-500" href="{page.url.pathname}/export">
       <i class="fa-solid fa-file-export w-4"></i>Export PDF

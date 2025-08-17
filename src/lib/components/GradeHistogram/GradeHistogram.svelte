@@ -6,9 +6,9 @@
 </script>
 
 <script lang="ts">
-  import { page } from '$app/state'
   import Vega, { type VegaProps } from '$lib/components/Vega'
   import { getGradeColor } from '$lib/grades'
+  import { pageState } from '$lib/components/Layout'
 
   const { axes = true, data, ...rest }: GradeHistogramProps = $props()
 </script>
@@ -30,8 +30,8 @@
         legend: null,
         field: 'grade',
         scale: {
-          domain: [...page.data.grades.map((grade) => grade[page.data.gradingScale]), 'no grade'],
-          range: [...page.data.grades.map((grade) => getGradeColor(grade)), '#bcc0cc'],
+          domain: [...pageState.grades.map((grade) => grade[pageState.gradingScale]), 'no grade'],
+          range: [...pageState.grades.map((grade) => getGradeColor(grade)), '#bcc0cc'],
         },
       },
       x: {
@@ -43,7 +43,7 @@
           : null,
         field: 'grade',
         scale: {
-          domain: [...page.data.grades.map((grade) => grade[page.data.gradingScale]), 'no grade'],
+          domain: [...pageState.grades.map((grade) => grade[pageState.gradingScale]), 'no grade'],
         },
         type: 'nominal',
         title: 'Grade',

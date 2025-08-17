@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { getRouteContext } from '$lib/contexts/route'
   import { Popover } from '@skeletonlabs/skeleton-svelte'
@@ -23,13 +24,13 @@
         {#if firstAscent.firstAscensionist != null}
           {#if firstAscent.firstAscensionist.user == null}
             <span
-              class="flex justify-between gap-2 {page.data.user?.firstAscensionistFk == null ? 'w-full md:w-auto' : ''}"
+              class="flex justify-between gap-2 {pageState.user?.firstAscensionistFk == null ? 'w-full md:w-auto' : ''}"
             >
               <a class="anchor" href={`/users/${firstAscent.firstAscensionist.name}`}>
                 {firstAscent.firstAscensionist.name}
               </a>
 
-              {#if page.data.user?.firstAscensionistFk == null}
+              {#if pageState.user?.firstAscensionistFk == null}
                 <Popover
                   arrow
                   arrowBackground="!bg-surface-200 dark:!bg-surface-800"
@@ -87,7 +88,7 @@
         </span>
       {/if}
 
-      {#if firstAscents.length === 0 && page.data.user?.firstAscensionistFk != null}
+      {#if firstAscents.length === 0 && pageState.user?.firstAscensionistFk != null}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"

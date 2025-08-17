@@ -4,6 +4,7 @@
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { getRouteContext } from '$lib/contexts/route'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
@@ -22,7 +23,7 @@
   <i class="fa-solid fa-check w-4"></i>Log ascent
 </a>
 
-{#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
   <a class="btn btn-sm preset-outlined-primary-500" href={`${page.url.pathname}/edit`}>
     <i class="fa-solid fa-pen w-4"></i>Edit route details
   </a>
@@ -42,7 +43,7 @@
   </a>
 {/if}
 
-{#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)}
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)}
   <button
     class="btn btn-sm preset-outlined-primary-500"
     disabled={syncExternalResources.pending > 0}

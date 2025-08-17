@@ -1,6 +1,5 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
-  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import {
     APP_PERMISSION_ADMIN,
@@ -10,6 +9,7 @@
     REGION_PERMISSION_EDIT,
   } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
+  import { pageState } from '$lib/components/Layout'
   import { appRole, appRoleLabels } from '$lib/db/schema'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
@@ -19,8 +19,8 @@
   let baseUrl = $derived(`/settings/regions/${data.region.id}`)
 
   let isAdmin = $derived(
-    checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN]) ||
-      checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], data.region.id),
+    checkAppPermission(pageState.userPermissions, [APP_PERMISSION_ADMIN]) ||
+      checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], data.region.id),
   )
 
   const membersDifference = $derived(data.region.maxMembers - data.regionMembers.length)
@@ -58,7 +58,7 @@
               {formatRelative(new Date(data.region.createdAt), new Date(), { locale })}
             </td>
 
-            {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], data.region.id)}
+            {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], data.region.id)}
               <td>
                 <a href="{baseUrl}/edit" class="btn btn-sm preset-filled-primary-500"> Edit </a>
               </td>
@@ -114,7 +114,7 @@
               <td>Invitation pending</td>
 
               <td>
-                {#if isAdmin || regionInvitation.invitedBy.authUserFk === page.data.user?.authUserFk}
+                {#if isAdmin || regionInvitation.invitedBy.authUserFk === pageState.user?.authUserFk}
                   <Popover
                     arrow
                     arrowBackground="!bg-surface-200 dark:!bg-surface-800"

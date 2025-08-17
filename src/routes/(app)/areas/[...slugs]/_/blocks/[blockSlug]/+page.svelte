@@ -5,6 +5,7 @@
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
+  import { pageState } from '$lib/components/Layout'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore, TopoViewerLoader } from '$lib/components/TopoViewer'
   import { getBlockContext } from '$lib/contexts/block'
@@ -30,7 +31,7 @@
   }
 
   const hasActions = $derived(
-    checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], block?.regionFk) ||
+    checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block?.regionFk) ||
       (block != null && block.topos.length > 0),
   )
 </script>
@@ -83,7 +84,7 @@
                   <section class="relative w-full md:w-2/4" use:fitHeightAction>
                     <TopoViewer {topos} selectionBehavior="scroll">
                       {#snippet actions()}
-                        {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
+                        {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
                           <a
                             aria-label="Edit topo"
                             class="btn-icon preset-filled"

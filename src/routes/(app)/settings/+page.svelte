@@ -6,6 +6,7 @@
   import { calculateCacheSize, clearCache } from '$lib/cache/cache'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
+  import { pageState } from '$lib/components/Layout'
   import PushNotificationSubscriber, {
     isSubscribed,
     isSupported,
@@ -30,9 +31,9 @@
   let cacheSize = $state(0)
 
   $effect(() => {
-    notifyModerations = (form?.notifyModerations as boolean) ?? page.data.user?.userSettings?.notifyModerations ?? false
-    notifyNewAscents = (form?.notifyNewAscents as boolean) ?? page.data.user?.userSettings?.notifyNewAscents ?? false
-    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? page.data.user?.userSettings?.notifyNewUsers ?? false
+    notifyModerations = (form?.notifyModerations as boolean) ?? pageState.user?.userSettings?.notifyModerations ?? false
+    notifyNewAscents = (form?.notifyNewAscents as boolean) ?? pageState.user?.userSettings?.notifyNewAscents ?? false
+    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? pageState.user?.userSettings?.notifyNewUsers ?? false
   })
 
   onMount(async () => {
@@ -89,7 +90,7 @@
 
 <AppBar classes="mx-auto max-w-lg">
   {#snippet lead()}
-    Hello {page.data.user?.username ?? ''}
+    Hello {pageState.user?.username ?? ''}
   {/snippet}
 </AppBar>
 
@@ -106,7 +107,7 @@
 
           <select
             class="select w-24"
-            value={page.data.user?.userSettings?.gradingScale}
+            value={pageState.user?.userSettings?.gradingScale}
             onchange={async (event) => {
               const response = await fetch(`/api/users/settings?gradingScale=${event.currentTarget.value}`, {
                 method: 'POST',
@@ -134,7 +135,7 @@
         </button>
       </li>
 
-      {#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN])}
+      {#if checkAppPermission(pageState.userPermissions, [APP_PERMISSION_ADMIN])}
         <li class="border-surface-800 border-t">
           <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/tags">
             Manage tags
@@ -162,7 +163,7 @@
 
   <section class="w-full space-y-5">
     <ul>
-      {#each page.data.userRegions as region, index}
+      {#each pageState.userRegions as region, index}
         <li class={index === 0 ? '' : 'border-surface-800 border-t'}>
           <a
             class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2"
@@ -175,7 +176,7 @@
         </li>
       {/each}
 
-      <li class={page.data.userRegions.length === 0 ? '' : 'border-surface-800 border-t'}>
+      <li class={pageState.userRegions.length === 0 ? '' : 'border-surface-800 border-t'}>
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/regions/add">
           Create region
 

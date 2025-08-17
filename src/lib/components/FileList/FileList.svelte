@@ -3,6 +3,7 @@
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import { pageState } from '$lib/components/Layout'
 
   interface Props {
     entityId: number
@@ -42,7 +43,7 @@
                       {#each allFiles as file}
                         <FileViewer
                           {file}
-                          readOnly={!checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
+                          readOnly={!checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
                         />
                       {/each}
                     </dd>
@@ -61,7 +62,7 @@
             {#each files as file}
               <FileViewer
                 {file}
-                readOnly={!checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
+                readOnly={!checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
               />
             {/each}
           </dd>

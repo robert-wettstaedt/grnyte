@@ -7,6 +7,7 @@
   import AppBar from '$lib/components/AppBar'
   import AreaList from '$lib/components/AreaList'
   import BlocksList from '$lib/components/BlocksList'
+  import { pageState } from '$lib/components/Layout'
   import RouteList from '$lib/components/RouteList'
   import { getAreaContext } from '$lib/contexts/area'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
@@ -37,7 +38,7 @@
     goto(newUrl.toString(), { replaceState: true })
   }
 
-  const hasActions = $derived(checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk))
+  const hasActions = $derived(checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area?.regionFk))
 </script>
 
 <svelte:head>

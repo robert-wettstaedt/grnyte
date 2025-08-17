@@ -2,6 +2,14 @@
   import { page } from '$app/state'
   import { Query } from 'zero-svelte'
   import { pageState } from '../../page.svelte'
+  import type { Snippet } from 'svelte'
+  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+
+  interface Props {
+    children: Snippet
+  }
+
+  const { children }: Props = $props()
 
   const { current: grades } = $derived(new Query(page.data.z.current.query.grades))
 
@@ -80,4 +88,21 @@
   $effect(() => {
     pageState.userRegions = userRegions ?? []
   })
+
+  let isLoading = $derived(
+    (userResult != null && userResult.current == null && userResult.details.type !== 'complete') ||
+      (userRoleResult != null && userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
+      (userRegionsResult != null &&
+        userRegionsResult.current == null &&
+        userRegionsResult.details.type !== 'complete') ||
+      (permissionsResult != null && permissionsResult.current == null && permissionsResult.details.type !== 'complete'),
+  )
 </script>
+
+{#if isLoading}
+  <div class="fixed flex h-full w-full items-center justify-center">
+    <ProgressRing value={null} />
+  </div>
+{:else}
+  {@render children?.()}
+{/if}

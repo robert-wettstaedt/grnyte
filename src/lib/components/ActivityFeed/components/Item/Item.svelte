@@ -8,9 +8,9 @@
 </script>
 
 <script lang="ts">
-  import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
+  import { pageState } from '$lib/components/Layout'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
@@ -232,7 +232,7 @@
             {/if}
 
             {#if activity.entity.type === 'ascent' && activity.entity.object != null}
-              {#if activity.entity.object.createdBy === page.data.user?.id}
+              {#if activity.entity.object.createdBy === pageState.user?.id}
                 their own
               {:else if activity.entity.object.author != null}
                 <a class="anchor" href={`/users/${activity.entity.object.author.authUserFk}`}>
@@ -343,7 +343,7 @@
         {formatRelative(new Date(activity.createdAt), new Date(), { locale })}
       {/if}
 
-      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (page.data.session?.user?.id === activity.entity.object?.author?.authUserFk || checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
+      {#if activity.entity.type === 'ascent' && activity.type === 'created' && (pageState.user?.id === activity.entity.object?.author?.id || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
         <a
           aria-label="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
@@ -379,8 +379,8 @@
             <FileViewer
               {file}
               readOnly={!(
-                checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
-                activity.entity.object.createdBy === page.data.user?.id
+                checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
+                activity.entity.object.createdBy === pageState.user?.id
               )}
               onDelete={() => {
                 if (activity.entity.type == 'ascent' && activity.entity.object != null) {

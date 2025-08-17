@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import type { Route } from '$lib/db/schema'
   import { Modal } from '@skeletonlabs/skeleton-svelte'
+  import { pageState } from '$lib/components/Layout'
 
   interface Props {
     value: Route['gradeFk']
@@ -65,8 +65,8 @@
     <select bind:value={grade} class="select" onchange={(event) => (value = Number(event.currentTarget.value))}>
       <option disabled value="">-- Select grade --</option>
 
-      {#each page.data.grades as grade}
-        <option value={grade.id}>{grade[page.data.gradingScale]}</option>
+      {#each pageState.grades as grade}
+        <option value={grade.id}>{grade[pageState.gradingScale]}</option>
       {/each}
     </select>
 

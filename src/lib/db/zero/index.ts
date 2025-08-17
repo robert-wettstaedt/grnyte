@@ -2,12 +2,11 @@ import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { schema, type Schema } from '$lib/db/zero/zero-schema'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
-import type { User } from '../schema'
 
 export * from './types'
 export * from './zero-schema'
 
-export function initZero(session: Session | undefined | null, user: User | undefined | null) {
+export function initZero(session: Session | undefined | null) {
   const z = new Z<Schema>({
     auth: session?.access_token,
     userID: session?.user.id ?? 'anon',
@@ -16,7 +15,7 @@ export function initZero(session: Session | undefined | null, user: User | undef
     // mutators: createMutators({ sub: session.user.id }),
   })
 
-  if (user != null) {
+  if (session != null) {
     Promise.all([
       z.current.query.areas.preload().complete,
       z.current.query.blocks.preload().complete,
@@ -25,7 +24,7 @@ export function initZero(session: Session | undefined | null, user: User | undef
       z.current.query.grades.preload().complete,
       z.current.query.regions.preload().complete,
       z.current.query.rolePermissions.preload().complete,
-      z.current.query.routes.related('ascents', (q) => q.where('createdBy', user.id)).preload().complete,
+      z.current.query.routes.preload().complete,
       z.current.query.routesToFirstAscensionists.preload().complete,
       z.current.query.routesToTags.preload().complete,
       z.current.query.tags.preload().complete,

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import type { Row } from '$lib/db/zero'
+  import { pageState } from '$lib/components/Layout'
   import CorrectedGrade from './components/CorrectedGrade'
 
   interface Props {
@@ -12,7 +12,7 @@
 
   const send = $derived(
     ascents
-      ?.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
+      ?.filter((ascent) => String(ascent.createdBy) === String(pageState.user!.id))
       .find((ascent) => ascent.type === 'send'),
   )
 </script>

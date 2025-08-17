@@ -6,8 +6,6 @@ export const load = (async ({ parent, params }) => {
   const { areaId } = convertAreaSlugRaw(params)
   const { z } = await parent()
 
-  console.log(areaId)
-
   if (areaId == null) {
     error(404)
   }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import type { Row } from '$lib/db/zero'
   import { validateObject } from '$lib/forms/validate.svelte'
@@ -41,8 +42,8 @@
       })
       .orderBy('createdAt', 'desc')
 
-    if (searchParams.user === 'me' && page.data.user != null) {
-      query = query.where('userFk', page.data.user.id)
+    if (searchParams.user === 'me' && pageState.user?.id != null) {
+      query = query.where('userFk', pageState.user.id)
     }
 
     if (searchParams.type === 'ascents') {
