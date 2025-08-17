@@ -1,14 +1,9 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
-  import type { PageProps } from './$types'
+  import { getBlockContext } from '$lib/contexts/block'
 
-  interface Props {
-    block: ZeroQueryResult<PageProps['data']['query']>
-  }
-
-  const { block }: Props = $props()
+  const { block } = getBlockContext()
 </script>
 
 {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}

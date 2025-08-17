@@ -1,17 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getAreaContext } from '$lib/contexts/area'
   import { convertAreaSlug } from '$lib/helper'
-  import type { PageProps } from './$types'
 
   let { canAddArea } = $derived(convertAreaSlug())
 
-  interface Props {
-    area: ZeroQueryResult<PageProps['data']['query']>
-  }
-
-  const { area }: Props = $props()
+  const { area } = getAreaContext()
 </script>
 
 {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}

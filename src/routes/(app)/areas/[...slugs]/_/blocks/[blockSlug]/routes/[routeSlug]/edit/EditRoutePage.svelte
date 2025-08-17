@@ -9,15 +9,11 @@
   import { pageState } from '$lib/components/Layout'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
-  import type { PageProps } from './$types'
+  import { getRouteContext } from '$lib/contexts/route'
   import { deleteRoute, updateRoute } from './page.remote'
 
-  interface Props {
-    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
-  }
+  const { route } = getRouteContext()
 
-  let { route }: Props = $props()
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )

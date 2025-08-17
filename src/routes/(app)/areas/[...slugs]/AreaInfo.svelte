@@ -2,14 +2,9 @@
   import AreaStats from '$lib/components/AreaStats'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { ReferencesLoader } from '$lib/components/References'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
-  import type { PageProps } from './$types'
+  import { getAreaContext } from '$lib/contexts/area'
 
-  interface Props {
-    area: ZeroQueryResult<PageProps['data']['query']>
-  }
-
-  const { area }: Props = $props()
+  const { area } = getAreaContext()
 </script>
 
 <dl>

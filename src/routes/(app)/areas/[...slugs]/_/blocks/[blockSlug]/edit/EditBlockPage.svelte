@@ -6,17 +6,13 @@
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getBlockContext } from '$lib/contexts/block'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
-  import type { PageProps } from './$types'
   import { deleteBlock, updateBlock } from './page.remote'
 
-  interface Props {
-    block: ZeroQueryResult<PageProps['data']['query']>[0]
-  }
+  const { block } = getBlockContext()
 
-  let { block }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 </script>
 

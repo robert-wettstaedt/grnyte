@@ -7,19 +7,15 @@
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
-  import type { PageProps } from './$types'
   import { deleteParkingLocation, updateParkingLocation } from './page.remote'
 
-  interface Props {
-    area: ZeroQueryResult<PageProps['data']['query']>
-  }
+  const { area } = getAreaContext()
 
-  let { area }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let coordinate: Coordinate | null = $state(null)

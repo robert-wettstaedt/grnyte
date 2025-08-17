@@ -10,7 +10,12 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const query = z.current.query.areas.where('id', areaId).one()
+  const query = z.current.query.routes
+    .where('areaIds', 'ILIKE', `%^${areaId}$%`)
+    .related('block')
+    .related('externalResources', (q) =>
+      q.related('externalResource27crags').related('externalResource8a').related('externalResourceTheCrag'),
+    )
 
   return { query }
 }) satisfies PageLoad

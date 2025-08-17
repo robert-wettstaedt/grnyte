@@ -1,6 +1,6 @@
 import { convertAreaSlugRaw, getRouteDbFilterRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
-import type { PageLoad } from './$types'
+import type { LayoutLoad } from './$types'
 
 export const load = (async ({ parent, params }) => {
   const { areaId } = convertAreaSlugRaw(params)
@@ -10,12 +10,13 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const query = z.current.query.blocks
+  const routeQuery = z.current.query.blocks
     .where('slug', params.blockSlug)
     .where('areaFk', areaId)
     .whereExists('routes', (q) => getRouteDbFilterRaw(params, q))
-    .related('routes', (q) => getRouteDbFilterRaw(params, q))
+    .related('routes', (q) => getRouteDbFilterRaw(params, q).related('tags'))
+    .related('topos')
     .one()
 
-  return { query }
-}) satisfies PageLoad
+  return { routeQuery }
+}) satisfies LayoutLoad

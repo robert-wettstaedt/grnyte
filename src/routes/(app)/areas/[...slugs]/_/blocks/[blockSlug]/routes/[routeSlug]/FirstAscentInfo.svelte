@@ -1,15 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import ZeroQueryWrapper, { type ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import { getRouteContext } from '$lib/contexts/route'
   import { Popover } from '@skeletonlabs/skeleton-svelte'
-  import type { PageProps } from './$types'
   import { claimFirstAscensionist, claimFirstAscent } from './page.remote'
 
-  interface Props {
-    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
-  }
-
-  const { route }: Props = $props()
+  const { route } = getRouteContext()
 </script>
 
 <ZeroQueryWrapper

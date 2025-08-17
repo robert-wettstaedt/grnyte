@@ -4,17 +4,13 @@
   import AppBar from '$lib/components/AppBar'
   import FormActionBar from '$lib/components/FormActionBar'
   import RouteFormFields from '$lib/components/RouteFormFields'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getBlockContext } from '$lib/contexts/block'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import type { PageProps } from './$types'
   import { createRoute, createRouteAndReload } from './page.remote'
 
-  interface Props {
-    block: ZeroQueryResult<PageProps['data']['query']>[0]
-  }
+  const { block } = getBlockContext()
 
-  let { block }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
   const pending = $derived(createRoute.pending + createRouteAndReload.pending)
 </script>
