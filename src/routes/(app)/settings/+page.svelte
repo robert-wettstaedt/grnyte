@@ -3,7 +3,6 @@
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
-  import { calculateCacheSize, clearCache } from '$lib/cache/cache'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
   import { pageState } from '$lib/components/Layout'
@@ -28,8 +27,6 @@
   let notifyNewAscents = $state(false)
   let notifyNewUsers = $state(false)
 
-  let cacheSize = $state(0)
-
   $effect(() => {
     notifyModerations = (form?.notifyModerations as boolean) ?? pageState.user?.userSettings?.notifyModerations ?? false
     notifyNewAscents = (form?.notifyNewAscents as boolean) ?? pageState.user?.userSettings?.notifyNewAscents ?? false
@@ -38,7 +35,6 @@
 
   onMount(async () => {
     isPushSubscribed = await isSubscribed()
-    cacheSize = await calculateCacheSize()
   })
 
   const onSignout = async () => {
@@ -49,42 +45,6 @@
     }
 
     await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
-  }
-
-  /**
-   * Format bytes as human-readable text.
-   *
-   * @param bytes Number of bytes.
-   * @param si True to use metric (SI) units, aka powers of 1000. False to use
-   *           binary (IEC), aka powers of 1024.
-   * @param dp Number of decimal places to display.
-   *
-   * @return Formatted string.
-   */
-  function humanFileSize(bytes: number, si = false, dp = 1) {
-    const thresh = si ? 1000 : 1024
-
-    if (Math.abs(bytes) < thresh) {
-      return bytes + ' B'
-    }
-
-    const units = si
-      ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-      : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-    let u = -1
-    const r = 10 ** dp
-
-    do {
-      bytes /= thresh
-      ++u
-    } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1)
-
-    return bytes.toFixed(dp) + ' ' + units[u]
-  }
-
-  const onClearCache = async () => {
-    await clearCache()
-    cacheSize = await calculateCacheSize()
   }
 </script>
 
@@ -122,17 +82,6 @@
             <option value="V">V</option>
           </select>
         </div>
-      </li>
-
-      <li class="border-surface-800 border-t">
-        <button
-          class="hover:preset-tonal-primary flex w-full items-center justify-between gap-4 p-2"
-          onclick={onClearCache}
-        >
-          <span>Clear app cache</span>
-
-          <span class="text-sm opacity-60">{humanFileSize(cacheSize, true)}</span>
-        </button>
       </li>
 
       {#if checkAppPermission(pageState.userPermissions, [APP_PERMISSION_ADMIN])}

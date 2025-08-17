@@ -3,12 +3,7 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
 
-import { ExpirationPlugin } from 'workbox-expiration'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
-import { CacheFirst } from 'workbox-strategies'
-import { getFromCache, invalidateCache, setInCache } from './lib/cache/cache'
-import { config } from './lib/config'
 import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
@@ -26,46 +21,6 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 // clean old assets
 cleanupOutdatedCaches()
-
-registerRoute(
-  ({ url }) => url.pathname === '/api/blocks',
-  async ({ request, event }) => {
-    try {
-      const response = await fetch('/api/blocks/hash')
-      if (!response.ok || response.status >= 400) {
-        throw new Error('')
-      }
-
-      const nextBlockHistoryHash = await response.text()
-      if (nextBlockHistoryHash == null) {
-        throw new Error('')
-      }
-
-      const prevBlockHistoryHash = await getFromCache<string>(config.cache.keys.layoutBlocksHash)
-      const useBlocksCache = prevBlockHistoryHash === nextBlockHistoryHash
-      console.log('Block histories are the same:', useBlocksCache, prevBlockHistoryHash, nextBlockHistoryHash)
-
-      if (!useBlocksCache) {
-        console.log('Clearing blocks API cache due to history change')
-        await invalidateCache(config.cache.keys.layoutBlocks)
-      }
-
-      await setInCache(config.cache.keys.layoutBlocksHash, nextBlockHistoryHash)
-    } catch (error) {
-      await invalidateCache(config.cache.keys.layoutBlocksHash)
-    }
-
-    return new CacheFirst({
-      cacheName: config.cache.keys.layoutBlocks,
-      plugins: [
-        new ExpirationPlugin({
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 1 month
-          maxEntries: 10,
-        }),
-      ],
-    }).handle({ request, event })
-  },
-)
 
 // Handle push events for notifications
 self.addEventListener('push', (event) => {
