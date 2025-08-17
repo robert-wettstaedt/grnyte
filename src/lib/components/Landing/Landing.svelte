@@ -45,7 +45,7 @@
 </script>
 
 <!-- Hero Section -->
-<section class="relative flex min-h-[calc(100vh-1rem-48px)] items-center md:min-h-[calc(100vh-2rem-48px)]">
+<section class="relative z-0 flex min-h-[calc(100vh-1rem-48px)] items-center md:min-h-[calc(100vh-2rem-48px)]">
   <div class="absolute inset-[-0.5rem] -z-10 overflow-hidden blur-sm brightness-50 md:inset-[-1rem]">
     <video class="min-h-full min-w-full object-cover" autoplay loop muted>
       <source
