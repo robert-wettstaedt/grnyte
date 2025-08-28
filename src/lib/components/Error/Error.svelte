@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { afterNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
   interface Props {
     error?: App.Error | null
+    reset?: () => void
     status?: number | null
   }
 
@@ -25,7 +27,9 @@
     return 'An unexpected error occurred'
   })
 
-  const { error = page.error, status = page.status }: Props = $props()
+  const { error = page.error, reset, status = page.status }: Props = $props()
+
+  afterNavigate(() => reset?.())
 </script>
 
 <svelte:head>

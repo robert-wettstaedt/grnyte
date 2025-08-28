@@ -132,7 +132,7 @@
             class="absolute top-4 right-4 z-50 bg-black/50 p-1 text-xs text-white"
             style="print-color-adjust: exact !important"
           >
-            <i class="fa-solid fa-location-dot"></i>
+            <!-- <i class="fa-solid fa-location-dot"></i> -->
             {block.geolocation.lat.toFixed(5)}, {block.geolocation.long.toFixed(5)}
           </p>
         {/if}

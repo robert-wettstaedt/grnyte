@@ -10,8 +10,10 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import Breadcrumb from '$lib/components/Breadcrumb'
+  import Error from '$lib/components/Error'
   import NavTiles from '$lib/components/NavTiles'
-  import { toaster } from '$lib/components/Toaster/Toaster'
+  import { toaster } from '$lib/components/Toaster'
+  import { convertException } from '$lib/errors'
   import { formState } from '$lib/forms/enhance.svelte'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
@@ -95,7 +97,13 @@
         </aside>
       {/if}
 
-      {@render children?.()}
+      <svelte:boundary>
+        {#snippet failed(exception, reset)}
+          <Error {reset} error={{ message: convertException(exception) }} status={400} />
+        {/snippet}
+
+        {@render children?.()}
+      </svelte:boundary>
     </main>
 
     <!-- Footer - only show for logged-out users or on certain pages -->
@@ -108,7 +116,7 @@
         <NavTiles />
       </Navigation.Bar>
 
-      <Navigation.Rail base="hidden md:block fixed top-[48px] h-screen">
+      <Navigation.Rail base="fixed top-[48px] hidden h-screen md:block">
         {#snippet tiles()}
           <NavTiles />
         {/snippet}

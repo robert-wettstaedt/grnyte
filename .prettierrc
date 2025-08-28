@@ -4,5 +4,6 @@
   "singleQuote": true,
 
   "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
-  "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
+  "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }],
+  "tailwindAttributes": ["arrowBackground", "base", "contentBase", "triggerBase"]
 }
