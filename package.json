@@ -40,7 +40,7 @@
     "@paralleldrive/cuid2": "^2.2.2",
     "@prgm/sveltekit-progress-bar": "^3.0.2",
     "@rocicorp/zero": "^0.21.2025070200",
-    "@supabase/ssr": "^0.6.0",
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.46.2",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
