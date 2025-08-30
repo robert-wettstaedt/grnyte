@@ -19,9 +19,10 @@ export const deleteAscent = command(z.number(), (id) => enhance(id, deleteAscent
 
 const updateAscentAction: Action<EditAscentActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
+  const { ascentId, bunnyVideoIds, filePaths, folderName, ...entity } = values
 
   const ascent = await db.query.ascents.findFirst({
-    where: (table, { eq }) => eq(table.id, values.ascentId),
+    where: (table, { eq }) => eq(table.id, ascentId),
     with: {
       author: true,
       route: true,
@@ -41,10 +42,8 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
 
   await db
     .update(ascents)
-    .set({ ...values, routeFk: ascent.route.id })
+    .set({ ...entity, routeFk: ascent.route.id })
     .where(eq(ascents.id, ascent.id))
-
-  const { folderName, ...rest } = values
 
   await updateRoutesUserData(ascent.route.id, db)
 
@@ -53,7 +52,7 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
       db,
       entityId: String(ascent.id),
       entityType: 'ascent',
-      newEntity: rest,
+      newEntity: entity,
       oldEntity: ascent,
       userFk: user.id,
       parentEntityId: String(ascent.route.id),
@@ -62,15 +61,15 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
     })
   }
 
-  if (values.folderName != null) {
+  if (folderName != null) {
     const dstFolder = `${config.files.folders.userContent}/${user.id}`
     const createdFiles = await handleFileUpload(
       db,
       locals.supabase,
-      values.folderName!,
+      folderName!,
       dstFolder,
       { ascentFk: ascent.id, regionFk: ascent.regionFk },
-      values.bunnyVideoIds,
+      bunnyVideoIds,
     )
 
     await Promise.all(

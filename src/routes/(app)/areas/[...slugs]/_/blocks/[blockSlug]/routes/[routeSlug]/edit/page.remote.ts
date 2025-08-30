@@ -2,6 +2,9 @@ import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createUpdateActivity } from '$lib/components/ActivityFeedLegacy/load.server'
 import { generateSlug, routes, routesToTags } from '$lib/db/schema'
+import { buildNestedAreaQuery } from '$lib/db/utils'
+import { routeWithPathname } from '$lib/db/utils.svelte'
+import type { RowWithRelations } from '$lib/db/zero'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { routeActionSchema } from '$lib/forms/schemas'
 import { deleteRoute as deleteRouteHelper, updateRoutesUserData } from '$lib/routes.server'
@@ -15,14 +18,13 @@ export const deleteRoute = command(z.number(), (id) => enhance(id, deleteRouteAc
 
 const updateRouteAction: Action<EditRouteActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
+  const { blockId, routeId, redirect, tags, ...entity } = values
 
   const route = await db.query.routes.findFirst({
-    where: (table, { eq }) => eq(table.id, values.routeId),
+    where: (table, { eq }) => eq(table.id, routeId),
     with: {
       block: {
-        columns: {
-          name: true,
-        },
+        with: { area: buildNestedAreaQuery() },
       },
       tags: true,
     },
@@ -37,7 +39,7 @@ const updateRouteAction: Action<EditRouteActionValues> = async (values, db, user
   }
 
   // Generate a slug from the route name
-  const slug = generateSlug(values.name)
+  const slug = generateSlug(entity.name)
 
   if (slug != route.slug && slug.length > 0) {
     // Query the database to check if a route with the same slug already exists in the block
@@ -52,12 +54,10 @@ const updateRouteAction: Action<EditRouteActionValues> = async (values, db, user
     }
   }
 
-  const { tags, ...rest } = values
-
   // Update the route in the database with the validated values
   await db
     .update(routes)
-    .set({ ...rest, slug })
+    .set({ ...entity, slug })
     .where(eq(routes.id, route.id))
 
   // Delete existing route-to-tag associations for the route
@@ -78,7 +78,7 @@ const updateRouteAction: Action<EditRouteActionValues> = async (values, db, user
     db,
     entityId: String(route.id),
     entityType: 'route',
-    newEntity: values,
+    newEntity: entity,
     oldEntity: oldRoute,
     userFk: user.id,
     parentEntityId: String(route.blockFk),
@@ -86,7 +86,10 @@ const updateRouteAction: Action<EditRouteActionValues> = async (values, db, user
     regionFk: route.regionFk,
   })
 
-  return values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'routes', route.id].join('/')
+  const nested = { ...route, slug } as unknown as RowWithRelations<'routes', { block: true }>
+  const { pathname } = routeWithPathname(nested) ?? {}
+
+  return redirect != null && redirect.length > 0 ? redirect : pathname
 }
 
 const deleteRouteAction: Action<number> = async (routeId, db, user) => {

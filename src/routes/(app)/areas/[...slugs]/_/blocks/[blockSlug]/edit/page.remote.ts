@@ -19,9 +19,10 @@ export const deleteBlock = command(z.number(), (id) => enhance(id, deleteBlockAc
 
 const updateBlockAction: Action<EditBlockActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
+  const { blockId, bunnyVideoIds, folderName, ...entity } = values
 
   const block = await db.query.blocks.findFirst({
-    where: (table, { eq }) => eq(table.id, values.blockId),
+    where: (table, { eq }) => eq(table.id, blockId),
     with: { area: buildNestedAreaQuery() },
   })
 
@@ -33,7 +34,7 @@ const updateBlockAction: Action<EditBlockActionValues> = async (values, db, user
     error(401)
   }
 
-  const slug = generateSlug(values.name)
+  const slug = generateSlug(entity.name)
 
   // Check if a block with the same slug already exists in the area
   const existingBlocksResult = await db.query.blocks.findFirst({
@@ -48,14 +49,14 @@ const updateBlockAction: Action<EditBlockActionValues> = async (values, db, user
   // Update the block in the database with the validated values
   await db
     .update(blocks)
-    .set({ ...values, slug })
+    .set({ ...entity, slug })
     .where(eq(blocks.id, block.id))
 
   await createUpdateActivity({
     db,
     entityId: String(block.id),
     entityType: 'block',
-    newEntity: values,
+    newEntity: entity,
     oldEntity: block,
     userFk: user.id,
     parentEntityId: String(block.areaFk),
