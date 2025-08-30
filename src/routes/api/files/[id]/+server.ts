@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_ADMIN, type RegionPermission } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { deleteFiles } from '$lib/helper.server'

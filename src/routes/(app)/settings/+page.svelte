@@ -3,9 +3,9 @@
   import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
-  import { calculateCacheSize, clearCache } from '$lib/cache/cache'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
   import AppBar from '$lib/components/AppBar'
+  import { pageState } from '$lib/components/Layout'
   import PushNotificationSubscriber, {
     isSubscribed,
     isSupported,
@@ -27,17 +27,14 @@
   let notifyNewAscents = $state(false)
   let notifyNewUsers = $state(false)
 
-  let cacheSize = $state(0)
-
   $effect(() => {
-    notifyModerations = (form?.notifyModerations as boolean) ?? page.data.user?.userSettings?.notifyModerations ?? false
-    notifyNewAscents = (form?.notifyNewAscents as boolean) ?? page.data.user?.userSettings?.notifyNewAscents ?? false
-    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? page.data.user?.userSettings?.notifyNewUsers ?? false
+    notifyModerations = (form?.notifyModerations as boolean) ?? pageState.user?.userSettings?.notifyModerations ?? false
+    notifyNewAscents = (form?.notifyNewAscents as boolean) ?? pageState.user?.userSettings?.notifyNewAscents ?? false
+    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? pageState.user?.userSettings?.notifyNewUsers ?? false
   })
 
   onMount(async () => {
     isPushSubscribed = await isSubscribed()
-    cacheSize = await calculateCacheSize()
   })
 
   const onSignout = async () => {
@@ -49,47 +46,11 @@
 
     await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
   }
-
-  /**
-   * Format bytes as human-readable text.
-   *
-   * @param bytes Number of bytes.
-   * @param si True to use metric (SI) units, aka powers of 1000. False to use
-   *           binary (IEC), aka powers of 1024.
-   * @param dp Number of decimal places to display.
-   *
-   * @return Formatted string.
-   */
-  function humanFileSize(bytes: number, si = false, dp = 1) {
-    const thresh = si ? 1000 : 1024
-
-    if (Math.abs(bytes) < thresh) {
-      return bytes + ' B'
-    }
-
-    const units = si
-      ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-      : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-    let u = -1
-    const r = 10 ** dp
-
-    do {
-      bytes /= thresh
-      ++u
-    } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1)
-
-    return bytes.toFixed(dp) + ' ' + units[u]
-  }
-
-  const onClearCache = async () => {
-    await clearCache()
-    cacheSize = await calculateCacheSize()
-  }
 </script>
 
 <AppBar classes="mx-auto max-w-lg">
   {#snippet lead()}
-    Hello {page.data.user?.username ?? ''}
+    Hello {pageState.user?.username ?? ''}
   {/snippet}
 </AppBar>
 
@@ -106,7 +67,7 @@
 
           <select
             class="select w-24"
-            value={page.data.user?.userSettings?.gradingScale}
+            value={pageState.user?.userSettings?.gradingScale}
             onchange={async (event) => {
               const response = await fetch(`/api/users/settings?gradingScale=${event.currentTarget.value}`, {
                 method: 'POST',
@@ -123,18 +84,7 @@
         </div>
       </li>
 
-      <li class="border-surface-800 border-t">
-        <button
-          class="hover:preset-tonal-primary flex w-full items-center justify-between gap-4 p-2"
-          onclick={onClearCache}
-        >
-          <span>Clear app cache</span>
-
-          <span class="text-sm opacity-60">{humanFileSize(cacheSize, true)}</span>
-        </button>
-      </li>
-
-      {#if checkAppPermission(page.data.userPermissions, [APP_PERMISSION_ADMIN])}
+      {#if checkAppPermission(pageState.userPermissions, [APP_PERMISSION_ADMIN])}
         <li class="border-surface-800 border-t">
           <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/tags">
             Manage tags
@@ -162,7 +112,7 @@
 
   <section class="w-full space-y-5">
     <ul>
-      {#each page.data.userRegions as region, index}
+      {#each pageState.userRegions as region, index}
         <li class={index === 0 ? '' : 'border-surface-800 border-t'}>
           <a
             class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2"
@@ -175,7 +125,7 @@
         </li>
       {/each}
 
-      <li class={page.data.userRegions.length === 0 ? '' : 'border-surface-800 border-t'}>
+      <li class={pageState.userRegions.length === 0 ? '' : 'border-surface-800 border-t'}>
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/regions/add">
           Create region
 

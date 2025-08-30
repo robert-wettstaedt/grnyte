@@ -24,6 +24,7 @@ export const load = (async ({ locals }) => {
       tags,
     }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

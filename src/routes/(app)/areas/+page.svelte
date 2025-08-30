@@ -5,6 +5,7 @@
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import AreaList from '$lib/components/AreaList'
+  import { pageState } from '$lib/components/Layout'
   import RouteList from '$lib/components/RouteList'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
@@ -26,8 +27,8 @@
   }
 
   let hasActions = $derived(
-    page.data.userRegions.some((region) =>
-      checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], region.regionFk),
+    pageState.userRegions.some((region) =>
+      checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], region.regionFk),
     ),
   )
 </script>

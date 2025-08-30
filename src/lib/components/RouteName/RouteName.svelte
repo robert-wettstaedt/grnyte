@@ -1,25 +1,30 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'
   import type { RowWithRelations } from '$lib/db/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
+  import { pageState } from '$lib/components/Layout'
+  import type { InferResultType } from '$lib/db/types'
+
+  type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
   interface Props {
     classes?: string
-    route: RowWithRelations<'routes', { ascents: true }>
+    route:
+      | RowWithRelations<'routes', { ascents: true }>
+      | (Omit<RouteWithAscents, 'ascents'> & Partial<Pick<RouteWithAscents, 'ascents'>>)
   }
 
   let { classes, route }: Props = $props()
 
   const lastAscent = $derived.by(() => {
-    if (route?.ascents == null || page.data.user == null) {
+    if (route?.ascents == null || pageState.user == null) {
       return null
     }
 
-    const ascents = route.ascents.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
+    const ascents = route.ascents.filter((ascent) => String(ascent.createdBy) === String(pageState.user!.id))
 
     const priorityAscents: Ascent['type'][] = ['repeat', 'flash', 'send', 'attempt']
 

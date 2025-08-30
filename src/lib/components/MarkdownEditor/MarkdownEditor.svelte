@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import * as schema from '$lib/db/schema'
   import { convertMarkdownToHtml } from '$lib/markdown'
   import type { SearchedResources, SearchResults } from '$lib/search.server'
@@ -12,6 +11,7 @@
   import debounce from 'lodash.debounce'
   import memoize from 'lodash.memoize'
   import { onDestroy, onMount } from 'svelte'
+  import { pageState } from '$lib/components/Layout'
 
   interface Props {
     value: string | null
@@ -47,7 +47,7 @@
       route.name.length === 0 ? '?' : route.name,
       route.gradeFk == null
         ? null
-        : page.data.grades.find((grade) => grade.id === route.gradeFk)?.[page.data.gradingScale],
+        : pageState.grades.find((grade) => grade.id === route.gradeFk)?.[pageState.gradingScale],
       route.rating == null ? null : new Array(route.rating).fill('⭐️').join(''),
     ]
       .filter(Boolean)

@@ -1,31 +1,15 @@
 <script>
-  import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import Error from '$lib/components/Error'
   import { pageState } from '$lib/components/Layout'
-  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import { convertAreaSlug } from '$lib/helper'
+  import { getAreaContext } from '$lib/contexts/area'
   import EditParkingLocationPage from './EditParkingLocationPage.svelte'
 
-  let { areaId } = $derived(convertAreaSlug())
+  const { area } = getAreaContext()
 </script>
 
-{#if areaId == null}
-  <Error status={404} />
+{#if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
+  <Error status={401} />
 {:else}
-  <ZeroQueryWrapper
-    loadingIndicator={{ type: 'skeleton' }}
-    query={page.data.z.current.query.areas.where('id', areaId).limit(1)}
-    showEmpty
-  >
-    {#snippet children([area])}
-      {#if area.type === 'area'}
-        <Error error={{ message: 'Area must be of type `area`' }} />
-      {:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
-        <Error status={401} />
-      {:else}
-        <EditParkingLocationPage {area} />
-      {/if}
-    {/snippet}
-  </ZeroQueryWrapper>
+  <EditParkingLocationPage />
 {/if}

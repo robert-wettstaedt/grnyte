@@ -3,28 +3,30 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
-  import { enhanceWithFile } from '$lib/components/FileUpload/action'
-  import RouteName from '$lib/components/RouteName'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { DateTime } from 'luxon'
+  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
+  import FormActionBar from '$lib/components/FormActionBar'
+  import { pageState } from '$lib/components/Layout'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import { getRouteContext } from '$lib/contexts/route'
+  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { addAscent } from './page.remote'
 
-  let { data, form } = $props()
+  const { route } = getRouteContext()
+
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
 
-  let grade = $derived(data.grades.find((grade) => grade.id === data.route.gradeFk))
-  let loading = $state(false)
-  let uploadProgress = $state<number | null>(null)
-  let uploadError = $state<string | null>(null)
+  let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
+  let state = $state<EnhanceState>({})
 </script>
 
 <svelte:head>
   <title>
     Log ascent of
-    {data.route.rating == null ? '' : `${Array(data.route.rating).fill('★').join('')} `}
-    {data.route.name}
-    {grade == null ? '' : ` (${grade[data.gradingScale]})`}
+    {route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `}
+    {route.name}
+    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
@@ -33,58 +35,26 @@
   {#snippet lead()}
     <span>Log ascent of</span>
     <a class="anchor" href={basePath}>
-      <RouteName route={data.route} />
+      <RouteName {route} />
     </a>
   {/snippet}
 </AppBar>
 
 <form
   class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
+  {...addAscent.enhance(enhanceWithFile(state))}
   enctype="multipart/form-data"
-  method="POST"
-  use:enhanceWithFile={{
-    session: data.session,
-    supabase: data.supabase,
-    onSubmit: async () => {
-      loading = true
-
-      return async ({ update }) => {
-        const returnValue = await update()
-        loading = false
-        return returnValue
-      }
-    },
-    onError: (error) => {
-      uploadError = error
-      loading = false
-    },
-    onProgress: (percentage) => (uploadProgress = percentage),
-  }}
 >
+  <input type="hidden" name="routeId" value={route.id} />
+
   <AscentFormFields
-    fileUploadProps={{
-      error: uploadError,
-      folderName: form?.folderName,
-      loading,
-      progress: uploadProgress,
-    }}
-    dateTime={form?.dateTime ?? DateTime.now().toSQLDate()}
-    gradeFk={form?.gradeFk ?? null}
-    notes={form?.notes ?? null}
-    rating={form?.rating ?? null}
-    type={form?.type ?? null}
+    fileUploadProps={{ state }}
+    dateTime={Date.now()}
+    gradeFk={null}
+    notes={null}
+    rating={null}
+    type={null}
   />
 
-  <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-    <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
-      {#if loading}
-        <span class="me-2">
-          <ProgressRing size="size-4" value={null} />
-        </span>
-      {/if}
-
-      Save ascent
-    </button>
-  </div>
+  <FormActionBar label="Save ascent" pending={addAscent.pending} />
 </form>

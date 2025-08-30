@@ -2,13 +2,9 @@
   import AreaStats from '$lib/components/AreaStats'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { ReferencesLoader } from '$lib/components/References'
-  import type { Row } from '$lib/db/zero'
+  import { getAreaContext } from '$lib/contexts/area'
 
-  interface Props {
-    area: Row<'areas'>
-  }
-
-  const { area }: Props = $props()
+  const { area } = getAreaContext()
 </script>
 
 <dl>

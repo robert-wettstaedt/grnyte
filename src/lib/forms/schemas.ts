@@ -44,14 +44,6 @@ export const routeActionSchema = z.object({
 })
 export type RouteActionValues = z.infer<typeof routeActionSchema>
 
-export const firstAscentActionSchema = z
-  .object({
-    climberName: z.array(z.string().trim()).optional(),
-    year: z.number().min(1950).max(new Date().getFullYear()).optional(),
-  })
-  .refine((x) => x.climberName != null || x.year != null, { message: 'Either climberName or year must be set' })
-export type FirstAscentActionValues = z.infer<typeof firstAscentActionSchema>
-
 export const ascentActionSchema = z.intersection(
   z.object({
     dateTime: z.string().date(),
@@ -161,12 +153,6 @@ export const notificationsActionSchema = z.object({
   notifyNewUsers: z.string().nullable().optional(),
 })
 export type NotificationsActionValues = z.infer<typeof notificationsActionSchema>
-
-export const geolocationActionSchema = z.object({
-  lat: z.number(),
-  long: z.number(),
-})
-export type GeolocationActionValues = z.infer<typeof geolocationActionSchema>
 
 export const regionMemberActionSchema = z.object({
   role: z.enum(schema.appRole.enumValues).nullish(),

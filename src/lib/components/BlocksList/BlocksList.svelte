@@ -8,6 +8,7 @@
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
+  import { pageState } from '$lib/components/Layout'
 
   interface Props {
     areaFk: number | null | undefined
@@ -97,7 +98,7 @@
       </Segment.Item>
     </Segment>
 
-    {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
+    {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
       <button
         class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
         disabled={sortOrder !== 'custom'}

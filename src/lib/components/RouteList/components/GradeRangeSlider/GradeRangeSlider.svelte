@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
 
   interface Values {
     minGrade: number
@@ -11,13 +11,13 @@
   }
 
   let {
-    minGrade = $bindable(page.data.grades.at(0)?.id),
-    maxGrade = $bindable(page.data.grades.at(-1)?.id),
+    minGrade = $bindable(pageState.grades.at(0)?.id ?? undefined),
+    maxGrade = $bindable(pageState.grades.at(-1)?.id ?? undefined),
     onchange,
   }: Props = $props()
 
-  let minUserGrade = $derived(minGrade == null ? null : page.data.grades[minGrade][page.data.gradingScale])
-  let maxUserGrade = $derived(maxGrade == null ? null : page.data.grades[maxGrade][page.data.gradingScale])
+  let minUserGrade = $derived(minGrade == null ? null : pageState.grades[minGrade][pageState.gradingScale])
+  let maxUserGrade = $derived(maxGrade == null ? null : pageState.grades[maxGrade][pageState.gradingScale])
   let minInput = $state<HTMLInputElement>()
   let maxInput = $state<HTMLInputElement>()
   let rangeElement = $state<HTMLDivElement>()
@@ -70,8 +70,8 @@
     <input
       bind:this={minInput}
       class="[&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:border-primary-500 [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:border-primary-500 pointer-events-none absolute h-1 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full"
-      max={page.data.grades.at(-1)?.id}
-      min={page.data.grades.at(0)?.id}
+      max={pageState.grades.at(-1)?.id}
+      min={pageState.grades.at(0)?.id}
       name="minGrade"
       onchange={onChange}
       oninput={updateRange}
@@ -82,8 +82,8 @@
     <input
       bind:this={maxInput}
       class="[&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:border-primary-500 [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:border-primary-500 pointer-events-none absolute h-1 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full"
-      max={page.data.grades.at(-1)?.id}
-      min={page.data.grades.at(0)?.id}
+      max={pageState.grades.at(-1)?.id}
+      min={pageState.grades.at(0)?.id}
       name="maxGrade"
       onchange={onChange}
       oninput={updateRange}

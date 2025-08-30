@@ -1,76 +1,20 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { invalidateCache } from '$lib/cache/cache'
-  import AppBar from '$lib/components/AppBar'
-  import FileUpload, { enhanceWithFile } from '$lib/components/FileUpload'
-  import Image from '$lib/components/Image'
-  import { config } from '$lib/config'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import Error from '$lib/components/Error'
+  import { pageState } from '$lib/components/Layout'
+  import { getBlockContext } from '$lib/contexts/block'
+  import EditTopoPage from './EditTopoPage.svelte'
 
-  let { data, form } = $props()
-  let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
+  const { block } = getBlockContext()
 
-  let loading = $state(false)
-  let uploadProgress = $state<number | null>(null)
-  let uploadError = $state<string | null>(null)
+  const topo = $derived(block.topos.find((topo) => String(topo.id) === page.params.topoId))
 </script>
 
-<svelte:head>
-  <title>Replace topo of {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
-</svelte:head>
-
-<AppBar>
-  {#snippet lead()}
-    <span>Replace topo of</span>
-    <a class="anchor" href={basePath}>{data.block.name}</a>
-  {/snippet}
-</AppBar>
-
-<div class="mt-8 flex justify-center">
-  <Image path="/nextcloud/{data.file.path}" size={150} />
-</div>
-
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  enctype="multipart/form-data"
-  method="POST"
-  use:enhanceWithFile={{
-    session: data.session,
-    supabase: data.supabase,
-    onSubmit: async () => {
-      loading = true
-
-      return async ({ update }) => {
-        const returnValue = await update()
-        loading = false
-        await invalidateCache(config.cache.keys.layoutBlocks)
-        await invalidateCache(config.cache.keys.layoutBlocksHash)
-
-        return returnValue
-      }
-    },
-    onError: (error) => {
-      uploadError = error
-      loading = false
-    },
-    onProgress: (percentage) => (uploadProgress = percentage),
-  }}
->
-  <FileUpload error={uploadError} progress={uploadProgress} folderName={form?.folderName} {loading} accept="image/*" />
-
-  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
-
-  <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-    <button class="btn preset-filled-primary-500" type="submit" disabled={loading}>
-      {#if loading}
-        <span class="me-2">
-          <ProgressRing size="size-4" value={null} />
-        </span>
-      {/if}
-
-      Replace image
-    </button>
-  </div>
-</form>
+{#if topo == null}
+  <Error status={404} />
+{:else if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
+  <Error status={401} />
+{:else}
+  <EditTopoPage {topo} />
+{/if}

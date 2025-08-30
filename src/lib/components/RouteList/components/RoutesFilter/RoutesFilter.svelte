@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import GradeRangeSlider from '../GradeRangeSlider'
 </script>
 
@@ -11,13 +12,13 @@
     onchange={(values) => {
       const url = new URL(page.url)
 
-      if (values.minGrade === page.data.grades.at(0)?.id) {
+      if (values.minGrade === pageState.grades.at(0)?.id) {
         url.searchParams.delete('minGrade')
       } else {
         url.searchParams.set('minGrade', String(values.minGrade))
       }
 
-      if (values.maxGrade === page.data.grades.at(-1)?.id) {
+      if (values.maxGrade === pageState.grades.at(-1)?.id) {
         url.searchParams.delete('maxGrade')
       } else {
         url.searchParams.set('maxGrade', String(values.maxGrade))

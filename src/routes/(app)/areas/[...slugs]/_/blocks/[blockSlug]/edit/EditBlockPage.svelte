@@ -6,19 +6,14 @@
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
-  import type { Row } from '$lib/db/zero'
-  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getBlockContext } from '$lib/contexts/block'
+  import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { deleteBlock, updateBlock } from './page.remote'
-  import { goto } from '$app/navigation'
 
-  interface Props {
-    block: Row<'blocks'>
-  }
+  const { block } = getBlockContext()
 
-  let { block }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
-  let state = $state<EnhanceState>({})
 </script>
 
 <svelte:head>
@@ -32,10 +27,10 @@
   {/snippet}
 </AppBar>
 
-<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateBlock.enhance(enhanceForm(state))}>
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateBlock.enhance(enhanceForm())}>
   <BlockFormFields areaFk={block.areaFk} blockId={block.id} name={block.name} />
 
-  <FormActionBar {state} label="Update block" />
+  <FormActionBar label="Update block" pending={updateBlock.pending} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)}

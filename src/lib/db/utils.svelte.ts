@@ -7,7 +7,7 @@ import type { RowWithRelations } from '$lib/db/zero'
  */
 export const MAX_AREA_NESTING_DEPTH = 4
 
-type WithPathname<T> = T & {
+export type WithPathname<T> = T & {
   pathname: string
 }
 

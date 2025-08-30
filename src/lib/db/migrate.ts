@@ -10,7 +10,7 @@ import { migrate as setupRbac } from './scripts/setup-rbac'
 const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
 const db = drizzle(postgres, { schema })
 
-const keyvPostgres = new KeyvPostgres({ uri: drizzleConfig.dbCredentials.url, pool: false })
+const keyvPostgres = new KeyvPostgres({ uri: drizzleConfig.dbCredentials.url })
 export const keyv = new Keyv({ store: keyvPostgres })
 
 await migrate(db, { migrationsFolder: 'drizzle' })

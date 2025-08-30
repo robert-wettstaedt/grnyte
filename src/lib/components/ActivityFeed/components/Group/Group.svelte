@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
+  import { pageState } from '$lib/components/Layout'
   import type { ActivityGroup } from '../..'
   import Item, { ItemLoader } from '../Item'
 
@@ -36,8 +36,8 @@
                       <FileViewer
                         {file}
                         readOnly={!(
-                          checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
-                          file.ascent?.createdBy === page.data.user?.id
+                          checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], file.regionFk) ||
+                          file.ascent?.createdBy === pageState.user?.id
                         )}
                       />
                     {/each}

@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { pageState } from '$lib/components/Layout'
   import { AppBar, Popover } from '@skeletonlabs/skeleton-svelte'
 
   let basePath = $derived('/settings/tags')
@@ -23,7 +24,7 @@
       </a>
     </header>
 
-    {#if page.data.tags.length === 0}
+    {#if pageState.tags.length === 0}
       No tags yet
     {:else}
       <div class="flex overflow-auto">
@@ -36,7 +37,7 @@
           </thead>
 
           <tbody>
-            {#each page.data.tags as tag}
+            {#each pageState.tags as tag}
               <tr class="hover:preset-tonal-primary">
                 <td>{tag.id}</td>
 

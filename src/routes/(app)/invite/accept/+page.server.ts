@@ -1,4 +1,4 @@
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import type { RegionActionValues } from '$lib/forms/schemas'
@@ -40,6 +40,7 @@ export const load = (async ({ locals, url }) => {
 
     return { invitation }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

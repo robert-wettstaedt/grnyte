@@ -1,6 +1,6 @@
 import { form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { areas, generateSlug } from '$lib/db/schema'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { areaActionSchema, type AreaActionValues } from '$lib/forms/schemas'

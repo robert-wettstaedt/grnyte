@@ -66,12 +66,14 @@
 
 <ZeroQueryWrapper query={page.data.z.current.query.users.where('id', activity.userFk).limit(1)}>
   {#snippet children([user])}
+    {/* @ts-ignore */ null}
     <ZeroQueryWrapper {query}>
       {#snippet children([object])}
         {#if parentQuery == null}
           {@const dto = toDto(user, object)}
           {@render props.children?.(dto)}
         {:else}
+          {/* @ts-ignore */ null}
           <ZeroQueryWrapper query={parentQuery}>
             {#snippet children([parentObject])}
               {@const dto = toDto(user, object, parentObject)}

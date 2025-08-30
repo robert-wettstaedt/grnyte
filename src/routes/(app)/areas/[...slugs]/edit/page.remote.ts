@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { areas, generateSlug, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { areaWithPathname } from '$lib/db/utils.svelte'
@@ -19,18 +19,19 @@ export const deleteArea = command(z.number(), (id) => enhance(id, deleteAreaActi
 
 const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
+  const { id, ...entity } = values
 
   const area =
-    values.id == null
+    id == null
       ? undefined
-      : await db.query.areas.findFirst({ where: eq(areas.id, values.id), with: { parent: buildNestedAreaQuery() } })
+      : await db.query.areas.findFirst({ where: eq(areas.id, id), with: { parent: buildNestedAreaQuery() } })
 
   if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)) {
     error(404)
   }
 
   // Generate a slug from the area name
-  const slug = generateSlug(values.name)
+  const slug = generateSlug(entity.name)
 
   // Check if an area with the same slug already exists
   const existingAreasResult = await db.query.areas.findMany({
@@ -49,14 +50,14 @@ const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
   // Update the area in the database with the validated values
   await db
     .update(areas)
-    .set({ ...values, id: area.id, slug })
+    .set({ ...entity, id: area.id, slug })
     .where(eq(areas.id, area.id))
 
   await createUpdateActivity({
     db,
     entityId: String(area.id),
     entityType: 'area',
-    newEntity: values,
+    newEntity: entity,
     oldEntity: area,
     userFk: user.id,
     parentEntityId: String(area.parentFk),
