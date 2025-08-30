@@ -6,16 +6,17 @@
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getAreaContext } from '$lib/contexts/area'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import type { PageProps } from './$types'
   import { createBlock } from './page.remote'
 
   interface Props {
-    area: NonNullable<ZeroQueryResult<PageProps['data']['query']>[0]['area']>
     name: string
   }
 
-  let { area, name }: Props = $props()
+  let { name }: Props = $props()
+  const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   let state = $state<EnhanceState>({})
 </script>
