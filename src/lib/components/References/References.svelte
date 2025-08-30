@@ -1,6 +1,6 @@
 <script lang="ts">
-  import RouteName from '$lib/components/RouteName'
-  import type { References } from '$lib/references.server'
+  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import type { References } from '.'
 
   interface Props {
     references: References
@@ -28,14 +28,16 @@
     {/each}
 
     {#each references.ascents as ascent}
-      <li>
-        <a
-          class="anchor hover:preset-tonal-primary flex px-4 py-3 hover:text-white"
-          href={`/routes/${ascent.route.id}`}
-        >
-          {ascent.author.username}'s tick of&nbsp;<RouteName route={ascent.route} />
-        </a>
-      </li>
+      {#if ascent.author != null && ascent.route != null}
+        <li>
+          <a
+            class="anchor hover:preset-tonal-primary flex px-4 py-3 hover:text-white"
+            href={`/routes/${ascent.route?.id}`}
+          >
+            {ascent.author.username}'s tick of&nbsp;<RouteName route={ascent.route} />
+          </a>
+        </li>
+      {/if}
     {/each}
   </ul>
 </nav>

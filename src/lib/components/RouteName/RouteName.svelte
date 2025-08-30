@@ -6,10 +6,15 @@
   import type { RowWithRelations } from '$lib/db/zero'
   import { Rating } from '@skeletonlabs/skeleton-svelte'
   import { pageState } from '$lib/components/Layout'
+  import type { InferResultType } from '$lib/db/types'
+
+  type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
   interface Props {
     classes?: string
-    route: RowWithRelations<'routes', { ascents: true }>
+    route:
+      | RowWithRelations<'routes', { ascents: true }>
+      | (Omit<RouteWithAscents, 'ascents'> & Partial<Pick<RouteWithAscents, 'ascents'>>)
   }
 
   let { classes, route }: Props = $props()

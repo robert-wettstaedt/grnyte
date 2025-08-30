@@ -6,6 +6,7 @@
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
@@ -280,7 +281,7 @@
           {:else}
             <div class="flex flex-col gap-1">
               <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-                {#if data.userRegions.length > 1 && item.data.region != null}
+                {#if pageState.userRegions.length > 1 && item.data.region != null}
                   {item.data.region.name}
 
                   {#if item.type === 'area'}

@@ -174,6 +174,7 @@ export const load = (async ({ locals, params }) => {
       firstAscensionist,
     }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

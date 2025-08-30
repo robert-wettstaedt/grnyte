@@ -1,9 +1,9 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import type { References as ReferencesType } from '$lib/references.server'
+  import { pageState } from '$lib/components/Layout'
   import type { Snippet } from 'svelte'
   import { Query } from 'zero-svelte'
-  import { pageState } from '$lib/components/Layout'
+  import type { References as ReferencesType } from '.'
   import References from './References.svelte'
 
   interface Props {

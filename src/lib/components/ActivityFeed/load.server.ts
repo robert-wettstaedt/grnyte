@@ -100,8 +100,19 @@ export const postProcessEntity = async (
     ascent.files = await loadFiles(ascent.files ?? [])
     const notes = await convertMarkdownToHtml(ascent.notes ?? '', db)
     const createdAt = Math.floor(ascent.createdAt.getTime() / 1000)
-    const a = ascent.dateTime
-    return { type: 'ascent', object: { ...ascent, createdAt, notes } }
+    const date = new Date(ascent.dateTime)
+    const dateTimeNum = date.toString() === 'Invalid Date' ? null : date.getTime()
+    const authorCreatedAt = Math.floor(ascent.author.createdAt.getTime() / 1000)
+    return {
+      type: 'ascent',
+      object: {
+        ...ascent,
+        author: { ...ascent.author, createdAt: authorCreatedAt },
+        createdAt,
+        dateTime: dateTimeNum,
+        notes,
+      },
+    }
   }
 
   if (entityType === 'file' && object != null) {

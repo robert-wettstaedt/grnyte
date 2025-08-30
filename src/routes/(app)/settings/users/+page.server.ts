@@ -36,6 +36,7 @@ export const load = (async ({ locals }) => {
       users: usersWithAuthUsers,
     }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

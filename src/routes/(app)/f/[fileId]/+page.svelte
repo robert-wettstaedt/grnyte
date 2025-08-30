@@ -34,7 +34,7 @@
       data.file.ascent.route.name,
       data.file.ascent.route.gradeFk == null
         ? ''
-        : `(${data.grades[data.file.ascent.route.gradeFk][data.gradingScale]})`,
+        : `(${pageState.grades[data.file.ascent.route.gradeFk]?.[pageState.gradingScale]})`,
     ].join(' ')
 
     return `${data.file.ascent.author.username}'s ascent of ${routename}`
@@ -71,9 +71,8 @@
       onDelete={() => goto(pathname)}
       readOnly={!(
         checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], data.file.regionFk) ||
-        data.file.ascent?.author.id === data.user?.id
+        data.file.ascent?.author.id === pageState.user?.id
       )}
-      stat={data.file.stat}
     >
       {#snippet topLeft()}
         {#if data.session != null && checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_READ], data.file.regionFk)}

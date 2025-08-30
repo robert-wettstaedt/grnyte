@@ -49,6 +49,7 @@ export const load = (async ({ locals, params }) => {
 
     return { region, regionMembers, regionInvitations }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

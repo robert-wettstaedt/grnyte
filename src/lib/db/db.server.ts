@@ -22,7 +22,7 @@ const postgres = Database(DATABASE_URL, {
 
 export const db = drizzle(postgres, { schema })
 
-export const keyvPostgres = new KeyvPostgres({ uri: DATABASE_URL, pool: false })
+export const keyvPostgres = new KeyvPostgres({ uri: DATABASE_URL })
 export const keyv = new Keyv({ store: keyvPostgres, ttl: config.cache.ttl, namespace: PUBLIC_APPLICATION_NAME })
 
 export function createDrizzle<

@@ -12,6 +12,7 @@ export const load = (({ locals }) => {
   if (!checkAppPermission(locals.userPermissions, [APP_PERMISSION_ADMIN])) {
     error(404)
   }
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

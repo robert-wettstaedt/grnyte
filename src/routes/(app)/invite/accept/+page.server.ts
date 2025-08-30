@@ -40,6 +40,7 @@ export const load = (async ({ locals, url }) => {
 
     return { invitation }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {

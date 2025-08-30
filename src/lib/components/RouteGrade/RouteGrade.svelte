@@ -2,10 +2,11 @@
   import type { Row } from '$lib/db/zero'
   import { pageState } from '$lib/components/Layout'
   import CorrectedGrade from './components/CorrectedGrade'
+  import type { InferResultType } from '$lib/db/types'
 
   interface Props {
-    ascents: Row<'ascents'>[]
-    route: Row<'routes'>
+    ascents: Row<'ascents'>[] | InferResultType<'ascents'>[] | undefined
+    route: Row<'routes'> | InferResultType<'routes'>
   }
 
   let { ascents, route }: Props = $props()

@@ -60,7 +60,7 @@ export const load = (async ({ locals, params }) => {
               id: undefined,
               points: [],
               regionFk: topo.regionFk,
-              route: null,
+              route: undefined,
               routeFk: route.id,
               topoFk: topo.id,
               topType: 'topout',
@@ -86,6 +86,7 @@ export const load = (async ({ locals, params }) => {
       topos: enrichedTopos,
     }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad
 
 export const actions = {
@@ -228,16 +229,7 @@ export const actions = {
       const routeId = Number(data.get('routeId'))
 
       try {
-        return deleteRoute(
-          {
-            areaId,
-            blockSlug: params.blockSlug,
-            routeId,
-            userId: locals.user.id,
-            userRegions: locals.userRegions,
-          },
-          db,
-        )
+        return deleteRoute({ routeId, userId: locals.user.id, userRegions: locals.userRegions }, db)
       } catch (error) {
         return fail(400, { error: convertException(error) })
       }

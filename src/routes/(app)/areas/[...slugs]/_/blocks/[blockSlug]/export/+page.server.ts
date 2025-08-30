@@ -75,4 +75,5 @@ export const load = (async ({ locals, params }) => {
       },
     }
   })
+  // @ts-expect-error fix for missing z
 }) satisfies PageServerLoad

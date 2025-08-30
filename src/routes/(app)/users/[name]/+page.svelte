@@ -7,6 +7,7 @@
   import type { PaginatedAscents } from '$lib/components/AscentsTable/load.server'
   import GenericList from '$lib/components/GenericList'
   import GradeHistogram from '$lib/components/GradeHistogram'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteName from '$lib/components/RouteName'
   import type { EnrichedArea, EnrichedBlock } from '$lib/db/utils'
   import { ProgressRing, Segment, Tabs } from '@skeletonlabs/skeleton-svelte'
@@ -37,13 +38,13 @@
   const sends = data.ascents
     ?.filter((ascent) => ascent.type !== 'attempt' && ascent.type !== 'repeat')
     .map((ascent) => {
-      const grade = data.grades.find((grade) => grade.id === (ascent.gradeFk ?? ascent.route.gradeFk))
+      const grade = pageState.grades.find((grade) => grade.id === (ascent.gradeFk ?? ascent.route.gradeFk))
 
       if (grade == null) {
         return { ...ascent, grade: undefined }
       }
 
-      return { ...ascent, grade: grade[data.gradingScale] }
+      return { ...ascent, grade: grade[pageState.gradingScale] }
     })
 
   const loadData = async () => {
@@ -145,7 +146,7 @@
             }}
             onEmbed={(result) => {
               result.view.addSignalListener('chartClick', (_, datum) => {
-                const grade = data.grades.find((grade) => grade.FB === datum?.grade || grade.V === datum?.grade)
+                const grade = pageState.grades.find((grade) => grade.FB === datum?.grade || grade.V === datum?.grade)
 
                 loadOpts = grade == null ? {} : { grade: String(grade.id) }
                 loadData()
