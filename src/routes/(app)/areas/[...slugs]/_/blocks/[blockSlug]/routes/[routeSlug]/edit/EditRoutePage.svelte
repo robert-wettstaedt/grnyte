@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
@@ -10,6 +9,7 @@
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
+  import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { deleteRoute, updateRoute } from './page.remote'
 
   const { route } = getRouteContext()
@@ -40,7 +40,7 @@
   {/snippet}
 </AppBar>
 
-<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" action="?/updateRoute" method="POST" use:enhance>
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateRoute.enhance(enhanceForm())}>
   <RouteFormFields
     blockId={route.blockFk}
     description={route.description}
