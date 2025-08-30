@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { createUpdateActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { createUpdateActivity } from '$lib/components/ActivityFeed/load.server'
 import { generateSlug, routes, routesToTags } from '$lib/db/schema'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { routeWithPathname } from '$lib/db/utils.svelte'

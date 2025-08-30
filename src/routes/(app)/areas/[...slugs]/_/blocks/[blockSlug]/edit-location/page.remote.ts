@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { blocks, geolocations } from '$lib/db/schema'
 import { type Action, enhance, enhanceForm } from '$lib/forms/enhance.server'
 import { createOrUpdateGeolocation } from '$lib/topo-files.server'

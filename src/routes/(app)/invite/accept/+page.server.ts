@@ -1,4 +1,4 @@
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import type { RegionActionValues } from '$lib/forms/schemas'

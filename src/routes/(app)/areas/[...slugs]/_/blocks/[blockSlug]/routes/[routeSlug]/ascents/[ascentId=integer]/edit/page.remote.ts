@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { activities, ascents } from '$lib/db/schema'

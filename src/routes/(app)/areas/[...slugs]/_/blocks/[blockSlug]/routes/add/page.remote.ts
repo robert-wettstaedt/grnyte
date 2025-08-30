@@ -1,6 +1,6 @@
 import { form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
 import { generateSlug, routes } from '$lib/db/schema'

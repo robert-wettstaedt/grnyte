@@ -1,5 +1,5 @@
 import { form, getRequestEvent } from '$app/server'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { ascents } from '$lib/db/schema'

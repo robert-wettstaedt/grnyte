@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { ascents, blocks, routes, topoRoutes, topos, type InsertTopoRoute } from '$lib/db/schema'
 import { enrichTopo } from '$lib/db/utils'

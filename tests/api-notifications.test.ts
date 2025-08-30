@@ -81,7 +81,7 @@ vi.mock('$lib/bunny', () => ({
   getVideoThumbnailUrl: mockFunctions.getVideoThumbnailUrl,
 }))
 
-vi.mock('$lib/components/ActivityFeedLegacy/load.server', () => ({
+vi.mock('$lib/components/ActivityFeed/load.server', () => ({
   getParentWith: mockFunctions.getParentWith,
   getQuery: mockFunctions.getQuery,
   getWhere: mockFunctions.getWhere,

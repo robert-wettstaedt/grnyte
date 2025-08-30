@@ -1,6 +1,6 @@
 import { command, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { firstAscensionists, routesToFirstAscensionists, users } from '$lib/db/schema'
 import { insertExternalResources } from '$lib/external-resources/index.server'
 import { enhance, type Action } from '$lib/forms/enhance.server'

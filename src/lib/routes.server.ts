@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import * as schema from '$lib/db/schema'
 import {
   ascents,

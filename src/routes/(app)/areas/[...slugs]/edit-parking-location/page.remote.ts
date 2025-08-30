@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { areas, geolocations } from '$lib/db/schema'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { error } from '@sveltejs/kit'

@@ -1,6 +1,6 @@
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { blockWithPathname } from '$lib/db/utils.svelte'
