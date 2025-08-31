@@ -46,6 +46,13 @@
       // Reset form state on navigation
       formState.error = undefined
     }
+
+    if (navigation.to?.url.searchParams.get('reload') === 'true') {
+      const searchParams = new URLSearchParams(navigation.to.url.searchParams)
+      searchParams.delete('reload')
+      const search = searchParams.toString().length > 0 ? `?${searchParams}` : ''
+      window.location.href = navigation.to.url.pathname + search
+    }
   })
 </script>
 
@@ -92,7 +99,7 @@
 
     <svelte:boundary>
       {#snippet failed(exception, reset)}
-        <Error {reset} error={{ message: convertException(exception) }} status={400} />
+        <Error {reset} error={{ message: convertException(exception) }} rawError={exception} reportError status={400} />
       {/snippet}
 
       {@render children?.()}

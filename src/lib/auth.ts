@@ -1,5 +1,4 @@
 import { jwtDecode, type JwtPayload } from 'jwt-decode'
-import { authLogger } from './logging'
 import type { appRole } from './db/schema'
 
 export const APP_PERMISSION_ADMIN = 'app.admin'
@@ -15,15 +14,7 @@ export function checkAppPermission(
   userPermissions: App.Locals['userPermissions'],
   requiredPermissions: AppPermission[],
 ): boolean {
-  const hasPermission = requiredPermissions.some((permission) => userPermissions?.includes(permission))
-
-  authLogger.debug('App permission check', {
-    userPermissions,
-    requiredPermissions,
-    granted: hasPermission,
-  })
-
-  return hasPermission
+  return requiredPermissions.some((permission) => userPermissions?.includes(permission))
 }
 
 export type RegionPermission =
@@ -37,18 +28,9 @@ export function checkRegionPermission(
   requiredPermissions: RegionPermission[],
   regionId: number | undefined | null,
 ): boolean {
-  const hasPermission = requiredPermissions.some((permission) =>
+  return requiredPermissions.some((permission) =>
     userRegions.some((region) => region.regionFk === regionId && region.permissions.includes(permission)),
   )
-
-  authLogger.debug('Region permission check', {
-    userRegions: userRegions.map((r) => ({ regionFk: r.regionFk, permissions: r.permissions })),
-    requiredPermissions,
-    regionId,
-    granted: hasPermission,
-  })
-
-  return hasPermission
 }
 
 export interface SupabaseToken extends JwtPayload {
@@ -65,15 +47,8 @@ export interface SupabaseToken extends JwtPayload {
 
 export function decodeToken(accessToken: string): SupabaseToken {
   try {
-    const decoded = jwtDecode<SupabaseToken>(accessToken)
-    authLogger.debug('Token decoded successfully', {
-      sub: decoded.sub,
-      role: decoded.role,
-      exp: decoded.exp,
-    })
-    return decoded
+    return jwtDecode<SupabaseToken>(accessToken)
   } catch (error) {
-    authLogger.warn('Token decode failed, using anonymous role', { error })
     return { role: 'anon' } as SupabaseToken
   }
 }

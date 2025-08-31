@@ -35,7 +35,16 @@
 {#if route != null}
   <div class="flex items-center gap-x-1 md:gap-x-2 {classes}">
     {#if lastAscent != null}
-      <AscentTypeLabel includeText={false} type={lastAscent.type} />
+      <svelte:boundary>
+        {#snippet failed()}
+          <!--
+            even though we check for null, it can happen that lastAscent.type is null
+            must be a bug of zero-svelte
+          -->
+        {/snippet}
+
+        <AscentTypeLabel includeText={false} type={lastAscent.type} />
+      </svelte:boundary>
     {/if}
 
     <RouteGrade {route} ascents={route.ascents} />

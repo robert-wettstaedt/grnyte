@@ -23,6 +23,7 @@ import {
   type PgPolicyConfig,
 } from 'drizzle-orm/pg-core'
 import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
+import z from 'zod'
 import {
   APP_PERMISSION_ADMIN,
   REGION_PERMISSION_ADMIN,
@@ -1260,3 +1261,14 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   region: one(regions, { fields: [activities.regionFk], references: [regions.id] }),
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
 }))
+
+const jsonSchema = z.json()
+export const clientErrorLogs = table('client_error_logs', {
+  ...baseFields,
+  createdBy: integer('created_by').references((): AnyColumn => users.id),
+  error: text(),
+  navigator: jsonb().$type<z.infer<typeof jsonSchema>>(),
+}).enableRLS()
+
+export type ClientErrorLogs = InferSelectModel<typeof clientErrorLogs>
+export type InsertClientErrorLog = InferInsertModel<typeof clientErrorLogs>

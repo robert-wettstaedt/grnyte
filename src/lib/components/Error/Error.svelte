@@ -2,9 +2,14 @@
   import { afterNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { convertException } from '$lib/errors'
+  import { onMount } from 'svelte'
+  import { saveErrorLog } from './error.remote'
 
   interface Props {
     error?: App.Error | null
+    rawError?: unknown
+    reportError?: boolean
     reset?: () => void
     status?: number | null
   }
@@ -15,21 +20,62 @@
     500: 'An unexpected error occurred on the server.',
   }
 
-  const errorMessage = $derived.by(() => {
+  const { error = page.error, reset, rawError, reportError, status = page.status }: Props = $props()
+
+  const state = $derived.by((): Props => {
+    if (!navigator.onLine) {
+      return { error: { message: 'You are not connected to the internet' } }
+    }
+
     if (error?.message != null) {
-      return error.message
+      return { error, status }
     }
 
     if (status != null && errors[status] != null) {
-      return errors[status]
+      return { error: { message: errors[status] }, status }
     }
 
-    return 'An unexpected error occurred'
+    return { error: { message: 'An unexpected error occurred' }, status }
   })
 
-  const { error = page.error, reset, status = page.status }: Props = $props()
-
   afterNavigate(() => reset?.())
+
+  onMount(async () => {
+    if (!reportError) {
+      return
+    }
+
+    try {
+      let error = ''
+      const obj: Record<string, string> = {}
+
+      for (let property in navigator) {
+        try {
+          const key = property as keyof typeof navigator
+          const value = typeof navigator[key] === 'function' ? (navigator[key] as Function)() : navigator[key]
+          const str = value != null && typeof value === 'object' ? JSON.stringify(value) : value
+          if (key in navigator && value != null) {
+            obj[property] = str
+          }
+        } catch (error) {}
+      }
+
+      if (rawError instanceof Error) {
+        error = JSON.stringify({
+          cause: rawError.cause,
+          message: rawError.message,
+          name: rawError.name,
+          stack: rawError.stack,
+        })
+      } else {
+        error = convertException(rawError)
+      }
+
+      await saveErrorLog({ error, navigator: obj })
+    } catch (error) {
+      console.error('Unable to report error:\n', error)
+    }
+  })
 </script>
 
 <svelte:head>
@@ -46,15 +92,19 @@
     </div>
 
     <!-- Error Title -->
-    <div class="space-y-2 text-center">
-      <h1 class="h1 text-error-500 font-bold tracking-wide">{status}</h1>
-      <h2 class="h3">Oops! Something went wrong</h2>
-    </div>
+    {#if state.status != null}
+      <div class="space-y-2 text-center">
+        <h1 class="h1 text-error-500 font-bold tracking-wide">{state.status}</h1>
+        <h2 class="h3">Oops! Something went wrong</h2>
+      </div>
+    {/if}
 
     <!-- Error Message -->
-    <div class="card variant-soft-error p-4">
-      <p class="text-center font-medium">{errorMessage}</p>
-    </div>
+    {#if state.error != null}
+      <div class="card variant-soft-error p-4">
+        <p class="text-center font-medium">{state.error.message}</p>
+      </div>
+    {/if}
 
     <!-- Action Buttons -->
     <div class="flex flex-col justify-center gap-4 sm:flex-row">
