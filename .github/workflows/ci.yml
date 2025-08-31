@@ -21,7 +21,7 @@ jobs:
       PUBLIC_DEMO_MODE: foobar
       PUBLIC_SUPABASE_URL: foobar
       PUBLIC_SUPABASE_ANON_KEY: foobar
-      DATABASE_URL: foobar
+      DATABASE_URL: postgres://foobar
       NEXTCLOUD_USER_NAME: foobar
       NEXTCLOUD_USER_PASSWORD: foobar
       BUNNY_STREAM_API_KEY: foobar
