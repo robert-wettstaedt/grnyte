@@ -99,7 +99,13 @@
 
       <svelte:boundary>
         {#snippet failed(exception, reset)}
-          <Error {reset} error={{ message: convertException(exception) }} status={400} />
+          <Error
+            {reset}
+            error={{ message: convertException(exception) }}
+            rawError={exception}
+            reportError
+            status={400}
+          />
         {/snippet}
 
         {@render children?.()}

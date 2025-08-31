@@ -2,9 +2,14 @@
   import { afterNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { convertException } from '$lib/errors'
+  import { onMount } from 'svelte'
+  import { saveErrorLog } from './error.remote'
 
   interface Props {
     error?: App.Error | null
+    rawError?: unknown
+    reportError?: boolean
     reset?: () => void
     status?: number | null
   }
@@ -15,7 +20,7 @@
     500: 'An unexpected error occurred on the server.',
   }
 
-  const { error = page.error, reset, status = page.status }: Props = $props()
+  const { error = page.error, reset, rawError, reportError, status = page.status }: Props = $props()
 
   const state = $derived.by((): Props => {
     if (!navigator.onLine) {
@@ -34,6 +39,43 @@
   })
 
   afterNavigate(() => reset?.())
+
+  onMount(async () => {
+    if (!reportError) {
+      return
+    }
+
+    try {
+      let error = ''
+      const obj: Record<string, string> = {}
+
+      for (let property in navigator) {
+        try {
+          const key = property as keyof typeof navigator
+          const value = typeof navigator[key] === 'function' ? (navigator[key] as Function)() : navigator[key]
+          const str = value != null && typeof value === 'object' ? JSON.stringify(value) : value
+          if (key in navigator && value != null) {
+            obj[property] = str
+          }
+        } catch (error) {}
+      }
+
+      if (rawError instanceof Error) {
+        error = JSON.stringify({
+          cause: rawError.cause,
+          message: rawError.message,
+          name: rawError.name,
+          stack: rawError.stack,
+        })
+      } else {
+        error = convertException(rawError)
+      }
+
+      await saveErrorLog({ error, navigator: obj })
+    } catch (error) {
+      console.error('Unable to report error:\n', error)
+    }
+  })
 </script>
 
 <svelte:head>

@@ -12,11 +12,13 @@
 
   let { route, ...rest }: Props = $props()
 
-  const { current: ascents } = $derived(
-    new Query(page.data.z.current.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user?.id!)),
+  const ascentsResult = $derived(
+    route.id == null || pageState.user?.id == null
+      ? undefined
+      : new Query(page.data.z.current.query.ascents.where('routeFk', route.id).where('createdBy', pageState.user.id)),
   )
 
-  const data = $derived({ ...route, ascents } satisfies RouteNameProps['route'])
+  const data = $derived({ ...route, ascents: ascentsResult?.current ?? [] } satisfies RouteNameProps['route'])
 </script>
 
 <RouteName {...rest} route={data} />
