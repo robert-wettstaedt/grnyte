@@ -539,18 +539,21 @@
           (a, b) =>
             getDistance({ x: a[0], y: a[1] }, { x: 0, y: 0 }) - getDistance({ x: b[0], y: b[1] }, { x: 0, y: 0 }),
         )
-        const median = sorted[Math.floor(sorted.length / 2)]
+        const median = sorted.at(Math.floor(sorted.length / 2))
 
-        const filtered = coordinates.filter(
-          (coordinate) => getDistance({ x: coordinate[0], y: coordinate[1] }, { x: median[0], y: median[1] }) < 200_000,
-        )
+        if (median != null) {
+          const filtered = coordinates.filter(
+            (coordinate) =>
+              getDistance({ x: coordinate[0], y: coordinate[1] }, { x: median[0], y: median[1] }) < 200_000,
+          )
 
-        const extent = boundingExtent(filtered)
+          const extent = boundingExtent(filtered)
 
-        map.getView().fit(extent, {
-          callback: () => onRenderComplete?.(),
-          maxZoom: zoom ?? DEFAULT_ZOOM,
-        })
+          map.getView().fit(extent, {
+            callback: () => onRenderComplete?.(),
+            maxZoom: zoom ?? DEFAULT_ZOOM,
+          })
+        }
       } else {
         const extent = boundingExtent(coordinates)
 
