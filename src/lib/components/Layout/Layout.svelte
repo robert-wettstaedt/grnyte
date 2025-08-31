@@ -5,6 +5,7 @@
 </script>
 
 <script lang="ts">
+  import { dev } from '$app/environment'
   import { afterNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -99,7 +100,13 @@
 
     <svelte:boundary>
       {#snippet failed(exception, reset)}
-        <Error {reset} error={{ message: convertException(exception) }} rawError={exception} reportError status={400} />
+        <Error
+          {reset}
+          error={dev ? { message: convertException(exception) } : undefined}
+          rawError={exception}
+          reportError
+          status={400}
+        />
       {/snippet}
 
       {@render children?.()}

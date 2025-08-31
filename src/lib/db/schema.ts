@@ -1268,6 +1268,7 @@ export const clientErrorLogs = table('client_error_logs', {
   createdBy: integer('created_by').references((): AnyColumn => users.id),
   error: text(),
   navigator: jsonb().$type<z.infer<typeof jsonSchema>>(),
+  pathname: text(),
 }).enableRLS()
 
 export type ClientErrorLogs = InferSelectModel<typeof clientErrorLogs>

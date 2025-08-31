@@ -41,9 +41,11 @@
   afterNavigate(() => reset?.())
 
   onMount(async () => {
-    if (!reportError) {
+    if (!reportError && rawError != null) {
       return
     }
+
+    console.error(rawError)
 
     try {
       let error = ''
@@ -52,7 +54,7 @@
       for (let property in navigator) {
         try {
           const key = property as keyof typeof navigator
-          const value = typeof navigator[key] === 'function' ? (navigator[key] as Function)() : navigator[key]
+          const value = typeof navigator[key] === 'function' ? await (navigator[key] as Function)() : navigator[key]
           const str = value != null && typeof value === 'object' ? JSON.stringify(value) : value
           if (key in navigator && value != null) {
             obj[property] = str
@@ -71,7 +73,7 @@
         error = convertException(rawError)
       }
 
-      await saveErrorLog({ error, navigator: obj })
+      await saveErrorLog({ error, navigator: obj, pathname: String(page.url).substring(page.url.origin.length) })
     } catch (error) {
       console.error('Unable to report error:\n', error)
     }

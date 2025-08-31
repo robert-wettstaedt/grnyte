@@ -6,6 +6,7 @@ import z from 'zod'
 const errorLogSchema = z.object({
   error: z.string(),
   navigator: z.json(),
+  pathname: z.string(),
 })
 
 export const saveErrorLog = command(errorLogSchema, async (values) => {
