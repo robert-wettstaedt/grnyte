@@ -15,19 +15,23 @@
     500: 'An unexpected error occurred on the server.',
   }
 
-  const errorMessage = $derived.by(() => {
+  const { error = page.error, reset, status = page.status }: Props = $props()
+
+  const state = $derived.by((): Props => {
+    if (!navigator.onLine) {
+      return { error: { message: 'You are not connected to the internet' } }
+    }
+
     if (error?.message != null) {
-      return error.message
+      return { error, status }
     }
 
     if (status != null && errors[status] != null) {
-      return errors[status]
+      return { error: { message: errors[status] }, status }
     }
 
-    return 'An unexpected error occurred'
+    return { error: { message: 'An unexpected error occurred' }, status }
   })
-
-  const { error = page.error, reset, status = page.status }: Props = $props()
 
   afterNavigate(() => reset?.())
 </script>
@@ -46,15 +50,19 @@
     </div>
 
     <!-- Error Title -->
-    <div class="space-y-2 text-center">
-      <h1 class="h1 text-error-500 font-bold tracking-wide">{status}</h1>
-      <h2 class="h3">Oops! Something went wrong</h2>
-    </div>
+    {#if state.status != null}
+      <div class="space-y-2 text-center">
+        <h1 class="h1 text-error-500 font-bold tracking-wide">{state.status}</h1>
+        <h2 class="h3">Oops! Something went wrong</h2>
+      </div>
+    {/if}
 
     <!-- Error Message -->
-    <div class="card variant-soft-error p-4">
-      <p class="text-center font-medium">{errorMessage}</p>
-    </div>
+    {#if state.error != null}
+      <div class="card variant-soft-error p-4">
+        <p class="text-center font-medium">{state.error.message}</p>
+      </div>
+    {/if}
 
     <!-- Action Buttons -->
     <div class="flex flex-col justify-center gap-4 sm:flex-row">

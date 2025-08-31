@@ -1,3 +1,4 @@
+import { building } from '$app/environment'
 import type { RequestEvent } from '@sveltejs/kit'
 import { config } from '../config'
 
@@ -196,7 +197,7 @@ export function extractRequestContext(event: RequestEvent): RequestContext {
   return {
     request: {
       headers: safeHeaders,
-      ip: event.getClientAddress?.(),
+      ip: building ? undefined : event.getClientAddress?.(),
       method: event.request.method,
       params: event.params,
       path: event.url.pathname,
