@@ -4,6 +4,7 @@
 /// <reference lib="esnext" />
 
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { imageCache } from 'workbox-recipes'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
@@ -28,6 +29,8 @@ if (import.meta.env.DEV) {
 
 // to allow work offline
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), { allowlist }))
+
+imageCache({ matchCallback: ({ url }) => url.pathname.startsWith('/nextcloud/topos/') })
 
 // Handle push events for notifications
 self.addEventListener('push', (event) => {
