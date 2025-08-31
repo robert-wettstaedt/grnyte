@@ -5,6 +5,7 @@
 </script>
 
 <script lang="ts">
+  import { dev } from '$app/environment'
   import { afterNavigate, invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -101,7 +102,7 @@
         {#snippet failed(exception, reset)}
           <Error
             {reset}
-            error={{ message: convertException(exception) }}
+            error={dev ? { message: convertException(exception) } : undefined}
             rawError={exception}
             reportError
             status={400}

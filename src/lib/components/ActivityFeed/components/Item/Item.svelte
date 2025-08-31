@@ -364,11 +364,11 @@
     {/if}
 
     {#if withFiles && activity.entity.type == 'ascent' && activity.entity.object != null && activity.type === 'created'}
-      {#if activity.entity.object.notes != null && activity.entity.object.notes!.length > 0}
+      {#if activity.entity.object.notes != null && activity.entity.object.notes.length > 0}
         <MarkdownRenderer markdown={activity.entity.object.notes} />
       {/if}
 
-      {#if activity.entity.object.files.length > 0}
+      {#if activity.entity.object.files != null && activity.entity.object.files.length > 0}
         <div
           class="mt-4 grid gap-3 {activity.entity.object.files.length === 1
             ? 'grid-cols-1 md:grid-cols-2'
