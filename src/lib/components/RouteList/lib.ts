@@ -28,7 +28,6 @@ export const getRoutesFilterQuery = (areaId?: number) => {
       ),
     )
     .orderBy(searchParams.sort === 'grade' ? 'gradeFk' : searchParams.sort, searchParams.sortOrder)
-    .where(searchParams.sort === 'grade' ? 'gradeFk' : searchParams.sort, 'IS NOT', null)
 
   if (areaId != null) {
     query = query.where('areaIds', 'ILIKE', `%^${areaId}$%`)
