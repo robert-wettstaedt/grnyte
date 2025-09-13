@@ -1,0 +1,67 @@
+diff --git a/node_modules/zero-svelte/dist/query.svelte.js b/node_modules/zero-svelte/dist/query.svelte.js
+index 5ba165f..1187c85 100644
+--- a/node_modules/zero-svelte/dist/query.svelte.js
++++ b/node_modules/zero-svelte/dist/query.svelte.js
+@@ -34,8 +34,10 @@ class ViewWrapper {
+             // Return cleanup function that will only be called
+             // when all effects are destroyed
+             return () => {
++                setTimeout(() => {
+                 this.#view?.destroy();
+                 this.#view = undefined;
++                }, 1000);
+                 this.onDematerialized();
+             };
+         });
+@@ -105,16 +107,34 @@ export class Query {
+     details = $state(null);
+     #query_impl;
+     #view;
++    #enabled;
++
+     constructor(query, enabled = true) {
+-        const z = getContext('z');
+-        const id = z?.current?.userID ? z?.current.userID : 'anon';
+         this.#query_impl = query;
++        this.#enabled = enabled;
++
+         const default_snapshot = getDefaultSnapshot(this.#query_impl.format.singular);
+         this.current = default_snapshot[0];
+         this.details = default_snapshot[1];
+-        this.#view = viewStore.getView(id, this.#query_impl, enabled);
++
++        this.#init();
++    }
++
++    // Method to update the query
++    updateQuery(newQuery, enabled = true) {
++        this.#query_impl = newQuery;
++        this.#enabled = enabled;
++        this.#init();
++    }
++
++    #init() {
++        const z = getContext('z');
++        const id = z?.current.userID ?? 'anon';
++
++        this.#view = viewStore.getView(id, this.#query_impl, this.#enabled);
+         this.current = this.#view.current[0];
+         this.details = this.#view.current[1];
++
+         // Watch for changes in the query
+         $effect(() => {
+             if (this.#view) {
+@@ -123,13 +143,4 @@ export class Query {
+             }
+         });
+     }
+-    // Method to update the query
+-    updateQuery(newQuery, enabled = true) {
+-        const z = getContext('z');
+-        const id = z?.current?.userID ? z?.current.userID : 'anon';
+-        this.#query_impl = newQuery;
+-        this.#view = viewStore.getView(id, this.#query_impl, enabled);
+-        this.current = this.#view.current[0];
+-        this.details = this.#view.current[1];
+-    }
+ }

@@ -13,29 +13,34 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areas = $derived(new Query(page.data.z.current.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`)))
+  const areasQuery = $derived(page.data.z.current.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
+  // svelte-ignore state_referenced_locally
+  const areasResult = new Query(areasQuery)
+  $effect(() => areasResult.updateQuery(areasQuery))
 
-  const ascents = $derived(
-    new Query(
-      page.data.z.current.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
-    ),
+  const ascentsQuery = $derived(
+    page.data.z.current.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
   )
+  // svelte-ignore state_referenced_locally
+  const ascentsResult = new Query(ascentsQuery)
+  $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
-  const routes = $derived(
-    new Query(
-      page.data.z.current.query.routes
-        .where('description', 'ILIKE', `%!${type}:${id}!%`)
-        .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
-    ),
+  const routesQuery = $derived(
+    page.data.z.current.query.routes
+      .where('description', 'ILIKE', `%!${type}:${id}!%`)
+      .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
   )
+  // svelte-ignore state_referenced_locally
+  const routesResult = new Query(routesQuery)
+  $effect(() => routesResult.updateQuery(routesQuery))
 
   const references = $derived(
-    areas.current.length + ascents.current.length + routes.current.length === 0
+    areasResult.current.length + ascentsResult.current.length + routesResult.current.length === 0
       ? null
       : ({
-          areas: areas.current,
-          ascents: ascents.current,
-          routes: routes.current,
+          areas: areasResult.current,
+          ascents: ascentsResult.current,
+          routes: routesResult.current,
         } as ReferencesType),
   )
 </script>

@@ -15,7 +15,7 @@ export interface ZeroQueryWrapperProps<TSchema extends Schema, TTable extends ke
   showEmpty?: boolean
 }
 
-export { default } from './ZeroQueryWrapper.svelte'
+export { default } from './KeyWrapper.svelte'
 
 export type ZeroQueryResult<
   T extends QueryDef<TSchema, TTable, TReturn> | null,

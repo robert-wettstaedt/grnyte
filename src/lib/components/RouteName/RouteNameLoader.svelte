@@ -12,13 +12,14 @@
 
   let { route, ...rest }: Props = $props()
 
-  const ascentsResult = $derived(
-    route.id == null || pageState.user?.id == null
-      ? undefined
-      : new Query(page.data.z.current.query.ascents.where('routeFk', route.id).where('createdBy', pageState.user.id)),
+  const query = $derived(
+    page.data.z.current.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user!.id!),
   )
+  // svelte-ignore state_referenced_locally
+  const ascentsResult = new Query(query)
+  $effect(() => ascentsResult.updateQuery(query))
 
-  const data = $derived({ ...route, ascents: ascentsResult?.current ?? [] } satisfies RouteNameProps['route'])
+  const data = $derived({ ...route, ascents: ascentsResult.current } satisfies RouteNameProps['route'])
 </script>
 
 <RouteName {...rest} route={data} />

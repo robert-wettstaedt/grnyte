@@ -41,6 +41,7 @@
         )
       })
       .orderBy('createdAt', 'desc')
+      .related('user')
 
     if (searchParams.user === 'me' && pageState.user?.id != null) {
       query = query.where('userFk', pageState.user.id)
@@ -123,10 +124,7 @@
 <ZeroQueryWrapper {query} loadingIndicator={{ type: 'skeleton', count: 15 }}>
   {#snippet children(items)}
     {@const fileIds = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
-    <ZeroQueryWrapper
-      query={page.data.z.current.query.files.where('id', 'IN', fileIds).related('ascent')}
-      loadingIndicator={{ type: 'skeleton', count: 15 }}
-    >
+    <ZeroQueryWrapper query={page.data.z.current.query.files.where('id', 'IN', fileIds).related('ascent')}>
       {#snippet children(files)}
         {@const groups = paginateActivities(items).map((item) => groupActivities(item, files))}
         <ActivityFeed activities={groups} />

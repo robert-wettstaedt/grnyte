@@ -14,20 +14,21 @@
     showEmpty = false,
   }: ZeroQueryWrapperProps<TSchema, TTable, TReturn> = $props()
 
-  const { current, details } = $derived(new Query(query))
+  const result = new Query(query)
+  $effect(() => result.updateQuery(query))
 
-  const isEmpty = $derived(Array.isArray(current) ? current.length === 0 : current == null)
+  const isEmpty = $derived(Array.isArray(result.current) ? result.current.length === 0 : result.current == null)
 
   $effect(() => {
-    if (details.type === 'complete') {
+    if (result.details.type === 'complete') {
       onLoad?.()
     }
   })
 </script>
 
-{#if showEmpty && isEmpty && details.type === 'complete'}
+{#if showEmpty && isEmpty && result.details.type === 'complete'}
   <Error status={404} />
-{:else if loadingIndicator != null && isEmpty && details.type !== 'complete'}
+{:else if loadingIndicator != null && isEmpty && result.details.type !== 'complete'}
   {#if loadingIndicator.type === 'skeleton'}
     <nav class="list-nav">
       <ul class="overflow-auto">
@@ -42,7 +43,7 @@
     </div>
   {/if}
 {:else}
-  {@render children?.(current, details)}
+  {@render children?.(result.current, result.details)}
 {/if}
 
-{@render after?.(current, details)}
+{@render after?.(result.current, result.details)}

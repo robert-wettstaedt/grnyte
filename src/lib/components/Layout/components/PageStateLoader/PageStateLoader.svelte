@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { Query } from 'zero-svelte'
   import { pageState } from '../../page.svelte'
-  import type { Snippet } from 'svelte'
+  import { setContext, type Snippet } from 'svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
@@ -11,9 +11,10 @@
 
   const { children }: Props = $props()
 
-  const { current: grades } = $derived(new Query(page.data.z.current.query.grades))
+  setContext('z', page.data.z)
 
-  const { current: tags } = $derived(new Query(page.data.z.current.query.tags))
+  const gradesResult = new Query(page.data.z.current.query.grades)
+  const tagsResult = new Query(page.data.z.current.query.tags)
 
   const userResult = $derived(
     page.data.session?.user.id == null
@@ -40,7 +41,7 @@
         ),
   )
 
-  const permissionsResult = $derived(new Query(page.data.z.current.query.rolePermissions))
+  const permissionsResult = new Query(page.data.z.current.query.rolePermissions)
 
   const userPermissions = $derived(
     userRoleResult?.current == null
@@ -62,11 +63,11 @@
   )
 
   $effect(() => {
-    pageState.grades = grades
+    pageState.grades = gradesResult.current
   })
 
   $effect(() => {
-    pageState.tags = tags
+    pageState.tags = tagsResult.current
   })
 
   $effect(() => {

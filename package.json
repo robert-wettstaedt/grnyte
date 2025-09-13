@@ -11,6 +11,7 @@
     "node": "^22"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
@@ -118,6 +119,7 @@
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-svelte": "^3.0.0",
     "jsdom": "^26.0.0",
+    "patch-package": "^8.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-svelte": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.11",

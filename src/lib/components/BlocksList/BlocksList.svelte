@@ -17,15 +17,16 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const blocksResult = $derived(
-    new Query(
-      page.data.z.current.query.blocks
-        .where('areaFk', 'IS', areaFk ?? null)
-        .orderBy('order', 'asc')
-        .orderBy('name', 'asc')
-        .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
-    ),
+  const query = $derived(
+    page.data.z.current.query.blocks
+      .where('areaFk', 'IS', areaFk ?? null)
+      .orderBy('order', 'asc')
+      .orderBy('name', 'asc')
+      .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
   )
+  // svelte-ignore state_referenced_locally
+  const blocksResult = new Query(query)
+  $effect(() => blocksResult.updateQuery(query))
 
   // https://github.com/sveltejs/kit/issues/12999
   // svelte-ignore state_referenced_locally
