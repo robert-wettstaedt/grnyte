@@ -21,6 +21,7 @@
   import { Navigation, Toaster } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
+  import { online } from 'svelte/reactivity/window'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.css'
@@ -94,7 +95,7 @@
 
       {#if page.form?.error ?? formState.error}
         <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-          <p>{page.form?.error ?? formState.error}</p>
+          <p>{online.current ? (page.form?.error ?? formState.error) : 'You are offline'}</p>
         </aside>
       {/if}
 
