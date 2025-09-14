@@ -49,17 +49,15 @@
 
     try {
       let error = ''
-      const obj: Record<string, string> = {}
+      const obj: Record<string, string | number | null | boolean> = {}
 
       for (let property in navigator) {
-        try {
-          const key = property as keyof typeof navigator
-          const value = typeof navigator[key] === 'function' ? await (navigator[key] as Function)() : navigator[key]
-          const str = value != null && typeof value === 'object' ? JSON.stringify(value) : value
-          if (key in navigator && value != null) {
-            obj[property] = str
-          }
-        } catch (error) {}
+        const key = property as keyof typeof navigator
+        const value = typeof navigator[key] === 'function' ? 'function' : navigator[key]
+        const str = value != null && typeof value === 'object' ? JSON.stringify(value) : value
+        if (key in navigator && value != null) {
+          obj[property] = str
+        }
       }
 
       if (rawError instanceof Error) {
