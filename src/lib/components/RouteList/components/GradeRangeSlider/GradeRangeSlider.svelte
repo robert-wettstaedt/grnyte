@@ -10,14 +10,28 @@
     onchange?: (values: Values) => void
   }
 
-  let {
-    minGrade = $bindable(pageState.grades.at(0)?.id ?? undefined),
-    maxGrade = $bindable(pageState.grades.at(-1)?.id ?? undefined),
-    onchange,
-  }: Props = $props()
+  let { minGrade = $bindable(), maxGrade = $bindable(), onchange }: Props = $props()
 
-  let minUserGrade = $derived(minGrade == null ? null : pageState.grades[minGrade][pageState.gradingScale])
-  let maxUserGrade = $derived(maxGrade == null ? null : pageState.grades[maxGrade][pageState.gradingScale])
+  let minUserGrade = $derived.by(() => {
+    const grade = minGrade ?? pageState.grades.at(0)?.id ?? undefined
+
+    if (grade == null) {
+      return undefined
+    }
+
+    return pageState.grades.at(grade)?.[pageState.gradingScale]
+  })
+
+  let maxUserGrade = $derived.by(() => {
+    const grade = maxGrade ?? pageState.grades.at(-1)?.id ?? undefined
+
+    if (grade == null) {
+      return undefined
+    }
+
+    return pageState.grades.at(grade)?.[pageState.gradingScale]
+  })
+
   let minInput = $state<HTMLInputElement>()
   let maxInput = $state<HTMLInputElement>()
   let rangeElement = $state<HTMLDivElement>()
@@ -47,7 +61,9 @@
   }
 
   function onChange() {
-    onchange?.({ minGrade, maxGrade })
+    if (minGrade != null && maxGrade != null) {
+      onchange?.({ minGrade, maxGrade })
+    }
   }
 
   $effect(() => {
@@ -56,11 +72,13 @@
 </script>
 
 <div class="relative w-full max-w-md pb-4">
-  <div class="label-text">
-    <span id="min-value">Grade: {minUserGrade}</span>
-    <span class="mx-2">-</span>
-    <span id="max-value">{maxUserGrade}</span>
-  </div>
+  {#if minUserGrade != null && maxUserGrade != null}
+    <div class="label-text">
+      <span id="min-value">Grade: {minUserGrade}</span>
+      <span class="mx-2">-</span>
+      <span id="max-value">{maxUserGrade}</span>
+    </div>
+  {/if}
 
   <div class="absolute mt-2 h-1 w-full rounded bg-gray-200">
     <div bind:this={rangeElement} class="bg-primary-500 absolute h-full rounded"></div>

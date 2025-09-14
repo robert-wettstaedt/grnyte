@@ -34,7 +34,7 @@
       data.file.ascent.route.name,
       data.file.ascent.route.gradeFk == null
         ? ''
-        : `(${pageState.grades[data.file.ascent.route.gradeFk]?.[pageState.gradingScale]})`,
+        : `(${pageState.grades.at(data.file.ascent.route.gradeFk)?.[pageState.gradingScale]})`,
     ].join(' ')
 
     return `${data.file.ascent.author.username}'s ascent of ${routename}`
