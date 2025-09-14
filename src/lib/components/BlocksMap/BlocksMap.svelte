@@ -30,7 +30,6 @@
 </script>
 
 <script lang="ts">
-  import { page } from '$app/state'
   import type { Area, Geolocation } from '$lib/db/schema'
   import type { NestedArea } from '$lib/db/types'
   import { getDistance } from '$lib/geometry'
@@ -54,6 +53,7 @@
   import CircleStyle from 'ol/style/Circle'
   import { onMount } from 'svelte'
   import type { GetBlockKey, NestedBlock } from '.'
+  import { pageState } from '$lib/components/Layout'
   import Geolocate from './components/Geolocate'
   import Layers, { visibleLayers, type Layer } from './components/Layers'
   import Popup from './components/Popup'
@@ -86,7 +86,7 @@
   let layersIsVisible = $state(false)
   const layers: Layer[] = [
     { label: 'OSM', name: 'osm' },
-    ...page.data.userRegions.flatMap((region) =>
+    ...pageState.userRegions.flatMap((region) =>
       (region.settings?.mapLayers ?? []).map((regionLayer) => ({
         label: regionLayer.name,
         name: regionLayer.name,
@@ -110,7 +110,7 @@
           properties: { layerOpts: layers.find((layer) => layer.name === 'osm') },
           source: new OSM(),
         }),
-        ...page.data.userRegions.flatMap((region) =>
+        ...pageState.userRegions.flatMap((region) =>
           (region.settings?.mapLayers ?? []).map((regionLayer) => {
             return new TileLayer(
               showRegionLayers

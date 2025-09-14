@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
+  import { pageState } from '$lib/components/Layout/page.svelte.js'
 
   const { data, form } = $props()
 </script>
@@ -63,7 +64,7 @@
       class="input"
       placeholder="Enter your username"
       required
-      value={data.user?.username}
+      value={pageState.user?.username}
     />
   </label>
 

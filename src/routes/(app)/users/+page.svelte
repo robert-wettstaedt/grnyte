@@ -4,6 +4,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { appRoleLabels } from '$lib/db/schema'
   import { Pagination } from '@skeletonlabs/skeleton-svelte'
 
@@ -37,7 +38,7 @@
           <div class="flex flex-col text-right">
             {#each item.regions as region}
               <span>
-                {#if data.userRegions.length > 1}
+                {#if pageState.userRegions.length > 1}
                   {appRoleLabels[region.role]} ({region.name})
                 {:else}
                   {appRoleLabels[region.role]}

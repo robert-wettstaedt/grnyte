@@ -4,16 +4,20 @@
   import AppBar from '$lib/components/AppBar'
   import RouteExternalResourceLinks from '$lib/components/RouteExternalResourceLinks'
   import RouteName from '$lib/components/RouteName/RouteNameLoader.svelte'
-  import type { Row, RowWithRelations } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getAreaContext } from '$lib/contexts/area'
+  import type { RowWithRelations } from '$lib/db/zero'
   import { convertException } from '$lib/errors'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import type { PageProps } from './$types'
 
   interface Props {
-    area: Row<'areas'>
-    routes: RowWithRelations<'routes', { block: true; externalResources: true }>[]
+    routes: ZeroQueryResult<PageProps['data']['query']>
   }
 
-  let { area, routes }: Props = $props()
+  let { routes }: Props = $props()
+  const { area } = getAreaContext()
+
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
   let error: string | null = $state(null)

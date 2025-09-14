@@ -32,12 +32,6 @@ export const config = {
   },
   cache: {
     ttl: 1000 * 60 * 60, // 1 hour default TTL
-    keys: {
-      activityFeed: 'activity_feed',
-      areaStats: 'area_stats',
-      layoutBlocks: 'layout_blocks',
-      layoutBlocksHash: 'layout_blocks_hash',
-    },
   },
   logging: {
     level: process.env.NODE_ENV === 'production' ? 'info' : 'error',

@@ -16,6 +16,13 @@ class ResizeObserverMock {
 
 global.ResizeObserver = ResizeObserverMock
 
+// Mock svelte/reactivity/window
+vi.mock('svelte/reactivity/window', () => ({
+  online: {
+    current: true,
+  },
+}))
+
 // Mock d3 zoom functionality
 vi.mock('d3', async (importOriginal) => {
   const actual = await importOriginal()

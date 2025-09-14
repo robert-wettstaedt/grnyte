@@ -6,6 +6,7 @@
   import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
@@ -43,8 +44,6 @@
 
   type SearchItem = AreaItem | BlockItem | RouteItem | UserItem
 
-  let { data } = $props()
-
   let value = $state(page.url.searchParams.get('q') ?? '')
   let searchQuery = $derived(page.url.searchParams.get('q') ?? '')
   let recentSearch: string[] = $state(globalThis.localStorage.getItem(KEY)?.split(',') ?? [])
@@ -53,40 +52,40 @@
     value = searchQuery
   })
 
-  const areasResult = $derived(
-    new Query(
-      page.data.z.current.query.areas
-        .where((q) =>
-          q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
-        )
-        .related('parent', (q) => q.related('parent'))
-        .related('region'),
-    ),
+  const areasQuery = $derived(
+    page.data.z.current.query.areas
+      .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
+      .related('parent', (q) => q.related('parent'))
+      .related('region'),
   )
+  // svelte-ignore state_referenced_locally
+  const areasResult = new Query(areasQuery)
+  $effect(() => areasResult.updateQuery(areasQuery))
 
-  const blocksResult = $derived(
-    new Query(
-      page.data.z.current.query.blocks
-        .where('name', 'ILIKE', `%${searchQuery}%`)
-        .related('area', (q) => q.related('parent'))
-        .related('region'),
-    ),
+  const blocksQuery = $derived(
+    page.data.z.current.query.blocks
+      .where('name', 'ILIKE', `%${searchQuery}%`)
+      .related('area', (q) => q.related('parent'))
+      .related('region'),
   )
+  // svelte-ignore state_referenced_locally
+  const blocksResult = new Query(blocksQuery)
+  $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const routesResult = $derived(
-    new Query(
-      page.data.z.current.query.routes
-        .where((q) =>
-          q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
-        )
-        .related('block', (q) => q.related('area', (q) => q.related('parent')))
-        .related('region'),
-    ),
+  const routesQuery = $derived(
+    page.data.z.current.query.routes
+      .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
+      .related('block', (q) => q.related('area', (q) => q.related('parent')))
+      .related('region'),
   )
+  // svelte-ignore state_referenced_locally
+  const routesResult = new Query(routesQuery)
+  $effect(() => routesResult.updateQuery(routesQuery))
 
-  const usersResult = $derived(
-    new Query(page.data.z.current.query.users.where('username', 'ILIKE', `%${searchQuery}%`)),
-  )
+  const usersQuery = $derived(page.data.z.current.query.users.where('username', 'ILIKE', `%${searchQuery}%`))
+  // svelte-ignore state_referenced_locally
+  const usersResult = new Query(usersQuery)
+  $effect(() => usersResult.updateQuery(usersQuery))
 
   const isLoading = $derived(
     (areasResult.current.length === 0 && areasResult.details.type !== 'complete') ||
@@ -280,7 +279,7 @@
           {:else}
             <div class="flex flex-col gap-1">
               <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-                {#if data.userRegions.length > 1 && item.data.region != null}
+                {#if pageState.userRegions.length > 1 && item.data.region != null}
                   {item.data.region.name}
 
                   {#if item.type === 'area'}

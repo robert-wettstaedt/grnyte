@@ -40,7 +40,7 @@ export interface UserEntity extends BaseEntity {
 
 export type Entity = AreaEntity | BlockEntity | RouteEntity | AscentEntity | FileEntity | UserEntity
 
-export interface ActivityWithDate extends Row<'activities'> {
+export interface ActivityWithDate extends RowWithRelations<'activities', { user: true }> {
   createdAtDate: Date
 }
 

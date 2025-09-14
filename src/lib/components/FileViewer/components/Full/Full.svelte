@@ -2,6 +2,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
   import { getVideoIframeUrl } from '$lib/bunny'
+  import { pageState } from '$lib/components/Layout'
   import type { File } from '$lib/db/schema'
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
@@ -20,8 +21,8 @@
   let { file, readOnly = true, status = $bindable(), topLeft, ...props }: Props = $props()
 
   let shareData = $derived({
-    text: page.data.user?.username
-      ? `${page.data.user?.username} wants to share a file with you`
+    text: pageState.user?.username
+      ? `${pageState.user?.username} wants to share a file with you`
       : 'I want to share a file with you',
     title: PUBLIC_APPLICATION_NAME,
     url: `${page.url.origin}/f/${file.id}`,

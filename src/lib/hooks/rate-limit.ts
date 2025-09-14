@@ -1,3 +1,4 @@
+import { building } from '$app/environment'
 import { config } from '$lib/config'
 import { apiLogger } from '$lib/logging'
 import type { Handle } from '@sveltejs/kit'
@@ -12,6 +13,10 @@ interface RateLimitStore {
 const store: RateLimitStore = {}
 
 export const rateLimit: Handle = async ({ event, resolve }) => {
+  if (building) {
+    return resolve(event)
+  }
+
   const ip = event.getClientAddress()
   const now = Date.now()
   const windowMs = config.api.rateLimit.windowMs

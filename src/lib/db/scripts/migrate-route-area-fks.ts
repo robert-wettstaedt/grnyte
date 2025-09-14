@@ -3,7 +3,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../schema'
 import type { InferResultType } from '../types'
 
-export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
+export const migrate = async (db: PostgresJsDatabase<typeof schema>, areaId?: number) => {
   const buildNestedAreaQuery = (depth = 4) => {
     let nestedAreaQuery: Parameters<typeof db.query.areas.findMany>[0] = {
       with: {
@@ -23,6 +23,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   }
 
   const blocks = await db.query.blocks.findMany({
+    where: areaId == null ? undefined : eq(schema.blocks.areaFk, areaId),
     with: {
       area: buildNestedAreaQuery(),
     },

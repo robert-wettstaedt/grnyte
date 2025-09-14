@@ -60,7 +60,7 @@ export const GET = async ({ locals, url }) => {
     description: route8a?.description ?? route27crags?.description ?? routeTheCrag?.description ?? null,
     externalResourcesFk: null,
     firstAscentYear: null,
-    gradeFk: gradeIndicesMean < 0 ? null : grades[gradeIndicesMean].id,
+    gradeFk: gradeIndicesMean < 0 ? null : grades.at(gradeIndicesMean)?.id,
     name: route8a?.name ?? route27crags?.name ?? routeTheCrag?.name ?? query,
     rating: ratingMean,
     slug: '',

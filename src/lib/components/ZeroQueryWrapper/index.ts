@@ -15,4 +15,11 @@ export interface ZeroQueryWrapperProps<TSchema extends Schema, TTable extends ke
   showEmpty?: boolean
 }
 
-export { default } from './ZeroQueryWrapper.svelte'
+export { default } from './KeyWrapper.svelte'
+
+export type ZeroQueryResult<
+  T extends QueryDef<TSchema, TTable, TReturn> | null,
+  TSchema extends Schema = Schema,
+  TTable extends keyof TSchema['tables'] & string = keyof TSchema['tables'] & string,
+  TReturn = any,
+> = NonNullable<Awaited<ReturnType<NonNullable<T>['run']>>>

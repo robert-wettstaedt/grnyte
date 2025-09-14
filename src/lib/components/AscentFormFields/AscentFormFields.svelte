@@ -5,16 +5,16 @@
   import GradeFormField from '$lib/components/GradeFormField'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
-  import type { Ascent } from '$lib/db/schema'
+  import type { Row } from '$lib/db/zero'
   import { DateTime } from 'luxon'
 
   interface Props {
-    dateTime: Ascent['dateTime']
+    dateTime: Row<'ascents'>['dateTime']
     fileUploadProps: FileUploadProps
-    gradeFk: Ascent['gradeFk']
-    notes: Ascent['notes']
-    rating: Ascent['rating']
-    type: Ascent['type'] | null
+    gradeFk: Row<'ascents'>['gradeFk']
+    notes: Row<'ascents'>['notes']
+    rating: Row<'ascents'>['rating']
+    type: Row<'ascents'>['type'] | null
   }
 
   let { dateTime, gradeFk, notes, rating, type, fileUploadProps }: Props = $props()
@@ -42,7 +42,7 @@
     name="dateTime"
     title="Input (date)"
     type="date"
-    value={DateTime.fromSQL(dateTime).toISODate()}
+    value={dateTime == null ? '' : DateTime.fromMillis(dateTime).toISODate()}
   />
 </label>
 

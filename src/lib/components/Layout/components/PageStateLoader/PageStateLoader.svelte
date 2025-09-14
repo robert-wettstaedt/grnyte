@@ -2,8 +2,19 @@
   import { page } from '$app/state'
   import { Query } from 'zero-svelte'
   import { pageState } from '../../page.svelte'
+  import { setContext, type Snippet } from 'svelte'
+  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
-  const { current: grades } = $derived(new Query(page.data.z.current.query.grades))
+  interface Props {
+    children: Snippet
+  }
+
+  const { children }: Props = $props()
+
+  setContext('z', page.data.z)
+
+  const gradesResult = new Query(page.data.z.current.query.grades)
+  const tagsResult = new Query(page.data.z.current.query.tags)
 
   const userResult = $derived(
     page.data.session?.user.id == null
@@ -30,7 +41,7 @@
         ),
   )
 
-  const permissionsResult = $derived(new Query(page.data.z.current.query.rolePermissions))
+  const permissionsResult = new Query(page.data.z.current.query.rolePermissions)
 
   const userPermissions = $derived(
     userRoleResult?.current == null
@@ -52,7 +63,11 @@
   )
 
   $effect(() => {
-    pageState.grades = grades
+    pageState.grades = gradesResult.current
+  })
+
+  $effect(() => {
+    pageState.tags = tagsResult.current
   })
 
   $effect(() => {
@@ -74,4 +89,21 @@
   $effect(() => {
     pageState.userRegions = userRegions ?? []
   })
+
+  let isLoading = $derived(
+    (userResult != null && userResult.current == null && userResult.details.type !== 'complete') ||
+      (userRoleResult != null && userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
+      (userRegionsResult != null &&
+        userRegionsResult.current == null &&
+        userRegionsResult.details.type !== 'complete') ||
+      (permissionsResult != null && permissionsResult.current == null && permissionsResult.details.type !== 'complete'),
+  )
 </script>
+
+{#if isLoading}
+  <div class="fixed flex h-full w-full items-center justify-center">
+    <ProgressRing value={null} />
+  </div>
+{:else}
+  {@render children?.()}
+{/if}

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Row } from '$lib/db/zero'
+  import type { Row, RowWithRelations } from '$lib/db/zero'
   import { validateObject } from '$lib/forms/validate.svelte'
   import { compareDesc, format, isWithinInterval, sub, type Interval } from 'date-fns'
   import { z } from 'zod'
@@ -40,9 +41,10 @@
         )
       })
       .orderBy('createdAt', 'desc')
+      .related('user')
 
-    if (searchParams.user === 'me' && page.data.user != null) {
-      query = query.where('userFk', page.data.user.id)
+    if (searchParams.user === 'me' && pageState.user?.id != null) {
+      query = query.where('userFk', pageState.user.id)
     }
 
     if (searchParams.type === 'ascents') {
@@ -70,9 +72,9 @@
     })
   }
 
-  function paginateActivities(activities: Row<'activities'>[]) {
+  function paginateActivities(activities: RowWithRelations<'activities', { user: true }>[]) {
     const pages = Math.ceil(activities.length / PAGE_SIZE)
-    const paginatedActivities: Row<'activities'>[][] = []
+    const paginatedActivities: RowWithRelations<'activities', { user: true }>[][] = []
 
     for (let index = 0; index < pages; index++) {
       paginatedActivities.push(activities.slice(index * PAGE_SIZE, (index + 1) * PAGE_SIZE))
@@ -81,7 +83,10 @@
     return paginatedActivities
   }
 
-  function groupActivities(_activities: Row<'activities'>[], files: ActivityGroup['files']) {
+  function groupActivities(
+    _activities: RowWithRelations<'activities', { user: true }>[],
+    files: ActivityGroup['files'],
+  ) {
     let activities = [..._activities]
       .filter((activity) => activity.createdAt != null)
       .map((activity) => ({ ...activity, createdAtDate: new Date(activity.createdAt!) }))
@@ -122,10 +127,7 @@
 <ZeroQueryWrapper {query} loadingIndicator={{ type: 'skeleton', count: 15 }}>
   {#snippet children(items)}
     {@const fileIds = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
-    <ZeroQueryWrapper
-      query={page.data.z.current.query.files.where('id', 'IN', fileIds).related('ascent')}
-      loadingIndicator={{ type: 'skeleton', count: 15 }}
-    >
+    <ZeroQueryWrapper query={page.data.z.current.query.files.where('id', 'IN', fileIds).related('ascent')}>
       {#snippet children(files)}
         {@const groups = paginateActivities(items).map((item) => groupActivities(item, files))}
         <ActivityFeed activities={groups} />

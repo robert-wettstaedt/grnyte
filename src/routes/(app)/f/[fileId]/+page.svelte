@@ -6,6 +6,7 @@
   import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_READ } from '$lib/auth'
   import { getVideoThumbnailUrl } from '$lib/bunny'
   import { Full } from '$lib/components/FileViewer'
+  import { pageState } from '$lib/components/Layout'
   import RouteName from '$lib/components/RouteName'
   import { formatDistance } from 'date-fns'
 
@@ -33,7 +34,7 @@
       data.file.ascent.route.name,
       data.file.ascent.route.gradeFk == null
         ? ''
-        : `(${data.grades[data.file.ascent.route.gradeFk][data.gradingScale]})`,
+        : `(${pageState.grades.at(data.file.ascent.route.gradeFk)?.[pageState.gradingScale]})`,
     ].join(' ')
 
     return `${data.file.ascent.author.username}'s ascent of ${routename}`
@@ -69,13 +70,12 @@
       file={data.file}
       onDelete={() => goto(pathname)}
       readOnly={!(
-        checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_DELETE], data.file.regionFk) ||
-        data.file.ascent?.author.id === data.user?.id
+        checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], data.file.regionFk) ||
+        data.file.ascent?.author.id === pageState.user?.id
       )}
-      stat={data.file.stat}
     >
       {#snippet topLeft()}
-        {#if data.session != null && checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_READ], data.file.regionFk)}
+        {#if data.session != null && checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_READ], data.file.regionFk)}
           <a class="btn btn-sm bg-black/20 backdrop-blur-sm" href={pathname}>
             Show {entityType}
 

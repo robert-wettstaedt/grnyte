@@ -1,10 +1,11 @@
 import { CRON_API_KEY } from '$env/static/private'
 import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
 import { getVideoThumbnailUrl } from '$lib/bunny'
-import { getParentWith, getQuery, getWhere, postProcessEntity } from '$lib/components/ActivityFeedLegacy/load.server'
+import { getParentWith, getQuery, getWhere, postProcessEntity } from '$lib/components/ActivityFeed/load.server'
 import { config } from '$lib/config'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
+import type { Row } from '$lib/db/zero/types'
 import type { Notification } from '$lib/notifications'
 import { getGradeTemplateString, sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { differenceInDays, differenceInMinutes, sub } from 'date-fns'
@@ -210,7 +211,7 @@ const getUserNotification = async (group: Group, username: string): Promise<Noti
   interface ActivityFilter {
     filter: (activity: schema.Activity) => boolean
     withEntity: boolean
-    getBody: (item: schema.Activity, user?: schema.User) => string
+    getBody: (item: schema.Activity, user?: Row<'users'>) => string
   }
   const activityFilters: ActivityFilter[] = [
     {
@@ -248,7 +249,7 @@ const getUserNotification = async (group: Group, username: string): Promise<Noti
   for await (const item of activityFilters) {
     const array = group.activities.filter(item.filter)
     const activity = array.at(0)
-    let user: schema.User | undefined
+    let user: Row<'users'> | undefined
 
     if (activity == null) {
       continue

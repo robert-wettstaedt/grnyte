@@ -30,7 +30,6 @@ export default defineConfig({
       scope: '/',
       base: '/',
       useCredentials: true,
-      selfDestroying: process.env.SELF_DESTROYING_SW === 'true',
       manifest: {
         name: 'grnyte',
         short_name: 'grnyte',

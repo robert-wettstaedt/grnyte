@@ -21,12 +21,14 @@
   import { Navigation, Toaster } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
+  import { online } from 'svelte/reactivity/window'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
   import '../../../app.css'
   import { Footer } from './components/Footer'
   import HeaderBar from './components/HeaderBar'
   import PageStateLoader from './components/PageStateLoader'
+  import { pageState } from './page.svelte'
 
   let { children }: LayoutProps = $props()
 
@@ -77,59 +79,59 @@
   {@html webManifest}
 </svelte:head>
 
-<PageStateLoader />
+<PageStateLoader>
+  <div>
+    <ProgressBar class="text-secondary-500 !z-[100]" />
+    <Toaster {toaster}></Toaster>
 
-<div>
-  <ProgressBar class="text-secondary-500 !z-[100]" />
-  <Toaster {toaster}></Toaster>
+    <HeaderBar />
 
-  <HeaderBar />
+    <main
+      class="relative p-2 md:p-4 {page.data.session?.user == null
+        ? 'min-h-[calc(100vh-3rem)]'
+        : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
+    >
+      <Breadcrumb url={page.url} />
 
-  <main
-    class="relative p-2 md:p-4 {page.data.session?.user == null
-      ? 'min-h-[calc(100vh-3rem)]'
-      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
-  >
-    <Breadcrumb url={page.url} />
+      {#if page.form?.error ?? formState.error}
+        <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
+          <p>{online.current ? (page.form?.error ?? formState.error) : 'You are offline'}</p>
+        </aside>
+      {/if}
 
-    {#if page.form?.error ?? formState.error}
-      <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-        <p>{page.form?.error ?? formState.error}</p>
-      </aside>
+      <svelte:boundary>
+        {#snippet failed(exception, reset)}
+          <Error
+            {reset}
+            error={dev ? { message: convertException(exception) } : undefined}
+            rawError={exception}
+            reportError
+            status={400}
+          />
+        {/snippet}
+
+        {@render children?.()}
+      </svelte:boundary>
+    </main>
+
+    <!-- Footer - only show for logged-out users or on certain pages -->
+    {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
+      <Footer />
     {/if}
 
-    <svelte:boundary>
-      {#snippet failed(exception, reset)}
-        <Error
-          {reset}
-          error={dev ? { message: convertException(exception) } : undefined}
-          rawError={exception}
-          reportError
-          status={400}
-        />
-      {/snippet}
-
-      {@render children?.()}
-    </svelte:boundary>
-  </main>
-
-  <!-- Footer - only show for logged-out users or on certain pages -->
-  {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
-    <Footer />
-  {/if}
-
-  {#if page.data.userRegions.length > 0}
-    <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
-      <NavTiles />
-    </Navigation.Bar>
-
-    <Navigation.Rail base="hidden md:block fixed top-[48px] h-screen">
-      {#snippet tiles()}
+    {#if pageState.userRegions.length > 0}
+      <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
         <NavTiles />
-      {/snippet}
-    </Navigation.Rail>
-  {/if}
-</div>
+      </Navigation.Bar>
+
+      <Navigation.Rail base="fixed top-[48px] hidden h-screen md:block">
+        {#snippet tiles()}
+          <NavTiles />
+        {/snippet}
+      </Navigation.Rail>
+    {/if}
+  </div>
+</PageStateLoader>
 
 {#await import('$lib/components/ReloadPrompt') then { default: ReloadPrompt }}
   <ReloadPrompt />

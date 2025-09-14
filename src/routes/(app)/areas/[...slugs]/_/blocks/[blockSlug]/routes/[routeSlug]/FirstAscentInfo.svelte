@@ -1,15 +1,12 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Row } from '$lib/db/zero'
+  import { getRouteContext } from '$lib/contexts/route'
   import { Popover } from '@skeletonlabs/skeleton-svelte'
+  import { claimFirstAscensionist, claimFirstAscent } from './page.remote'
 
-  interface Props {
-    route: Row<'routes'>
-  }
-
-  const { route }: Props = $props()
+  const { route } = getRouteContext()
 </script>
 
 <ZeroQueryWrapper
@@ -27,13 +24,13 @@
         {#if firstAscent.firstAscensionist != null}
           {#if firstAscent.firstAscensionist.user == null}
             <span
-              class="flex justify-between gap-2 {page.data.user?.firstAscensionistFk == null ? 'w-full md:w-auto' : ''}"
+              class="flex justify-between gap-2 {pageState.user?.firstAscensionistFk == null ? 'w-full md:w-auto' : ''}"
             >
               <a class="anchor" href={`/users/${firstAscent.firstAscensionist.name}`}>
                 {firstAscent.firstAscensionist.name}
               </a>
 
-              {#if page.data.user?.firstAscensionistFk == null}
+              {#if pageState.user?.firstAscensionistFk == null}
                 <Popover
                   arrow
                   arrowBackground="!bg-surface-200 dark:!bg-surface-800"
@@ -54,11 +51,16 @@
                     </article>
 
                     <footer class="flex justify-end">
-                      <form action="?/claimFirstAscensionist" method="POST" use:enhance>
-                        <input type="hidden" name="firstAscensionistFk" value={firstAscent.firstAscensionist?.id} />
-
-                        <button class="btn btn-sm preset-filled-primary-500 !text-white" type="submit"> Yes </button>
-                      </form>
+                      <button
+                        class="btn btn-sm preset-filled-primary-500 !text-white"
+                        onclick={() =>
+                          claimFirstAscensionist({
+                            firstAscensionistFk: firstAscent.firstAscensionist?.id,
+                            routeId: route.id,
+                          })}
+                      >
+                        Yes
+                      </button>
                     </footer>
                   {/snippet}
                 </Popover>
@@ -86,7 +88,7 @@
         </span>
       {/if}
 
-      {#if firstAscents.length === 0 && page.data.user?.firstAscensionistFk != null}
+      {#if firstAscents.length === 0 && pageState.user?.firstAscensionistFk != null}
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"
@@ -104,9 +106,12 @@
             </article>
 
             <footer class="flex justify-end">
-              <form action="?/claimFirstAscent" method="POST" use:enhance>
-                <button class="btn btn-sm preset-filled-primary-500 !text-white" type="submit"> Yes </button>
-              </form>
+              <button
+                class="btn btn-sm preset-filled-primary-500 !text-white"
+                onclick={() => route.id != null && claimFirstAscent(route.id)}
+              >
+                Yes
+              </button>
             </footer>
           {/snippet}
         </Popover>

@@ -1,18 +1,19 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import type { Row } from '$lib/db/zero'
+  import { pageState } from '$lib/components/Layout'
   import CorrectedGrade from './components/CorrectedGrade'
+  import type { InferResultType } from '$lib/db/types'
 
   interface Props {
-    ascents: Row<'ascents'>[]
-    route: Row<'routes'>
+    ascents: Row<'ascents'>[] | InferResultType<'ascents'>[] | undefined
+    route: Row<'routes'> | InferResultType<'routes'>
   }
 
   let { ascents, route }: Props = $props()
 
   const send = $derived(
     ascents
-      ?.filter((ascent) => String(ascent.createdBy) === String(page.data.user!.id))
+      ?.filter((ascent) => String(ascent.createdBy) === String(pageState.user!.id))
       .find((ascent) => ascent.type === 'send'),
   )
 </script>

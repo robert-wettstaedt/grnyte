@@ -5,16 +5,18 @@
   import BlockFormFields from '$lib/components/BlockFormFields'
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
-  import type { Row } from '$lib/db/zero'
+  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getAreaContext } from '$lib/contexts/area'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import type { PageProps } from './$types'
   import { createBlock } from './page.remote'
 
   interface Props {
-    area: Row<'areas'>
     name: string
   }
 
-  let { area, name }: Props = $props()
+  let { name }: Props = $props()
+  const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   let state = $state<EnhanceState>({})
 </script>
@@ -37,5 +39,5 @@
 >
   <BlockFormFields {name} areaFk={area.id} fileUploadProps={{ state }} />
 
-  <FormActionBar label="Save block" {state} />
+  <FormActionBar label="Save block" pending={createBlock.pending} />
 </form>

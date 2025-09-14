@@ -7,17 +7,13 @@
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
-  import type { Row } from '$lib/db/zero'
-  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getAreaContext } from '$lib/contexts/area'
+  import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { deleteArea, updateArea } from './page.remote'
 
-  interface Props {
-    area: Row<'areas'>
-  }
+  const { area } = getAreaContext()
 
-  let { area }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
-  let state = $state<EnhanceState>({})
 </script>
 
 <svelte:head>
@@ -31,9 +27,9 @@
   {/snippet}
 </AppBar>
 
-<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateArea.enhance(enhanceForm(state))}>
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateArea.enhance(enhanceForm())}>
   <AreaFormFields {...area} />
-  <FormActionBar label="Update area" {state} />
+  <FormActionBar label="Update area" pending={updateArea.pending} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)}

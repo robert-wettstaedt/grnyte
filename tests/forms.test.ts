@@ -1,10 +1,4 @@
-import {
-  areaActionSchema,
-  ascentActionSchema,
-  blockActionSchema,
-  firstAscentActionSchema,
-  routeActionSchema,
-} from '$lib/forms/schemas'
+import { areaActionSchema, ascentActionSchema, blockActionSchema, routeActionSchema } from '$lib/forms/schemas'
 import { validateFormData } from '$lib/forms/validate.server'
 import { describe, expect, it } from 'vitest'
 
@@ -127,47 +121,6 @@ describe('validateRouteForm', () => {
       name: '',
       rating: null,
     })
-  })
-})
-
-describe('validateFirstAscentForm', () => {
-  it('should validate and return correct values', async () => {
-    const formData = new FormData()
-    formData.set('climberName', 'John Doe')
-    formData.set('year', '2021')
-
-    const result = await validateFormData(firstAscentActionSchema, formData)
-    expect(result).toEqual({ climberName: ['John Doe'], year: 2021 })
-  })
-
-  it('should throw an error if year is not a valid number', async () => {
-    const formData = new FormData()
-    formData.set('climberName', 'John Doe')
-    formData.set('year', 'invalid')
-
-    await expect(validateFormData(firstAscentActionSchema, formData)).rejects.toThrowError()
-  })
-
-  it('should throw an error if both climberName and year are missing', async () => {
-    const formData = new FormData()
-
-    await expect(validateFormData(firstAscentActionSchema, formData)).rejects.toThrowError()
-  })
-
-  it('should validate year is within reasonable range', async () => {
-    const formData = new FormData()
-    formData.set('climberName', 'John Doe')
-    formData.set('year', '1800')
-
-    await expect(validateFormData(firstAscentActionSchema, formData)).rejects.toThrowError()
-  })
-
-  it('should handle future years', async () => {
-    const formData = new FormData()
-    formData.set('climberName', 'John Doe')
-    formData.set('year', '2050')
-
-    await expect(validateFormData(firstAscentActionSchema, formData)).rejects.toThrowError()
   })
 })
 

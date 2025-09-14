@@ -7,20 +7,16 @@
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
-  import type { Row } from '$lib/db/zero'
-  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getAreaContext } from '$lib/contexts/area'
+  import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
   import { deleteParkingLocation, updateParkingLocation } from './page.remote'
 
-  interface Props {
-    area: Row<'areas'>
-  }
+  const { area } = getAreaContext()
 
-  let { area }: Props = $props()
   let basePath = $derived(`/areas/${page.params.slugs}`)
-  let formState = $state<EnhanceState>({})
 
   let coordinate: Coordinate | null = $state(null)
   let polyline: string | null = $state(null)
@@ -50,10 +46,7 @@
   {/snippet}
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...updateParkingLocation.enhance(enhanceForm(formState))}
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateParkingLocation.enhance(enhanceForm())}>
   <input type="hidden" name="areaId" value={area.id} />
 
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
@@ -104,7 +97,7 @@
     {/snippet}
   </Tabs>
 
-  <FormActionBar label="Update parking location" state={formState} />
+  <FormActionBar label="Update parking location" pending={updateParkingLocation.pending} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)}

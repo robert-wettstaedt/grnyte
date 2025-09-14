@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
+  import { pageState } from '$lib/components/Layout'
   import type { Row } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'
@@ -21,8 +22,8 @@
 >
   {#snippet children(routes)}
     {@const stats = routes.map((route): GradeHistogramProps['data'][0] => {
-      const grade = page.data.grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
-      const gradeValue = grade?.[page.data.user?.userSettings?.gradingScale ?? 'FB'] ?? undefined
+      const grade = pageState.grades.find((grade) => grade.id === (route.userGradeFk ?? route.gradeFk))
+      const gradeValue = grade?.[pageState.user?.userSettings?.gradingScale ?? 'FB'] ?? undefined
 
       return { grade: gradeValue }
     })}

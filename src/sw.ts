@@ -3,19 +3,13 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
 
-import { ExpirationPlugin } from 'workbox-expiration'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
-import { CacheFirst } from 'workbox-strategies'
-import { getFromCache, invalidateCache, setInCache } from './lib/cache/cache'
-import { config } from './lib/config'
+import { imageCache } from 'workbox-recipes'
 import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
 
 self.addEventListener('message', (event) => {
-  console.log('message', event)
-
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
@@ -27,45 +21,39 @@ precacheAndRoute(self.__WB_MANIFEST)
 // clean old assets
 cleanupOutdatedCaches()
 
-registerRoute(
-  ({ url }) => url.pathname === '/api/blocks',
-  async ({ request, event }) => {
-    try {
-      const response = await fetch('/api/blocks/hash')
-      if (!response.ok || response.status >= 400) {
-        throw new Error('')
-      }
+let allowlist: undefined | RegExp[]
+if (import.meta.env.DEV) {
+  allowlist = [/^\/$/]
+}
 
-      const nextBlockHistoryHash = await response.text()
-      if (nextBlockHistoryHash == null) {
-        throw new Error('')
-      }
+// to allow work offline
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') {
+    return
+  }
 
-      const prevBlockHistoryHash = await getFromCache<string>(config.cache.keys.layoutBlocksHash)
-      const useBlocksCache = prevBlockHistoryHash === nextBlockHistoryHash
-      console.log('Block histories are the same:', useBlocksCache, prevBlockHistoryHash, nextBlockHistoryHash)
+  const promise = new Promise<Response>((resolve) =>
+    fetch(event.request.url)
+      .then(resolve)
+      .catch(() => {
+        // When Network is offline
 
-      if (!useBlocksCache) {
-        console.log('Clearing blocks API cache due to history change')
-        await invalidateCache(config.cache.keys.layoutBlocks)
-      }
+        const url = new URL(event.request.url)
+        if (url.pathname !== '/') {
+          // Redirect because just returning a cached version of pages just does not work
+          // Maybe because it is not a SPA?
+          return resolve(Response.redirect('/'))
+        }
 
-      await setInCache(config.cache.keys.layoutBlocksHash, nextBlockHistoryHash)
-    } catch (error) {
-      await invalidateCache(config.cache.keys.layoutBlocksHash)
-    }
+        // For some reason this is never reached
+        resolve(new Response())
+      }),
+  )
 
-    return new CacheFirst({
-      cacheName: config.cache.keys.layoutBlocks,
-      plugins: [
-        new ExpirationPlugin({
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 1 month
-          maxEntries: 10,
-        }),
-      ],
-    }).handle({ request, event })
-  },
-)
+  event.respondWith(promise)
+})
+
+imageCache({ matchCallback: ({ url }) => url.pathname.startsWith('/nextcloud/topos/') })
 
 // Handle push events for notifications
 self.addEventListener('push', (event) => {

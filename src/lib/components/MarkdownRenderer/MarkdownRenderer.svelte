@@ -19,28 +19,31 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const { current: areas } = $derived(
-    new Query(
-      page.data.z.current.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
-    ),
+  const areasQuery = $derived(
+    page.data.z.current.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
   )
+  // svelte-ignore state_referenced_locally
+  const areasResult = new Query(areasQuery)
+  $effect(() => areasResult.updateQuery(areasQuery))
 
-  const { current: blocks } = $derived(
-    new Query(
-      page.data.z.current.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
-    ),
+  const blocksQuery = $derived(
+    page.data.z.current.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
   )
+  // svelte-ignore state_referenced_locally
+  const blocksResult = new Query(blocksQuery)
+  $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const { current: routes } = $derived(
-    new Query(
-      page.data.z.current.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
-    ),
+  const routesQuery = $derived(
+    page.data.z.current.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
   )
+  // svelte-ignore state_referenced_locally
+  const routesResult = new Query(routesQuery)
+  $effect(() => routesResult.updateQuery(routesQuery))
 
   const markdownRefs = $derived([
-    ...areas.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
-    ...blocks.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
-    ...routes.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
+    ...areasResult.current.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
+    ...blocksResult.current.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
+    ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
   ])
 
   const enrichedMarkdown = $derived(enrichMarkdownWithReferences(markdown, markdownRefs))

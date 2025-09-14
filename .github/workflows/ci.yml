@@ -30,6 +30,7 @@ jobs:
       PRIVATE_VAPID_KEY: foobar
       PUBLIC_VAPID_KEY: foobar
       CRON_API_KEY: foobar
+      PUBLIC_ZERO_URL: foobar
 
     steps:
       - name: Checkout code
@@ -46,6 +47,5 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # - name: Run checks
-      #   run: npm run check
-      # TODO: Enable once zero is more robust
+      - name: Run checks
+        run: npm run check

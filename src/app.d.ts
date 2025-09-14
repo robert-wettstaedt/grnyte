@@ -46,9 +46,8 @@ declare global {
       safeGetSession: () => Promise<SafeSession>
       supabase: SupabaseClient
     }
-    interface PageData extends Omit<Locals, 'safeGetSession' | 'supabase'> {
-      grades: Grade[]
-      gradingScale: NonNullable<UserSettings['gradingScale']>
+    interface PageData {
+      session?: Session | undefined | null
       supabase?: Locals['supabase']
       z: Z<Schema>
     }

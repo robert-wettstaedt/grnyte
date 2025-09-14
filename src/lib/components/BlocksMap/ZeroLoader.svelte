@@ -9,14 +9,16 @@
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const { current: blocks, details } = $derived(new Query(page.data.z.current.query.blocks.related('geolocation')))
-  const { current: areas } = $derived(new Query(page.data.z.current.query.areas.related('parkingLocations')))
+  const blocksResult = new Query(page.data.z.current.query.blocks.related('geolocation'))
+  const areasResult = new Query(page.data.z.current.query.areas.related('parkingLocations'))
 
   const data = $derived.by(() => {
-    const nestedBlocks = blocks
+    const nestedBlocks = blocksResult.current
       .map((block): NestedBlock | null => {
-        const area1 = areas.find((area) => area.id === block.areaFk) as NestedBlock['area'] | undefined
-        const area2 = areas.find((area) => area.id === area1?.parentFk) as NestedBlock['area']['parent'] | undefined
+        const area1 = areasResult.current.find((area) => area.id === block.areaFk) as NestedBlock['area'] | undefined
+        const area2 = areasResult.current.find((area) => area.id === area1?.parentFk) as
+          | NestedBlock['area']['parent']
+          | undefined
 
         if (area1 == null || area2 == null || block.id == null) {
           return null
@@ -30,8 +32,8 @@
       })
       .filter((block) => block != null)
 
-    const parkingLocations = areas.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
-    const geoPaths = areas.flatMap((area) => area.geoPaths ?? [])
+    const parkingLocations = areasResult.current.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
+    const geoPaths = areasResult.current.flatMap((area) => area.geoPaths ?? [])
 
     return {
       blocks: nestedBlocks,
@@ -41,7 +43,7 @@
   })
 </script>
 
-{#if data.blocks.length === 0 && details.type !== 'complete'}
+{#if data.blocks.length === 0 && blocksResult.details.type !== 'complete'}
   <div class="flex h-full items-center justify-center">
     <ProgressRing size="size-20" value={null} />
   </div>

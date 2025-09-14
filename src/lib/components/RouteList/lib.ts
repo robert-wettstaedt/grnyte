@@ -2,6 +2,7 @@ import { page } from '$app/state'
 import { validateObject } from '$lib/forms/validate.svelte'
 import { paginationParamsSchema } from '$lib/pagination.svelte'
 import { z } from 'zod'
+import { pageState } from '$lib/components/Layout'
 
 const searchParamsSchema = z.intersection(
   z.object({
@@ -19,7 +20,7 @@ export const getRoutesFilterQuery = (areaId?: number) => {
 
   let query = page.data.z.current.query.routes
     .related('ascents', (q) =>
-      page.data.user?.id == null ? q.where('createdBy', 'IS', null) : q.where('createdBy', '=', page.data.user.id),
+      pageState.user?.id == null ? q.where('createdBy', 'IS', null) : q.where('createdBy', '=', pageState.user.id),
     )
     .related('block', (q) =>
       q.related('area', (q) =>

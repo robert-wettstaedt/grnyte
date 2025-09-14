@@ -129,7 +129,7 @@
 
   const onChangeTopType: ChangeEventHandler<HTMLInputElement> = (event) => {
     if (selectedTopoRoute != null) {
-      selectedTopoRoute.topType = event.currentTarget.checked ? 'topout' : 'top'
+      ;(selectedTopoRoute.topType as TopoRouteDTO['topType']) = event.currentTarget.checked ? 'topout' : 'top'
       onChange?.(topos, selectedTopoRoute)
     }
   }

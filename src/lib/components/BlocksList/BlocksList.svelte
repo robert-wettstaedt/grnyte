@@ -8,6 +8,7 @@
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
+  import { pageState } from '$lib/components/Layout'
 
   interface Props {
     areaFk: number | null | undefined
@@ -16,15 +17,16 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const blocksResult = $derived(
-    new Query(
-      page.data.z.current.query.blocks
-        .where('areaFk', 'IS', areaFk ?? null)
-        .orderBy('order', 'asc')
-        .orderBy('name', 'asc')
-        .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
-    ),
+  const query = $derived(
+    page.data.z.current.query.blocks
+      .where('areaFk', 'IS', areaFk ?? null)
+      .orderBy('order', 'asc')
+      .orderBy('name', 'asc')
+      .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
   )
+  // svelte-ignore state_referenced_locally
+  const blocksResult = new Query(query)
+  $effect(() => blocksResult.updateQuery(query))
 
   // https://github.com/sveltejs/kit/issues/12999
   // svelte-ignore state_referenced_locally
@@ -97,7 +99,7 @@
       </Segment.Item>
     </Segment>
 
-    {#if checkRegionPermission(page.data.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
+    {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
       <button
         class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
         disabled={sortOrder !== 'custom'}

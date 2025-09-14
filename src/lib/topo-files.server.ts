@@ -1,4 +1,3 @@
-import { caches, invalidateCache } from '$lib/cache/cache.server'
 import * as schema from '$lib/db/schema'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -24,8 +23,6 @@ export const createOrUpdateGeolocation = async (
     // If the block already has a geolocation, update the existing geolocation record
     await db.update(schema.geolocations).set(geolocation).where(eq(schema.geolocations.id, block.geolocationFk!))
   }
-
-  await invalidateCache(caches.layoutBlocks)
 }
 
 export const createGeolocationFromFiles = async (
