@@ -3,9 +3,8 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
 
-import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { imageCache } from 'workbox-recipes'
-import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
@@ -28,7 +27,31 @@ if (import.meta.env.DEV) {
 }
 
 // to allow work offline
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), { allowlist }))
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') {
+    return
+  }
+
+  const promise = new Promise<Response>((resolve) =>
+    fetch(event.request.url)
+      .then(resolve)
+      .catch(() => {
+        // When Network is offline
+
+        const url = new URL(event.request.url)
+        if (url.pathname !== '/') {
+          // Redirect because just returning a cached version of pages just does not work
+          // Maybe because it is not a SPA?
+          return resolve(Response.redirect('/'))
+        }
+
+        // For some reason this is never reached
+        resolve(new Response())
+      }),
+  )
+
+  event.respondWith(promise)
+})
 
 imageCache({ matchCallback: ({ url }) => url.pathname.startsWith('/nextcloud/topos/') })
 
