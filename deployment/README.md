@@ -77,6 +77,7 @@ ZERO_AUTH_SECRET_PROD=your_production_auth_secret
 ZERO_PUSH_URL_PROD=https://zero.grnyte.rocks
 ZERO_UPSTREAM_DB_DEMO=your_demo_db_url
 ZERO_AUTH_SECRET_DEMO=your_demo_auth_secret
+ZERO_AUTH_SECRET=your_admin_password
 ZERO_PUSH_URL_DEMO=https://zero.demo.grnyte.rocks
 EOF
 
@@ -113,7 +114,6 @@ The deployment requires these environment variables in `.env.shared`:
 To migrate to separate servers in the future:
 
 1. Split `docker-compose.zero.yml` into separate files:
-
    - `docker-compose.prod.yml` (production instance + nginx)
    - `docker-compose.demo.yml` (demo instance + nginx)
 
