@@ -6,14 +6,22 @@ import { buildNestedAreaQuery } from '$lib/db/utils'
 import { blockWithPathname } from '$lib/db/utils.svelte'
 import type { RowWithRelations } from '$lib/db/zero'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { blockActionSchema } from '$lib/forms/schemas'
+import { blockActionSchema, stringToInt } from '$lib/forms/schemas'
 import { deleteFiles } from '$lib/helper.server'
 import { getReferences } from '$lib/references.server'
 import { error } from '@sveltejs/kit'
 import { eq, inArray } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateBlock = form((data) => enhanceForm(data, editBlockActionSchema, updateBlockAction))
+type EditBlockActionValues = z.infer<typeof editBlockActionSchema>
+const editBlockActionSchema = z.intersection(
+  z.object({
+    blockId: stringToInt,
+  }),
+  blockActionSchema,
+)
+
+export const updateBlock = form(editBlockActionSchema, (data) => enhanceForm(data, updateBlockAction))
 
 export const deleteBlock = command(z.number(), (id) => enhance(id, deleteBlockAction))
 
@@ -126,11 +134,3 @@ const deleteBlockAction: Action<number> = async (blockId, db, user) => {
 
   return ['', 'areas', block.areaFk].join('/')
 }
-
-type EditBlockActionValues = z.infer<typeof editBlockActionSchema>
-const editBlockActionSchema = z.intersection(
-  z.object({
-    blockId: z.number(),
-  }),
-  blockActionSchema,
-)

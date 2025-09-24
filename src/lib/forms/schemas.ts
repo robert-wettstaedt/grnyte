@@ -3,27 +3,37 @@ import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
 import { type ActionFailure as KitActionFailure } from '@sveltejs/kit'
 import { z } from 'zod'
 
+export const stringToInt = z.codec(z.string().regex(z.regexes.integer), z.int(), {
+  decode: (str) => Number.parseInt(str, 10),
+  encode: (num) => num.toString(),
+})
+
+export const stringToNumber = z.codec(z.string().regex(z.regexes.number), z.number(), {
+  decode: (str) => Number.parseFloat(str),
+  encode: (num) => num.toString(),
+})
+
 export type ActionFailure<T> = KitActionFailure<T & { error: string }>
 
 export const addFileActionSchema = z.object({
-  bunnyVideoIds: z.array(z.string()).nullish(),
+  bunnyVideoIds: z.array(z.string()).optional(),
   folderName: z.string(),
 })
 export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 
 export const addOptionalFileActionSchema = z.object({
-  bunnyVideoIds: z.array(z.string()).nullish(),
-  folderName: z.string().nullable().optional(),
+  bunnyVideoIds: z.array(z.string()).optional(),
+  folderName: z.string().optional(),
 })
 export type AddOptionalFileActionValues = z.infer<typeof addOptionalFileActionSchema>
 
 export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
-  description: z.string().nullable().default(''),
-  id: z.number().nullish(),
+  description: z.string().optional().default(''),
+  id: stringToInt.optional(),
   name: z.string().trim(),
-  parentFk: z.number().nullish(),
-  regionFk: z.number(),
+  parentFk: stringToInt.optional(),
+  regionFk: stringToInt,
   type: z.enum(areaTypeEnum).default('area'),
 })
 
@@ -36,21 +46,21 @@ export const blockActionSchema = z.intersection(
 )
 
 export const routeActionSchema = z.object({
-  description: z.string().nullable().default(''),
-  gradeFk: z.number().nullable().optional(),
+  description: z.string().default(''),
+  gradeFk: stringToInt.optional(),
   name: z.string().trim().default(''),
-  rating: z.number().min(1).max(3).nullable().optional(),
-  tags: z.array(z.string()).nullable().optional(),
+  rating: stringToInt.refine((value) => value >= 1 && value <= 3, 'Must be between 1 and 3').optional(),
+  tags: z.array(z.string()).optional(),
 })
 export type RouteActionValues = z.infer<typeof routeActionSchema>
 
 export const ascentActionSchema = z.intersection(
   z.object({
-    dateTime: z.string().date(),
-    filePaths: z.array(z.string()).nullable().optional(),
-    gradeFk: z.number().nullable().optional(),
-    notes: z.string().nullable().optional(),
-    rating: z.number().min(1).max(3).nullable().optional(),
+    dateTime: z.iso.date(),
+    filePaths: z.array(z.string()).optional(),
+    gradeFk: stringToInt.optional(),
+    notes: z.string().optional(),
+    rating: stringToInt.refine((value) => value >= 1 && value <= 3, 'Must be between 1 and 3').optional(),
     type: z.enum(ascentTypeEnum),
   }),
   addOptionalFileActionSchema,
@@ -81,7 +91,7 @@ export type RegionSettings = z.infer<typeof regionSettingsSchema>
 
 export const regionActionSchema = z.object({
   name: z.string(),
-  settings: z.string().nullish(),
+  settings: z.string().optional(),
 })
 export type RegionActionValues = z.infer<typeof regionActionSchema>
 

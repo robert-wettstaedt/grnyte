@@ -2,7 +2,7 @@ import { page } from '$app/state'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { uploadVideo } from '$lib/bunny'
 import { enhance, type EnhanceState } from '$lib/forms/enhance.svelte'
-import type { RemoteQuery, RemoteQueryOverride } from '@sveltejs/kit'
+import type { RemoteFormInput, RemoteQuery, RemoteQueryOverride } from '@sveltejs/kit'
 import * as tus from 'tus-js-client'
 import { createBunnyVideo } from './bunny.remote'
 
@@ -11,18 +11,18 @@ export function enhanceWithFile(state: EnhanceState) {
     data,
     submit,
   }: {
-    data: FormData
+    form: HTMLFormElement
+    data: RemoteFormInput
     submit: () => Promise<void> & {
       updates: (...queries: Array<RemoteQuery<any> | RemoteQueryOverride>) => Promise<void>
     }
   }) {
-    let folderName = data.get('folderName')
+    let { folderName } = data
 
-    const files = data
-      .getAll('files')
+    const files = (Array.isArray(data.files) ? data.files : [data.files])
       .filter((file) => file instanceof File)
       .filter((file) => file.size > 0)
-    data.delete('files')
+    delete data.files
 
     if (page.data.session?.access_token == null || files.length === 0) {
       return enhance(submit, state)
@@ -33,7 +33,7 @@ export function enhanceWithFile(state: EnhanceState) {
     }
 
     folderName = `${page.data.session.user.id}-${Date.now()}`
-    data.set('folderName', folderName)
+    data.folderName = folderName
 
     state.loading = true
     state.progress = 0
@@ -118,7 +118,7 @@ const uploadTus = async (file: File, { folderName, state }: SupabaseUploadOption
 }
 
 interface BunnyUploadOptions {
-  formData: FormData
+  formData: RemoteFormInput
   state: EnhanceState
 }
 
@@ -129,7 +129,7 @@ const uploadVideoToBunny = async (file: File, { formData, state }: BunnyUploadOp
     throw new Error('Video guid is null')
   }
 
-  formData.append('bunnyVideoIds', video.guid)
+  formData.bunnyVideoIds = video.guid
 
   await uploadVideo({
     collectionId: video.collectionId,

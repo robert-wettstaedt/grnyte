@@ -3,22 +3,23 @@ import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { areas, geolocations } from '$lib/db/schema'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
+import { stringToInt, stringToNumber } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
 const updateParkingLocationSchema = z.object({
-  areaId: z.number(),
+  areaId: stringToInt,
 
-  lat: z.number().nullable(),
-  long: z.number().nullable(),
+  lat: stringToNumber.optional(),
+  long: stringToNumber.optional(),
 
-  polyline: z.string().nullable(),
+  polyline: z.string().optional(),
 })
 type UpdateParkingLocationActionValues = z.infer<typeof updateParkingLocationSchema>
 
-export const updateParkingLocation = form((data) =>
-  enhanceForm(data, updateParkingLocationSchema, updateParkingLocationAction),
+export const updateParkingLocation = form(updateParkingLocationSchema, (data) =>
+  enhanceForm(data, updateParkingLocationAction),
 )
 
 export const deleteParkingLocation = command(z.number(), (id) => enhance(id, deleteParkingLocationAction))

@@ -3,12 +3,20 @@ import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { blocks, geolocations } from '$lib/db/schema'
 import { type Action, enhance, enhanceForm } from '$lib/forms/enhance.server'
+import { stringToInt, stringToNumber } from '$lib/forms/schemas'
 import { createOrUpdateGeolocation } from '$lib/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateLocation = form((data) => enhanceForm(data, geolocationActionSchema, updateLocationAction))
+const geolocationActionSchema = z.object({
+  blockId: stringToInt,
+  lat: stringToNumber,
+  long: stringToNumber,
+})
+type GeolocationActionValues = z.infer<typeof geolocationActionSchema>
+
+export const updateLocation = form(geolocationActionSchema, (data) => enhanceForm(data, updateLocationAction))
 
 export const deleteGeolocation = command(z.number(), (data) => enhance(data, deleteGeolocationAction))
 
@@ -85,10 +93,3 @@ const deleteGeolocationAction: Action<number> = async (blockId, db, user) => {
 
   return ['', 'blocks', block.id].join('/')
 }
-
-const geolocationActionSchema = z.object({
-  blockId: z.number(),
-  lat: z.number(),
-  long: z.number(),
-})
-type GeolocationActionValues = z.infer<typeof geolocationActionSchema>

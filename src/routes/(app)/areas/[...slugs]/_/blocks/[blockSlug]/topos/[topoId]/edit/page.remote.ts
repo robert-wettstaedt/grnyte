@@ -5,14 +5,23 @@ import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { topos } from '$lib/db/schema'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { addFileActionSchema } from '$lib/forms/schemas'
+import { addFileActionSchema, stringToInt } from '$lib/forms/schemas'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { createGeolocationFromFiles } from '$lib/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
-export const replaceTopo = form((data) => enhanceForm(data, replaceTopoFileActionSchema, replaceTopoAction))
+type ReplaceTopoFileActionValues = z.infer<typeof replaceTopoFileActionSchema>
+const replaceTopoFileActionSchema = z.intersection(
+  z.object({
+    redirect: z.string().optional(),
+    topoId: stringToInt,
+  }),
+  addFileActionSchema,
+)
+
+export const replaceTopo = form(replaceTopoFileActionSchema, (data) => enhanceForm(data, replaceTopoAction))
 
 const replaceTopoAction: Action<ReplaceTopoFileActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -74,12 +83,3 @@ const replaceTopoAction: Action<ReplaceTopoFileActionValues> = async (values, db
     ? values.redirect
     : ['', 'blocks', topo.blockFk].join('/')
 }
-
-type ReplaceTopoFileActionValues = z.infer<typeof replaceTopoFileActionSchema>
-const replaceTopoFileActionSchema = z.intersection(
-  z.object({
-    redirect: z.string().nullish(),
-    topoId: z.number(),
-  }),
-  addFileActionSchema,
-)

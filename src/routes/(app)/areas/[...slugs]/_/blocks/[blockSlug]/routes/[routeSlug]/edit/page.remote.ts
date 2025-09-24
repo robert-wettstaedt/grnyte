@@ -6,13 +6,23 @@ import { buildNestedAreaQuery } from '$lib/db/utils'
 import { routeWithPathname } from '$lib/db/utils.svelte'
 import type { RowWithRelations } from '$lib/db/zero'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { routeActionSchema } from '$lib/forms/schemas'
+import { routeActionSchema, stringToInt } from '$lib/forms/schemas'
 import { deleteRoute as deleteRouteHelper, updateRoutesUserData } from '$lib/routes.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateRoute = form((data) => enhanceForm(data, editRouteActionSchema, updateRouteAction))
+type EditRouteActionValues = z.infer<typeof editRouteActionSchema>
+const editRouteActionSchema = z.intersection(
+  z.object({
+    blockId: stringToInt,
+    redirect: z.string().optional(),
+    routeId: stringToInt,
+  }),
+  routeActionSchema,
+)
+
+export const updateRoute = form(editRouteActionSchema, (data) => enhanceForm(data, updateRouteAction))
 
 export const deleteRoute = command(z.number(), (id) => enhance(id, deleteRouteAction))
 
@@ -106,13 +116,3 @@ const deleteRouteAction: Action<number> = async (routeId, db, user) => {
 
   return ['', 'blocks', route.blockFk].join('/')
 }
-
-type EditRouteActionValues = z.infer<typeof editRouteActionSchema>
-const editRouteActionSchema = z.intersection(
-  z.object({
-    blockId: z.number(),
-    redirect: z.string().nullish(),
-    routeId: z.number(),
-  }),
-  routeActionSchema,
-)
