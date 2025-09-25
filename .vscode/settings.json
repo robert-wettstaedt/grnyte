@@ -115,5 +115,6 @@
     "width",
     "zIndex"
   ],
-  "cSpell.words": ["topo", "Topo"]
+  "cSpell.words": ["topo", "Topo"],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
