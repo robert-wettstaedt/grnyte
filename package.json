@@ -82,7 +82,7 @@
     "vega-lite": "^6.0.0",
     "web-push": "^3.6.7",
     "webdav": "^5.8.0",
-    "zero-svelte": "^0.3.5",
+    "zero-svelte": "^0.8.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
