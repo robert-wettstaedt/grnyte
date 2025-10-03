@@ -3,11 +3,23 @@ import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { firstAscensionists, routes, routesToFirstAscensionists } from '$lib/db/schema'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
+import { stringToInt } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateFirstAscent = form((data) => enhanceForm(data, firstAscentActionSchema, updateFirstAscentAction))
+const firstAscentActionSchema = z
+  .object({
+    climberName: z.array(z.string().trim()).optional(),
+    routeId: stringToInt,
+    year: stringToInt
+      .refine((value) => value > 1950 && value <= new Date().getFullYear(), 'Must be a valid year')
+      .optional(),
+  })
+  .refine((x) => x.climberName != null || x.year != null, 'Either climberName or year must be set')
+type FirstAscentActionValues = z.infer<typeof firstAscentActionSchema>
+
+export const updateFirstAscent = form(firstAscentActionSchema, (data) => enhanceForm(data, updateFirstAscentAction))
 
 export const deleteFirstAscent = command(z.number(), (id) => enhance(id, deleteFirstAscentAction))
 
@@ -128,12 +140,3 @@ const deleteFirstAscentAction: Action<number> = async (routeId, db, user) => {
 
   return ['', 'routes', route.id].join('/')
 }
-
-const firstAscentActionSchema = z
-  .object({
-    climberName: z.array(z.string().trim()).optional(),
-    routeId: z.number(),
-    year: z.number().min(1950).max(new Date().getFullYear()).optional(),
-  })
-  .refine((x) => x.climberName != null || x.year != null, { message: 'Either climberName or year must be set' })
-type FirstAscentActionValues = z.infer<typeof firstAscentActionSchema>

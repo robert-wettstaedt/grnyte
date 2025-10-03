@@ -58,6 +58,8 @@
 
 <form class="card preset-filled-surface-100-900 mt-4 p-2 md:mt-8 md:p-4" {...updateLocation.enhance(enhanceForm())}>
   <input type="hidden" name="blockId" value={block.id} />
+  <input hidden name="lat" value={coordinate?.at(1)} />
+  <input hidden name="long" value={coordinate?.at(0)} />
 
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     {#snippet list()}
@@ -72,21 +74,18 @@
             <BlocksMap.default selectedArea={{ id: block.areaFk }} selectedBlock={block} {onChange} />
           {/await}
         </div>
-
-        <input hidden name="lat" value={coordinate?.at(1)} />
-        <input hidden name="long" value={coordinate?.at(0)} />
       </Tabs.Panel>
 
       <Tabs.Panel value="latlong">
         <div class="flex flex-col gap-4">
           <label class="label">
             <span>Latitude</span>
-            <input class="input" name="lat" onchange={onChangeLat} value={coordinate?.at(1) ?? ''} />
+            <input class="input" onchange={onChangeLat} value={coordinate?.at(1) ?? ''} />
           </label>
 
           <label class="label">
             <span>Longitude</span>
-            <input class="input" name="long" onchange={onChangeLong} value={coordinate?.at(0) ?? ''} />
+            <input class="input" onchange={onChangeLong} value={coordinate?.at(0) ?? ''} />
           </label>
         </div>
       </Tabs.Panel>

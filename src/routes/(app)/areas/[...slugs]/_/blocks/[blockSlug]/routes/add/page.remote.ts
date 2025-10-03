@@ -8,16 +8,25 @@ import type { InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { routeActionSchema } from '$lib/forms/schemas'
+import { routeActionSchema, stringToInt } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import z from 'zod'
 
-export const createRoute = form((data) => enhanceForm(data, createRouteActionSchema, createRouteAction))
+type CreateRouteActionValues = z.infer<typeof createRouteActionSchema>
+const createRouteActionSchema = z.intersection(
+  z.object({
+    blockId: stringToInt,
+    redirect: z.string().optional(),
+  }),
+  routeActionSchema,
+)
 
-export const createRouteAndReload = form((data) =>
-  enhanceForm(data, createRouteActionSchema, createRouteAndReloadAction),
+export const createRoute = form(createRouteActionSchema, (data) => enhanceForm(data, createRouteAction))
+
+export const createRouteAndReload = form(createRouteActionSchema, (data) =>
+  enhanceForm(data, createRouteAndReloadAction),
 )
 
 const createRouteAction: Action<CreateRouteActionValues> = async (values, db, user) => {
@@ -106,15 +115,6 @@ const createRouteAndReloadAction: Action<CreateRouteActionValues> = async (value
   await createRouteAction(values, db, ...rest)
   return '?reload=true'
 }
-
-type CreateRouteActionValues = z.infer<typeof createRouteActionSchema>
-const createRouteActionSchema = z.intersection(
-  z.object({
-    blockId: z.number(),
-    redirect: z.string().nullish(),
-  }),
-  routeActionSchema,
-)
 
 async function getAreaIds(blockId: number, db: PostgresJsDatabase<typeof schema>) {
   const block = await db.query.blocks.findFirst({

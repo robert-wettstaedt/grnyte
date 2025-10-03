@@ -2,20 +2,11 @@ import { page } from '$app/state'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { uploadVideo } from '$lib/bunny'
 import { enhance, type EnhanceState } from '$lib/forms/enhance.svelte'
-import type { RemoteQuery, RemoteQueryOverride } from '@sveltejs/kit'
 import * as tus from 'tus-js-client'
 import { createBunnyVideo } from './bunny.remote'
 
 export function enhanceWithFile(state: EnhanceState) {
-  return async function ({
-    data,
-    submit,
-  }: {
-    data: FormData
-    submit: () => Promise<void> & {
-      updates: (...queries: Array<RemoteQuery<any> | RemoteQueryOverride>) => Promise<void>
-    }
-  }) {
+  return async function ({ data, submit }: { form: HTMLFormElement; data: FormData; submit: () => Promise<void> }) {
     let folderName = data.get('folderName')
 
     const files = data

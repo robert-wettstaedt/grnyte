@@ -5,12 +5,21 @@ import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { topos } from '$lib/db/schema'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { addFileActionSchema } from '$lib/forms/schemas'
+import { addFileActionSchema, stringToInt } from '$lib/forms/schemas'
 import { createGeolocationFromFiles } from '$lib/topo-files.server'
 import { error } from '@sveltejs/kit'
 import z from 'zod'
 
-export const addTopo = form((data) => enhanceForm(data, addTopoFileActionSchema, addTopoAction))
+type AddTopoFileActionValues = z.infer<typeof addTopoFileActionSchema>
+const addTopoFileActionSchema = z.intersection(
+  z.object({
+    blockId: stringToInt,
+    redirect: z.string().optional(),
+  }),
+  addFileActionSchema,
+)
+
+export const addTopo = form(addTopoFileActionSchema, (data) => enhanceForm(data, addTopoAction))
 
 const addTopoAction: Action<AddTopoFileActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -61,12 +70,3 @@ const addTopoAction: Action<AddTopoFileActionValues> = async (values, db, user) 
 
   return values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'blocks', block.id].join('/')
 }
-
-type AddTopoFileActionValues = z.infer<typeof addTopoFileActionSchema>
-const addTopoFileActionSchema = z.intersection(
-  z.object({
-    blockId: z.number(),
-    redirect: z.string().nullish(),
-  }),
-  addFileActionSchema,
-)

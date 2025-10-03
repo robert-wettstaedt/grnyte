@@ -7,7 +7,7 @@ import { areaActionSchema, type AreaActionValues } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 
-export const createArea = form((data) => enhanceForm(data, areaActionSchema, action))
+export const createArea = form(areaActionSchema, (data) => enhanceForm(data, action))
 
 const action: Action<AreaActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
