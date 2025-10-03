@@ -92,7 +92,7 @@ export const unsubscribe = async () => {
 }
 
 // Helper function to convert base64 string to Uint8Array
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): BufferSource {
   // Add padding if needed
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')

@@ -35,7 +35,7 @@ export async function GET({ locals, request, params }) {
     })
 
     // Destructure the result to get data and other response details
-    const { data, ...rest } = result as ResponseDataDetailed<BufferLike>
+    const { data, ...rest } = result as ResponseDataDetailed<ArrayBuffer>
 
     const resHeaders = new Headers(rest.headers)
     // eslint-disable-next-line drizzle/enforce-delete-with-where
