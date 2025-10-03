@@ -1,81 +1,57 @@
 import { page } from '$app/state'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { uploadVideo } from '$lib/bunny'
-import { enhance, type EnhanceState } from '$lib/forms/enhance.svelte'
-import type { RemoteFormInput, RemoteQuery, RemoteQueryOverride } from '@sveltejs/kit'
+import type { EnhanceState } from '$lib/forms/enhance.svelte'
 import * as tus from 'tus-js-client'
 import { createBunnyVideo } from './bunny.remote'
 
-export function enhanceWithFile(state: EnhanceState) {
-  return async function ({
-    data,
-    submit,
-  }: {
-    form: HTMLFormElement
-    data: RemoteFormInput
-    submit: () => Promise<void> & {
-      updates: (...queries: Array<RemoteQuery<any> | RemoteQueryOverride>) => Promise<void>
-    }
-  }) {
-    let { folderName } = data
+export async function processFileUpload(form: HTMLFormElement, state: EnhanceState) {
+  const fileFields = Array.from(form.querySelectorAll('[type="file"]'))
+  const files = fileFields
+    .flatMap((field) => Array.from((field as HTMLInputElement).files ?? []))
+    .filter((file) => file instanceof File)
+    .filter((file) => file.size > 0)
 
-    const files = (Array.isArray(data.files) ? data.files : [data.files])
-      .filter((file) => file instanceof File)
-      .filter((file) => file.size > 0)
-    delete data.files
-
-    if (page.data.session?.access_token == null || files.length === 0) {
-      return enhance(submit, state)
-    }
-
-    if (typeof folderName === 'string' && folderName.length > 0) {
-      return enhance(submit, state)
-    }
-
-    folderName = `${page.data.session.user.id}-${Date.now()}`
-    data.folderName = folderName
-
-    state.loading = true
-    state.progress = 0
-    state.error = undefined
-
-    await Promise.all(files.map((file) => uploadFile(file, { folderName, formData: data, state })))
-
-    return enhance(submit, state)
+  if (page.data.session?.access_token == null || files.length === 0) {
+    return
   }
+
+  state.loading = true
+  state.progress = 0
+  state.error = undefined
+
+  await Promise.all(files.map((file) => uploadFile(file, state)))
 }
 
-const uploadFile = async (file: File, opts: SupabaseUploadOptions & BunnyUploadOptions) => {
+const uploadFile = async (file: File, state: EnhanceState) => {
   if (file.type.startsWith('image/')) {
-    await uploadFileToSupabase(file, opts)
+    await uploadFileToSupabase(file, state)
   } else if (file.type.startsWith('video/')) {
-    await uploadVideoToBunny(file, opts)
+    await uploadVideoToBunny(file, state)
   }
 }
 
-interface SupabaseUploadOptions {
-  folderName: string
-  state: EnhanceState
-}
-
-const uploadFileToSupabase = async (file: File, opts: SupabaseUploadOptions) => {
+const uploadFileToSupabase = async (file: File, state: EnhanceState) => {
   if (page.data.supabase == null) {
     throw new Error('Supabase is not defined')
   }
 
+  const folderName = `${page.data.session?.user.id}-${Date.now()}`
+  state.additionalFields = { ...state.additionalFields, folderName }
+
   try {
-    await uploadTus(file, opts)
+    await uploadTus(file, state, folderName)
   } catch (exception) {
-    const { error } = await page.data.supabase.storage.from('uploads').upload(`${opts.folderName}/${file.name}`, file)
+    const { error } = await page.data.supabase.storage.from('uploads').upload(`${folderName}/${file.name}`, file)
 
     if (error != null) {
-      opts.state.error = error.message
+      state.error = error.message
       throw error
     }
   }
 }
 
-const uploadTus = async (file: File, { folderName, state }: SupabaseUploadOptions) => {
+const uploadTus = async (file: File, state: EnhanceState, folderName: string) => {
   await new Promise((resolve, reject) => {
     const upload = new tus.Upload(file, {
       endpoint: `${PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`,
@@ -117,19 +93,14 @@ const uploadTus = async (file: File, { folderName, state }: SupabaseUploadOption
   })
 }
 
-interface BunnyUploadOptions {
-  formData: RemoteFormInput
-  state: EnhanceState
-}
-
-const uploadVideoToBunny = async (file: File, { formData, state }: BunnyUploadOptions) => {
+const uploadVideoToBunny = async (file: File, state: EnhanceState) => {
   const { expirationTime, signature, video } = await createBunnyVideo()
 
   if (video.guid == null) {
     throw new Error('Video guid is null')
   }
 
-  formData.bunnyVideoIds = video.guid
+  state.additionalFields = { ...state.additionalFields, bunnyVideoIds: video.guid }
 
   await uploadVideo({
     collectionId: video.collectionId,

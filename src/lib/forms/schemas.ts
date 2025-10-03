@@ -16,16 +16,10 @@ export const stringToNumber = z.codec(z.string().regex(z.regexes.number), z.numb
 export type ActionFailure<T> = KitActionFailure<T & { error: string }>
 
 export const addFileActionSchema = z.object({
-  bunnyVideoIds: z.array(z.string()).optional(),
-  folderName: z.string(),
-})
-export type AddFileActionValues = z.infer<typeof addFileActionSchema>
-
-export const addOptionalFileActionSchema = z.object({
-  bunnyVideoIds: z.array(z.string()).optional(),
+  bunnyVideoIds: z.string().optional(),
   folderName: z.string().optional(),
 })
-export type AddOptionalFileActionValues = z.infer<typeof addOptionalFileActionSchema>
+export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 
 export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
@@ -42,7 +36,7 @@ export const blockActionSchema = z.intersection(
   z.object({
     name: z.string(),
   }),
-  addOptionalFileActionSchema,
+  addFileActionSchema,
 )
 
 export const routeActionSchema = z.object({
@@ -63,7 +57,7 @@ export const ascentActionSchema = z.intersection(
     rating: stringToInt.refine((value) => value >= 1 && value <= 3, 'Must be between 1 and 3').optional(),
     type: z.enum(ascentTypeEnum),
   }),
-  addOptionalFileActionSchema,
+  addFileActionSchema,
 )
 export type AscentActionValues = z.infer<typeof ascentActionSchema>
 

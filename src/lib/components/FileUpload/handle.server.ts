@@ -16,16 +16,16 @@ interface FileUploadResult {
 export const handleFileUpload = async (
   db: PostgresJsDatabase<typeof schema>,
   supabase: SupabaseClient,
-  srcFolder: string,
+  srcFolder: string | undefined,
   dstFolder: string,
   fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
-  bunnyVideoIds?: string[] | null,
+  bunnyVideoIds?: string | string[] | null,
 ): Promise<FileUploadResult[]> => {
   const files: FileUploadResult[] = []
 
   if (bunnyVideoIds != null) {
     files.push(...(await handleBunnyVideoUpload(db, bunnyVideoIds, fileInit)))
-  } else {
+  } else if (srcFolder != null) {
     files.push(...(await handleSupabaseFileUpload(db, supabase, srcFolder, dstFolder, fileInit)))
   }
 
@@ -135,9 +135,11 @@ export const handleSupabaseFileUpload = async (
 
 export const handleBunnyVideoUpload = async (
   db: PostgresJsDatabase<typeof schema>,
-  bunnyVideoIds: string[],
+  bunnyVideoId: string | string[],
   fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
 ): Promise<FileUploadResult[]> => {
+  const bunnyVideoIds = Array.isArray(bunnyVideoId) ? bunnyVideoId : [bunnyVideoId]
+
   return Promise.all(
     bunnyVideoIds.map(async (bunnyVideoId) => {
       const [dbFile] = await db

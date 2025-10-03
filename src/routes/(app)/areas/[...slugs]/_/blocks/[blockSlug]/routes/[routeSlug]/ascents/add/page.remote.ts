@@ -52,7 +52,7 @@ const addAscentAction: Action<AddAscentActionValues> = async (values, db, user) 
     regionFk: ascent.regionFk,
   })
 
-  if (values.folderName != null) {
+  if (values.folderName != null || values.bunnyVideoIds != null) {
     const dstFolder = `${config.files.folders.userContent}/${user.authUserFk}`
     await handleFileUpload(
       db,

@@ -3,12 +3,11 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import { addAscent } from './page.remote'
 
   const { route } = getRouteContext()
@@ -40,11 +39,7 @@
   {/snippet}
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...addAscent.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...addAscent.enhance(enhanceForm(state))}>
   <input type="hidden" name="routeId" value={route.id} />
 
   <AscentFormFields
@@ -56,5 +51,5 @@
     type={null}
   />
 
-  <FormActionBar label="Save ascent" pending={addAscent.pending} />
+  <FormActionBar {state} label="Save ascent" pending={addAscent.pending} />
 </form>

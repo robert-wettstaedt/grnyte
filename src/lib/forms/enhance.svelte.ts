@@ -6,6 +6,7 @@ export interface EnhanceState {
   error?: string
   loading?: boolean
   progress?: number
+  additionalFields?: Partial<Record<'folderName' | 'bunnyVideoIds', string>>
 }
 
 export async function enhance(callback: () => Promise<unknown>, state?: EnhanceState) {

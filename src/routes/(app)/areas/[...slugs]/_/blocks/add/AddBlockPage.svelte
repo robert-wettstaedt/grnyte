@@ -3,12 +3,9 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import BlockFormFields from '$lib/components/BlockFormFields'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
-  import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { getAreaContext } from '$lib/contexts/area'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
-  import type { PageProps } from './$types'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import { createBlock } from './page.remote'
 
   interface Props {
@@ -32,12 +29,8 @@
   {/snippet}
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...createBlock.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createBlock.enhance(enhanceForm(state))}>
   <BlockFormFields {name} areaFk={area.id} fileUploadProps={{ state }} />
 
-  <FormActionBar label="Save block" pending={createBlock.pending} />
+  <FormActionBar {state} label="Save block" pending={createBlock.pending} />
 </form>

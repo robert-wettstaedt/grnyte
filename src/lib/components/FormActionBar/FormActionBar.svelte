@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { processFileUpload } from '$lib/components/FileUpload/enhance.svelte'
+  import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
 
@@ -7,9 +9,10 @@
     disabled?: boolean
     label: string
     pending: number
+    state?: EnhanceState
   }
 
-  const { buttons, disabled = false, label, pending }: Props = $props()
+  const { buttons, disabled = false, label, pending, state }: Props = $props()
 </script>
 
 <div class="mt-8 flex justify-between md:items-center">
@@ -20,7 +23,21 @@
       {@render buttons()}
     {/if}
 
-    <button class="btn preset-filled-primary-500" type="submit" disabled={pending > 0 || disabled}>
+    <button
+      class="btn preset-filled-primary-500"
+      type="submit"
+      disabled={pending > 0 || disabled}
+      onclick={async (event) => {
+        event.preventDefault()
+        const form = event.currentTarget.form
+
+        if (form != null && state != null) {
+          await processFileUpload(form, state)
+        }
+
+        form?.requestSubmit()
+      }}
+    >
       {#if pending > 0}
         <span class="me-2">
           <ProgressRing size="size-4" value={null} />

@@ -3,12 +3,11 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import FileUpload from '$lib/components/FileUpload'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import Image from '$lib/components/Image'
   import { getBlockContext } from '$lib/contexts/block'
   import type { RowWithRelations } from '$lib/db/zero'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import { replaceTopo } from './page.remote'
 
   interface Props {
@@ -41,15 +40,11 @@
   </div>
 {/if}
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...replaceTopo.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...replaceTopo.enhance(enhanceForm(state))}>
   <FileUpload {state} accept="image/*" />
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
   <input type="hidden" name="topoId" value={topo.id} />
 
-  <FormActionBar label="Replace image" pending={replaceTopo.pending} />
+  <FormActionBar {state} label="Replace image" pending={replaceTopo.pending} />
 </form>

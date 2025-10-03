@@ -69,7 +69,7 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
     })
   }
 
-  if (folderName != null) {
+  if (folderName != null || bunnyVideoIds != null) {
     const dstFolder = `${config.files.folders.userContent}/${user.id}`
     const createdFiles = await handleFileUpload(
       db,

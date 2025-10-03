@@ -3,10 +3,9 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
   import FileUpload from '$lib/components/FileUpload'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import { getBlockContext } from '$lib/contexts/block'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import { addTopo } from './page.remote'
 
   const { block } = getBlockContext()
@@ -27,11 +26,7 @@
   {/snippet}
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...addTopo.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...addTopo.enhance(enhanceForm(state))}>
   <FileUpload {state} accept="image/*" />
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
@@ -39,5 +34,5 @@
 
   <p class="mt-8 text-sm text-gray-500">You can upload more topo images later.</p>
 
-  <FormActionBar label="Add file" pending={addTopo.pending} />
+  <FormActionBar {state} label="Add file" pending={addTopo.pending} />
 </form>

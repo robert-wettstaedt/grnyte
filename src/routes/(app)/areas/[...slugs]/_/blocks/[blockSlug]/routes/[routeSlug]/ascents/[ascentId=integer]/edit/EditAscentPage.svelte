@@ -5,12 +5,11 @@
   import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
   import DangerZone from '$lib/components/DangerZone'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
   import type { PageProps } from './$types'
   import { deleteAscent, updateAscent } from './page.remote'
 
@@ -48,11 +47,7 @@
   {/snippet}
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...updateAscent.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateAscent.enhance(enhanceForm(state))}>
   <input type="hidden" name="ascentId" value={ascent.id} />
 
   <AscentFormFields
@@ -64,7 +59,7 @@
     type={ascent.type}
   />
 
-  <FormActionBar label="Save ascent" pending={updateAscent.pending} />
+  <FormActionBar {state} label="Save ascent" pending={updateAscent.pending} />
 </form>
 
 {#if page.data.session?.user?.id === ascent.author?.authUserFk || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], ascent.route?.regionFk)}
