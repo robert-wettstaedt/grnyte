@@ -341,7 +341,7 @@
         bind:this={img}
         class="pointer-events-none absolute top-0 left-0 h-full w-full touch-none object-cover blur"
         onload={getDimensions}
-        src={`/nextcloud${selectedTopo.file.path}`}
+        src={`/nextcloud${selectedTopo.file.path}/preview`}
       />
 
       <img
@@ -350,11 +350,15 @@
         class="pointer-events-none relative z-10 m-auto max-h-full origin-top-left touch-none"
         id={limitImgHeight ? 'img' : undefined}
         onload={onLoadImage}
-        src={`/nextcloud${selectedTopo.file.path}`}
+        src="/nextcloud{selectedTopo.file.path}"
         style={zoomTransform == null
           ? undefined
           : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
       />
+      <!-- srcset="/nextcloud{selectedTopo.file.path} 1024w, /nextcloud{selectedTopo.file.path.replace(
+            '.jpg',
+            '.orig.jpg',
+          )} 4032w" -->
 
       <Magnifier file={selectedTopo.file} {rect} {width} {height} />
     {:else}

@@ -149,7 +149,7 @@
               points[0].y = closePoint.point.y
             }
 
-            dragStore.set({ ...event, x: points[0].x * scale, y: points[0].y * scale })
+            dragStore.set({ ...event, x: points[0].x, y: points[0].y })
           } else {
             dragStore.set(event)
           }
@@ -184,10 +184,10 @@
       opacity={bgOpacity}
       stroke-width={20}
       stroke="transparent"
-      x1={line.from.x * scale}
-      x2={line.to.x * scale}
-      y1={line.from.y * scale}
-      y2={line.to.y * scale}
+      x1="{line.from.x * 100}%"
+      x2="{line.to.x * 100}%"
+      y1="{line.from.y * 100}%"
+      y2="{line.to.y * 100}%"
     />
 
     <line
@@ -196,10 +196,10 @@
       opacity={bgOpacity}
       stroke-width={bgStrokeWidth}
       stroke={bgColor}
-      x1={line.from.x * scale}
-      x2={line.to.x * scale}
-      y1={line.from.y * scale}
-      y2={line.to.y * scale}
+      x1="{line.from.x * 100}%"
+      x2="{line.to.x * 100}%"
+      y1="{line.from.y * 100}%"
+      y2="{line.to.y * 100}%"
     />
 
     <line
@@ -207,10 +207,10 @@
       data-route-id={routes[index].routeFk}
       stroke={color}
       stroke-width={strokeWidth}
-      x1={line.from.x * scale}
-      x2={line.to.x * scale}
-      y1={line.from.y * scale}
-      y2={line.to.y * scale}
+      x1="{line.from.x * 100}%"
+      x2="{line.to.x * 100}%"
+      y1="{line.from.y * 100}%"
+      y2="{line.to.y * 100}%"
     />
   {/each}
 
@@ -218,8 +218,8 @@
     {#if point.type === 'start'}
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill="transparent"
@@ -231,8 +231,8 @@
 
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill="transparent"
@@ -245,8 +245,8 @@
 
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill="transparent"
@@ -259,8 +259,8 @@
 
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill="transparent"
@@ -273,8 +273,8 @@
     {:else if point.type === 'middle'}
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill="transparent"
@@ -285,8 +285,8 @@
 
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill={bgColor}
@@ -297,8 +297,8 @@
 
       <circle
         class={cursorClass}
-        cx={point.x * scale}
-        cy={point.y * scale}
+        cx="{point.x * 100}%"
+        cy="{point.y * 100}%"
         data-id={point.id}
         data-route-id={routes[index].routeFk}
         fill={longPressPoint?.id === point.id ? 'red' : color}
@@ -314,7 +314,11 @@
           fill="transparent"
           id="topout-touch-area"
           opacity={bgOpacity}
-          points={`${point.x * scale - 20},${point.y * scale + 20} ${point.x * scale},${point.y * scale}, ${point.x * scale + 20},${point.y * scale + 20}`}
+          points={[
+            `${(point.x - 0.03) * width},${(point.y + 0.03) * height}`,
+            `${point.x * width},${point.y * height}`,
+            `${(point.x + 0.03) * width},${(point.y + 0.03) * height}`,
+          ].join(' ')}
           stroke-width={20}
           stroke="transparent"
         />
@@ -326,7 +330,11 @@
           fill="transparent"
           id="topout-bg"
           opacity={bgOpacity}
-          points={`${point.x * scale - 20},${point.y * scale + 20} ${point.x * scale},${point.y * scale}, ${point.x * scale + 20},${point.y * scale + 20}`}
+          points={[
+            `${(point.x - 0.03) * width},${(point.y + 0.03) * height}`,
+            `${point.x * width},${point.y * height}`,
+            `${(point.x + 0.03) * width},${(point.y + 0.03) * height}`,
+          ].join(' ')}
           stroke-width={bgStrokeWidth}
           stroke={bgColor}
         />
@@ -337,7 +345,11 @@
           data-route-id={routes[index].routeFk}
           fill="transparent"
           id="topout"
-          points={`${point.x * scale - 20},${point.y * scale + 20} ${point.x * scale},${point.y * scale}, ${point.x * scale + 20},${point.y * scale + 20}`}
+          points={[
+            `${(point.x - 0.03) * width},${(point.y + 0.03) * height}`,
+            `${point.x * width},${point.y * height}`,
+            `${(point.x + 0.03) * width},${(point.y + 0.03) * height}`,
+          ].join(' ')}
           stroke-width={strokeWidth}
           stroke={longPressPoint?.id === point.id ? 'red' : color}
         />
@@ -351,10 +363,10 @@
           role="presentation"
           stroke-width={20}
           stroke="transparent"
-          x1={point.x * scale - 30}
-          x2={point.x * scale + 30}
-          y1={point.y * scale}
-          y2={point.y * scale}
+          x1="{(point.x - 0.04) * 100}%"
+          x2="{(point.x + 0.04) * 100}%"
+          y1="{point.y * 100}%"
+          y2="{point.y * 100}%"
         />
 
         <line
@@ -366,10 +378,10 @@
           opacity={bgOpacity}
           stroke-width={bgStrokeWidth}
           stroke={bgColor}
-          x1={point.x * scale - 20}
-          x2={point.x * scale + 20}
-          y1={point.y * scale}
-          y2={point.y * scale}
+          x1="{(point.x - 0.03) * 100}%"
+          x2="{(point.x + 0.03) * 100}%"
+          y1="{point.y * 100}%"
+          y2="{point.y * 100}%"
         />
 
         <line
@@ -380,10 +392,10 @@
           id="top"
           stroke-width={strokeWidth}
           stroke={longPressPoint?.id === point.id ? 'red' : color}
-          x1={point.x * scale - 20}
-          x2={point.x * scale + 20}
-          y1={point.y * scale}
-          y2={point.y * scale}
+          x1="{(point.x - 0.03) * 100}%"
+          x2="{(point.x + 0.03) * 100}%"
+          y1="{point.y * 100}%"
+          y2="{point.y * 100}%"
         />
       {/if}
     {/if}
@@ -392,8 +404,8 @@
 
 {#if longPressPoint != null}
   <foreignObject
-    x={longPressPoint.x * scale + 130 > width ? longPressPoint.x * scale - 130 : longPressPoint.x * scale}
-    y={longPressPoint.y * scale + 28 > height ? longPressPoint.y * scale - 28 : longPressPoint.y * scale}
+    x={longPressPoint.x + 130 > width ? longPressPoint.x - 130 : longPressPoint.x}
+    y={longPressPoint.y + 28 > height ? longPressPoint.y - 28 : longPressPoint.y}
     width={130}
     height={28}
   >
