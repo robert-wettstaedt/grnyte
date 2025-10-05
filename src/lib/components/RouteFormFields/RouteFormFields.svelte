@@ -8,12 +8,12 @@
 
   interface Props {
     blockId: Row<'blocks'>['id']
-    description: Row<'routes'>['description']
-    gradeFk: Row<'routes'>['gradeFk']
-    name: Row<'routes'>['name']
-    rating: Row<'routes'>['rating']
-    routeId?: Row<'routes'>['id']
-    routeTags: string[]
+    description: Row<'routes'>['description'] | null | undefined
+    gradeFk: Row<'routes'>['gradeFk'] | null | undefined
+    name: Row<'routes'>['name'] | null | undefined
+    rating: Row<'routes'>['rating'] | null | undefined
+    routeId?: Row<'routes'>['id'] | null | undefined
+    routeTags: string[] | null | undefined
   }
 
   let {
@@ -23,7 +23,7 @@
     name = $bindable(),
     rating = $bindable(),
     routeId,
-    routeTags,
+    routeTags = $bindable(),
   }: Props = $props()
 </script>
 
@@ -45,7 +45,7 @@
 
 <label class="label mt-4">
   <span>Tags</span>
-  <select class="select max-h-[300px] overflow-auto" multiple name="tags" value={routeTags}>
+  <select class="select max-h-[300px] overflow-auto" multiple name="tags" bind:value={routeTags}>
     {#each pageState.tags as tag}
       <option value={tag.id}>{tag.id}</option>
     {/each}
