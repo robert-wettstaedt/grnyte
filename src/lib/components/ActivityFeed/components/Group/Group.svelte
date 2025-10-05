@@ -50,7 +50,7 @@
                   </summary>
 
                   {#if hasBeenOpened}
-                    <div class="border-surface-200-800 mt-4 space-y-4 border-l-2 pl-2">
+                    <div class="border-surface-200-800 -ms-10 mt-4 space-y-4 border-l-2 pl-2 md:ms-0">
                       {#each group.items.slice(1) as activity}
                         <ItemLoader {activity}>
                           {#snippet children(activity)}
