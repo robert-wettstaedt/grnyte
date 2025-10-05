@@ -2,8 +2,8 @@
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
-  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { pageState } from '$lib/components/Layout'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
 
   interface Props {
     entityId: number
@@ -15,6 +15,7 @@
 </script>
 
 <ZeroQueryWrapper
+  loadingIndicator={{ count: 1, height: 'h-50 md:h-90', type: 'skeleton' }}
   query={page.data.z.current.query.files.where(
     entityType === 'area' ? 'areaFk' : entityType === 'ascent' ? 'ascentFk' : 'routeFk',
     entityId,

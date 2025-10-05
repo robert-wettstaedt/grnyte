@@ -33,7 +33,7 @@
     <nav class="list-nav">
       <ul class="overflow-auto">
         {#each Array(loadingIndicator?.count ?? 10) as _}
-          <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
+          <li class="placeholder my-2 w-full animate-pulse {loadingIndicator.height ?? 'h-20'}"></li>
         {/each}
       </ul>
     </nav>

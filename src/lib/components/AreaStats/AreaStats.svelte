@@ -9,15 +9,13 @@
   interface Props extends Partial<GradeHistogramProps> {
     areaId: number
     children?: Snippet<[Row<'routes'>[]]>
+    skeletonHeight?: string
   }
-  const { areaId, children: propsChildren, ...rest }: Props = $props()
+  const { areaId, children: propsChildren, skeletonHeight, ...rest }: Props = $props()
 </script>
 
 <ZeroQueryWrapper
-  loadingIndicator={{
-    type: 'spinner',
-    size: rest.opts?.height == null || rest.opts.height > 64 ? undefined : 'size-12',
-  }}
+  loadingIndicator={{ count: 1, height: skeletonHeight, type: 'skeleton' }}
   query={page.data.z.current.query.routes.where('areaIds', 'ILIKE', `%^${areaId}$%`)}
 >
   {#snippet children(routes)}
