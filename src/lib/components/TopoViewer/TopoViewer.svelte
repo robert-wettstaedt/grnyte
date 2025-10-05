@@ -344,21 +344,26 @@
         src={`/nextcloud${selectedTopo.file.path}/preview`}
       />
 
-      <img
-        alt={selectedTopo.file.path}
-        bind:this={img}
-        class="pointer-events-none relative z-10 m-auto max-h-full origin-top-left touch-none"
-        id={limitImgHeight ? 'img' : undefined}
-        onload={onLoadImage}
-        src="/nextcloud{selectedTopo.file.path}"
-        style={zoomTransform == null
-          ? undefined
-          : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
-      />
-      <!-- srcset="/nextcloud{selectedTopo.file.path} 1024w, /nextcloud{selectedTopo.file.path.replace(
+      <picture>
+        <source srcset="https://placehold.co/767x670" media="(width >= 600px)" type="image/jpeg" />
+        <source srcset="https://placehold.co/1200x1050" media="(width >= 1024px)" type="image/jpeg" />
+
+        <img
+          alt={selectedTopo.file.path}
+          bind:this={img}
+          class="pointer-events-none relative z-10 m-auto max-h-full origin-top-left touch-none"
+          id={limitImgHeight ? 'img' : undefined}
+          onload={onLoadImage}
+          src="https://placehold.co/420x365"
+          style={zoomTransform == null
+            ? undefined
+            : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
+        />
+        <!-- srcset="/nextcloud{selectedTopo.file.path} 1024w, /nextcloud{selectedTopo.file.path.replace(
             '.jpg',
             '.orig.jpg',
           )} 4032w" -->
+      </picture>
 
       <Magnifier file={selectedTopo.file} {rect} {width} {height} />
     {:else}
