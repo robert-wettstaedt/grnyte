@@ -13,6 +13,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "dev": "vite dev",
+    "dev:zero": "npx zero-cache-dev",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
@@ -22,8 +23,9 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "studio": "drizzle-kit studio --config drizzle.config.ts",
-    "generate": "drizzle-kit generate --config drizzle.config.ts",
+    "generate": "npm run generate:drizzle && npm run generate:zero",
     "migrate": "npx tsx src/lib/db/migrate.ts",
+    "generate:drizzle": "drizzle-kit generate --config drizzle.config.ts",
     "generate:zero": "drizzle-zero generate --format --output src/lib/db/zero/zero-schema.gen.ts"
   },
   "dependencies": {
