@@ -83,6 +83,7 @@ describe('RouteView Component', () => {
       firstAscentYear: 2020,
       blockFk: 1,
       externalResourcesFk: 1,
+      areaFks: [],
       areaIds: '',
       userGradeFk: null,
       userRating: null,
