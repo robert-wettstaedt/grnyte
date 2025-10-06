@@ -143,7 +143,7 @@
     const parents = area == null ? [] : [area]
     let current = area
 
-    while (current != null && (type == null ? true : current.type !== type)) {
+    while (current != null && (type == null ? true : current.type !== type || current.parent?.type === type)) {
       current = current.parent as NestedArea | null
       current != null && parents.unshift(current)
     }
@@ -449,9 +449,7 @@
     })
     map.addLayer(vectorLayer)
 
-    const allCrags = blocks
-      .map((block) => findArea(block.area, 'crag').at(0))
-      .filter((d) => d != null) as NestedBlock['area'][]
+    const allCrags = blocks.map((block) => findArea(block.area, 'crag').at(0)).filter((d) => d != null)
     const cragsMap = new Map(allCrags.map((area) => [area.id, area]))
     const crags = Array.from(cragsMap.values())
 
