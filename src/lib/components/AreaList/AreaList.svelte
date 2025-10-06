@@ -37,7 +37,7 @@
       {/snippet}
 
       {#snippet right(item)}
-        <div class="flex w-[100px] flex-col">
+        <div class="flex w-[110px] flex-col">
           <AreaStats
             areaId={item.id}
             axes={false}
