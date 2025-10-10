@@ -308,3 +308,17 @@
     </ul>
   </section>
 </div>
+
+<div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="rest">
+  <section class="w-full space-y-5">
+    <ul>
+      <li>
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/status">
+          Service Status
+
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+    </ul>
+  </section>
+</div>
