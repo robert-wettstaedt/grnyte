@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
+  import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
   import type { NestedBlock } from '.'
@@ -9,8 +9,8 @@
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocksResult = new Query(page.data.z.current.query.blocks.related('geolocation'))
-  const areasResult = new Query(page.data.z.current.query.areas.related('parkingLocations'))
+  const blocksResult = new Query(queries.blocksWithLocations())
+  const areasResult = new Query(queries.areasWithParkingLocations())
 
   const data = $derived.by(() => {
     const nestedBlocks = blocksResult.current

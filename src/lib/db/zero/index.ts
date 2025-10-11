@@ -3,6 +3,7 @@ import { schema, type Schema } from '$lib/db/zero/zero-schema'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
 
+export * from './queries'
 export * from './types'
 export * from './zero-schema'
 

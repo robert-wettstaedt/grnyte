@@ -1,9 +1,10 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { queries } from '$lib/db/zero'
+  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { setContext, type Snippet } from 'svelte'
   import { Query } from 'zero-svelte'
   import { pageState } from '../../page.svelte'
-  import { setContext, type Snippet } from 'svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     children: Snippet
@@ -13,42 +14,19 @@
 
   setContext('z', page.data.z)
 
-  const gradesResult = new Query(page.data.z.current.query.grades)
-  const tagsResult = new Query(page.data.z.current.query.tags)
+  const gradesResult = new Query(queries.grades())
+  const tagsResult = new Query(queries.tags())
 
-  const userResult = $derived(
-    page.data.session?.user.id == null
-      ? undefined
-      : new Query(
-          page.data.z.current.query.users.where('authUserFk', page.data.session?.user.id).related('userSettings').one(),
-        ),
-  )
+  const userResult = $derived(new Query(queries.currentUser(page.data.session?.user)))
+  const userRoleResult = $derived(new Query(queries.currentUserRoles(page.data.session?.user)))
+  const userRegionsResult = $derived(new Query(queries.currentUserRegions(page.data.session?.user)))
 
-  const userRoleResult = $derived(
-    page.data.session?.user.id == null
-      ? undefined
-      : new Query(page.data.z.current.query.userRoles.where('authUserFk', page.data.session.user.id).one()),
-  )
-
-  const userRegionsResult = $derived(
-    page.data.session?.user.id == null
-      ? undefined
-      : new Query(
-          page.data.z.current.query.regionMembers
-            .where('authUserFk', page.data.session?.user.id)
-            .where('isActive', 'IS NOT', null)
-            .related('region'),
-        ),
-  )
-
-  const permissionsResult = new Query(page.data.z.current.query.rolePermissions)
+  const permissionsResult = new Query(queries.rolePermissions())
 
   const userPermissions = $derived(
-    userRoleResult?.current == null
-      ? undefined
-      : permissionsResult.current
-          .filter((permission) => permission.role === userRoleResult.current?.role)
-          .map(({ permission }) => permission),
+    permissionsResult.current
+      ?.filter((permission) => permission.role === userRoleResult.current?.role)
+      .map(({ permission }) => permission),
   )
 
   const userRegions = $derived(
@@ -91,12 +69,10 @@
   })
 
   let isLoading = $derived(
-    (userResult != null && userResult.current == null && userResult.details.type !== 'complete') ||
-      (userRoleResult != null && userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
-      (userRegionsResult != null &&
-        userRegionsResult.current == null &&
-        userRegionsResult.details.type !== 'complete') ||
-      (permissionsResult != null && permissionsResult.current == null && permissionsResult.details.type !== 'complete'),
+    (userResult.current == null && userResult.details.type !== 'complete') ||
+      (userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
+      (userRegionsResult.current == null && userRegionsResult.details.type !== 'complete') ||
+      (permissionsResult.current == null && permissionsResult.details.type !== 'complete'),
   )
 </script>
 

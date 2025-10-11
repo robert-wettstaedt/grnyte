@@ -6,14 +6,14 @@ import {
   type RegionPermission,
   type SupabaseToken,
 } from '$lib/auth'
-import {
-  ANYONE_CAN,
-  definePermissions,
-  type CustomMutatorDefs,
-  type ExpressionBuilder,
-  type PermissionsConfig,
-} from '@rocicorp/zero'
-import { schema, type Schema } from './zero-schema.gen'
+import type { Schema as ZeroSchema } from '@rocicorp/zero'
+import { ANYONE_CAN, definePermissions, type ExpressionBuilder, type PermissionsConfig } from '@rocicorp/zero'
+import { schema as genSchema, type Schema } from './zero-schema.gen'
+
+const schema = {
+  ...genSchema,
+  enableLegacyQueries: false,
+} as const satisfies ZeroSchema
 
 export { schema, type Schema }
 

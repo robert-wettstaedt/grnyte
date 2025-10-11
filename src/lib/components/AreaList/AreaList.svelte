@@ -4,6 +4,7 @@
   import GenericList from '$lib/components/GenericList'
   import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
+  import { queries } from '$lib/db/zero'
 
   interface Props extends ZeroQueryWrapperBaseProps {
     parentFk?: number | null
@@ -11,11 +12,7 @@
   const { parentFk, ...rest }: Props = $props()
 </script>
 
-<ZeroQueryWrapper
-  {...rest}
-  loadingIndicator={{ type: 'skeleton' }}
-  query={page.data.z.current.query.areas.where('parentFk', 'IS', parentFk ?? null).orderBy('name', 'asc')}
->
+<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={queries.listAreas({ parentFk })}>
   {#snippet children(areas)}
     <GenericList
       items={areas.map((item) => ({
