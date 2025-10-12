@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
+  import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import { Query } from 'zero-svelte'
   import type { References as ReferencesType } from '.'
@@ -13,23 +13,17 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(page.data.z.current.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
+  const areasQuery = $derived(queries.listAreas({ content: `!${type}:${id}!` }))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const ascentsQuery = $derived(
-    page.data.z.current.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
-  )
+  const ascentsQuery = $derived(queries.listAscents({ notes: `!${type}:${id}!` }))
   // svelte-ignore state_referenced_locally
   const ascentsResult = new Query(ascentsQuery)
   $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
-  const routesQuery = $derived(
-    page.data.z.current.query.routes
-      .where('description', 'ILIKE', `%!${type}:${id}!%`)
-      .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
-  )
+  const routesQuery = $derived(queries.listRoutes({ content: `!${type}:${id}!`, userId: pageState.user?.id }))
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))

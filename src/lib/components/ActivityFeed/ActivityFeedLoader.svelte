@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import type { Row, RowWithRelations } from '$lib/db/zero'
+  import { queries, type Row, type RowWithRelations } from '$lib/db/zero'
   import { validateObject } from '$lib/forms/validate.svelte'
   import { compareDesc, format, isWithinInterval, sub, type Interval } from 'date-fns'
   import { z } from 'zod'
@@ -28,30 +28,12 @@
     const searchParamsObj = Object.fromEntries(page.url.searchParams.entries())
     const searchParams = validateObject(searchParamsSchema, searchParamsObj)
 
-    let query = page.data.z.current.query.activities
-      .limit(searchParams.pageSize)
-      .where(({ and, or, cmp }) => {
-        if (entity == null) {
-          return and()
-        }
-
-        return or(
-          and(cmp('entityId', entity.id), cmp('entityType', entity.type)),
-          and(cmp('parentEntityId', entity.id), cmp('parentEntityType', entity.type)),
-        )
-      })
-      .orderBy('createdAt', 'desc')
-      .related('user')
-
-    if (searchParams.user === 'me' && pageState.user?.id != null) {
-      query = query.where('userFk', pageState.user.id)
-    }
-
-    if (searchParams.type === 'ascents') {
-      query = query.where('entityType', 'ascent').where('type', 'created')
-    }
-
-    return query
+    return queries.activities({
+      pageSize: searchParams.pageSize,
+      entity: searchParams.type === 'ascents' ? { type: 'ascent' } : entity,
+      type: searchParams.type === 'ascents' ? 'created' : undefined,
+      userFk: searchParams.user === 'me' && pageState.user?.id != null ? pageState.user.id : undefined,
+    })
   })
 
   function groupByUser(activities: ActivityWithDate[], files: ActivityGroup['files']) {
@@ -126,8 +108,8 @@
 
 <ZeroQueryWrapper {query} loadingIndicator={{ type: 'skeleton', count: 15 }}>
   {#snippet children(items)}
-    {@const fileIds = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
-    <ZeroQueryWrapper query={page.data.z.current.query.files.where('id', 'IN', fileIds).related('ascent')}>
+    {@const fileId = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
+    <ZeroQueryWrapper query={queries.listFiles({ fileId })}>
       {#snippet children(files)}
         {@const groups = paginateActivities(items).map((item) => groupActivities(item, files))}
         <ActivityFeed activities={groups} />

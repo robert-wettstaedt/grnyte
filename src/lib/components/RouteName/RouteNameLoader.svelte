@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { page } from '$app/state'
-  import type { Row } from '$lib/db/zero'
+  import { pageState } from '$lib/components/Layout'
+  import { queries, type Row } from '$lib/db/zero'
   import { Query } from 'zero-svelte'
   import type { RouteNameProps } from '.'
-  import { pageState } from '$lib/components/Layout'
   import RouteName from './RouteName.svelte'
 
   interface Props extends Omit<RouteNameProps, 'route'> {
@@ -12,9 +11,7 @@
 
   let { route, ...rest }: Props = $props()
 
-  const query = $derived(
-    page.data.z.current.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user!.id!),
-  )
+  const query = $derived(queries.listAscents({ routeId: route.id, createdBy: pageState.user?.id }))
   // svelte-ignore state_referenced_locally
   const ascentsResult = new Query(query)
   $effect(() => ascentsResult.updateQuery(query))

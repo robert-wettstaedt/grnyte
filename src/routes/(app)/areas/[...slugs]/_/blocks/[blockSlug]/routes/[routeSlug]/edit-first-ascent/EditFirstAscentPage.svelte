@@ -9,22 +9,24 @@
   import MultiSelect from '$lib/components/MultiSelect'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
+  import { getRouteContext } from '$lib/contexts/route'
   import type { RowWithRelations } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import type { PageProps } from './$types'
   import { deleteFirstAscent, updateFirstAscent } from './page.remote'
 
   interface Props {
-    route: ZeroQueryResult<PageProps['data']['query']>['routes'][0]
     firstAscensionists: ZeroQueryResult<PageProps['data']['faQuery']>
   }
 
   type FA = RowWithRelations<'routesToFirstAscensionists', { firstAscensionist: true }>
 
-  let { firstAscensionists, route }: Props = $props()
+  let { firstAscensionists }: Props = $props()
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
+
+  const { route } = getRouteContext()
 
   let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
 </script>

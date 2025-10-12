@@ -9,6 +9,7 @@
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
   import { pageState } from '$lib/components/Layout'
+  import { queries } from '$lib/db/zero'
 
   interface Props {
     areaFk: number | null | undefined
@@ -17,13 +18,7 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const query = $derived(
-    page.data.z.current.query.blocks
-      .where('areaFk', 'IS', areaFk ?? null)
-      .orderBy('order', 'asc')
-      .orderBy('name', 'asc')
-      .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
-  )
+  const query = $derived(queries.listBlocks({ areaId: areaFk ?? null }))
   // svelte-ignore state_referenced_locally
   const blocksResult = new Query(query)
   $effect(() => blocksResult.updateQuery(query))

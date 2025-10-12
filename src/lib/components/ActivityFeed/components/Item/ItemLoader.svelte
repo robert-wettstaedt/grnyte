@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import type { ActivityDTO, ActivityWithDate, Entity } from '../..'
 
@@ -21,22 +21,22 @@
 
     switch (entityType) {
       case 'area':
-        return page.data.z.current.query.areas.where('id', Number(entityId))
+        return queries.listAreas({ areaId: Number(entityId) })
       case 'ascent':
-        return page.data.z.current.query.ascents.where('id', Number(entityId)).related('author').related('files')
+        return queries.listAscents({ ascentId: Number(entityId) })
       case 'block':
-        return page.data.z.current.query.blocks.where('id', Number(entityId))
+        return queries.listBlocks({ blockId: Number(entityId) })
       case 'route':
-        return page.data.z.current.query.routes.where('id', Number(entityId))
+        return queries.listRoutes({ routeId: Number(entityId) })
     }
   }
 
   const getQuery = (entityId: ActivityWithDate['entityId'], entityType: ActivityWithDate['entityType']) => {
     switch (entityType) {
       case 'file':
-        return page.data.z.current.query.files.where('id', String(entityId))
+        return queries.listFiles({ fileId: String(entityId) })
       case 'user':
-        return page.data.z.current.query.users.where('id', Number(entityId))
+        return queries.listUsers({ id: Number(entityId) })
       default:
         return getParentQuery(entityId, entityType)
     }

@@ -1,27 +1,16 @@
-import { convertAreaSlugRaw, getRouteDbFilterRaw } from '$lib/helper'
+import { queries } from '$lib/db/zero'
+import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
 import type { PageLoad } from './$types'
 
-export const load = (async ({ parent, params }) => {
+export const load = (async ({ params }) => {
   const { areaId } = convertAreaSlugRaw(params)
-  const { z } = await parent()
 
   if (areaId == null || params.blockSlug == null) {
     error(404)
   }
 
-  const query = z.current.query.blocks
-    .where('slug', params.blockSlug)
-    .where('areaFk', areaId)
-    .whereExists('routes', (q) => getRouteDbFilterRaw(params, q))
-    .related('routes', (q) =>
-      getRouteDbFilterRaw(params, q).related('firstAscents', (q) =>
-        q.related('firstAscensionist', (q) => q.related('user')),
-      ),
-    )
-    .one()
+  const faQuery = queries.firstAscensionists()
 
-  const faQuery = z.current.query.firstAscensionists.orderBy('name', 'asc').related('user')
-
-  return { query, faQuery }
+  return { faQuery }
 }) satisfies PageLoad

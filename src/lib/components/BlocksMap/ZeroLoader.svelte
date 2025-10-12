@@ -9,8 +9,8 @@
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocksResult = new Query(queries.blocksWithLocations())
-  const areasResult = new Query(queries.areasWithParkingLocations())
+  const blocksResult = new Query(queries.listBlocks({}))
+  const areasResult = new Query(queries.listAreas({}))
 
   const data = $derived.by(() => {
     const areas = $state.snapshot(areasResult.current)

@@ -12,7 +12,11 @@
   const { parentFk, ...rest }: Props = $props()
 </script>
 
-<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={queries.listAreas({ parentFk })}>
+<ZeroQueryWrapper
+  {...rest}
+  loadingIndicator={{ type: 'skeleton' }}
+  query={queries.listAreas({ parentFk: parentFk ?? null })}
+>
   {#snippet children(areas)}
     <GenericList
       items={areas.map((item) => ({

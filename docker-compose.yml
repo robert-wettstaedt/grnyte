@@ -1,11 +1,11 @@
-version: '3.8'
+version: "3.8"
 
 services:
   zero:
     image: rocicorp/zero
     container_name: zero-server
     ports:
-      - '4848:4848'
+      - "4848:4848"
     environment:
       # Zero server configuration
       - ZERO_UPSTREAM_DB=${ZERO_UPSTREAM_DB}
@@ -14,13 +14,14 @@ services:
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_PUSH_URL=${ZERO_PUSH_URL:-http://localhost:3000/api/push}
+      - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/get-queries}
 
       # Additional Zero configuration
       - ZERO_PORT=4848
       - ZERO_UPSTREAM_CONNECTION_STRING=${ZERO_UPSTREAM_DB}
     extra_hosts:
       # Map localhost to host machine for database access
-      - 'localhost:host-gateway'
+      - "localhost:host-gateway"
     volumes:
       # Mount your local schema file into the container
       - ./src/lib/db/zero:/app/src/lib/db/zero:ro
@@ -28,7 +29,7 @@ services:
       - zero_data:/data
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:4848/health']
+      test: ["CMD", "curl", "-f", "http://localhost:4848/health"]
       interval: 30s
       timeout: 10s
       retries: 3
