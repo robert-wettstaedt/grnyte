@@ -347,6 +347,20 @@ export const videoPlaySchema = z.intersection(
   }),
 )
 
+export const statusSchema = z.object({
+  page: z.object({
+    id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    time_zone: z.string(),
+    updated_at: z.string(),
+  }),
+  status: z.object({
+    indicator: z.enum(['none']),
+    description: z.string(),
+  }),
+})
+
 interface GetCollectionsOptions extends BunnyOptions {
   search?: string
 }
@@ -518,4 +532,8 @@ interface GetVideoIframeUrlOptions extends Pick<BunnyOptions, 'libraryId'> {
 }
 export const getVideoIframeUrl = ({ libraryId, videoId }: GetVideoIframeUrlOptions) => {
   return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=true&loop=false&muted=false&preload=true&responsive=true`
+}
+
+export const getStatus = async () => {
+  return upfetch('https://status.bunny.net/api/v2/status.json', { schema: statusSchema })
 }

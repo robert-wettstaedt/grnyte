@@ -34,16 +34,13 @@
       {/snippet}
 
       {#snippet right(item)}
-        <div class="flex flex-col">
+        <div class="flex w-[110px] flex-col">
           <AreaStats
             areaId={item.id}
             axes={false}
-            spec={{
-              width: 100,
-            }}
-            opts={{
-              height: 38,
-            }}
+            opts={{ height: 38 }}
+            skeletonHeight="h-[70px]"
+            spec={{ width: 100 }}
           >
             {#snippet children(routes)}
               <div class="flex items-center justify-end text-sm opacity-70">

@@ -8,6 +8,7 @@
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
   import { Query } from 'zero-svelte'
@@ -245,7 +246,7 @@
       {/each}
     </div>
   {/if}
-{:else if isLoading}
+{:else if isLoading && searchResults.length === 0}
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     <nav class="list-nav">
       <ul class="overflow-auto">
@@ -260,6 +261,12 @@
     No results found for <span class="text-primary-500">{searchQuery}</span>.
   </div>
 {:else}
+  {#if isLoading}
+    <div class="mt-8 flex justify-center">
+      <ProgressRing value={null} size="size-14" />
+    </div>
+  {/if}
+
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     <GenericList items={searchResults}>
       {#snippet left(item)}

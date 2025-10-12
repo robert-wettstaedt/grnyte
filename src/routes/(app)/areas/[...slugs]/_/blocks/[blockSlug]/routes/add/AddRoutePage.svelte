@@ -5,9 +5,26 @@
   import FormActionBar from '$lib/components/FormActionBar'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { getBlockContext } from '$lib/contexts/block'
+  import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { createRoute, createRouteAndReload } from './page.remote'
+
+  interface Props {
+    description: Partial<Row<'routes'>>['description']
+    gradeFk: Partial<Row<'routes'>>['gradeFk']
+    name: Partial<Row<'routes'>>['name']
+    rating: Partial<Row<'routes'>>['rating']
+    routeTags: string[] | null | undefined
+  }
+
+  let {
+    description = $bindable(),
+    gradeFk = $bindable(),
+    name = $bindable(),
+    rating = $bindable(),
+    routeTags = $bindable(),
+  }: Props = $props()
 
   const { block } = getBlockContext()
 
@@ -27,7 +44,7 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createRoute.enhance(enhanceForm())}>
-  <RouteFormFields blockId={block.id} description={''} gradeFk={null} name={''} rating={null} routeTags={[]} />
+  <RouteFormFields blockId={block.id} bind:description bind:gradeFk bind:name bind:rating bind:routeTags />
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 

@@ -13,21 +13,28 @@
   const areasResult = new Query(queries.areasWithParkingLocations())
 
   const data = $derived.by(() => {
+    const areas = $state.snapshot(areasResult.current)
+
     const nestedBlocks = blocksResult.current
       .map((block): NestedBlock | null => {
-        const area1 = areasResult.current.find((area) => area.id === block.areaFk) as NestedBlock['area'] | undefined
-        const area2 = areasResult.current.find((area) => area.id === area1?.parentFk) as
-          | NestedBlock['area']['parent']
-          | undefined
-
-        if (area1 == null || area2 == null || block.id == null) {
+        if (block.id == null) {
           return null
+        }
+
+        const parents: NestedBlock['area'][] = []
+        let current = areas.find((area) => area.id === block.areaFk) as NestedBlock['area'] | undefined
+
+        while (current != null) {
+          let parent = areas.find((area) => area.id === current?.parentFk) as NestedBlock['area'] | undefined
+          current.parent = parent ?? null
+          parents.push(current)
+          current = parent
         }
 
         return {
           ...block,
           createdAt: new Date(block.createdAt ?? 0),
-          area: { ...area1, parent: area2 },
+          area: parents[0],
         } as NestedBlock
       })
       .filter((block) => block != null)

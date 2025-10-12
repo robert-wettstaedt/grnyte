@@ -9,7 +9,7 @@
     fileUploadProps?: FileUploadProps
   }
 
-  let { areaFk, blockId, name = '', fileUploadProps }: Props = $props()
+  let { areaFk, blockId, name = $bindable(), fileUploadProps }: Props = $props()
 </script>
 
 {#if areaFk != null}
@@ -22,7 +22,7 @@
 
 <label class="label">
   <span>Name</span>
-  <input class="input" name="name" type="text" placeholder="Enter name..." value={name} />
+  <input class="input" name="name" type="text" placeholder="Enter name..." bind:value={name} />
 </label>
 
 {#if fileUploadProps != null}

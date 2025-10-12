@@ -3,7 +3,7 @@
   import { Modal } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    value: Row<'areas'>['type']
+    value: Row<'areas'>['type'] | null | undefined
   }
 
   let { value = $bindable() }: Props = $props()
@@ -19,7 +19,7 @@
       open={modalOpen}
       onOpenChange={(event) => (modalOpen = event.open)}
       triggerBase="sl-2 fa-regular fa-circle-question"
-      contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm max-h-[90vh] overflow-y-auto"
+      contentBase="card bg-surface-100-900 max-h-[90vh] max-w-screen-sm space-y-4 overflow-y-auto p-4 shadow-xl"
       backdropClasses="backdrop-blur-sm"
     >
       {#snippet trigger()}<i></i>{/snippet}
@@ -48,7 +48,13 @@
     </Modal>
   </span>
 
-  <select class="select max-h-[300px] overflow-auto" name="type" size="3" {value}>
+  <select
+    class="select max-h-[300px] overflow-auto"
+    name="type"
+    onchange={(event) => (value = event.currentTarget.value as Row<'areas'>['type'])}
+    size="3"
+    value={value ?? 'area'}
+  >
     <option value="area">Area</option>
     <option value="crag">Crag</option>
     <option value="sector">Sector</option>

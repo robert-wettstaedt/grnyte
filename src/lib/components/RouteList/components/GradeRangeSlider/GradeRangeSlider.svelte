@@ -13,23 +13,19 @@
   let { minGrade = $bindable(), maxGrade = $bindable(), onchange }: Props = $props()
 
   let minUserGrade = $derived.by(() => {
-    const grade = minGrade ?? pageState.grades.at(0)?.id ?? undefined
-
-    if (grade == null) {
+    if (minGrade == null) {
       return undefined
     }
 
-    return pageState.grades.at(grade)?.[pageState.gradingScale]
+    return pageState.grades.at(minGrade)?.[pageState.gradingScale]
   })
 
   let maxUserGrade = $derived.by(() => {
-    const grade = maxGrade ?? pageState.grades.at(-1)?.id ?? undefined
-
-    if (grade == null) {
+    if (maxGrade == null) {
       return undefined
     }
 
-    return pageState.grades.at(grade)?.[pageState.gradingScale]
+    return pageState.grades.at(maxGrade)?.[pageState.gradingScale]
   })
 
   let minInput = $state<HTMLInputElement>()
@@ -39,14 +35,14 @@
   function updateRange() {
     if (!minInput || !maxInput || !rangeElement) return
 
-    minGrade = parseInt(minInput.value)
-    maxGrade = parseInt(maxInput.value)
+    const min = pageState.grades.at(0)?.id
+    const max = pageState.grades.at(-1)?.id
+
+    minGrade = minGrade == null && min != null ? min : parseInt(minInput.value)
+    maxGrade = maxGrade == null && max != null ? max : parseInt(maxInput.value)
 
     if (minGrade > maxGrade) {
       const temp = minGrade
-      minInput.value = maxGrade.toString()
-      maxInput.value = temp.toString()
-
       minGrade = maxGrade
       maxGrade = temp
 

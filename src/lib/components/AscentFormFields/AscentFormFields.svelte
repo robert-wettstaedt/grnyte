@@ -9,15 +9,22 @@
   import { DateTime } from 'luxon'
 
   interface Props {
-    dateTime: Row<'ascents'>['dateTime']
+    dateTime: Row<'ascents'>['dateTime'] | null | undefined
     fileUploadProps: FileUploadProps
-    gradeFk: Row<'ascents'>['gradeFk']
-    notes: Row<'ascents'>['notes']
-    rating: Row<'ascents'>['rating']
-    type: Row<'ascents'>['type'] | null
+    gradeFk: Row<'ascents'>['gradeFk'] | null | undefined
+    notes: Row<'ascents'>['notes'] | null | undefined
+    rating: Row<'ascents'>['rating'] | null | undefined
+    type: Row<'ascents'>['type'] | null | undefined
   }
 
-  let { dateTime, gradeFk, notes, rating, type, fileUploadProps }: Props = $props()
+  let {
+    dateTime = $bindable(),
+    fileUploadProps,
+    gradeFk = $bindable(),
+    notes = $bindable(),
+    rating = $bindable(),
+    type = $bindable(),
+  }: Props = $props()
 </script>
 
 <label class="label mt-4">
@@ -40,9 +47,13 @@
     class="input"
     max={DateTime.now().toISODate()}
     name="dateTime"
+    onchange={(event) => {
+      const value = DateTime.fromISO(event.currentTarget.value)
+      dateTime = value.isValid ? value.toMillis() : null
+    }}
     title="Input (date)"
     type="date"
-    value={dateTime == null ? '' : DateTime.fromMillis(dateTime).toISODate()}
+    value={DateTime.fromMillis(dateTime ?? Date.now()).toISODate()}
   />
 </label>
 

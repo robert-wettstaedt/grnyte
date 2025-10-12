@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Combobox } from '@skeletonlabs/skeleton-svelte'
+  import { calculateRelevance } from './lib'
 
   interface Props {
     options: string[]
@@ -21,10 +22,30 @@
 
   let { options, name, value = $bindable() }: Props = $props()
   let inputValue = $state('')
+  let filteredOptions = $state(options)
+
+  // Transform all available options to the format Combobox expects
+  const availableOptions = $derived(
+    inputValue.trim().length === 0 ? [] : filteredOptions.map((option) => ({ label: option, value: option })),
+  )
 
   // Function to regenerate the available options on each input change
   function handleInputValueChange(event: InputValueChangeEvent) {
     inputValue = event.inputValue
+
+    if (event.inputValue.trim().length === 0) {
+      filteredOptions = options
+      return
+    }
+
+    const scoredOptions = options
+      .map((option) => ({ option, score: calculateRelevance(option, event.inputValue) }))
+      .filter((item) => item.score > 0)
+      .toSorted((a, b) => b.score - a.score)
+      .map((item) => item.option)
+      .slice(0, 15)
+
+    filteredOptions = scoredOptions
   }
 
   // Handle when an item is selected from the dropdown
@@ -34,9 +55,6 @@
       inputValue = ''
     }
   }
-
-  // Transform all available options to the format Combobox expects
-  const availableOptions = $derived(options.map((option) => ({ label: option, value: option })))
 </script>
 
 {#if value != null}
