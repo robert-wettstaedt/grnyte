@@ -74,7 +74,7 @@
     <i class="fa-solid {iconClasses} text-lg"></i>
   </div>
 
-  <div class="min-w-0 flex-1">
+  <div class="min-w-0 flex-1 overflow-hidden">
     <div class="mb-2">
       {#if withDetails}
         <span class="font-semibold">

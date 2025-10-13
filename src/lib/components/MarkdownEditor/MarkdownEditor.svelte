@@ -14,7 +14,7 @@
   import { pageState } from '$lib/components/Layout'
 
   interface Props {
-    value: string | null
+    value: string | null | undefined
   }
 
   let { value = $bindable() }: Props = $props()

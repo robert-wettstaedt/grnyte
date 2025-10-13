@@ -4,7 +4,7 @@
   import { pageState } from '$lib/components/Layout'
 
   interface Props {
-    value: Route['gradeFk']
+    value: Route['gradeFk'] | null | undefined
     withModal?: boolean
   }
 
@@ -28,7 +28,7 @@
         open={modalOpen}
         onOpenChange={(event) => (modalOpen = event.open)}
         triggerBase="sl-2 fa-regular fa-circle-question"
-        contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm max-h-[90vh] overflow-y-auto"
+        contentBase="card bg-surface-100-900 max-h-[90vh] max-w-screen-sm space-y-4 overflow-y-auto p-4 shadow-xl"
         backdropClasses="backdrop-blur-sm"
       >
         {#snippet trigger()}<i></i>{/snippet}
@@ -62,7 +62,7 @@
   <input name="gradeFk" type="hidden" {value} />
 
   <div class="relative">
-    <select bind:value={grade} class="select" onchange={(event) => (value = Number(event.currentTarget.value))}>
+    <select class="select" onchange={(event) => (value = Number(event.currentTarget.value))} value={grade}>
       <option disabled value="">-- Select grade --</option>
 
       {#each pageState.grades as grade}

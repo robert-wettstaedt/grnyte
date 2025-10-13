@@ -10,7 +10,16 @@ export interface ZeroQueryWrapperProps<TSchema extends Schema, TTable extends ke
   extends ZeroQueryWrapperBaseProps {
   after?: Snippet<[HumanReadable<TReturn>, QueryResultDetails]>
   children?: Snippet<[HumanReadable<TReturn>, QueryResultDetails]>
-  loadingIndicator?: { type: 'skeleton'; count?: number } | { type: 'spinner'; size?: string }
+  loadingIndicator?:
+    | {
+        count?: number
+        height?: string
+        type: 'skeleton'
+      }
+    | {
+        size?: string
+        type: 'spinner'
+      }
   query: QueryDef<TSchema, TTable, TReturn>
   showEmpty?: boolean
 }

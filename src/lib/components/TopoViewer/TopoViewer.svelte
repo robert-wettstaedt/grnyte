@@ -16,6 +16,7 @@
 </script>
 
 <script lang="ts">
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getDistance } from '$lib/geometry'
   import type { PointDTO, TopoDTO, TopoRouteDTO } from '$lib/topo'
@@ -471,6 +472,12 @@
       transition:slide={{ duration: 100 }}
     >
       <RouteName route={selectedTopoRoute.route} />
+
+      <MarkdownRenderer
+        className="short"
+        encloseReferences="strong"
+        markdown={selectedTopoRoute.route.description ?? ''}
+      />
     </a>
   {/if}
 </div>

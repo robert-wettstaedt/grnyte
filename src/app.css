@@ -36,6 +36,24 @@ body {
   & a {
     @apply anchor;
   }
+
+  &.short {
+    @apply w-full;
+
+    & > * {
+      @apply list-none;
+      @apply overflow-hidden;
+      @apply p-0;
+      @apply text-ellipsis;
+      @apply text-gray-400;
+      @apply text-xs;
+      @apply w-full;
+    }
+
+    img {
+      display: none;
+    }
+  }
 }
 
 select option:checked {

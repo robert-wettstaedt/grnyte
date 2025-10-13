@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "vite dev",
+    "dev:zero": "npx zero-cache-dev",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
@@ -21,8 +22,9 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "studio": "drizzle-kit studio --config drizzle.config.ts",
-    "generate": "drizzle-kit generate --config drizzle.config.ts",
+    "generate": "npm run generate:drizzle && npm run generate:zero",
     "migrate": "npx tsx src/lib/db/migrate.ts",
+    "generate:drizzle": "drizzle-kit generate --config drizzle.config.ts",
     "generate:zero": "drizzle-zero generate --format --output src/lib/db/zero/zero-schema.gen.ts"
   },
   "dependencies": {
@@ -54,7 +56,7 @@
     "date-fns": "^4.1.0",
     "diff": "^8.0.1",
     "dragula": "^3.7.3",
-    "drizzle-zero": "^0.12.0",
+    "drizzle-zero": "^0.14.0",
     "exifr": "^7.1.3",
     "github-markdown-css": "^5.8.1",
     "heic-convert": "^2.1.0",
@@ -98,7 +100,7 @@
     "@types/d3": "^7.4.3",
     "@types/eslint": "^9.0.0",
     "@types/html-minifier": "^4.0.5",
-    "@types/jsdom": "^21.1.7",
+    "@types/jsdom": "^27.0.0",
     "@types/lodash.debounce": "^4.0.9",
     "@types/lodash.memoize": "^4.1.9",
     "@types/luxon": "^3.4.2",

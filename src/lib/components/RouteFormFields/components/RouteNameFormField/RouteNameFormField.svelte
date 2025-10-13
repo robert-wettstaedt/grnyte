@@ -18,7 +18,7 @@
       open={modalOpen}
       onOpenChange={(event) => (modalOpen = event.open)}
       triggerBase="sl-2 fa-regular fa-circle-question"
-      contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm max-h-[90vh] overflow-y-auto"
+      contentBase="card bg-surface-100-900 max-h-[90vh] max-w-screen-sm space-y-4 overflow-y-auto p-4 shadow-xl"
       backdropClasses="backdrop-blur-sm"
     >
       {#snippet trigger()}<i></i>{/snippet}
@@ -59,5 +59,5 @@
     </Modal>
   </span>
 
-  <input class="input" name="name" type="text" placeholder="Leave empty if unknown" {value} />
+  <input bind:value class="input" name="name" type="text" placeholder="Leave empty if unknown" />
 </label>

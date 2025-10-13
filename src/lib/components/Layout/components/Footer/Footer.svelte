@@ -9,11 +9,13 @@
   <div class="container mx-auto px-4 py-6">
     <div class="flex flex-col justify-between gap-6 md:flex-row">
       <!-- App Info -->
-      <div>
+      <div class="flex flex-col">
         <h3 class="mb-2 text-lg font-bold">{PUBLIC_APPLICATION_NAME}</h3>
         <p class="text-sm opacity-75">
           Secure boulder topo and session tracker. A hobby project for the bouldering community.
         </p>
+
+        <a href="/status" class="anchor hover:text-primary-500 mt-4 md:mt-auto">Service Status</a>
       </div>
 
       <!-- Legal Links -->

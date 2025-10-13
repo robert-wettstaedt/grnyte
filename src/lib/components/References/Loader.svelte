@@ -43,9 +43,21 @@
           routes: routesResult.current,
         } as ReferencesType),
   )
+
+  const isLoading = $derived(
+    areasResult.details.type !== 'complete' ||
+      ascentsResult.details.type !== 'complete' ||
+      routesResult.details.type !== 'complete',
+  )
 </script>
 
-{#if references != null}
+{#if references == null && isLoading}
+  <nav class="list-nav">
+    <ul class="overflow-auto">
+      <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
+    </ul>
+  </nav>
+{:else if references != null}
   {#if children == null}
     <div class="flex p-2">
       <span class="flex-auto">

@@ -25,12 +25,12 @@
     <span class="flex-auto">
       <dt>Grades</dt>
 
-      <dd class="mt-1 flex gap-1">
+      <dd class="mt-1">
         <AreaStats
           areaId={area.id!}
-          spec={{
-            width: 'container' as any,
-          }}
+          opts={{ height: 300 }}
+          skeletonHeight="h-90"
+          spec={{ width: 'container' as any }}
         />
       </dd>
     </span>

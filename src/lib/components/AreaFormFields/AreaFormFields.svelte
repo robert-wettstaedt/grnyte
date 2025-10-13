@@ -6,9 +6,14 @@
 
   type Props = Partial<Row<'areas'>>
 
-  let { id, name, regionFk, parentFk, ...rest }: Props = $props()
-  let type = $state(rest.type ?? 'area')
-  let description = $state(rest.description ?? '')
+  let {
+    description = $bindable(),
+    id,
+    name = $bindable(),
+    parentFk,
+    regionFk = $bindable(),
+    type = $bindable(),
+  }: Props = $props()
 
   let adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
@@ -19,7 +24,7 @@
 
 <label class="label">
   <span>Name</span>
-  <input class="input" name="name" type="text" placeholder="Enter name..." value={name} />
+  <input class="input" name="name" type="text" placeholder="Enter name..." bind:value={name} />
 </label>
 
 {#if parentFk}
@@ -33,6 +38,10 @@
     <select
       class="select"
       name="regionFk"
+      onchange={(event) => {
+        const value = Number(event.currentTarget.value)
+        regionFk = Number.isNaN(value) ? undefined : value
+      }}
       value={adminRegions.length === 1 ? adminRegions[0].regionFk : (regionFk ?? '')}
     >
       <option disabled value="">-- Select region --</option>
