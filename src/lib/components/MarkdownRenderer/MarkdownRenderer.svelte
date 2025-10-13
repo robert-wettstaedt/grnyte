@@ -46,8 +46,13 @@
     ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
   ])
 
-  const enrichedMarkdown = $derived(enrichMarkdownWithReferences(markdown, markdownRefs))
+  const value = $derived(
+    className?.split(' ').some((c) => c === 'short') ? markdown.replaceAll('\n', ' ').replaceAll('\r', '') : markdown,
+  )
+  const enrichedMarkdown = $derived(enrichMarkdownWithReferences(value, markdownRefs))
   const html = $derived(convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences))
+
+  $inspect({ markdown, value })
 </script>
 
 <div class="markdown-body {className}">

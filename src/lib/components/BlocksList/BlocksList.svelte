@@ -4,11 +4,12 @@
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
+  import { pageState } from '$lib/components/Layout'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
-  import { pageState } from '$lib/components/Layout'
 
   interface Props {
     areaFk: number | null | undefined
@@ -182,6 +183,12 @@
 
                           <div class="w-[calc(100%-64px)]">
                             <RouteName {route} />
+
+                            <MarkdownRenderer
+                              className="short"
+                              encloseReferences="strong"
+                              markdown={route.description ?? ''}
+                            />
                           </div>
                         </div>
                       {/snippet}

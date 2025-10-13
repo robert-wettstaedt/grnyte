@@ -7,6 +7,7 @@
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout/page.svelte'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
@@ -272,19 +273,19 @@
       {#snippet left(item)}
         <div class="flex items-center gap-2">
           {#if item.type === 'area'}
-            <i class="fa-solid fa-layer-group text-[51px] text-white"></i>
+            <i class="fa-solid fa-layer-group min-w-[64px] text-[51px] text-white"></i>
           {:else if item.type === 'block'}
             <Image path="/blocks/{item.data.id}/preview-image" size={64} />
           {:else if item.type === 'route'}
             <Image path="/blocks/{item.data.block?.id}/preview-image" size={64} />
           {:else if item.type === 'user'}
-            <i class="fa-solid fa-circle-user text-[51px] text-white"></i>
+            <i class="fa-solid fa-circle-user min-w-[64px] text-[51px] text-white"></i>
           {/if}
 
           {#if item.type === 'user'}
             {item.name}
           {:else}
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1 overflow-hidden">
               <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
                 {#if pageState.userRegions.length > 1 && item.data.region != null}
                   {item.data.region.name}
@@ -330,6 +331,10 @@
                 <RouteName route={item.data} />
               {:else}
                 {item.name}
+              {/if}
+
+              {#if 'description' in item.data}
+                <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.data.description ?? ''} />
               {/if}
             </div>
           {/if}

@@ -3,6 +3,7 @@
   import AreaStats from '$lib/components/AreaStats'
   import GenericList from '$lib/components/GenericList'
   import { pageState } from '$lib/components/Layout'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
 
   interface Props extends ZeroQueryWrapperBaseProps {
@@ -29,10 +30,14 @@
       {#snippet left(item)}
         {item.name}
 
-        {#if parentFk == null && pageState.userRegions.length > 1}
-          <div class="text-surface-400 text-xs">
-            {pageState.userRegions.find((region) => region.regionFk === item.regionFk)?.name ?? ''}
-          </div>
+        {#if parentFk == null}
+          {#if pageState.userRegions.length > 1}
+            <div class="text-surface-400 text-xs">
+              {pageState.userRegions.find((region) => region.regionFk === item.regionFk)?.name ?? ''}
+            </div>
+          {/if}
+        {:else}
+          <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.description ?? ''} />
         {/if}
       {/snippet}
 

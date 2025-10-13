@@ -6,6 +6,7 @@
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import { pageState } from '$lib/components/Layout'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore, TopoViewerLoader } from '$lib/components/TopoViewer'
   import { getBlockContext } from '$lib/contexts/block'
@@ -123,6 +124,12 @@
                               onmouseover={() => selectedRouteStore.set(route.id)}
                             >
                               <RouteName {route} />
+
+                              <MarkdownRenderer
+                                className="short"
+                                encloseReferences="strong"
+                                markdown={route.description ?? ''}
+                              />
                             </a>
 
                             {#if navigator.maxTouchPoints > 0}
