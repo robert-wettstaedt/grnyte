@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
@@ -39,12 +40,14 @@
         <div class="flex gap-2">
           <Image path="/blocks/{item.block?.id}/preview-image" size={64} />
 
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1 overflow-hidden">
             <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
               {item.block?.area?.name} / {item.block?.name}
             </p>
 
             <RouteName route={item} />
+
+            <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.description ?? ''} />
           </div>
         </div>
       {/snippet}
