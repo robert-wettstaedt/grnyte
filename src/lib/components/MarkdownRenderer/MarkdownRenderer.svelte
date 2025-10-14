@@ -46,8 +46,6 @@
   )
   const enrichedMarkdown = $derived(enrichMarkdownWithReferences(value, markdownRefs))
   const html = $derived(convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences))
-
-  $inspect({ markdown, value })
 </script>
 
 <div class="markdown-body {className}">

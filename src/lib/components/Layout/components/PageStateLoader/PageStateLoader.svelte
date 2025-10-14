@@ -69,10 +69,11 @@
   })
 
   let isLoading = $derived(
-    (userResult.current == null && userResult.details.type !== 'complete') ||
-      (userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
-      (userRegionsResult.current == null && userRegionsResult.details.type !== 'complete') ||
-      (permissionsResult.current == null && permissionsResult.details.type !== 'complete'),
+    page.data.session?.user != null &&
+      ((userResult.current == null && userResult.details.type !== 'complete') ||
+        (userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
+        (userRegionsResult.current == null && userRegionsResult.details.type !== 'complete') ||
+        (permissionsResult.current == null && permissionsResult.details.type !== 'complete')),
   )
 </script>
 
