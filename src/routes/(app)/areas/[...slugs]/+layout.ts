@@ -1,3 +1,4 @@
+import { page } from '$app/state'
 import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
@@ -10,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const areaQuery = queries.area({ id: areaId })
+  const areaQuery = queries.area(page.data.session, { id: areaId })
 
   return { areaQuery }
 }) satisfies LayoutLoad

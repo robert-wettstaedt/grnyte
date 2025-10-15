@@ -9,7 +9,10 @@
 </script>
 
 area
-<ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.area({ id: Number(page.params.id) })}>
+<ZeroQueryWrapper
+  loadingIndicator={{ type: 'spinner' }}
+  query={queries.area(page.data.session, { id: Number(page.params.id) })}
+>
   {#snippet children(area)}
     {@const { pathname } = (area == null ? null : areaWithPathname(area)) ?? {}}
     {#if pathname == null}

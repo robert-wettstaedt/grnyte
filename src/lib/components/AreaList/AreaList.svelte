@@ -16,7 +16,7 @@
 <ZeroQueryWrapper
   {...rest}
   loadingIndicator={{ type: 'skeleton' }}
-  query={queries.listAreas({ parentFk: parentFk ?? null })}
+  query={queries.listAreas(page.data.session, { parentFk: parentFk ?? null })}
 >
   {#snippet children(areas)}
     <GenericList
@@ -32,11 +32,13 @@
         {item.name}
 
         {#if parentFk == null}
-          {#if pageState.userRegions.length > 1}
-            <div class="text-surface-400 text-xs">
-              {pageState.userRegions.find((region) => region.regionFk === item.regionFk)?.name ?? ''}
-            </div>
-          {/if}
+          <!-- {#if pageState.userRegions.length > 1} -->
+          <div class="text-surface-400 text-xs">
+            {pageState.userRegions.find((region) => region.regionFk === item.regionFk)?.name ?? ''}
+
+            {item.regionFk}
+          </div>
+          <!-- {/if} -->
         {:else}
           <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.description ?? ''} />
         {/if}

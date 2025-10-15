@@ -5,6 +5,7 @@ import * as schema from '$lib/db/schema'
 import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils'
 import { fileLogger } from '$lib/logging'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
+import type { User } from '@supabase/supabase-js'
 import { error } from '@sveltejs/kit'
 import { and, eq, inArray, SQL } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -160,5 +161,63 @@ export const deleteFiles = async (opts: DeleteFilesOpts, db: PostgresJsDatabase<
     })
 
     throw error
+  }
+}
+
+export async function getPageState(db: PostgresJsDatabase<typeof schema>, authUser: User): Promise<App.SafeSession> {
+  const user = await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUser.id),
+    with: {
+      userSettings: {
+        columns: {
+          gradingScale: true,
+          notifyModerations: true,
+          notifyNewAscents: true,
+          notifyNewUsers: true,
+        },
+      },
+    },
+  })
+
+  const userRole = await db.query.userRoles.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUser.id),
+  })
+
+  const userRegions = await db.query.regionMembers.findMany({
+    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUser.id), isNotNull(table.isActive)),
+    columns: {
+      regionFk: true,
+      role: true,
+    },
+    with: {
+      region: {
+        columns: {
+          name: true,
+          settings: true,
+        },
+      },
+    },
+  })
+
+  const permissions = await db.query.rolePermissions.findMany()
+
+  const userPermissions =
+    userRole == null
+      ? undefined
+      : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
+
+  const userRegionsResult = userRegions.map((member) => ({
+    ...member,
+    permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+    name: member.region.name,
+    settings: member.region.settings,
+  }))
+
+  return {
+    session: undefined,
+    user,
+    userRole: userRole?.role,
+    userRegions: userRegionsResult,
+    userPermissions,
   }
 }

@@ -1,3 +1,4 @@
+import { page } from '$app/state'
 import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
@@ -10,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const query = queries.listBlocks({ areaId })
+  const query = queries.listBlocks(page.data.session, { areaId })
 
   return { query }
 }) satisfies PageLoad

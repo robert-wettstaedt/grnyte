@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { queries, type Row } from '$lib/db/zero'
@@ -19,7 +20,7 @@
 </script>
 
 {#if blockId != null}
-  <ZeroQueryWrapper query={queries.block({ blockId })}>
+  <ZeroQueryWrapper query={queries.block(page.data.session, { blockId })}>
     {#snippet children(block)}
       {@const topos =
         block?.topos

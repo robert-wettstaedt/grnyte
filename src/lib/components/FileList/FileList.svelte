@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
   import { pageState } from '$lib/components/Layout'
@@ -16,11 +17,13 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: 'h-50 md:h-90', type: 'skeleton' }}
-  query={queries.listFiles({ entity: { type: entityType, id: entityId } })}
+  query={queries.listFiles(page.data.session, { entity: { type: entityType, id: entityId } })}
 >
   {#snippet children(files)}
     {#if entityType === 'route'}
-      <ZeroQueryWrapper query={queries.listAscents({ routeId: entityId, types: ['flash', 'repeat', 'send'] })}>
+      <ZeroQueryWrapper
+        query={queries.listAscents(page.data.session, { routeId: entityId, types: ['flash', 'repeat', 'send'] })}
+      >
         {#snippet children(ascents)}
           {@const allFiles = [...files, ...ascents.flatMap((ascent) => ascent.files)]}
 

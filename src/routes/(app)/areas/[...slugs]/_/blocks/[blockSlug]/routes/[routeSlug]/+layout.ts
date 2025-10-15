@@ -1,3 +1,4 @@
+import { page } from '$app/state'
 import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
@@ -10,7 +11,11 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const routeQuery = queries.route({ areaId, blockSlug: params.blockSlug, routeSlug: params.routeSlug })
+  const routeQuery = queries.route(page.data.session, {
+    areaId,
+    blockSlug: params.blockSlug,
+    routeSlug: params.routeSlug,
+  })
 
   return { routeQuery }
 }) satisfies LayoutLoad

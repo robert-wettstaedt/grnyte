@@ -8,7 +8,10 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
-<ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.block({ blockId: Number(page.params.id) })}>
+<ZeroQueryWrapper
+  loadingIndicator={{ type: 'spinner' }}
+  query={queries.block(page.data.session, { blockId: Number(page.params.id) })}
+>
   {#snippet children(block)}
     {@const { pathname } = (block == null ? undefined : blockWithPathname(block)) ?? {}}
     {#if pathname == null}

@@ -57,24 +57,24 @@
     value = searchQuery
   })
 
-  const { current: regions } = $derived(new Query(queries.regions()))
+  const { current: regions } = $derived(new Query(queries.regions(page.data.session)))
 
-  const areasQuery = $derived(queries.listAreas({ content: searchQuery }))
+  const areasQuery = $derived(queries.listAreas(page.data.session, { content: searchQuery }))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const blocksQuery = $derived(queries.listBlocks({ content: searchQuery }))
+  const blocksQuery = $derived(queries.listBlocks(page.data.session, { content: searchQuery }))
   // svelte-ignore state_referenced_locally
   const blocksResult = new Query(blocksQuery)
   $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const routesQuery = $derived(queries.listRoutesWithRelations({ content: searchQuery }))
+  const routesQuery = $derived(queries.listRoutesWithRelations(page.data.session, { content: searchQuery }))
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))
 
-  const usersQuery = $derived(queries.listUsers({ content: searchQuery }))
+  const usersQuery = $derived(queries.listUsers(page.data.session, { content: searchQuery }))
   // svelte-ignore state_referenced_locally
   const usersResult = new Query(usersQuery)
   $effect(() => usersResult.updateQuery(usersQuery))

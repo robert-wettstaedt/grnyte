@@ -28,7 +28,7 @@
     const searchParamsObj = Object.fromEntries(page.url.searchParams.entries())
     const searchParams = validateObject(searchParamsSchema, searchParamsObj)
 
-    return queries.activities({
+    return queries.activities(page.data.session, {
       pageSize: searchParams.pageSize,
       entity: searchParams.type === 'ascents' ? { type: 'ascent' } : entity,
       type: searchParams.type === 'ascents' ? 'created' : undefined,
@@ -109,7 +109,7 @@
 <ZeroQueryWrapper {query} loadingIndicator={{ type: 'skeleton', count: 15 }}>
   {#snippet children(items)}
     {@const fileId = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
-    <ZeroQueryWrapper query={queries.listFiles({ fileId })}>
+    <ZeroQueryWrapper query={queries.listFiles(page.data.session, { fileId })}>
       {#snippet children(files)}
         {@const groups = paginateActivities(items).map((item) => groupActivities(item, files))}
         <ActivityFeed activities={groups} />

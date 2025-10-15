@@ -1,4 +1,4 @@
-import type { Query } from '@rocicorp/zero'
+import type { Query, ReadonlyJSONValue, QueryFn } from '@rocicorp/zero'
 import { syncedQuery, syncedQueryWithContext } from '@rocicorp/zero'
 import type { User } from '@supabase/supabase-js'
 import z from 'zod'
@@ -6,39 +6,121 @@ import { activityParentEntityType, activityType, ascentTypeEnum } from '../schem
 import { type Schema } from './zero-schema'
 import { builder } from './zero-schema.gen'
 
-export type QueryContext = User | null | undefined
+type RegionQuery = Query<
+  Schema,
+  | 'activities'
+  | 'areas'
+  | 'ascents'
+  | 'blocks'
+  | 'bunnyStreams'
+  | 'files'
+  | 'firstAscensionists'
+  | 'geolocations'
+  | 'regionInvitations'
+  | 'routeExternalResource27crags'
+  | 'routeExternalResource8a'
+  | 'routeExternalResources'
+  | 'routeExternalResourceTheCrag'
+  | 'routes'
+  | 'routesToFirstAscensionists'
+  | 'routesToTags'
+  | 'topoRoutes'
+  | 'topos',
+  any
+>
+
+export type QueryContext = {
+  user: User | null | undefined
+  pageState?: Partial<App.SafeSession>
+}
+
+const authenticatedUserCan =
+  <TContext extends QueryContext, TArg extends ReadonlyJSONValue[], TReturnQuery extends Query<any, any, any>>(
+    cb: QueryFn<Omit<QueryContext, 'user'> & { user: User }, true, TArg, TReturnQuery>,
+  ) =>
+  (ctx: TContext | null | undefined, ...args: TArg) => {
+    if (ctx?.user == null) {
+      throw new Error('Not allowed')
+    }
+
+    return cb({ ...ctx, user: ctx.user }, ...args)
+  }
+
+const regionMemberCan =
+  <
+    TContext extends QueryContext | null | undefined,
+    TArg extends ReadonlyJSONValue[],
+    TReturnQuery extends RegionQuery,
+  >(
+    cb: QueryFn<TContext, true, TArg, TReturnQuery>,
+  ) =>
+  (ctx: TContext, ...args: TArg) => {
+    let q = cb(ctx, ...args)
+
+    if (ctx?.pageState?.userRegions != null) {
+      q = q.where(
+        'regionFk',
+        'IN',
+        ctx.pageState.userRegions.map((region) => region.regionFk),
+      ) as TReturnQuery
+    }
+
+    return q
+  }
 
 export const queries = {
-  grades: syncedQuery('grades', z.tuple([]), () => {
-    return builder.grades
-  }),
-  tags: syncedQuery('tags', z.tuple([]), () => {
-    return builder.tags
-  }),
-  regions: syncedQuery('regions', z.tuple([]), () => {
-    return builder.regions
-  }),
-  rolePermissions: syncedQuery('rolePermissions', z.tuple([]), () => {
-    return builder.rolePermissions
-  }),
+  grades: syncedQueryWithContext(
+    'grades',
+    z.tuple([]),
+    authenticatedUserCan(() => {
+      return builder.grades
+    }),
+  ),
+  tags: syncedQueryWithContext(
+    'tags',
+    z.tuple([]),
+    authenticatedUserCan(() => {
+      return builder.tags
+    }),
+  ),
+  regions: syncedQueryWithContext(
+    'regions',
+    z.tuple([]),
+    authenticatedUserCan(() => {
+      return builder.regions
+    }),
+  ),
+  rolePermissions: syncedQueryWithContext(
+    'rolePermissions',
+    z.tuple([]),
+    authenticatedUserCan(() => {
+      return builder.rolePermissions
+    }),
+  ),
 
-  currentUser: syncedQueryWithContext('currentUser', z.tuple([]), (ctx: QueryContext) => {
-    return builder.users
-      .where('authUserFk', ctx?.id ?? '')
-      .related('userSettings')
-      .one()
-  }),
-  currentUserRoles: syncedQueryWithContext('currentUserRoles', z.tuple([]), (ctx: QueryContext) => {
-    return builder.userRoles.where('authUserFk', ctx?.id ?? '').one()
-  }),
-  currentUserRegions: syncedQueryWithContext('currentUserRegions', z.tuple([]), (ctx: QueryContext) => {
-    return builder.regionMembers
-      .where('authUserFk', ctx?.id ?? '')
-      .where('isActive', 'IS NOT', null)
-      .related('region')
-  }),
+  currentUser: syncedQueryWithContext(
+    'currentUser',
+    z.tuple([]),
+    authenticatedUserCan(({ user }) => {
+      return builder.users.where('authUserFk', user.id).related('userSettings').one()
+    }),
+  ),
+  currentUserRoles: syncedQueryWithContext(
+    'currentUserRoles',
+    z.tuple([]),
+    authenticatedUserCan(({ user }) => {
+      return builder.userRoles.where('authUserFk', user.id).one()
+    }),
+  ),
+  currentUserRegions: syncedQueryWithContext(
+    'currentUserRegions',
+    z.tuple([]),
+    authenticatedUserCan(({ user }) => {
+      return builder.regionMembers.where('authUserFk', user.id).where('isActive', 'IS NOT', null).related('region')
+    }),
+  ),
 
-  listUsers: syncedQuery(
+  listUsers: syncedQueryWithContext(
     'listUsers',
     z.tuple([
       z.object({
@@ -46,7 +128,7 @@ export const queries = {
         id: z.union([z.number(), z.array(z.number())]).optional(),
       }),
     ]),
-    ({ content, id }) => {
+    (_, { content, id }) => {
       let q = builder.users
 
       if (id != null) {
@@ -65,7 +147,7 @@ export const queries = {
     },
   ),
 
-  listAreas: syncedQuery(
+  listAreas: syncedQueryWithContext(
     'listAreas',
     z.tuple([
       z.object({
@@ -74,7 +156,7 @@ export const queries = {
         parentFk: z.number().optional().nullish(),
       }),
     ]),
-    ({ areaId, content, parentFk }) => {
+    regionMemberCan((_, { areaId, content, parentFk }) => {
       let q = builder.areas
         .orderBy('name', 'asc')
         .related('parent', (q) => q.related('parent'))
@@ -97,16 +179,16 @@ export const queries = {
       }
 
       return q
-    },
+    }),
   ),
-  area: syncedQuery(
+  area: syncedQueryWithContext(
     'area',
     z.tuple([
       z.object({
         id: z.number(),
       }),
     ]),
-    ({ id }) => {
+    regionMemberCan((_, { id }) => {
       return builder.areas
         .where('id', id)
         .related('parent', (q) => q.related('parent', (q) => q.related('parent')))
@@ -115,10 +197,10 @@ export const queries = {
         .related('files')
         .related('parkingLocations')
         .one()
-    },
+    }),
   ),
 
-  listBlocks: syncedQuery(
+  listBlocks: syncedQueryWithContext(
     'listBlocks',
     z.tuple([
       z.object({
@@ -127,7 +209,7 @@ export const queries = {
         content: z.string().optional(),
       }),
     ]),
-    ({ areaId, blockId, content }) => {
+    regionMemberCan((_, { areaId, blockId, content }) => {
       let q = builder.blocks
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
@@ -152,9 +234,9 @@ export const queries = {
       }
 
       return q
-    },
+    }),
   ),
-  block: syncedQuery(
+  block: syncedQueryWithContext(
     'block',
     z.tuple([
       z.object({
@@ -163,7 +245,7 @@ export const queries = {
         blockId: z.number().optional(),
       }),
     ]),
-    ({ areaId, blockId, blockSlug }) => {
+    regionMemberCan((_, { areaId, blockId, blockSlug }) => {
       let q = builder.blocks
 
       if (areaId != null) {
@@ -184,7 +266,7 @@ export const queries = {
         .related('topos', (q) => q.related('routes').related('file'))
         .related('geolocation')
         .one()
-    },
+    }),
   ),
 
   ...(function getListQuery() {
@@ -253,35 +335,51 @@ export const queries = {
     }
 
     return {
-      listRoutes: syncedQuery('listRoutes', z.tuple([schema]), (opts) => {
-        return listRoutes(opts)
-      }),
-      listRoutesWithRelations: syncedQuery('listRoutesWithRelations', z.tuple([schema]), (opts) => {
-        return listRoutes(opts)
-          .related('ascents', (q) =>
-            opts.userId == null ? q.where('createdBy', 'IS', null) : q.where('createdBy', '=', opts.userId),
+      listRoutes: syncedQueryWithContext(
+        'listRoutes',
+        z.tuple([schema]),
+        regionMemberCan((_, opts) => {
+          return listRoutes(opts)
+        }),
+      ),
+      listRoutesWithRelations: syncedQueryWithContext(
+        'listRoutesWithRelations',
+        z.tuple([schema]),
+        regionMemberCan((_, opts) => {
+          return listRoutes(opts)
+            .related('ascents', (q) =>
+              opts.userId == null ? q.where('createdBy', 'IS', null) : q.where('createdBy', '=', opts.userId),
+            )
+            .related('block', (q) =>
+              q.related('area', (q) =>
+                q.related('parent', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
+              ),
+            )
+        }),
+      ),
+      listRoutesWithExternalResources: syncedQueryWithContext(
+        'listRoutesWithExternalResources',
+        z.tuple([schema]),
+        regionMemberCan((_, opts) => {
+          return listRoutes(opts)
+            .related('block')
+            .related('externalResources', (q) =>
+              q.related('externalResource27crags').related('externalResource8a').related('externalResourceTheCrag'),
+            )
+        }),
+      ),
+      listRoutesWithAscents: syncedQueryWithContext(
+        'listRoutesWithAscents',
+        z.tuple([schema]),
+        regionMemberCan((_, opts) => {
+          return listRoutes(opts).related('ascents', (q) =>
+            opts.userId == null ? q : q.where('createdBy', '=', opts.userId),
           )
-          .related('block', (q) =>
-            q.related('area', (q) =>
-              q.related('parent', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
-            ),
-          )
-      }),
-      listRoutesWithExternalResources: syncedQuery('listRoutesWithExternalResources', z.tuple([schema]), (opts) => {
-        return listRoutes(opts)
-          .related('block')
-          .related('externalResources', (q) =>
-            q.related('externalResource27crags').related('externalResource8a').related('externalResourceTheCrag'),
-          )
-      }),
-      listRoutesWithAscents: syncedQuery('listRoutesWithAscents', z.tuple([schema]), (opts) => {
-        return listRoutes(opts).related('ascents', (q) =>
-          opts.userId == null ? q : q.where('createdBy', '=', opts.userId),
-        )
-      }),
+        }),
+      ),
     }
   })(),
-  route: syncedQuery(
+  route: syncedQueryWithContext(
     'route',
     z.tuple([
       z.object({
@@ -290,7 +388,7 @@ export const queries = {
         routeSlug: z.string(),
       }),
     ]),
-    ({ areaId, blockSlug, routeSlug }) => {
+    regionMemberCan((_, { areaId, blockSlug, routeSlug }) => {
       function getRouteDbFilterRaw(routeSlug: string, q: Query<Schema, 'routes'>): Query<Schema, 'routes'> {
         return Number.isNaN(Number(routeSlug)) ? q.where('slug', routeSlug) : q.where('id', Number(routeSlug))
       }
@@ -318,10 +416,10 @@ export const queries = {
         )
         .related('topos')
         .one()
-    },
+    }),
   ),
 
-  listAscents: syncedQuery(
+  listAscents: syncedQueryWithContext(
     'listAscents',
     z.tuple([
       z.object({
@@ -333,7 +431,7 @@ export const queries = {
         types: z.array(z.enum(ascentTypeEnum)).optional(),
       }),
     ]),
-    ({ ascentId, createdBy, grade, notes, routeId, types }) => {
+    regionMemberCan((_, { ascentId, createdBy, grade, notes, routeId, types }) => {
       let q = builder.ascents.related('author').related('route').related('files')
 
       if (ascentId != null) {
@@ -365,16 +463,16 @@ export const queries = {
       }
 
       return q
-    },
+    }),
   ),
-  ascent: syncedQuery(
+  ascent: syncedQueryWithContext(
     'ascent',
     z.tuple([
       z.object({
         id: z.number(),
       }),
     ]),
-    ({ id }) => {
+    regionMemberCan((_, { id }) => {
       return builder.ascents
         .where('id', id)
         .related('author')
@@ -384,10 +482,10 @@ export const queries = {
           ),
         )
         .one()
-    },
+    }),
   ),
 
-  listFiles: syncedQuery(
+  listFiles: syncedQueryWithContext(
     'listFiles',
     z.tuple([
       z.object({
@@ -400,7 +498,7 @@ export const queries = {
         fileId: z.union([z.string(), z.array(z.string())]).optional(),
       }),
     ]),
-    ({ entity, fileId }) => {
+    regionMemberCan((_, { entity, fileId }) => {
       let q = builder.files.related('area').related('ascent').related('block').related('route')
 
       if (fileId != null) {
@@ -422,14 +520,18 @@ export const queries = {
       }
 
       return q
-    },
+    }),
   ),
 
-  firstAscensionists: syncedQuery('firstAscensionists', z.tuple([]), () => {
-    return builder.firstAscensionists.orderBy('name', 'asc').related('user')
-  }),
+  firstAscensionists: syncedQueryWithContext(
+    'firstAscensionists',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.firstAscensionists.orderBy('name', 'asc').related('user')
+    }),
+  ),
 
-  activities: syncedQuery(
+  activities: syncedQueryWithContext(
     'activities',
     z.tuple([
       z.object({
@@ -444,7 +546,7 @@ export const queries = {
         userFk: z.number().optional(),
       }),
     ]),
-    ({ entity, pageSize, type, userFk }) => {
+    regionMemberCan((_, { entity, pageSize, type, userFk }) => {
       let q = builder.activities.orderBy('createdAt', 'desc').related('user').limit(pageSize)
 
       if (entity != null) {
@@ -469,6 +571,6 @@ export const queries = {
       }
 
       return q
-    },
+    }),
   ),
 }

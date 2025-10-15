@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
   import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
@@ -13,17 +14,19 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(queries.listAreas({ content: `!${type}:${id}!` }))
+  const areasQuery = $derived(queries.listAreas(page.data.session, { content: `!${type}:${id}!` }))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const ascentsQuery = $derived(queries.listAscents({ notes: `!${type}:${id}!` }))
+  const ascentsQuery = $derived(queries.listAscents(page.data.session, { notes: `!${type}:${id}!` }))
   // svelte-ignore state_referenced_locally
   const ascentsResult = new Query(ascentsQuery)
   $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
-  const routesQuery = $derived(queries.listRoutes({ content: `!${type}:${id}!`, userId: pageState.user?.id }))
+  const routesQuery = $derived(
+    queries.listRoutes(page.data.session, { content: `!${type}:${id}!`, userId: pageState.user?.id }),
+  )
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))

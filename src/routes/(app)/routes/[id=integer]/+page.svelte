@@ -11,7 +11,10 @@
 {#if page.params.id == null}
   <Error status={404} />
 {:else}
-  <ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.route({ routeSlug: page.params.id })}>
+  <ZeroQueryWrapper
+    loadingIndicator={{ type: 'spinner' }}
+    query={queries.route(page.data.session, { routeSlug: page.params.id })}
+  >
     {#snippet children(block)}
       {@const route = block?.routes.at(0)}
       {@const { pathname } = (route == null ? undefined : routeWithPathname({ ...route, block })) ?? {}}

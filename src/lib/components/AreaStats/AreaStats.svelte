@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
   import { pageState } from '$lib/components/Layout'
   import { queries, type Row } from '$lib/db/zero'
@@ -15,7 +16,7 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: skeletonHeight, type: 'skeleton' }}
-  query={queries.listRoutes({ areaId })}
+  query={queries.listRoutes(page.data.session, { areaId })}
 >
   {#snippet children(routes)}
     {@const stats = routes.map((route): GradeHistogramProps['data'][0] => {

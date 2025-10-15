@@ -14,14 +14,14 @@
 
   setContext('z', page.data.z)
 
-  const gradesResult = new Query(queries.grades())
-  const tagsResult = new Query(queries.tags())
+  const gradesResult = $derived(new Query(queries.grades(page.data.session)))
+  const tagsResult = $derived(new Query(queries.tags(page.data.session)))
 
-  const userResult = $derived(new Query(queries.currentUser(page.data.session?.user)))
-  const userRoleResult = $derived(new Query(queries.currentUserRoles(page.data.session?.user)))
-  const userRegionsResult = $derived(new Query(queries.currentUserRegions(page.data.session?.user)))
+  const userResult = $derived(new Query(queries.currentUser(page.data.session)))
+  const userRoleResult = $derived(new Query(queries.currentUserRoles(page.data.session)))
+  const userRegionsResult = $derived(new Query(queries.currentUserRegions(page.data.session)))
 
-  const permissionsResult = new Query(queries.rolePermissions())
+  const permissionsResult = $derived(new Query(queries.rolePermissions(page.data.session)))
 
   const userPermissions = $derived(
     permissionsResult.current

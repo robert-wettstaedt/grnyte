@@ -1,4 +1,6 @@
+import { db } from '$lib/db/db.server'
 import { queries, schema, type QueryContext } from '$lib/db/zero'
+import { getPageState } from '$lib/helper.server'
 import { withValidation, type ReadonlyJSONValue } from '@rocicorp/zero'
 import { handleGetQueriesRequest } from '@rocicorp/zero/server'
 import { error } from '@sveltejs/kit'
@@ -7,11 +9,14 @@ export async function POST({ locals, request }) {
   const jwt = request.headers.get('authorization')?.replace('Bearer ', '')
   const { data: userData, error: authError } = await locals.supabase.auth.getUser(jwt)
 
-  if (userData == null || authError != null) {
+  if (userData.user == null || authError != null) {
     error(401)
   }
 
-  const q = await handleGetQueriesRequest((name, args) => getQuery(userData.user, name, args), schema, request)
+  const pageState = await getPageState(db, userData.user)
+  const context: QueryContext = { ...userData, pageState }
+
+  const q = await handleGetQueriesRequest((name, args) => getQuery(context, name, args), schema, request)
 
   return new Response(JSON.stringify(q))
 }

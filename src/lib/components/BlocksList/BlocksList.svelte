@@ -19,7 +19,7 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const query = $derived(queries.listBlocks({ areaId: areaFk ?? null }))
+  const query = $derived(queries.listBlocks(page.data.session, { areaId: areaFk ?? null }))
   // svelte-ignore state_referenced_locally
   const blocksResult = new Query(query)
   $effect(() => blocksResult.updateQuery(query))

@@ -48,19 +48,19 @@ export function initZero(session: Session | undefined | null) {
 
   if (session != null) {
     Promise.all([
-      z.current.preload(queries.grades()).complete,
-      z.current.preload(queries.tags()).complete,
-      z.current.preload(queries.regions()).complete,
-      z.current.preload(queries.rolePermissions()).complete,
+      z.current.preload(queries.grades(session)).complete,
+      z.current.preload(queries.tags(session)).complete,
+      z.current.preload(queries.regions(session)).complete,
+      z.current.preload(queries.rolePermissions(session)).complete,
 
-      z.current.preload(queries.currentUserRoles(session.user)).complete,
-      z.current.preload(queries.currentUser(session.user)).complete,
-      z.current.preload(queries.currentUserRegions(session.user)).complete,
+      z.current.preload(queries.currentUserRoles(session)).complete,
+      z.current.preload(queries.currentUser(session)).complete,
+      z.current.preload(queries.currentUserRegions(session)).complete,
 
-      z.current.preload(queries.listUsers({})).complete,
-      z.current.preload(queries.listAreas({})).complete,
-      z.current.preload(queries.listBlocks({})).complete,
-      z.current.preload(queries.firstAscensionists()).complete,
+      z.current.preload(queries.listUsers(session, {})).complete,
+      z.current.preload(queries.listAreas(session, {})).complete,
+      z.current.preload(queries.listBlocks(session, {})).complete,
+      z.current.preload(queries.firstAscensionists(session)).complete,
     ])
       .then(() => {
         console.log('All queries preloaded successfully')

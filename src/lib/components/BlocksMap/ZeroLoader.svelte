@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
   import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
@@ -9,8 +10,8 @@
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocksResult = new Query(queries.listBlocks({}))
-  const areasResult = new Query(queries.listAreas({}))
+  const blocksResult = new Query(queries.listBlocks(page.data.session, {}))
+  const areasResult = new Query(queries.listAreas(page.data.session, {}))
 
   const data = $derived.by(() => {
     const areas = $state.snapshot(areasResult.current)
