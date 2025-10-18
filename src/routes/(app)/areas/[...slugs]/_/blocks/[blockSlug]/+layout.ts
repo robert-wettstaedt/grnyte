@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const blockQuery = z.current.query.blocks
+  const blockQuery = z.query.blocks
     .where('areaFk', areaId)
     .where('slug', params.blockSlug)
     .related('topos', (q) => q.related('file'))

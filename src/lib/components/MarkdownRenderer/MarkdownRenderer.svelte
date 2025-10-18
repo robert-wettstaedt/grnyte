@@ -7,7 +7,6 @@
     type EncloseOptions,
     type MarkdownReference,
   } from '$lib/markdown'
-  import { Query } from 'zero-svelte'
 
   interface Props {
     className?: string
@@ -20,30 +19,30 @@
   const markdownRefIds = $derived(getReferences(markdown))
 
   const areasQuery = $derived(
-    page.data.z.current.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
+    page.data.z.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
   )
   // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
+  const areasResult = page.data.z.createQuery(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
   const blocksQuery = $derived(
-    page.data.z.current.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
+    page.data.z.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
   )
   // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(blocksQuery)
+  const blocksResult = page.data.z.createQuery(blocksQuery)
   $effect(() => blocksResult.updateQuery(blocksQuery))
 
   const routesQuery = $derived(
-    page.data.z.current.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
+    page.data.z.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
   )
   // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
+  const routesResult = page.data.z.createQuery(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))
 
   const markdownRefs = $derived([
-    ...areasResult.current.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
-    ...blocksResult.current.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
-    ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
+    ...areasResult.data.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
+    ...blocksResult.data.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
+    ...routesResult.data.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
   ])
 
   const value = $derived(

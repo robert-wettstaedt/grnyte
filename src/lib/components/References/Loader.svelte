@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
   import type { Snippet } from 'svelte'
-  import { Query } from 'zero-svelte'
   import type { References as ReferencesType } from '.'
   import References from './References.svelte'
 
@@ -13,34 +12,34 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(page.data.z.current.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
+  const areasQuery = $derived(page.data.z.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
   // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
+  const areasResult = page.data.z.createQuery(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
   const ascentsQuery = $derived(
-    page.data.z.current.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
+    page.data.z.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
   )
   // svelte-ignore state_referenced_locally
-  const ascentsResult = new Query(ascentsQuery)
+  const ascentsResult = page.data.z.createQuery(ascentsQuery)
   $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
   const routesQuery = $derived(
-    page.data.z.current.query.routes
+    page.data.z.query.routes
       .where('description', 'ILIKE', `%!${type}:${id}!%`)
       .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
   )
   // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
+  const routesResult = page.data.z.createQuery(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))
 
   const references = $derived(
-    areasResult.current.length + ascentsResult.current.length + routesResult.current.length === 0
+    areasResult.data.length + ascentsResult.data.length + routesResult.data.length === 0
       ? null
       : ({
-          areas: areasResult.current,
-          ascents: ascentsResult.current,
-          routes: routesResult.current,
+          areas: areasResult.data,
+          ascents: ascentsResult.data,
+          routes: routesResult.data,
         } as ReferencesType),
   )
 

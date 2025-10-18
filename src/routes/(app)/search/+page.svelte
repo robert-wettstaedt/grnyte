@@ -12,7 +12,6 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
-  import { Query } from 'zero-svelte'
 
   const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
   const MAX_RECENT_SEARCH = 7
@@ -25,22 +24,22 @@
   }
 
   interface AreaItem extends BaseItem {
-    data: (typeof areasResult.current)[0]
+    data: (typeof areasResult.data)[0]
     type: 'area'
   }
 
   interface BlockItem extends BaseItem {
-    data: (typeof blocksResult.current)[0]
+    data: (typeof blocksResult.data)[0]
     type: 'block'
   }
 
   interface RouteItem extends BaseItem {
-    data: (typeof routesResult.current)[0]
+    data: (typeof routesResult.data)[0]
     type: 'route'
   }
 
   interface UserItem extends BaseItem {
-    data: (typeof usersResult.current)[0]
+    data: (typeof usersResult.data)[0]
     type: 'user'
   }
 
@@ -55,45 +54,45 @@
   })
 
   const areasQuery = $derived(
-    page.data.z.current.query.areas
+    page.data.z.query.areas
       .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
       .related('parent', (q) => q.related('parent'))
       .related('region'),
   )
   // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
+  const areasResult = page.data.z.createQuery(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
   const blocksQuery = $derived(
-    page.data.z.current.query.blocks
+    page.data.z.query.blocks
       .where('name', 'ILIKE', `%${searchQuery}%`)
       .related('area', (q) => q.related('parent'))
       .related('region'),
   )
   // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(blocksQuery)
+  const blocksResult = page.data.z.createQuery(blocksQuery)
   $effect(() => blocksResult.updateQuery(blocksQuery))
 
   const routesQuery = $derived(
-    page.data.z.current.query.routes
+    page.data.z.query.routes
       .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
       .related('block', (q) => q.related('area', (q) => q.related('parent')))
       .related('region'),
   )
   // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
+  const routesResult = page.data.z.createQuery(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))
 
-  const usersQuery = $derived(page.data.z.current.query.users.where('username', 'ILIKE', `%${searchQuery}%`))
+  const usersQuery = $derived(page.data.z.query.users.where('username', 'ILIKE', `%${searchQuery}%`))
   // svelte-ignore state_referenced_locally
-  const usersResult = new Query(usersQuery)
+  const usersResult = page.data.z.createQuery(usersQuery)
   $effect(() => usersResult.updateQuery(usersQuery))
 
   const isLoading = $derived(
-    (areasResult.current.length === 0 && areasResult.details.type !== 'complete') ||
-      (blocksResult.current.length === 0 && blocksResult.details.type !== 'complete') ||
-      (routesResult.current.length === 0 && routesResult.details.type !== 'complete') ||
-      (usersResult.current.length === 0 && usersResult.details.type !== 'complete'),
+    (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||
+      (blocksResult.data.length === 0 && blocksResult.details.type !== 'complete') ||
+      (routesResult.data.length === 0 && routesResult.details.type !== 'complete') ||
+      (usersResult.data.length === 0 && usersResult.details.type !== 'complete'),
   )
 
   const searchResults = $derived.by(() => {
@@ -102,7 +101,7 @@
     }
 
     const items: SearchItem[] = [
-      ...areasResult.current.map(
+      ...areasResult.data.map(
         (item): AreaItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
@@ -112,7 +111,7 @@
           type: 'area',
         }),
       ),
-      ...blocksResult.current.map(
+      ...blocksResult.data.map(
         (item): BlockItem => ({
           data: item,
           fields: [item.name],
@@ -122,7 +121,7 @@
           type: 'block',
         }),
       ),
-      ...routesResult.current.map(
+      ...routesResult.data.map(
         (item): RouteItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
@@ -132,7 +131,7 @@
           type: 'route',
         }),
       ),
-      ...usersResult.current.map(
+      ...usersResult.data.map(
         (item): UserItem => ({
           data: item,
           fields: [item.username],

@@ -17,22 +17,22 @@ export function initZero(session: Session | undefined | null) {
 
   if (session != null) {
     Promise.all([
-      z.current.query.areas.preload().complete,
-      z.current.query.blocks.preload().complete,
-      z.current.query.firstAscensionists.preload().complete,
-      z.current.query.geolocations.preload().complete,
-      z.current.query.grades.preload().complete,
-      z.current.query.regions.preload().complete,
-      z.current.query.rolePermissions.preload().complete,
-      z.current.query.routes.preload().complete,
-      z.current.query.routesToFirstAscensionists.preload().complete,
-      z.current.query.routesToTags.preload().complete,
-      z.current.query.tags.preload().complete,
-      z.current.query.topoRoutes.preload().complete,
-      z.current.query.topos.preload().complete,
-      z.current.query.userRoles.preload().complete,
-      z.current.query.users.preload().complete,
-      z.current.query.userSettings.preload().complete,
+      z.query.areas.preload().complete,
+      z.query.blocks.preload().complete,
+      z.query.firstAscensionists.preload().complete,
+      z.query.geolocations.preload().complete,
+      z.query.grades.preload().complete,
+      z.query.regions.preload().complete,
+      z.query.rolePermissions.preload().complete,
+      z.query.routes.preload().complete,
+      z.query.routesToFirstAscensionists.preload().complete,
+      z.query.routesToTags.preload().complete,
+      z.query.tags.preload().complete,
+      z.query.topoRoutes.preload().complete,
+      z.query.topos.preload().complete,
+      z.query.userRoles.preload().complete,
+      z.query.users.preload().complete,
+      z.query.userSettings.preload().complete,
     ])
       .then(() => {
         console.log('All queries preloaded successfully')

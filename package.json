@@ -11,7 +11,6 @@
     "node": "^22"
   },
   "scripts": {
-    "postinstall": "patch-package",
     "dev": "vite dev",
     "dev:zero": "npx zero-cache-dev",
     "build": "vite build",
@@ -42,7 +41,7 @@
     "@lezer/common": "^1.2.3",
     "@paralleldrive/cuid2": "^2.2.2",
     "@prgm/sveltekit-progress-bar": "^3.0.2",
-    "@rocicorp/zero": "^0.23.2025090100",
+    "@rocicorp/zero": "^0.24.2025101500",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.46.2",
     "@tailwindcss/forms": "^0.5.10",
@@ -121,7 +120,6 @@
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-svelte": "^3.0.0",
     "jsdom": "^27.0.0",
-    "patch-package": "^8.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-svelte": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.7.0",
@@ -134,6 +132,6 @@
   },
   "type": "module",
   "overrides": {
-    "@rocicorp/zero": "^0.23.2025090100"
+    "@rocicorp/zero": "^0.24.2025101500"
   }
 }

@@ -2,20 +2,19 @@
   import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
   import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocksResult = new Query(page.data.z.current.query.blocks.related('geolocation'))
-  const areasResult = new Query(page.data.z.current.query.areas.related('parkingLocations'))
+  const blocksResult = page.data.z.createQuery(page.data.z.query.blocks.related('geolocation'))
+  const areasResult = page.data.z.createQuery(page.data.z.query.areas.related('parkingLocations'))
 
   const data = $derived.by(() => {
-    const areas = $state.snapshot(areasResult.current)
+    const areas = $state.snapshot(areasResult.data)
 
-    const nestedBlocks = blocksResult.current
+    const nestedBlocks = blocksResult.data
       .map((block): NestedBlock | null => {
         if (block.id == null) {
           return null
@@ -39,8 +38,8 @@
       })
       .filter((block) => block != null)
 
-    const parkingLocations = areasResult.current.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
-    const geoPaths = areasResult.current.flatMap((area) => area.geoPaths ?? [])
+    const parkingLocations = areasResult.data.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
+    const geoPaths = areasResult.data.flatMap((area) => area.geoPaths ?? [])
 
     return {
       blocks: nestedBlocks,

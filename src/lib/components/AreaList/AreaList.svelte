@@ -15,7 +15,7 @@
 <ZeroQueryWrapper
   {...rest}
   loadingIndicator={{ type: 'skeleton' }}
-  query={page.data.z.current.query.areas.where('parentFk', 'IS', parentFk ?? null).orderBy('name', 'asc')}
+  query={page.data.z.query.areas.where('parentFk', 'IS', parentFk ?? null).orderBy('name', 'asc')}
 >
   {#snippet children(areas)}
     <GenericList

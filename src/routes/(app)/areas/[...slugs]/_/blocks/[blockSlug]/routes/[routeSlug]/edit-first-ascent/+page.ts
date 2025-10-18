@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const query = z.current.query.blocks
+  const query = z.query.blocks
     .where('slug', params.blockSlug)
     .where('areaFk', areaId)
     .whereExists('routes', (q) => getRouteDbFilterRaw(params, q))
@@ -21,7 +21,7 @@ export const load = (async ({ parent, params }) => {
     )
     .one()
 
-  const faQuery = z.current.query.firstAscensionists.orderBy('name', 'asc').related('user')
+  const faQuery = z.query.firstAscensionists.orderBy('name', 'asc').related('user')
 
   return { query, faQuery }
 }) satisfies PageLoad

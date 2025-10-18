@@ -16,19 +16,17 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: 'h-50 md:h-90', type: 'skeleton' }}
-  query={page.data.z.current.query.files.where(
+  query={page.data.z.query.files.where(
     entityType === 'area' ? 'areaFk' : entityType === 'ascent' ? 'ascentFk' : 'routeFk',
     entityId,
   )}
 >
   {#snippet children(files)}
     {#if entityType === 'route'}
-      <ZeroQueryWrapper
-        query={page.data.z.current.query.ascents.where('routeFk', entityId).where('type', '!=', 'attempt')}
-      >
+      <ZeroQueryWrapper query={page.data.z.query.ascents.where('routeFk', entityId).where('type', '!=', 'attempt')}>
         {#snippet children(ascents)}
           <ZeroQueryWrapper
-            query={page.data.z.current.query.files.where(
+            query={page.data.z.query.files.where(
               'ascentFk',
               'IN',
               ascents.map((ascent) => ascent.id).filter((id) => id != null),

@@ -9,7 +9,6 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
 
   interface Props {
     areaFk: number | null | undefined
@@ -19,21 +18,21 @@
   const { areaFk, onLoad, regionFk }: Props = $props()
 
   const query = $derived(
-    page.data.z.current.query.blocks
+    page.data.z.query.blocks
       .where('areaFk', 'IS', areaFk ?? null)
       .orderBy('order', 'asc')
       .orderBy('name', 'asc')
       .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
   )
   // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(query)
+  const blocksResult = page.data.z.createQuery(query)
   $effect(() => blocksResult.updateQuery(query))
 
   // https://github.com/sveltejs/kit/issues/12999
   // svelte-ignore state_referenced_locally
-  let blocks = $state(blocksResult.current)
+  let blocks = $state(blocksResult.data)
   $effect(() => {
-    blocks = blocksResult.current
+    blocks = blocksResult.data
   })
 
   $effect(() => {
@@ -74,7 +73,7 @@
   }
 </script>
 
-{#if blocksResult.current.length === 0 && blocksResult.details.type !== 'complete'}
+{#if blocksResult.data.length === 0 && blocksResult.details.type !== 'complete'}
   <nav class="list-nav">
     <ul class="overflow-auto">
       {#each Array(10) as _}

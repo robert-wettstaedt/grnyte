@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const areaQuery = z.current.query.areas
+  const areaQuery = z.query.areas
     .where('id', areaId)
     .related('author')
     .related('parent')

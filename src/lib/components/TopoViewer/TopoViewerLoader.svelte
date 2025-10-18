@@ -21,7 +21,7 @@
 
 {#if blockId != null}
   <ZeroQueryWrapper
-    query={page.data.z.current.query.blocks
+    query={page.data.z.query.blocks
       .where('id', blockId)
       .related('routes')
       .related('topos', (q) => q.related('routes').related('file'))
