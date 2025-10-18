@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const query = z.current.query.blocks.where('areaFk', areaId)
+  const query = z.query.blocks.where('areaFk', areaId)
 
   return { query }
 }) satisfies PageLoad

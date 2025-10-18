@@ -18,7 +18,7 @@ export const getRoutesFilterQuery = (areaId?: number) => {
   const searchParamsObj = Object.fromEntries(page.url.searchParams.entries())
   const searchParams = validateObject(searchParamsSchema, searchParamsObj)
 
-  let query = page.data.z.current.query.routes
+  let query = page.data.z.query.routes
     .related('ascents', (q) =>
       pageState.user?.id == null ? q.where('createdBy', 'IS', null) : q.where('createdBy', '=', pageState.user.id),
     )

@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const routeQuery = z.current.query.blocks
+  const routeQuery = z.query.blocks
     .where('slug', params.blockSlug)
     .where('areaFk', areaId)
     .whereExists('routes', (q) => getRouteDbFilterRaw(params, q))

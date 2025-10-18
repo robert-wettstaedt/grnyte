@@ -21,22 +21,22 @@
 
     switch (entityType) {
       case 'area':
-        return page.data.z.current.query.areas.where('id', Number(entityId))
+        return page.data.z.query.areas.where('id', Number(entityId))
       case 'ascent':
-        return page.data.z.current.query.ascents.where('id', Number(entityId)).related('author').related('files')
+        return page.data.z.query.ascents.where('id', Number(entityId)).related('author').related('files')
       case 'block':
-        return page.data.z.current.query.blocks.where('id', Number(entityId))
+        return page.data.z.query.blocks.where('id', Number(entityId))
       case 'route':
-        return page.data.z.current.query.routes.where('id', Number(entityId))
+        return page.data.z.query.routes.where('id', Number(entityId))
     }
   }
 
   const getQuery = (entityId: ActivityWithDate['entityId'], entityType: ActivityWithDate['entityType']) => {
     switch (entityType) {
       case 'file':
-        return page.data.z.current.query.files.where('id', String(entityId))
+        return page.data.z.query.files.where('id', String(entityId))
       case 'user':
-        return page.data.z.current.query.users.where('id', Number(entityId))
+        return page.data.z.query.users.where('id', Number(entityId))
       default:
         return getParentQuery(entityId, entityType)
     }

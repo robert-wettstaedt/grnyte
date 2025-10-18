@@ -10,7 +10,7 @@
 </script>
 
 <ZeroQueryWrapper
-  query={page.data.z.current.query.routesToFirstAscensionists
+  query={page.data.z.query.routesToFirstAscensionists
     .where('routeFk', route.id!)
     .related('firstAscensionist', (q) => q.related('user'))}
 >
@@ -34,9 +34,9 @@
                 <Popover
                   arrow
                   arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-                  contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+                  contentBase="card bg-surface-200-800 max-w-[320px] space-y-4 p-4"
                   positioning={{ placement: 'top' }}
-                  triggerBase="btn btn-sm preset-outlined-primary-500 !text-white me-auto"
+                  triggerBase="btn btn-sm preset-outlined-primary-500 me-auto !text-white"
                 >
                   {#snippet trigger()}
                     That's me!
@@ -92,7 +92,7 @@
         <Popover
           arrow
           arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-          contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px]"
+          contentBase="card bg-surface-200-800 max-w-[320px] space-y-4 p-4"
           positioning={{ placement: 'top' }}
           triggerBase="btn btn-sm preset-outlined-primary-500 !text-white"
         >

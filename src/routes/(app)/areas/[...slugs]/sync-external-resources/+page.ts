@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const query = z.current.query.routes
+  const query = z.query.routes
     .where('areaIds', 'ILIKE', `%^${areaId}$%`)
     .related('block')
     .related('externalResources', (q) =>

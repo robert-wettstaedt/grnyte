@@ -16,7 +16,7 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: skeletonHeight, type: 'skeleton' }}
-  query={page.data.z.current.query.routes.where('areaIds', 'ILIKE', `%^${areaId}$%`)}
+  query={page.data.z.query.routes.where('areaIds', 'ILIKE', `%^${areaId}$%`)}
 >
   {#snippet children(routes)}
     {@const stats = routes.map((route): GradeHistogramProps['data'][0] => {

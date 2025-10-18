@@ -9,7 +9,7 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ type: 'spinner' }}
-  query={page.data.z.current.query.routes
+  query={page.data.z.query.routes
     .where('id', Number(page.params.id))
     .related('block', (q) =>
       q.related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),

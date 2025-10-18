@@ -10,7 +10,7 @@ export const load = (async ({ parent, params }) => {
     error(404)
   }
 
-  const query = z.current.query.ascents.where('id', Number(params.ascentId)).related('author').related('route').one()
+  const query = z.query.ascents.where('id', Number(params.ascentId)).related('author').related('route').one()
 
   return { query }
 }) satisfies PageLoad

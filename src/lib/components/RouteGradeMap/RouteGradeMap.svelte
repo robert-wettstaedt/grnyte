@@ -14,7 +14,7 @@
 {#if route.id != null}
   <ZeroQueryWrapper
     loadingIndicator={{ count: 2, height: 'h-10', type: 'skeleton' }}
-    query={page.data.z.current.query.ascents.where('routeFk', route.id).where('gradeFk', 'IS NOT', null)}
+    query={page.data.z.query.ascents.where('routeFk', route.id).where('gradeFk', 'IS NOT', null)}
   >
     {#snippet children(ascents)}
       {@const map = ascents.reduce((map, ascent) => {

@@ -61,7 +61,7 @@
 
 {#if route.id != null}
   <ZeroQueryWrapper
-    query={page.data.z.current.query.routeExternalResources
+    query={page.data.z.query.routeExternalResources
       .where('routeFk', route.id)
       .related('externalResource27crags')
       .related('externalResource8a')
