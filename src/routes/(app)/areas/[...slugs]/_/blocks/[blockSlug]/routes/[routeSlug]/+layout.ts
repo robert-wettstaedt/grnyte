@@ -11,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const routeQuery = queries.route(page.data.session, {
+  const routeQuery = queries.route(page.data, {
     areaId,
     blockSlug: params.blockSlug,
     routeSlug: params.routeSlug,

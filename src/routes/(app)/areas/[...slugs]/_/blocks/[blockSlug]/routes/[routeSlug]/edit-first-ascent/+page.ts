@@ -11,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const faQuery = queries.firstAscensionists(page.data.session)
+  const faQuery = queries.firstAscensionists(page.data)
 
   return { faQuery }
 }) satisfies PageLoad

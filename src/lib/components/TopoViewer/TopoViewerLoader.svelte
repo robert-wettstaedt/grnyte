@@ -20,7 +20,7 @@
 </script>
 
 {#if blockId != null}
-  <ZeroQueryWrapper query={queries.block(page.data.session, { blockId })}>
+  <ZeroQueryWrapper query={queries.block(page.data, { blockId })}>
     {#snippet children(block)}
       {@const topos =
         block?.topos

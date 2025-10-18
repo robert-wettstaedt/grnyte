@@ -8,7 +8,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const query = queries.ascent(page.data.session, { id: Number(params.ascentId) })
+  const query = queries.ascent(page.data, { id: Number(params.ascentId) })
 
   return { query }
 }) satisfies PageLoad

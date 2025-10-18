@@ -11,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const query = queries.listBlocks(page.data.session, { areaId })
+  const query = queries.listBlocks(page.data, { areaId })
 
   return { query }
 }) satisfies PageLoad

@@ -1,20 +1,21 @@
 import { db } from '$lib/db/db.server'
 import { queries, schema, type QueryContext } from '$lib/db/zero'
-import { getPageState } from '$lib/helper.server'
+import { getUserPermissions } from '$lib/helper.server'
 import { withValidation, type ReadonlyJSONValue } from '@rocicorp/zero'
 import { handleGetQueriesRequest } from '@rocicorp/zero/server'
 import { error } from '@sveltejs/kit'
+import { jwtDecode } from 'jwt-decode'
 
-export async function POST({ locals, request }) {
+export async function POST({ request }) {
   const jwt = request.headers.get('authorization')?.replace('Bearer ', '')
-  const { data: userData, error: authError } = await locals.supabase.auth.getUser(jwt)
+  const { sub } = jwt == null ? {} : jwtDecode(jwt)
 
-  if (userData.user == null || authError != null) {
+  if (jwt == null || sub == null) {
     error(401)
   }
 
-  const pageState = await getPageState(db, userData.user)
-  const context: QueryContext = { ...userData, pageState }
+  const pageState = await getUserPermissions(db, sub)
+  const context: QueryContext = { authUserId: sub, pageState }
 
   const q = await handleGetQueriesRequest((name, args) => getQuery(context, name, args), schema, request)
 

@@ -186,6 +186,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   blocks: many(blocks),
   routes: many(routes),
   pushSubscriptions: many(pushSubscriptions),
+  regionMemberships: many(regionMembers),
 }))
 
 export const userSettings = table(

@@ -10,7 +10,7 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ type: 'spinner' }}
-  query={queries.block(page.data.session, { blockId: Number(page.params.id) })}
+  query={queries.block(page.data, { blockId: Number(page.params.id) })}
 >
   {#snippet children(block)}
     {@const { pathname } = (block == null ? undefined : blockWithPathname(block)) ?? {}}

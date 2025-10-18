@@ -22,22 +22,22 @@
 
     switch (entityType) {
       case 'area':
-        return queries.listAreas(page.data.session, { areaId: Number(entityId) })
+        return queries.listAreas(page.data, { areaId: Number(entityId) })
       case 'ascent':
-        return queries.listAscents(page.data.session, { ascentId: Number(entityId) })
+        return queries.listAscents(page.data, { ascentId: Number(entityId) })
       case 'block':
-        return queries.listBlocks(page.data.session, { blockId: Number(entityId) })
+        return queries.listBlocks(page.data, { blockId: Number(entityId) })
       case 'route':
-        return queries.listRoutes(page.data.session, { routeId: Number(entityId) })
+        return queries.listRoutes(page.data, { routeId: Number(entityId) })
     }
   }
 
   const getQuery = (entityId: ActivityWithDate['entityId'], entityType: ActivityWithDate['entityType']) => {
     switch (entityType) {
       case 'file':
-        return queries.listFiles(page.data.session, { fileId: String(entityId) })
+        return queries.listFiles(page.data, { fileId: String(entityId) })
       case 'user':
-        return queries.listUsers(page.data.session, { id: Number(entityId) })
+        return queries.listUsers(page.data, { id: Number(entityId) })
       default:
         return getParentQuery(entityId, entityType)
     }

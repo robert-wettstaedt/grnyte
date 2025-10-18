@@ -8,10 +8,9 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
-area
 <ZeroQueryWrapper
   loadingIndicator={{ type: 'spinner' }}
-  query={queries.area(page.data.session, { id: Number(page.params.id) })}
+  query={queries.area(page.data, { id: Number(page.params.id) })}
 >
   {#snippet children(area)}
     {@const { pathname } = (area == null ? null : areaWithPathname(area)) ?? {}}

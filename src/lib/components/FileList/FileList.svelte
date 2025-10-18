@@ -17,12 +17,12 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: 'h-50 md:h-90', type: 'skeleton' }}
-  query={queries.listFiles(page.data.session, { entity: { type: entityType, id: entityId } })}
+  query={queries.listFiles(page.data, { entity: { type: entityType, id: entityId } })}
 >
   {#snippet children(files)}
     {#if entityType === 'route'}
       <ZeroQueryWrapper
-        query={queries.listAscents(page.data.session, { routeId: entityId, types: ['flash', 'repeat', 'send'] })}
+        query={queries.listAscents(page.data, { routeId: entityId, types: ['flash', 'repeat', 'send'] })}
       >
         {#snippet children(ascents)}
           {@const allFiles = [...files, ...ascents.flatMap((ascent) => ascent.files)]}

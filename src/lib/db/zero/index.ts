@@ -2,7 +2,7 @@ import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { schema, type Schema } from '$lib/db/zero/zero-schema'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
-import { queries } from './queries'
+import { queries, type QueryContext } from './queries'
 
 export * from './queries'
 export * from './types'
@@ -46,21 +46,24 @@ export function initZero(session: Session | undefined | null) {
     schema,
   })
 
+  const ctx: QueryContext = { authUserId: session?.user.id }
+
   if (session != null) {
     Promise.all([
-      z.current.preload(queries.grades(session)).complete,
-      z.current.preload(queries.tags(session)).complete,
-      z.current.preload(queries.regions(session)).complete,
-      z.current.preload(queries.rolePermissions(session)).complete,
+      z.current.preload(queries.grades(ctx)).complete,
+      z.current.preload(queries.tags(ctx)).complete,
+      z.current.preload(queries.regions(ctx)).complete,
+      z.current.preload(queries.rolePermissions(ctx)).complete,
 
-      z.current.preload(queries.currentUserRoles(session)).complete,
-      z.current.preload(queries.currentUser(session)).complete,
-      z.current.preload(queries.currentUserRegions(session)).complete,
+      z.current.preload(queries.currentUserRoles(ctx)).complete,
+      z.current.preload(queries.currentUser(ctx)).complete,
+      z.current.preload(queries.currentUserRegions(ctx)).complete,
 
-      z.current.preload(queries.listUsers(session, {})).complete,
-      z.current.preload(queries.listAreas(session, {})).complete,
-      z.current.preload(queries.listBlocks(session, {})).complete,
-      z.current.preload(queries.firstAscensionists(session)).complete,
+      z.current.preload(queries.listUsers(ctx, {})).complete,
+      z.current.preload(queries.listAreas(ctx, {})).complete,
+      z.current.preload(queries.listBlocks(ctx, {})).complete,
+      z.current.preload(queries.listRoutes(ctx, {})).complete,
+      z.current.preload(queries.firstAscensionists(ctx)).complete,
     ])
       .then(() => {
         console.log('All queries preloaded successfully')

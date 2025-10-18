@@ -71,7 +71,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
     })
 
     try {
-      const pageState = await getPageState(db, session.user)
+      const pageState = await getPageState(db, session.user.id)
 
       return { ...pageState, session }
     } catch (error) {
@@ -142,9 +142,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
-    !['/legal', '/auth', '/f/', '/api/notifications', '/api/get-queries'].some((path) =>
-      event.url.pathname.startsWith(path),
-    )
+    !['/legal', '/auth', '/f/', '/api/notifications', '/api/zero'].some((path) => event.url.pathname.startsWith(path))
   ) {
     authLogger.info('Redirecting unauthenticated user to auth', {
       originalPath: event.url.pathname,

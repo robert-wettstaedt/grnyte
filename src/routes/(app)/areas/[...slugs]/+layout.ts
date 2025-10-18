@@ -11,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const areaQuery = queries.area(page.data.session, { id: areaId })
+  const areaQuery = queries.area(page.data, { id: areaId })
 
   return { areaQuery }
 }) satisfies LayoutLoad

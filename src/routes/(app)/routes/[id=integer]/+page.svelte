@@ -13,7 +13,7 @@
 {:else}
   <ZeroQueryWrapper
     loadingIndicator={{ type: 'spinner' }}
-    query={queries.route(page.data.session, { routeSlug: page.params.id })}
+    query={queries.route(page.data, { routeSlug: page.params.id })}
   >
     {#snippet children(block)}
       {@const route = block?.routes.at(0)}

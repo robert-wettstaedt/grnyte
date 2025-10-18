@@ -5,7 +5,6 @@ import * as schema from '$lib/db/schema'
 import { MAX_AREA_NESTING_DEPTH } from '$lib/db/utils'
 import { fileLogger } from '$lib/logging'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
-import type { User } from '@supabase/supabase-js'
 import { error } from '@sveltejs/kit'
 import { and, eq, inArray, SQL } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -164,27 +163,16 @@ export const deleteFiles = async (opts: DeleteFilesOpts, db: PostgresJsDatabase<
   }
 }
 
-export async function getPageState(db: PostgresJsDatabase<typeof schema>, authUser: User): Promise<App.SafeSession> {
-  const user = await db.query.users.findFirst({
-    where: (table, { eq }) => eq(table.authUserFk, authUser.id),
-    with: {
-      userSettings: {
-        columns: {
-          gradingScale: true,
-          notifyModerations: true,
-          notifyNewAscents: true,
-          notifyNewUsers: true,
-        },
-      },
-    },
-  })
-
+export async function getUserPermissions(
+  db: PostgresJsDatabase<typeof schema>,
+  authUserId: string,
+): Promise<App.SafeSession> {
   const userRole = await db.query.userRoles.findFirst({
-    where: (table, { eq }) => eq(table.authUserFk, authUser.id),
+    where: (table, { eq }) => eq(table.authUserFk, authUserId),
   })
 
   const userRegions = await db.query.regionMembers.findMany({
-    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUser.id), isNotNull(table.isActive)),
+    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUserId), isNotNull(table.isActive)),
     columns: {
       regionFk: true,
       role: true,
@@ -214,10 +202,35 @@ export async function getPageState(db: PostgresJsDatabase<typeof schema>, authUs
   }))
 
   return {
-    session: undefined,
-    user,
     userRole: userRole?.role,
     userRegions: userRegionsResult,
     userPermissions,
+    user: undefined,
+    session: undefined,
+  }
+}
+
+export async function getPageState(
+  db: PostgresJsDatabase<typeof schema>,
+  authUserId: string,
+): Promise<App.SafeSession> {
+  const user = await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUserId),
+    with: {
+      userSettings: {
+        columns: {
+          gradingScale: true,
+          notifyModerations: true,
+          notifyNewAscents: true,
+          notifyNewUsers: true,
+        },
+      },
+    },
+  })
+
+  return {
+    ...(await getUserPermissions(db, authUserId)),
+    session: undefined,
+    user,
   }
 }

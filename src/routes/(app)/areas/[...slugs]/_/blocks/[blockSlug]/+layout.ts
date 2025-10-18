@@ -11,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const blockQuery = queries.block(page.data.session, { areaId, blockSlug: params.blockSlug })
+  const blockQuery = queries.block(page.data, { areaId, blockSlug: params.blockSlug })
 
   return { blockQuery }
 }) satisfies LayoutLoad

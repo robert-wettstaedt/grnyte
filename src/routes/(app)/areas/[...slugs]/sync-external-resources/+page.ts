@@ -11,7 +11,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const query = queries.listRoutesWithExternalResources(page.data.session, { areaId })
+  const query = queries.listRoutesWithExternalResources(page.data, { areaId })
 
   return { query }
 }) satisfies PageLoad

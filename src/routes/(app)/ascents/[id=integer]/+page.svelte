@@ -10,7 +10,7 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ type: 'spinner' }}
-  query={queries.ascent(page.data.session, { id: Number(page.params.id) })}
+  query={queries.ascent(page.data, { id: Number(page.params.id) })}
 >
   {#snippet children(ascent)}
     {@const { pathname } = (ascent == null ? undefined : ascentWithPathname(ascent)) ?? {}}

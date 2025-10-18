@@ -12,7 +12,7 @@
 
   let { route, ...rest }: Props = $props()
 
-  const query = $derived(queries.listAscents(page.data.session, { routeId: route.id, createdBy: pageState.user?.id }))
+  const query = $derived(queries.listAscents(page.data, { routeId: route.id, createdBy: pageState.user?.id }))
   // svelte-ignore state_referenced_locally
   const ascentsResult = new Query(query)
   $effect(() => ascentsResult.updateQuery(query))

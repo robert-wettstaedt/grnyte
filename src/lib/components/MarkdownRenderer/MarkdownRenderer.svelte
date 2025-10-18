@@ -20,17 +20,17 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const areasQuery = $derived(queries.listAreas(page.data.session, { areaId: markdownRefIds.areas }))
+  const areasQuery = $derived(queries.listAreas(page.data, { areaId: markdownRefIds.areas }))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const blocksQuery = $derived(queries.listBlocks(page.data.session, { blockId: markdownRefIds.blocks }))
+  const blocksQuery = $derived(queries.listBlocks(page.data, { blockId: markdownRefIds.blocks }))
   // svelte-ignore state_referenced_locally
   const blocksResult = new Query(blocksQuery)
   $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const routesQuery = $derived(queries.listRoutes(page.data.session, { routeId: markdownRefIds.routes }))
+  const routesQuery = $derived(queries.listRoutes(page.data, { routeId: markdownRefIds.routes }))
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))

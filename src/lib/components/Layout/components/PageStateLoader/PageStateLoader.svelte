@@ -14,14 +14,20 @@
 
   setContext('z', page.data.z)
 
-  const gradesResult = $derived(new Query(queries.grades(page.data.session)))
-  const tagsResult = $derived(new Query(queries.tags(page.data.session)))
+  const gradesResult = $derived(new Query(queries.grades(page.data)))
+  const tagsResult = $derived(new Query(queries.tags(page.data)))
 
-  const userResult = $derived(new Query(queries.currentUser(page.data.session)))
-  const userRoleResult = $derived(new Query(queries.currentUserRoles(page.data.session)))
-  const userRegionsResult = $derived(new Query(queries.currentUserRegions(page.data.session)))
+  const userResult = $derived(new Query(queries.currentUser(page.data)))
+  const userRoleResult = $derived(new Query(queries.currentUserRoles(page.data)))
+  const userRegionsResult = $derived(new Query(queries.currentUserRegions(page.data)))
 
-  const permissionsResult = $derived(new Query(queries.rolePermissions(page.data.session)))
+  const permissionsResult = $derived(new Query(queries.rolePermissions(page.data)))
+
+  $effect(() => {
+    if (userResult.current?.id != null) {
+      page.data.z.current.preload(queries.listAscents(page.data, { createdBy: userResult.current.id }))
+    }
+  })
 
   const userPermissions = $derived(
     permissionsResult.current

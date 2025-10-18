@@ -1,12 +1,11 @@
-import type { Query, ReadonlyJSONValue, QueryFn } from '@rocicorp/zero'
-import { syncedQuery, syncedQueryWithContext } from '@rocicorp/zero'
-import type { User } from '@supabase/supabase-js'
+import type { Query, QueryFn, ReadonlyJSONValue } from '@rocicorp/zero'
+import { syncedQueryWithContext } from '@rocicorp/zero'
 import z from 'zod'
 import { activityParentEntityType, activityType, ascentTypeEnum } from '../schema'
 import { type Schema } from './zero-schema'
 import { builder } from './zero-schema.gen'
 
-type RegionQuery = Query<
+type RegionQuery<TReturn> = Query<
   Schema,
   | 'activities'
   | 'areas'
@@ -17,6 +16,7 @@ type RegionQuery = Query<
   | 'firstAscensionists'
   | 'geolocations'
   | 'regionInvitations'
+  | 'regionMembers'
   | 'routeExternalResource27crags'
   | 'routeExternalResource8a'
   | 'routeExternalResources'
@@ -26,46 +26,62 @@ type RegionQuery = Query<
   | 'routesToTags'
   | 'topoRoutes'
   | 'topos',
-  any
+  TReturn
 >
 
 export type QueryContext = {
-  user: User | null | undefined
+  authUserId: string | undefined
   pageState?: Partial<App.SafeSession>
+}
+
+const addRegionCheck = <
+  TContext extends QueryContext | null | undefined,
+  TReturn,
+  TReturnQuery extends RegionQuery<TReturn>,
+>(
+  ctx: TContext,
+  q: TReturnQuery,
+): TReturnQuery => {
+  if (ctx?.pageState?.userRegions == null) {
+    return q
+  }
+
+  return q.where(
+    'regionFk',
+    'IN',
+    ctx.pageState.userRegions.map((region) => region.regionFk),
+  ) as TReturnQuery
 }
 
 const authenticatedUserCan =
   <TContext extends QueryContext, TArg extends ReadonlyJSONValue[], TReturnQuery extends Query<any, any, any>>(
-    cb: QueryFn<Omit<QueryContext, 'user'> & { user: User }, true, TArg, TReturnQuery>,
+    cb: QueryFn<Omit<QueryContext, 'authUserId'> & { authUserId: string }, true, TArg, TReturnQuery>,
   ) =>
   (ctx: TContext | null | undefined, ...args: TArg) => {
-    if (ctx?.user == null) {
+    if (ctx?.authUserId == null) {
       throw new Error('Not allowed')
     }
 
-    return cb({ ...ctx, user: ctx.user }, ...args)
+    return cb({ ...ctx, authUserId: ctx.authUserId }, ...args)
   }
 
 const regionMemberCan =
   <
     TContext extends QueryContext | null | undefined,
     TArg extends ReadonlyJSONValue[],
-    TReturnQuery extends RegionQuery,
+    TReturnQuery extends RegionQuery<any>,
   >(
     cb: QueryFn<TContext, true, TArg, TReturnQuery>,
   ) =>
   (ctx: TContext, ...args: TArg) => {
-    let q = cb(ctx, ...args)
+    const q = cb(ctx, ...args)
+    return addRegionCheck(ctx, q)
+  }
 
-    if (ctx?.pageState?.userRegions != null) {
-      q = q.where(
-        'regionFk',
-        'IN',
-        ctx.pageState.userRegions.map((region) => region.regionFk),
-      ) as TReturnQuery
-    }
-
-    return q
+const relatedRegion =
+  <TContext extends QueryContext | null | undefined>(ctx: TContext) =>
+  <TReturnQuery extends RegionQuery<any>>(q: TReturnQuery): TReturnQuery => {
+    return addRegionCheck(ctx, q)
   }
 
 export const queries = {
@@ -86,8 +102,8 @@ export const queries = {
   regions: syncedQueryWithContext(
     'regions',
     z.tuple([]),
-    authenticatedUserCan(() => {
-      return builder.regions
+    authenticatedUserCan((ctx) => {
+      return builder.regions.whereExists('members', (q) => q.where('authUserFk', ctx.authUserId))
     }),
   ),
   rolePermissions: syncedQueryWithContext(
@@ -101,22 +117,22 @@ export const queries = {
   currentUser: syncedQueryWithContext(
     'currentUser',
     z.tuple([]),
-    authenticatedUserCan(({ user }) => {
-      return builder.users.where('authUserFk', user.id).related('userSettings').one()
+    authenticatedUserCan(({ authUserId }) => {
+      return builder.users.where('authUserFk', authUserId).related('userSettings').one()
     }),
   ),
   currentUserRoles: syncedQueryWithContext(
     'currentUserRoles',
     z.tuple([]),
-    authenticatedUserCan(({ user }) => {
-      return builder.userRoles.where('authUserFk', user.id).one()
+    authenticatedUserCan(({ authUserId }) => {
+      return builder.userRoles.where('authUserFk', authUserId).one()
     }),
   ),
   currentUserRegions: syncedQueryWithContext(
     'currentUserRegions',
     z.tuple([]),
-    authenticatedUserCan(({ user }) => {
-      return builder.regionMembers.where('authUserFk', user.id).where('isActive', 'IS NOT', null).related('region')
+    authenticatedUserCan(({ authUserId }) => {
+      return builder.regionMembers.where('authUserFk', authUserId).where('isActive', 'IS NOT', null).related('region')
     }),
   ),
 
@@ -128,8 +144,10 @@ export const queries = {
         id: z.union([z.number(), z.array(z.number())]).optional(),
       }),
     ]),
-    (_, { content, id }) => {
-      let q = builder.users
+    authenticatedUserCan((ctx, { content, id }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.users.whereExists('regionMemberships', r)
 
       if (id != null) {
         if (Array.isArray(id)) {
@@ -144,7 +162,7 @@ export const queries = {
       }
 
       return q
-    },
+    }),
   ),
 
   listAreas: syncedQueryWithContext(
@@ -156,11 +174,13 @@ export const queries = {
         parentFk: z.number().optional().nullish(),
       }),
     ]),
-    regionMemberCan((_, { areaId, content, parentFk }) => {
+    regionMemberCan((ctx, { areaId, content, parentFk }) => {
+      const r = relatedRegion(ctx)
+
       let q = builder.areas
         .orderBy('name', 'asc')
-        .related('parent', (q) => q.related('parent'))
-        .related('parkingLocations')
+        .related('parent', (q) => r(q).related('parent', r))
+        .related('parkingLocations', r)
 
       if (areaId != null) {
         if (Array.isArray(areaId)) {
@@ -188,14 +208,15 @@ export const queries = {
         id: z.number(),
       }),
     ]),
-    regionMemberCan((_, { id }) => {
+    regionMemberCan((ctx, { id }) => {
+      const r = relatedRegion(ctx)
+
       return builder.areas
         .where('id', id)
-        .related('parent', (q) => q.related('parent', (q) => q.related('parent')))
+        .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
         .related('author')
-        .related('parent')
-        .related('files')
-        .related('parkingLocations')
+        .related('files', r)
+        .related('parkingLocations', r)
         .one()
     }),
   ),
@@ -209,13 +230,15 @@ export const queries = {
         content: z.string().optional(),
       }),
     ]),
-    regionMemberCan((_, { areaId, blockId, content }) => {
+    regionMemberCan((ctx, { areaId, blockId, content }) => {
+      const r = relatedRegion(ctx)
+
       let q = builder.blocks
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
-        .related('topos', (q) => q.orderBy('id', 'asc').related('file'))
-        .related('area', (q) => q.related('parent'))
-        .related('geolocation')
+        .related('topos', (q) => r(q).orderBy('id', 'asc').related('file', r))
+        .related('area', (q) => r(q).related('parent', r))
+        .related('geolocation', r)
 
       if (blockId != null) {
         if (Array.isArray(blockId)) {
@@ -245,7 +268,9 @@ export const queries = {
         blockId: z.number().optional(),
       }),
     ]),
-    regionMemberCan((_, { areaId, blockId, blockSlug }) => {
+    regionMemberCan((ctx, { areaId, blockId, blockSlug }) => {
+      const r = relatedRegion(ctx)
+
       let q = builder.blocks
 
       if (areaId != null) {
@@ -261,10 +286,10 @@ export const queries = {
       }
 
       return q
-        .related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent'))))
-        .related('routes')
-        .related('topos', (q) => q.related('routes').related('file'))
-        .related('geolocation')
+        .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
+        .related('routes', r)
+        .related('topos', (q) => r(q).related('routes', r).related('file', r))
+        .related('geolocation', r)
         .one()
     }),
   ),
@@ -345,14 +370,18 @@ export const queries = {
       listRoutesWithRelations: syncedQueryWithContext(
         'listRoutesWithRelations',
         z.tuple([schema]),
-        regionMemberCan((_, opts) => {
+        regionMemberCan((ctx, opts) => {
+          const r = relatedRegion(ctx)
+
           return listRoutes(opts)
             .related('ascents', (q) =>
-              opts.userId == null ? q.where('createdBy', 'IS', null) : q.where('createdBy', '=', opts.userId),
+              opts.userId == null ? r(q).where('createdBy', 'IS', null) : r(q).where('createdBy', '=', opts.userId),
             )
             .related('block', (q) =>
-              q.related('area', (q) =>
-                q.related('parent', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
+              r(q).related('area', (q) =>
+                r(q).related('parent', (q) =>
+                  r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))),
+                ),
               ),
             )
         }),
@@ -360,20 +389,27 @@ export const queries = {
       listRoutesWithExternalResources: syncedQueryWithContext(
         'listRoutesWithExternalResources',
         z.tuple([schema]),
-        regionMemberCan((_, opts) => {
+        regionMemberCan((ctx, opts) => {
+          const r = relatedRegion(ctx)
+
           return listRoutes(opts)
-            .related('block')
+            .related('block', r)
             .related('externalResources', (q) =>
-              q.related('externalResource27crags').related('externalResource8a').related('externalResourceTheCrag'),
+              r(q)
+                .related('externalResource27crags', r)
+                .related('externalResource8a', r)
+                .related('externalResourceTheCrag', r),
             )
         }),
       ),
       listRoutesWithAscents: syncedQueryWithContext(
         'listRoutesWithAscents',
         z.tuple([schema]),
-        regionMemberCan((_, opts) => {
+        regionMemberCan((ctx, opts) => {
+          const r = relatedRegion(ctx)
+
           return listRoutes(opts).related('ascents', (q) =>
-            opts.userId == null ? q : q.where('createdBy', '=', opts.userId),
+            opts.userId == null ? r(q) : r(q).where('createdBy', '=', opts.userId),
           )
         }),
       ),
@@ -388,7 +424,9 @@ export const queries = {
         routeSlug: z.string(),
       }),
     ]),
-    regionMemberCan((_, { areaId, blockSlug, routeSlug }) => {
+    regionMemberCan((ctx, { areaId, blockSlug, routeSlug }) => {
+      const r = relatedRegion(ctx)
+
       function getRouteDbFilterRaw(routeSlug: string, q: Query<Schema, 'routes'>): Query<Schema, 'routes'> {
         return Number.isNaN(Number(routeSlug)) ? q.where('slug', routeSlug) : q.where('id', Number(routeSlug))
       }
@@ -404,17 +442,20 @@ export const queries = {
       }
 
       return q
-        .related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent'))))
-        .whereExists('routes', (q) => getRouteDbFilterRaw(routeSlug, q))
+        .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
+        .whereExists('routes', (q) => getRouteDbFilterRaw(routeSlug, r(q)))
         .related('routes', (q) =>
-          getRouteDbFilterRaw(routeSlug, q)
-            .related('tags')
-            .related('firstAscents', (q) => q.related('firstAscensionist', (q) => q.related('user')))
+          getRouteDbFilterRaw(routeSlug, r(q))
+            .related('tags', r)
+            .related('firstAscents', (q) => r(q).related('firstAscensionist', (q) => r(q).related('user')))
             .related('externalResources', (q) =>
-              q.related('externalResource27crags').related('externalResource8a').related('externalResourceTheCrag'),
+              r(q)
+                .related('externalResource27crags', r)
+                .related('externalResource8a', r)
+                .related('externalResourceTheCrag', r),
             ),
         )
-        .related('topos')
+        .related('topos', r)
         .one()
     }),
   ),
@@ -431,8 +472,10 @@ export const queries = {
         types: z.array(z.enum(ascentTypeEnum)).optional(),
       }),
     ]),
-    regionMemberCan((_, { ascentId, createdBy, grade, notes, routeId, types }) => {
-      let q = builder.ascents.related('author').related('route').related('files')
+    regionMemberCan((ctx, { ascentId, createdBy, grade, notes, routeId, types }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.ascents.related('author').related('route', r).related('files', r)
 
       if (ascentId != null) {
         if (Array.isArray(ascentId)) {
@@ -472,13 +515,17 @@ export const queries = {
         id: z.number(),
       }),
     ]),
-    regionMemberCan((_, { id }) => {
+    regionMemberCan((ctx, { id }) => {
+      const r = relatedRegion(ctx)
+
       return builder.ascents
         .where('id', id)
         .related('author')
         .related('route', (q) =>
-          q.related('block', (q) =>
-            q.related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
+          r(q).related('block', (q) =>
+            r(q).related('area', (q) =>
+              r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))),
+            ),
           ),
         )
         .one()
@@ -498,8 +545,10 @@ export const queries = {
         fileId: z.union([z.string(), z.array(z.string())]).optional(),
       }),
     ]),
-    regionMemberCan((_, { entity, fileId }) => {
-      let q = builder.files.related('area').related('ascent').related('block').related('route')
+    regionMemberCan((ctx, { entity, fileId }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.files.related('area', r).related('ascent', r).related('block', r).related('route', r)
 
       if (fileId != null) {
         if (Array.isArray(fileId)) {

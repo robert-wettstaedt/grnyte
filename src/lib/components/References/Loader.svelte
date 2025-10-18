@@ -14,18 +14,18 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(queries.listAreas(page.data.session, { content: `!${type}:${id}!` }))
+  const areasQuery = $derived(queries.listAreas(page.data, { content: `!${type}:${id}!` }))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const ascentsQuery = $derived(queries.listAscents(page.data.session, { notes: `!${type}:${id}!` }))
+  const ascentsQuery = $derived(queries.listAscents(page.data, { notes: `!${type}:${id}!` }))
   // svelte-ignore state_referenced_locally
   const ascentsResult = new Query(ascentsQuery)
   $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
   const routesQuery = $derived(
-    queries.listRoutes(page.data.session, { content: `!${type}:${id}!`, userId: pageState.user?.id }),
+    queries.listRoutes(page.data, { content: `!${type}:${id}!`, userId: pageState.user?.id }),
   )
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
