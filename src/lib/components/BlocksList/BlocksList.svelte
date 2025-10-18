@@ -8,6 +8,7 @@
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
+  import { queries } from '$lib/db/zero'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
 
@@ -18,13 +19,7 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const query = $derived(
-    page.data.z.current.query.blocks
-      .where('areaFk', 'IS', areaFk ?? null)
-      .orderBy('order', 'asc')
-      .orderBy('name', 'asc')
-      .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
-  )
+  const query = $derived(queries.listBlocks(page.data, { areaId: areaFk ?? null }))
   // svelte-ignore state_referenced_locally
   const blocksResult = new Query(query)
   $effect(() => blocksResult.updateQuery(query))

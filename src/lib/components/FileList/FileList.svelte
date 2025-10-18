@@ -4,6 +4,7 @@
   import FileViewer from '$lib/components/FileViewer'
   import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
+  import { queries } from '$lib/db/zero'
 
   interface Props {
     entityId: number
@@ -16,43 +17,31 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: 'h-50 md:h-90', type: 'skeleton' }}
-  query={page.data.z.current.query.files.where(
-    entityType === 'area' ? 'areaFk' : entityType === 'ascent' ? 'ascentFk' : 'routeFk',
-    entityId,
-  )}
+  query={queries.listFiles(page.data, { entity: { type: entityType, id: entityId } })}
 >
   {#snippet children(files)}
     {#if entityType === 'route'}
       <ZeroQueryWrapper
-        query={page.data.z.current.query.ascents.where('routeFk', entityId).where('type', '!=', 'attempt')}
+        query={queries.listAscents(page.data, { routeId: entityId, types: ['flash', 'repeat', 'send'] })}
       >
         {#snippet children(ascents)}
-          <ZeroQueryWrapper
-            query={page.data.z.current.query.files.where(
-              'ascentFk',
-              'IN',
-              ascents.map((ascent) => ascent.id).filter((id) => id != null),
-            )}
-          >
-            {#snippet children(ascentFiles)}
-              {@const allFiles = [...files, ...ascentFiles]}
-              {#if allFiles.length > 0}
-                <div class="flex p-2">
-                  <span class="flex-auto">
-                    <dt>Files</dt>
-                    <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
-                      {#each allFiles as file}
-                        <FileViewer
-                          {file}
-                          readOnly={!checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
-                        />
-                      {/each}
-                    </dd>
-                  </span>
-                </div>
-              {/if}
-            {/snippet}
-          </ZeroQueryWrapper>
+          {@const allFiles = [...files, ...ascents.flatMap((ascent) => ascent.files)]}
+
+          {#if allFiles.length > 0}
+            <div class="flex p-2">
+              <span class="flex-auto">
+                <dt>Files</dt>
+                <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {#each allFiles as file}
+                    <FileViewer
+                      {file}
+                      readOnly={!checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], regionFk)}
+                    />
+                  {/each}
+                </dd>
+              </span>
+            </div>
+          {/if}
         {/snippet}
       </ZeroQueryWrapper>
     {:else if files.length > 0}

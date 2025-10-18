@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { queries } from '$lib/db/zero'
   import {
     convertMarkdownToHtmlSync,
     enrichMarkdownWithReferences,
@@ -19,23 +20,17 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const areasQuery = $derived(
-    page.data.z.current.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
-  )
+  const areasQuery = $derived(queries.listAreas(page.data, { areaId: markdownRefIds.areas }))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const blocksQuery = $derived(
-    page.data.z.current.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
-  )
+  const blocksQuery = $derived(queries.listBlocks(page.data, { blockId: markdownRefIds.blocks }))
   // svelte-ignore state_referenced_locally
   const blocksResult = new Query(blocksQuery)
   $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const routesQuery = $derived(
-    page.data.z.current.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
-  )
+  const routesQuery = $derived(queries.listRoutes(page.data, { routeId: markdownRefIds.routes }))
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))
@@ -51,8 +46,6 @@
   )
   const enrichedMarkdown = $derived(enrichMarkdownWithReferences(value, markdownRefs))
   const html = $derived(convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences))
-
-  $inspect({ markdown, value })
 </script>
 
 <div class="markdown-body {className}">

@@ -3051,6 +3051,14 @@ export const schema = {
           cardinality: "many",
         },
       ],
+      regionMemberships: [
+        {
+          sourceField: ["id"],
+          destField: ["userFk"],
+          destSchema: "regionMembers",
+          cardinality: "many",
+        },
+      ],
     },
   },
   enableLegacyQueries: true,

@@ -1,5 +1,6 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
+import { getPageState } from '$lib/helper.server'
 import { authLogger } from '$lib/logging'
 import { createServerClient } from '@supabase/ssr'
 import { type Handle, redirect } from '@sveltejs/kit'
@@ -70,86 +71,9 @@ export const supabase: Handle = async ({ event, resolve }) => {
     })
 
     try {
-      const userStart = Date.now()
-      const user = await db.query.users.findFirst({
-        where: (table, { eq }) => eq(table.authUserFk, session.user.id),
-        with: {
-          userSettings: {
-            columns: {
-              gradingScale: true,
-              notifyModerations: true,
-              notifyNewAscents: true,
-              notifyNewUsers: true,
-            },
-          },
-        },
-      })
-      const userTime = Date.now() - userStart
+      const pageState = await getPageState(db, session.user.id)
 
-      const roleStart = Date.now()
-      const userRole = await db.query.userRoles.findFirst({
-        where: (table, { eq }) => eq(table.authUserFk, session.user.id),
-      })
-      const roleTime = Date.now() - roleStart
-
-      const regionsStart = Date.now()
-      const userRegions = await db.query.regionMembers.findMany({
-        where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, session.user.id), isNotNull(table.isActive)),
-        columns: {
-          regionFk: true,
-          role: true,
-        },
-        with: {
-          region: {
-            columns: {
-              name: true,
-              settings: true,
-            },
-          },
-        },
-      })
-      const regionsTime = Date.now() - regionsStart
-
-      const permissionsStart = Date.now()
-      const permissions = await db.query.rolePermissions.findMany()
-      const permissionsTime = Date.now() - permissionsStart
-
-      const userPermissions =
-        userRole == null
-          ? undefined
-          : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
-
-      const userRegionsResult = userRegions.map((member) => ({
-        ...member,
-        permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
-        name: member.region.name,
-        settings: member.region.settings,
-      }))
-
-      const totalSessionTime = Date.now() - sessionStart
-
-      authLogger.info('User session loaded successfully', {
-        userId: user?.id,
-        userEmail: session.user.email,
-        userRole: userRole?.role,
-        userPermissionsCount: userPermissions?.length ?? 0,
-        userRegionsCount: userRegionsResult.length,
-        queryTimes: {
-          user: userTime,
-          role: roleTime,
-          regions: regionsTime,
-          permissions: permissionsTime,
-          total: totalSessionTime,
-        },
-      })
-
-      return {
-        session,
-        user,
-        userPermissions,
-        userRegions: userRegionsResult,
-        userRole: userRole?.role,
-      }
+      return { ...pageState, session }
     } catch (error) {
       const totalSessionTime = Date.now() - sessionStart
 
@@ -218,7 +142,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
-    !['/legal', '/auth', '/f/', '/api/notifications'].some((path) => event.url.pathname.startsWith(path))
+    !['/legal', '/auth', '/f/', '/api/notifications', '/api/zero'].some((path) => event.url.pathname.startsWith(path))
   ) {
     authLogger.info('Redirecting unauthenticated user to auth', {
       originalPath: event.url.pathname,

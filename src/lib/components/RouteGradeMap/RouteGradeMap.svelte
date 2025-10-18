@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
-  import type { Row } from '$lib/db/zero'
+  import { queries, type Row } from '$lib/db/zero'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
   interface Props {
@@ -14,7 +14,7 @@
 {#if route.id != null}
   <ZeroQueryWrapper
     loadingIndicator={{ count: 2, height: 'h-10', type: 'skeleton' }}
-    query={page.data.z.current.query.ascents.where('routeFk', route.id).where('gradeFk', 'IS NOT', null)}
+    query={queries.listAscents(page.data, { grade: null, routeId: route.id })}
   >
     {#snippet children(ascents)}
       {@const map = ascents.reduce((map, ascent) => {

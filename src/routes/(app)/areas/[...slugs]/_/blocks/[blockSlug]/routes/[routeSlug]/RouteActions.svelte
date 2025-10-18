@@ -5,7 +5,6 @@
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
   import { pageState } from '$lib/components/Layout'
-  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { getRouteContext } from '$lib/contexts/route'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { syncExternalResources } from './page.remote'
@@ -60,50 +59,39 @@
 {/if}
 
 {#if route.id != null}
-  <ZeroQueryWrapper
-    query={page.data.z.current.query.routeExternalResources
-      .where('routeFk', route.id)
-      .related('externalResource27crags')
-      .related('externalResource8a')
-      .related('externalResourceTheCrag')
-      .one()}
-  >
-    {#snippet children(externalResources)}
-      {#if externalResources?.externalResource8a?.url != null}
-        <a
-          class="btn btn-sm preset-outlined-primary-500"
-          href={externalResources.externalResource8a.url}
-          target="_blank"
-        >
-          <img src={Logo8a} alt="8a" width={16} height={16} />
+  {#if route.externalResources?.externalResource8a?.url != null}
+    <a
+      class="btn btn-sm preset-outlined-primary-500"
+      href={route.externalResources.externalResource8a.url}
+      target="_blank"
+    >
+      <img src={Logo8a} alt="8a" width={16} height={16} />
 
-          <span class="md:hidden"> Show on 8a.nu </span>
-        </a>
-      {/if}
+      <span class="md:hidden"> Show on 8a.nu </span>
+    </a>
+  {/if}
 
-      {#if externalResources?.externalResource27crags?.url != null}
-        <a
-          class="btn btn-sm preset-outlined-primary-500"
-          href={externalResources.externalResource27crags.url}
-          target="_blank"
-        >
-          <img src={Logo27crags} alt="27crags" width={16} height={16} />
+  {#if route.externalResources?.externalResource27crags?.url != null}
+    <a
+      class="btn btn-sm preset-outlined-primary-500"
+      href={route.externalResources.externalResource27crags.url}
+      target="_blank"
+    >
+      <img src={Logo27crags} alt="27crags" width={16} height={16} />
 
-          <span class="md:hidden"> Show on 27crags </span>
-        </a>
-      {/if}
+      <span class="md:hidden"> Show on 27crags </span>
+    </a>
+  {/if}
 
-      {#if externalResources?.externalResourceTheCrag?.url != null}
-        <a
-          class="btn btn-sm preset-outlined-primary-500"
-          href={externalResources.externalResourceTheCrag.url}
-          target="_blank"
-        >
-          <img src={LogoTheCrag} alt="The Crag" width={16} height={16} />
+  {#if route.externalResources?.externalResourceTheCrag?.url != null}
+    <a
+      class="btn btn-sm preset-outlined-primary-500"
+      href={route.externalResources.externalResourceTheCrag.url}
+      target="_blank"
+    >
+      <img src={LogoTheCrag} alt="The Crag" width={16} height={16} />
 
-          <span class="md:hidden"> Show on theCrag </span>
-        </a>
-      {/if}
-    {/snippet}
-  </ZeroQueryWrapper>
+      <span class="md:hidden"> Show on theCrag </span>
+    </a>
+  {/if}
 {/if}

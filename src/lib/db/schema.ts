@@ -186,6 +186,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   blocks: many(blocks),
   routes: many(routes),
   pushSubscriptions: many(pushSubscriptions),
+  regionMemberships: many(regionMembers),
 }))
 
 export const userSettings = table(
@@ -1190,7 +1191,8 @@ export const geolocationsRelations = relations(geolocations, ({ one }) => ({
   region: one(regions, { fields: [geolocations.regionFk], references: [regions.id] }),
 }))
 
-export const activityTypeEnum = pgEnum('activity_type', ['created', 'updated', 'deleted', 'uploaded'])
+export const activityType: ['created', 'updated', 'deleted', 'uploaded'] = ['created', 'updated', 'deleted', 'uploaded']
+export const activityParentEntityType: ['block', 'route', 'area', 'ascent'] = ['block', 'route', 'area', 'ascent']
 
 export const activities = table(
   'activities',
@@ -1198,14 +1200,14 @@ export const activities = table(
     ...baseFields,
     ...baseRegionFields,
 
-    type: activityTypeEnum('type').notNull(),
+    type: pgEnum('activity_type', activityType)('type').notNull(),
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),
     entityId: text('entity_id').notNull(),
-    entityType: text('entity_type', { enum: ['block', 'route', 'area', 'ascent', 'file', 'user'] }).notNull(),
+    entityType: text('entity_type', { enum: [...activityParentEntityType, 'file', 'user'] }).notNull(),
     parentEntityId: text('parent_entity_id'),
-    parentEntityType: text('parent_entity_type', { enum: ['block', 'route', 'area', 'ascent'] }),
+    parentEntityType: text('parent_entity_type', { enum: activityParentEntityType }),
     columnName: text('column_name'), // Only populated for 'updated' activities
     metadata: text('metadata'), // JSON string containing relevant changes
     oldValue: text('old_value'), // Only populated for 'updated' activities
