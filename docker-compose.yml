@@ -14,6 +14,7 @@ services:
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
+      - ZERO_GET_QUERIES_FORWARD_COOKIES=${ZERO_GET_QUERIES_FORWARD_COOKIES}
 
       # Additional Zero configuration
       - ZERO_PORT=4848

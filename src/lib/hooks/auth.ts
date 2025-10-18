@@ -1,6 +1,5 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
-import { getPageState } from '$lib/helper.server'
 import { authLogger } from '$lib/logging'
 import { createServerClient } from '@supabase/ssr'
 import { type Handle, redirect } from '@sveltejs/kit'
@@ -71,9 +70,61 @@ export const supabase: Handle = async ({ event, resolve }) => {
     })
 
     try {
-      const pageState = await getPageState(db, session.user.id)
+      const user = await db.query.users.findFirst({
+        where: (table, { eq }) => eq(table.authUserFk, session.user.id),
+        with: {
+          userSettings: {
+            columns: {
+              gradingScale: true,
+              notifyModerations: true,
+              notifyNewAscents: true,
+              notifyNewUsers: true,
+            },
+          },
+        },
+      })
 
-      return { ...pageState, session }
+      const userRole = await db.query.userRoles.findFirst({
+        where: (table, { eq }) => eq(table.authUserFk, session.user.id),
+      })
+
+      const userRegions = await db.query.regionMembers.findMany({
+        where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, session.user.id), isNotNull(table.isActive)),
+        columns: {
+          regionFk: true,
+          role: true,
+        },
+        with: {
+          region: {
+            columns: {
+              name: true,
+              settings: true,
+            },
+          },
+        },
+      })
+
+      const permissions = await db.query.rolePermissions.findMany()
+
+      const userPermissions =
+        userRole == null
+          ? undefined
+          : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
+
+      const userRegionsResult = userRegions.map((member) => ({
+        ...member,
+        permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+        name: member.region.name,
+        settings: member.region.settings,
+      }))
+
+      return {
+        session,
+        user,
+        userPermissions,
+        userRegions: userRegionsResult,
+        userRole: userRole?.role,
+      }
     } catch (error) {
       const totalSessionTime = Date.now() - sessionStart
 
