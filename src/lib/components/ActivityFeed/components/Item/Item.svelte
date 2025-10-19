@@ -355,7 +355,7 @@
       {/if}
     </p>
 
-    {#if activity.entity.type == 'file' && activity.entity.object != null}
+    {#if withFiles && activity.entity.type == 'file' && activity.entity.object != null}
       {@const file = activity.entity.object}
 
       <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
