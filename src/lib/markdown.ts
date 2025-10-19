@@ -211,7 +211,12 @@ export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownRef
   let enrichedMarkdown = markdown
 
   refs.forEach(({ id, name, type }) => {
-    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${btoa(name)}!`)
+    const formattedName = name.length === 0 ? config.routes.defaultName : name
+
+    enrichedMarkdown = enrichedMarkdown.replace(
+      new RegExp(`!${type}:${id}!`, 'g'),
+      `!${type}:${id}:${btoa(formattedName)}!`,
+    )
   })
 
   return enrichedMarkdown

@@ -35,17 +35,22 @@
   const routesResult = new Query(routesQuery)
   $effect(() => routesResult.updateQuery(routesQuery))
 
-  const markdownRefs = $derived([
-    ...areasResult.current.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
-    ...blocksResult.current.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
-    ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
-  ])
+  const html = $derived.by(() => {
+    const refs = [
+      ...areasResult.current.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
+      ...blocksResult.current.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
+      ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
+    ]
 
-  const value = $derived(
-    className?.split(' ').some((c) => c === 'short') ? markdown.replaceAll('\n', ' ').replaceAll('\r', '') : markdown,
-  )
-  const enrichedMarkdown = $derived(enrichMarkdownWithReferences(value, markdownRefs))
-  const html = $derived(convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences))
+    const value = className?.split(' ').some((c) => c === 'short')
+      ? markdown.replaceAll('\n', ' ').replaceAll('\r', '')
+      : markdown
+
+    const enrichedMarkdown = enrichMarkdownWithReferences(value, refs)
+    const html = convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences)
+
+    return html
+  })
 </script>
 
 <div class="markdown-body {className}">
