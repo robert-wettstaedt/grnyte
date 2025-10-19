@@ -308,8 +308,10 @@ export const queries = {
       withRelations: z.boolean().optional(),
     })
 
-    const listRoutes = (opts: z.infer<typeof schema>) => {
-      let q = builder.routes
+    const listRoutes = (ctx: QueryContext | null | undefined, opts: z.infer<typeof schema>) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.routes.related('tags', r).related('firstAscents', r)
 
       if (opts.routeId != null) {
         if (Array.isArray(opts.routeId)) {
@@ -363,8 +365,8 @@ export const queries = {
       listRoutes: syncedQueryWithContext(
         'listRoutes',
         z.tuple([schema]),
-        regionMemberCan((_, opts) => {
-          return listRoutes(opts)
+        regionMemberCan((ctx, opts) => {
+          return listRoutes(ctx, opts)
         }),
       ),
       listRoutesWithRelations: syncedQueryWithContext(
@@ -373,7 +375,7 @@ export const queries = {
         regionMemberCan((ctx, opts) => {
           const r = relatedRegion(ctx)
 
-          return listRoutes(opts)
+          return listRoutes(ctx, opts)
             .related('ascents', (q) =>
               opts.userId == null ? r(q).where('createdBy', 'IS', null) : r(q).where('createdBy', '=', opts.userId),
             )
@@ -392,7 +394,7 @@ export const queries = {
         regionMemberCan((ctx, opts) => {
           const r = relatedRegion(ctx)
 
-          return listRoutes(opts)
+          return listRoutes(ctx, opts)
             .related('block', r)
             .related('externalResources', (q) =>
               r(q)
@@ -408,7 +410,7 @@ export const queries = {
         regionMemberCan((ctx, opts) => {
           const r = relatedRegion(ctx)
 
-          return listRoutes(opts).related('ascents', (q) =>
+          return listRoutes(ctx, opts).related('ascents', (q) =>
             opts.userId == null ? r(q) : r(q).where('createdBy', '=', opts.userId),
           )
         }),
