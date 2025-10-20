@@ -13,7 +13,7 @@
 {#if !checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], route.regionFk)}
   <Error status={401} />
 {:else}
-  <ZeroQueryWrapper loadingIndicator={{ type: 'skeleton' }} showEmpty query={data.faQuery}>
+  <ZeroQueryWrapper showEmpty query={data.faQuery}>
     {#snippet children(firstAscensionists)}
       <EditFirstAscentPage {firstAscensionists} />
     {/snippet}

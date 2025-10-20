@@ -4,7 +4,6 @@
   import FileViewer from '$lib/components/FileViewer'
   import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import { queries } from '$lib/db/zero'
 
   interface Props {
     entityId: number
@@ -16,13 +15,15 @@
 </script>
 
 <ZeroQueryWrapper
-  loadingIndicator={{ count: 1, height: 'h-50 md:h-90', type: 'skeleton' }}
-  query={queries.listFiles(page.data, { entity: { type: entityType, id: entityId } })}
+  query={page.data.z.query.files.where(
+    entityType === 'area' ? 'areaFk' : entityType === 'ascent' ? 'ascentFk' : 'routeFk',
+    entityId,
+  )}
 >
   {#snippet children(files)}
     {#if entityType === 'route'}
       <ZeroQueryWrapper
-        query={queries.listAscents(page.data, { routeId: entityId, types: ['flash', 'repeat', 'send'] })}
+        query={page.data.z.query.ascents.where('routeFk', entityId).where('type', '!=', 'attempt').related('files')}
       >
         {#snippet children(ascents)}
           {@const allFiles = [...files, ...ascents.flatMap((ascent) => ascent.files)]}

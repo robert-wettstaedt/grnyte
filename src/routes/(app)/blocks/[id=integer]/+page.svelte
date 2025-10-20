@@ -4,13 +4,14 @@
   import Error from '$lib/components/Error'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { blockWithPathname } from '$lib/db/utils.svelte'
-  import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
 <ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={queries.block(page.data, { blockId: Number(page.params.id) })}
+  query={page.data.z.query.blocks
+    .where('id', Number(page.params.id))
+    .related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent'))))
+    .one()}
 >
   {#snippet children(block)}
     {@const { pathname } = (block == null ? undefined : blockWithPathname(block)) ?? {}}

@@ -4,7 +4,6 @@
   import Error from '$lib/components/Error'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
-  import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
@@ -12,12 +11,16 @@
   <Error status={404} />
 {:else}
   <ZeroQueryWrapper
-    loadingIndicator={{ type: 'spinner' }}
-    query={queries.route(page.data, { routeSlug: page.params.id })}
+    query={page.data.z.query.routes
+      .where('id', Number(page.params.id))
+      .related('block', (q) =>
+        q.related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
+      )
+      .one()}
   >
-    {#snippet children(block)}
-      {@const route = block?.routes.at(0)}
-      {@const { pathname } = (route == null ? undefined : routeWithPathname({ ...route, block })) ?? {}}
+    {#snippet children(route)}
+      {@const { pathname } = (route == null ? undefined : routeWithPathname(route)) ?? {}}
+
       {#if pathname == null}
         <Error status={404} />
       {:else}

@@ -1,14 +1,14 @@
-import { page } from '$app/state'
-import { queries } from '$lib/db/zero'
 import { error } from '@sveltejs/kit'
 import type { PageLoad } from './$types'
 
-export const load = (async ({ params }) => {
+export const load = (async ({ parent, params }) => {
+  const { z } = await parent()
+
   if (params.ascentId == null) {
     error(404)
   }
 
-  const query = queries.ascent(page.data, { id: Number(params.ascentId) })
+  const query = z.query.ascents.where('id', Number(params.ascentId)).related('author').related('route').one()
 
   return { query }
 }) satisfies PageLoad

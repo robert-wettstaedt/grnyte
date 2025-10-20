@@ -23,12 +23,6 @@
 
   const permissionsResult = $derived(new Query(queries.rolePermissions(page.data)))
 
-  $effect(() => {
-    if (userResult.current?.id != null) {
-      page.data.z.current.preload(queries.listAscents(page.data, { createdBy: userResult.current.id }))
-    }
-  })
-
   const userPermissions = $derived(
     permissionsResult.current
       ?.filter((permission) => permission.role === userRoleResult.current?.role)

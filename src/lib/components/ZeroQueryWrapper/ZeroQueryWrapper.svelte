@@ -4,6 +4,7 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
   import type { ZeroQueryWrapperProps } from '.'
+  import { onMount } from 'svelte'
 
   const {
     after,
@@ -16,8 +17,13 @@
 
   const result = new Query(query)
   $effect(() => result.updateQuery(query))
+  let mounted = $state(false)
 
   const isEmpty = $derived(Array.isArray(result.current) ? result.current.length === 0 : result.current == null)
+
+  onMount(() => {
+    mounted = true
+  })
 
   $effect(() => {
     if (result.details.type === 'complete') {
@@ -26,24 +32,26 @@
   })
 </script>
 
-{#if showEmpty && isEmpty && result.details.type === 'complete'}
-  <Error status={404} />
-{:else if loadingIndicator != null && isEmpty && result.details.type !== 'complete'}
-  {#if loadingIndicator.type === 'skeleton'}
-    <nav class="list-nav">
-      <ul class="overflow-auto">
-        {#each Array(loadingIndicator?.count ?? 10) as _}
-          <li class="placeholder my-2 w-full animate-pulse {loadingIndicator.height ?? 'h-20'}"></li>
-        {/each}
-      </ul>
-    </nav>
-  {:else if loadingIndicator.type === 'spinner'}
-    <div class="flex justify-center">
-      <ProgressRing size={loadingIndicator.size ?? 'size-12'} value={null} />
-    </div>
+{#if mounted}
+  {#if showEmpty && isEmpty && result.details.type === 'complete'}
+    <Error status={404} />
+  {:else if loadingIndicator != null && isEmpty && result.details.type !== 'complete'}
+    {#if loadingIndicator.type === 'skeleton'}
+      <nav class="list-nav">
+        <ul class="overflow-auto">
+          {#each Array(loadingIndicator?.count ?? 10) as _}
+            <li class="placeholder my-2 w-full animate-pulse {loadingIndicator.height ?? 'h-20'}"></li>
+          {/each}
+        </ul>
+      </nav>
+    {:else if loadingIndicator.type === 'spinner'}
+      <div class="flex justify-center">
+        <ProgressRing size={loadingIndicator.size ?? 'size-12'} value={null} />
+      </div>
+    {/if}
+  {:else}
+    {@render children?.(result.current, result.details)}
   {/if}
-{:else}
-  {@render children?.(result.current, result.details)}
-{/if}
 
-{@render after?.(result.current, result.details)}
+  {@render after?.(result.current, result.details)}
+{/if}

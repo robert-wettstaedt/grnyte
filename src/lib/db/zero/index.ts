@@ -38,7 +38,7 @@ export {
   type UserSetting,
 } from './zero-schema.gen'
 
-export function initZero(session: Session | undefined | null) {
+export async function initZero(session: Session | undefined | null) {
   const z = new Z<Schema>({
     auth: session?.access_token,
     userID: session?.user.id ?? 'anon',
@@ -49,7 +49,7 @@ export function initZero(session: Session | undefined | null) {
   const ctx: QueryContext = { authUserId: session?.user.id }
 
   if (session != null) {
-    Promise.all([
+    await Promise.all([
       z.current.preload(queries.grades(ctx)).complete,
       z.current.preload(queries.tags(ctx)).complete,
       z.current.preload(queries.regions(ctx)).complete,
@@ -59,11 +59,14 @@ export function initZero(session: Session | undefined | null) {
       z.current.preload(queries.currentUser(ctx)).complete,
       z.current.preload(queries.currentUserRegions(ctx)).complete,
 
-      z.current.preload(queries.listUsers(ctx, {})).complete,
-      z.current.preload(queries.listAreas(ctx, {})).complete,
-      z.current.preload(queries.listBlocks(ctx, {})).complete,
-      z.current.preload(queries.listRoutes(ctx, {})).complete,
-      z.current.preload(queries.firstAscensionists(ctx)).complete,
+      z.current.preload(queries.listAllAreas(ctx)).complete,
+      z.current.preload(queries.listAllBlocks(ctx)).complete,
+      z.current.preload(queries.listAllRoutes(ctx)).complete,
+      z.current.preload(queries.listAllAscents(ctx)).complete,
+      z.current.preload(queries.listAllTopos(ctx)).complete,
+      z.current.preload(queries.listAllFiles(ctx)).complete,
+      z.current.preload(queries.listAllGeolocations(ctx)).complete,
+      z.current.preload(queries.listAllUsers(ctx)).complete,
     ])
       .then(() => {
         console.log('All queries preloaded successfully')

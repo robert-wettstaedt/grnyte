@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
-  import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import { Query } from 'zero-svelte'
   import type { References as ReferencesType } from '.'
@@ -14,18 +13,22 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(queries.listAreas(page.data, { content: `!${type}:${id}!` }))
+  const areasQuery = $derived(page.data.z.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
   // svelte-ignore state_referenced_locally
   const areasResult = new Query(areasQuery)
   $effect(() => areasResult.updateQuery(areasQuery))
 
-  const ascentsQuery = $derived(queries.listAscents(page.data, { notes: `!${type}:${id}!` }))
+  const ascentsQuery = $derived(
+    page.data.z.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
+  )
   // svelte-ignore state_referenced_locally
   const ascentsResult = new Query(ascentsQuery)
   $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
   const routesQuery = $derived(
-    queries.listRoutes(page.data, { content: `!${type}:${id}!`, userId: pageState.user?.id }),
+    page.data.z.query.routes
+      .where('description', 'ILIKE', `%!${type}:${id}!%`)
+      .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
   )
   // svelte-ignore state_referenced_locally
   const routesResult = new Query(routesQuery)
@@ -40,21 +43,9 @@
           routes: routesResult.current,
         } as ReferencesType),
   )
-
-  const isLoading = $derived(
-    areasResult.details.type !== 'complete' ||
-      ascentsResult.details.type !== 'complete' ||
-      routesResult.details.type !== 'complete',
-  )
 </script>
 
-{#if references == null && isLoading}
-  <nav class="list-nav">
-    <ul class="overflow-auto">
-      <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
-    </ul>
-  </nav>
-{:else if references != null}
+{#if references != null}
   {#if children == null}
     <div class="flex p-2">
       <span class="flex-auto">

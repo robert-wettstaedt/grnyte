@@ -21,7 +21,7 @@
   }
 </script>
 
-<ZeroQueryWrapper loadingIndicator={{ type: 'skeleton' }} query={data.query}>
+<ZeroQueryWrapper query={data.query}>
   {#snippet children(blocks)}
     {(name = `Block ${blocks.length + 1}`)}
 

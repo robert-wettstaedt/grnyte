@@ -4,13 +4,18 @@
   import Error from '$lib/components/Error'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { ascentWithPathname } from '$lib/db/utils.svelte'
-  import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
 <ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={queries.ascent(page.data, { id: Number(page.params.id) })}
+  query={page.data.z.query.ascents
+    .where('id', Number(page.params.id))
+    .related('route', (q) =>
+      q.related('block', (q) =>
+        q.related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
+      ),
+    )
+    .one()}
 >
   {#snippet children(ascent)}
     {@const { pathname } = (ascent == null ? undefined : ascentWithPathname(ascent)) ?? {}}

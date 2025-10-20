@@ -5,7 +5,6 @@
   import { pageState } from '$lib/components/Layout'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
-  import { queries } from '$lib/db/zero'
 
   interface Props extends ZeroQueryWrapperBaseProps {
     parentFk?: number | null
@@ -15,8 +14,7 @@
 
 <ZeroQueryWrapper
   {...rest}
-  loadingIndicator={{ type: 'skeleton' }}
-  query={queries.listAreas(page.data, { parentFk: parentFk ?? null })}
+  query={page.data.z.query.areas.where('parentFk', 'IS', parentFk ?? null).orderBy('name', 'asc')}
 >
   {#snippet children(areas)}
     <GenericList
