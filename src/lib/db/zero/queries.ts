@@ -582,6 +582,78 @@ export const queries = {
     }),
   ),
 
+  listAllUsers: syncedQueryWithContext(
+    'listAllUsers',
+    z.tuple([]),
+    authenticatedUserCan((ctx) => {
+      const r = relatedRegion(ctx)
+
+      return builder.users.whereExists('regionMemberships', r)
+    }),
+  ),
+
+  listAllAreas: syncedQueryWithContext(
+    'listAllAreas',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.areas
+    }),
+  ),
+  listAllBlocks: syncedQueryWithContext(
+    'listAllBlocks',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.blocks
+    }),
+  ),
+  listAllRoutes: syncedQueryWithContext(
+    'listAllRoutes',
+    z.tuple([]),
+    regionMemberCan((ctx) => {
+      const r = relatedRegion(ctx)
+
+      return r(builder.routes)
+        .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
+        .related('tags', r)
+        .related('externalResources', (q) =>
+          r(q)
+            .related('externalResource27crags', r)
+            .related('externalResource8a', r)
+            .related('externalResourceTheCrag', r),
+        )
+    }),
+  ),
+  listAllTopos: syncedQueryWithContext(
+    'listAllTopos',
+    z.tuple([]),
+    regionMemberCan((ctx) => {
+      const r = relatedRegion(ctx)
+
+      return builder.topos.related('routes', r)
+    }),
+  ),
+  listAllFiles: syncedQueryWithContext(
+    'listAllFiles',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.files
+    }),
+  ),
+  listAllAscents: syncedQueryWithContext(
+    'listAllAscents',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.ascents
+    }),
+  ),
+  listAllGeolocations: syncedQueryWithContext(
+    'listAllGeolocations',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.geolocations
+    }),
+  ),
+
   activities: syncedQueryWithContext(
     'activities',
     z.tuple([
