@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { queries } from '$lib/db/zero'
+  import { preload, queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { setContext, type Snippet } from 'svelte'
+  import { onMount, setContext, type Snippet } from 'svelte'
   import { Query } from 'zero-svelte'
   import { pageState } from '../../page.svelte'
 
@@ -13,6 +13,13 @@
   const { children }: Props = $props()
 
   setContext('z', page.data.z)
+
+  let isPreloading = $state(true)
+
+  onMount(async () => {
+    await preload(page.data)
+    isPreloading = false
+  })
 
   const gradesResult = $derived(new Query(queries.grades(page.data)))
   const tagsResult = $derived(new Query(queries.tags(page.data)))
@@ -77,8 +84,8 @@
   )
 </script>
 
-{#if isLoading}
-  <div class="fixed flex h-full w-full items-center justify-center">
+{#if isLoading || isPreloading}
+  <div class="fixed top-0 flex h-full w-full items-center justify-center">
     <ProgressRing value={null} />
   </div>
 {:else}

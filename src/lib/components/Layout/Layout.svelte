@@ -14,7 +14,6 @@
   import Error from '$lib/components/Error'
   import NavTiles from '$lib/components/NavTiles'
   import { toaster } from '$lib/components/Toaster'
-  import { preload } from '$lib/db/zero'
   import { convertException } from '$lib/errors'
   import { formState } from '$lib/forms/enhance.svelte'
   import '@fortawesome/fontawesome-free/css/all.css'
@@ -32,8 +31,6 @@
   import { pageState } from './page.svelte'
 
   let { children }: LayoutProps = $props()
-
-  await preload(page.data)
 
   let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
 
