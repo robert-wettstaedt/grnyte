@@ -38,43 +38,28 @@ export {
   type UserSetting,
 } from './zero-schema.gen'
 
-export async function initZero(session: Session | undefined | null) {
+export async function preload({ session, z }: App.PageData) {
+  if (session != null) {
+    const ctx: QueryContext = { authUserId: session?.user.id }
+
+    try {
+      const { activities, ...rest } = queries
+      await Promise.all(Object.values(rest).map((query) => z.current.preload(query(ctx)).complete))
+
+      console.log('All queries preloaded successfully')
+    } catch (error) {
+      console.error('Error preloading queries:', error)
+    }
+  }
+}
+
+export function initZero(session: Session | undefined | null) {
   const z = new Z<Schema>({
     auth: session?.access_token,
     userID: session?.user.id ?? 'anon',
     server: PUBLIC_ZERO_URL,
     schema,
   })
-
-  const ctx: QueryContext = { authUserId: session?.user.id }
-
-  if (session != null) {
-    await Promise.all([
-      z.current.preload(queries.grades(ctx)).complete,
-      z.current.preload(queries.tags(ctx)).complete,
-      z.current.preload(queries.regions(ctx)).complete,
-      z.current.preload(queries.rolePermissions(ctx)).complete,
-
-      z.current.preload(queries.currentUserRoles(ctx)).complete,
-      z.current.preload(queries.currentUser(ctx)).complete,
-      z.current.preload(queries.currentUserRegions(ctx)).complete,
-
-      z.current.preload(queries.listAllAreas(ctx)).complete,
-      z.current.preload(queries.listAllBlocks(ctx)).complete,
-      z.current.preload(queries.listAllRoutes(ctx)).complete,
-      z.current.preload(queries.listAllAscents(ctx)).complete,
-      z.current.preload(queries.listAllTopos(ctx)).complete,
-      z.current.preload(queries.listAllFiles(ctx)).complete,
-      z.current.preload(queries.listAllGeolocations(ctx)).complete,
-      z.current.preload(queries.listAllUsers(ctx)).complete,
-    ])
-      .then(() => {
-        console.log('All queries preloaded successfully')
-      })
-      .catch((error) => {
-        console.error('Error preloading queries:', error)
-      })
-  }
 
   return z
 }

@@ -1,22 +1,17 @@
-import type { Query, QueryFn, ReadonlyJSONValue } from '@rocicorp/zero'
+import type { Query, QueryFn, ReadonlyJSONValue, SyncedQuery } from '@rocicorp/zero'
 import { syncedQueryWithContext } from '@rocicorp/zero'
 import z from 'zod'
-import { activityParentEntityType, activityType, ascentTypeEnum } from '../schema'
+import { activityParentEntityType, activityType } from '../schema'
 import { type Schema } from './zero-schema'
 import { builder } from './zero-schema.gen'
 
-type RegionQuery<TReturn> = Query<
-  Schema,
-  | 'activities'
+type RegionPreloadTable =
   | 'areas'
   | 'ascents'
   | 'blocks'
-  | 'bunnyStreams'
   | 'files'
   | 'firstAscensionists'
   | 'geolocations'
-  | 'regionInvitations'
-  | 'regionMembers'
   | 'routeExternalResource27crags'
   | 'routeExternalResource8a'
   | 'routeExternalResources'
@@ -25,9 +20,29 @@ type RegionQuery<TReturn> = Query<
   | 'routesToFirstAscensionists'
   | 'routesToTags'
   | 'topoRoutes'
-  | 'topos',
-  TReturn
->
+  | 'topos'
+
+const regionPreloadTables: RegionPreloadTable[] = [
+  'areas',
+  'ascents',
+  'blocks',
+  'files',
+  'firstAscensionists',
+  'geolocations',
+  'routeExternalResource27crags',
+  'routeExternalResource8a',
+  'routeExternalResources',
+  'routeExternalResourceTheCrag',
+  'routes',
+  'routesToFirstAscensionists',
+  'routesToTags',
+  'topoRoutes',
+  'topos',
+]
+
+type RegionTable = RegionPreloadTable | 'activities' | 'regionMembers'
+
+type RegionQuery<TReturn> = Query<Schema, RegionTable, TReturn>
 
 export type QueryContext = {
   authUserId: string | undefined
@@ -135,38 +150,6 @@ export const queries = {
       return builder.regionMembers.where('authUserFk', authUserId).where('isActive', 'IS NOT', null).related('region')
     }),
   ),
-
-  listAllAreas: syncedQueryWithContext(
-    'listAllAreas',
-    z.tuple([]),
-    regionMemberCan(() => {
-      return builder.areas
-    }),
-  ),
-  listAllBlocks: syncedQueryWithContext(
-    'listAllBlocks',
-    z.tuple([]),
-    regionMemberCan(() => {
-      return builder.blocks
-    }),
-  ),
-  listAllRoutes: syncedQueryWithContext(
-    'listAllRoutes',
-    z.tuple([]),
-    regionMemberCan((ctx) => {
-      const r = relatedRegion(ctx)
-
-      return r(builder.routes)
-        .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
-        .related('tags', r)
-        .related('externalResources', (q) =>
-          r(q)
-            .related('externalResource27crags', r)
-            .related('externalResource8a', r)
-            .related('externalResourceTheCrag', r),
-        )
-    }),
-  ),
   listAllUsers: syncedQueryWithContext(
     'listAllUsers',
     z.tuple([]),
@@ -174,36 +157,6 @@ export const queries = {
       const r = relatedRegion(ctx)
 
       return builder.users.whereExists('regionMemberships', r)
-    }),
-  ),
-  listAllTopos: syncedQueryWithContext(
-    'listAllTopos',
-    z.tuple([]),
-    regionMemberCan((ctx) => {
-      const r = relatedRegion(ctx)
-
-      return builder.topos.related('routes', r)
-    }),
-  ),
-  listAllFiles: syncedQueryWithContext(
-    'listAllFiles',
-    z.tuple([]),
-    regionMemberCan(() => {
-      return builder.files
-    }),
-  ),
-  listAllAscents: syncedQueryWithContext(
-    'listAllAscents',
-    z.tuple([]),
-    regionMemberCan(() => {
-      return builder.ascents
-    }),
-  ),
-  listAllGeolocations: syncedQueryWithContext(
-    'listAllGeolocations',
-    z.tuple([]),
-    regionMemberCan(() => {
-      return builder.geolocations
     }),
   ),
 
@@ -248,5 +201,20 @@ export const queries = {
 
       return q
     }),
+  ),
+
+  ...regionPreloadTables.reduce(
+    (obj, table) => ({
+      ...obj,
+      [`listAll${table}`]: syncedQueryWithContext(
+        `listAll${table}`,
+        z.tuple([]),
+        regionMemberCan(() => builder[table]),
+      ),
+    }),
+    {} as Record<
+      `listAll${RegionPreloadTable}`,
+      SyncedQuery<`listAll${RegionPreloadTable}`, QueryContext, true, ReadonlyJSONValue[], RegionQuery<any>>
+    >,
   ),
 }

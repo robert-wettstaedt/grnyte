@@ -25,7 +25,7 @@ export const load = (async ({ depends, fetch }) => {
     data: { session },
   } = await supabase.auth.getSession()
 
-  const z = await initZero(session)
+  const z = initZero(session)
 
   return {
     authUserId: session?.user.id,
