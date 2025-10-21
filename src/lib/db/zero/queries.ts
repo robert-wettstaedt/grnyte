@@ -204,17 +204,20 @@ export const queries = {
   ),
 
   ...regionPreloadTables.reduce(
-    (obj, table) => ({
-      ...obj,
-      [`listAll${table}`]: syncedQueryWithContext(
-        `listAll${table}`,
-        z.tuple([]),
-        regionMemberCan(() => builder[table]),
-      ),
-    }),
+    (obj, table) => {
+      const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1);
+      return {
+        ...obj,
+        [`listAll${capitalizedTable}`]: syncedQueryWithContext(
+          `listAll${capitalizedTable}`,
+          z.tuple([]),
+          regionMemberCan(() => builder[table]),
+        ),
+      };
+    },
     {} as Record<
-      `listAll${RegionPreloadTable}`,
-      SyncedQuery<`listAll${RegionPreloadTable}`, QueryContext, true, ReadonlyJSONValue[], RegionQuery<any>>
+      `listAll${Capitalize<RegionPreloadTable>}`,
+      SyncedQuery<`listAll${Capitalize<RegionPreloadTable>}`, QueryContext, true, ReadonlyJSONValue[], RegionQuery<any>>
     >,
   ),
 }
