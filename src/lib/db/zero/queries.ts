@@ -1,7 +1,7 @@
 import type { Query, QueryFn, ReadonlyJSONValue, SyncedQuery } from '@rocicorp/zero'
 import { syncedQueryWithContext } from '@rocicorp/zero'
 import z from 'zod'
-import { activityParentEntityType, activityType } from '../schema'
+import { activityParentEntityType, activityType, ascentTypeEnum } from '../schema'
 import { type Schema } from './zero-schema'
 import { builder } from './zero-schema.gen'
 
@@ -150,6 +150,507 @@ export const queries = {
       return builder.regionMembers.where('authUserFk', authUserId).where('isActive', 'IS NOT', null).related('region')
     }),
   ),
+
+  /**
+   * @deprecated
+   */
+  listUsers: syncedQueryWithContext(
+    'listUsers',
+    z.tuple([
+      z.object({
+        content: z.string().optional(),
+        id: z.union([z.number(), z.array(z.number())]).optional(),
+      }),
+    ]),
+    authenticatedUserCan((ctx, { content, id }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.users.whereExists('regionMemberships', r)
+
+      if (id != null) {
+        if (Array.isArray(id)) {
+          q = q.where('id', 'IN', id)
+        } else {
+          q = q.where('id', id)
+        }
+      }
+
+      if (content != null) {
+        q = q.where('username', 'ILIKE', `%${content}%`)
+      }
+
+      return q
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */ listAreas: syncedQueryWithContext(
+    'listAreas',
+    z.tuple([
+      z.object({
+        areaId: z.union([z.number(), z.array(z.number())]).optional(),
+        content: z.string().optional(),
+        parentFk: z.number().optional().nullish(),
+      }),
+    ]),
+    regionMemberCan((ctx, { areaId, content, parentFk }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.areas
+        .orderBy('name', 'asc')
+        .related('parent', (q) => r(q).related('parent', r))
+        .related('parkingLocations', r)
+
+      if (areaId != null) {
+        if (Array.isArray(areaId)) {
+          q = q.where('id', 'IN', areaId)
+        } else {
+          q = q.where('id', areaId)
+        }
+      }
+
+      if (parentFk !== undefined) {
+        q = q.where('parentFk', 'IS', parentFk)
+      }
+
+      if (content != null) {
+        q = q.where((q) => q.or(q.cmp('name', 'ILIKE', `%${content}%`), q.cmp('description', 'ILIKE', `%${content}%`)))
+      }
+
+      return q
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  area: syncedQueryWithContext(
+    'area',
+    z.tuple([
+      z.object({
+        id: z.number(),
+      }),
+    ]),
+    regionMemberCan((ctx, { id }) => {
+      const r = relatedRegion(ctx)
+
+      return builder.areas
+        .where('id', id)
+        .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
+        .related('author')
+        .related('files', r)
+        .related('parkingLocations', r)
+        .one()
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  listBlocks: syncedQueryWithContext(
+    'listBlocks',
+    z.tuple([
+      z.object({
+        areaId: z.number().optional().nullable(),
+        blockId: z.union([z.number(), z.array(z.number())]).optional(),
+        content: z.string().optional(),
+      }),
+    ]),
+    regionMemberCan((ctx, { areaId, blockId, content }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.blocks
+        .orderBy('order', 'asc')
+        .orderBy('name', 'asc')
+        .related('topos', (q) => r(q).orderBy('id', 'asc').related('file', r))
+        .related('area', (q) => r(q).related('parent', r))
+        .related('geolocation', r)
+
+      if (blockId != null) {
+        if (Array.isArray(blockId)) {
+          q = q.where('id', 'IN', blockId)
+        } else {
+          q = q.where('id', blockId)
+        }
+      }
+
+      if (areaId !== undefined) {
+        q = q.where('areaFk', 'IS', areaId)
+      }
+
+      if (content != null) {
+        q = q.where('name', 'ILIKE', `%${content}%`)
+      }
+
+      return q
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  block: syncedQueryWithContext(
+    'block',
+    z.tuple([
+      z.object({
+        areaId: z.number().optional(),
+        blockSlug: z.string().optional(),
+        blockId: z.number().optional(),
+      }),
+    ]),
+    regionMemberCan((ctx, { areaId, blockId, blockSlug }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.blocks
+
+      if (areaId != null) {
+        q = q.where('areaFk', areaId)
+      }
+
+      if (blockSlug != null) {
+        q = q.where('slug', blockSlug)
+      }
+
+      if (blockId != null) {
+        q = q.where('id', blockId)
+      }
+
+      return q
+        .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
+        .related('routes', r)
+        .related('topos', (q) => r(q).related('routes', r).related('file', r))
+        .related('geolocation', r)
+        .one()
+    }),
+  ),
+
+  ...(function getListQuery() {
+    /**
+     * @deprecated
+     */
+    const schema = z.object({
+      areaId: z.number().nullish(),
+      content: z.string().optional(),
+      maxGrade: z.number().optional(),
+      minGrade: z.number().optional(),
+      pageSize: z.number().optional(),
+      routeId: z.union([z.number(), z.array(z.number())]).optional(),
+      sort: z.enum(['rating', 'grade', 'firstAscentYear']).optional(),
+      sortOrder: z.enum(['asc', 'desc']).optional(),
+      userId: z.number().optional().nullish(),
+      withRelations: z.boolean().optional(),
+    })
+
+    /**
+     * @deprecated
+     */
+    const listRoutes = (ctx: QueryContext | null | undefined, opts: z.infer<typeof schema>) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.routes.related('tags', r).related('firstAscents', r)
+
+      if (opts.routeId != null) {
+        if (Array.isArray(opts.routeId)) {
+          q = q.where('id', 'IN', opts.routeId)
+        } else {
+          q = q.where('id', opts.routeId)
+        }
+      }
+
+      if (opts.areaId != null) {
+        q = q.where('areaIds', 'ILIKE', `%^${opts.areaId}$%`)
+      }
+
+      if (opts.minGrade != null) {
+        q = q.where('gradeFk', '>=', opts.minGrade)
+      }
+      if (opts.maxGrade != null) {
+        q = q.where('gradeFk', '<=', opts.maxGrade)
+      }
+
+      if (opts.content != null) {
+        q = q.where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${opts.content}%`), q.cmp('description', 'ILIKE', `%${opts.content}%`)),
+        )
+      }
+
+      if (opts.sortOrder != null && opts.sort != null) {
+        q = q.orderBy(opts.sort === 'grade' ? 'gradeFk' : opts.sort, opts.sortOrder)
+
+        switch (opts.sort) {
+          case 'rating':
+            q = q.orderBy('gradeFk', 'asc')
+            break
+
+          case 'grade':
+            q = q.orderBy('rating', 'desc')
+            break
+        }
+
+        q = q.orderBy('id', 'asc')
+      }
+
+      if (opts.pageSize != null) {
+        q = q.limit(opts.pageSize)
+      }
+
+      return q
+    }
+
+    return {
+      /**
+       * @deprecated
+       */
+      listRoutes: syncedQueryWithContext(
+        'listRoutes',
+        z.tuple([schema]),
+        regionMemberCan((ctx, opts) => {
+          return listRoutes(ctx, opts)
+        }),
+      ),
+
+      /**
+       * @deprecated
+       */
+      listRoutesWithRelations: syncedQueryWithContext(
+        'listRoutesWithRelations',
+        z.tuple([schema]),
+        regionMemberCan((ctx, opts) => {
+          const r = relatedRegion(ctx)
+
+          return listRoutes(ctx, opts)
+            .related('ascents', (q) =>
+              opts.userId == null ? r(q).where('createdBy', 'IS', null) : r(q).where('createdBy', '=', opts.userId),
+            )
+            .related('block', (q) =>
+              r(q).related('area', (q) =>
+                r(q).related('parent', (q) =>
+                  r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))),
+                ),
+              ),
+            )
+        }),
+      ),
+
+      /**
+       * @deprecated
+       */
+      listRoutesWithExternalResources: syncedQueryWithContext(
+        'listRoutesWithExternalResources',
+        z.tuple([schema]),
+        regionMemberCan((ctx, opts) => {
+          const r = relatedRegion(ctx)
+
+          return listRoutes(ctx, opts)
+            .related('block', r)
+            .related('externalResources', (q) =>
+              r(q)
+                .related('externalResource27crags', r)
+                .related('externalResource8a', r)
+                .related('externalResourceTheCrag', r),
+            )
+        }),
+      ),
+
+      /**
+       * @deprecated
+       */
+      listRoutesWithAscents: syncedQueryWithContext(
+        'listRoutesWithAscents',
+        z.tuple([schema]),
+        regionMemberCan((ctx, opts) => {
+          const r = relatedRegion(ctx)
+
+          return listRoutes(ctx, opts).related('ascents', (q) =>
+            opts.userId == null ? r(q) : r(q).where('createdBy', '=', opts.userId),
+          )
+        }),
+      ),
+    }
+  })(),
+
+  /**
+   * @deprecated
+   */
+  route: syncedQueryWithContext(
+    'route',
+    z.tuple([
+      z.object({
+        areaId: z.number().optional(),
+        blockSlug: z.string().optional(),
+        routeSlug: z.string(),
+      }),
+    ]),
+    regionMemberCan((ctx, { areaId, blockSlug, routeSlug }) => {
+      const r = relatedRegion(ctx)
+
+      function getRouteDbFilterRaw(routeSlug: string, q: Query<Schema, 'routes'>): Query<Schema, 'routes'> {
+        return Number.isNaN(Number(routeSlug)) ? q.where('slug', routeSlug) : q.where('id', Number(routeSlug))
+      }
+
+      let q = builder.blocks
+
+      if (areaId != null) {
+        q = q.where('areaFk', areaId)
+      }
+
+      if (blockSlug != null) {
+        q = q.where('slug', blockSlug)
+      }
+
+      return q
+        .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
+        .whereExists('routes', (q) => getRouteDbFilterRaw(routeSlug, r(q)))
+        .related('routes', (q) =>
+          getRouteDbFilterRaw(routeSlug, r(q))
+            .related('tags', r)
+            .related('firstAscents', (q) => r(q).related('firstAscensionist', (q) => r(q).related('user')))
+            .related('externalResources', (q) =>
+              r(q)
+                .related('externalResource27crags', r)
+                .related('externalResource8a', r)
+                .related('externalResourceTheCrag', r),
+            ),
+        )
+        .related('topos', r)
+        .one()
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  listAscents: syncedQueryWithContext(
+    'listAscents',
+    z.tuple([
+      z.object({
+        ascentId: z.union([z.number(), z.array(z.number())]).optional(),
+        createdBy: z.number().optional().nullable(),
+        grade: z.number().optional().nullable(),
+        notes: z.string().optional(),
+        routeId: z.number().optional().nullable(),
+        types: z.array(z.enum(ascentTypeEnum)).optional(),
+      }),
+    ]),
+    regionMemberCan((ctx, { ascentId, createdBy, grade, notes, routeId, types }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.ascents.related('author').related('route', r).related('files', r)
+
+      if (ascentId != null) {
+        if (Array.isArray(ascentId)) {
+          q = q.where('id', 'IN', ascentId)
+        } else {
+          q = q.where('id', ascentId)
+        }
+      }
+
+      if (createdBy != null) {
+        q = q.where('createdBy', createdBy)
+      }
+
+      if (routeId != null) {
+        q = q.where('routeFk', routeId)
+      }
+
+      if (grade === null) {
+        q = q.where('gradeFk', 'IS NOT', null)
+      }
+
+      if (notes != null) {
+        q = q.where('notes', 'ILIKE', `%${notes}%`)
+      }
+
+      if (types != null) {
+        q = q.where('type', 'IN', types)
+      }
+
+      return q
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  ascent: syncedQueryWithContext(
+    'ascent',
+    z.tuple([
+      z.object({
+        id: z.number(),
+      }),
+    ]),
+    regionMemberCan((ctx, { id }) => {
+      const r = relatedRegion(ctx)
+
+      return builder.ascents
+        .where('id', id)
+        .related('author')
+        .related('route', (q) =>
+          r(q).related('block', (q) =>
+            r(q).related('area', (q) =>
+              r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))),
+            ),
+          ),
+        )
+        .one()
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  listFiles: syncedQueryWithContext(
+    'listFiles',
+    z.tuple([
+      z.object({
+        entity: z
+          .object({
+            type: z.enum(['area', 'ascent', 'route']),
+            id: z.union([z.number(), z.array(z.number())]),
+          })
+          .optional(),
+        fileId: z.union([z.string(), z.array(z.string())]).optional(),
+      }),
+    ]),
+    regionMemberCan((ctx, { entity, fileId }) => {
+      const r = relatedRegion(ctx)
+
+      let q = builder.files.related('area', r).related('ascent', r).related('block', r).related('route', r)
+
+      if (fileId != null) {
+        if (Array.isArray(fileId)) {
+          q = q.where('id', 'IN', fileId)
+        } else {
+          q = q.where('id', fileId)
+        }
+      }
+
+      if (entity != null) {
+        const type = entity.type === 'area' ? 'areaFk' : entity.type === 'ascent' ? 'ascentFk' : 'routeFk'
+
+        if (Array.isArray(entity.id)) {
+          q = q.where(type, 'IN', entity.id)
+        } else {
+          q = q.where(type, entity.id)
+        }
+      }
+
+      return q
+    }),
+  ),
+
+  /**
+   * @deprecated
+   */
+  firstAscensionists: syncedQueryWithContext(
+    'firstAscensionists',
+    z.tuple([]),
+    regionMemberCan(() => {
+      return builder.firstAscensionists.orderBy('name', 'asc').related('user')
+    }),
+  ),
+
   listAllUsers: syncedQueryWithContext(
     'listAllUsers',
     z.tuple([]),
@@ -205,15 +706,17 @@ export const queries = {
 
   ...regionPreloadTables.reduce(
     (obj, table) => {
-      const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1);
+      const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1)
+      const name = `listAll${capitalizedTable}`
+
       return {
         ...obj,
-        [`listAll${capitalizedTable}`]: syncedQueryWithContext(
-          `listAll${capitalizedTable}`,
+        [name]: syncedQueryWithContext(
+          name,
           z.tuple([]),
           regionMemberCan(() => builder[table]),
         ),
-      };
+      }
     },
     {} as Record<
       `listAll${Capitalize<RegionPreloadTable>}`,

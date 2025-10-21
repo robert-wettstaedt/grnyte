@@ -43,7 +43,24 @@ export async function preload({ session, z }: App.PageData) {
     const ctx: QueryContext = { authUserId: session?.user.id }
 
     try {
-      const { activities, ...rest } = queries
+      const {
+        activities,
+        area,
+        ascent,
+        block,
+        firstAscensionists,
+        listAreas,
+        listAscents,
+        listBlocks,
+        listFiles,
+        listRoutes,
+        listRoutesWithAscents,
+        listRoutesWithExternalResources,
+        listRoutesWithRelations,
+        listUsers,
+        route,
+        ...rest
+      } = queries
       await Promise.all(Object.values(rest).map((query) => z.current.preload(query(ctx)).complete))
 
       console.log('All queries preloaded successfully')
