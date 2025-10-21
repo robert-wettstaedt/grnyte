@@ -651,17 +651,22 @@ export const queries = {
   ),
 
   ...regionPreloadTables.reduce(
-    (obj, table) => ({
+    (obj, table) => {
+      const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1)
+      const name = `listAll${capitalizedTable}`
+
+      return {
       ...obj,
-      [`listAll${table}`]: syncedQueryWithContext(
-        `listAll${table}`,
+        [name]: syncedQueryWithContext(
+          name,
         z.tuple([]),
         regionMemberCan(() => builder[table]),
       ),
-    }),
+      }
+    },
     {} as Record<
-      `listAll${RegionPreloadTable}`,
-      SyncedQuery<`listAll${RegionPreloadTable}`, QueryContext, true, ReadonlyJSONValue[], RegionQuery<any>>
+      `listAll${Capitalize<RegionPreloadTable>}`,
+      SyncedQuery<`listAll${Capitalize<RegionPreloadTable>}`, QueryContext, true, ReadonlyJSONValue[], RegionQuery<any>>
     >,
   ),
 }
