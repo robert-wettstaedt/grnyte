@@ -4,16 +4,17 @@
   import Error from '$lib/components/Error'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { areaWithPathname } from '$lib/db/utils.svelte'
-  import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
 <ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={queries.area(page.data, { id: Number(page.params.id) })}
+  query={page.data.z.query.areas
+    .where('id', Number(page.params.id))
+    .related('parent', (q) => q.related('parent', (q) => q.related('parent')))
+    .one()}
 >
   {#snippet children(area)}
-    {@const { pathname } = (area == null ? null : areaWithPathname(area)) ?? {}}
+    {@const { pathname } = area == null ? {} : areaWithPathname(area)}
     {#if pathname == null}
       <Error status={404} />
     {:else}

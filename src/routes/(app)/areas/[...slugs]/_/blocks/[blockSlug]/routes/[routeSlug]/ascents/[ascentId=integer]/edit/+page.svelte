@@ -9,7 +9,7 @@
   const { data } = $props()
 </script>
 
-<ZeroQueryWrapper loadingIndicator={{ type: 'skeleton' }} showEmpty query={data.query}>
+<ZeroQueryWrapper showEmpty query={data.query}>
   {#snippet children(ascent)}
     {#if ascent?.route == null}
       <Error status={404} />

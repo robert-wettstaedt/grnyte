@@ -38,6 +38,21 @@ export {
   type UserSetting,
 } from './zero-schema.gen'
 
+export async function preload({ session, z }: App.PageData) {
+  if (session != null) {
+    const ctx: QueryContext = { authUserId: session?.user.id }
+
+    try {
+      const { activities, ...rest } = queries
+      await Promise.all(Object.values(rest).map((query) => z.current.preload(query(ctx)).complete))
+
+      console.log('All queries preloaded successfully')
+    } catch (error) {
+      console.error('Error preloading queries:', error)
+    }
+  }
+}
+
 export function initZero(session: Session | undefined | null) {
   const z = new Z<Schema>({
     auth: session?.access_token,
@@ -45,33 +60,6 @@ export function initZero(session: Session | undefined | null) {
     server: PUBLIC_ZERO_URL,
     schema,
   })
-
-  const ctx: QueryContext = { authUserId: session?.user.id }
-
-  if (session != null) {
-    Promise.all([
-      z.current.preload(queries.grades(ctx)).complete,
-      z.current.preload(queries.tags(ctx)).complete,
-      z.current.preload(queries.regions(ctx)).complete,
-      z.current.preload(queries.rolePermissions(ctx)).complete,
-
-      z.current.preload(queries.currentUserRoles(ctx)).complete,
-      z.current.preload(queries.currentUser(ctx)).complete,
-      z.current.preload(queries.currentUserRegions(ctx)).complete,
-
-      z.current.preload(queries.listUsers(ctx, {})).complete,
-      z.current.preload(queries.listAreas(ctx, {})).complete,
-      z.current.preload(queries.listBlocks(ctx, {})).complete,
-      z.current.preload(queries.listRoutes(ctx, {})).complete,
-      z.current.preload(queries.firstAscensionists(ctx)).complete,
-    ])
-      .then(() => {
-        console.log('All queries preloaded successfully')
-      })
-      .catch((error) => {
-        console.error('Error preloading queries:', error)
-      })
-  }
 
   return z
 }

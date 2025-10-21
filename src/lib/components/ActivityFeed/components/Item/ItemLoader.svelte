@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import type { ActivityDTO, ActivityWithDate, Entity } from '../..'
 
@@ -22,22 +21,22 @@
 
     switch (entityType) {
       case 'area':
-        return queries.listAreas(page.data, { areaId: Number(entityId) })
+        return page.data.z.query.areas.where('id', Number(entityId))
       case 'ascent':
-        return queries.listAscents(page.data, { ascentId: Number(entityId) })
+        return page.data.z.query.ascents.where('id', Number(entityId)).related('author').related('files')
       case 'block':
-        return queries.listBlocks(page.data, { blockId: Number(entityId) })
+        return page.data.z.query.blocks.where('id', Number(entityId))
       case 'route':
-        return queries.listRoutes(page.data, { routeId: Number(entityId) })
+        return page.data.z.query.routes.where('id', Number(entityId))
     }
   }
 
   const getQuery = (entityId: ActivityWithDate['entityId'], entityType: ActivityWithDate['entityType']) => {
     switch (entityType) {
       case 'file':
-        return queries.listFiles(page.data, { fileId: String(entityId) })
+        return page.data.z.query.files.where('id', String(entityId))
       case 'user':
-        return queries.listUsers(page.data, { id: Number(entityId) })
+        return page.data.z.query.users.where('id', Number(entityId))
       default:
         return getParentQuery(entityId, entityType)
     }
@@ -66,14 +65,14 @@
 </script>
 
 {/* @ts-ignore */ null}
-<ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} {query}>
+<ZeroQueryWrapper {query}>
   {#snippet children([object])}
     {#if parentQuery == null}
       {@const dto = toDto(activity.user, object)}
       {@render props.children?.(dto)}
     {:else}
       {/* @ts-ignore */ null}
-      <ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={parentQuery}>
+      <ZeroQueryWrapper query={parentQuery}>
         {#snippet children([parentObject])}
           {@const dto = toDto(activity.user, object, parentObject)}
           {@render props.children?.(dto)}

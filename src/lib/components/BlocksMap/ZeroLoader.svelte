@@ -1,8 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
-  import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { onMount } from 'svelte'
   import { Query } from 'zero-svelte'
   import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
@@ -10,8 +9,13 @@
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocksResult = new Query(queries.listBlocks(page.data, {}))
-  const areasResult = new Query(queries.listAreas(page.data, {}))
+  let mounted = $state(false)
+  onMount(() => {
+    mounted = true
+  })
+
+  const blocksResult = new Query(page.data.z.query.blocks.related('geolocation'))
+  const areasResult = new Query(page.data.z.query.areas.related('parkingLocations'))
 
   const data = $derived.by(() => {
     const areas = $state.snapshot(areasResult.current)
@@ -51,10 +55,6 @@
   })
 </script>
 
-{#if data.blocks.length === 0 && blocksResult.details.type !== 'complete'}
-  <div class="flex h-full items-center justify-center">
-    <ProgressRing size="size-20" value={null} />
-  </div>
-{:else}
+{#if mounted}
   <BlocksMap {...props} {...data} />
 {/if}

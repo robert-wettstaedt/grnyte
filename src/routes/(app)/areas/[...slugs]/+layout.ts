@@ -1,17 +1,22 @@
-import { page } from '$app/state'
-import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
 import type { LayoutLoad } from './$types'
 
-export const load = (async ({ params }) => {
+export const load = (async ({ parent, params }) => {
   const { areaId } = convertAreaSlugRaw(params)
+  const { z } = await parent()
 
   if (areaId == null) {
     error(404)
   }
 
-  const areaQuery = queries.area(page.data, { id: areaId })
+  const areaQuery = z.query.areas
+    .where('id', areaId)
+    .related('author')
+    .related('parent')
+    .related('files')
+    .related('parkingLocations')
+    .one()
 
   return { areaQuery }
 }) satisfies LayoutLoad
