@@ -1,12 +1,18 @@
 <script lang="ts">
   import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
+  import { onMount } from 'svelte'
   import { Query } from 'zero-svelte'
   import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
+
+  let mounted = $state(false)
+  onMount(() => {
+    mounted = true
+  })
 
   const blocksResult = new Query(page.data.z.query.blocks.related('geolocation'))
   const areasResult = new Query(page.data.z.query.areas.related('parkingLocations'))
@@ -49,4 +55,6 @@
   })
 </script>
 
-<BlocksMap {...props} {...data} />
+{#if mounted}
+  <BlocksMap {...props} {...data} />
+{/if}
