@@ -9,7 +9,6 @@
   import { routeWithPathname } from '$lib/db/utils.svelte'
   import type { RowWithRelations } from '$lib/db/zero'
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import RoutesFilter from './components/RoutesFilter'
   import { getRoutesFilterQuery } from './lib'
 
@@ -54,26 +53,20 @@
     </GenericList>
   {/snippet}
 
-  {#snippet after(_routes, details)}
+  {#snippet after(_routes)}
     {@const routes = mapRoutes(_routes)}
 
     {#if page.url.searchParams.get('pageSize') != null || !hasReachedEnd(routes.length)}
       <div class="my-8 flex justify-center">
         <button
           class="btn preset-filled-primary-500"
-          disabled={details.type !== 'complete' || hasReachedEnd(routes.length)}
+          disabled={hasReachedEnd(routes.length)}
           onclick={() => {
             const url = new URL(page.url)
             url.searchParams.set('pageSize', String(routes.length + DEFAULT_PAGE_SIZE))
             goto(url, { noScroll: true, replaceState: true })
           }}
         >
-          {#if details.type !== 'complete'}
-            <span class="me-2">
-              <ProgressRing size="size-4" value={null} />
-            </span>
-          {/if}
-
           Load more
         </button>
       </div>

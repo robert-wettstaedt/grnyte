@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import { Query } from 'zero-svelte'
   import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
@@ -50,10 +49,4 @@
   })
 </script>
 
-{#if data.blocks.length === 0 && blocksResult.details.type !== 'complete'}
-  <div class="flex h-full items-center justify-center">
-    <ProgressRing size="size-20" value={null} />
-  </div>
-{:else}
-  <BlocksMap {...props} {...data} />
-{/if}
+<BlocksMap {...props} {...data} />
