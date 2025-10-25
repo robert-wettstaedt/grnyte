@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
   import AppBar from '$lib/components/AppBar'
 
   let { form } = $props()
@@ -29,7 +30,7 @@
   <form class="card mt-4 flex flex-col gap-4" method="post" use:enhance>
     <label class="label">
       <span>New password</span>
-      <input name="password" type="password" placeholder="Enter your new password" class="input" required />
+      <input name="password" type="password" placeholder="Enter your new password" class="input" required use:focus />
     </label>
 
     <label class="label">

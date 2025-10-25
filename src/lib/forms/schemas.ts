@@ -3,12 +3,12 @@ import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
 import { type ActionFailure as KitActionFailure } from '@sveltejs/kit'
 import { z } from 'zod'
 
-export const stringToInt = z.codec(z.string().regex(z.regexes.integer), z.int(), {
+export const stringToInt = z.codec(z.string({ error: 'Value is required' }).regex(z.regexes.integer), z.int(), {
   decode: (str) => Number.parseInt(str, 10),
   encode: (num) => num.toString(),
 })
 
-export const stringToNumber = z.codec(z.string().regex(z.regexes.number), z.number(), {
+export const stringToNumber = z.codec(z.string({ error: 'Value is required' }).regex(z.regexes.number), z.number(), {
   decode: (str) => Number.parseFloat(str),
   encode: (num) => num.toString(),
 })
@@ -25,7 +25,7 @@ export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
   description: z.string().optional().default(''),
   id: stringToInt.optional(),
-  name: z.string().trim(),
+  name: z.string({ error: 'Value is required' }).trim().min(3, { error: 'At least 3 characters required' }),
   parentFk: stringToInt.optional(),
   regionFk: stringToInt,
   type: z.enum(areaTypeEnum).default('area'),
@@ -84,7 +84,7 @@ export const regionSettingsSchema = z.object({
 export type RegionSettings = z.infer<typeof regionSettingsSchema>
 
 export const regionActionSchema = z.object({
-  name: z.string(),
+  name: z.string().min(3),
   settings: z.string().optional(),
 })
 export type RegionActionValues = z.infer<typeof regionActionSchema>

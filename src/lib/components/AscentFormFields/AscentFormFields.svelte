@@ -6,9 +6,12 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
   import type { Row } from '$lib/db/zero'
+  import type { AscentActionValues } from '$lib/forms/schemas'
+  import type { RemoteForm, RemoteFormFields } from '@sveltejs/kit'
   import { DateTime } from 'luxon'
 
   interface Props {
+    fields: RemoteFormFields<AscentActionValues>
     dateTime: Row<'ascents'>['dateTime']
     fileUploadProps: FileUploadProps
     gradeFk: Row<'ascents'>['gradeFk']

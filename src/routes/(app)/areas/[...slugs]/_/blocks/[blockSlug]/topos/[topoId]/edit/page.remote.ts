@@ -51,33 +51,35 @@ const replaceTopoAction: Action<ReplaceTopoFileActionValues> = async (values, db
     values.bunnyVideoIds,
   )
 
-  const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
+  if (createdFiles.length > 0) {
+    const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
-  await createGeolocationFromFiles(db, topo.block, fileBuffers, 'create')
-  await Promise.all(
-    createdFiles.map((result) =>
-      db
-        .update(topos)
-        .set({ fileFk: result.file.id })
-        .where(eq(topos.id, Number(values.topoId))),
-    ),
-  )
+    await createGeolocationFromFiles(db, topo.block, fileBuffers, 'create')
+    await Promise.all(
+      createdFiles.map((result) =>
+        db
+          .update(topos)
+          .set({ fileFk: result.file.id })
+          .where(eq(topos.id, Number(values.topoId))),
+      ),
+    )
 
-  await deleteFile(topo.file)
+    await deleteFile(topo.file)
 
-  await insertActivity(
-    db,
-    createdFiles.map(({ file }) => ({
-      type: 'uploaded',
-      userFk: user.id,
-      entityId: String(file.id),
-      entityType: 'file',
-      columnName: 'topo image',
-      parentEntityId: String(topo.blockFk),
-      parentEntityType: 'block',
-      regionFk: file.regionFk,
-    })),
-  )
+    await insertActivity(
+      db,
+      createdFiles.map(({ file }) => ({
+        type: 'uploaded',
+        userFk: user.id,
+        entityId: String(file.id),
+        entityType: 'file',
+        columnName: 'topo image',
+        parentEntityId: String(topo.blockFk),
+        parentEntityType: 'block',
+        regionFk: file.regionFk,
+      })),
+    )
+  }
 
   return values.redirect != null && values.redirect.length > 0
     ? values.redirect

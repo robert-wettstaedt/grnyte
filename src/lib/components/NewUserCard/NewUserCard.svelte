@@ -18,11 +18,11 @@
     <label class="label">
       <span>Region name</span>
       <input
+        aria-errormessage={createRegion.fields.name.issues() ? 'new-user-card-name-error' : undefined}
         class="input h-[34px] rounded-tr-none rounded-br-none"
         disabled={createRegion.pending > 0}
-        name="name"
         placeholder="Enter name..."
-        type="text"
+        {...createRegion.fields.name.as('text')}
       />
     </label>
 
@@ -39,6 +39,12 @@
       {/if}
     </button>
   </form>
+
+  {#each createRegion.fields.name.issues() as issue}
+    <div id="new-user-card-name-error">
+      <p class="text-error-500 text-sm opacity-80">{issue.message}</p>
+    </div>
+  {/each}
 
   {#if PUBLIC_TOPO_EMAIL}
     <p class="mt-6 text-center opacity-75">

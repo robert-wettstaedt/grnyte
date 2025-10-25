@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_DEMO_MODE } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
 
   let { form } = $props()
 </script>
@@ -26,6 +27,7 @@
           required
           type="email"
           value={PUBLIC_DEMO_MODE ? 'demo@demo.com' : form?.email}
+          use:focus
         />
       </label>
 

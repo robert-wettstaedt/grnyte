@@ -73,14 +73,10 @@ const createBlockAction: Action<CreateBlockActionValues> = async (values, db, us
 
   if (values.folderName != null && block != null) {
     try {
-      const results = await handleFileUpload(
-        db,
-        locals.supabase,
-        values.folderName!,
-        config.files.folders.topos,
-        { blockFk: block.id, regionFk: block.regionFk },
-        values.bunnyVideoIds,
-      )
+      const results = await handleFileUpload(db, locals.supabase, values.folderName!, config.files.folders.topos, {
+        blockFk: block.id,
+        regionFk: block.regionFk,
+      })
 
       const fileBuffers = results.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 

@@ -8,7 +8,9 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
   import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import type { RemoteFormFields } from '@sveltejs/kit'
   import { addAscent } from './page.remote'
+  import type { AscentActionValues } from '$lib/forms/schemas'
 
   const { route } = getRouteContext()
 
@@ -43,6 +45,7 @@
   <input type="hidden" name="routeId" value={route.id} />
 
   <AscentFormFields
+    fields={addAscent.fields as unknown as RemoteFormFields<AscentActionValues>}
     fileUploadProps={{ state }}
     dateTime={Date.now()}
     gradeFk={null}

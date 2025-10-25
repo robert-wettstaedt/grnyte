@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
 
   let { form } = $props()
 </script>
@@ -26,7 +27,15 @@
       <form method="POST" class="flex flex-col gap-4" use:enhance>
         <label class="label">
           <span>Enter your email</span>
-          <input class="input" name="email" placeholder="you@example.com" required type="email" value={form?.email} />
+          <input
+            class="input"
+            name="email"
+            placeholder="you@example.com"
+            required
+            type="email"
+            value={form?.email}
+            use:focus
+          />
         </label>
 
         <button type="submit" class="btn preset-filled-primary-500 w-full">
