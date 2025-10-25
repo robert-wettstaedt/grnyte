@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { queries } from '$lib/db/zero'
   import {
     convertMarkdownToHtmlSync,
     enrichMarkdownWithReferences,
@@ -18,37 +19,28 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const areasResult = $derived(
-    page.data.z.q(
-      page.data.z.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
-    ),
-  )
+  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { areaId: markdownRefIds.areas })))
 
-  const blocksResult = $derived(
-    page.data.z.q(
-      page.data.z.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
-    ),
-  )
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { blockId: markdownRefIds.blocks })))
 
-  const routesResult = $derived(
-    page.data.z.q(
-      page.data.z.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
-    ),
-  )
+  const routesResult = $derived(page.data.z.q(queries.listRoutes(page.data, { routeId: markdownRefIds.routes })))
 
-  const markdownRefs = $derived([
-    ...areasResult.data.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
-    ...blocksResult.data.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
-    ...routesResult.data.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
-  ])
+  const html = $derived.by(() => {
+    const refs = [
+      ...areasResult.current.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
+      ...blocksResult.current.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
+      ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
+    ]
 
-  const value = $derived(
-    className?.split(' ').some((c) => c === 'short') ? markdown.replaceAll('\n', ' ').replaceAll('\r', '') : markdown,
-  )
-  const enrichedMarkdown = $derived(enrichMarkdownWithReferences(value, markdownRefs))
-  const html = $derived(convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences))
+    const value = className?.split(' ').some((c) => c === 'short')
+      ? markdown.replaceAll('\n', ' ').replaceAll('\r', '')
+      : markdown
 
-  $inspect({ markdown, value })
+    const enrichedMarkdown = enrichMarkdownWithReferences(value, refs)
+    const html = convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences)
+
+    return html
+  })
 </script>
 
 <div class="markdown-body {className}">

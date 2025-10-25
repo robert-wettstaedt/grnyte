@@ -31,7 +31,7 @@
   <RoutesFilter />
 </div>
 
-<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={getRoutesFilterQuery(areaFk ?? undefined)}>
+<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={getRoutesFilterQuery(areaFk)}>
   {#snippet children(_routes)}
     {@const routes = mapRoutes(_routes)}
 

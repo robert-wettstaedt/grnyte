@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
   import { pageState } from '$lib/components/Layout'
-  import type { Row } from '$lib/db/zero'
+  import { queries, type Row } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
@@ -16,7 +16,7 @@
 
 <ZeroQueryWrapper
   loadingIndicator={{ count: 1, height: skeletonHeight, type: 'skeleton' }}
-  query={page.data.z.query.routes.where('areaIds', 'ILIKE', `%^${areaId}$%`)}
+  query={queries.listRoutes(page.data, { areaId })}
 >
   {#snippet children(routes)}
     {@const stats = routes.map((route): GradeHistogramProps['data'][0] => {

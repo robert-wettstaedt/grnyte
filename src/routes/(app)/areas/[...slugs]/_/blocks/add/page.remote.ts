@@ -65,7 +65,7 @@ const createBlockAction: Action<CreateBlockActionValues> = async (values, db, us
 
   if (values.folderName != null && block != null) {
     try {
-      const results = await handleFileUpload(
+      const createdFiles = await handleFileUpload(
         db,
         locals.supabase,
         values.folderName!,
@@ -74,12 +74,27 @@ const createBlockAction: Action<CreateBlockActionValues> = async (values, db, us
         values.bunnyVideoIds,
       )
 
-      const fileBuffers = results.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
+      const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
       await createGeolocationFromFiles(db, block, fileBuffers)
       await Promise.all(
-        results.map((result) =>
+        createdFiles.map((result) =>
           db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id, regionFk: area.regionFk }),
+        ),
+      )
+
+      await Promise.all(
+        createdFiles.map(({ file }) =>
+          insertActivity(db, {
+            type: 'uploaded',
+            userFk: user.id,
+            entityId: String(file.id),
+            entityType: 'file',
+            columnName: 'topo image',
+            parentEntityId: String(block.id),
+            parentEntityType: 'block',
+            regionFk: file.regionFk,
+          }),
         ),
       )
     } catch (exception) {

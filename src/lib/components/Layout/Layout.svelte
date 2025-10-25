@@ -79,59 +79,63 @@
   {@html webManifest}
 </svelte:head>
 
-<PageStateLoader>
-  <div>
-    <ProgressBar class="text-secondary-500 !z-[100]" />
-    <Toaster {toaster}></Toaster>
+<div>
+  <ProgressBar class="text-secondary-500 !z-[100]" />
+  <Toaster {toaster} />
 
-    <HeaderBar />
+  <HeaderBar />
 
-    <main
-      class="relative p-2 md:p-4 {page.data.session?.user == null
-        ? 'min-h-[calc(100vh-3rem)]'
-        : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
-    >
-      <Breadcrumb url={page.url} />
+  <main
+    class="relative p-2 md:p-4 {page.data.session?.user == null || pageState.userRegions.length === 0
+      ? 'min-h-[calc(100vh-3rem)]'
+      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
+  >
+    <Breadcrumb url={page.url} />
 
-      {#if page.form?.error ?? formState.error}
-        <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-          <p>{online.current ? (page.form?.error ?? formState.error) : 'You are offline'}</p>
-        </aside>
-      {/if}
+    {#if page.form?.error ?? formState.error}
+      <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
+        <p>{online.current ? (page.form?.error ?? formState.error) : 'You are offline'}</p>
+      </aside>
+    {/if}
 
-      <svelte:boundary>
-        {#snippet failed(exception, reset)}
-          <Error
-            {reset}
-            error={dev ? { message: convertException(exception) } : undefined}
-            rawError={exception}
-            reportError
-            status={400}
-          />
-        {/snippet}
+    <svelte:boundary>
+      {#snippet failed(exception, reset)}
+        <Error
+          {reset}
+          error={dev ? { message: convertException(exception) } : undefined}
+          rawError={exception}
+          reportError
+          status={400}
+        />
+      {/snippet}
 
+      {#if page.data.session?.user == null}
         {@render children?.()}
-      </svelte:boundary>
-    </main>
+      {:else}
+        <PageStateLoader>
+          {@render children?.()}
+        </PageStateLoader>
+      {/if}
+    </svelte:boundary>
+  </main>
 
-    <!-- Footer - only show for logged-out users or on certain pages -->
-    {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
-      <Footer />
-    {/if}
+  <!-- Footer - only show for logged-out users or on certain pages -->
+  {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
+    <Footer />
+  {/if}
 
-    {#if pageState.userRegions.length > 0}
-      <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
+  {#if page.data.session?.user != null && pageState.userRegions.length > 0}
+    <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
+      <NavTiles />
+    </Navigation.Bar>
+
+    <Navigation.Rail base="fixed top-[48px] hidden h-screen md:block">
+      {#snippet tiles()}
         <NavTiles />
-      </Navigation.Bar>
-
-      <Navigation.Rail base="fixed top-[48px] hidden h-screen md:block">
-        {#snippet tiles()}
-          <NavTiles />
-        {/snippet}
-      </Navigation.Rail>
-    {/if}
-  </div>
-</PageStateLoader>
+      {/snippet}
+    </Navigation.Rail>
+  {/if}
+</div>
 
 {#await import('$lib/components/ReloadPrompt') then { default: ReloadPrompt }}
   <ReloadPrompt />

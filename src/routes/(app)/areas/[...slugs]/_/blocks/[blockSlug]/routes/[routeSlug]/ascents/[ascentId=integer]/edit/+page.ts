@@ -1,16 +1,14 @@
-import { convertAreaSlugRaw } from '$lib/helper'
+import { page } from '$app/state'
+import { queries } from '$lib/db/zero'
 import { error } from '@sveltejs/kit'
 import type { PageLoad } from './$types'
 
-export const load = (async ({ parent, params }) => {
-  const { areaId } = convertAreaSlugRaw(params)
-  const { z } = await parent()
-
+export const load = (async ({ params }) => {
   if (params.ascentId == null) {
     error(404)
   }
 
-  const query = z.query.ascents.where('id', Number(params.ascentId)).related('author').related('route').one()
+  const query = queries.ascent(page.data, { id: Number(params.ascentId) })
 
   return { query }
 }) satisfies PageLoad

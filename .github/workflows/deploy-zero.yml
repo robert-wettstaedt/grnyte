@@ -106,9 +106,8 @@ jobs:
             echo "ZERO_UPSTREAM_DB=${{ secrets.ZERO_UPSTREAM_DB }}" > .env.${{ matrix.environment.name }}
             echo "ZERO_AUTH_SECRET=${{ secrets.ZERO_AUTH_SECRET }}" >> .env.${{ matrix.environment.name }}
             echo "ZERO_ADMIN_PASSWORD=${{ secrets.ZERO_ADMIN_PASSWORD }}" >> .env.${{ matrix.environment.name }}
-            echo "ZERO_PUSH_URL=https://${{ vars.ZERO_DOMAIN }}" >> .env.${{ matrix.environment.name }}
             echo "ZERO_DOMAIN=${{ vars.ZERO_DOMAIN }}" >> .env.${{ matrix.environment.name }}
-            echo "ZERO_GET_QUERIES_URL=https://${{ vars.ZERO_DOMAIN }}/api/get-queries" >> .env.${{ matrix.environment.name }}
+            echo "ZERO_GET_QUERIES_URL=${{ vars.ZERO_GET_QUERIES_URL }}" >> .env.${{ matrix.environment.name }}
 
             echo "✅ Environment configured for ${{ matrix.environment.name }} (${{ vars.ZERO_DOMAIN }})"
           ENDSSH

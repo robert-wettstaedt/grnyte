@@ -13,8 +13,8 @@ services:
       - ZERO_SCHEMA_PATH=${ZERO_SCHEMA_PATH:-src/lib/db/zero/zero-schema.ts}
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
-      - ZERO_PUSH_URL=${ZERO_PUSH_URL:-http://localhost:3000/api/push}
-      - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/get-queries}
+      - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
+      - ZERO_GET_QUERIES_FORWARD_COOKIES=${ZERO_GET_QUERIES_FORWARD_COOKIES}
 
       # Additional Zero configuration
       - ZERO_PORT=4848

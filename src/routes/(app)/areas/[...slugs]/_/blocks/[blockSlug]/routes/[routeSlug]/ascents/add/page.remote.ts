@@ -46,13 +46,28 @@ const addAscentAction: Action<AddAscentActionValues> = async (values, db, user) 
 
   if (values.folderName != null) {
     const dstFolder = `${config.files.folders.userContent}/${user.authUserFk}`
-    await handleFileUpload(
+    const createdFiles = await handleFileUpload(
       db,
       locals.supabase,
       values.folderName!,
       dstFolder,
       { ascentFk: ascent.id, regionFk: ascent.regionFk },
       values.bunnyVideoIds,
+    )
+
+    await Promise.all(
+      createdFiles.map(({ file }) =>
+        insertActivity(db, {
+          type: 'uploaded',
+          userFk: user.id,
+          entityId: String(file.id),
+          entityType: 'file',
+          columnName: 'file',
+          parentEntityId: String(ascent.routeFk),
+          parentEntityType: 'route',
+          regionFk: file.regionFk,
+        }),
+      ),
     )
   }
 
