@@ -56,7 +56,7 @@
     value = searchQuery
   })
 
-  const { current: regions } = $derived(page.data.z.q(queries.regions(page.data)))
+  const { data: regions } = $derived(page.data.z.q(queries.regions(page.data)))
 
   const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { content: searchQuery })))
 

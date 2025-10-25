@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { setContext, type Snippet } from 'svelte'
+  import type { Snippet } from 'svelte'
   import { pageState } from '../../page.svelte'
 
   interface Props {
@@ -10,8 +10,6 @@
   }
 
   const { children }: Props = $props()
-
-  setContext('z', page.data.z)
 
   const gradesResult = $derived(page.data.z.q(queries.grades(page.data)))
   const tagsResult = $derived(page.data.z.q(queries.tags(page.data)))
@@ -23,14 +21,14 @@
   const permissionsResult = $derived(page.data.z.q(queries.rolePermissions(page.data)))
 
   $effect(() => {
-    if (userResult.current?.id != null) {
-      page.data.z.current.preload(queries.listAscents(page.data, { createdBy: userResult.current.id }))
+    if (userResult.data?.id != null) {
+      page.data.z.current.preload(queries.listAscents(page.data, { createdBy: userResult.data.id }))
     }
   })
 
   const userPermissions = $derived(
-    permissionsResult.current
-      ?.filter((permission) => permission.role === userRoleResult.current?.role)
+    permissionsResult.data
+      ?.filter((permission) => permission.role === userRoleResult.data?.role)
       .map(({ permission }) => permission),
   )
 
@@ -75,10 +73,10 @@
 
   let isLoading = $derived(
     page.data.session?.user != null &&
-      ((userResult.current == null && userResult.details.type !== 'complete') ||
-        (userRoleResult.current == null && userRoleResult.details.type !== 'complete') ||
-        (userRegionsResult.current == null && userRegionsResult.details.type !== 'complete') ||
-        (permissionsResult.current == null && permissionsResult.details.type !== 'complete')),
+      ((userResult.data == null && userResult.details.type !== 'complete') ||
+        (userRoleResult.data == null && userRoleResult.details.type !== 'complete') ||
+        (userRegionsResult.data == null && userRegionsResult.details.type !== 'complete') ||
+        (permissionsResult.data == null && permissionsResult.details.type !== 'complete')),
   )
 </script>
 

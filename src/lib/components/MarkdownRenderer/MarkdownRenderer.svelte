@@ -27,9 +27,9 @@
 
   const html = $derived.by(() => {
     const refs = [
-      ...areasResult.current.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
-      ...blocksResult.current.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
-      ...routesResult.current.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
+      ...areasResult.data.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),
+      ...blocksResult.data.map((item): MarkdownReference => ({ type: 'blocks', id: item.id!, name: item.name })),
+      ...routesResult.data.map((item): MarkdownReference => ({ type: 'routes', id: item.id!, name: item.name })),
     ]
 
     const value = className?.split(' ').some((c) => c === 'short')
