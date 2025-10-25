@@ -42,26 +42,35 @@ export async function preload({ session, z }: App.PageData) {
   if (session != null) {
     const ctx: QueryContext = { authUserId: session?.user.id }
 
+    const preloadOpts = { ttl: '5m' as const }
+
     try {
-      const {
-        activities,
-        area,
-        ascent,
-        block,
-        firstAscensionists,
-        listAreas,
-        listAscents,
-        listBlocks,
-        listFiles,
-        listRoutes,
-        listRoutesWithAscents,
-        listRoutesWithExternalResources,
-        listRoutesWithRelations,
-        listUsers,
-        route,
-        ...rest
-      } = queries
-      await Promise.all(Object.values(rest).map((query) => z.current.preload(query(ctx)).complete))
+      await Promise.all([
+        z.current.preload(queries.currentUser(ctx), preloadOpts),
+        z.current.preload(queries.currentUserRegions(ctx), preloadOpts),
+        z.current.preload(queries.currentUserRoles(ctx), preloadOpts),
+        z.current.preload(queries.grades(ctx), preloadOpts),
+        z.current.preload(queries.regions(ctx), preloadOpts),
+        z.current.preload(queries.rolePermissions(ctx), preloadOpts),
+        z.current.preload(queries.tags(ctx), preloadOpts),
+
+        z.current.preload(queries.listAllAreas(ctx), preloadOpts),
+        z.current.preload(queries.listAllAscents(ctx), preloadOpts),
+        z.current.preload(queries.listAllBlocks(ctx), preloadOpts),
+        z.current.preload(queries.listAllFiles(ctx), preloadOpts),
+        z.current.preload(queries.listAllFirstAscensionists(ctx), preloadOpts),
+        z.current.preload(queries.listAllGeolocations(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResource27crags(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResource8a(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResourceTheCrag(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResources(ctx), preloadOpts),
+        z.current.preload(queries.listAllRoutes(ctx), preloadOpts),
+        z.current.preload(queries.listAllRoutesToFirstAscensionists(ctx), preloadOpts),
+        z.current.preload(queries.listAllRoutesToTags(ctx), preloadOpts),
+        z.current.preload(queries.listAllTopoRoutes(ctx), preloadOpts),
+        z.current.preload(queries.listAllTopos(ctx), preloadOpts),
+        z.current.preload(queries.listAllUsers(ctx), preloadOpts),
+      ])
 
       console.log('All queries preloaded successfully')
     } catch (error) {
