@@ -14,7 +14,6 @@
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
-  import { Query } from 'zero-svelte'
 
   const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
   const MAX_RECENT_SEARCH = 7
@@ -28,22 +27,22 @@
   }
 
   interface AreaItem extends BaseItem {
-    data: (typeof areasResult.current)[0]
+    data: (typeof areasResult.data)[0]
     type: 'area'
   }
 
   interface BlockItem extends BaseItem {
-    data: (typeof blocksResult.current)[0]
+    data: (typeof blocksResult.data)[0]
     type: 'block'
   }
 
   interface RouteItem extends BaseItem {
-    data: (typeof routesResult.current)[0]
+    data: (typeof routesResult.data)[0]
     type: 'route'
   }
 
   interface UserItem extends BaseItem {
-    data: (typeof usersResult.current)[0]
+    data: (typeof usersResult.data)[0]
     type: 'user'
   }
 
@@ -57,33 +56,21 @@
     value = searchQuery
   })
 
-  const { current: regions } = $derived(new Query(queries.regions(page.data)))
+  const { data: regions } = $derived(page.data.z.q(queries.regions(page.data)))
 
-  const areasQuery = $derived(queries.listAreas(page.data, { content: searchQuery }))
-  // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
+  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { content: searchQuery })))
 
-  const blocksQuery = $derived(queries.listBlocks(page.data, { content: searchQuery }))
-  // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(blocksQuery)
-  $effect(() => blocksResult.updateQuery(blocksQuery))
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { content: searchQuery })))
 
-  const routesQuery = $derived(queries.listRoutesWithRelations(page.data, { content: searchQuery }))
-  // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
+  const routesResult = $derived(page.data.z.q(queries.listRoutesWithRelations(page.data, { content: searchQuery })))
 
-  const usersQuery = $derived(queries.listUsers(page.data, { content: searchQuery }))
-  // svelte-ignore state_referenced_locally
-  const usersResult = new Query(usersQuery)
-  $effect(() => usersResult.updateQuery(usersQuery))
+  const usersResult = $derived(page.data.z.q(queries.listUsers(page.data, { content: searchQuery })))
 
   const isLoading = $derived(
-    (areasResult.current.length === 0 && areasResult.details.type !== 'complete') ||
-      (blocksResult.current.length === 0 && blocksResult.details.type !== 'complete') ||
-      (routesResult.current.length === 0 && routesResult.details.type !== 'complete') ||
-      (usersResult.current.length === 0 && usersResult.details.type !== 'complete'),
+    (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||
+      (blocksResult.data.length === 0 && blocksResult.details.type !== 'complete') ||
+      (routesResult.data.length === 0 && routesResult.details.type !== 'complete') ||
+      (usersResult.data.length === 0 && usersResult.details.type !== 'complete'),
   )
 
   const searchResults = $derived.by(() => {
@@ -92,7 +79,7 @@
     }
 
     const items: SearchItem[] = [
-      ...areasResult.current.map(
+      ...areasResult.data.map(
         (item): AreaItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
@@ -103,7 +90,7 @@
           type: 'area',
         }),
       ),
-      ...blocksResult.current.map(
+      ...blocksResult.data.map(
         (item): BlockItem => ({
           data: item,
           fields: [item.name],
@@ -114,7 +101,7 @@
           type: 'block',
         }),
       ),
-      ...routesResult.current.map(
+      ...routesResult.data.map(
         (item): RouteItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
@@ -125,7 +112,7 @@
           type: 'route',
         }),
       ),
-      ...usersResult.current.map(
+      ...usersResult.data.map(
         (item): UserItem => ({
           data: item,
           fields: [item.username],

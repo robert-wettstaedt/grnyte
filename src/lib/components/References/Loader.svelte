@@ -3,7 +3,6 @@
   import { pageState } from '$lib/components/Layout'
   import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
-  import { Query } from 'zero-svelte'
   import type { References as ReferencesType } from '.'
   import References from './References.svelte'
 
@@ -14,30 +13,21 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(queries.listAreas(page.data, { content: `!${type}:${id}!` }))
-  // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
+  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { content: `!${type}:${id}!` })))
 
-  const ascentsQuery = $derived(queries.listAscents(page.data, { notes: `!${type}:${id}!` }))
-  // svelte-ignore state_referenced_locally
-  const ascentsResult = new Query(ascentsQuery)
-  $effect(() => ascentsResult.updateQuery(ascentsQuery))
+  const ascentsResult = $derived(page.data.z.q(queries.listAscents(page.data, { notes: `!${type}:${id}!` })))
 
-  const routesQuery = $derived(
-    queries.listRoutes(page.data, { content: `!${type}:${id}!`, userId: pageState.user?.id }),
+  const routesResult = $derived(
+    page.data.z.q(queries.listRoutes(page.data, { content: `!${type}:${id}!`, userId: pageState.user?.id })),
   )
-  // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
 
   const references = $derived(
-    areasResult.current.length + ascentsResult.current.length + routesResult.current.length === 0
+    areasResult.data.length + ascentsResult.data.length + routesResult.data.length === 0
       ? null
       : ({
-          areas: areasResult.current,
-          ascents: ascentsResult.current,
-          routes: routesResult.current,
+          areas: areasResult.data,
+          ascents: ascentsResult.data,
+          routes: routesResult.data,
         } as ReferencesType),
   )
 
