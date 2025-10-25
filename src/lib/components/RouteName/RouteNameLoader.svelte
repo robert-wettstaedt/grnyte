@@ -11,10 +11,9 @@
 
   let { route, ...rest }: Props = $props()
 
-  const query = $derived(page.data.z.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user!.id!))
-  // svelte-ignore state_referenced_locally
-  const ascentsResult = page.data.z.createQuery(query)
-  $effect(() => ascentsResult.updateQuery(query))
+  const ascentsResult = $derived(
+    page.data.z.q(page.data.z.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user!.id!)),
+  )
 
   const data = $derived({ ...route, ascents: ascentsResult.data } satisfies RouteNameProps['route'])
 </script>

@@ -53,40 +53,38 @@
     value = searchQuery
   })
 
-  const areasQuery = $derived(
-    page.data.z.query.areas
-      .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
-      .related('parent', (q) => q.related('parent'))
-      .related('region'),
+  const areasResult = $derived(
+    page.data.z.q(
+      page.data.z.query.areas
+        .where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('parent', (q) => q.related('parent'))
+        .related('region'),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const areasResult = page.data.z.createQuery(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
 
-  const blocksQuery = $derived(
-    page.data.z.query.blocks
-      .where('name', 'ILIKE', `%${searchQuery}%`)
-      .related('area', (q) => q.related('parent'))
-      .related('region'),
+  const blocksResult = $derived(
+    page.data.z.q(
+      page.data.z.query.blocks
+        .where('name', 'ILIKE', `%${searchQuery}%`)
+        .related('area', (q) => q.related('parent'))
+        .related('region'),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const blocksResult = page.data.z.createQuery(blocksQuery)
-  $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const routesQuery = $derived(
-    page.data.z.query.routes
-      .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
-      .related('block', (q) => q.related('area', (q) => q.related('parent')))
-      .related('region'),
+  const routesResult = $derived(
+    page.data.z.q(
+      page.data.z.query.routes
+        .where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('block', (q) => q.related('area', (q) => q.related('parent')))
+        .related('region'),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const routesResult = page.data.z.createQuery(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
 
-  const usersQuery = $derived(page.data.z.query.users.where('username', 'ILIKE', `%${searchQuery}%`))
-  // svelte-ignore state_referenced_locally
-  const usersResult = page.data.z.createQuery(usersQuery)
-  $effect(() => usersResult.updateQuery(usersQuery))
+  const usersResult = $derived(page.data.z.q(page.data.z.query.users.where('username', 'ILIKE', `%${searchQuery}%`)))
 
   const isLoading = $derived(
     (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||

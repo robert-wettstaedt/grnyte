@@ -14,9 +14,7 @@
     showEmpty = false,
   }: ZeroQueryWrapperProps<TTable, TReturn> = $props()
 
-  const result = page.data.z.createQuery(query)
-  $effect(() => result.updateQuery(query))
-
+  const result = $derived(page.data.z.q(query))
   const isEmpty = $derived(Array.isArray(result.data) ? result.data.length === 0 : result.data == null)
 
   $effect(() => {

@@ -12,26 +12,23 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(page.data.z.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
-  // svelte-ignore state_referenced_locally
-  const areasResult = page.data.z.createQuery(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
-
-  const ascentsQuery = $derived(
-    page.data.z.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
+  const areasResult = $derived(
+    page.data.z.q(page.data.z.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`)),
   )
-  // svelte-ignore state_referenced_locally
-  const ascentsResult = page.data.z.createQuery(ascentsQuery)
-  $effect(() => ascentsResult.updateQuery(ascentsQuery))
 
-  const routesQuery = $derived(
-    page.data.z.query.routes
-      .where('description', 'ILIKE', `%!${type}:${id}!%`)
-      .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
+  const ascentsResult = $derived(
+    page.data.z.q(
+      page.data.z.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const routesResult = page.data.z.createQuery(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
+
+  const routesResult = $derived(
+    page.data.z.q(
+      page.data.z.query.routes
+        .where('description', 'ILIKE', `%!${type}:${id}!%`)
+        .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
+    ),
+  )
 
   const references = $derived(
     areasResult.data.length + ascentsResult.data.length + routesResult.data.length === 0

@@ -18,26 +18,23 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const areasQuery = $derived(
-    page.data.z.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
+  const areasResult = $derived(
+    page.data.z.q(
+      page.data.z.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const areasResult = page.data.z.createQuery(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
 
-  const blocksQuery = $derived(
-    page.data.z.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
+  const blocksResult = $derived(
+    page.data.z.q(
+      page.data.z.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const blocksResult = page.data.z.createQuery(blocksQuery)
-  $effect(() => blocksResult.updateQuery(blocksQuery))
 
-  const routesQuery = $derived(
-    page.data.z.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
+  const routesResult = $derived(
+    page.data.z.q(
+      page.data.z.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
+    ),
   )
-  // svelte-ignore state_referenced_locally
-  const routesResult = page.data.z.createQuery(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
 
   const markdownRefs = $derived([
     ...areasResult.data.map((item): MarkdownReference => ({ type: 'areas', id: item.id!, name: item.name })),

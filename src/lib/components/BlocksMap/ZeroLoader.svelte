@@ -8,8 +8,8 @@
   let props: Omit<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'> &
     Partial<Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings'>> = $props()
 
-  const blocksResult = page.data.z.createQuery(page.data.z.query.blocks.related('geolocation'))
-  const areasResult = page.data.z.createQuery(page.data.z.query.areas.related('parkingLocations'))
+  const blocksResult = page.data.z.q(page.data.z.query.blocks.related('geolocation'))
+  const areasResult = page.data.z.q(page.data.z.query.areas.related('parkingLocations'))
 
   const data = $derived.by(() => {
     const areas = $state.snapshot(areasResult.data)
