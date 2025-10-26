@@ -6,8 +6,6 @@
   import FormActionBar from '$lib/components/FormActionBar'
   import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import type { AreaActionValues } from '$lib/forms/schemas'
-  import type { RemoteFormFields } from '@sveltejs/kit'
   import { createArea } from './../../add/page.remote'
 
   const { area } = getAreaContext()
@@ -33,10 +31,7 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createArea.enhance(enhanceForm())}>
-  <AreaFormFields
-    defaultValue={{ parentFk: area?.id, regionFk: area?.regionFk }}
-    fields={createArea.fields as unknown as RemoteFormFields<AreaActionValues>}
-  />
+  <AreaFormFields defaultValue={{ parentFk: area?.id, regionFk: area?.regionFk }} fields={createArea.fields} />
 
   <FormActionBar label="Save area" pending={createArea.pending} />
 </form>

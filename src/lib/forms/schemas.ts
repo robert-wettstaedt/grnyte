@@ -3,12 +3,12 @@ import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
 import { type ActionFailure as KitActionFailure } from '@sveltejs/kit'
 import { z } from 'zod'
 
-export const stringToInt = z.codec(z.string({ error: 'Value is required' }).regex(z.regexes.integer), z.int(), {
+export const stringToInt = z.codec(z.string({ error: 'Field is required' }).regex(z.regexes.integer), z.int(), {
   decode: (str) => Number.parseInt(str, 10),
   encode: (num) => num.toString(),
 })
 
-export const stringToNumber = z.codec(z.string({ error: 'Value is required' }).regex(z.regexes.number), z.number(), {
+export const stringToNumber = z.codec(z.string({ error: 'Field is required' }).regex(z.regexes.number), z.number(), {
   decode: (str) => Number.parseFloat(str),
   encode: (num) => num.toString(),
 })
@@ -21,15 +21,16 @@ export const addFileActionSchema = z.object({
 })
 export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 
-export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
   description: z.string().optional().default(''),
   id: stringToInt.optional(),
-  name: z.string({ error: 'Value is required' }).trim().min(3, { error: 'At least 3 characters required' }),
+  name: z.string({ error: 'Field is required' }).trim().min(3, { error: 'At least 3 characters required' }),
   parentFk: stringToInt.optional(),
   regionFk: stringToInt,
   type: z.enum(areaTypeEnum).default('area'),
 })
+export type AreaActionValuesIn = z.input<typeof areaActionSchema>
+export type AreaActionValues = z.output<typeof areaActionSchema>
 
 export type BlockActionValues = z.infer<typeof blockActionSchema>
 export const blockActionSchema = z.intersection(
@@ -59,6 +60,7 @@ export const ascentActionSchema = z.intersection(
   }),
   addFileActionSchema,
 )
+export type AscentActionValuesIn = z.input<typeof ascentActionSchema>
 export type AscentActionValues = z.infer<typeof ascentActionSchema>
 
 export const tagActionSchema = z.object({

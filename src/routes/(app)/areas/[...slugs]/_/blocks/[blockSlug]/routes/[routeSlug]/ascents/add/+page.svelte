@@ -45,7 +45,7 @@
   <input type="hidden" name="routeId" value={route.id} />
 
   <AscentFormFields
-    fields={addAscent.fields as unknown as RemoteFormFields<AscentActionValues>}
+    fields={addAscent.fields}
     fileUploadProps={{ state }}
     dateTime={Date.now()}
     gradeFk={null}

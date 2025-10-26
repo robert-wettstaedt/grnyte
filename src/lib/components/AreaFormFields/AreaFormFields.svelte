@@ -2,20 +2,26 @@
   import { pageState } from '$lib/components/Layout'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { Row } from '$lib/db/zero'
-  import type { AreaActionValues } from '$lib/forms/schemas'
+  import type { AreaActionValuesIn } from '$lib/forms/schemas'
   import type { RemoteFormFields } from '@sveltejs/kit'
   import AreaTypeFormField from './components/AreaTypeFormField'
 
   interface Props {
     defaultValue?: Partial<Row<'areas'>>
-    fields: RemoteFormFields<AreaActionValues>
+    fields: RemoteFormFields<AreaActionValuesIn>
   }
 
   let { defaultValue, fields }: Props = $props()
   let type = $state(defaultValue?.type ?? 'area')
   let description = $state(defaultValue?.description ?? '')
 
-  let adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
+  const adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
+
+  $effect(() => {
+    if (adminRegions.length === 1) {
+      fields.regionFk.set(String(adminRegions[0].regionFk))
+    }
+  })
 
   $inspect(fields.regionFk.as('select'))
 </script>
@@ -51,8 +57,7 @@
     <select
       aria-errormessage={fields.regionFk.issues() ? 'area-form-fields-name-error' : undefined}
       class="select"
-      name="regionFk"
-      value={adminRegions.length === 1 ? adminRegions[0].regionFk : (defaultValue?.regionFk ?? '')}
+      {...fields.regionFk.as('select')}
     >
       <option disabled value="">-- Select region --</option>
       {#each adminRegions as region}
