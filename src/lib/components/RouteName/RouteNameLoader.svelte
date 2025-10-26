@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
   import type { Row } from '$lib/db/zero'
-  import { Query } from 'zero-svelte'
   import type { RouteNameProps } from '.'
   import RouteName from './RouteName.svelte'
 
@@ -12,12 +11,11 @@
 
   let { route, ...rest }: Props = $props()
 
-  const query = $derived(page.data.z.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user!.id!))
-  // svelte-ignore state_referenced_locally
-  const ascentsResult = new Query(query)
-  $effect(() => ascentsResult.updateQuery(query))
+  const ascentsResult = $derived(
+    page.data.z.q(page.data.z.query.ascents.where('routeFk', route.id!).where('createdBy', pageState.user!.id!)),
+  )
 
-  const data = $derived({ ...route, ascents: ascentsResult.current } satisfies RouteNameProps['route'])
+  const data = $derived({ ...route, ascents: ascentsResult.data } satisfies RouteNameProps['route'])
 </script>
 
 <RouteName {...rest} route={data} />

@@ -11,7 +11,6 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
-  import { Query } from 'zero-svelte'
 
   const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
   const MAX_RECENT_SEARCH = 7
@@ -24,22 +23,22 @@
   }
 
   interface AreaItem extends BaseItem {
-    data: (typeof areasResult.current)[0]
+    data: (typeof areasResult.data)[0]
     type: 'area'
   }
 
   interface BlockItem extends BaseItem {
-    data: (typeof blocksResult.current)[0]
+    data: (typeof blocksResult.data)[0]
     type: 'block'
   }
 
   interface RouteItem extends BaseItem {
-    data: (typeof routesResult.current)[0]
+    data: (typeof routesResult.data)[0]
     type: 'route'
   }
 
   interface UserItem extends BaseItem {
-    data: (typeof usersResult.current)[0]
+    data: (typeof usersResult.data)[0]
     type: 'user'
   }
 
@@ -53,52 +52,57 @@
     value = searchQuery
   })
 
-  const areasQuery = $derived(
-    page.data.z.query.areas
-      .where((q) =>
-        searchQuery.length === 0
-          ? q.cmp('name', '<SEARCH>')
-          : q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
-      )
-      .related('parent', (q) => q.related('parent'))
-      .related('region'),
-  )
-  // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
-
-  const blocksQuery = $derived(
-    page.data.z.query.blocks
-      .where((q) => (searchQuery.length === 0 ? q.cmp('name', '<SEARCH>') : q.cmp('name', 'ILIKE', `%${searchQuery}%`)))
-      .related('area', (q) => q.related('parent'))
-      .related('region'),
-  )
-  // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(blocksQuery)
-  $effect(() => blocksResult.updateQuery(blocksQuery))
-
-  const routesQuery = $derived(
-    page.data.z.query.routes
-      .where((q) =>
-        searchQuery.length === 0
-          ? q.cmp('name', '<SEARCH>')
-          : q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
-      )
-      .related('block', (q) => q.related('area', (q) => q.related('parent')))
-      .related('region'),
-  )
-  // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
-
-  const usersQuery = $derived(
-    page.data.z.query.users.where((q) =>
-      searchQuery.length === 0 ? q.cmp('username', '<SEARCH>') : q.cmp('username', 'ILIKE', `%${searchQuery}%`),
+  const areasResult = $derived(
+    page.data.z.q(
+      page.data.z.query.areas
+        .where((q) =>
+          searchQuery.length === 0
+            ? q.cmp('name', '<SEARCH>')
+            : q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('parent', (q) => q.related('parent'))
+        .related('region'),
     ),
   )
-  // svelte-ignore state_referenced_locally
-  const usersResult = new Query(usersQuery)
-  $effect(() => usersResult.updateQuery(usersQuery))
+
+  const blocksResult = $derived(
+    page.data.z.q(
+      page.data.z.query.blocks
+        .where((q) =>
+          searchQuery.length === 0 ? q.cmp('name', '<SEARCH>') : q.cmp('name', 'ILIKE', `%${searchQuery}%`),
+        )
+        .related('area', (q) => q.related('parent'))
+        .related('region'),
+    ),
+  )
+
+  const routesResult = $derived(
+    page.data.z.q(
+      page.data.z.query.routes
+        .where((q) =>
+          searchQuery.length === 0
+            ? q.cmp('name', '<SEARCH>')
+            : q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('block', (q) => q.related('area', (q) => q.related('parent')))
+        .related('region'),
+    ),
+  )
+
+  const usersResult = $derived(
+    page.data.z.q(
+      page.data.z.query.users.where((q) =>
+        searchQuery.length === 0 ? q.cmp('username', '<SEARCH>') : q.cmp('username', 'ILIKE', `%${searchQuery}%`),
+      ),
+    ),
+  )
+
+  const isLoading = $derived(
+    (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||
+      (blocksResult.data.length === 0 && blocksResult.details.type !== 'complete') ||
+      (routesResult.data.length === 0 && routesResult.details.type !== 'complete') ||
+      (usersResult.data.length === 0 && usersResult.details.type !== 'complete'),
+  )
 
   const searchResults = $derived.by(() => {
     if (searchQuery.trim() === '') {
@@ -106,7 +110,7 @@
     }
 
     const items: SearchItem[] = [
-      ...areasResult.current.map(
+      ...areasResult.data.map(
         (item): AreaItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
@@ -116,7 +120,7 @@
           type: 'area',
         }),
       ),
-      ...blocksResult.current.map(
+      ...blocksResult.data.map(
         (item): BlockItem => ({
           data: item,
           fields: [item.name],
@@ -126,7 +130,7 @@
           type: 'block',
         }),
       ),
-      ...routesResult.current.map(
+      ...routesResult.data.map(
         (item): RouteItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
@@ -136,7 +140,7 @@
           type: 'route',
         }),
       ),
-      ...usersResult.current.map(
+      ...usersResult.data.map(
         (item): UserItem => ({
           data: item,
           fields: [item.username],

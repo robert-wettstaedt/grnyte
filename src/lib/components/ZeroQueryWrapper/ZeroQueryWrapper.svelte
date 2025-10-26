@@ -1,10 +1,10 @@
-<script lang="ts" generics="TSchema extends Schema, TTable extends keyof TSchema['tables'] & string, TReturn">
+<script lang="ts" generics="TTable extends keyof Schema['tables'] & string, TReturn">
+  import { page } from '$app/state'
   import Error from '$lib/components/Error'
-  import type { Schema } from '@rocicorp/zero'
+  import type { Schema } from '$lib/db/zero/zero-schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
-  import type { ZeroQueryWrapperProps } from '.'
   import { onMount } from 'svelte'
+  import type { ZeroQueryWrapperProps } from '.'
 
   const {
     after,
@@ -13,13 +13,12 @@
     onLoad,
     query,
     showEmpty = false,
-  }: ZeroQueryWrapperProps<TSchema, TTable, TReturn> = $props()
+  }: ZeroQueryWrapperProps<TTable, TReturn> = $props()
 
-  const result = new Query(query)
-  $effect(() => result.updateQuery(query))
   let mounted = $state(false)
 
-  const isEmpty = $derived(Array.isArray(result.current) ? result.current.length === 0 : result.current == null)
+  const result = $derived(page.data.z.q(query))
+  const isEmpty = $derived(Array.isArray(result.data) ? result.data.length === 0 : result.data == null)
 
   onMount(() => {
     mounted = true
@@ -50,8 +49,8 @@
       </div>
     {/if}
   {:else}
-    {@render children?.(result.current, result.details)}
+    {@render children?.(result.data, result.details)}
   {/if}
 
-  {@render after?.(result.current, result.details)}
+  {@render after?.(result.data, result.details)}
 {/if}

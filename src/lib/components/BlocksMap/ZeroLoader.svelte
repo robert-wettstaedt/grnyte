@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
   import { onMount } from 'svelte'
-  import { Query } from 'zero-svelte'
   import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
@@ -14,13 +13,13 @@
     mounted = true
   })
 
-  const blocksResult = new Query(page.data.z.query.blocks.related('geolocation'))
-  const areasResult = new Query(page.data.z.query.areas.related('parkingLocations'))
+  const blocksResult = $derived(page.data.z.q(page.data.z.query.blocks.related('geolocation')))
+  const areasResult = $derived(page.data.z.q(page.data.z.query.areas.related('parkingLocations')))
 
   const data = $derived.by(() => {
-    const areas = $state.snapshot(areasResult.current)
+    const areas = $state.snapshot(areasResult.data)
 
-    const nestedBlocks = blocksResult.current
+    const nestedBlocks = blocksResult.data
       .map((block): NestedBlock | null => {
         if (block.id == null) {
           return null
@@ -44,8 +43,8 @@
       })
       .filter((block) => block != null)
 
-    const parkingLocations = areasResult.current.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
-    const geoPaths = areasResult.current.flatMap((area) => area.geoPaths ?? [])
+    const parkingLocations = areasResult.data.flatMap((area) => area.parkingLocations ?? []) as Geolocation[]
+    const geoPaths = areasResult.data.flatMap((area) => area.geoPaths ?? [])
 
     return {
       blocks: nestedBlocks,
