@@ -5,7 +5,7 @@
   import GradeRangeSlider from '../GradeRangeSlider'
 </script>
 
-<form class="flex flex-col items-center gap-4 px-6">
+<form class="flex flex-col items-center gap-4 px-2 md:px-4">
   <GradeRangeSlider
     minGrade={page.url.searchParams.get('minGrade') == null ? undefined : Number(page.url.searchParams.get('minGrade'))}
     maxGrade={page.url.searchParams.get('maxGrade') == null ? undefined : Number(page.url.searchParams.get('maxGrade'))}

@@ -32,7 +32,7 @@
 
 <RouteNameFormField bind:value={name} />
 
-<GradeFormField bind:value={gradeFk} />
+<GradeFormField bind:value={gradeFk} withModal />
 
 <RatingFormField bind:value={rating} />
 

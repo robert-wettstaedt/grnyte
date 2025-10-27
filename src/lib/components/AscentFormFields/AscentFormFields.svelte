@@ -5,6 +5,7 @@
   import GradeFormField from '$lib/components/GradeFormField'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
+  import { ascentTypeEnum } from '$lib/db/schema'
   import type { Row } from '$lib/db/zero'
   import { DateTime } from 'luxon'
 
@@ -29,12 +30,29 @@
 
 <label class="label mt-4">
   <span>Type</span>
-  <select class="select max-h-[300px] overflow-auto" name="type" size="4" bind:value={type}>
-    <option value="flash"><AscentTypeLabel type="flash" /></option>
-    <option value="send"><AscentTypeLabel type="send" /></option>
-    <option value="repeat"><AscentTypeLabel type="repeat" /></option>
-    <option value="attempt"><AscentTypeLabel type="attempt" /></option>
-  </select>
+
+  <input name="type" type="hidden" value={type} />
+
+  <div class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
+    {#each ascentTypeEnum as ascentType}
+      <label
+        class="flex cursor-pointer items-center justify-center rounded-md border-2 p-2 transition-colors md:p-4 {type ===
+        ascentType
+          ? 'bg-primary-500 border-primary-500'
+          : 'border-surface-500 bg-transparent'}"
+      >
+        <input
+          checked={type === ascentType}
+          class="hidden"
+          name="type"
+          onchange={() => (type = ascentType)}
+          type="radio"
+          value={ascentType}
+        />
+        <AscentTypeLabel type={ascentType} />
+      </label>
+    {/each}
+  </div>
 </label>
 
 <GradeFormField bind:value={gradeFk} />

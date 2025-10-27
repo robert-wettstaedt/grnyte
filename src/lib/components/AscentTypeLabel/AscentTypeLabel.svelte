@@ -12,7 +12,7 @@
 
 {#if type === 'flash'}
   {#if includeIcon}
-    <i class="fa-solid fa-bolt-lightning text-yellow-300"></i>
+    <i class="fa-solid fa-bolt-lightning text-yellow-300 {includeText ? 'me-1' : ''}"></i>
   {/if}
 
   {#if includeText}
@@ -20,7 +20,7 @@
   {/if}
 {:else if type === 'send'}
   {#if includeIcon}
-    <i class="fa-solid fa-circle text-red-500"></i>
+    <i class="fa-solid fa-circle text-red-500 {includeText ? 'me-1' : ''}"></i>
   {/if}
 
   {#if includeText}
@@ -28,7 +28,7 @@
   {/if}
 {:else if type === 'repeat'}
   {#if includeIcon}
-    <i class="fa-solid fa-repeat text-green-500"></i>
+    <i class="fa-solid fa-repeat text-green-500 {includeText ? 'me-1' : ''}"></i>
   {/if}
 
   {#if includeText}
@@ -36,7 +36,7 @@
   {/if}
 {:else}
   {#if includeIcon}
-    <i class="fa-solid fa-person-falling text-blue-3000"></i>
+    <i class="fa-solid fa-person-falling text-blue-3000 {includeText ? 'me-1' : ''}"></i>
   {/if}
 
   {#if includeText}

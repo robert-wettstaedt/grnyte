@@ -29,7 +29,7 @@
   })
 </script>
 
-<span class="badge text-white" style={`background: ${background}`}>
+<span class="badge font-semibold text-white" style={`background: ${background}`}>
   {#if newGradeConfig?.id == null || newGradeConfig?.id === oldGradeConfig?.id}
     {oldGradeConfig?.[pageState.gradingScale]}
   {:else}
