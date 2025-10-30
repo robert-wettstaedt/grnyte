@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
-  import { queries, type Row } from '$lib/db/zero'
+  import { type Row } from '$lib/db/zero'
   import { enrichTopo, sortRoutesByTopo, type TopoDTO } from '$lib/topo'
   import type { Snippet } from 'svelte'
   import TopoViewer, { type TopoViewerProps } from './TopoViewer.svelte'
@@ -20,7 +20,13 @@
 </script>
 
 {#if blockId != null}
-  <ZeroQueryWrapper query={queries.block(page.data, { blockId })}>
+  <ZeroQueryWrapper
+    query={page.data.z.query.blocks
+      .where('id', blockId)
+      .related('routes')
+      .related('topos', (q) => q.related('routes').related('file'))
+      .one()}
+  >
     {#snippet children(block)}
       {@const topos =
         block?.topos

@@ -151,6 +151,9 @@ export const queries = {
     }),
   ),
 
+  /**
+   * @deprecated
+   */
   listUsers: syncedQueryWithContext(
     'listUsers',
     z.tuple([
@@ -180,7 +183,9 @@ export const queries = {
     }),
   ),
 
-  listAreas: syncedQueryWithContext(
+  /**
+   * @deprecated
+   */ listAreas: syncedQueryWithContext(
     'listAreas',
     z.tuple([
       z.object({
@@ -216,6 +221,10 @@ export const queries = {
       return q
     }),
   ),
+
+  /**
+   * @deprecated
+   */
   area: syncedQueryWithContext(
     'area',
     z.tuple([
@@ -236,6 +245,9 @@ export const queries = {
     }),
   ),
 
+  /**
+   * @deprecated
+   */
   listBlocks: syncedQueryWithContext(
     'listBlocks',
     z.tuple([
@@ -274,6 +286,10 @@ export const queries = {
       return q
     }),
   ),
+
+  /**
+   * @deprecated
+   */
   block: syncedQueryWithContext(
     'block',
     z.tuple([
@@ -310,6 +326,9 @@ export const queries = {
   ),
 
   ...(function getListQuery() {
+    /**
+     * @deprecated
+     */
     const schema = z.object({
       areaId: z.number().nullish(),
       content: z.string().optional(),
@@ -323,6 +342,9 @@ export const queries = {
       withRelations: z.boolean().optional(),
     })
 
+    /**
+     * @deprecated
+     */
     const listRoutes = (ctx: QueryContext | null | undefined, opts: z.infer<typeof schema>) => {
       const r = relatedRegion(ctx)
 
@@ -377,6 +399,9 @@ export const queries = {
     }
 
     return {
+      /**
+       * @deprecated
+       */
       listRoutes: syncedQueryWithContext(
         'listRoutes',
         z.tuple([schema]),
@@ -384,6 +409,10 @@ export const queries = {
           return listRoutes(ctx, opts)
         }),
       ),
+
+      /**
+       * @deprecated
+       */
       listRoutesWithRelations: syncedQueryWithContext(
         'listRoutesWithRelations',
         z.tuple([schema]),
@@ -403,6 +432,10 @@ export const queries = {
             )
         }),
       ),
+
+      /**
+       * @deprecated
+       */
       listRoutesWithExternalResources: syncedQueryWithContext(
         'listRoutesWithExternalResources',
         z.tuple([schema]),
@@ -419,6 +452,10 @@ export const queries = {
             )
         }),
       ),
+
+      /**
+       * @deprecated
+       */
       listRoutesWithAscents: syncedQueryWithContext(
         'listRoutesWithAscents',
         z.tuple([schema]),
@@ -432,6 +469,10 @@ export const queries = {
       ),
     }
   })(),
+
+  /**
+   * @deprecated
+   */
   route: syncedQueryWithContext(
     'route',
     z.tuple([
@@ -477,6 +518,9 @@ export const queries = {
     }),
   ),
 
+  /**
+   * @deprecated
+   */
   listAscents: syncedQueryWithContext(
     'listAscents',
     z.tuple([
@@ -525,6 +569,10 @@ export const queries = {
       return q
     }),
   ),
+
+  /**
+   * @deprecated
+   */
   ascent: syncedQueryWithContext(
     'ascent',
     z.tuple([
@@ -549,6 +597,9 @@ export const queries = {
     }),
   ),
 
+  /**
+   * @deprecated
+   */
   listFiles: syncedQueryWithContext(
     'listFiles',
     z.tuple([
@@ -589,6 +640,9 @@ export const queries = {
     }),
   ),
 
+  /**
+   * @deprecated
+   */
   firstAscensionists: syncedQueryWithContext(
     'firstAscensionists',
     z.tuple([]),
@@ -656,12 +710,12 @@ export const queries = {
       const name = `listAll${capitalizedTable}`
 
       return {
-      ...obj,
+        ...obj,
         [name]: syncedQueryWithContext(
           name,
-        z.tuple([]),
-        regionMemberCan(() => builder[table]),
-      ),
+          z.tuple([]),
+          regionMemberCan(() => builder[table]),
+        ),
       }
     },
     {} as Record<

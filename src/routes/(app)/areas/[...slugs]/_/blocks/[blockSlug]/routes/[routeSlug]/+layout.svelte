@@ -7,7 +7,7 @@
   const { data, ...props } = $props()
 </script>
 
-<ZeroQueryWrapper loadingIndicator={{ type: 'skeleton' }} showEmpty query={data.routeQuery}>
+<ZeroQueryWrapper showEmpty query={data.routeQuery}>
   {#snippet children(block)}
     {@const route = block?.routes.at(0)}
 

@@ -9,7 +9,7 @@ export type PaginationParams = z.TypeOf<typeof paginationParamsSchema>
 
 export const hasReachedEnd = (currentLength: number, pageSize = DEFAULT_PAGE_SIZE): boolean => {
   if (currentLength === 0) {
-    return false
+    return true
   }
   return currentLength % pageSize !== 0
 }

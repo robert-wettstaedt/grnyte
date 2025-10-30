@@ -84,6 +84,14 @@
         </div>
       </li>
 
+      <li class="border-surface-800 border-t">
+        <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/cache">
+          App cache
+
+          <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+
       {#if checkAppPermission(pageState.userPermissions, [APP_PERMISSION_ADMIN])}
         <li class="border-surface-800 border-t">
           <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/tags">

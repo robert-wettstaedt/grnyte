@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { queries } from '$lib/db/zero'
+  import { preload, queries } from '$lib/db/zero'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import type { Snippet } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import { pageState } from '../../page.svelte'
 
   interface Props {
@@ -11,20 +11,20 @@
 
   const { children }: Props = $props()
 
+  let isPreloading = $state(true)
+
+  onMount(async () => {
+    await preload(page.data)
+    isPreloading = false
+  })
+
   const gradesResult = $derived(page.data.z.q(queries.grades(page.data)))
   const tagsResult = $derived(page.data.z.q(queries.tags(page.data)))
-
   const userResult = $derived(page.data.z.q(queries.currentUser(page.data)))
   const userRoleResult = $derived(page.data.z.q(queries.currentUserRoles(page.data)))
   const userRegionsResult = $derived(page.data.z.q(queries.currentUserRegions(page.data)))
 
   const permissionsResult = $derived(page.data.z.q(queries.rolePermissions(page.data)))
-
-  $effect(() => {
-    if (userResult.data?.id != null) {
-      page.data.z.current.preload(queries.listAscents(page.data, { createdBy: userResult.data.id }))
-    }
-  })
 
   const userPermissions = $derived(
     permissionsResult.data
@@ -80,8 +80,8 @@
   )
 </script>
 
-{#if isLoading}
-  <div class="fixed flex h-full w-full items-center justify-center">
+{#if isLoading || isPreloading}
+  <div class="fixed top-0 flex h-full w-full items-center justify-center">
     <ProgressRing value={null} />
   </div>
 {:else}

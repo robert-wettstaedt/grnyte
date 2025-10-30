@@ -3,6 +3,7 @@
   import Error from '$lib/components/Error'
   import type { Schema } from '$lib/db/zero/zero-schema'
   import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { onMount } from 'svelte'
   import type { ZeroQueryWrapperProps } from '.'
 
   const {
@@ -14,8 +15,14 @@
     showEmpty = false,
   }: ZeroQueryWrapperProps<TTable, TReturn> = $props()
 
+  let mounted = $state(false)
+
   const result = $derived(page.data.z.q(query))
   const isEmpty = $derived(Array.isArray(result.data) ? result.data.length === 0 : result.data == null)
+
+  onMount(() => {
+    mounted = true
+  })
 
   $effect(() => {
     if (result.details.type === 'complete') {
@@ -24,24 +31,26 @@
   })
 </script>
 
-{#if showEmpty && isEmpty && result.details.type === 'complete'}
-  <Error status={404} />
-{:else if loadingIndicator != null && isEmpty && result.details.type !== 'complete'}
-  {#if loadingIndicator.type === 'skeleton'}
-    <nav class="list-nav">
-      <ul class="overflow-auto">
-        {#each Array(loadingIndicator?.count ?? 10) as _}
-          <li class="placeholder my-2 w-full animate-pulse {loadingIndicator.height ?? 'h-20'}"></li>
-        {/each}
-      </ul>
-    </nav>
-  {:else if loadingIndicator.type === 'spinner'}
-    <div class="flex justify-center">
-      <ProgressRing size={loadingIndicator.size ?? 'size-12'} value={null} />
-    </div>
+{#if mounted}
+  {#if showEmpty && isEmpty && result.details.type === 'complete'}
+    <Error status={404} />
+  {:else if loadingIndicator != null && isEmpty && result.details.type !== 'complete'}
+    {#if loadingIndicator.type === 'skeleton'}
+      <nav class="list-nav">
+        <ul class="overflow-auto">
+          {#each Array(loadingIndicator?.count ?? 10) as _}
+            <li class="placeholder my-2 w-full animate-pulse {loadingIndicator.height ?? 'h-20'}"></li>
+          {/each}
+        </ul>
+      </nav>
+    {:else if loadingIndicator.type === 'spinner'}
+      <div class="flex justify-center">
+        <ProgressRing size={loadingIndicator.size ?? 'size-12'} value={null} />
+      </div>
+    {/if}
+  {:else}
+    {@render children?.(result.data, result.details)}
   {/if}
-{:else}
-  {@render children?.(result.data, result.details)}
-{/if}
 
-{@render after?.(result.data, result.details)}
+  {@render after?.(result.data, result.details)}
+{/if}

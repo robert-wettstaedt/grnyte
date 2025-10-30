@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { queries } from '$lib/db/zero'
   import {
     convertMarkdownToHtmlSync,
     enrichMarkdownWithReferences,
@@ -19,11 +18,23 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { areaId: markdownRefIds.areas })))
+  const areasResult = $derived(
+    page.data.z.q(
+      page.data.z.query.areas.where(({ cmp, or }) => or(...markdownRefIds.areas.map((id) => cmp('id', id)))),
+    ),
+  )
 
-  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { blockId: markdownRefIds.blocks })))
+  const blocksResult = $derived(
+    page.data.z.q(
+      page.data.z.query.blocks.where(({ cmp, or }) => or(...markdownRefIds.blocks.map((id) => cmp('id', id)))),
+    ),
+  )
 
-  const routesResult = $derived(page.data.z.q(queries.listRoutes(page.data, { routeId: markdownRefIds.routes })))
+  const routesResult = $derived(
+    page.data.z.q(
+      page.data.z.query.routes.where(({ cmp, or }) => or(...markdownRefIds.routes.map((id) => cmp('id', id)))),
+    ),
+  )
 
   const html = $derived.by(() => {
     const refs = [
