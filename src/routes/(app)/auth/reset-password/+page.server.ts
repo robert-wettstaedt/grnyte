@@ -22,8 +22,6 @@ export const actions = {
 
     const updateResponse = await locals.supabase.auth.updateUser({ password: values.password })
 
-    console.log('updated user:', updateResponse.data)
-
     if (updateResponse.error != null) {
       return fail(400, { error: updateResponse.error.message })
     }

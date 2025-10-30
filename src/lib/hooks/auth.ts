@@ -151,8 +151,12 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, '/auth')
   }
 
-  // Redirect authenticated users away from auth pages
-  if (event.locals.session != null && event.url.pathname.startsWith('/auth')) {
+  // Redirect authenticated users away from auth pages (except reset-password)
+  if (
+    event.locals.session != null &&
+    event.url.pathname.startsWith('/auth') &&
+    !event.url.pathname.startsWith('/auth/reset-password')
+  ) {
     authLogger.info('Redirecting authenticated user away from auth page', {
       userId: user?.id,
       userEmail: session?.user?.email,
