@@ -15,7 +15,7 @@
   import { selectedRouteStore, TopoViewerLoader as TopoViewer } from '$lib/components/TopoViewer'
   import { getRouteContext } from '$lib/contexts/route'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import FirstAscentInfo from './FirstAscentInfo.svelte'
   import RouteActions from './RouteActions.svelte'
 
@@ -40,11 +40,17 @@
   }
 
   onMount(() => {
+    selectedRouteStore.set(route.id)
+
     return selectedRouteStore.subscribe((value) => {
-      if (value == null && route != null) {
+      if (value == null) {
         selectedRouteStore.set(route.id)
       }
     })
+  })
+
+  onDestroy(() => {
+    selectedRouteStore.set(null)
   })
 </script>
 

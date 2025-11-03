@@ -11,7 +11,7 @@
   import TopoViewer, { selectedRouteStore, TopoViewerLoader } from '$lib/components/TopoViewer'
   import { getBlockContext } from '$lib/contexts/block'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import BlockActions from './BlockActions.svelte'
 
   const { block } = getBlockContext()
@@ -35,6 +35,10 @@
     checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block?.regionFk) ||
       (block != null && block.topos.length > 0),
   )
+
+  onDestroy(() => {
+    selectedRouteStore.set(null)
+  })
 </script>
 
 <svelte:head>
