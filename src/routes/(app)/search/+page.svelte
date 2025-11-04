@@ -9,9 +9,6 @@
   import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import type { Region } from '$lib/db/zero'
-  import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
 
@@ -23,7 +20,6 @@
     id: string
     name: string
     pathname: string
-    region: Region | undefined
   }
 
   interface AreaItem extends BaseItem {
@@ -56,15 +52,50 @@
     value = searchQuery
   })
 
-  const { data: regions } = $derived(page.data.z.q(queries.regions(page.data)))
+  const areasResult = $derived(
+    page.data.z.q(
+      page.data.z.query.areas
+        .where((q) =>
+          searchQuery.length === 0
+            ? q.cmp('name', '<SEARCH>')
+            : q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('parent', (q) => q.related('parent'))
+        .related('region'),
+    ),
+  )
 
-  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { content: searchQuery })))
+  const blocksResult = $derived(
+    page.data.z.q(
+      page.data.z.query.blocks
+        .where((q) =>
+          searchQuery.length === 0 ? q.cmp('name', '<SEARCH>') : q.cmp('name', 'ILIKE', `%${searchQuery}%`),
+        )
+        .related('area', (q) => q.related('parent'))
+        .related('region'),
+    ),
+  )
 
-  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { content: searchQuery })))
+  const routesResult = $derived(
+    page.data.z.q(
+      page.data.z.query.routes
+        .where((q) =>
+          searchQuery.length === 0
+            ? q.cmp('name', '<SEARCH>')
+            : q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)),
+        )
+        .related('block', (q) => q.related('area', (q) => q.related('parent')))
+        .related('region'),
+    ),
+  )
 
-  const routesResult = $derived(page.data.z.q(queries.listRoutesWithRelations(page.data, { content: searchQuery })))
-
-  const usersResult = $derived(page.data.z.q(queries.listUsers(page.data, { content: searchQuery })))
+  const usersResult = $derived(
+    page.data.z.q(
+      page.data.z.query.users.where((q) =>
+        searchQuery.length === 0 ? q.cmp('username', '<SEARCH>') : q.cmp('username', 'ILIKE', `%${searchQuery}%`),
+      ),
+    ),
+  )
 
   const isLoading = $derived(
     (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||
@@ -86,7 +117,6 @@
           name: item.name,
           id: `/areas/${item.id}`,
           pathname: `/areas/${item.id}`,
-          region: undefined,
           type: 'area',
         }),
       ),
@@ -97,7 +127,6 @@
           name: item.name,
           id: `/blocks/${item.id}`,
           pathname: `/blocks/${item.id}`,
-          region: undefined,
           type: 'block',
         }),
       ),
@@ -108,7 +137,6 @@
           name: item.name,
           id: `/routes/${item.id}`,
           pathname: `/routes/${item.id}`,
-          region: undefined,
           type: 'route',
         }),
       ),
@@ -119,26 +147,12 @@
           name: item.username,
           id: `/users/${item.username}`,
           pathname: `/users/${item.username}`,
-          region: undefined,
           type: 'user',
         }),
       ),
     ]
 
-    const withRegions = items.map((item) => {
-      const regionFk = 'regionFk' in item.data ? item.data.regionFk : undefined
-
-      if (regionFk == null) {
-        return item
-      }
-
-      return {
-        ...item,
-        region: regions.find((region) => region.id === regionFk),
-      }
-    })
-
-    const sorted = withRegions.toSorted((a, b) => {
+    const sorted = items.toSorted((a, b) => {
       const indexA = Math.min(
         ...a.fields.map((field) => field.toLowerCase().indexOf(searchQuery.toLowerCase())).filter((i) => i >= 0),
       )
@@ -241,27 +255,11 @@
       {/each}
     </div>
   {/if}
-{:else if isLoading && searchResults.length === 0}
-  <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
-    <nav class="list-nav">
-      <ul class="overflow-auto">
-        {#each Array(10) as _}
-          <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
-        {/each}
-      </ul>
-    </nav>
-  </div>
 {:else if searchResults.length === 0}
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     No results found for <span class="text-primary-500">{searchQuery}</span>.
   </div>
 {:else}
-  {#if isLoading}
-    <div class="mt-8 flex justify-center">
-      <ProgressRing value={null} size="size-14" />
-    </div>
-  {/if}
-
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     <GenericList items={searchResults}>
       {#snippet left(item)}
@@ -281,8 +279,8 @@
           {:else}
             <div class="flex flex-col gap-1 overflow-hidden">
               <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-                {#if pageState.userRegions.length > 1 && item.region != null}
-                  {item.region.name}
+                {#if pageState.userRegions.length > 1 && item.data.region != null}
+                  {item.data.region.name}
 
                   {#if item.type === 'area'}
                     {#if item.data.parent != null}

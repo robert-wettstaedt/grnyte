@@ -108,8 +108,8 @@
 
 <ZeroQueryWrapper {query} loadingIndicator={{ type: 'skeleton', count: 15 }}>
   {#snippet children(items)}
-    {@const fileId = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
-    <ZeroQueryWrapper query={queries.listFiles(page.data, { fileId })}>
+    {@const fileIds = items.filter((activity) => activity.entityType === 'file').map((activity) => activity.entityId)}
+    <ZeroQueryWrapper query={page.data.z.query.files.where('id', 'IN', fileIds).related('ascent')}>
       {#snippet children(files)}
         {@const groups = paginateActivities(items).map((item) => groupActivities(item, files))}
         <ActivityFeed activities={groups} />

@@ -6,7 +6,7 @@
   const { data, ...props } = $props()
 </script>
 
-<ZeroQueryWrapper loadingIndicator={{ type: 'skeleton' }} showEmpty query={data.blockQuery}>
+<ZeroQueryWrapper showEmpty query={data.blockQuery}>
   {#snippet children(block)}
     {#if block == null}
       <Error status={404} />

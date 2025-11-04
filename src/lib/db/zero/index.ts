@@ -38,6 +38,47 @@ export {
   type UserSetting,
 } from './zero-schema.gen'
 
+export async function preload({ session, z }: App.PageData) {
+  if (session != null) {
+    const ctx: QueryContext = { authUserId: session?.user.id }
+
+    const preloadOpts = { ttl: '5m' as const }
+
+    try {
+      await Promise.all([
+        z.current.preload(queries.currentUser(ctx), preloadOpts),
+        z.current.preload(queries.currentUserRegions(ctx), preloadOpts),
+        z.current.preload(queries.currentUserRoles(ctx), preloadOpts),
+        z.current.preload(queries.grades(ctx), preloadOpts),
+        z.current.preload(queries.regions(ctx), preloadOpts),
+        z.current.preload(queries.rolePermissions(ctx), preloadOpts),
+        z.current.preload(queries.tags(ctx), preloadOpts),
+
+        z.current.preload(queries.listAllAreas(ctx), preloadOpts),
+        z.current.preload(queries.listAllAscents(ctx), preloadOpts),
+        z.current.preload(queries.listAllBlocks(ctx), preloadOpts),
+        z.current.preload(queries.listAllFiles(ctx), preloadOpts),
+        z.current.preload(queries.listAllFirstAscensionists(ctx), preloadOpts),
+        z.current.preload(queries.listAllGeolocations(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResource27crags(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResource8a(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResourceTheCrag(ctx), preloadOpts),
+        z.current.preload(queries.listAllRouteExternalResources(ctx), preloadOpts),
+        z.current.preload(queries.listAllRoutes(ctx), preloadOpts),
+        z.current.preload(queries.listAllRoutesToFirstAscensionists(ctx), preloadOpts),
+        z.current.preload(queries.listAllRoutesToTags(ctx), preloadOpts),
+        z.current.preload(queries.listAllTopoRoutes(ctx), preloadOpts),
+        z.current.preload(queries.listAllTopos(ctx), preloadOpts),
+        z.current.preload(queries.listAllUsers(ctx), preloadOpts),
+      ])
+
+      console.log('All queries preloaded successfully')
+    } catch (error) {
+      console.error('Error preloading queries:', error)
+    }
+  }
+}
+
 export function initZero(session: Session | undefined | null) {
   const z = new Z<Schema>({
     auth: session?.access_token,
@@ -45,33 +86,6 @@ export function initZero(session: Session | undefined | null) {
     server: PUBLIC_ZERO_URL,
     schema,
   })
-
-  const ctx: QueryContext = { authUserId: session?.user.id }
-
-  if (session != null) {
-    Promise.all([
-      z.current.preload(queries.grades(ctx)).complete,
-      z.current.preload(queries.tags(ctx)).complete,
-      z.current.preload(queries.regions(ctx)).complete,
-      z.current.preload(queries.rolePermissions(ctx)).complete,
-
-      z.current.preload(queries.currentUserRoles(ctx)).complete,
-      z.current.preload(queries.currentUser(ctx)).complete,
-      z.current.preload(queries.currentUserRegions(ctx)).complete,
-
-      z.current.preload(queries.listUsers(ctx, {})).complete,
-      z.current.preload(queries.listAreas(ctx, {})).complete,
-      z.current.preload(queries.listBlocks(ctx, {})).complete,
-      z.current.preload(queries.listRoutes(ctx, {})).complete,
-      z.current.preload(queries.firstAscensionists(ctx)).complete,
-    ])
-      .then(() => {
-        console.log('All queries preloaded successfully')
-      })
-      .catch((error) => {
-        console.error('Error preloading queries:', error)
-      })
-  }
 
   return z
 }

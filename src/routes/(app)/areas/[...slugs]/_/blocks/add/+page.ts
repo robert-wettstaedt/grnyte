@@ -1,17 +1,16 @@
-import { page } from '$app/state'
-import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
 import type { PageLoad } from './$types'
 
-export const load = (async ({ params }) => {
+export const load = (async ({ parent, params }) => {
   const { areaId } = convertAreaSlugRaw(params)
+  const { z } = await parent()
 
   if (areaId == null) {
     error(404)
   }
 
-  const query = queries.listBlocks(page.data, { areaId })
+  const query = z.query.blocks.where('areaFk', areaId)
 
   return { query }
 }) satisfies PageLoad
