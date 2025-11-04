@@ -33,7 +33,7 @@ const QueryResponse8a = z.object({
 export type QueryResponse8a = z.infer<typeof QueryResponse8a>
 
 export default {
-  postUrl: 'https://www.8a.nu/api/ascents',
+  postUrl: 'https://www.8a.nu/api/dotnet/ascents',
 
   query: async (query, blockId, cragName, sectorName) => {
     const cacheKey = `8a-${blockId}-${generateSlug(query)}`
@@ -152,7 +152,7 @@ export default {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Cookie: `connect.sid=${userSettings.cookie8a}`,
+        Cookie: `nu8a_session=${userSettings.cookie8a}`,
       },
     })
 
@@ -202,7 +202,7 @@ export default {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Cookie: `connect.sid=${userSettings.cookie8a}`,
+        Cookie: `nu8a_session=${userSettings.cookie8a}`,
       },
       body: JSON.stringify({
         zlaggable: {
