@@ -29,7 +29,17 @@
       .filter((route) => route.area != null)
       .map((route) => ({ ...route, id: route.id!, area: route.area! }))
 
-    return Object.groupBy(routes, (item) => item.area)
+    const map = Object.groupBy(routes, (item) => item.area)
+
+    Object.keys(map).map((key) => {
+      map[key] = map[key]?.toSorted(
+        (a, b) =>
+          (a.userGradeFk ?? a.gradeFk ?? Number.MAX_SAFE_INTEGER) -
+          (b.userGradeFk ?? b.gradeFk ?? Number.MAX_SAFE_INTEGER),
+      )
+    })
+
+    return map
   })
 
   $effect(() => {
@@ -51,9 +61,9 @@
           <GenericList items={routes}>
             {#snippet left(route)}
               {#if route.ascents.length > 0}
-                <RouteListItem {route}>
+                <RouteListItem {route} showPath>
                   {#snippet description()}
-                    <div class="flex max-w-[250px] items-center justify-between">
+                    <div class="flex items-center gap-2">
                       <p class="text-xs text-white opacity-50">Sessions: {route.ascents.length}</p>
 
                       <p class="text-xs text-white opacity-50">·</p>
@@ -67,7 +77,7 @@
                   {/snippet}
                 </RouteListItem>
               {:else}
-                <RouteListItem {route} />
+                <RouteListItem {route} showPath />
               {/if}
             {/snippet}
           </GenericList>

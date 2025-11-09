@@ -5,8 +5,7 @@
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout'
-  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
-  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { queries } from '$lib/db/zero'
   import { Segment } from '@skeletonlabs/skeleton-svelte'
@@ -166,22 +165,7 @@
                       }))}
                     >
                       {#snippet left(route)}
-                        <div class="flex items-center gap-2">
-                          <Image
-                            path={route.topo?.file?.path == null ? null : `/nextcloud/${route.topo.file.path}/preview`}
-                            size={64}
-                          />
-
-                          <div class="w-[calc(100%-64px)]">
-                            <RouteName {route} />
-
-                            <MarkdownRenderer
-                              className="short"
-                              encloseReferences="strong"
-                              markdown={route.description ?? ''}
-                            />
-                          </div>
-                        </div>
+                        <RouteListItem route={{ ...route, block: item }} />
                       {/snippet}
                     </GenericList>
                   {/if}

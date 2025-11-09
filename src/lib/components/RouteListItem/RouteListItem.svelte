@@ -9,9 +9,10 @@
   interface Props {
     description?: Snippet
     route: RowWithRelations<'routes', { block: true }>
+    showPath?: boolean
   }
 
-  const { description, route }: Props = $props()
+  const { description, route, showPath = false }: Props = $props()
 
   const block = $derived(route.block as RowWithRelations<'blocks', { area: true }> | undefined)
 
@@ -23,7 +24,7 @@
 
 <div class="flex gap-2">
   <div class="relative">
-    <Image path="/blocks/{route.block?.id}/preview-image" size={64} />
+    <Image path="/blocks/{block?.id}/preview-image" size={64} />
 
     {#if favoritesResult.data.length > 0}
       <div class="absolute top-1 left-1">
@@ -32,10 +33,12 @@
     {/if}
   </div>
 
-  <div class="flex w-full flex-col gap-1 overflow-hidden">
-    <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-      {block?.area?.name} / {route.block?.name}
-    </p>
+  <div class="flex w-full flex-col justify-center gap-1 overflow-hidden">
+    {#if showPath}
+      <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
+        {block?.area?.name} / {block?.name}
+      </p>
+    {/if}
 
     <RouteName {route} />
 

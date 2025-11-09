@@ -35,7 +35,7 @@
 
     <GenericList items={routes.flat()}>
       {#snippet left(route)}
-        <RouteListItem {route} />
+        <RouteListItem {route} showPath />
       {/snippet}
     </GenericList>
   {/snippet}
