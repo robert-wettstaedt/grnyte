@@ -5,12 +5,13 @@
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import AreaList from '$lib/components/AreaList'
+  import FavoritesList from '$lib/components/FavoritesList'
   import { pageState } from '$lib/components/Layout'
   import RouteList from '$lib/components/RouteList'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
-  type TabValue = 'areas' | 'routes'
+  type TabValue = 'areas' | 'routes' | 'favorites'
   let tabValue: TabValue | undefined = $state(undefined)
   let loadedTabs = $state(false)
   let tabFromUrl = $derived(page.url.searchParams.get('tab') as TabValue | undefined)
@@ -57,6 +58,7 @@
       {#snippet list()}
         <Tabs.Control value="areas">Areas</Tabs.Control>
         <Tabs.Control value="routes">Routes</Tabs.Control>
+        <Tabs.Control value="favorites">My Favorites</Tabs.Control>
       {/snippet}
 
       {#snippet content()}
@@ -69,6 +71,15 @@
         <Tabs.Panel value="routes">
           {#if tabValue === 'routes' || loadedTabs}
             <RouteList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+          {/if}
+        </Tabs.Panel>
+
+        <Tabs.Panel value="favorites">
+          {#if tabValue === 'favorites' || loadedTabs}
+            <FavoritesList
+              onLoad={() => setTimeout(() => (loadedTabs = true), 100)}
+              authUserId={page.data.authUserId!}
+            />
           {/if}
         </Tabs.Panel>
       {/snippet}

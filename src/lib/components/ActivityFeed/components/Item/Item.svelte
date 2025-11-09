@@ -36,6 +36,14 @@
       }
     }
 
+    if (activity.type === 'created' && activity.columnName === 'favorite') {
+      return 'fa-heart text-red-500'
+    }
+
+    if (activity.type === 'deleted' && activity.columnName === 'favorite') {
+      return 'fa-heart-crack text-white'
+    }
+
     switch (activity.type) {
       case 'created':
         return 'fa-plus'
@@ -70,7 +78,7 @@
 </script>
 
 <div class="flex items-start gap-4">
-  <div class="bg-surface-200-800 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
+  <div class="bg-surface-200-800 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
     <i class="fa-solid {iconClasses} text-lg"></i>
   </div>
 
@@ -216,6 +224,38 @@
         {#if activity.region != null}
           from region {activity.region.name}
         {/if}
+      {:else if activity.type === 'created' && activity.columnName === 'favorite'}
+        has added
+
+        <a
+          class="anchor relative inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap {routeNameClasses}"
+          href={`/${activity.entityType}s/${activity.entityId}`}
+        >
+          {#if activity.entity.type === 'route' && activity.entity.object != null}
+            {@const route = activity.entity.object}
+            <RouteName {route} />
+          {:else}
+            {activity.entityName}
+          {/if}
+        </a>
+
+        to their favorites
+      {:else if activity.type === 'deleted' && activity.columnName === 'favorite'}
+        has removed
+
+        <a
+          class="anchor relative inline-flex max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap {routeNameClasses}"
+          href={`/${activity.entityType}s/${activity.entityId}`}
+        >
+          {#if activity.entity.type === 'route' && activity.entity.object != null}
+            {@const route = activity.entity.object}
+            <RouteName {route} />
+          {:else}
+            {activity.entityName}
+          {/if}
+        </a>
+
+        from their favorites
       {:else}
         <span>
           {activity.type}

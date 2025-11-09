@@ -67,7 +67,7 @@
           {/snippet}
 
           {#snippet iconEmpty()}
-            <i class="fa-regular fa-star"></i>
+            <i class="fa-regular fa-star text-warning-500"></i>
           {/snippet}
         </Rating>
       </div>

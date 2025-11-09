@@ -576,6 +576,81 @@ export const schema = {
       primaryKey: ["id"],
       serverName: "client_error_logs",
     },
+    favorites: {
+      name: "favorites",
+      columns: {
+        createdAt: {
+          type: "number",
+          optional: true,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "createdAt"
+          >,
+          serverName: "created_at",
+        },
+        id: {
+          type: "number",
+          optional: true,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "id"
+          >,
+        },
+        regionFk: {
+          type: "number",
+          optional: false,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "regionFk"
+          >,
+          serverName: "region_fk",
+        },
+        authUserFk: {
+          type: "string",
+          optional: false,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "authUserFk"
+          >,
+          serverName: "auth_user_fk",
+        },
+        userFk: {
+          type: "number",
+          optional: false,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "userFk"
+          >,
+          serverName: "user_fk",
+        },
+        entityId: {
+          type: "string",
+          optional: false,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "entityId"
+          >,
+          serverName: "entity_id",
+        },
+        entityType: {
+          type: "string",
+          optional: false,
+          customType: null as unknown as ZeroCustomType<
+            ZeroSchema,
+            "favorites",
+            "entityType"
+          >,
+          serverName: "entity_type",
+        },
+      },
+      primaryKey: ["id"],
+    },
     files: {
       name: "files",
       columns: {
@@ -2440,6 +2515,24 @@ export const schema = {
         },
       ],
     },
+    favorites: {
+      region: [
+        {
+          sourceField: ["regionFk"],
+          destField: ["id"],
+          destSchema: "regions",
+          cardinality: "one",
+        },
+      ],
+      user: [
+        {
+          sourceField: ["userFk"],
+          destField: ["id"],
+          destSchema: "users",
+          cardinality: "one",
+        },
+      ],
+    },
     files: {
       area: [
         {
@@ -3035,6 +3128,14 @@ export const schema = {
           cardinality: "many",
         },
       ],
+      favorites: [
+        {
+          sourceField: ["id"],
+          destField: ["userFk"],
+          destSchema: "favorites",
+          cardinality: "many",
+        },
+      ],
       routes: [
         {
           sourceField: ["id"],
@@ -3054,7 +3155,7 @@ export const schema = {
       regionMemberships: [
         {
           sourceField: ["id"],
-          destField: ["userFk"],
+          destField: ["authUserFk"],
           destSchema: "regionMembers",
           cardinality: "many",
         },
@@ -3100,6 +3201,11 @@ export type BunnyStream = Row<Schema["tables"]["bunnyStreams"]>;
  * This type is auto-generated from your Drizzle schema definition.
  */
 export type ClientErrorLog = Row<Schema["tables"]["clientErrorLogs"]>;
+/**
+ * Represents a row from the "favorites" table.
+ * This type is auto-generated from your Drizzle schema definition.
+ */
+export type Favorite = Row<Schema["tables"]["favorites"]>;
 /**
  * Represents a row from the "files" table.
  * This type is auto-generated from your Drizzle schema definition.

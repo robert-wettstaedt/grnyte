@@ -36,6 +36,7 @@ export const permissions = definePermissions<SupabaseToken, Schema>(schema, () =
         | 'ascents'
         | 'blocks'
         | 'bunnyStreams'
+        | 'favorites'
         | 'files'
         | 'firstAscensionists'
         | 'geolocations'
@@ -69,7 +70,7 @@ export const permissions = definePermissions<SupabaseToken, Schema>(schema, () =
   const userCan = [
     (
       authData: SupabaseToken,
-      eb: ExpressionBuilder<Schema, 'pushSubscriptions' | 'regionMembers' | 'users' | 'userSettings'>,
+      eb: ExpressionBuilder<Schema, 'favorites' | 'pushSubscriptions' | 'regionMembers' | 'users' | 'userSettings'>,
     ) => eb.cmp('authUserFk', '=', authData.sub ?? ''),
   ]
 
@@ -268,6 +269,17 @@ export const permissions = definePermissions<SupabaseToken, Schema>(schema, () =
                 ),
               ),
           ],
+        },
+      },
+    },
+    favorites: {
+      row: {
+        select: regionMembersWithRoleCan(REGION_PERMISSION_READ),
+        delete: userCan,
+        insert: userCan,
+        update: {
+          preMutation: userCan,
+          postMutation: userCan,
         },
       },
     },

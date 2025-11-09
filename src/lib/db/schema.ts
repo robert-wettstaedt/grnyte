@@ -184,6 +184,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   areas: many(areas),
   ascents: many(ascents),
   blocks: many(blocks),
+  favorites: many(favorites),
   routes: many(routes),
   pushSubscriptions: many(pushSubscriptions),
   regionMemberships: many(regionMembers),
@@ -1262,6 +1263,47 @@ export type InsertActivity = InferInsertModel<typeof activities>
 export const activitiesRelations = relations(activities, ({ one }) => ({
   region: one(regions, { fields: [activities.regionFk], references: [regions.id] }),
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
+}))
+
+export const favoriteEntityType: ['block', 'route', 'area'] = ['block', 'route', 'area']
+
+export const favorites = table(
+  'favorites',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+
+    entityId: text('entity_id').notNull(),
+    entityType: text('entity_type', { enum: favoriteEntityType }).notNull(),
+  },
+  (table) => [
+    index('favorites_created_at_idx').on(table.createdAt),
+    index('favorites_entity_id_idx').on(table.entityId),
+    index('favorites_entity_type_idx').on(table.entityType),
+
+    policy(`users can insert own favorites`, getOwnEntryPolicyConfig('insert')),
+    policy(
+      `${REGION_PERMISSION_READ} can read favorites`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    policy(`users can update own favorites`, getOwnEntryPolicyConfig('update')),
+    policy(`users can delete own favorites`, getOwnEntryPolicyConfig('delete')),
+  ],
+).enableRLS()
+
+export type Favorite = InferSelectModel<typeof favorites>
+export type InsertFavorite = InferInsertModel<typeof favorites>
+
+export const favoritesRelations = relations(favorites, ({ one }) => ({
+  region: one(regions, { fields: [favorites.regionFk], references: [regions.id] }),
+  user: one(users, { fields: [favorites.userFk], references: [users.id] }),
 }))
 
 const jsonSchema = z.json()

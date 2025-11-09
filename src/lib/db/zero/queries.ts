@@ -1,7 +1,7 @@
 import type { Query, QueryFn, ReadonlyJSONValue, SyncedQuery } from '@rocicorp/zero'
 import { syncedQueryWithContext } from '@rocicorp/zero'
 import z from 'zod'
-import { activityParentEntityType, activityType, ascentTypeEnum } from '../schema'
+import { activityParentEntityType, activityType, ascentTypeEnum, favoriteEntityType } from '../schema'
 import { type Schema } from './zero-schema'
 import { builder } from './zero-schema.gen'
 
@@ -40,7 +40,7 @@ const regionPreloadTables: RegionPreloadTable[] = [
   'topos',
 ]
 
-type RegionTable = RegionPreloadTable | 'activities' | 'regionMembers'
+type RegionTable = RegionPreloadTable | 'activities' | 'favorites' | 'regionMembers'
 
 type RegionQuery<TReturn> = Query<Schema, RegionTable, TReturn>
 
@@ -133,7 +133,7 @@ export const queries = {
     'currentUser',
     z.tuple([]),
     authenticatedUserCan(({ authUserId }) => {
-      return builder.users.where('authUserFk', authUserId).related('userSettings').one()
+      return builder.users.where('authUserFk', authUserId).related('userSettings').related('favorites').one()
     }),
   ),
   currentUserRoles: syncedQueryWithContext(
@@ -306,6 +306,34 @@ export const queries = {
         .related('topos', (q) => r(q).related('routes', r).related('file', r))
         .related('geolocation', r)
         .one()
+    }),
+  ),
+
+  favorites: syncedQueryWithContext(
+    'favorites',
+    z.tuple([
+      z.object({
+        authUserFk: z.string().optional(),
+        entity: z
+          .object({
+            type: z.enum(favoriteEntityType),
+            id: z.string(),
+          })
+          .optional(),
+      }),
+    ]),
+    regionMemberCan((_, { authUserFk, entity }) => {
+      let q = builder.favorites
+
+      if (authUserFk != null) {
+        q = q.where('authUserFk', authUserFk)
+      }
+
+      if (entity != null) {
+        q = q.where('entityType', entity.type).where('entityId', entity.id)
+      }
+
+      return q
     }),
   ),
 
@@ -656,12 +684,12 @@ export const queries = {
       const name = `listAll${capitalizedTable}`
 
       return {
-      ...obj,
+        ...obj,
         [name]: syncedQueryWithContext(
           name,
-        z.tuple([]),
-        regionMemberCan(() => builder[table]),
-      ),
+          z.tuple([]),
+          regionMemberCan(() => builder[table]),
+        ),
       }
     },
     {} as Record<

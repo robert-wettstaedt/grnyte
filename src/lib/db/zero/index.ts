@@ -64,6 +64,7 @@ export function initZero(session: Session | undefined | null) {
       z.current.preload(queries.listBlocks(ctx, {})).complete,
       z.current.preload(queries.listRoutes(ctx, {})).complete,
       z.current.preload(queries.firstAscensionists(ctx)).complete,
+      z.current.preload(queries.favorites(ctx, {})).complete,
     ])
       .then(() => {
         console.log('All queries preloaded successfully')
