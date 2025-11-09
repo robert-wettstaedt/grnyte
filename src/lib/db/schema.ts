@@ -227,8 +227,8 @@ export type UserSettings = InferSelectModel<typeof userSettings>
 export type InsertUserSettings = InferInsertModel<typeof userSettings>
 
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
-  authUser: one(authUsers, { fields: [userSettings.authUserFk], references: [authUsers.id] }),
   user: one(users, { fields: [userSettings.userFk], references: [users.id] }),
+  authUser: one(authUsers, { fields: [userSettings.authUserFk], references: [authUsers.id] }),
 }))
 
 export const pushSubscriptions = table(
@@ -263,8 +263,8 @@ export type PushSubscription = InferSelectModel<typeof pushSubscriptions>
 export type InsertPushSubscription = InferInsertModel<typeof pushSubscriptions>
 
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
-  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
   user: one(users, { fields: [pushSubscriptions.userFk], references: [users.id] }),
+  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
 }))
 
 export const regions = table(
@@ -362,11 +362,11 @@ export type RegionMember = InferSelectModel<typeof regionMembers>
 export type InsertRegionMember = InferInsertModel<typeof regionMembers>
 
 export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
-  authUser: one(authUsers, { fields: [regionMembers.authUserFk], references: [authUsers.id] }),
+  user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
   invitedBy: one(users, { fields: [regionMembers.invitedByFk], references: [users.id] }),
   region: one(regions, { fields: [regionMembers.regionFk], references: [regions.id] }),
-  user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
   rolePermission: one(rolePermissions, { fields: [regionMembers.role], references: [rolePermissions.role] }),
+  authUser: one(authUsers, { fields: [regionMembers.authUserFk], references: [authUsers.id] }),
 }))
 
 export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired'])
@@ -1302,8 +1302,9 @@ export type Favorite = InferSelectModel<typeof favorites>
 export type InsertFavorite = InferInsertModel<typeof favorites>
 
 export const favoritesRelations = relations(favorites, ({ one }) => ({
-  region: one(regions, { fields: [favorites.regionFk], references: [regions.id] }),
   user: one(users, { fields: [favorites.userFk], references: [users.id] }),
+  authUser: one(authUsers, { fields: [favorites.authUserFk], references: [authUsers.id] }),
+  region: one(regions, { fields: [favorites.regionFk], references: [regions.id] }),
 }))
 
 const jsonSchema = z.json()

@@ -2516,19 +2516,27 @@ export const schema = {
       ],
     },
     favorites: {
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
       user: [
         {
           sourceField: ["userFk"],
           destField: ["id"],
           destSchema: "users",
+          cardinality: "one",
+        },
+      ],
+      authUser: [
+        {
+          sourceField: ["authUserFk"],
+          destField: ["id"],
+          destSchema: "users",
+          cardinality: "one",
+        },
+      ],
+      region: [
+        {
+          sourceField: ["regionFk"],
+          destField: ["id"],
+          destSchema: "regions",
           cardinality: "one",
         },
       ],
@@ -2654,17 +2662,17 @@ export const schema = {
       ],
     },
     pushSubscriptions: {
-      authUser: [
+      user: [
         {
-          sourceField: ["authUserFk"],
+          sourceField: ["userFk"],
           destField: ["id"],
           destSchema: "users",
           cardinality: "one",
         },
       ],
-      user: [
+      authUser: [
         {
-          sourceField: ["userFk"],
+          sourceField: ["authUserFk"],
           destField: ["id"],
           destSchema: "users",
           cardinality: "one",
@@ -2698,9 +2706,9 @@ export const schema = {
       ],
     },
     regionMembers: {
-      authUser: [
+      user: [
         {
-          sourceField: ["authUserFk"],
+          sourceField: ["userFk"],
           destField: ["id"],
           destSchema: "users",
           cardinality: "one",
@@ -2722,19 +2730,19 @@ export const schema = {
           cardinality: "one",
         },
       ],
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
       rolePermission: [
         {
           sourceField: ["role"],
           destField: ["role"],
           destSchema: "rolePermissions",
+          cardinality: "one",
+        },
+      ],
+      authUser: [
+        {
+          sourceField: ["authUserFk"],
+          destField: ["id"],
+          destSchema: "users",
           cardinality: "one",
         },
       ],
@@ -3062,17 +3070,17 @@ export const schema = {
       ],
     },
     userSettings: {
-      authUser: [
+      user: [
         {
-          sourceField: ["authUserFk"],
+          sourceField: ["userFk"],
           destField: ["id"],
           destSchema: "users",
           cardinality: "one",
         },
       ],
-      user: [
+      authUser: [
         {
-          sourceField: ["userFk"],
+          sourceField: ["authUserFk"],
           destField: ["id"],
           destSchema: "users",
           cardinality: "one",
@@ -3147,7 +3155,7 @@ export const schema = {
       pushSubscriptions: [
         {
           sourceField: ["id"],
-          destField: ["authUserFk"],
+          destField: ["userFk"],
           destSchema: "pushSubscriptions",
           cardinality: "many",
         },
@@ -3155,7 +3163,7 @@ export const schema = {
       regionMemberships: [
         {
           sourceField: ["id"],
-          destField: ["authUserFk"],
+          destField: ["userFk"],
           destSchema: "regionMembers",
           cardinality: "many",
         },
