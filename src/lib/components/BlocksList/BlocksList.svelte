@@ -8,7 +8,8 @@
   import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { queries } from '$lib/db/zero'
-  import { Segment } from '@skeletonlabs/skeleton-svelte'
+  import { ProgressRing, Segment } from '@skeletonlabs/skeleton-svelte'
+  import { updateBlockOrder } from './BlocksList.remote'
 
   interface Props {
     areaFk: number | null | undefined
@@ -56,11 +57,9 @@
   const onChangeCustomSortOrder = async (items: typeof sortedBlocks) => {
     blocks = items
 
-    const searchParams = new URLSearchParams()
-    items?.forEach((item) => searchParams.append('id', String(item.id)))
-    await fetch(`/api/areas/${areaFk}/blocks/order?${searchParams.toString()}`, {
-      method: 'PUT',
-    })
+    if (areaFk != null && items != null && items.length > 0) {
+      await updateBlockOrder({ areaId: areaFk, blockIds: items.map((i) => i.id).filter((d) => d != null) })
+    }
   }
 </script>
 
@@ -93,10 +92,14 @@
     {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
       <button
         class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
-        disabled={sortOrder !== 'custom'}
+        disabled={sortOrder !== 'custom' || updateBlockOrder.pending > 0}
         onclick={() => (orderMode = !orderMode)}
       >
-        <i class="fa-solid fa-sort"></i>
+        {#if updateBlockOrder.pending > 0}
+          <ProgressRing size="size-4" value={null} />
+        {:else}
+          <i class="fa-solid fa-sort"></i>
+        {/if}
 
         Reorder blocks
       </button>
