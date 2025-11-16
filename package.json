@@ -56,7 +56,7 @@
     "date-fns": "^4.1.0",
     "diff": "^8.0.1",
     "dragula": "^3.7.3",
-    "drizzle-zero": "^0.14.0",
+    "drizzle-zero": "^0.16.1",
     "exifr": "^7.1.3",
     "github-markdown-css": "^5.8.1",
     "heic-convert": "^2.1.0",

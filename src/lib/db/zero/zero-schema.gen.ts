@@ -10,3165 +10,2374 @@
 
 import type { Row } from "@rocicorp/zero";
 import { createBuilder } from "@rocicorp/zero";
-import type { DrizzleToZeroSchema, ZeroCustomType } from "drizzle-zero";
+import type { CustomType } from "drizzle-zero";
 import type * as drizzleSchema from "../schema";
 
-type ZeroSchema = DrizzleToZeroSchema<typeof drizzleSchema>;
-
+const activitiesTable = {
+  name: "activities",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    type: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as
+        | "created"
+        | "updated"
+        | "deleted"
+        | "uploaded",
+    },
+    userFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "user_fk",
+    },
+    entityId: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "entity_id",
+    },
+    entityType: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as
+        | "block"
+        | "route"
+        | "area"
+        | "ascent"
+        | "file"
+        | "user",
+      serverName: "entity_type",
+    },
+    parentEntityId: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "parent_entity_id",
+    },
+    parentEntityType: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as "block" | "route" | "area" | "ascent",
+      serverName: "parent_entity_type",
+    },
+    columnName: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "column_name",
+    },
+    metadata: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    oldValue: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "old_value",
+    },
+    newValue: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "new_value",
+    },
+    notified: {
+      type: "boolean",
+      optional: true,
+      customType: null as unknown as boolean,
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const areasTable = {
+  name: "areas",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    createdBy: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "created_by",
+    },
+    name: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    slug: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    description: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    type: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as "area" | "crag" | "sector",
+    },
+    visibility: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as "public" | "private",
+    },
+    walkingPaths: {
+      type: "json",
+      optional: true,
+      customType: null as unknown as string[],
+      serverName: "walking_paths",
+    },
+    geoPaths: {
+      type: "json",
+      optional: true,
+      customType: null as unknown as string[],
+      serverName: "geo_paths",
+    },
+    parentFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "parent_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const ascentsTable = {
+  name: "ascents",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    createdBy: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "created_by",
+    },
+    dateTime: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "date_time",
+    },
+    notes: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    rating: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    type: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as "repeat" | "flash" | "send" | "attempt",
+    },
+    gradeFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "grade_fk",
+    },
+    routeFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "route_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const blocksTable = {
+  name: "blocks",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    createdBy: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "created_by",
+    },
+    name: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    slug: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    order: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    areaFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "area_fk",
+    },
+    geolocationFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "geolocation_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const bunnyStreamsTable = {
+  name: "bunnyStreams",
+  columns: {
+    id: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    fileFk: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "file_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "bunny_streams",
+} as const;
+const clientErrorLogsTable = {
+  name: "clientErrorLogs",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    createdBy: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_by",
+    },
+    error: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    navigator: {
+      type: "json",
+      optional: true,
+      customType: null as unknown as CustomType<
+        typeof drizzleSchema,
+        "clientErrorLogs",
+        "navigator"
+      >,
+    },
+    pathname: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "client_error_logs",
+} as const;
+const favoritesTable = {
+  name: "favorites",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    authUserFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "auth_user_fk",
+    },
+    userFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "user_fk",
+    },
+    entityId: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "entity_id",
+    },
+    entityType: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as "block" | "route" | "area",
+      serverName: "entity_type",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const filesTable = {
+  name: "files",
+  columns: {
+    id: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    path: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    visibility: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as "public" | "private",
+    },
+    areaFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "area_fk",
+    },
+    ascentFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "ascent_fk",
+    },
+    blockFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "block_fk",
+    },
+    bunnyStreamFk: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "bunny_stream_fk",
+    },
+    routeFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "route_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const firstAscensionistsTable = {
+  name: "firstAscensionists",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    name: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    userFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "user_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "first_ascensionists",
+} as const;
+const geolocationsTable = {
+  name: "geolocations",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    lat: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    long: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    areaFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "area_fk",
+    },
+    blockFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "block_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const gradesTable = {
+  name: "grades",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    FB: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    V: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const pushSubscriptionsTable = {
+  name: "pushSubscriptions",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    authUserFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "auth_user_fk",
+    },
+    userFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "user_fk",
+    },
+    endpoint: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    expirationTime: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "expiration_time",
+    },
+    p256dh: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    auth: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "push_subscriptions",
+} as const;
+const regionInvitationsTable = {
+  name: "regionInvitations",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    token: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    invitedByFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "invited_by",
+    },
+    email: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    expiresAt: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "expires_at",
+    },
+    status: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as "pending" | "accepted" | "expired",
+    },
+    acceptedAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "accepted_at",
+    },
+    acceptedByFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "accepted_by",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "region_invitations",
+} as const;
+const regionMembersTable = {
+  name: "regionMembers",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    role: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as
+        | "app_admin"
+        | "region_user"
+        | "region_maintainer"
+        | "region_admin",
+    },
+    isActive: {
+      type: "boolean",
+      optional: true,
+      customType: null as unknown as boolean,
+      serverName: "is_active",
+    },
+    authUserFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "auth_user_fk",
+    },
+    invitedByFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "invited_by",
+    },
+    userFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "user_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "region_members",
+} as const;
+const regionsTable = {
+  name: "regions",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    createdBy: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "created_by",
+    },
+    maxMembers: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "max_members",
+    },
+    name: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    settings: {
+      type: "json",
+      optional: true,
+      customType: null as unknown as CustomType<
+        typeof drizzleSchema,
+        "regions",
+        "settings"
+      >,
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const rolePermissionsTable = {
+  name: "rolePermissions",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    role: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as
+        | "app_admin"
+        | "region_user"
+        | "region_maintainer"
+        | "region_admin",
+    },
+    permission: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as CustomType<
+        typeof drizzleSchema,
+        "rolePermissions",
+        "permission"
+      >,
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "role_permissions",
+} as const;
+const routeExternalResource27CragsTable = {
+  name: "routeExternalResource27crags",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    name: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    searchable_id: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    searchable_type: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    country_name: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    location_name: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    description: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    crag_id: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    latitude: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    longitude: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    path: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    url: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    externalResourcesFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "external_resources_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "route_external_resource_27crags",
+} as const;
+const routeExternalResource8ATable = {
+  name: "routeExternalResource8a",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    zlaggableName: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "zlaggable_name",
+    },
+    zlaggableSlug: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "zlaggable_slug",
+    },
+    zlaggableId: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "zlaggable_id",
+    },
+    cragName: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "crag_name",
+    },
+    cragSlug: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "crag_slug",
+    },
+    countrySlug: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "country_slug",
+    },
+    countryName: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "country_name",
+    },
+    areaName: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "area_name",
+    },
+    areaSlug: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "area_slug",
+    },
+    sectorName: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "sector_name",
+    },
+    sectorSlug: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "sector_slug",
+    },
+    gradeIndex: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "grade_index",
+    },
+    type: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    category: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    averageRating: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "average_rating",
+    },
+    difficulty: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    url: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    externalResourcesFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "external_resources_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "route_external_resource_8a",
+} as const;
+const routeExternalResourceTheCragTable = {
+  name: "routeExternalResourceTheCrag",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    name: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    description: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    grade: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    node: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    rating: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    tags: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    url: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    externalResourcesFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "external_resources_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "route_external_resource_the_crag",
+} as const;
+const routeExternalResourcesTable = {
+  name: "routeExternalResources",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    routeFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "route_fk",
+    },
+    externalResource8aFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "external_resource_8a_fk",
+    },
+    externalResource27cragsFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "external_resource_27crags_fk",
+    },
+    externalResourceTheCragFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "external_resource_the_crag_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "route_external_resources",
+} as const;
+const routesTable = {
+  name: "routes",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    createdBy: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "created_by",
+    },
+    name: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    slug: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    description: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    rating: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    firstAscentYear: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "first_ascent_year",
+    },
+    userRating: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "user_rating",
+    },
+    areaFks: {
+      type: "json",
+      optional: true,
+      customType: null as unknown as number[],
+      serverName: "area_fks",
+    },
+    areaIds: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "area_ids",
+    },
+    blockFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "block_fk",
+    },
+    externalResourcesFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "external_resources_fk",
+    },
+    gradeFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "grade_fk",
+    },
+    userGradeFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "user_grade_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const routesToFirstAscensionistsTable = {
+  name: "routesToFirstAscensionists",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    firstAscensionistFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "first_ascensionist_fk",
+    },
+    routeFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "route_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "routes_to_first_ascensionists",
+} as const;
+const routesToTagsTable = {
+  name: "routesToTags",
+  columns: {
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    routeFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "route_fk",
+    },
+    tagFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "tag_fk",
+    },
+  },
+  primaryKey: ["routeFk", "tagFk"],
+  serverName: "routes_to_tags",
+} as const;
+const tagsTable = {
+  name: "tags",
+  columns: {
+    id: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const topoRoutesTable = {
+  name: "topoRoutes",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    topType: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as "top" | "topout",
+      serverName: "top_type",
+    },
+    path: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+    },
+    routeFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "route_fk",
+    },
+    topoFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "topo_fk",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "topo_routes",
+} as const;
+const toposTable = {
+  name: "topos",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    regionFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "region_fk",
+    },
+    blockFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "block_fk",
+    },
+    fileFk: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "file_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const userRolesTable = {
+  name: "userRoles",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    authUserFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "auth_user_fk",
+    },
+    role: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as
+        | "app_admin"
+        | "region_user"
+        | "region_maintainer"
+        | "region_admin",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "user_roles",
+} as const;
+const userSettingsTable = {
+  name: "userSettings",
+  columns: {
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    authUserFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "auth_user_fk",
+    },
+    userFk: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+      serverName: "user_fk",
+    },
+    cookie8a: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "cookie_8a",
+    },
+    cookie27crags: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "cookie_27crags",
+    },
+    cookieTheCrag: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as string,
+      serverName: "cookie_the_crag",
+    },
+    gradingScale: {
+      type: "string",
+      optional: true,
+      customType: null as unknown as "FB" | "V",
+      serverName: "grading_scale",
+    },
+    notifyModerations: {
+      type: "boolean",
+      optional: true,
+      customType: null as unknown as boolean,
+      serverName: "notify_moderations",
+    },
+    notifyNewAscents: {
+      type: "boolean",
+      optional: true,
+      customType: null as unknown as boolean,
+      serverName: "notify_new_ascents",
+    },
+    notifyNewUsers: {
+      type: "boolean",
+      optional: true,
+      customType: null as unknown as boolean,
+      serverName: "notify_new_users",
+    },
+  },
+  primaryKey: ["id"],
+  serverName: "user_settings",
+} as const;
+const usersTable = {
+  name: "users",
+  columns: {
+    createdAt: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "created_at",
+    },
+    id: {
+      type: "number",
+      optional: false,
+      customType: null as unknown as number,
+    },
+    username: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+    },
+    authUserFk: {
+      type: "string",
+      optional: false,
+      customType: null as unknown as string,
+      serverName: "auth_user_fk",
+    },
+    firstAscensionistFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "first_ascentionist_fk",
+    },
+    userSettingsFk: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+      serverName: "user_settings_fk",
+    },
+  },
+  primaryKey: ["id"],
+} as const;
+const activitiesRelationships = {
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  user: [
+    {
+      sourceField: ["userFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const areasRelationships = {
+  author: [
+    {
+      sourceField: ["createdBy"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  parent: [
+    {
+      sourceField: ["parentFk"],
+      destField: ["id"],
+      destSchema: "areas",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  areas: [
+    {
+      sourceField: ["id"],
+      destField: ["parentFk"],
+      destSchema: "areas",
+      cardinality: "many",
+    },
+  ],
+  blocks: [
+    {
+      sourceField: ["id"],
+      destField: ["areaFk"],
+      destSchema: "blocks",
+      cardinality: "many",
+    },
+  ],
+  files: [
+    {
+      sourceField: ["id"],
+      destField: ["areaFk"],
+      destSchema: "files",
+      cardinality: "many",
+    },
+  ],
+  parkingLocations: [
+    {
+      sourceField: ["id"],
+      destField: ["areaFk"],
+      destSchema: "geolocations",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const ascentsRelationships = {
+  author: [
+    {
+      sourceField: ["createdBy"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  grade: [
+    {
+      sourceField: ["gradeFk"],
+      destField: ["id"],
+      destSchema: "grades",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  route: [
+    {
+      sourceField: ["routeFk"],
+      destField: ["id"],
+      destSchema: "routes",
+      cardinality: "one",
+    },
+  ],
+  files: [
+    {
+      sourceField: ["id"],
+      destField: ["ascentFk"],
+      destSchema: "files",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const blocksRelationships = {
+  area: [
+    {
+      sourceField: ["areaFk"],
+      destField: ["id"],
+      destSchema: "areas",
+      cardinality: "one",
+    },
+  ],
+  author: [
+    {
+      sourceField: ["createdBy"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  geolocation: [
+    {
+      sourceField: ["geolocationFk"],
+      destField: ["id"],
+      destSchema: "geolocations",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  files: [
+    {
+      sourceField: ["id"],
+      destField: ["blockFk"],
+      destSchema: "files",
+      cardinality: "many",
+    },
+  ],
+  routes: [
+    {
+      sourceField: ["id"],
+      destField: ["blockFk"],
+      destSchema: "routes",
+      cardinality: "many",
+    },
+  ],
+  topos: [
+    {
+      sourceField: ["id"],
+      destField: ["blockFk"],
+      destSchema: "topos",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const bunnyStreamsRelationships = {
+  file: [
+    {
+      sourceField: ["fileFk"],
+      destField: ["id"],
+      destSchema: "files",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const favoritesRelationships = {
+  user: [
+    {
+      sourceField: ["userFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  authUser: [
+    {
+      sourceField: ["authUserFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const filesRelationships = {
+  area: [
+    {
+      sourceField: ["areaFk"],
+      destField: ["id"],
+      destSchema: "areas",
+      cardinality: "one",
+    },
+  ],
+  ascent: [
+    {
+      sourceField: ["ascentFk"],
+      destField: ["id"],
+      destSchema: "ascents",
+      cardinality: "one",
+    },
+  ],
+  block: [
+    {
+      sourceField: ["blockFk"],
+      destField: ["id"],
+      destSchema: "blocks",
+      cardinality: "one",
+    },
+  ],
+  bunnyStream: [
+    {
+      sourceField: ["bunnyStreamFk"],
+      destField: ["id"],
+      destSchema: "bunnyStreams",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  route: [
+    {
+      sourceField: ["routeFk"],
+      destField: ["id"],
+      destSchema: "routes",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const firstAscensionistsRelationships = {
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  user: [
+    {
+      sourceField: ["userFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  routes: [
+    {
+      sourceField: ["id"],
+      destField: ["firstAscensionistFk"],
+      destSchema: "routesToFirstAscensionists",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const geolocationsRelationships = {
+  area: [
+    {
+      sourceField: ["areaFk"],
+      destField: ["id"],
+      destSchema: "areas",
+      cardinality: "one",
+    },
+  ],
+  block: [
+    {
+      sourceField: ["blockFk"],
+      destField: ["id"],
+      destSchema: "blocks",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const gradesRelationships = {
+  ascents: [
+    {
+      sourceField: ["id"],
+      destField: ["gradeFk"],
+      destSchema: "ascents",
+      cardinality: "many",
+    },
+  ],
+  routes: [
+    {
+      sourceField: ["id"],
+      destField: ["gradeFk"],
+      destSchema: "routes",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const pushSubscriptionsRelationships = {
+  user: [
+    {
+      sourceField: ["userFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  authUser: [
+    {
+      sourceField: ["authUserFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const regionInvitationsRelationships = {
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  invitedBy: [
+    {
+      sourceField: ["invitedByFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  acceptedBy: [
+    {
+      sourceField: ["acceptedByFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const regionMembersRelationships = {
+  user: [
+    {
+      sourceField: ["userFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  invitedBy: [
+    {
+      sourceField: ["invitedByFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  rolePermission: [
+    {
+      sourceField: ["role"],
+      destField: ["role"],
+      destSchema: "rolePermissions",
+      cardinality: "one",
+    },
+  ],
+  authUser: [
+    {
+      sourceField: ["authUserFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const regionsRelationships = {
+  members: [
+    {
+      sourceField: ["id"],
+      destField: ["regionFk"],
+      destSchema: "regionMembers",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const rolePermissionsRelationships = {
+  regionMembers: [
+    {
+      sourceField: ["role"],
+      destField: ["role"],
+      destSchema: "regionMembers",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const routeExternalResource27CragsRelationships = {
+  externalResources: [
+    {
+      sourceField: ["externalResourcesFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResources",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const routeExternalResource8ARelationships = {
+  externalResources: [
+    {
+      sourceField: ["externalResourcesFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResources",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const routeExternalResourceTheCragRelationships = {
+  externalResources: [
+    {
+      sourceField: ["externalResourcesFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResources",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const routeExternalResourcesRelationships = {
+  route: [
+    {
+      sourceField: ["routeFk"],
+      destField: ["id"],
+      destSchema: "routes",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  externalResource8a: [
+    {
+      sourceField: ["externalResource8aFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResource8a",
+      cardinality: "one",
+    },
+  ],
+  externalResource27crags: [
+    {
+      sourceField: ["externalResource27cragsFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResource27crags",
+      cardinality: "one",
+    },
+  ],
+  externalResourceTheCrag: [
+    {
+      sourceField: ["externalResourceTheCragFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResourceTheCrag",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const routesRelationships = {
+  author: [
+    {
+      sourceField: ["createdBy"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  block: [
+    {
+      sourceField: ["blockFk"],
+      destField: ["id"],
+      destSchema: "blocks",
+      cardinality: "one",
+    },
+  ],
+  externalResources: [
+    {
+      sourceField: ["externalResourcesFk"],
+      destField: ["id"],
+      destSchema: "routeExternalResources",
+      cardinality: "one",
+    },
+  ],
+  grade: [
+    {
+      sourceField: ["gradeFk"],
+      destField: ["id"],
+      destSchema: "grades",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  firstAscents: [
+    {
+      sourceField: ["id"],
+      destField: ["routeFk"],
+      destSchema: "routesToFirstAscensionists",
+      cardinality: "many",
+    },
+  ],
+  ascents: [
+    {
+      sourceField: ["id"],
+      destField: ["routeFk"],
+      destSchema: "ascents",
+      cardinality: "many",
+    },
+  ],
+  files: [
+    {
+      sourceField: ["id"],
+      destField: ["routeFk"],
+      destSchema: "files",
+      cardinality: "many",
+    },
+  ],
+  tags: [
+    {
+      sourceField: ["id"],
+      destField: ["routeFk"],
+      destSchema: "routesToTags",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const routesToFirstAscensionistsRelationships = {
+  firstAscensionist: [
+    {
+      sourceField: ["firstAscensionistFk"],
+      destField: ["id"],
+      destSchema: "firstAscensionists",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  route: [
+    {
+      sourceField: ["routeFk"],
+      destField: ["id"],
+      destSchema: "routes",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const routesToTagsRelationships = {
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  route: [
+    {
+      sourceField: ["routeFk"],
+      destField: ["id"],
+      destSchema: "routes",
+      cardinality: "one",
+    },
+  ],
+  tag: [
+    {
+      sourceField: ["tagFk"],
+      destField: ["id"],
+      destSchema: "tags",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const tagsRelationships = {
+  routes: [
+    {
+      sourceField: ["id"],
+      destField: ["tagFk"],
+      destSchema: "routesToTags",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const topoRoutesRelationships = {
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  route: [
+    {
+      sourceField: ["routeFk"],
+      destField: ["id"],
+      destSchema: "routes",
+      cardinality: "one",
+    },
+  ],
+  topo: [
+    {
+      sourceField: ["topoFk"],
+      destField: ["id"],
+      destSchema: "topos",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const toposRelationships = {
+  block: [
+    {
+      sourceField: ["blockFk"],
+      destField: ["id"],
+      destSchema: "blocks",
+      cardinality: "one",
+    },
+  ],
+  file: [
+    {
+      sourceField: ["fileFk"],
+      destField: ["id"],
+      destSchema: "files",
+      cardinality: "one",
+    },
+  ],
+  region: [
+    {
+      sourceField: ["regionFk"],
+      destField: ["id"],
+      destSchema: "regions",
+      cardinality: "one",
+    },
+  ],
+  routes: [
+    {
+      sourceField: ["id"],
+      destField: ["topoFk"],
+      destSchema: "topoRoutes",
+      cardinality: "many",
+    },
+  ],
+} as const;
+const userRolesRelationships = {
+  rolePermission: [
+    {
+      sourceField: ["role"],
+      destField: ["role"],
+      destSchema: "rolePermissions",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const userSettingsRelationships = {
+  user: [
+    {
+      sourceField: ["userFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  authUser: [
+    {
+      sourceField: ["authUserFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+} as const;
+const usersRelationships = {
+  authUser: [
+    {
+      sourceField: ["authUserFk"],
+      destField: ["id"],
+      destSchema: "users",
+      cardinality: "one",
+    },
+  ],
+  firstAscensionist: [
+    {
+      sourceField: ["firstAscensionistFk"],
+      destField: ["id"],
+      destSchema: "firstAscensionists",
+      cardinality: "one",
+    },
+  ],
+  userSettings: [
+    {
+      sourceField: ["userSettingsFk"],
+      destField: ["id"],
+      destSchema: "userSettings",
+      cardinality: "one",
+    },
+  ],
+  areas: [
+    {
+      sourceField: ["id"],
+      destField: ["createdBy"],
+      destSchema: "areas",
+      cardinality: "many",
+    },
+  ],
+  ascents: [
+    {
+      sourceField: ["id"],
+      destField: ["createdBy"],
+      destSchema: "ascents",
+      cardinality: "many",
+    },
+  ],
+  blocks: [
+    {
+      sourceField: ["id"],
+      destField: ["createdBy"],
+      destSchema: "blocks",
+      cardinality: "many",
+    },
+  ],
+  favorites: [
+    {
+      sourceField: ["id"],
+      destField: ["userFk"],
+      destSchema: "favorites",
+      cardinality: "many",
+    },
+  ],
+  routes: [
+    {
+      sourceField: ["id"],
+      destField: ["createdBy"],
+      destSchema: "routes",
+      cardinality: "many",
+    },
+  ],
+  pushSubscriptions: [
+    {
+      sourceField: ["id"],
+      destField: ["userFk"],
+      destSchema: "pushSubscriptions",
+      cardinality: "many",
+    },
+  ],
+  regionMemberships: [
+    {
+      sourceField: ["id"],
+      destField: ["userFk"],
+      destSchema: "regionMembers",
+      cardinality: "many",
+    },
+  ],
+} as const;
 /**
  * The Zero schema object.
  * This type is auto-generated from your Drizzle schema definition.
  */
 export const schema = {
   tables: {
-    activities: {
-      name: "activities",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        type: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "type"
-          >,
-        },
-        userFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "userFk"
-          >,
-          serverName: "user_fk",
-        },
-        entityId: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "entityId"
-          >,
-          serverName: "entity_id",
-        },
-        entityType: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "entityType"
-          >,
-          serverName: "entity_type",
-        },
-        parentEntityId: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "parentEntityId"
-          >,
-          serverName: "parent_entity_id",
-        },
-        parentEntityType: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "parentEntityType"
-          >,
-          serverName: "parent_entity_type",
-        },
-        columnName: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "columnName"
-          >,
-          serverName: "column_name",
-        },
-        metadata: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "metadata"
-          >,
-        },
-        oldValue: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "oldValue"
-          >,
-          serverName: "old_value",
-        },
-        newValue: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "newValue"
-          >,
-          serverName: "new_value",
-        },
-        notified: {
-          type: "boolean",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "activities",
-            "notified"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-    },
-    areas: {
-      name: "areas",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "id"
-          >,
-        },
-        createdBy: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "createdBy"
-          >,
-          serverName: "created_by",
-        },
-        name: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "name"
-          >,
-        },
-        slug: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "slug"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        description: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "description"
-          >,
-        },
-        type: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "type"
-          >,
-        },
-        visibility: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "visibility"
-          >,
-        },
-        walkingPaths: {
-          type: "json",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "walkingPaths"
-          >,
-          serverName: "walking_paths",
-        },
-        geoPaths: {
-          type: "json",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "geoPaths"
-          >,
-          serverName: "geo_paths",
-        },
-        parentFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "areas",
-            "parentFk"
-          >,
-          serverName: "parent_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    ascents: {
-      name: "ascents",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        createdBy: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "createdBy"
-          >,
-          serverName: "created_by",
-        },
-        dateTime: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "dateTime"
-          >,
-          serverName: "date_time",
-        },
-        notes: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "notes"
-          >,
-        },
-        rating: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "rating"
-          >,
-        },
-        type: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "type"
-          >,
-        },
-        gradeFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "gradeFk"
-          >,
-          serverName: "grade_fk",
-        },
-        routeFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "ascents",
-            "routeFk"
-          >,
-          serverName: "route_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    blocks: {
-      name: "blocks",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "id"
-          >,
-        },
-        createdBy: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "createdBy"
-          >,
-          serverName: "created_by",
-        },
-        name: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "name"
-          >,
-        },
-        slug: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "slug"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        order: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "order"
-          >,
-        },
-        areaFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "areaFk"
-          >,
-          serverName: "area_fk",
-        },
-        geolocationFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "blocks",
-            "geolocationFk"
-          >,
-          serverName: "geolocation_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    bunnyStreams: {
-      name: "bunnyStreams",
-      columns: {
-        id: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "bunnyStreams",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "bunnyStreams",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        fileFk: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "bunnyStreams",
-            "fileFk"
-          >,
-          serverName: "file_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "bunny_streams",
-    },
-    clientErrorLogs: {
-      name: "clientErrorLogs",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "clientErrorLogs",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "clientErrorLogs",
-            "id"
-          >,
-        },
-        createdBy: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "clientErrorLogs",
-            "createdBy"
-          >,
-          serverName: "created_by",
-        },
-        error: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "clientErrorLogs",
-            "error"
-          >,
-        },
-        navigator: {
-          type: "json",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "clientErrorLogs",
-            "navigator"
-          >,
-        },
-        pathname: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "clientErrorLogs",
-            "pathname"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "client_error_logs",
-    },
-    favorites: {
-      name: "favorites",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        authUserFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "authUserFk"
-          >,
-          serverName: "auth_user_fk",
-        },
-        userFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "userFk"
-          >,
-          serverName: "user_fk",
-        },
-        entityId: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "entityId"
-          >,
-          serverName: "entity_id",
-        },
-        entityType: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "favorites",
-            "entityType"
-          >,
-          serverName: "entity_type",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    files: {
-      name: "files",
-      columns: {
-        id: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        path: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "path"
-          >,
-        },
-        visibility: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "visibility"
-          >,
-        },
-        areaFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "areaFk"
-          >,
-          serverName: "area_fk",
-        },
-        ascentFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "ascentFk"
-          >,
-          serverName: "ascent_fk",
-        },
-        blockFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "blockFk"
-          >,
-          serverName: "block_fk",
-        },
-        bunnyStreamFk: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "bunnyStreamFk"
-          >,
-          serverName: "bunny_stream_fk",
-        },
-        routeFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "files",
-            "routeFk"
-          >,
-          serverName: "route_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    firstAscensionists: {
-      name: "firstAscensionists",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "firstAscensionists",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "firstAscensionists",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        name: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "firstAscensionists",
-            "name"
-          >,
-        },
-        userFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "firstAscensionists",
-            "userFk"
-          >,
-          serverName: "user_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "first_ascensionists",
-    },
-    geolocations: {
-      name: "geolocations",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "geolocations",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "geolocations",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        lat: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "geolocations",
-            "lat"
-          >,
-        },
-        long: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "geolocations",
-            "long"
-          >,
-        },
-        areaFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "geolocations",
-            "areaFk"
-          >,
-          serverName: "area_fk",
-        },
-        blockFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "geolocations",
-            "blockFk"
-          >,
-          serverName: "block_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    grades: {
-      name: "grades",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "grades",
-            "id"
-          >,
-        },
-        FB: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "grades",
-            "FB"
-          >,
-        },
-        V: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "grades",
-            "V"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-    },
-    pushSubscriptions: {
-      name: "pushSubscriptions",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "id"
-          >,
-        },
-        authUserFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "authUserFk"
-          >,
-          serverName: "auth_user_fk",
-        },
-        userFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "userFk"
-          >,
-          serverName: "user_fk",
-        },
-        endpoint: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "endpoint"
-          >,
-        },
-        expirationTime: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "expirationTime"
-          >,
-          serverName: "expiration_time",
-        },
-        p256dh: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "p256dh"
-          >,
-        },
-        auth: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "pushSubscriptions",
-            "auth"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "push_subscriptions",
-    },
-    regionInvitations: {
-      name: "regionInvitations",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        token: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "token"
-          >,
-        },
-        invitedByFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "invitedByFk"
-          >,
-          serverName: "invited_by",
-        },
-        email: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "email"
-          >,
-        },
-        expiresAt: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "expiresAt"
-          >,
-          serverName: "expires_at",
-        },
-        status: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "status"
-          >,
-        },
-        acceptedAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "acceptedAt"
-          >,
-          serverName: "accepted_at",
-        },
-        acceptedByFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionInvitations",
-            "acceptedByFk"
-          >,
-          serverName: "accepted_by",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "region_invitations",
-    },
-    regionMembers: {
-      name: "regionMembers",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        role: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "role"
-          >,
-        },
-        isActive: {
-          type: "boolean",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "isActive"
-          >,
-          serverName: "is_active",
-        },
-        authUserFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "authUserFk"
-          >,
-          serverName: "auth_user_fk",
-        },
-        invitedByFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "invitedByFk"
-          >,
-          serverName: "invited_by",
-        },
-        userFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regionMembers",
-            "userFk"
-          >,
-          serverName: "user_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "region_members",
-    },
-    regions: {
-      name: "regions",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regions",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regions",
-            "id"
-          >,
-        },
-        createdBy: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regions",
-            "createdBy"
-          >,
-          serverName: "created_by",
-        },
-        maxMembers: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regions",
-            "maxMembers"
-          >,
-          serverName: "max_members",
-        },
-        name: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regions",
-            "name"
-          >,
-        },
-        settings: {
-          type: "json",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "regions",
-            "settings"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-    },
-    rolePermissions: {
-      name: "rolePermissions",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "rolePermissions",
-            "id"
-          >,
-        },
-        role: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "rolePermissions",
-            "role"
-          >,
-        },
-        permission: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "rolePermissions",
-            "permission"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "role_permissions",
-    },
-    routeExternalResource27crags: {
-      name: "routeExternalResource27crags",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        name: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "name"
-          >,
-        },
-        searchable_id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "searchable_id"
-          >,
-        },
-        searchable_type: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "searchable_type"
-          >,
-        },
-        country_name: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "country_name"
-          >,
-        },
-        location_name: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "location_name"
-          >,
-        },
-        description: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "description"
-          >,
-        },
-        crag_id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "crag_id"
-          >,
-        },
-        latitude: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "latitude"
-          >,
-        },
-        longitude: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "longitude"
-          >,
-        },
-        path: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "path"
-          >,
-        },
-        url: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "url"
-          >,
-        },
-        externalResourcesFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource27crags",
-            "externalResourcesFk"
-          >,
-          serverName: "external_resources_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "route_external_resource_27crags",
-    },
-    routeExternalResource8a: {
-      name: "routeExternalResource8a",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        zlaggableName: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "zlaggableName"
-          >,
-          serverName: "zlaggable_name",
-        },
-        zlaggableSlug: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "zlaggableSlug"
-          >,
-          serverName: "zlaggable_slug",
-        },
-        zlaggableId: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "zlaggableId"
-          >,
-          serverName: "zlaggable_id",
-        },
-        cragName: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "cragName"
-          >,
-          serverName: "crag_name",
-        },
-        cragSlug: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "cragSlug"
-          >,
-          serverName: "crag_slug",
-        },
-        countrySlug: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "countrySlug"
-          >,
-          serverName: "country_slug",
-        },
-        countryName: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "countryName"
-          >,
-          serverName: "country_name",
-        },
-        areaName: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "areaName"
-          >,
-          serverName: "area_name",
-        },
-        areaSlug: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "areaSlug"
-          >,
-          serverName: "area_slug",
-        },
-        sectorName: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "sectorName"
-          >,
-          serverName: "sector_name",
-        },
-        sectorSlug: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "sectorSlug"
-          >,
-          serverName: "sector_slug",
-        },
-        gradeIndex: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "gradeIndex"
-          >,
-          serverName: "grade_index",
-        },
-        type: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "type"
-          >,
-        },
-        category: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "category"
-          >,
-        },
-        averageRating: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "averageRating"
-          >,
-          serverName: "average_rating",
-        },
-        difficulty: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "difficulty"
-          >,
-        },
-        url: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "url"
-          >,
-        },
-        externalResourcesFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResource8a",
-            "externalResourcesFk"
-          >,
-          serverName: "external_resources_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "route_external_resource_8a",
-    },
-    routeExternalResourceTheCrag: {
-      name: "routeExternalResourceTheCrag",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        name: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "name"
-          >,
-        },
-        description: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "description"
-          >,
-        },
-        grade: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "grade"
-          >,
-        },
-        node: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "node"
-          >,
-        },
-        rating: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "rating"
-          >,
-        },
-        tags: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "tags"
-          >,
-        },
-        url: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "url"
-          >,
-        },
-        externalResourcesFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResourceTheCrag",
-            "externalResourcesFk"
-          >,
-          serverName: "external_resources_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "route_external_resource_the_crag",
-    },
-    routeExternalResources: {
-      name: "routeExternalResources",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResources",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResources",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        routeFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResources",
-            "routeFk"
-          >,
-          serverName: "route_fk",
-        },
-        externalResource8aFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResources",
-            "externalResource8aFk"
-          >,
-          serverName: "external_resource_8a_fk",
-        },
-        externalResource27cragsFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResources",
-            "externalResource27cragsFk"
-          >,
-          serverName: "external_resource_27crags_fk",
-        },
-        externalResourceTheCragFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routeExternalResources",
-            "externalResourceTheCragFk"
-          >,
-          serverName: "external_resource_the_crag_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "route_external_resources",
-    },
-    routes: {
-      name: "routes",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "id"
-          >,
-        },
-        createdBy: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "createdBy"
-          >,
-          serverName: "created_by",
-        },
-        name: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "name"
-          >,
-        },
-        slug: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "slug"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        description: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "description"
-          >,
-        },
-        rating: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "rating"
-          >,
-        },
-        firstAscentYear: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "firstAscentYear"
-          >,
-          serverName: "first_ascent_year",
-        },
-        userRating: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "userRating"
-          >,
-          serverName: "user_rating",
-        },
-        areaFks: {
-          type: "json",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "areaFks"
-          >,
-          serverName: "area_fks",
-        },
-        areaIds: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "areaIds"
-          >,
-          serverName: "area_ids",
-        },
-        blockFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "blockFk"
-          >,
-          serverName: "block_fk",
-        },
-        externalResourcesFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "externalResourcesFk"
-          >,
-          serverName: "external_resources_fk",
-        },
-        gradeFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "gradeFk"
-          >,
-          serverName: "grade_fk",
-        },
-        userGradeFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routes",
-            "userGradeFk"
-          >,
-          serverName: "user_grade_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    routesToFirstAscensionists: {
-      name: "routesToFirstAscensionists",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToFirstAscensionists",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToFirstAscensionists",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        firstAscensionistFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToFirstAscensionists",
-            "firstAscensionistFk"
-          >,
-          serverName: "first_ascensionist_fk",
-        },
-        routeFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToFirstAscensionists",
-            "routeFk"
-          >,
-          serverName: "route_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "routes_to_first_ascensionists",
-    },
-    routesToTags: {
-      name: "routesToTags",
-      columns: {
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToTags",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        routeFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToTags",
-            "routeFk"
-          >,
-          serverName: "route_fk",
-        },
-        tagFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "routesToTags",
-            "tagFk"
-          >,
-          serverName: "tag_fk",
-        },
-      },
-      primaryKey: ["routeFk", "tagFk"],
-      serverName: "routes_to_tags",
-    },
-    tags: {
-      name: "tags",
-      columns: {
-        id: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "tags",
-            "id"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-    },
-    topoRoutes: {
-      name: "topoRoutes",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topoRoutes",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topoRoutes",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        topType: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topoRoutes",
-            "topType"
-          >,
-          serverName: "top_type",
-        },
-        path: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topoRoutes",
-            "path"
-          >,
-        },
-        routeFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topoRoutes",
-            "routeFk"
-          >,
-          serverName: "route_fk",
-        },
-        topoFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topoRoutes",
-            "topoFk"
-          >,
-          serverName: "topo_fk",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "topo_routes",
-    },
-    topos: {
-      name: "topos",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topos",
-            "id"
-          >,
-        },
-        regionFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topos",
-            "regionFk"
-          >,
-          serverName: "region_fk",
-        },
-        blockFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topos",
-            "blockFk"
-          >,
-          serverName: "block_fk",
-        },
-        fileFk: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "topos",
-            "fileFk"
-          >,
-          serverName: "file_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
-    userRoles: {
-      name: "userRoles",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userRoles",
-            "id"
-          >,
-        },
-        authUserFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userRoles",
-            "authUserFk"
-          >,
-          serverName: "auth_user_fk",
-        },
-        role: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userRoles",
-            "role"
-          >,
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "user_roles",
-    },
-    userSettings: {
-      name: "userSettings",
-      columns: {
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "id"
-          >,
-        },
-        authUserFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "authUserFk"
-          >,
-          serverName: "auth_user_fk",
-        },
-        userFk: {
-          type: "number",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "userFk"
-          >,
-          serverName: "user_fk",
-        },
-        cookie8a: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "cookie8a"
-          >,
-          serverName: "cookie_8a",
-        },
-        cookie27crags: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "cookie27crags"
-          >,
-          serverName: "cookie_27crags",
-        },
-        cookieTheCrag: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "cookieTheCrag"
-          >,
-          serverName: "cookie_the_crag",
-        },
-        gradingScale: {
-          type: "string",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "gradingScale"
-          >,
-          serverName: "grading_scale",
-        },
-        notifyModerations: {
-          type: "boolean",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "notifyModerations"
-          >,
-          serverName: "notify_moderations",
-        },
-        notifyNewAscents: {
-          type: "boolean",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "notifyNewAscents"
-          >,
-          serverName: "notify_new_ascents",
-        },
-        notifyNewUsers: {
-          type: "boolean",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "userSettings",
-            "notifyNewUsers"
-          >,
-          serverName: "notify_new_users",
-        },
-      },
-      primaryKey: ["id"],
-      serverName: "user_settings",
-    },
-    users: {
-      name: "users",
-      columns: {
-        createdAt: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "users",
-            "createdAt"
-          >,
-          serverName: "created_at",
-        },
-        id: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "users",
-            "id"
-          >,
-        },
-        username: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "users",
-            "username"
-          >,
-        },
-        authUserFk: {
-          type: "string",
-          optional: false,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "users",
-            "authUserFk"
-          >,
-          serverName: "auth_user_fk",
-        },
-        firstAscensionistFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "users",
-            "firstAscensionistFk"
-          >,
-          serverName: "first_ascentionist_fk",
-        },
-        userSettingsFk: {
-          type: "number",
-          optional: true,
-          customType: null as unknown as ZeroCustomType<
-            ZeroSchema,
-            "users",
-            "userSettingsFk"
-          >,
-          serverName: "user_settings_fk",
-        },
-      },
-      primaryKey: ["id"],
-    },
+    activities: activitiesTable,
+    areas: areasTable,
+    ascents: ascentsTable,
+    blocks: blocksTable,
+    bunnyStreams: bunnyStreamsTable,
+    clientErrorLogs: clientErrorLogsTable,
+    favorites: favoritesTable,
+    files: filesTable,
+    firstAscensionists: firstAscensionistsTable,
+    geolocations: geolocationsTable,
+    grades: gradesTable,
+    pushSubscriptions: pushSubscriptionsTable,
+    regionInvitations: regionInvitationsTable,
+    regionMembers: regionMembersTable,
+    regions: regionsTable,
+    rolePermissions: rolePermissionsTable,
+    routeExternalResource27crags: routeExternalResource27CragsTable,
+    routeExternalResource8a: routeExternalResource8ATable,
+    routeExternalResourceTheCrag: routeExternalResourceTheCragTable,
+    routeExternalResources: routeExternalResourcesTable,
+    routes: routesTable,
+    routesToFirstAscensionists: routesToFirstAscensionistsTable,
+    routesToTags: routesToTagsTable,
+    tags: tagsTable,
+    topoRoutes: topoRoutesTable,
+    topos: toposTable,
+    userRoles: userRolesTable,
+    userSettings: userSettingsTable,
+    users: usersTable,
   },
   relationships: {
-    activities: {
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-    },
-    areas: {
-      author: [
-        {
-          sourceField: ["createdBy"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      parent: [
-        {
-          sourceField: ["parentFk"],
-          destField: ["id"],
-          destSchema: "areas",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      areas: [
-        {
-          sourceField: ["id"],
-          destField: ["parentFk"],
-          destSchema: "areas",
-          cardinality: "many",
-        },
-      ],
-      blocks: [
-        {
-          sourceField: ["id"],
-          destField: ["areaFk"],
-          destSchema: "blocks",
-          cardinality: "many",
-        },
-      ],
-      files: [
-        {
-          sourceField: ["id"],
-          destField: ["areaFk"],
-          destSchema: "files",
-          cardinality: "many",
-        },
-      ],
-      parkingLocations: [
-        {
-          sourceField: ["id"],
-          destField: ["areaFk"],
-          destSchema: "geolocations",
-          cardinality: "many",
-        },
-      ],
-    },
-    ascents: {
-      author: [
-        {
-          sourceField: ["createdBy"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      grade: [
-        {
-          sourceField: ["gradeFk"],
-          destField: ["id"],
-          destSchema: "grades",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      route: [
-        {
-          sourceField: ["routeFk"],
-          destField: ["id"],
-          destSchema: "routes",
-          cardinality: "one",
-        },
-      ],
-      files: [
-        {
-          sourceField: ["id"],
-          destField: ["ascentFk"],
-          destSchema: "files",
-          cardinality: "many",
-        },
-      ],
-    },
-    blocks: {
-      area: [
-        {
-          sourceField: ["areaFk"],
-          destField: ["id"],
-          destSchema: "areas",
-          cardinality: "one",
-        },
-      ],
-      author: [
-        {
-          sourceField: ["createdBy"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      geolocation: [
-        {
-          sourceField: ["geolocationFk"],
-          destField: ["id"],
-          destSchema: "geolocations",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      files: [
-        {
-          sourceField: ["id"],
-          destField: ["blockFk"],
-          destSchema: "files",
-          cardinality: "many",
-        },
-      ],
-      routes: [
-        {
-          sourceField: ["id"],
-          destField: ["blockFk"],
-          destSchema: "routes",
-          cardinality: "many",
-        },
-      ],
-      topos: [
-        {
-          sourceField: ["id"],
-          destField: ["blockFk"],
-          destSchema: "topos",
-          cardinality: "many",
-        },
-      ],
-    },
-    bunnyStreams: {
-      file: [
-        {
-          sourceField: ["fileFk"],
-          destField: ["id"],
-          destSchema: "files",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-    },
-    favorites: {
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      authUser: [
-        {
-          sourceField: ["authUserFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-    },
-    files: {
-      area: [
-        {
-          sourceField: ["areaFk"],
-          destField: ["id"],
-          destSchema: "areas",
-          cardinality: "one",
-        },
-      ],
-      ascent: [
-        {
-          sourceField: ["ascentFk"],
-          destField: ["id"],
-          destSchema: "ascents",
-          cardinality: "one",
-        },
-      ],
-      block: [
-        {
-          sourceField: ["blockFk"],
-          destField: ["id"],
-          destSchema: "blocks",
-          cardinality: "one",
-        },
-      ],
-      bunnyStream: [
-        {
-          sourceField: ["bunnyStreamFk"],
-          destField: ["id"],
-          destSchema: "bunnyStreams",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      route: [
-        {
-          sourceField: ["routeFk"],
-          destField: ["id"],
-          destSchema: "routes",
-          cardinality: "one",
-        },
-      ],
-    },
-    firstAscensionists: {
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      routes: [
-        {
-          sourceField: ["id"],
-          destField: ["firstAscensionistFk"],
-          destSchema: "routesToFirstAscensionists",
-          cardinality: "many",
-        },
-      ],
-    },
-    geolocations: {
-      area: [
-        {
-          sourceField: ["areaFk"],
-          destField: ["id"],
-          destSchema: "areas",
-          cardinality: "one",
-        },
-      ],
-      block: [
-        {
-          sourceField: ["blockFk"],
-          destField: ["id"],
-          destSchema: "blocks",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-    },
-    grades: {
-      ascents: [
-        {
-          sourceField: ["id"],
-          destField: ["gradeFk"],
-          destSchema: "ascents",
-          cardinality: "many",
-        },
-      ],
-      routes: [
-        {
-          sourceField: ["id"],
-          destField: ["gradeFk"],
-          destSchema: "routes",
-          cardinality: "many",
-        },
-      ],
-    },
-    pushSubscriptions: {
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      authUser: [
-        {
-          sourceField: ["authUserFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-    },
-    regionInvitations: {
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      invitedBy: [
-        {
-          sourceField: ["invitedByFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      acceptedBy: [
-        {
-          sourceField: ["acceptedByFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-    },
-    regionMembers: {
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      invitedBy: [
-        {
-          sourceField: ["invitedByFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      rolePermission: [
-        {
-          sourceField: ["role"],
-          destField: ["role"],
-          destSchema: "rolePermissions",
-          cardinality: "one",
-        },
-      ],
-      authUser: [
-        {
-          sourceField: ["authUserFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-    },
-    regions: {
-      members: [
-        {
-          sourceField: ["id"],
-          destField: ["regionFk"],
-          destSchema: "regionMembers",
-          cardinality: "many",
-        },
-      ],
-    },
-    rolePermissions: {
-      regionMembers: [
-        {
-          sourceField: ["role"],
-          destField: ["role"],
-          destSchema: "regionMembers",
-          cardinality: "many",
-        },
-      ],
-    },
-    routeExternalResource27crags: {
-      externalResources: [
-        {
-          sourceField: ["externalResourcesFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResources",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-    },
-    routeExternalResource8a: {
-      externalResources: [
-        {
-          sourceField: ["externalResourcesFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResources",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-    },
-    routeExternalResourceTheCrag: {
-      externalResources: [
-        {
-          sourceField: ["externalResourcesFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResources",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-    },
-    routeExternalResources: {
-      route: [
-        {
-          sourceField: ["routeFk"],
-          destField: ["id"],
-          destSchema: "routes",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      externalResource8a: [
-        {
-          sourceField: ["externalResource8aFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResource8a",
-          cardinality: "one",
-        },
-      ],
-      externalResource27crags: [
-        {
-          sourceField: ["externalResource27cragsFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResource27crags",
-          cardinality: "one",
-        },
-      ],
-      externalResourceTheCrag: [
-        {
-          sourceField: ["externalResourceTheCragFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResourceTheCrag",
-          cardinality: "one",
-        },
-      ],
-    },
-    routes: {
-      author: [
-        {
-          sourceField: ["createdBy"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      block: [
-        {
-          sourceField: ["blockFk"],
-          destField: ["id"],
-          destSchema: "blocks",
-          cardinality: "one",
-        },
-      ],
-      externalResources: [
-        {
-          sourceField: ["externalResourcesFk"],
-          destField: ["id"],
-          destSchema: "routeExternalResources",
-          cardinality: "one",
-        },
-      ],
-      grade: [
-        {
-          sourceField: ["gradeFk"],
-          destField: ["id"],
-          destSchema: "grades",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      firstAscents: [
-        {
-          sourceField: ["id"],
-          destField: ["routeFk"],
-          destSchema: "routesToFirstAscensionists",
-          cardinality: "many",
-        },
-      ],
-      ascents: [
-        {
-          sourceField: ["id"],
-          destField: ["routeFk"],
-          destSchema: "ascents",
-          cardinality: "many",
-        },
-      ],
-      files: [
-        {
-          sourceField: ["id"],
-          destField: ["routeFk"],
-          destSchema: "files",
-          cardinality: "many",
-        },
-      ],
-      tags: [
-        {
-          sourceField: ["id"],
-          destField: ["routeFk"],
-          destSchema: "routesToTags",
-          cardinality: "many",
-        },
-      ],
-    },
-    routesToFirstAscensionists: {
-      firstAscensionist: [
-        {
-          sourceField: ["firstAscensionistFk"],
-          destField: ["id"],
-          destSchema: "firstAscensionists",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      route: [
-        {
-          sourceField: ["routeFk"],
-          destField: ["id"],
-          destSchema: "routes",
-          cardinality: "one",
-        },
-      ],
-    },
-    routesToTags: {
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      route: [
-        {
-          sourceField: ["routeFk"],
-          destField: ["id"],
-          destSchema: "routes",
-          cardinality: "one",
-        },
-      ],
-      tag: [
-        {
-          sourceField: ["tagFk"],
-          destField: ["id"],
-          destSchema: "tags",
-          cardinality: "one",
-        },
-      ],
-    },
-    tags: {
-      routes: [
-        {
-          sourceField: ["id"],
-          destField: ["tagFk"],
-          destSchema: "routesToTags",
-          cardinality: "many",
-        },
-      ],
-    },
-    topoRoutes: {
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      route: [
-        {
-          sourceField: ["routeFk"],
-          destField: ["id"],
-          destSchema: "routes",
-          cardinality: "one",
-        },
-      ],
-      topo: [
-        {
-          sourceField: ["topoFk"],
-          destField: ["id"],
-          destSchema: "topos",
-          cardinality: "one",
-        },
-      ],
-    },
-    topos: {
-      block: [
-        {
-          sourceField: ["blockFk"],
-          destField: ["id"],
-          destSchema: "blocks",
-          cardinality: "one",
-        },
-      ],
-      file: [
-        {
-          sourceField: ["fileFk"],
-          destField: ["id"],
-          destSchema: "files",
-          cardinality: "one",
-        },
-      ],
-      region: [
-        {
-          sourceField: ["regionFk"],
-          destField: ["id"],
-          destSchema: "regions",
-          cardinality: "one",
-        },
-      ],
-      routes: [
-        {
-          sourceField: ["id"],
-          destField: ["topoFk"],
-          destSchema: "topoRoutes",
-          cardinality: "many",
-        },
-      ],
-    },
-    userRoles: {
-      rolePermission: [
-        {
-          sourceField: ["role"],
-          destField: ["role"],
-          destSchema: "rolePermissions",
-          cardinality: "one",
-        },
-      ],
-    },
-    userSettings: {
-      user: [
-        {
-          sourceField: ["userFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      authUser: [
-        {
-          sourceField: ["authUserFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-    },
-    users: {
-      authUser: [
-        {
-          sourceField: ["authUserFk"],
-          destField: ["id"],
-          destSchema: "users",
-          cardinality: "one",
-        },
-      ],
-      firstAscensionist: [
-        {
-          sourceField: ["firstAscensionistFk"],
-          destField: ["id"],
-          destSchema: "firstAscensionists",
-          cardinality: "one",
-        },
-      ],
-      userSettings: [
-        {
-          sourceField: ["userSettingsFk"],
-          destField: ["id"],
-          destSchema: "userSettings",
-          cardinality: "one",
-        },
-      ],
-      areas: [
-        {
-          sourceField: ["id"],
-          destField: ["createdBy"],
-          destSchema: "areas",
-          cardinality: "many",
-        },
-      ],
-      ascents: [
-        {
-          sourceField: ["id"],
-          destField: ["createdBy"],
-          destSchema: "ascents",
-          cardinality: "many",
-        },
-      ],
-      blocks: [
-        {
-          sourceField: ["id"],
-          destField: ["createdBy"],
-          destSchema: "blocks",
-          cardinality: "many",
-        },
-      ],
-      favorites: [
-        {
-          sourceField: ["id"],
-          destField: ["userFk"],
-          destSchema: "favorites",
-          cardinality: "many",
-        },
-      ],
-      routes: [
-        {
-          sourceField: ["id"],
-          destField: ["createdBy"],
-          destSchema: "routes",
-          cardinality: "many",
-        },
-      ],
-      pushSubscriptions: [
-        {
-          sourceField: ["id"],
-          destField: ["userFk"],
-          destSchema: "pushSubscriptions",
-          cardinality: "many",
-        },
-      ],
-      regionMemberships: [
-        {
-          sourceField: ["id"],
-          destField: ["userFk"],
-          destSchema: "regionMembers",
-          cardinality: "many",
-        },
-      ],
-    },
+    activities: activitiesRelationships,
+    areas: areasRelationships,
+    ascents: ascentsRelationships,
+    blocks: blocksRelationships,
+    bunnyStreams: bunnyStreamsRelationships,
+    favorites: favoritesRelationships,
+    files: filesRelationships,
+    firstAscensionists: firstAscensionistsRelationships,
+    geolocations: geolocationsRelationships,
+    grades: gradesRelationships,
+    pushSubscriptions: pushSubscriptionsRelationships,
+    regionInvitations: regionInvitationsRelationships,
+    regionMembers: regionMembersRelationships,
+    regions: regionsRelationships,
+    rolePermissions: rolePermissionsRelationships,
+    routeExternalResource27crags: routeExternalResource27CragsRelationships,
+    routeExternalResource8a: routeExternalResource8ARelationships,
+    routeExternalResourceTheCrag: routeExternalResourceTheCragRelationships,
+    routeExternalResources: routeExternalResourcesRelationships,
+    routes: routesRelationships,
+    routesToFirstAscensionists: routesToFirstAscensionistsRelationships,
+    routesToTags: routesToTagsRelationships,
+    tags: tagsRelationships,
+    topoRoutes: topoRoutesRelationships,
+    topos: toposRelationships,
+    userRoles: userRolesRelationships,
+    userSettings: userSettingsRelationships,
+    users: usersRelationships,
   },
   enableLegacyQueries: true,
   enableLegacyMutators: true,
@@ -3183,157 +2392,153 @@ export type Schema = typeof schema;
  * Represents a row from the "activities" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Activity = Row<Schema["tables"]["activities"]>;
+export type Activity = Row<typeof activitiesTable>;
 /**
  * Represents a row from the "areas" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Area = Row<Schema["tables"]["areas"]>;
+export type Area = Row<typeof areasTable>;
 /**
  * Represents a row from the "ascents" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Ascent = Row<Schema["tables"]["ascents"]>;
+export type Ascent = Row<typeof ascentsTable>;
 /**
  * Represents a row from the "blocks" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Block = Row<Schema["tables"]["blocks"]>;
+export type Block = Row<typeof blocksTable>;
 /**
  * Represents a row from the "bunnyStreams" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type BunnyStream = Row<Schema["tables"]["bunnyStreams"]>;
+export type BunnyStream = Row<typeof bunnyStreamsTable>;
 /**
  * Represents a row from the "clientErrorLogs" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type ClientErrorLog = Row<Schema["tables"]["clientErrorLogs"]>;
+export type ClientErrorLog = Row<typeof clientErrorLogsTable>;
 /**
  * Represents a row from the "favorites" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Favorite = Row<Schema["tables"]["favorites"]>;
+export type Favorite = Row<typeof favoritesTable>;
 /**
  * Represents a row from the "files" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type File = Row<Schema["tables"]["files"]>;
+export type File = Row<typeof filesTable>;
 /**
  * Represents a row from the "firstAscensionists" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type FirstAscensionist = Row<Schema["tables"]["firstAscensionists"]>;
+export type FirstAscensionist = Row<typeof firstAscensionistsTable>;
 /**
  * Represents a row from the "geolocations" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Geolocation = Row<Schema["tables"]["geolocations"]>;
+export type Geolocation = Row<typeof geolocationsTable>;
 /**
  * Represents a row from the "grades" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Grade = Row<Schema["tables"]["grades"]>;
+export type Grade = Row<typeof gradesTable>;
 /**
  * Represents a row from the "pushSubscriptions" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type PushSubscription = Row<Schema["tables"]["pushSubscriptions"]>;
+export type PushSubscription = Row<typeof pushSubscriptionsTable>;
 /**
  * Represents a row from the "regionInvitations" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type RegionInvitation = Row<Schema["tables"]["regionInvitations"]>;
+export type RegionInvitation = Row<typeof regionInvitationsTable>;
 /**
  * Represents a row from the "regionMembers" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type RegionMember = Row<Schema["tables"]["regionMembers"]>;
+export type RegionMember = Row<typeof regionMembersTable>;
 /**
  * Represents a row from the "regions" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Region = Row<Schema["tables"]["regions"]>;
+export type Region = Row<typeof regionsTable>;
 /**
  * Represents a row from the "rolePermissions" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type RolePermission = Row<Schema["tables"]["rolePermissions"]>;
+export type RolePermission = Row<typeof rolePermissionsTable>;
 /**
  * Represents a row from the "routeExternalResource27crags" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
 export type RouteExternalResource27Crag = Row<
-  Schema["tables"]["routeExternalResource27crags"]
+  typeof routeExternalResource27CragsTable
 >;
 /**
  * Represents a row from the "routeExternalResource8a" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type RouteExternalResource8A = Row<
-  Schema["tables"]["routeExternalResource8a"]
->;
+export type RouteExternalResource8A = Row<typeof routeExternalResource8ATable>;
 /**
  * Represents a row from the "routeExternalResourceTheCrag" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
 export type RouteExternalResourceTheCrag = Row<
-  Schema["tables"]["routeExternalResourceTheCrag"]
+  typeof routeExternalResourceTheCragTable
 >;
 /**
  * Represents a row from the "routeExternalResources" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type RouteExternalResource = Row<
-  Schema["tables"]["routeExternalResources"]
->;
+export type RouteExternalResource = Row<typeof routeExternalResourcesTable>;
 /**
  * Represents a row from the "routes" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Route = Row<Schema["tables"]["routes"]>;
+export type Route = Row<typeof routesTable>;
 /**
  * Represents a row from the "routesToFirstAscensionists" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
 export type RoutesToFirstAscensionist = Row<
-  Schema["tables"]["routesToFirstAscensionists"]
+  typeof routesToFirstAscensionistsTable
 >;
 /**
  * Represents a row from the "routesToTags" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type RoutesToTag = Row<Schema["tables"]["routesToTags"]>;
+export type RoutesToTag = Row<typeof routesToTagsTable>;
 /**
  * Represents a row from the "tags" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Tag = Row<Schema["tables"]["tags"]>;
+export type Tag = Row<typeof tagsTable>;
 /**
  * Represents a row from the "topoRoutes" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type TopoRoute = Row<Schema["tables"]["topoRoutes"]>;
+export type TopoRoute = Row<typeof topoRoutesTable>;
 /**
  * Represents a row from the "topos" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type Topo = Row<Schema["tables"]["topos"]>;
+export type Topo = Row<typeof toposTable>;
 /**
  * Represents a row from the "userRoles" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type UserRole = Row<Schema["tables"]["userRoles"]>;
+export type UserRole = Row<typeof userRolesTable>;
 /**
  * Represents a row from the "userSettings" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type UserSetting = Row<Schema["tables"]["userSettings"]>;
+export type UserSetting = Row<typeof userSettingsTable>;
 /**
  * Represents a row from the "users" table.
  * This type is auto-generated from your Drizzle schema definition.
  */
-export type User = Row<Schema["tables"]["users"]>;
+export type User = Row<typeof usersTable>;
 
 /**
  * Represents the Zero schema query builder.
