@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
@@ -37,6 +37,12 @@
 
 {#if loading}
   <div class="flex h-full items-center justify-center">
-    <ProgressRing size="size-20" value={null} />
+    <Progress value={null}>
+      <Progress.Circle class="[--size:--spacing(20)]">
+        <Progress.CircleTrack />
+        <Progress.CircleRange />
+      </Progress.Circle>
+      <Progress.ValueText />
+    </Progress>
   </div>
 {/if}

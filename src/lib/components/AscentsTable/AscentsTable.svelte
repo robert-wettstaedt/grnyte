@@ -4,7 +4,7 @@
   import type { EnrichedAscent } from '$lib/db/utils'
   import { convertMarkdownToHtml } from '$lib/markdown'
   import type { Pagination as PaginationType } from '$lib/pagination.server'
-  import { Pagination, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination, Progress } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
 
   type PaginationProps = Parameters<typeof Pagination>[1]
@@ -59,7 +59,7 @@
               <tr class="notes">
                 <td colspan="4">
                   {#await convertMarkdownToHtml(ascent.notes)}
-                    <ProgressRing classes="m-auto" size="size-8" value={null} />
+                    <Progress class="m-auto size-8" value={null} />
                   {:then value}
                     {@html value}
                   {/await}
@@ -74,10 +74,9 @@
 </div>
 
 <div class="my-8 flex justify-end">
+  <!-- buttonClasses="btn-sm md:btn-md" -->
   <Pagination
-    buttonClasses="btn-sm md:btn-md"
     count={pagination.total}
-    data={[]}
     page={pagination.page}
     pageSize={pagination.pageSize}
     siblingCount={0}

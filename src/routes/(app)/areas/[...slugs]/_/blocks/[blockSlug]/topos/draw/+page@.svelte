@@ -8,7 +8,7 @@
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
   import { type TopoDTO } from '$lib/topo'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Popover, Progress } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount } from 'svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
@@ -139,7 +139,7 @@
         disabled={isSaving || undoHistory.length <= 1}
       >
         {#if isSaving}
-          <ProgressRing size="size-4" value={null} />
+          <Progress size="size-4" value={null} />
         {:else}
           <i class="fa-solid fa-floppy-disk"></i>
         {/if}

@@ -7,7 +7,7 @@
   import { pageState } from '$lib/components/Layout'
   import { getRouteContext } from '$lib/contexts/route'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { syncExternalResources, toggleRouteFavoriteStatus } from './page.remote'
 
   interface Props {
@@ -34,7 +34,7 @@
   onclick={() => route.id != null && toggleRouteFavoriteStatus(route.id)}
 >
   {#if toggleRouteFavoriteStatus.pending > 0}
-    <ProgressRing size="size-4" value={null} />
+    <Progress size="size-4" value={null} />
   {:else}
     <i class="fa-solid fa-heart {byUser ? 'text-red-500' : 'text-white'}"></i>
   {/if}
@@ -73,7 +73,7 @@
     onclick={() => route.id != null && syncExternalResources(route.id)}
   >
     {#if syncExternalResources.pending > 0}
-      <ProgressRing size="size-4" value={null} />
+      <Progress size="size-4" value={null} />
     {:else}
       <i class="fa-solid fa-sync"></i>
     {/if}

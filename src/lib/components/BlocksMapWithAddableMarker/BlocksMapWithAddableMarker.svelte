@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { BlocksMapProps } from '$lib/components/BlocksMap'
   import BlocksMap from '$lib/components/BlocksMap/ZeroLoader.svelte'
-  import { Segment } from '@skeletonlabs/skeleton-svelte'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import Feature from 'ol/Feature.js'
   import Map from 'ol/Map.js'
   import type MapBrowserEvent from 'ol/MapBrowserEvent'
@@ -118,18 +118,24 @@
 
   {#if modes != null}
     <div class="absolute top-2 left-2">
-      <Segment
-        background="bg-surface-950"
+      <SegmentedControl
+        class="bg-surface-950"
         name="mode"
         onValueChange={(event) => (mode = modes.find((mode) => mode.value === event.value)?.value)}
         value={mode}
       >
-        {#each modes as mode}
-          <Segment.Item value={mode.value}>
-            <i class={mode.icon}></i>
-          </Segment.Item>
-        {/each}
-      </Segment>
+        <SegmentedControl.Control>
+          {#each modes as mode}
+            <SegmentedControl.Indicator />
+            <SegmentedControl.Item value={mode.value}>
+              <SegmentedControl.ItemText>
+                <i class={mode.icon}></i>
+              </SegmentedControl.ItemText>
+              <SegmentedControl.ItemHiddenInput />
+            </SegmentedControl.Item>
+          {/each}
+        </SegmentedControl.Control>
+      </SegmentedControl>
     </div>
   {/if}
 </div>

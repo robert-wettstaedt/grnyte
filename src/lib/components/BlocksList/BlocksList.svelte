@@ -8,7 +8,7 @@
   import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing, Segment } from '@skeletonlabs/skeleton-svelte'
+  import { Progress, SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { updateBlockOrder } from './BlocksList.remote'
 
   interface Props {
@@ -73,7 +73,7 @@
   </nav>
 {:else}
   <div class="flex justify-between">
-    <Segment
+    <SegmentedControl
       name="blocks-view-mode"
       onValueChange={(event) => {
         blocksViewMode = event.value as 'list' | 'grid'
@@ -81,13 +81,23 @@
       }}
       value={blocksViewMode}
     >
-      <Segment.Item value="list">
-        <i class="fa-solid fa-list"></i>
-      </Segment.Item>
-      <Segment.Item value="grid">
-        <i class="fa-solid fa-table-cells-large"></i>
-      </Segment.Item>
-    </Segment>
+      <SegmentedControl.Control>
+        <SegmentedControl.Indicator />
+        <SegmentedControl.Item value="list">
+          <SegmentedControl.ItemText>
+            <i class="fa-solid fa-list"></i>
+          </SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+
+        <SegmentedControl.Item value="grid">
+          <SegmentedControl.ItemText>
+            <i class="fa-solid fa-table-cells-large"></i>
+          </SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+      </SegmentedControl.Control>
+    </SegmentedControl>
 
     {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
       <button
@@ -96,7 +106,13 @@
         onclick={() => (orderMode = !orderMode)}
       >
         {#if updateBlockOrder.pending > 0}
-          <ProgressRing size="size-4" value={null} />
+          <Progress class="gap-0" value={null}>
+            <Progress.Circle class="[--size:--spacing(4)]">
+              <Progress.CircleTrack />
+              <Progress.CircleRange />
+            </Progress.Circle>
+            <Progress.ValueText />
+          </Progress>
         {:else}
           <i class="fa-solid fa-sort"></i>
         {/if}

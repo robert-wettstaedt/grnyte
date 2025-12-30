@@ -7,7 +7,7 @@
   import { getBlockContext } from '$lib/contexts/block'
   import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { createRoute, createRouteAndReload } from './page.remote'
 
   interface Props {
@@ -57,7 +57,7 @@
       >
         {#if pending > 0}
           <span class="me-2">
-            <ProgressRing size="size-4" value={null} />
+            <Progress size="size-4" value={null} />
           </span>
         {/if}
         Save and create another

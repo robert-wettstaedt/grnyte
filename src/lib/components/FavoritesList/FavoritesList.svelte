@@ -6,6 +6,7 @@
   import { queries } from '$lib/db/zero'
   import { Accordion } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
+  import { slide } from 'svelte/transition'
 
   interface Props {
     routes: ZeroQueryResult<ReturnType<typeof queries.listRoutesWithRelations>>
@@ -52,36 +53,49 @@
 <Accordion {value} collapsible multiple onValueChange={(event) => (value = event.value)}>
   {#each Object.entries(map) as [areaName, routes], index}
     {#if routes != null && routes.length > 0}
-      <Accordion.Item value={areaName} controlPadding="px-2 py-1" panelPadding="p-0">
-        {#snippet control()}
-          {areaName}
-        {/snippet}
+      <Accordion.Item value={areaName}>
+        <h3>
+          <Accordion.ItemTrigger class="flex items-center justify-between gap-2 font-bold">
+            {areaName}
+            <Accordion.ItemIndicator class="group px-2 py-1">
+              <i class="fa-solid fa-chevron-down transition group-data-[state=open]:rotate-180"></i>
+            </Accordion.ItemIndicator>
+          </Accordion.ItemTrigger>
+        </h3>
 
-        {#snippet panel()}
-          <GenericList items={routes}>
-            {#snippet left(route)}
-              {#if route.ascents.length > 0}
-                <RouteListItem {route} showPath>
-                  {#snippet description()}
-                    <div class="flex items-center gap-2">
-                      <p class="text-xs text-white opacity-50">Sessions: {route.ascents.length}</p>
+        <Accordion.ItemContent>
+          {#snippet element(attributes)}
+            {#if !attributes.hidden}
+              <div {...attributes} transition:slide={{ duration: 150 }}>
+                <GenericList items={routes}>
+                  {#snippet left(route)}
+                    {#if route.ascents.length > 0}
+                      <RouteListItem {route} showPath>
+                        {#snippet description()}
+                          <div class="flex items-center gap-2">
+                            <p class="text-xs text-white opacity-50">Sessions: {route.ascents.length}</p>
 
-                      <p class="text-xs text-white opacity-50">·</p>
+                            <p class="text-xs text-white opacity-50">·</p>
 
-                      {#if route.ascents[0]?.dateTime != null}
-                        <p class="text-xs text-white opacity-50">
-                          Last: {DateTime.fromMillis(route.ascents[0].dateTime).toLocaleString(DateTime.DATE_FULL)}
-                        </p>
-                      {/if}
-                    </div>
+                            {#if route.ascents[0]?.dateTime != null}
+                              <p class="text-xs text-white opacity-50">
+                                Last: {DateTime.fromMillis(route.ascents[0].dateTime).toLocaleString(
+                                  DateTime.DATE_FULL,
+                                )}
+                              </p>
+                            {/if}
+                          </div>
+                        {/snippet}
+                      </RouteListItem>
+                    {:else}
+                      <RouteListItem {route} showPath />
+                    {/if}
                   {/snippet}
-                </RouteListItem>
-              {:else}
-                <RouteListItem {route} showPath />
-              {/if}
-            {/snippet}
-          </GenericList>
-        {/snippet}
+                </GenericList>
+              </div>
+            {/if}
+          {/snippet}
+        </Accordion.ItemContent>
       </Accordion.Item>
 
       {#if index + 1 < Object.keys(map).length}

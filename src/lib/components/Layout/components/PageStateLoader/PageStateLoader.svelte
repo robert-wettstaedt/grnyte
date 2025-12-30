@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
   import { pageState } from '../../page.svelte'
 
@@ -82,7 +82,7 @@
 
 {#if isLoading}
   <div class="fixed flex h-full w-full items-center justify-center">
-    <ProgressRing value={null} />
+    <Progress value={null} />
   </div>
 {:else}
   {@render children?.()}

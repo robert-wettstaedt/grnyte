@@ -2,7 +2,7 @@
   import { applyAction, enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AppBar from '$lib/components/AppBar'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
 
   const { data, form } = $props()
 
@@ -58,7 +58,7 @@
         >
           {#if loading}
             <span class="me-2">
-              <ProgressRing size="size-4" value={null} />
+              <Progress size="size-4" value={null} />
             </span>
           {/if}
 

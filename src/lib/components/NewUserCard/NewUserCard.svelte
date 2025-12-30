@@ -1,7 +1,7 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { createRegion } from './data.remote'
 </script>
 
@@ -33,7 +33,7 @@
       type="submit"
     >
       {#if createRegion.pending > 0}
-        <ProgressRing size="size-4" value={null} />
+        <Progress size="size-4" value={null} />
       {:else}
         <i class="fa-solid fa-chevron-right"></i>
       {/if}

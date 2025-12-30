@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import type { Geolocation } from '$lib/db/schema'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { NestedBlock } from '.'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
@@ -52,7 +52,13 @@
 
 {#if data.blocks.length === 0 && blocksResult.details.type !== 'complete'}
   <div class="flex h-full items-center justify-center">
-    <ProgressRing size="size-20" value={null} />
+    <Progress value={null}>
+      <Progress.Circle class="[--size:--spacing(20)]">
+        <Progress.CircleTrack />
+        <Progress.CircleRange />
+      </Progress.Circle>
+      <Progress.ValueText />
+    </Progress>
   </div>
 {:else}
   <BlocksMap {...props} {...data} />

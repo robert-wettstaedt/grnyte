@@ -11,7 +11,7 @@
   import AppBar from '$lib/components/AppBar'
   import { pageState } from '$lib/components/Layout'
   import { appRole, appRoleLabels } from '$lib/db/schema'
-  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Popover, Progress } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
 
@@ -173,7 +173,7 @@
                     <button aria-label="Submit" class="hidden" type="submit"></button>
 
                     <div class="bg-surface-100-900 spinner absolute top-1/2 right-3 hidden -translate-y-1/2">
-                      <ProgressRing size="size-4" value={null} />
+                      <Progress size="size-4" value={null} />
                     </div>
 
                     <select

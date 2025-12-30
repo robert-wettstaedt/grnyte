@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Route } from '$lib/db/schema'
-  import { Modal } from '@skeletonlabs/skeleton-svelte'
+  import { Dialog } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     value: Route['rating'] | null | undefined
@@ -15,7 +15,7 @@
   <span>
     Rating
 
-    <Modal
+    <Dialog
       open={modalOpen}
       onOpenChange={(event) => (modalOpen = event.open)}
       triggerBase="sl-2 fa-regular fa-circle-question"
@@ -49,7 +49,7 @@
           </ul>
         </article>
       {/snippet}
-    </Modal>
+    </Dialog>
   </span>
 
   <input name="rating" type="hidden" {value} />

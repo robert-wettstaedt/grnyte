@@ -10,7 +10,7 @@
   import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteName from '$lib/components/RouteName'
   import type { EnrichedArea, EnrichedBlock } from '$lib/db/utils'
-  import { ProgressRing, Segment, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { Progress, SegmentedControl, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
   import { onMount } from 'svelte'
 
@@ -88,184 +88,187 @@
 </AppBar>
 
 <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
-  <Tabs
-    fluid
-    listClasses="overflow-x-auto overflow-y-hidden pb-[1px]"
-    listGap="0"
-    onValueChange={onChangeTab}
-    value={tabValue}
-  >
-    {#snippet list()}
+  <Tabs onValueChange={onChangeTab} value={tabValue}>
+    <Tabs.List class="overflow-x-auto overflow-y-hidden pb-px">
       {#if data.requestedUser != null}
-        <Tabs.Control value="#sends">Ascents</Tabs.Control>
-        <Tabs.Control value="#projects">Projects</Tabs.Control>
+        <Tabs.Trigger class="flex-1" value="#sends">Ascents</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="#projects">Projects</Tabs.Trigger>
       {/if}
-      <Tabs.Control value="#first-ascents">First ascents</Tabs.Control>
-    {/snippet}
+      <Tabs.Trigger class="flex-1" value="#first-ascents">First ascents</Tabs.Trigger>
+    </Tabs.List>
 
-    {#snippet content()}
-      {#if data.requestedUser != null}
-        <Tabs.Panel value="#sends">
-          <GradeHistogram
-            data={sends ?? []}
-            spec={{
-              width: 'container' as any,
-              mark: {
-                type: 'bar',
-                stroke: 'white',
-                cursor: 'pointer',
+    {#if data.requestedUser != null}
+      <Tabs.Content value="#sends">
+        <GradeHistogram
+          data={sends ?? []}
+          spec={{
+            width: 'container' as any,
+            mark: {
+              type: 'bar',
+              stroke: 'white',
+              cursor: 'pointer',
+            },
+            params: [
+              {
+                name: 'highlight',
+                select: { type: 'point', on: 'pointerover' },
               },
-              params: [
-                {
-                  name: 'highlight',
-                  select: { type: 'point', on: 'pointerover' },
-                },
-                { name: 'select', select: 'point' },
-              ],
-              encoding: {
-                fillOpacity: {
-                  condition: { param: 'select', value: 1 },
-                  value: 0.3,
-                },
-                strokeWidth: {
-                  condition: [
-                    {
-                      param: 'select',
-                      empty: false,
-                      value: 2,
-                    },
-                    {
-                      param: 'highlight',
-                      empty: false,
-                      value: 1,
-                    },
-                  ],
-                  value: 0,
-                },
+              { name: 'select', select: 'point' },
+            ],
+            encoding: {
+              fillOpacity: {
+                condition: { param: 'select', value: 1 },
+                value: 0.3,
               },
-            }}
-            onEmbed={(result) => {
-              result.view.addSignalListener('chartClick', (_, datum) => {
-                const grade = pageState.grades.find((grade) => grade.FB === datum?.grade || grade.V === datum?.grade)
+              strokeWidth: {
+                condition: [
+                  {
+                    param: 'select',
+                    empty: false,
+                    value: 2,
+                  },
+                  {
+                    param: 'highlight',
+                    empty: false,
+                    value: 1,
+                  },
+                ],
+                value: 0,
+              },
+            },
+          }}
+          onEmbed={(result) => {
+            result.view.addSignalListener('chartClick', (_, datum) => {
+              const grade = pageState.grades.find((grade) => grade.FB === datum?.grade || grade.V === datum?.grade)
 
-                loadOpts = grade == null ? {} : { grade: String(grade.id) }
-                loadData()
+              loadOpts = grade == null ? {} : { grade: String(grade.id) }
+              loadData()
+            })
+          }}
+          opts={{
+            patch: (spec) => {
+              spec.signals?.push({
+                name: 'chartClick',
+                value: 0,
+                on: [{ events: '*:mousedown', update: 'datum' }],
               })
-            }}
-            opts={{
-              patch: (spec) => {
-                spec.signals?.push({
-                  name: 'chartClick',
-                  value: 0,
-                  on: [{ events: '*:mousedown', update: 'datum' }],
-                })
 
-                return spec
+              return spec
+            },
+          }}
+        />
+
+        {#if loadError != null}
+          <aside class="card preset-tonal-warning mt-8 p-2 whitespace-pre-line md:p-4">
+            <p>{loadError}</p>
+          </aside>
+        {:else if loadedData == null}
+          <div class="mt-16 flex justify-center">
+            <Progress value={null} />
+          </div>
+        {:else}
+          <AscentsTable
+            ascents={loadedData.ascents}
+            pagination={loadedData.pagination}
+            paginationProps={{
+              onPageChange: (detail) => {
+                loadOpts = { ...loadOpts, page: String(detail.page) }
+                loadData()
               },
             }}
           />
+        {/if}
+      </Tabs.Content>
 
-          {#if loadError != null}
-            <aside class="card preset-tonal-warning mt-8 p-2 whitespace-pre-line md:p-4">
-              <p>{loadError}</p>
-            </aside>
-          {:else if loadedData == null}
-            <div class="mt-16 flex justify-center">
-              <ProgressRing value={null} />
-            </div>
-          {:else}
-            <AscentsTable
-              ascents={loadedData.ascents}
-              pagination={loadedData.pagination}
-              paginationProps={{
-                onPageChange: (detail) => {
-                  loadOpts = { ...loadOpts, page: String(detail.page) }
-                  loadData()
-                },
-              }}
-            />
-          {/if}
-        </Tabs.Panel>
+      <Tabs.Content value="#projects">
+        <SegmentedControl
+          name="projectsMode"
+          onValueChange={(event) => (projectsMode = (event.value as 'open' | 'finished' | null) ?? 'open')}
+          value={projectsMode}
+        >
+          <SegmentedControl.Control>
+            <SegmentedControl.Indicator />
 
-        <Tabs.Panel value="#projects">
-          <Segment
-            name="projectsMode"
-            onValueChange={(event) => (projectsMode = (event.value as 'open' | 'finished' | null) ?? 'open')}
-            value={projectsMode}
-          >
-            <Segment.Item value="open">Open projects</Segment.Item>
-            <Segment.Item value="finished">Finished projects</Segment.Item>
-          </Segment>
+            <SegmentedControl.Item value="open">
+              <SegmentedControl.ItemText>Open projects</SegmentedControl.ItemText>
+              <SegmentedControl.ItemHiddenInput />
+            </SegmentedControl.Item>
 
-          <GenericList
-            classes="mt-4"
-            items={(projectsMode === 'finished' ? data.finishedProjects : data.openProjects).map((item) => ({
-              ...item,
-              id: item.route.id,
-              name: item.route.name,
-              pathname: item.route.pathname,
-            }))}
-            leftClasses=""
-          >
-            {#snippet left(item)}
-              <dt>
-                <RouteName route={item.route} />
-              </dt>
+            <SegmentedControl.Item value="finished">
+              <SegmentedControl.ItemText>Finished projects</SegmentedControl.ItemText>
+              <SegmentedControl.ItemHiddenInput />
+            </SegmentedControl.Item>
+          </SegmentedControl.Control>
+        </SegmentedControl>
 
-              <dd class="text-sm opacity-50">Sessions: {item.ascents.length}</dd>
-              <dd class="text-sm opacity-50">
-                Last session: {DateTime.fromSQL(item.ascents[0].dateTime).toLocaleString(DateTime.DATE_FULL)}
-              </dd>
-            {/snippet}
-
-            {#snippet right(item)}
-              <ol class="flex w-auto items-center gap-2 p-2">
-                <li>
-                  <a class="anchor" href={(item.route.block.area as EnrichedArea).pathname}>
-                    {item.route.block.area.name}
-                  </a>
-                </li>
-
-                <li class="opacity-50" aria-hidden={true}>&rsaquo;</li>
-
-                <li>
-                  <a class="anchor" href={(item.route.block as EnrichedBlock).pathname}>
-                    {item.route.block.name}
-                  </a>
-                </li>
-              </ol>
-            {/snippet}
-          </GenericList>
-        </Tabs.Panel>
-      {/if}
-
-      <Tabs.Panel value="#first-ascents">
-        <GenericList items={data.firstAscentRoutes ?? []}>
+        <GenericList
+          classes="mt-4"
+          items={(projectsMode === 'finished' ? data.finishedProjects : data.openProjects).map((item) => ({
+            ...item,
+            id: item.route.id,
+            name: item.route.name,
+            pathname: item.route.pathname,
+          }))}
+          leftClasses=""
+        >
           {#snippet left(item)}
             <dt>
-              <RouteName route={item} />
+              <RouteName route={item.route} />
             </dt>
+
+            <dd class="text-sm opacity-50">Sessions: {item.ascents.length}</dd>
+            <dd class="text-sm opacity-50">
+              Last session: {DateTime.fromSQL(item.ascents[0].dateTime).toLocaleString(DateTime.DATE_FULL)}
+            </dd>
           {/snippet}
 
           {#snippet right(item)}
             <ol class="flex w-auto items-center gap-2 p-2">
               <li>
-                <a class="anchor" href={(item.block.area as EnrichedArea).pathname}>
-                  {item.block.area.name}
+                <a class="anchor" href={(item.route.block.area as EnrichedArea).pathname}>
+                  {item.route.block.area.name}
                 </a>
               </li>
 
               <li class="opacity-50" aria-hidden={true}>&rsaquo;</li>
 
               <li>
-                <a class="anchor" href={(item.block as EnrichedBlock).pathname}>
-                  {item.block.name}
+                <a class="anchor" href={(item.route.block as EnrichedBlock).pathname}>
+                  {item.route.block.name}
                 </a>
               </li>
             </ol>
           {/snippet}
         </GenericList>
-      </Tabs.Panel>
-    {/snippet}
+      </Tabs.Content>
+    {/if}
+
+    <Tabs.Content value="#first-ascents">
+      <GenericList items={data.firstAscentRoutes ?? []}>
+        {#snippet left(item)}
+          <dt>
+            <RouteName route={item} />
+          </dt>
+        {/snippet}
+
+        {#snippet right(item)}
+          <ol class="flex w-auto items-center gap-2 p-2">
+            <li>
+              <a class="anchor" href={(item.block.area as EnrichedArea).pathname}>
+                {item.block.area.name}
+              </a>
+            </li>
+
+            <li class="opacity-50" aria-hidden={true}>&rsaquo;</li>
+
+            <li>
+              <a class="anchor" href={(item.block as EnrichedBlock).pathname}>
+                {item.block.name}
+              </a>
+            </li>
+          </ol>
+        {/snippet}
+      </GenericList>
+    </Tabs.Content>
   </Tabs>
 </div>

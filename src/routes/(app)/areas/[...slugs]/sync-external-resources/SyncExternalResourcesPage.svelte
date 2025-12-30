@@ -8,7 +8,7 @@
   import { getAreaContext } from '$lib/contexts/area'
   import type { RowWithRelations } from '$lib/db/zero'
   import { convertException } from '$lib/errors'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
 
   interface Props {
@@ -103,7 +103,7 @@
           <RouteName {route} />
 
           {#if loading && values?.find((value) => value.routeFk === route.id) == null}
-            <ProgressRing size="size-4" value={null} />
+            <Progress size="size-4" value={null} />
           {:else}
             <RouteExternalResourceLinks
               iconSize={16}
@@ -132,7 +132,7 @@
   >
     {#if loading}
       <span class="me-2">
-        <ProgressRing size="size-4" value={null} />
+        <Progress size="size-4" value={null} />
       </span>
     {/if}
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Modal } from '@skeletonlabs/skeleton-svelte'
+  import { Dialog } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     value: string | undefined | null
@@ -14,7 +14,7 @@
   <span>
     Name
 
-    <Modal
+    <Dialog
       open={modalOpen}
       onOpenChange={(event) => (modalOpen = event.open)}
       triggerBase="sl-2 fa-regular fa-circle-question"
@@ -56,7 +56,7 @@
           </p>
         </article>
       {/snippet}
-    </Modal>
+    </Dialog>
   </span>
 
   <input bind:value class="input" name="name" type="text" placeholder="Leave empty if unknown" />

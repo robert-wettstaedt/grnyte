@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
   import type { Schema } from '$lib/db/zero/zero-schema'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { ZeroQueryWrapperProps } from '.'
 
   const {
@@ -37,7 +37,7 @@
     </nav>
   {:else if loadingIndicator.type === 'spinner'}
     <div class="flex justify-center">
-      <ProgressRing size={loadingIndicator.size ?? 'size-12'} value={null} />
+      <Progress size={loadingIndicator.size ?? 'size-12'} value={null} />
     </div>
   {/if}
 {:else}

@@ -11,7 +11,7 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { Region } from '$lib/db/zero'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
 
@@ -258,7 +258,7 @@
 {:else}
   {#if isLoading}
     <div class="mt-8 flex justify-center">
-      <ProgressRing value={null} size="size-14" />
+      <Progress value={null} size="size-14" />
     </div>
   {/if}
 

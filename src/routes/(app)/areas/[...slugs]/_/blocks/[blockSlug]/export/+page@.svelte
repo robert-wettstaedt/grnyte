@@ -11,7 +11,7 @@
   import type { NestedArea } from '$lib/db/types'
   import { convertException } from '$lib/errors'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import * as domtoimage from 'modern-screenshot'
   import '../../../../../../../../app.css'
@@ -110,7 +110,7 @@
         </div>
       {:else}
         <div>
-          <ProgressRing value={null} />
+          <Progress value={null} />
         </div>
 
         Preparing export

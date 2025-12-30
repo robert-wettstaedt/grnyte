@@ -2,7 +2,7 @@
   import { pageState } from '$lib/components/Layout'
   import type { Route } from '$lib/db/schema'
   import { getGradeColor } from '$lib/grades'
-  import { Modal } from '@skeletonlabs/skeleton-svelte'
+  import { Dialog } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     value: Route['gradeFk'] | null | undefined
@@ -77,7 +77,7 @@
     Grade
 
     {#if withModal}
-      <Modal
+      <Dialog
         open={modalOpen}
         onOpenChange={(event) => (modalOpen = event.open)}
         triggerBase="sl-2 fa-regular fa-circle-question"
@@ -108,7 +108,7 @@
             <p class="mt-4">The final grade will be the average of all the opinions.</p>
           </article>
         {/snippet}
-      </Modal>
+      </Dialog>
     {/if}
   </span>
 

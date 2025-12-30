@@ -10,7 +10,7 @@
   import AreaBlockListing from '$lib/components/AreaBlockListing'
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import '../../../../../app.css'
 
@@ -71,7 +71,7 @@
         <a class="btn preset-filled-primary-500" href={basePath}>Go back</a>
       {:else}
         <div>
-          <ProgressRing max={noTopos + noMaps} value={loadedTopos + loadedMaps} />
+          <Progress max={noTopos + noMaps} value={loadedTopos + loadedMaps} />
         </div>
 
         Preparing export

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { RemoteQueryFunction } from '@sveltejs/kit'
 
   interface Props {
@@ -10,7 +10,7 @@
 </script>
 
 {#await query()}
-  <ProgressRing size="size-6" value={null} />
+  <Progress size="size-6" value={null} />
 {:then status}
   {#if status}
     <i class="fa-solid fa-circle-check text-success-400 text-xl"></i>

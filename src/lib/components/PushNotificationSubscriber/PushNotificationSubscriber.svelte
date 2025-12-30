@@ -1,7 +1,7 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
 
@@ -63,7 +63,7 @@
       >
         <button class="btn preset-filled-error-500" disabled={loading} type="submit">
           {#if loading}
-            <ProgressRing size="size-4" value={null} />
+            <Progress size="size-4" value={null} />
           {/if}
 
           Unsubscribe from Notifications
@@ -117,7 +117,7 @@
       >
         <button class="btn preset-filled-primary-500" disabled={loading} type="submit">
           {#if loading}
-            <ProgressRing size="size-4" value={null} />
+            <Progress size="size-4" value={null} />
           {/if}
 
           Receive Push Notifications

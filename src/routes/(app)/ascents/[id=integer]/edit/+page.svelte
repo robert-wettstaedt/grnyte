@@ -5,7 +5,7 @@
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { ascentWithPathname } from '$lib/db/utils.svelte'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
 </script>
 
 <ZeroQueryWrapper
@@ -19,7 +19,7 @@
     {:else}
       {#await goto(pathname + '/edit', { replaceState: true })}
         <div class="flex justify-center">
-          <ProgressRing size="size-12" value={null} />
+          <Progress size="size-12" value={null} />
         </div>
       {/await}
     {/if}

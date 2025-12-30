@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     path: string | undefined | null
@@ -39,7 +39,7 @@
       class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
       style="min-width: {progressSize}px; width: {progressSize}px; min-height: {progressSize}px; height: {progressSize}px;"
     >
-      <ProgressRing size="size-full" value={null} />
+      <Progress size="size-full" value={null} />
     </div>
 
     <img
