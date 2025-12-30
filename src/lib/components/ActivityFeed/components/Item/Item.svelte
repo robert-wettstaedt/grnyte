@@ -166,7 +166,7 @@
               {/if}
 
               {#if activity.entity.object?.temperature != null && activity.entity.object?.humidity != null}
-                -
+                ·
               {/if}
 
               {#if activity.entity.object?.humidity != null}
