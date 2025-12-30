@@ -8,13 +8,16 @@
   import { ascentTypeEnum } from '$lib/db/schema'
   import type { Row } from '$lib/db/zero'
   import { DateTime } from 'luxon'
+  import ConditionsFields from './ConditionsFields.svelte'
 
   interface Props {
     dateTime: Row<'ascents'>['dateTime'] | null | undefined
     fileUploadProps: FileUploadProps
     gradeFk: Row<'ascents'>['gradeFk'] | null | undefined
+    humidity: Row<'ascents'>['humidity'] | null | undefined
     notes: Row<'ascents'>['notes'] | null | undefined
     rating: Row<'ascents'>['rating'] | null | undefined
+    temperature: Row<'ascents'>['temperature'] | null | undefined
     type: Row<'ascents'>['type'] | null | undefined
   }
 
@@ -22,8 +25,10 @@
     dateTime = $bindable(),
     fileUploadProps,
     gradeFk = $bindable(),
+    humidity = $bindable(),
     notes = $bindable(),
     rating = $bindable(),
+    temperature = $bindable(),
     type = $bindable(),
   }: Props = $props()
 </script>
@@ -74,6 +79,8 @@
     value={DateTime.fromMillis(dateTime ?? Date.now()).toISODate()}
   />
 </label>
+
+<ConditionsFields bind:humidity bind:temperature />
 
 <FileUpload {...fileUploadProps} />
 

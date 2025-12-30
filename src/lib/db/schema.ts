@@ -824,8 +824,10 @@ export const ascents = table(
     createdBy: baseContentFields.createdBy,
 
     dateTime: date('date_time').notNull().defaultNow(),
+    humidity: integer('humidity'),
     notes: text('notes'),
     rating: integer('rating'),
+    temperature: integer('temperature'),
     type: text('type', { enum: ascentTypeEnum }).notNull(),
 
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),

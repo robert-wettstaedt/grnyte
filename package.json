@@ -133,5 +133,8 @@
   "type": "module",
   "overrides": {
     "@rocicorp/zero": "^0.24.2025101500"
+  },
+  "volta": {
+    "node": "22.21.1"
   }
 }

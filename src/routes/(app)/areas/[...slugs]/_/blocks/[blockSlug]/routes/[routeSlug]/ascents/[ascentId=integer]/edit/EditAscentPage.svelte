@@ -56,11 +56,13 @@
   <input type="hidden" name="ascentId" value={ascent.id} />
 
   <AscentFormFields
-    fileUploadProps={{ state }}
     dateTime={ascent.dateTime}
+    fileUploadProps={{ state }}
     gradeFk={ascent.gradeFk}
+    humidity={ascent.humidity}
     notes={ascent.notes}
     rating={ascent.rating ?? null}
+    temperature={ascent.temperature}
     type={ascent.type}
   />
 

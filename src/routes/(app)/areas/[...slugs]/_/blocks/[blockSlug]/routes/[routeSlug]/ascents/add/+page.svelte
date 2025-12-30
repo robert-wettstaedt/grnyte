@@ -48,11 +48,13 @@
   <input type="hidden" name="routeId" value={route.id} />
 
   <AscentFormFields
-    fileUploadProps={{ state }}
     dateTime={Date.now()}
+    fileUploadProps={{ state }}
     gradeFk={null}
+    humidity={null}
     notes={null}
     rating={null}
+    temperature={null}
     type={null}
   />
 
