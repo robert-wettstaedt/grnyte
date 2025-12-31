@@ -168,16 +168,18 @@ describe('27crags Handler', () => {
     } as Response)
 
     const mockAscent: Ascent = {
-      id: 1,
-      routeFk: 1,
-      createdBy: 1,
       createdAt: new Date(),
-      type: 'flash',
+      createdBy: 1,
       dateTime: new Date().toISOString(),
       gradeFk: 1,
+      humidity: null,
+      id: 1,
       notes: null,
       rating: null,
       regionFk: 1,
+      routeFk: 1,
+      temperature: null,
+      type: 'flash',
     }
     const mockSession = { username: 'test-user' }
 
@@ -232,16 +234,18 @@ describe('8a Handler', () => {
     } as Response)
 
     const mockAscent: Ascent = {
-      id: 1,
-      routeFk: 1,
-      createdBy: 1,
       createdAt: new Date(),
-      type: 'flash',
+      createdBy: 1,
       dateTime: new Date().toISOString(),
       gradeFk: 1,
+      humidity: null,
+      id: 1,
       notes: null,
       rating: null,
       regionFk: 1,
+      routeFk: 1,
+      temperature: null,
+      type: 'flash',
     }
 
     await expect(handler8a.logAscent(mockAscent, 1, mockUserSettings, true, mockLocals)).resolves.not.toThrow()
@@ -301,16 +305,18 @@ describe('TheCrag Handler', () => {
     } as Response)
 
     const mockAscent: Ascent = {
-      id: 1,
-      routeFk: 1,
-      createdBy: 1,
       createdAt: new Date(),
-      type: 'flash',
+      createdBy: 1,
       dateTime: new Date().toISOString(),
       gradeFk: 1,
+      humidity: null,
+      id: 1,
       notes: null,
       rating: null,
       regionFk: 1,
+      routeFk: 1,
+      temperature: null,
+      type: 'flash',
     }
     const mockSession = { account: 'test-user' }
 

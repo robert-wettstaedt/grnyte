@@ -157,6 +157,24 @@
             </div>
           {/if}
 
+          {#if (activity.entity.object?.temperature ?? activity.entity.object?.humidity) != null}
+            <div class="my-2 flex items-center gap-x-1 md:gap-x-2">
+              <span class="opacity-80"> Conditions: </span>
+
+              {#if activity.entity.object?.temperature != null}
+                {activity.entity.object.temperature}°C
+              {/if}
+
+              {#if activity.entity.object?.temperature != null && activity.entity.object?.humidity != null}
+                ·
+              {/if}
+
+              {#if activity.entity.object?.humidity != null}
+                {activity.entity.object.humidity}% humidity
+              {/if}
+            </div>
+          {/if}
+
           {#if activity.entity.object != null && activity.createdAt != null && activity.entity.object.dateTime && compareAsc(format(new Date(activity.createdAt), 'yyyy-MM-dd'), new Date(activity.entity.object.dateTime)) !== 0}
             <span>
               {formatDistance(new Date(activity.entity.object.dateTime), new Date(), { addSuffix: true })}
@@ -369,9 +387,9 @@
                   </Rating>
                 </span>
               {:else}
-                <s class="text-red-500">
+                <span class="text-green-500">
                   "{activity.newValue}"
-                </s>
+                </span>
               {/if}
             {/if}
           {/if}

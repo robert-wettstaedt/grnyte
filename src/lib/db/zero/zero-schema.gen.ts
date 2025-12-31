@@ -213,12 +213,22 @@ const ascentsTable = {
       customType: null as unknown as number,
       serverName: "date_time",
     },
+    humidity: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
     notes: {
       type: "string",
       optional: true,
       customType: null as unknown as string,
     },
     rating: {
+      type: "number",
+      optional: true,
+      customType: null as unknown as number,
+    },
+    temperature: {
       type: "number",
       optional: true,
       customType: null as unknown as number,
