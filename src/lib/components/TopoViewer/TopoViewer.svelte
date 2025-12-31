@@ -331,7 +331,7 @@
 <div
   bind:this={imgWrapper}
   class="relative flex h-full w-full items-center justify-center overflow-hidden {isFullscreen
-    ? '!fixed top-0 left-0 !z-[1000]'
+    ? 'fixed! top-0 left-0 z-1000!'
     : ''}"
   style={elementHeight == null ? undefined : `min-height: ${elementHeight}px`}
 >

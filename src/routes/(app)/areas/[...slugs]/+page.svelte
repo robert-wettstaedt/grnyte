@@ -52,7 +52,7 @@
 {/if}
 
 <AppBar {hasActions}>
-  {#snippet lead()}
+  {#snippet headline()}
     {area.name}
   {/snippet}
 
@@ -60,71 +60,63 @@
     <AreaActions />
   {/snippet}
 
-  {#snippet headline()}
-    <Tabs
-      fluid
-      listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
-      listGap="0"
-      onValueChange={onChangeTab}
-      value={tabValue}
-    >
-      {#snippet list()}
+  {#snippet content()}
+    <Tabs onValueChange={onChangeTab} value={tabValue}>
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
         {#if area.type === 'sector'}
-          <Tabs.Control value="info">Info</Tabs.Control>
+          <Tabs.Trigger class="flex-1" value="info">Info</Tabs.Trigger>
         {/if}
 
         {#if area.type === 'sector'}
-          <Tabs.Control value="blocks">Blocks</Tabs.Control>
+          <Tabs.Trigger class="flex-1" value="blocks">Blocks</Tabs.Trigger>
         {:else}
-          <Tabs.Control value="areas">Areas</Tabs.Control>
+          <Tabs.Trigger class="flex-1" value="areas">Areas</Tabs.Trigger>
         {/if}
 
-        <Tabs.Control value="map">Map</Tabs.Control>
+        <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
 
-        <Tabs.Control value="routes">Routes</Tabs.Control>
-      {/snippet}
+        <Tabs.Trigger class="flex-1" value="routes">Routes</Tabs.Trigger>
+      </Tabs.List>
 
-      {#snippet content()}
-        {#if area.type === 'sector'}
-          <Tabs.Panel value="info">
-            <AreaInfo />
-          </Tabs.Panel>
-        {/if}
+      {#if area.type === 'sector'}
+        <Tabs.Content value="info">
+          <AreaInfo />
+        </Tabs.Content>
+      {/if}
 
-        <Tabs.Panel value="map">
-          <div use:fitHeightAction>
-            {#await import('$lib/components/BlocksMap/ZeroLoader.svelte') then BlocksMap}
-              {#key area.id}
-                <BlocksMap.default selectedArea={area} />
-              {/key}
-            {/await}
-          </div>
-        </Tabs.Panel>
+      <Tabs.Content value="map">
+        <div use:fitHeightAction>
+          {#await import('$lib/components/BlocksMap/ZeroLoader.svelte') then BlocksMap}
+            {#key area.id}
+              <BlocksMap.default selectedArea={area} />
+            {/key}
+          {/await}
+        </div>
+      </Tabs.Content>
 
-        {#if area.type === 'sector'}
-          <Tabs.Panel value="blocks">
-            <BlocksList
-              areaFk={area.id}
-              onLoad={() => setTimeout(() => (loadedTabs = true), 100)}
-              regionFk={area.regionFk}
-            />
-          </Tabs.Panel>
-        {/if}
+      {#if area.type === 'sector'}
+        <Tabs.Content value="blocks">
+          <BlocksList
+            areaFk={area.id}
+            onLoad={() => setTimeout(() => (loadedTabs = true), 100)}
+            regionFk={area.regionFk}
+          />
+        </Tabs.Content>
+      {/if}
 
-        {#if area.type !== 'sector'}
-          <Tabs.Panel value="areas">
-            {#if tabValue === 'areas' || loadedTabs}
-              <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} parentFk={area.id} />
-            {/if}
-          </Tabs.Panel>
-        {/if}
-
-        <Tabs.Panel value="routes">
-          {#if tabValue === 'routes' || loadedTabs}
-            <RouteList areaFk={area.id} onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+      {#if area.type !== 'sector'}
+        <Tabs.Content value="areas">
+          {#if tabValue === 'areas' || loadedTabs}
+            <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} parentFk={area.id} />
           {/if}
-        </Tabs.Panel>
-      {/snippet}
+        </Tabs.Content>
+      {/if}
+
+      <Tabs.Content value="routes">
+        {#if tabValue === 'routes' || loadedTabs}
+          <RouteList areaFk={area.id} onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+        {/if}
+      </Tabs.Content>
     </Tabs>
   {/snippet}
 </AppBar>

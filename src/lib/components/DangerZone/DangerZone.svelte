@@ -70,21 +70,23 @@
                             <Popover.ArrowTip />
                           </Popover.Arrow>
 
-                          <article>
-                            <p>Are you sure you want to delete this {name}?</p>
-                          </article>
+                          <Popover.Description>
+                            <article>
+                              <p>Are you sure you want to delete this {name}?</p>
+                            </article>
 
-                          <footer class="flex justify-end">
-                            <button
-                              class="btn btn-sm preset-filled-error-500 text-white!"
-                              onclick={() => {
-                                open = false
-                                enhance(onDelete, enhancedState)
-                              }}
-                            >
-                              Yes
-                            </button>
-                          </footer>
+                            <footer class="flex justify-end">
+                              <button
+                                class="btn btn-sm preset-filled-error-500 text-white!"
+                                onclick={() => {
+                                  open = false
+                                  enhance(onDelete, enhancedState)
+                                }}
+                              >
+                                Yes
+                              </button>
+                            </footer>
+                          </Popover.Description>
                         </Popover.Content>
                       </Popover.Positioner>
                     </Portal>

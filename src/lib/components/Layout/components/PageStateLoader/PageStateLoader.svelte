@@ -82,7 +82,13 @@
 
 {#if isLoading}
   <div class="fixed flex h-full w-full items-center justify-center">
-    <Progress value={null} />
+    <Progress value={null}>
+      <Progress.Circle>
+        <Progress.CircleTrack />
+        <Progress.CircleRange />
+      </Progress.Circle>
+      <Progress.ValueText />
+    </Progress>
   </div>
 {:else}
   {@render children?.()}

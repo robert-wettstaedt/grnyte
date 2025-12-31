@@ -63,7 +63,7 @@
 <div class={DEBUG ? undefined : 'h-full w-full overflow-hidden'}>
   {#if !DEBUG}
     <div
-      class="bg-surface-50-950 absolute top-0 left-0 z-[100] flex h-full w-full flex-col items-center justify-center gap-4"
+      class="bg-surface-50-950 absolute top-0 left-0 z-100 flex h-full w-full flex-col items-center justify-center gap-4"
       id="progress"
     >
       {#if done}

@@ -10,7 +10,13 @@
 </script>
 
 {#await query()}
-  <Progress size="size-6" value={null} />
+  <Progress value={null}>
+    <Progress.Circle class="[--size:--spacing(6)]">
+      <Progress.CircleTrack />
+      <Progress.CircleRange />
+    </Progress.Circle>
+    <Progress.ValueText />
+  </Progress>
 {:then status}
   {#if status}
     <i class="fa-solid fa-circle-check text-success-400 text-xl"></i>

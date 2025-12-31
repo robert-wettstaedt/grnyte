@@ -37,7 +37,13 @@
     </nav>
   {:else if loadingIndicator.type === 'spinner'}
     <div class="flex justify-center">
-      <Progress size={loadingIndicator.size ?? 'size-12'} value={null} />
+      <Progress value={null}>
+        <Progress.Circle class={loadingIndicator.size ?? '[--size:--spacing(12)]'}>
+          <Progress.CircleTrack />
+          <Progress.CircleRange />
+        </Progress.Circle>
+        <Progress.ValueText />
+      </Progress>
     </div>
   {/if}
 {:else}

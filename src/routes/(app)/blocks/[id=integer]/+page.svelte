@@ -19,7 +19,13 @@
     {:else}
       {#await goto(pathname, { replaceState: true })}
         <div class="flex justify-center">
-          <Progress size="size-12" value={null} />
+          <Progress value={null}>
+            <Progress.Circle class="[--size:--spacing(12)]">
+              <Progress.CircleTrack />
+              <Progress.CircleRange />
+            </Progress.Circle>
+            <Progress.ValueText />
+          </Progress>
         </div>
       {/await}
     {/if}

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { queries, type Row } from '$lib/db/zero'
-  import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
   interface Props {
     route: Row<'routes'>

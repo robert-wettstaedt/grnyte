@@ -74,12 +74,33 @@
 </div>
 
 <div class="my-8 flex justify-end">
-  <!-- buttonClasses="btn-sm md:btn-md" -->
   <Pagination
     count={pagination.total}
     page={pagination.page}
     pageSize={pagination.pageSize}
     siblingCount={0}
     {...paginationProps}
-  />
+  >
+    <Pagination.PrevTrigger>
+      <i class="fa-solid fa-arrow-left"></i>
+    </Pagination.PrevTrigger>
+
+    <Pagination.Context>
+      {#snippet children(pagination)}
+        {#each pagination().pages as page, index (page)}
+          {#if page.type === 'page'}
+            <Pagination.Item {...page}>
+              {page.value}
+            </Pagination.Item>
+          {:else}
+            <Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+          {/if}
+        {/each}
+      {/snippet}
+    </Pagination.Context>
+
+    <Pagination.NextTrigger>
+      <i class="fa-solid fa-arrow-right"></i>
+    </Pagination.NextTrigger>
+  </Pagination>
 </div>

@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-  import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
   import DangerZone from '$lib/components/DangerZone'
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
@@ -11,6 +10,7 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
   import { deleteAscent, updateAscent } from './page.remote'
 
@@ -38,14 +38,18 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    {#if ascent.route != null}
-      <span>Edit ascent of</span>
-      <a class="anchor" href={basePath}>
-        <RouteName route={ascent.route} />
-      </a>
-    {/if}
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Edit ascent
+
+      {#if ascent.route != null}
+        of
+        <a class="anchor" href={basePath}>
+          <RouteName route={ascent.route} />
+        </a>
+      {/if}
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form

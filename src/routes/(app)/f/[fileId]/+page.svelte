@@ -123,7 +123,7 @@
           <div
             class="markdown-body {isNotesExpanded
               ? 'max-h-[300px] overflow-auto'
-              : 'max-h-[32px] overflow-hidden'} -mt-[8px] transition-all duration-300"
+              : 'max-h-8 overflow-hidden'} -mt-2 transition-all duration-300"
           >
             {@html data.notes}
           </div>

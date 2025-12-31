@@ -397,7 +397,7 @@
     width={130}
     height={28}
   >
-    <button class="btn btn-sm preset-filled-error-500 !text-white" onclick={onDeletePoint}>
+    <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDeletePoint}>
       <i class="fa-solid fa-trash"></i>
       Delete point
     </button>

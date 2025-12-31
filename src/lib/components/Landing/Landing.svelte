@@ -46,7 +46,7 @@
 
 <!-- Hero Section -->
 <section class="relative z-0 flex min-h-[calc(100vh-1rem-48px)] items-center md:min-h-[calc(100vh-2rem-48px)]">
-  <div class="absolute inset-[-0.5rem] -z-10 overflow-hidden blur-sm brightness-50 md:inset-[-1rem]">
+  <div class="absolute -inset-2 -z-10 overflow-hidden blur-sm brightness-50 md:-inset-4">
     <video class="min-h-full min-w-full object-cover" autoplay loop muted>
       <source
         src="https://niniugtqbfituyzfoapv.supabase.co/storage/v1/object/public/crag-track/20241222_1354_Mossy%20Forest%20Boulder_storyboard_01jfq6xey9esm8kpfzwfpc09xn.mp4?t=2025-01-01T12%3A18%3A56.818Z"
@@ -113,7 +113,7 @@
     <div class="md:hidden">
       <div class="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
         {#each features as feature}
-          <div class="w-8/10 flex-shrink-0 snap-center sm:w-80">
+          <div class="w-8/10 shrink-0 snap-center sm:w-80">
             <div class="card preset-filled-surface-100-900 h-full p-6">
               <i class="{feature.icon} text-primary-500 mb-4 text-4xl"></i>
               <h3 class="h4 mb-3">{feature.title}</h3>

@@ -2,11 +2,10 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import { pageState } from '$lib/components/Layout/page.svelte'
   import { appRoleLabels } from '$lib/db/schema'
-  import { Pagination } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar, Pagination } from '@skeletonlabs/skeleton-svelte'
 
   const { data } = $props()
 </script>
@@ -16,9 +15,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Users
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Users</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
@@ -54,9 +53,7 @@
 
 <div class="my-8 flex justify-end">
   <Pagination
-    buttonClasses="btn-sm md:btn-md"
     count={data.pagination.total}
-    data={[]}
     page={data.pagination.page}
     pageSize={data.pagination.pageSize}
     siblingCount={0}
@@ -65,5 +62,27 @@
       url.searchParams.set('page', String(detail.page))
       goto(url)
     }}
-  />
+  >
+    <Pagination.PrevTrigger>
+      <i class="fa-solid fa-arrow-left"></i>
+    </Pagination.PrevTrigger>
+
+    <Pagination.Context>
+      {#snippet children(pagination)}
+        {#each pagination().pages as page, index (page)}
+          {#if page.type === 'page'}
+            <Pagination.Item {...page}>
+              {page.value}
+            </Pagination.Item>
+          {:else}
+            <Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+          {/if}
+        {/each}
+      {/snippet}
+    </Pagination.Context>
+
+    <Pagination.NextTrigger>
+      <i class="fa-solid fa-arrow-right"></i>
+    </Pagination.NextTrigger>
+  </Pagination>
 </div>

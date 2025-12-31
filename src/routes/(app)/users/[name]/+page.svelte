@@ -70,7 +70,7 @@
 </svelte:head>
 
 <AppBar hasActions={page.data.session?.user?.id === data.requestedUser?.authUserFk}>
-  {#snippet lead()}
+  {#snippet headline()}
     {data.requestedUser?.username ?? data.firstAscensionist?.name}
   {/snippet}
 
@@ -164,7 +164,13 @@
           </aside>
         {:else if loadedData == null}
           <div class="mt-16 flex justify-center">
-            <Progress value={null} />
+            <Progress value={null}>
+              <Progress.Circle>
+                <Progress.CircleTrack />
+                <Progress.CircleRange />
+              </Progress.Circle>
+              <Progress.ValueText />
+            </Progress>
           </div>
         {:else}
           <AscentsTable

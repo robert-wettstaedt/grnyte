@@ -33,7 +33,13 @@
       type="submit"
     >
       {#if createRegion.pending > 0}
-        <Progress size="size-4" value={null} />
+        <Progress value={null}>
+          <Progress.Circle class="[--size:--spacing(4)]">
+            <Progress.CircleTrack />
+            <Progress.CircleRange />
+          </Progress.Circle>
+          <Progress.ValueText />
+        </Progress>
       {:else}
         <i class="fa-solid fa-chevron-right"></i>
       {/if}

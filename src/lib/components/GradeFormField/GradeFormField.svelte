@@ -1,8 +1,8 @@
 <script lang="ts">
+  import Dialog from '$lib/components/Dialog'
   import { pageState } from '$lib/components/Layout'
   import type { Route } from '$lib/db/schema'
   import { getGradeColor } from '$lib/grades'
-  import { Dialog } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     value: Route['gradeFk'] | null | undefined
@@ -77,36 +77,16 @@
     Grade
 
     {#if withModal}
-      <Dialog
-        open={modalOpen}
-        onOpenChange={(event) => (modalOpen = event.open)}
-        triggerBase="sl-2 fa-regular fa-circle-question"
-        contentBase="card bg-surface-100-900 max-h-[90vh] max-w-screen-sm space-y-4 overflow-y-auto p-4 shadow-xl"
-        backdropClasses="backdrop-blur-sm"
-      >
-        {#snippet trigger()}<i></i>{/snippet}
+      <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Grade opinions">
+        {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
 
         {#snippet content()}
-          <button
-            aria-label="Close"
-            class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
-            onclick={() => (modalOpen = false)}
-          >
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <p>
+            This grade is merely a suggestion and not the final grade of the route. Users can state their opinion on the
+            grade when logging an ascent of the route.
+          </p>
 
-          <header>
-            <h4 class="h4">Grade opinions</h4>
-          </header>
-
-          <article class="opacity-60">
-            <p>
-              This grade is merely a suggestion and not the final grade of the route. Users can state their opinion on
-              the grade when logging an ascent of the route.
-            </p>
-
-            <p class="mt-4">The final grade will be the average of all the opinions.</p>
-          </article>
+          <p class="mt-4">The final grade will be the average of all the opinions.</p>
         {/snippet}
       </Dialog>
     {/if}

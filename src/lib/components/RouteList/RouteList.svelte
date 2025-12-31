@@ -56,7 +56,13 @@
         >
           {#if details.type !== 'complete'}
             <span class="me-2">
-              <Progress size="size-4" value={null} />
+              <Progress value={null}>
+                <Progress.Circle class="[--size:--spacing(4)]">
+                  <Progress.CircleTrack />
+                  <Progress.CircleRange />
+                </Progress.Circle>
+                <Progress.ValueText />
+              </Progress>
             </span>
           {/if}
 

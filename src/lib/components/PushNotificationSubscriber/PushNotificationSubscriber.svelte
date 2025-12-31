@@ -63,7 +63,13 @@
       >
         <button class="btn preset-filled-error-500" disabled={loading} type="submit">
           {#if loading}
-            <Progress size="size-4" value={null} />
+            <Progress value={null}>
+              <Progress.Circle class="[--size:--spacing(4)]">
+                <Progress.CircleTrack />
+                <Progress.CircleRange />
+              </Progress.Circle>
+              <Progress.ValueText />
+            </Progress>
           {/if}
 
           Unsubscribe from Notifications
@@ -117,7 +123,13 @@
       >
         <button class="btn preset-filled-primary-500" disabled={loading} type="submit">
           {#if loading}
-            <Progress size="size-4" value={null} />
+            <Progress value={null}>
+              <Progress.Circle class="[--size:--spacing(4)]">
+                <Progress.CircleTrack />
+                <Progress.CircleRange />
+              </Progress.Circle>
+              <Progress.ValueText />
+            </Progress>
           {/if}
 
           Receive Push Notifications

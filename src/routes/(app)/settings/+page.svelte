@@ -4,7 +4,6 @@
   import { page } from '$app/state'
   import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
-  import AppBar from '$lib/components/AppBar'
   import { pageState } from '$lib/components/Layout'
   import PushNotificationSubscriber, {
     isSubscribed,
@@ -14,7 +13,7 @@
   import { timeoutFunction } from '$lib/errors'
   import { isIOS } from '$lib/features'
   import { dropAllDatabases } from '@rocicorp/zero'
-  import { Switch } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
   let { form } = $props()
@@ -48,10 +47,12 @@
   }
 </script>
 
-<AppBar classes="mx-auto max-w-lg">
-  {#snippet lead()}
-    Hello {pageState.user?.username ?? ''}
-  {/snippet}
+<AppBar class="mx-auto max-w-lg">
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Hello {pageState.user?.username ?? ''}
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="app-settings">

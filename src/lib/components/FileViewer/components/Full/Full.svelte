@@ -141,41 +141,46 @@
                 <Popover.ArrowTip />
               </Popover.Arrow>
 
-              <p class="text-sm">
-                {#if file.visibility === 'public'}
-                  The file is publicly accessible and can be viewed by everyone who has the link.
-                {:else}
-                  The file is private and only accessible by authenticated users.
-                {/if}
-              </p>
-
-              <footer class="flex justify-between gap-2">
-                {#if file.bunnyStreamFk == null}
-                  <p class="text-error-500">Only videos can be made public and shared.</p>
-                {:else}
-                  {#if navigator.canShare?.(shareData) && navigator.share != null}
-                    <button class="btn btn-sm preset-tonal-primary" onclick={() => navigator.share(shareData)}>
-                      <i class="fa-solid fa-share"></i> Share
-                    </button>
+              <Popover.Description>
+                <p class="text-sm">
+                  {#if file.visibility === 'public'}
+                    The file is publicly accessible and can be viewed by everyone who has the link.
                   {:else}
-                    <button class="btn btn-sm preset-tonal-primary" onclick={onCopyUrl}>
-                      <i class="fa-solid fa-copy"></i> Copy
-                    </button>
+                    The file is private and only accessible by authenticated users.
                   {/if}
+                </p>
 
-                  {#if !readOnly}
-                    {#if file.visibility === 'public'}
-                      <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'private')}>
-                        <i class="fa-solid fa-lock"></i> Make private
+                <footer class="flex justify-between gap-2">
+                  {#if file.bunnyStreamFk == null}
+                    <p class="text-error-500">Only videos can be made public and shared.</p>
+                  {:else}
+                    {#if navigator.canShare?.(shareData) && navigator.share != null}
+                      <button class="btn btn-sm preset-tonal-primary" onclick={() => navigator.share(shareData)}>
+                        <i class="fa-solid fa-share"></i> Share
                       </button>
                     {:else}
-                      <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'public')}>
-                        <i class="fa-solid fa-globe"></i> Make public
+                      <button class="btn btn-sm preset-tonal-primary" onclick={onCopyUrl}>
+                        <i class="fa-solid fa-copy"></i> Copy
                       </button>
                     {/if}
+
+                    {#if !readOnly}
+                      {#if file.visibility === 'public'}
+                        <button
+                          class="btn btn-sm preset-tonal-primary"
+                          onclick={updateVisibility.bind(null, 'private')}
+                        >
+                          <i class="fa-solid fa-lock"></i> Make private
+                        </button>
+                      {:else}
+                        <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'public')}>
+                          <i class="fa-solid fa-globe"></i> Make public
+                        </button>
+                      {/if}
+                    {/if}
                   {/if}
-                {/if}
-              </footer>
+                </footer>
+              </Popover.Description>
             </Popover.Content>
           </Popover.Positioner>
         </Portal>
@@ -194,41 +199,45 @@
                   <Popover.ArrowTip />
                 </Popover.Arrow>
 
-                <nav class="list-nav w-48">
-                  <ul>
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b whitespace-nowrap last:border-none"
-                    >
-                      <Popover positioning={{ placement: 'bottom' }}>
-                        <Popover.Trigger class="w-full p-2 text-left md:p-4">
-                          <i class="fa-solid fa-trash me-2 w-5"></i>Delete
-                        </Popover.Trigger>
+                <Popover.Description>
+                  <nav class="list-nav w-48">
+                    <ul>
+                      <li
+                        class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b whitespace-nowrap last:border-none"
+                      >
+                        <Popover positioning={{ placement: 'bottom' }}>
+                          <Popover.Trigger class="w-full p-2 text-left md:p-4">
+                            <i class="fa-solid fa-trash me-2 w-5"></i>Delete
+                          </Popover.Trigger>
 
-                        <Portal>
-                          <Popover.Positioner class="z-5000!">
-                            <Popover.Content class="card bg-surface-300-700 w-full max-w-[320px] space-y-4 p-4">
-                              <Popover.Arrow
-                                class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                              >
-                                <Popover.ArrowTip />
-                              </Popover.Arrow>
+                          <Portal>
+                            <Popover.Positioner class="z-5000!">
+                              <Popover.Content class="card bg-surface-300-700 w-full max-w-[320px] space-y-4 p-4">
+                                <Popover.Arrow
+                                  class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                                >
+                                  <Popover.ArrowTip />
+                                </Popover.Arrow>
 
-                              <article>
-                                <p>Are you sure you want to delete this file?</p>
-                              </article>
+                                <Popover.Description>
+                                  <article>
+                                    <p>Are you sure you want to delete this file?</p>
+                                  </article>
 
-                              <footer class="flex justify-end">
-                                <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDelete}>
-                                  Yes
-                                </button>
-                              </footer>
-                            </Popover.Content>
-                          </Popover.Positioner>
-                        </Portal>
-                      </Popover>
-                    </li>
-                  </ul>
-                </nav>
+                                  <footer class="flex justify-end">
+                                    <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDelete}>
+                                      Yes
+                                    </button>
+                                  </footer>
+                                </Popover.Description>
+                              </Popover.Content>
+                            </Popover.Positioner>
+                          </Portal>
+                        </Popover>
+                      </li>
+                    </ul>
+                  </nav>
+                </Popover.Description>
               </Popover.Content>
             </Popover.Positioner>
           </Portal>

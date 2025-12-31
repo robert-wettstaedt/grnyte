@@ -1,8 +1,8 @@
 <script>
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import TagFormFields from '$lib/components/TagFormFields'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { form } = $props()
 </script>
@@ -12,9 +12,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Create tag</span>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Create tag</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" method="POST" use:enhance>

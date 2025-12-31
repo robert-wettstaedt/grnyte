@@ -1,12 +1,12 @@
 <script lang="ts">
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
+  import { pageState } from '$lib/components/Layout'
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'
-  import type { RowWithRelations } from '$lib/db/zero'
-  import { RatingGroup } from '@skeletonlabs/skeleton-svelte'
-  import { pageState } from '$lib/components/Layout'
   import type { InferResultType } from '$lib/db/types'
+  import type { RowWithRelations } from '$lib/db/zero'
+  import RouteRating from '../RouteRating'
 
   type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
@@ -54,27 +54,7 @@
 
     <RouteGrade {route} ascents={route.ascents} />
 
-    {#if (route.userRating ?? route.rating) != null}
-      <RatingGroup count={3} readOnly value={(route.userRating ?? route.rating)!}>
-        <RatingGroup.Control class="gap-0! text-xs md:text-sm">
-          <RatingGroup.Context>
-            {#snippet children(ratingGroup)}
-              {#each ratingGroup().items as index (index)}
-                <RatingGroup.Item {index}>
-                  {#snippet empty()}
-                    <i class="fa-regular fa-star text-warning-500"></i>
-                  {/snippet}
-                  {#snippet full()}
-                    <i class="fa-solid fa-star text-warning-500"></i>
-                  {/snippet}
-                </RatingGroup.Item>
-              {/each}
-            {/snippet}
-          </RatingGroup.Context>
-        </RatingGroup.Control>
-        <RatingGroup.HiddenInput />
-      </RatingGroup>
-    {/if}
+    <RouteRating value={route.userRating ?? route.rating} />
 
     <div class="overflow-hidden text-ellipsis">
       {route.name.length === 0 ? config.routes.defaultName : route.name}

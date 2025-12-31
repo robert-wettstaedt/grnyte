@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { form } = $props()
 </script>
@@ -11,9 +11,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Change password
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Change password</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 {#if form?.success}

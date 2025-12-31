@@ -39,50 +39,37 @@
 </svelte:head>
 
 <AppBar {hasActions}>
-  {#snippet lead()}{/snippet}
-
   {#snippet actions()}
     <a class="btn btn-sm preset-outlined-primary-500" href="{page.url.pathname}/add">
       <i class="fa-solid fa-plus w-4"></i>Add area
     </a>
   {/snippet}
 
-  {#snippet headline()}
-    <Tabs
-      fluid
-      listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
-      listGap="0"
-      onValueChange={onChangeTab}
-      value={tabValue}
-    >
-      {#snippet list()}
-        <Tabs.Control value="areas">Areas</Tabs.Control>
-        <Tabs.Control value="routes">Routes</Tabs.Control>
-        <Tabs.Control value="favorites">My Favorites</Tabs.Control>
-      {/snippet}
+  {#snippet content()}
+    <Tabs onValueChange={onChangeTab} value={tabValue}>
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
+        <Tabs.Trigger class="flex-1" value="areas">Areas</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="routes">Routes</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="favorites">My Favorites</Tabs.Trigger>
+      </Tabs.List>
 
-      {#snippet content()}
-        <Tabs.Panel value="areas">
-          {#if tabValue === 'areas' || loadedTabs}
-            <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
-          {/if}
-        </Tabs.Panel>
+      <Tabs.Content value="areas">
+        {#if tabValue === 'areas' || loadedTabs}
+          <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+        {/if}
+      </Tabs.Content>
 
-        <Tabs.Panel value="routes">
-          {#if tabValue === 'routes' || loadedTabs}
-            <RouteList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
-          {/if}
-        </Tabs.Panel>
+      <Tabs.Content value="routes">
+        {#if tabValue === 'routes' || loadedTabs}
+          <RouteList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+        {/if}
+      </Tabs.Content>
 
-        <Tabs.Panel value="favorites">
-          {#if tabValue === 'favorites' || loadedTabs}
-            <FavoritesList
-              onLoad={() => setTimeout(() => (loadedTabs = true), 100)}
-              authUserId={page.data.authUserId!}
-            />
-          {/if}
-        </Tabs.Panel>
-      {/snippet}
+      <Tabs.Content value="favorites">
+        {#if tabValue === 'favorites' || loadedTabs}
+          <FavoritesList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} authUserId={page.data.authUserId!} />
+        {/if}
+      </Tabs.Content>
     </Tabs>
   {/snippet}
 </AppBar>

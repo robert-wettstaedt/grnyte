@@ -1,6 +1,6 @@
 <script lang="ts">
+  import Dialog from '$lib/components/Dialog'
   import type { Route } from '$lib/db/schema'
-  import { Dialog } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     value: Route['rating'] | null | undefined
@@ -15,39 +15,19 @@
   <span>
     Rating
 
-    <Dialog
-      open={modalOpen}
-      onOpenChange={(event) => (modalOpen = event.open)}
-      triggerBase="sl-2 fa-regular fa-circle-question"
-      contentBase="card bg-surface-100-900 max-h-[90vh] max-w-screen-sm space-y-4 overflow-y-auto p-4 shadow-xl"
-      backdropClasses="backdrop-blur-sm"
-    >
-      {#snippet trigger()}<i></i>{/snippet}
+    <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Rating">
+      {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
 
       {#snippet content()}
-        <button
-          aria-label="Close"
-          class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
-          onclick={() => (modalOpen = false)}
-        >
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <p>As objective as possible try to consider these factors:</p>
 
-        <header>
-          <h4 class="h4">Rating</h4>
-        </header>
-
-        <article class="opacity-60">
-          <p>As objective as possible try to consider these factors:</p>
-
-          <ul class="mt-4 list-inside list-disc">
-            <li>The quality of the rock and holds</li>
-            <li>The quality of the landing area</li>
-            <li>The climbing movement</li>
-            <li>The beauty of the surrounding area</li>
-            <li>Is there a topout or only a dropoff?</li>
-          </ul>
-        </article>
+        <ul class="mt-4 list-inside list-disc">
+          <li>The quality of the rock and holds</li>
+          <li>The quality of the landing area</li>
+          <li>The climbing movement</li>
+          <li>The beauty of the surrounding area</li>
+          <li>Is there a topout or only a dropoff?</li>
+        </ul>
       {/snippet}
     </Dialog>
   </span>

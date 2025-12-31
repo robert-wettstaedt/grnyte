@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
-  import AppBar from '$lib/components/AppBar'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
   import { pageState } from '$lib/components/Layout'
@@ -12,6 +11,7 @@
   import { getRouteContext } from '$lib/contexts/route'
   import type { RowWithRelations } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
   import { deleteFirstAscent, updateFirstAscent } from './page.remote'
 
@@ -42,12 +42,14 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Edit FA of</span>
-    <a class="anchor" href={basePath}>
-      <RouteName {route} />
-    </a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Edit FA of
+      <a class="anchor" href={basePath}>
+        <RouteName {route} />
+      </a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateFirstAscent.enhance(enhanceForm())}>

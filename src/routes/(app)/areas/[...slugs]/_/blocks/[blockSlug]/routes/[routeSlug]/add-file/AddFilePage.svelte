@@ -1,7 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import FileUpload from '$lib/components/FileUpload'
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
@@ -9,6 +8,7 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { addFile } from './page.remote'
 
   const { route } = getRouteContext()
@@ -30,12 +30,14 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Edit files of</span>
-    <a class="anchor" href={basePath}>
-      <RouteName {route} />
-    </a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Edit files of
+      <a class="anchor" href={basePath}>
+        <RouteName {route} />
+      </a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form

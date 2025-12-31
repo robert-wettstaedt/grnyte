@@ -2,7 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { form } = $props()
 
@@ -14,9 +14,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Reset password
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Reset password</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 {#if form?.success}

@@ -34,7 +34,13 @@
   onclick={() => route.id != null && toggleRouteFavoriteStatus(route.id)}
 >
   {#if toggleRouteFavoriteStatus.pending > 0}
-    <Progress size="size-4" value={null} />
+    <Progress value={null}>
+      <Progress.Circle class="[--size:--spacing(4)]">
+        <Progress.CircleTrack />
+        <Progress.CircleRange />
+      </Progress.Circle>
+      <Progress.ValueText />
+    </Progress>
   {:else}
     <i class="fa-solid fa-heart {byUser ? 'text-red-500' : 'text-white'}"></i>
   {/if}
@@ -73,7 +79,13 @@
     onclick={() => route.id != null && syncExternalResources(route.id)}
   >
     {#if syncExternalResources.pending > 0}
-      <Progress size="size-4" value={null} />
+      <Progress value={null}>
+        <Progress.Circle class="[--size:--spacing(4)]">
+          <Progress.CircleTrack />
+          <Progress.CircleRange />
+        </Progress.Circle>
+        <Progress.ValueText />
+      </Progress>
     {:else}
       <i class="fa-solid fa-sync"></i>
     {/if}

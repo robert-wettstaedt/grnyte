@@ -39,7 +39,13 @@
       class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
       style="min-width: {progressSize}px; width: {progressSize}px; min-height: {progressSize}px; height: {progressSize}px;"
     >
-      <Progress size="size-full" value={null} />
+      <Progress value={null}>
+        <Progress.Circle class="size-full">
+          <Progress.CircleTrack />
+          <Progress.CircleRange />
+        </Progress.Circle>
+        <Progress.ValueText />
+      </Progress>
     </div>
 
     <img

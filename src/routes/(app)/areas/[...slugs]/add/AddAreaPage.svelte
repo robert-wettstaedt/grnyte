@@ -1,12 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import AreaFormFields from '$lib/components/AreaFormFields'
   import FormActionBar from '$lib/components/FormActionBar'
   import { getAreaContext } from '$lib/contexts/area'
   import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createArea } from './../../add/page.remote'
 
   interface Props {
@@ -30,13 +30,15 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Create area</span>
-    {#if area != null}
-      <span>in</span>
-      <a class="anchor" href={basePath}>{area.name}</a>
-    {/if}
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Create area
+      {#if area != null}
+        in
+        <a class="anchor" href={basePath}>{area.name}</a>
+      {/if}
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createArea.enhance(enhanceForm())}>

@@ -14,7 +14,7 @@
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import { Rating } from '@skeletonlabs/skeleton-svelte'
+  import RouteRating from '$lib/components/RouteRating'
   import { compareAsc, format, formatDistance, formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
   import { diffWords } from 'diff'
@@ -139,20 +139,7 @@
               {/if}
 
               {#if activity.entity.object?.rating != null}
-                <Rating
-                  count={3}
-                  readOnly
-                  value={activity.entity.object.rating}
-                  controlClasses="!gap-0 text-xs md:text-sm"
-                >
-                  {#snippet iconFull()}
-                    <i class="fa-solid fa-star text-warning-500"></i>
-                  {/snippet}
-
-                  {#snippet iconEmpty()}
-                    <i class="fa-regular fa-star"></i>
-                  {/snippet}
-                </Rating>
+                <RouteRating value={activity.entity.object.rating} />
               {/if}
             </div>
           {/if}
@@ -362,11 +349,7 @@
             {#if activity.oldValue != null}
               {#if activity.columnName === 'rating'}
                 <span class="inline-flex">
-                  <Rating count={3} readOnly value={Number(activity.oldValue)}>
-                    {#snippet iconFull()}
-                      <i class="fa-solid fa-star text-warning-500"></i>
-                    {/snippet}
-                  </Rating>
+                  <RouteRating value={Number(activity.oldValue)} />
                 </span>
               {:else}
                 <s class="text-red-500">
@@ -380,11 +363,7 @@
 
               {#if activity.columnName === 'rating'}
                 <span class="inline-flex">
-                  <Rating count={3} readOnly value={Number(activity.newValue)}>
-                    {#snippet iconFull()}
-                      <i class="fa-solid fa-star text-warning-500"></i>
-                    {/snippet}
-                  </Rating>
+                  <RouteRating value={Number(activity.newValue)} />
                 </span>
               {:else}
                 <span class="text-green-500">

@@ -2,8 +2,8 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import { pageState } from '$lib/components/Layout/page.svelte.js'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   const { data, form } = $props()
 </script>
@@ -13,9 +13,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Edit profile
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Edit profile</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 {#if form?.success}

@@ -48,7 +48,7 @@
 
 {#if position != null}
   <div
-    class="pointer-events-none fixed top-0 left-0 z-30 h-[128px] w-[128px] origin-top-left origin-top-left touch-none overflow-hidden rounded-full border-2"
+    class="pointer-events-none fixed top-0 left-0 z-30 h-32 w-32 origin-top-left touch-none overflow-hidden rounded-full border-2"
     style="transform: translate({position.x - 128 / 2}px, {position.y - 128 - 32}px)"
     transition:fade={{ duration: 100 }}
   >
@@ -61,10 +61,10 @@
     />
 
     <div
-      class="bg-error-500 absolute top-1/2 left-1/2 h-4 w-[2px] translate-x-[-50%] translate-y-[-50%] transform opacity-75"
+      class="bg-error-500 absolute top-1/2 left-1/2 h-4 w-0.5 translate-x-[-50%] translate-y-[-50%] transform opacity-75"
     ></div>
     <div
-      class="bg-error-500 absolute top-1/2 left-1/2 h-[2px] w-4 translate-x-[-50%] translate-y-[-50%] transform opacity-75"
+      class="bg-error-500 absolute top-1/2 left-1/2 h-0.5 w-4 translate-x-[-50%] translate-y-[-50%] transform opacity-75"
     ></div>
   </div>
 {/if}
