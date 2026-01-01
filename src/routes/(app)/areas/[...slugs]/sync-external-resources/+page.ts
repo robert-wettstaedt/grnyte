@@ -1,4 +1,3 @@
-import { page } from '$app/state'
 import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
@@ -11,7 +10,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const query = queries.listRoutesWithExternalResources(page.data, { areaId })
+  const query = queries.listRoutesWithExternalResources({ areaId })
 
   return { query }
 }) satisfies PageLoad

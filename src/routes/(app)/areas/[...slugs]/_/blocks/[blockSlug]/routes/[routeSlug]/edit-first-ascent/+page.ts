@@ -1,4 +1,3 @@
-import { page } from '$app/state'
 import { queries } from '$lib/db/zero'
 import { convertAreaSlugRaw } from '$lib/helper'
 import { error } from '@sveltejs/kit'
@@ -11,7 +10,7 @@ export const load = (async ({ params }) => {
     error(404)
   }
 
-  const faQuery = queries.firstAscensionists(page.data)
+  const faQuery = queries.firstAscensionists()
 
   return { faQuery }
 }) satisfies PageLoad

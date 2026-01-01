@@ -1,8 +1,17 @@
-<script lang="ts" generics="TTable extends keyof Schema['tables'] & string, TReturn">
+<script
+  lang="ts"
+  generics="TTable extends keyof Schema['tables'] & string,
+  TInput extends ReadonlyJSONValue | undefined,
+  TOutput extends ReadonlyJSONValue | undefined,
+  TReturn = PullRow<TTable, Schema>,
+  TContext = DefaultContext"
+>
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { Schema } from '$lib/db/zero/zero-schema'
+  import type { DefaultContext, PullRow } from '@rocicorp/zero'
+  import type { ReadonlyJSONValue } from 'drizzle-zero'
   import type { ZeroQueryWrapperProps } from '.'
 
   const {
@@ -12,7 +21,7 @@
     onLoad,
     query,
     showEmpty = false,
-  }: ZeroQueryWrapperProps<TTable, TReturn> = $props()
+  }: ZeroQueryWrapperProps<TTable, TInput, TOutput, TReturn, TContext> = $props()
 
   const result = $derived(page.data.z.q(query))
   const isEmpty = $derived(Array.isArray(result.data) ? result.data.length === 0 : result.data == null)

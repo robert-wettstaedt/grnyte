@@ -2,7 +2,7 @@ import { PUBLIC_ZERO_URL } from '$env/static/public'
 import { schema, type Schema } from '$lib/db/zero/zero-schema'
 import type { Session } from '@supabase/supabase-js'
 import { Z } from 'zero-svelte'
-import { queries, type QueryContext } from './queries'
+import { queries } from './queries'
 
 export * from './queries'
 export * from './types'
@@ -38,33 +38,30 @@ export {
   type UserSetting,
 } from './zero-schema.gen'
 
-export function initZero(session: Session | undefined | null) {
+export function initZero(session: Session | undefined | null): Z<Schema, undefined> {
   const z = new Z<Schema>({
     auth: session?.access_token,
-    userID: session?.user.id ?? 'anon',
-    server: PUBLIC_ZERO_URL,
+    context: session == null ? undefined : { authUserId: session.user.id },
     schema,
+    server: PUBLIC_ZERO_URL,
+    userID: session?.user.id ?? 'anon',
   })
-
-  const ctx: QueryContext = { authUserId: session?.user.id }
 
   if (session != null) {
     Promise.all([
-      z.current.preload(queries.grades(ctx)).complete,
-      z.current.preload(queries.tags(ctx)).complete,
-      z.current.preload(queries.regions(ctx)).complete,
-      z.current.preload(queries.rolePermissions(ctx)).complete,
-
-      z.current.preload(queries.currentUserRoles(ctx)).complete,
-      z.current.preload(queries.currentUser(ctx)).complete,
-      z.current.preload(queries.currentUserRegions(ctx)).complete,
-
-      z.current.preload(queries.listUsers(ctx, {})).complete,
-      z.current.preload(queries.listAreas(ctx, {})).complete,
-      z.current.preload(queries.listBlocks(ctx, {})).complete,
-      z.current.preload(queries.listRoutes(ctx, {})).complete,
-      z.current.preload(queries.firstAscensionists(ctx)).complete,
-      z.current.preload(queries.favorites(ctx, {})).complete,
+      z.preload(queries.grades()).complete,
+      z.preload(queries.tags()).complete,
+      z.preload(queries.regions()).complete,
+      z.preload(queries.rolePermissions()).complete,
+      z.preload(queries.currentUserRoles()).complete,
+      z.preload(queries.currentUser()).complete,
+      z.preload(queries.currentUserRegions()).complete,
+      z.preload(queries.listUsers({})).complete,
+      z.preload(queries.listAreas({})).complete,
+      z.preload(queries.listBlocks({})).complete,
+      z.preload(queries.listRoutes({})).complete,
+      z.preload(queries.firstAscensionists()).complete,
+      z.preload(queries.favorites({})).complete,
     ])
       .then(() => {
         console.log('All queries preloaded successfully')

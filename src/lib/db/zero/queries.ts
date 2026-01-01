@@ -1,9 +1,9 @@
-import type { Query, QueryFn, ReadonlyJSONValue, SyncedQuery } from '@rocicorp/zero'
-import { syncedQueryWithContext } from '@rocicorp/zero'
+import type { PullRow, Query, ReadonlyJSONValue } from '@rocicorp/zero'
+import { defineQueries, defineQuery } from '@rocicorp/zero'
 import z from 'zod'
 import { activityParentEntityType, activityType, ascentTypeEnum, favoriteEntityType } from '../schema'
-import { type Schema } from './zero-schema'
-import { builder } from './zero-schema.gen'
+import type { Schema } from './zero-schema'
+import { zql } from './zero-schema.gen'
 
 type RegionPreloadTable =
   | 'areas'
@@ -42,7 +42,7 @@ const regionPreloadTables: RegionPreloadTable[] = [
 
 type RegionTable = RegionPreloadTable | 'activities' | 'favorites' | 'regionMembers'
 
-type RegionQuery<TReturn> = Query<Schema, RegionTable, TReturn>
+type RegionQuery<TReturn> = Query<RegionTable, Schema, TReturn>
 
 export type QueryContext = {
   authUserId: string | undefined
@@ -69,28 +69,56 @@ const addRegionCheck = <
 }
 
 const authenticatedUserCan =
-  <TContext extends QueryContext, TArg extends ReadonlyJSONValue[], TReturnQuery extends Query<any, any, any>>(
-    cb: QueryFn<Omit<QueryContext, 'authUserId'> & { authUserId: string }, true, TArg, TReturnQuery>,
+  <
+    TInput extends ReadonlyJSONValue | undefined,
+    TOutput extends ReadonlyJSONValue | undefined,
+    TContext = QueryContext,
+    TSchema extends Schema = Schema,
+    TTable extends keyof TSchema['tables'] & string = keyof TSchema['tables'] & string,
+    TReturn = PullRow<TTable, TSchema>,
+  >(
+    cb: Parameters<
+      typeof defineQuery<
+        TInput,
+        TOutput,
+        Omit<TContext, 'authUserId'> & { authUserId: string },
+        TSchema,
+        TTable,
+        TReturn
+      >
+    >[1],
   ) =>
-  (ctx: TContext | null | undefined, ...args: TArg) => {
-    if (ctx?.authUserId == null) {
+  (options: Parameters<typeof cb>[0]) => {
+    if (options.ctx == null) {
       throw new Error('Not allowed')
     }
 
-    return cb({ ...ctx, authUserId: ctx.authUserId }, ...args)
+    return cb(options)
   }
 
 const regionMemberCan =
   <
-    TContext extends QueryContext | null | undefined,
-    TArg extends ReadonlyJSONValue[],
-    TReturnQuery extends RegionQuery<any>,
+    TInput extends ReadonlyJSONValue | undefined,
+    TOutput extends ReadonlyJSONValue | undefined,
+    TContext = QueryContext,
+    TSchema extends Schema = Schema,
+    TTable extends RegionTable = RegionTable,
+    TReturn = PullRow<TTable, TSchema>,
   >(
-    cb: QueryFn<TContext, true, TArg, TReturnQuery>,
+    cb: Parameters<
+      typeof defineQuery<
+        TInput,
+        TOutput,
+        Omit<TContext, 'authUserId'> & { authUserId: string },
+        TSchema,
+        TTable,
+        TReturn
+      >
+    >[1],
   ) =>
-  (ctx: TContext, ...args: TArg) => {
-    const q = cb(ctx, ...args)
-    return addRegionCheck(ctx, q)
+  (options: Parameters<typeof cb>[0]) => {
+    const q = cb(options)
+    return addRegionCheck<QueryContext, TReturn, Query<TTable, Schema, TReturn>>(options.ctx, q)
   }
 
 const relatedRegion =
@@ -99,135 +127,118 @@ const relatedRegion =
     return addRegionCheck(ctx, q)
   }
 
-export const queries = {
-  grades: syncedQueryWithContext(
-    'grades',
-    z.tuple([]),
+export const queries = defineQueries({
+  grades: defineQuery(
+    z.undefined(),
     authenticatedUserCan(() => {
-      return builder.grades
+      return zql.grades
     }),
   ),
-  tags: syncedQueryWithContext(
-    'tags',
-    z.tuple([]),
+  tags: defineQuery(
+    z.undefined(),
     authenticatedUserCan(() => {
-      return builder.tags
+      return zql.tags
     }),
   ),
-  regions: syncedQueryWithContext(
-    'regions',
-    z.tuple([]),
-    authenticatedUserCan((ctx) => {
-      return builder.regions.whereExists('members', (q) => q.where('authUserFk', ctx.authUserId))
+  regions: defineQuery(
+    z.undefined(),
+    authenticatedUserCan(({ ctx }) => {
+      return zql.regions.whereExists('members', (q) => q.where('authUserFk', ctx.authUserId))
     }),
   ),
-  rolePermissions: syncedQueryWithContext(
-    'rolePermissions',
-    z.tuple([]),
-    authenticatedUserCan(() => {
-      return builder.rolePermissions
+  rolePermissions: defineQuery(z.undefined(), () => {
+    return zql.rolePermissions
+  }),
+
+  currentUser: defineQuery(
+    z.undefined(),
+    authenticatedUserCan(({ ctx }) => {
+      return zql.users.where('authUserFk', ctx.authUserId).related('userSettings').related('favorites').one()
+    }),
+  ),
+  currentUserRoles: defineQuery(
+    z.undefined(),
+    authenticatedUserCan(({ ctx }) => {
+      return zql.userRoles.where('authUserFk', ctx.authUserId).one()
+    }),
+  ),
+  currentUserRegions: defineQuery(
+    z.undefined(),
+    authenticatedUserCan(({ ctx }) => {
+      return zql.regionMembers.where('authUserFk', ctx.authUserId).where('isActive', 'IS NOT', null).related('region')
     }),
   ),
 
-  currentUser: syncedQueryWithContext(
-    'currentUser',
-    z.tuple([]),
-    authenticatedUserCan(({ authUserId }) => {
-      return builder.users.where('authUserFk', authUserId).related('userSettings').related('favorites').one()
+  listUsers: defineQuery(
+    z.object({
+      content: z.string().optional(),
+      id: z.union([z.number(), z.array(z.number())]).optional(),
     }),
-  ),
-  currentUserRoles: syncedQueryWithContext(
-    'currentUserRoles',
-    z.tuple([]),
-    authenticatedUserCan(({ authUserId }) => {
-      return builder.userRoles.where('authUserFk', authUserId).one()
-    }),
-  ),
-  currentUserRegions: syncedQueryWithContext(
-    'currentUserRegions',
-    z.tuple([]),
-    authenticatedUserCan(({ authUserId }) => {
-      return builder.regionMembers.where('authUserFk', authUserId).where('isActive', 'IS NOT', null).related('region')
-    }),
-  ),
-
-  listUsers: syncedQueryWithContext(
-    'listUsers',
-    z.tuple([
-      z.object({
-        content: z.string().optional(),
-        id: z.union([z.number(), z.array(z.number())]).optional(),
-      }),
-    ]),
-    authenticatedUserCan((ctx, { content, id }) => {
+    authenticatedUserCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.users.whereExists('regionMemberships', r)
+      let q = zql.users.whereExists('regionMemberships', r)
 
-      if (id != null) {
-        if (Array.isArray(id)) {
-          q = q.where('id', 'IN', id)
+      if (args.id != null) {
+        if (Array.isArray(args.id)) {
+          q = q.where('id', 'IN', args.id)
         } else {
-          q = q.where('id', id)
+          q = q.where('id', args.id)
         }
       }
 
-      if (content != null) {
-        q = q.where('username', 'ILIKE', `%${content}%`)
+      if (args.content != null) {
+        q = q.where('username', 'ILIKE', `%${args.content}%`)
       }
 
       return q
     }),
   ),
 
-  listAreas: syncedQueryWithContext(
-    'listAreas',
-    z.tuple([
-      z.object({
-        areaId: z.union([z.number(), z.array(z.number())]).optional(),
-        content: z.string().optional(),
-        parentFk: z.number().optional().nullish(),
-      }),
-    ]),
-    regionMemberCan((ctx, { areaId, content, parentFk }) => {
+  listAreas: defineQuery(
+    z.object({
+      areaId: z.union([z.number(), z.array(z.number())]).optional(),
+      content: z.string().optional(),
+      parentFk: z.number().optional().nullish(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.areas
+      let q = zql.areas
         .orderBy('name', 'asc')
         .related('parent', (q) => r(q).related('parent', r))
         .related('parkingLocations', r)
 
-      if (areaId != null) {
-        if (Array.isArray(areaId)) {
-          q = q.where('id', 'IN', areaId)
+      if (args.areaId != null) {
+        if (Array.isArray(args.areaId)) {
+          q = q.where('id', 'IN', args.areaId)
         } else {
-          q = q.where('id', areaId)
+          q = q.where('id', args.areaId)
         }
       }
 
-      if (parentFk !== undefined) {
-        q = q.where('parentFk', 'IS', parentFk)
+      if (args.parentFk !== undefined) {
+        q = q.where('parentFk', 'IS', args.parentFk)
       }
 
-      if (content != null) {
-        q = q.where((q) => q.or(q.cmp('name', 'ILIKE', `%${content}%`), q.cmp('description', 'ILIKE', `%${content}%`)))
+      if (args.content != null) {
+        q = q.where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
+        )
       }
 
       return q
     }),
   ),
-  area: syncedQueryWithContext(
-    'area',
-    z.tuple([
-      z.object({
-        id: z.number(),
-      }),
-    ]),
-    regionMemberCan((ctx, { id }) => {
+  area: defineQuery(
+    z.object({
+      id: z.number(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      return builder.areas
-        .where('id', id)
+      return zql.areas
+        .where('id', args.id)
         .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
         .related('author')
         .related('files', r)
@@ -236,68 +247,62 @@ export const queries = {
     }),
   ),
 
-  listBlocks: syncedQueryWithContext(
-    'listBlocks',
-    z.tuple([
-      z.object({
-        areaId: z.number().optional().nullable(),
-        blockId: z.union([z.number(), z.array(z.number())]).optional(),
-        content: z.string().optional(),
-      }),
-    ]),
-    regionMemberCan((ctx, { areaId, blockId, content }) => {
+  listBlocks: defineQuery(
+    z.object({
+      areaId: z.number().optional().nullable(),
+      blockId: z.union([z.number(), z.array(z.number())]).optional(),
+      content: z.string().optional(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.blocks
+      let q = zql.blocks
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
         .related('topos', (q) => r(q).orderBy('id', 'asc').related('file', r))
         .related('area', (q) => r(q).related('parent', r))
         .related('geolocation', r)
 
-      if (blockId != null) {
-        if (Array.isArray(blockId)) {
-          q = q.where('id', 'IN', blockId)
+      if (args.blockId != null) {
+        if (Array.isArray(args.blockId)) {
+          q = q.where('id', 'IN', args.blockId)
         } else {
-          q = q.where('id', blockId)
+          q = q.where('id', args.blockId)
         }
       }
 
-      if (areaId !== undefined) {
-        q = q.where('areaFk', 'IS', areaId)
+      if (args.areaId !== undefined) {
+        q = q.where('areaFk', 'IS', args.areaId)
       }
 
-      if (content != null) {
-        q = q.where('name', 'ILIKE', `%${content}%`)
+      if (args.content != null) {
+        q = q.where('name', 'ILIKE', `%${args.content}%`)
       }
 
       return q
     }),
   ),
-  block: syncedQueryWithContext(
-    'block',
-    z.tuple([
-      z.object({
-        areaId: z.number().optional(),
-        blockSlug: z.string().optional(),
-        blockId: z.number().optional(),
-      }),
-    ]),
-    regionMemberCan((ctx, { areaId, blockId, blockSlug }) => {
+  block: defineQuery(
+    z.object({
+      areaId: z.number().optional(),
+      blockSlug: z.string().optional(),
+      blockId: z.number().optional(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.blocks
+      let q = zql.blocks
 
-      if (areaId != null) {
-        q = q.where('areaFk', areaId)
+      if (args.areaId != null) {
+        q = q.where('areaFk', args.areaId)
       }
 
-      if (blockSlug != null) {
-        q = q.where('slug', blockSlug)
+      if (args.blockSlug != null) {
+        q = q.where('slug', args.blockSlug)
       }
 
-      if (blockId != null) {
-        q = q.where('id', blockId)
+      if (args.blockId != null) {
+        q = q.where('id', args.blockId)
       }
 
       return q
@@ -309,28 +314,25 @@ export const queries = {
     }),
   ),
 
-  favorites: syncedQueryWithContext(
-    'favorites',
-    z.tuple([
-      z.object({
-        authUserFk: z.string().optional(),
-        entity: z
-          .object({
-            type: z.enum(favoriteEntityType),
-            id: z.string(),
-          })
-          .optional(),
-      }),
-    ]),
-    regionMemberCan((_, { authUserFk, entity }) => {
-      let q = builder.favorites
+  favorites: defineQuery(
+    z.object({
+      authUserFk: z.string().optional(),
+      entity: z
+        .object({
+          type: z.enum(favoriteEntityType),
+          id: z.string(),
+        })
+        .optional(),
+    }),
+    regionMemberCan(({ args }) => {
+      let q = zql.favorites
 
-      if (authUserFk != null) {
-        q = q.where('authUserFk', authUserFk)
+      if (args.authUserFk != null) {
+        q = q.where('authUserFk', args.authUserFk)
       }
 
-      if (entity != null) {
-        q = q.where('entityType', entity.type).where('entityId', entity.id)
+      if (args.entity != null) {
+        q = q.where('entityType', args.entity.type).where('entityId', args.entity.id)
       }
 
       return q
@@ -354,7 +356,7 @@ export const queries = {
     const listRoutes = (ctx: QueryContext | null | undefined, opts: z.infer<typeof schema>) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.routes.related('tags', r).related('firstAscents', r)
+      let q = zql.routes.related('tags', r).related('firstAscents', r)
 
       if (opts.routeId != null) {
         if (Array.isArray(opts.routeId)) {
@@ -405,22 +407,20 @@ export const queries = {
     }
 
     return {
-      listRoutes: syncedQueryWithContext(
-        'listRoutes',
-        z.tuple([schema]),
-        regionMemberCan((ctx, opts) => {
-          return listRoutes(ctx, opts)
+      listRoutes: defineQuery(
+        schema,
+        regionMemberCan(({ args, ctx }) => {
+          return listRoutes(ctx, args)
         }),
       ),
-      listRoutesWithRelations: syncedQueryWithContext(
-        'listRoutesWithRelations',
-        z.tuple([schema]),
-        regionMemberCan((ctx, opts) => {
+      listRoutesWithRelations: defineQuery(
+        schema,
+        regionMemberCan(({ args, ctx }) => {
           const r = relatedRegion(ctx)
 
-          return listRoutes(ctx, opts)
+          return listRoutes(ctx, args)
             .related('ascents', (q) =>
-              opts.userId == null ? r(q).where('createdBy', 'IS', null) : r(q).where('createdBy', '=', opts.userId),
+              args.userId == null ? r(q).where('createdBy', 'IS', null) : r(q).where('createdBy', '=', args.userId),
             )
             .related('block', (q) =>
               r(q).related('area', (q) =>
@@ -431,13 +431,12 @@ export const queries = {
             )
         }),
       ),
-      listRoutesWithExternalResources: syncedQueryWithContext(
-        'listRoutesWithExternalResources',
-        z.tuple([schema]),
-        regionMemberCan((ctx, opts) => {
+      listRoutesWithExternalResources: defineQuery(
+        schema,
+        regionMemberCan(({ args, ctx }) => {
           const r = relatedRegion(ctx)
 
-          return listRoutes(ctx, opts)
+          return listRoutes(ctx, args)
             .related('block', r)
             .related('externalResources', (q) =>
               r(q)
@@ -447,50 +446,46 @@ export const queries = {
             )
         }),
       ),
-      listRoutesWithAscents: syncedQueryWithContext(
-        'listRoutesWithAscents',
-        z.tuple([schema]),
-        regionMemberCan((ctx, opts) => {
+      listRoutesWithAscents: defineQuery(
+        schema,
+        regionMemberCan(({ args, ctx }) => {
           const r = relatedRegion(ctx)
 
-          return listRoutes(ctx, opts).related('ascents', (q) =>
-            opts.userId == null ? r(q) : r(q).where('createdBy', '=', opts.userId),
+          return listRoutes(ctx, args).related('ascents', (q) =>
+            args.userId == null ? r(q) : r(q).where('createdBy', '=', args.userId),
           )
         }),
       ),
     }
   })(),
-  route: syncedQueryWithContext(
-    'route',
-    z.tuple([
-      z.object({
-        areaId: z.number().optional(),
-        blockSlug: z.string().optional(),
-        routeSlug: z.string(),
-      }),
-    ]),
-    regionMemberCan((ctx, { areaId, blockSlug, routeSlug }) => {
+  route: defineQuery(
+    z.object({
+      areaId: z.number().optional(),
+      blockSlug: z.string().optional(),
+      routeSlug: z.string(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      function getRouteDbFilterRaw(routeSlug: string, q: Query<Schema, 'routes'>): Query<Schema, 'routes'> {
+      function getRouteDbFilterRaw(routeSlug: string, q: Query<'routes', Schema>): Query<'routes', Schema> {
         return Number.isNaN(Number(routeSlug)) ? q.where('slug', routeSlug) : q.where('id', Number(routeSlug))
       }
 
-      let q = builder.blocks
+      let q = zql.blocks
 
-      if (areaId != null) {
-        q = q.where('areaFk', areaId)
+      if (args.areaId != null) {
+        q = q.where('areaFk', args.areaId)
       }
 
-      if (blockSlug != null) {
-        q = q.where('slug', blockSlug)
+      if (args.blockSlug != null) {
+        q = q.where('slug', args.blockSlug)
       }
 
       return q
         .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
-        .whereExists('routes', (q) => getRouteDbFilterRaw(routeSlug, r(q)))
+        .whereExists('routes', (q) => getRouteDbFilterRaw(args.routeSlug, r(q)))
         .related('routes', (q) =>
-          getRouteDbFilterRaw(routeSlug, r(q))
+          getRouteDbFilterRaw(args.routeSlug, r(q))
             .related('tags', r)
             .related('firstAscents', (q) => r(q).related('firstAscensionist', (q) => r(q).related('user')))
             .related('externalResources', (q) =>
@@ -505,66 +500,60 @@ export const queries = {
     }),
   ),
 
-  listAscents: syncedQueryWithContext(
-    'listAscents',
-    z.tuple([
-      z.object({
-        ascentId: z.union([z.number(), z.array(z.number())]).optional(),
-        createdBy: z.number().optional().nullable(),
-        grade: z.number().optional().nullable(),
-        notes: z.string().optional(),
-        routeId: z.number().optional().nullable(),
-        types: z.array(z.enum(ascentTypeEnum)).optional(),
-      }),
-    ]),
-    regionMemberCan((ctx, { ascentId, createdBy, grade, notes, routeId, types }) => {
+  listAscents: defineQuery(
+    z.object({
+      ascentId: z.union([z.number(), z.array(z.number())]).optional(),
+      createdBy: z.number().optional().nullable(),
+      grade: z.number().optional().nullable(),
+      notes: z.string().optional(),
+      routeId: z.number().optional().nullable(),
+      types: z.array(z.enum(ascentTypeEnum)).optional(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.ascents.related('author').related('route', r).related('files', r)
+      let q = zql.ascents.related('author').related('route', r).related('files', r)
 
-      if (ascentId != null) {
-        if (Array.isArray(ascentId)) {
-          q = q.where('id', 'IN', ascentId)
+      if (args.ascentId != null) {
+        if (Array.isArray(args.ascentId)) {
+          q = q.where('id', 'IN', args.ascentId)
         } else {
-          q = q.where('id', ascentId)
+          q = q.where('id', args.ascentId)
         }
       }
 
-      if (createdBy != null) {
-        q = q.where('createdBy', createdBy)
+      if (args.createdBy != null) {
+        q = q.where('createdBy', args.createdBy)
       }
 
-      if (routeId != null) {
-        q = q.where('routeFk', routeId)
+      if (args.routeId != null) {
+        q = q.where('routeFk', args.routeId)
       }
 
-      if (grade === null) {
+      if (args.grade === null) {
         q = q.where('gradeFk', 'IS NOT', null)
       }
 
-      if (notes != null) {
-        q = q.where('notes', 'ILIKE', `%${notes}%`)
+      if (args.notes != null) {
+        q = q.where('notes', 'ILIKE', `%${args.notes}%`)
       }
 
-      if (types != null) {
-        q = q.where('type', 'IN', types)
+      if (args.types != null) {
+        q = q.where('type', 'IN', args.types)
       }
 
       return q
     }),
   ),
-  ascent: syncedQueryWithContext(
-    'ascent',
-    z.tuple([
-      z.object({
-        id: z.number(),
-      }),
-    ]),
-    regionMemberCan((ctx, { id }) => {
+  ascent: defineQuery(
+    z.object({
+      id: z.number(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      return builder.ascents
-        .where('id', id)
+      return zql.ascents
+        .where('id', args.id)
         .related('author')
         .related('route', (q) =>
           r(q).related('block', (q) =>
@@ -577,39 +566,36 @@ export const queries = {
     }),
   ),
 
-  listFiles: syncedQueryWithContext(
-    'listFiles',
-    z.tuple([
-      z.object({
-        entity: z
-          .object({
-            type: z.enum(['area', 'ascent', 'route']),
-            id: z.union([z.number(), z.array(z.number())]),
-          })
-          .optional(),
-        fileId: z.union([z.string(), z.array(z.string())]).optional(),
-      }),
-    ]),
-    regionMemberCan((ctx, { entity, fileId }) => {
+  listFiles: defineQuery(
+    z.object({
+      entity: z
+        .object({
+          type: z.enum(['area', 'ascent', 'route']),
+          id: z.union([z.number(), z.array(z.number())]),
+        })
+        .optional(),
+      fileId: z.union([z.string(), z.array(z.string())]).optional(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = builder.files.related('area', r).related('ascent', r).related('block', r).related('route', r)
+      let q = zql.files.related('area', r).related('ascent', r).related('block', r).related('route', r)
 
-      if (fileId != null) {
-        if (Array.isArray(fileId)) {
-          q = q.where('id', 'IN', fileId)
+      if (args.fileId != null) {
+        if (Array.isArray(args.fileId)) {
+          q = q.where('id', 'IN', args.fileId)
         } else {
-          q = q.where('id', fileId)
+          q = q.where('id', args.fileId)
         }
       }
 
-      if (entity != null) {
-        const type = entity.type === 'area' ? 'areaFk' : entity.type === 'ascent' ? 'ascentFk' : 'routeFk'
+      if (args.entity != null) {
+        const type = args.entity.type === 'area' ? 'areaFk' : args.entity.type === 'ascent' ? 'ascentFk' : 'routeFk'
 
-        if (Array.isArray(entity.id)) {
-          q = q.where(type, 'IN', entity.id)
+        if (Array.isArray(args.entity.id)) {
+          q = q.where(type, 'IN', args.entity.id)
         } else {
-          q = q.where(type, entity.id)
+          q = q.where(type, args.entity.id)
         }
       }
 
@@ -617,41 +603,38 @@ export const queries = {
     }),
   ),
 
-  firstAscensionists: syncedQueryWithContext(
-    'firstAscensionists',
-    z.tuple([]),
+  firstAscensionists: defineQuery(
+    z.undefined(),
     regionMemberCan(() => {
-      return builder.firstAscensionists.orderBy('name', 'asc').related('user')
+      return zql.firstAscensionists.orderBy('name', 'asc').related('user')
     }),
   ),
 
-  listAllUsers: syncedQueryWithContext(
-    'listAllUsers',
-    z.tuple([]),
-    authenticatedUserCan((ctx) => {
+  listAllUsers: defineQuery(
+    z.undefined(),
+    authenticatedUserCan(({ ctx }) => {
       const r = relatedRegion(ctx)
 
-      return builder.users.whereExists('regionMemberships', r)
+      return zql.users.whereExists('regionMemberships', r)
     }),
   ),
 
-  activities: syncedQueryWithContext(
-    'activities',
-    z.tuple([
-      z.object({
-        entity: z
-          .object({
-            type: z.enum(activityParentEntityType),
-            id: z.string().optional(),
-          })
-          .optional(),
-        pageSize: z.number(),
-        type: z.enum(activityType).optional(),
-        userFk: z.number().optional(),
-      }),
-    ]),
-    regionMemberCan((_, { entity, pageSize, type, userFk }) => {
-      let q = builder.activities.orderBy('createdAt', 'desc').related('user').limit(pageSize)
+  activities: defineQuery(
+    z.object({
+      entity: z
+        .object({
+          type: z.enum(activityParentEntityType),
+          id: z.string().optional(),
+        })
+        .optional(),
+      pageSize: z.number(),
+      type: z.enum(activityType).optional(),
+      userFk: z.number().optional(),
+    }),
+    regionMemberCan(({ args }) => {
+      let q = zql.activities.orderBy('createdAt', 'desc').related('user').limit(args.pageSize)
+
+      const { entity } = args
 
       if (entity != null) {
         q = q.where(({ and, or, cmp }) => {
@@ -666,35 +649,28 @@ export const queries = {
         })
       }
 
-      if (type != null) {
-        q = q.where('type', type)
+      if (args.type != null) {
+        q = q.where('type', args.type)
       }
 
-      if (userFk != null) {
-        q = q.where('userFk', userFk)
+      if (args.userFk != null) {
+        q = q.where('userFk', args.userFk)
       }
 
       return q
     }),
   ),
 
-  ...regionPreloadTables.reduce(
-    (obj, table) => {
-      const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1)
-      const name = `listAll${capitalizedTable}`
+  ...regionPreloadTables.reduce((obj, table) => {
+    const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1)
+    const name = `listAll${capitalizedTable}`
 
-      return {
-        ...obj,
-        [name]: syncedQueryWithContext(
-          name,
-          z.tuple([]),
-          regionMemberCan(() => builder[table]),
-        ),
-      }
-    },
-    {} as Record<
-      `listAll${Capitalize<RegionPreloadTable>}`,
-      SyncedQuery<`listAll${Capitalize<RegionPreloadTable>}`, QueryContext, true, ReadonlyJSONValue[], RegionQuery<any>>
-    >,
-  ),
-}
+    return {
+      ...obj,
+      [name]: defineQuery(
+        z.null(),
+        regionMemberCan<ReadonlyJSONValue, ReadonlyJSONValue>(() => zql[table]),
+      ),
+    }
+  }, {}),
+})

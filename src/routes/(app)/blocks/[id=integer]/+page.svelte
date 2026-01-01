@@ -8,10 +8,7 @@
   import { queries } from '$lib/db/zero'
 </script>
 
-<ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={queries.block(page.data, { blockId: Number(page.params.id) })}
->
+<ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.block({ blockId: Number(page.params.id) })}>
   {#snippet children(block)}
     {@const { pathname } = (block == null ? undefined : blockWithPathname(block)) ?? {}}
     {#if pathname == null}

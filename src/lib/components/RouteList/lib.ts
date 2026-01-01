@@ -19,7 +19,7 @@ export const getRoutesFilterQuery = (areaId?: number | null) => {
   const searchParamsObj = Object.fromEntries(page.url.searchParams.entries())
   const searchParams = validateObject(searchParamsSchema, searchParamsObj)
 
-  return queries.listRoutesWithRelations(page.data, {
+  return queries.listRoutesWithRelations({
     areaId,
     userId: pageState.user?.id,
     withRelations: true,

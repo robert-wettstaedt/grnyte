@@ -19,11 +19,11 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
 
-  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { areaId: markdownRefIds.areas })))
+  const areasResult = $derived(page.data.z.q(queries.listAreas({ areaId: markdownRefIds.areas })))
 
-  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { blockId: markdownRefIds.blocks })))
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks({ blockId: markdownRefIds.blocks })))
 
-  const routesResult = $derived(page.data.z.q(queries.listRoutes(page.data, { routeId: markdownRefIds.routes })))
+  const routesResult = $derived(page.data.z.q(queries.listRoutes({ routeId: markdownRefIds.routes })))
 
   const html = $derived.by(() => {
     const refs = [

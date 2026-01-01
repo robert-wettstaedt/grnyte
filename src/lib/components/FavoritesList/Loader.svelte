@@ -4,6 +4,7 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'
+  import { zql } from '$lib/db/zero/zero-schema.gen'
   import FavoritesList from './FavoritesList.svelte'
 
   interface Props extends ZeroQueryWrapperBaseProps {
@@ -16,18 +17,14 @@
     pageState.user?.id == null
       ? undefined
       : page.data.z.q(
-          page.data.z.query.ascents
-            .where('createdBy', pageState.user.id)
-            .orderBy('dateTime', 'desc')
-            .related('route')
-            .one(),
+          zql.ascents.where('createdBy', pageState.user.id).orderBy('dateTime', 'desc').related('route').one(),
         ),
   )
 </script>
 
 <ZeroQueryWrapper
   loadingIndicator={{ type: 'skeleton', count: 15 }}
-  query={queries.favorites(page.data, { authUserFk: authUserId })}
+  query={queries.favorites({ authUserFk: authUserId })}
 >
   {#snippet children(favorites)}
     {#if favorites.length === 0}
@@ -58,7 +55,7 @@
 
       <ZeroQueryWrapper
         loadingIndicator={{ type: 'skeleton', count: 15 }}
-        query={queries.listRoutesWithRelations(page.data, { routeId: routeIds, userId: pageState.user?.id })}
+        query={queries.listRoutesWithRelations({ routeId: routeIds, userId: pageState.user?.id })}
       >
         {#snippet children(routes)}
           <FavoritesList {routes} />

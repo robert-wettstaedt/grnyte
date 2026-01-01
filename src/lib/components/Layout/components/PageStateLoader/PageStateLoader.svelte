@@ -11,18 +11,18 @@
 
   const { children }: Props = $props()
 
-  const gradesResult = $derived(page.data.z.q(queries.grades(page.data)))
-  const tagsResult = $derived(page.data.z.q(queries.tags(page.data)))
+  const gradesResult = $derived(page.data.z.q(queries.grades()))
+  const tagsResult = $derived(page.data.z.q(queries.tags()))
 
-  const userResult = $derived(page.data.z.q(queries.currentUser(page.data)))
-  const userRoleResult = $derived(page.data.z.q(queries.currentUserRoles(page.data)))
-  const userRegionsResult = $derived(page.data.z.q(queries.currentUserRegions(page.data)))
+  const userResult = $derived(page.data.z.q(queries.currentUser()))
+  const userRoleResult = $derived(page.data.z.q(queries.currentUserRoles()))
+  const userRegionsResult = $derived(page.data.z.q(queries.currentUserRegions()))
 
-  const permissionsResult = $derived(page.data.z.q(queries.rolePermissions(page.data)))
+  const permissionsResult = $derived(page.data.z.q(queries.rolePermissions()))
 
   $effect(() => {
     if (userResult.data?.id != null) {
-      page.data.z.current.preload(queries.listAscents(page.data, { createdBy: userResult.data.id }))
+      page.data.z.preload(queries.listAscents({ createdBy: userResult.data.id }))
     }
   })
 
