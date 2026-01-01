@@ -13,7 +13,7 @@
   let { route, ...rest }: Props = $props()
 
   const ascentsResult = $derived(
-    page.data.z.q(queries.listAscents(page.data, { routeId: route.id, createdBy: pageState.user?.id })),
+    page.data.z.q(queries.listAscents({ routeId: route.id, createdBy: pageState.user?.id })),
   )
 
   const data = $derived({ ...route, ascents: ascentsResult.data } satisfies RouteNameProps['route'])

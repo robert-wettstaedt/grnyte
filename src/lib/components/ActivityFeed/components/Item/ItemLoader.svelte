@@ -22,29 +22,29 @@
 
     switch (entityType) {
       case 'area':
-        return queries.listAreas(page.data, { areaId: Number(entityId) })
+        return queries.listAreas({ areaId: Number(entityId) })
       case 'ascent':
-        return queries.listAscents(page.data, { ascentId: Number(entityId) })
+        return queries.listAscents({ ascentId: Number(entityId) })
       case 'block':
-        return queries.listBlocks(page.data, { blockId: Number(entityId) })
+        return queries.listBlocks({ blockId: Number(entityId) })
       case 'route':
-        return queries.listRoutes(page.data, { routeId: Number(entityId) })
+        return queries.listRoutes({ routeId: Number(entityId) })
     }
   }
 
   const getQuery = (entityId: ActivityWithDate['entityId'], entityType: ActivityWithDate['entityType']) => {
     switch (entityType) {
       case 'file':
-        return queries.listFiles(page.data, { fileId: String(entityId) })
+        return queries.listFiles({ fileId: String(entityId) })
       case 'user':
-        return queries.listUsers(page.data, { id: Number(entityId) })
+        return queries.listUsers({ id: Number(entityId) })
       default:
         return getParentQuery(entityId, entityType)
     }
   }
 
-  const query = $derived(getQuery(activity.entityId, activity.entityType)?.limit(1))
-  const parentQuery = $derived(getParentQuery(activity.parentEntityId, activity.parentEntityType)?.limit(1))
+  const query = $derived(getQuery(activity.entityId, activity.entityType))
+  const parentQuery = $derived(getParentQuery(activity.parentEntityId, activity.parentEntityType))
 
   function toDto(user: ActivityDTO['user'], object: Entity['object'], parentObject?: Entity['object']): ActivityDTO {
     const entityName = object != null && 'name' in object ? object.name : null

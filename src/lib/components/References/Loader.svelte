@@ -13,12 +13,12 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { content: `!${type}:${id}!` })))
+  const areasResult = $derived(page.data.z.q(queries.listAreas({ content: `!${type}:${id}!` })))
 
-  const ascentsResult = $derived(page.data.z.q(queries.listAscents(page.data, { notes: `!${type}:${id}!` })))
+  const ascentsResult = $derived(page.data.z.q(queries.listAscents({ notes: `!${type}:${id}!` })))
 
   const routesResult = $derived(
-    page.data.z.q(queries.listRoutes(page.data, { content: `!${type}:${id}!`, userId: pageState.user?.id })),
+    page.data.z.q(queries.listRoutes({ content: `!${type}:${id}!`, userId: pageState.user?.id })),
   )
 
   const references = $derived(

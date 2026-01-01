@@ -16,7 +16,7 @@
 <ZeroQueryWrapper
   {...rest}
   loadingIndicator={{ type: 'skeleton' }}
-  query={queries.listAreas(page.data, { parentFk: parentFk ?? null })}
+  query={queries.listAreas({ parentFk: parentFk ?? null })}
 >
   {#snippet children(areas)}
     <GenericList

@@ -19,7 +19,7 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { areaId: areaFk ?? null })))
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks({ areaId: areaFk ?? null })))
 
   // https://github.com/sveltejs/kit/issues/12999
   // svelte-ignore state_referenced_locally

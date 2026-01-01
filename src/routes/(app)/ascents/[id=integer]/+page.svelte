@@ -8,10 +8,7 @@
   import { queries } from '$lib/db/zero'
 </script>
 
-<ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={queries.ascent(page.data, { id: Number(page.params.id) })}
->
+<ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.ascent({ id: Number(page.params.id) })}>
   {#snippet children(ascent)}
     {@const { pathname } = (ascent == null ? undefined : ascentWithPathname(ascent)) ?? {}}
     {#if pathname == null}

@@ -56,15 +56,15 @@
     value = searchQuery
   })
 
-  const { data: regions } = $derived(page.data.z.q(queries.regions(page.data)))
+  const { data: regions } = $derived(page.data.z.q(queries.regions()))
 
-  const areasResult = $derived(page.data.z.q(queries.listAreas(page.data, { content: searchQuery })))
+  const areasResult = $derived(page.data.z.q(queries.listAreas({ content: searchQuery })))
 
-  const blocksResult = $derived(page.data.z.q(queries.listBlocks(page.data, { content: searchQuery })))
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks({ content: searchQuery })))
 
-  const routesResult = $derived(page.data.z.q(queries.listRoutesWithRelations(page.data, { content: searchQuery })))
+  const routesResult = $derived(page.data.z.q(queries.listRoutesWithRelations({ content: searchQuery })))
 
-  const usersResult = $derived(page.data.z.q(queries.listUsers(page.data, { content: searchQuery })))
+  const usersResult = $derived(page.data.z.q(queries.listUsers({ content: searchQuery })))
 
   const isLoading = $derived(
     (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||

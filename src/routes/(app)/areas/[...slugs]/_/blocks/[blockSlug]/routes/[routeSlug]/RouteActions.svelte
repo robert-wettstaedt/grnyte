@@ -22,7 +22,7 @@
   const { block, route } = getRouteContext()
 
   const favoritesResult = $derived(
-    page.data.z.q(queries.favorites(page.data, { entity: { type: 'route', id: String(route.id) } })),
+    page.data.z.q(queries.favorites({ entity: { type: 'route', id: String(route.id) } })),
   )
   const byUser = $derived(favoritesResult.data.some((fav) => fav.authUserFk === page.data.authUserId))
 </script>
