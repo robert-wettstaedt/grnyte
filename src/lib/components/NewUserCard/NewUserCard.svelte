@@ -1,7 +1,7 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { createRegion } from './data.remote'
 </script>
 
@@ -32,14 +32,8 @@
       disabled={createRegion.pending > 0}
       type="submit"
     >
-      {#if createRegion.pending > 0}
-        <Progress value={null}>
-          <Progress.Circle class="[--size:--spacing(4)]">
-            <Progress.CircleTrack />
-            <Progress.CircleRange />
-          </Progress.Circle>
-          <Progress.ValueText />
-        </Progress>
+      {#if createRegion.pending > 0 || 1}
+        <LoadingIndicator />
       {:else}
         <i class="fa-solid fa-chevron-right"></i>
       {/if}

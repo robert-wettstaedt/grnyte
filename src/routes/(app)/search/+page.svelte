@@ -6,11 +6,12 @@
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout/page.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { Region } from '$lib/db/zero'
   import { queries } from '$lib/db/zero'
-  import { AppBar, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
 
@@ -256,15 +257,7 @@
   </div>
 {:else}
   {#if isLoading}
-    <div class="mt-8 flex justify-center">
-      <Progress value={null}>
-        <Progress.Circle class="[--size:--spacing(14)]">
-          <Progress.CircleTrack />
-          <Progress.CircleRange />
-        </Progress.Circle>
-        <Progress.ValueText />
-      </Progress>
-    </div>
+    <LoadingIndicator class="mt-8 flex items-center justify-center" size={12} />
   {/if}
 
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">

@@ -53,12 +53,6 @@
                     <Portal>
                       <Popover.Positioner>
                         <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
-                          <Popover.Arrow
-                            class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                          >
-                            <Popover.ArrowTip />
-                          </Popover.Arrow>
-
                           <Popover.Description>
                             <article>
                               <p>Are you sure you want to delete this tag?</p>
@@ -73,6 +67,12 @@
                               </form>
                             </footer>
                           </Popover.Description>
+
+                          <Popover.Arrow
+                            class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                          >
+                            <Popover.ArrowTip />
+                          </Popover.Arrow>
                         </Popover.Content>
                       </Popover.Positioner>
                     </Portal>

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
+  import LoadingIndicator from '../LoadingIndicator'
 
   interface Props {
     buttons?: Snippet
@@ -22,15 +22,7 @@
 
     <button class="btn preset-filled-primary-500" type="submit" disabled={pending > 0 || disabled}>
       {#if pending > 0}
-        <span class="me-2">
-          <Progress value={null}>
-            <Progress.Circle class="[--size:--spacing(4)]">
-              <Progress.CircleTrack />
-              <Progress.CircleRange />
-            </Progress.Circle>
-            <Progress.ValueText />
-          </Progress>
-        </span>
+        <LoadingIndicator />
       {/if}
 
       {label}

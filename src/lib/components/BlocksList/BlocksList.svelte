@@ -5,10 +5,11 @@
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { queries } from '$lib/db/zero'
-  import { Progress, SegmentedControl } from '@skeletonlabs/skeleton-svelte'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { updateBlockOrder } from './BlocksList.remote'
 
   interface Props {
@@ -106,13 +107,7 @@
         onclick={() => (orderMode = !orderMode)}
       >
         {#if updateBlockOrder.pending > 0}
-          <Progress class="gap-0" value={null}>
-            <Progress.Circle class="[--size:--spacing(4)]">
-              <Progress.CircleTrack />
-              <Progress.CircleRange />
-            </Progress.Circle>
-            <Progress.ValueText />
-          </Progress>
+          <LoadingIndicator />
         {:else}
           <i class="fa-solid fa-sort"></i>
         {/if}

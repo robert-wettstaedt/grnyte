@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { onMount } from 'svelte'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
@@ -36,13 +36,5 @@
 {/if}
 
 {#if loading}
-  <div class="flex h-full items-center justify-center">
-    <Progress value={null}>
-      <Progress.Circle class="[--size:--spacing(20)]">
-        <Progress.CircleTrack />
-        <Progress.CircleRange />
-      </Progress.Circle>
-      <Progress.ValueText />
-    </Progress>
-  </div>
+  <LoadingIndicator class="flex h-full items-center justify-center" size={20} />
 {/if}

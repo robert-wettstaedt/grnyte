@@ -1,9 +1,9 @@
 <script lang="ts">
   import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
   import { getVideoThumbnailUrl } from '$lib/bunny'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { upfetch } from '$lib/config'
   import type { File } from '$lib/db/schema'
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { FileStatusResponseSchema, type FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
 
   interface Props {
@@ -64,15 +64,7 @@
       </aside>
     {:else}
       {#if mediaIsLoading}
-        <div class="absolute flex h-full w-full items-center justify-center bg-black/10">
-          <Progress class="size-20 md:size-40" value={null}>
-            <Progress.Circle>
-              <Progress.CircleTrack />
-              <Progress.CircleRange />
-            </Progress.Circle>
-            <Progress.ValueText />
-          </Progress>
-        </div>
+        <LoadingIndicator class="absolute flex h-full w-full items-center justify-center bg-black/10" size={20} />
       {/if}
 
       {#if file.bunnyStreamFk != null}

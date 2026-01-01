@@ -96,6 +96,8 @@
         <Tabs.Trigger class="flex-1" value="activity">Activity</Tabs.Trigger>
 
         <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
+
+        <Tabs.Indicator />
       </Tabs.List>
 
       {#if block.topos.length > 0}

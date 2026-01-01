@@ -7,11 +7,11 @@
   import nc from '$lib/assets/nc.svg'
   import sa from '$lib/assets/sa.svg'
   import BlockEntry from '$lib/components/AreaBlockListing/components/BlockEntry'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import type { NestedArea } from '$lib/db/types'
   import { convertException } from '$lib/errors'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import * as domtoimage from 'modern-screenshot'
   import '../../../../../../../../app.css'
@@ -109,9 +109,7 @@
           {/if}
         </div>
       {:else}
-        <div>
-          <Progress value={null} />
-        </div>
+        <LoadingIndicator class="items-center" size={20} />
 
         Preparing export
       {/if}

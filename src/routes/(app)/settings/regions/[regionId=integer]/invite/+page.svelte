@@ -1,7 +1,8 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { AppBar, Progress } from '@skeletonlabs/skeleton-svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   const { data, form } = $props()
 
@@ -59,15 +60,7 @@
       disabled={loading || data.regionMembers.count >= data.region.maxMembers}
     >
       {#if loading}
-        <span class="me-2">
-          <Progress value={null}>
-            <Progress.Circle class="[--size:--spacing(4)]">
-              <Progress.CircleTrack />
-              <Progress.CircleRange />
-            </Progress.Circle>
-            <Progress.ValueText />
-          </Progress>
-        </span>
+        <LoadingIndicator />
       {/if}
 
       Invite

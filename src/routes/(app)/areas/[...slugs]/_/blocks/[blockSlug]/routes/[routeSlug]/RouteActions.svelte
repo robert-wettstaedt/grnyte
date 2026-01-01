@@ -5,9 +5,9 @@
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { getRouteContext } from '$lib/contexts/route'
   import { queries } from '$lib/db/zero'
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { syncExternalResources, toggleRouteFavoriteStatus } from './page.remote'
 
   interface Props {
@@ -34,13 +34,7 @@
   onclick={() => route.id != null && toggleRouteFavoriteStatus(route.id)}
 >
   {#if toggleRouteFavoriteStatus.pending > 0}
-    <Progress value={null}>
-      <Progress.Circle class="[--size:--spacing(4)]">
-        <Progress.CircleTrack />
-        <Progress.CircleRange />
-      </Progress.Circle>
-      <Progress.ValueText />
-    </Progress>
+    <LoadingIndicator />
   {:else}
     <i class="fa-solid fa-heart {byUser ? 'text-red-500' : 'text-white'}"></i>
   {/if}
@@ -79,13 +73,7 @@
     onclick={() => route.id != null && syncExternalResources(route.id)}
   >
     {#if syncExternalResources.pending > 0}
-      <Progress value={null}>
-        <Progress.Circle class="[--size:--spacing(4)]">
-          <Progress.CircleTrack />
-          <Progress.CircleRange />
-        </Progress.Circle>
-        <Progress.ValueText />
-      </Progress>
+      <LoadingIndicator />
     {:else}
       <i class="fa-solid fa-sync"></i>
     {/if}

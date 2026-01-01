@@ -20,9 +20,9 @@
   <input class="input" name="files" type="file" {accept} />
 
   {#if state?.loading}
-    <Progress max={100} value={state?.progress}>
-      <Progress.Track class="bg-primary-500">
-        <Progress.Range />
+    <Progress max={100} value={state.progress}>
+      <Progress.Track>
+        <Progress.Range class="bg-primary-500" />
       </Progress.Track>
     </Progress>
   {/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { applyAction, enhance } from '$app/forms'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
 
@@ -63,13 +63,7 @@
       >
         <button class="btn preset-filled-error-500" disabled={loading} type="submit">
           {#if loading}
-            <Progress value={null}>
-              <Progress.Circle class="[--size:--spacing(4)]">
-                <Progress.CircleTrack />
-                <Progress.CircleRange />
-              </Progress.Circle>
-              <Progress.ValueText />
-            </Progress>
+            <LoadingIndicator />
           {/if}
 
           Unsubscribe from Notifications
@@ -123,13 +117,7 @@
       >
         <button class="btn preset-filled-primary-500" disabled={loading} type="submit">
           {#if loading}
-            <Progress value={null}>
-              <Progress.Circle class="[--size:--spacing(4)]">
-                <Progress.CircleTrack />
-                <Progress.CircleRange />
-              </Progress.Circle>
-              <Progress.ValueText />
-            </Progress>
+            <LoadingIndicator />
           {/if}
 
           Receive Push Notifications

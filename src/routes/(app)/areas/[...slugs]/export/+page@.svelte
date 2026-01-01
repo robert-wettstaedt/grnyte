@@ -70,11 +70,14 @@
         Done
         <a class="btn preset-filled-primary-500" href={basePath}>Go back</a>
       {:else}
-        <div>
-          <Progress max={noTopos + noMaps} value={loadedTopos + loadedMaps} />
-        </div>
-
-        Preparing export
+        <Progress max={noTopos + noMaps} value={loadedTopos + loadedMaps} class="w-fit items-center">
+          <Progress.Label>Preparing export</Progress.Label>
+          <Progress.Circle>
+            <Progress.CircleTrack />
+            <Progress.CircleRange />
+          </Progress.Circle>
+          <Progress.ValueText />
+        </Progress>
       {/if}
     </div>
   {/if}

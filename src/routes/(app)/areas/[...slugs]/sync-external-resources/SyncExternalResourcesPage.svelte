@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteExternalResourceLinks from '$lib/components/RouteExternalResourceLinks'
   import RouteName from '$lib/components/RouteName/RouteNameLoader.svelte'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { getAreaContext } from '$lib/contexts/area'
   import type { RowWithRelations } from '$lib/db/zero'
   import { convertException } from '$lib/errors'
-  import { AppBar, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
 
   interface Props {
@@ -104,13 +105,7 @@
           <RouteName {route} />
 
           {#if loading && values?.find((value) => value.routeFk === route.id) == null}
-            <Progress value={null}>
-              <Progress.Circle class="[--size:--spacing(4)]">
-                <Progress.CircleTrack />
-                <Progress.CircleRange />
-              </Progress.Circle>
-              <Progress.ValueText />
-            </Progress>
+            <LoadingIndicator />
           {:else}
             <RouteExternalResourceLinks
               iconSize={16}
@@ -138,15 +133,7 @@
     type="submit"
   >
     {#if loading}
-      <span class="me-2">
-        <Progress value={null}>
-          <Progress.Circle class="[--size:--spacing(4)]">
-            <Progress.CircleTrack />
-            <Progress.CircleRange />
-          </Progress.Circle>
-          <Progress.ValueText />
-        </Progress>
-      </span>
+      <LoadingIndicator />
     {/if}
 
     Sync external resources

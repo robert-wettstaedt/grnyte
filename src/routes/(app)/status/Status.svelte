@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { RemoteQueryFunction } from '@sveltejs/kit'
 
   interface Props {
@@ -10,13 +10,7 @@
 </script>
 
 {#await query()}
-  <Progress value={null}>
-    <Progress.Circle class="[--size:--spacing(6)]">
-      <Progress.CircleTrack />
-      <Progress.CircleRange />
-    </Progress.Circle>
-    <Progress.ValueText />
-  </Progress>
+  <LoadingIndicator class="w-auto" size={6} />
 {:then status}
   {#if status}
     <i class="fa-solid fa-circle-check text-success-400 text-xl"></i>

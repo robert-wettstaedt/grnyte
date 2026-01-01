@@ -2,11 +2,12 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FormActionBar from '$lib/components/FormActionBar'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { getBlockContext } from '$lib/contexts/block'
   import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { AppBar, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createRoute, createRouteAndReload } from './page.remote'
 
   interface Props {
@@ -57,16 +58,9 @@
         {...createRouteAndReload.buttonProps.enhance(enhanceForm())}
       >
         {#if pending > 0}
-          <span class="me-2">
-            <Progress value={null}>
-              <Progress.Circle class="[--size:--spacing(4)]">
-                <Progress.CircleTrack />
-                <Progress.CircleRange />
-              </Progress.Circle>
-              <Progress.ValueText />
-            </Progress>
-          </span>
+          <LoadingIndicator />
         {/if}
+
         Save and create another
       </button>
     {/snippet}

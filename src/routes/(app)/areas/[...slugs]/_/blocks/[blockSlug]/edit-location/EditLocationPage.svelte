@@ -64,6 +64,7 @@
     <Tabs.List>
       <Tabs.Trigger value="map">Map</Tabs.Trigger>
       <Tabs.Trigger value="latlong">Lat Long</Tabs.Trigger>
+      <Tabs.Indicator />
     </Tabs.List>
 
     <Tabs.Content value="map">

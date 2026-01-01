@@ -1,6 +1,7 @@
 <script lang="ts">
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { enhance, type EnhanceState } from '$lib/forms/enhance.svelte'
-  import { Accordion, Popover, Portal, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { Accordion, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { slide } from 'svelte/transition'
 
   interface Props {
@@ -47,13 +48,7 @@
                       class="btn preset-filled-error-500 text-white! {enhancedState.loading ? 'disabled' : ''}"
                     >
                       {#if enhancedState.loading}
-                        <Progress class="gap-0" value={null}>
-                          <Progress.Circle class="[--size:--spacing(6)]">
-                            <Progress.CircleTrack />
-                            <Progress.CircleRange class="stroke-white" />
-                          </Progress.Circle>
-                          <Progress.ValueText />
-                        </Progress>
+                        <LoadingIndicator size={6} rangeClass="stroke-white" />
                       {:else}
                         <i class="fa-solid fa-trash"></i>
                       {/if}
@@ -64,12 +59,6 @@
                     <Portal>
                       <Popover.Positioner>
                         <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
-                          <Popover.Arrow
-                            class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                          >
-                            <Popover.ArrowTip />
-                          </Popover.Arrow>
-
                           <Popover.Description>
                             <article>
                               <p>Are you sure you want to delete this {name}?</p>
@@ -87,6 +76,12 @@
                               </button>
                             </footer>
                           </Popover.Description>
+
+                          <Popover.Arrow
+                            class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                          >
+                            <Popover.ArrowTip />
+                          </Popover.Arrow>
                         </Popover.Content>
                       </Popover.Positioner>
                     </Portal>

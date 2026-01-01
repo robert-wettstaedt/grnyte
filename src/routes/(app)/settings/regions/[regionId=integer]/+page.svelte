@@ -10,7 +10,7 @@
   } from '$lib/auth'
   import { pageState } from '$lib/components/Layout'
   import { appRole, appRoleLabels } from '$lib/db/schema'
-  import { AppBar, Popover, Portal, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
   import { enGB as locale } from 'date-fns/locale'
 
@@ -125,12 +125,6 @@
                   <Portal>
                     <Popover.Positioner>
                       <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
-                        <Popover.Arrow
-                          class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                        >
-                          <Popover.ArrowTip />
-                        </Popover.Arrow>
-
                         <Popover.Description>
                           <article>
                             <p>
@@ -147,6 +141,12 @@
                             </form>
                           </footer>
                         </Popover.Description>
+
+                        <Popover.Arrow
+                          class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                        >
+                          <Popover.ArrowTip />
+                        </Popover.Arrow>
                       </Popover.Content>
                     </Popover.Positioner>
                   </Portal>
@@ -180,16 +180,6 @@
 
                   <button aria-label="Submit" class="hidden" type="submit"></button>
 
-                  <div class="bg-surface-100-900 spinner absolute top-1/2 right-3 hidden -translate-y-1/2">
-                    <Progress value={null}>
-                      <Progress.Circle class="[--size:--spacing(4)]">
-                        <Progress.CircleTrack />
-                        <Progress.CircleRange />
-                      </Progress.Circle>
-                      <Progress.ValueText />
-                    </Progress>
-                  </div>
-
                   <select
                     class="select min-w-[150px]"
                     name="role"
@@ -221,12 +211,6 @@
                   <Portal>
                     <Popover.Positioner>
                       <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
-                        <Popover.Arrow
-                          class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                        >
-                          <Popover.ArrowTip />
-                        </Popover.Arrow>
-
                         <Popover.Description>
                           <article>
                             <p>
@@ -243,6 +227,12 @@
                             </form>
                           </footer>
                         </Popover.Description>
+
+                        <Popover.Arrow
+                          class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                        >
+                          <Popover.ArrowTip />
+                        </Popover.Arrow>
                       </Popover.Content>
                     </Popover.Positioner>
                   </Portal>

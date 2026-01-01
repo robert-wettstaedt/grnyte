@@ -1,10 +1,11 @@
 <script lang="ts">
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import type { EnrichedAscent } from '$lib/db/utils'
   import { convertMarkdownToHtml } from '$lib/markdown'
   import type { Pagination as PaginationType } from '$lib/pagination.server'
-  import { Pagination, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
 
   type PaginationProps = Parameters<typeof Pagination>[1]
@@ -59,7 +60,7 @@
               <tr class="notes">
                 <td colspan="4">
                   {#await convertMarkdownToHtml(ascent.notes)}
-                    <Progress class="m-auto size-8" value={null} />
+                    <LoadingIndicator class="items-center justify-center" size={8} />
                   {:then value}
                     {@html value}
                   {/await}

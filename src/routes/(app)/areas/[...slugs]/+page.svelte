@@ -76,6 +76,8 @@
         <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
 
         <Tabs.Trigger class="flex-1" value="routes">Routes</Tabs.Trigger>
+
+        <Tabs.Indicator />
       </Tabs.List>
 
       {#if area.type === 'sector'}

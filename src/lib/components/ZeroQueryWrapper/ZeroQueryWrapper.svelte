@@ -1,8 +1,8 @@
 <script lang="ts" generics="TTable extends keyof Schema['tables'] & string, TReturn">
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { Schema } from '$lib/db/zero/zero-schema'
-  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import type { ZeroQueryWrapperProps } from '.'
 
   const {
@@ -36,15 +36,7 @@
       </ul>
     </nav>
   {:else if loadingIndicator.type === 'spinner'}
-    <div class="flex justify-center">
-      <Progress value={null}>
-        <Progress.Circle class={loadingIndicator.size ?? '[--size:--spacing(12)]'}>
-          <Progress.CircleTrack />
-          <Progress.CircleRange />
-        </Progress.Circle>
-        <Progress.ValueText />
-      </Progress>
-    </div>
+    <LoadingIndicator class="flex justify-center" size={12} />
   {/if}
 {:else}
   {@render children?.(result.data, result.details)}

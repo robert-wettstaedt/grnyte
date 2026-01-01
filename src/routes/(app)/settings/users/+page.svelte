@@ -2,7 +2,7 @@
   import { applyAction, enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { appRole, appRoleLabels } from '$lib/db/schema'
-  import { AppBar, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   const { data } = $props()
 </script>
@@ -70,16 +70,6 @@
                     <input type="hidden" name="regionId" value={region.id} />
 
                     <button aria-label="Submit" class="hidden" type="submit"></button>
-
-                    <div class="bg-surface-100-900 spinner absolute top-1/2 right-3 hidden -translate-y-1/2">
-                      <Progress value={null}>
-                        <Progress.Circle class="[--size:--spacing(4)]">
-                          <Progress.CircleTrack />
-                          <Progress.CircleRange />
-                        </Progress.Circle>
-                        <Progress.ValueText />
-                      </Progress>
-                    </div>
 
                     <select
                       class="select min-w-[150px]"

@@ -8,9 +8,10 @@
   import GenericList from '$lib/components/GenericList'
   import GradeHistogram from '$lib/components/GradeHistogram'
   import { pageState } from '$lib/components/Layout/page.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import type { EnrichedArea, EnrichedBlock } from '$lib/db/utils'
-  import { Progress, SegmentedControl, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { SegmentedControl, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
   import { onMount } from 'svelte'
 
@@ -95,6 +96,7 @@
         <Tabs.Trigger class="flex-1" value="#projects">Projects</Tabs.Trigger>
       {/if}
       <Tabs.Trigger class="flex-1" value="#first-ascents">First ascents</Tabs.Trigger>
+      <Tabs.Indicator />
     </Tabs.List>
 
     {#if data.requestedUser != null}
@@ -163,15 +165,7 @@
             <p>{loadError}</p>
           </aside>
         {:else if loadedData == null}
-          <div class="mt-16 flex justify-center">
-            <Progress value={null}>
-              <Progress.Circle>
-                <Progress.CircleTrack />
-                <Progress.CircleRange />
-              </Progress.Circle>
-              <Progress.ValueText />
-            </Progress>
-          </div>
+          <LoadingIndicator class="mt-16 flex items-center justify-center" size={20} />
         {:else}
           <AscentsTable
             ascents={loadedData.ascents}

@@ -51,6 +51,7 @@
         <Tabs.Trigger class="flex-1" value="areas">Areas</Tabs.Trigger>
         <Tabs.Trigger class="flex-1" value="routes">Routes</Tabs.Trigger>
         <Tabs.Trigger class="flex-1" value="favorites">My Favorites</Tabs.Trigger>
+        <Tabs.Indicator />
       </Tabs.List>
 
       <Tabs.Content value="areas">

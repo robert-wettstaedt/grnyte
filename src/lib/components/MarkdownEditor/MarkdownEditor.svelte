@@ -170,6 +170,7 @@
     <Tabs.List>
       <Tabs.Trigger value="write">Write</Tabs.Trigger>
       <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
+      <Tabs.Indicator />
     </Tabs.List>
 
     <Tabs.Content value="write">

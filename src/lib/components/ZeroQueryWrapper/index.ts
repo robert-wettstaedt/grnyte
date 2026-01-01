@@ -18,7 +18,6 @@ export interface ZeroQueryWrapperProps<TTable extends keyof Schema['tables'] & s
         type: 'skeleton'
       }
     | {
-        size?: string
         type: 'spinner'
       }
   query: QueryDef<Schema, TTable, TReturn>

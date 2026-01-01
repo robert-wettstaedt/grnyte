@@ -70,8 +70,8 @@
     <Tabs onValueChange={onChangeTab} value={tabValue}>
       <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
         <Tabs.Trigger class="flex-1" value="topo">Topo</Tabs.Trigger>
-
         <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
+        <Tabs.Indicator />
       </Tabs.List>
 
       <Tabs.Content value="topo">

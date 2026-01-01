@@ -3,8 +3,9 @@
   import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
   import { getVideoIframeUrl } from '$lib/bunny'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { File } from '$lib/db/schema'
-  import { Popover, Portal, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
   import type { MouseEventHandler } from 'svelte/elements'
   import type { FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
@@ -96,15 +97,7 @@
     </aside>
   {:else}
     {#if mediaIsLoading}
-      <div class="absolute flex h-full w-full items-center justify-center bg-black/80">
-        <Progress class="gap-0" value={null}>
-          <Progress.Circle>
-            <Progress.CircleTrack />
-            <Progress.CircleRange />
-          </Progress.Circle>
-          <Progress.ValueText />
-        </Progress>
-      </div>
+      <LoadingIndicator class="absolute flex h-full w-full items-center justify-center bg-black/80" size={20} />
     {/if}
 
     {#if file.bunnyStreamFk != null}
@@ -137,10 +130,6 @@
         <Portal>
           <Popover.Positioner class="z-5000!">
             <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4 shadow-lg">
-              <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
-                <Popover.ArrowTip />
-              </Popover.Arrow>
-
               <Popover.Description>
                 <p class="text-sm">
                   {#if file.visibility === 'public'}
@@ -181,6 +170,10 @@
                   {/if}
                 </footer>
               </Popover.Description>
+
+              <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
+                <Popover.ArrowTip />
+              </Popover.Arrow>
             </Popover.Content>
           </Popover.Positioner>
         </Portal>
@@ -195,10 +188,6 @@
           <Portal>
             <Popover.Positioner class="z-5000!">
               <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4 shadow-lg">
-                <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
-                  <Popover.ArrowTip />
-                </Popover.Arrow>
-
                 <Popover.Description>
                   <nav class="list-nav w-48">
                     <ul>
@@ -213,12 +202,6 @@
                           <Portal>
                             <Popover.Positioner class="z-5000!">
                               <Popover.Content class="card bg-surface-300-700 w-full max-w-[320px] space-y-4 p-4">
-                                <Popover.Arrow
-                                  class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                                >
-                                  <Popover.ArrowTip />
-                                </Popover.Arrow>
-
                                 <Popover.Description>
                                   <article>
                                     <p>Are you sure you want to delete this file?</p>
@@ -230,6 +213,12 @@
                                     </button>
                                   </footer>
                                 </Popover.Description>
+
+                                <Popover.Arrow
+                                  class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                                >
+                                  <Popover.ArrowTip />
+                                </Popover.Arrow>
                               </Popover.Content>
                             </Popover.Positioner>
                           </Portal>
@@ -238,6 +227,10 @@
                     </ul>
                   </nav>
                 </Popover.Description>
+
+                <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
+                  <Popover.ArrowTip />
+                </Popover.Arrow>
               </Popover.Content>
             </Popover.Positioner>
           </Portal>

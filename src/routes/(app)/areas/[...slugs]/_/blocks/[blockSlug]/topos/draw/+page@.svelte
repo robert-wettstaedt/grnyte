@@ -4,11 +4,12 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
   import { type TopoDTO } from '$lib/topo'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { Menu, Popover, Portal, Progress } from '@skeletonlabs/skeleton-svelte'
+  import { Menu, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount } from 'svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
@@ -139,13 +140,7 @@
         disabled={isSaving || undoHistory.length <= 1}
       >
         {#if isSaving}
-          <Progress value={null}>
-            <Progress.Circle class="[--size:--spacing(4)]">
-              <Progress.CircleTrack />
-              <Progress.CircleRange />
-            </Progress.Circle>
-            <Progress.ValueText />
-          </Progress>
+          <LoadingIndicator />
         {:else}
           <i class="fa-solid fa-floppy-disk"></i>
         {/if}
