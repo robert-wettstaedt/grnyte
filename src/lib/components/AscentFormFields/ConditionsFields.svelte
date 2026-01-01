@@ -102,7 +102,10 @@
               value={temperature == null ? undefined : [temperature]}
             >
               <Slider.Label class="my-4 flex items-center justify-between">
-                <span> Temperature </span>
+                <span>
+                  <i class="fa-solid fa-temperature-full"></i>
+                  Temperature
+                </span>
 
                 <span>
                   {displayTemperature}°C
@@ -147,7 +150,10 @@
               value={humidity == null ? undefined : [humidity]}
             >
               <Slider.Label class="my-4 flex items-center justify-between">
-                <span> Humidity </span>
+                <span>
+                  <i class="fa-solid fa-droplet"></i>
+                  Humidity
+                </span>
 
                 <span>
                   {displayHumidity}%

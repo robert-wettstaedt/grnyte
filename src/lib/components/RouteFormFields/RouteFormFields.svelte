@@ -47,7 +47,7 @@
   <span>Tags</span>
   <select class="select max-h-[300px] overflow-auto" multiple name="tags" bind:value={routeTags}>
     {#each pageState.tags as tag}
-      <option value={tag.id}>{tag.id}</option>
+      <option class="rounded p-1" value={tag.id}>{tag.id}</option>
     {/each}
   </select>
 </label>

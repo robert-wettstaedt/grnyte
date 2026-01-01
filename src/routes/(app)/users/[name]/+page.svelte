@@ -212,7 +212,7 @@
             </SegmentedControl>
 
             <GenericList
-              classes="mt-4"
+              class="mt-4"
               items={(projectsMode === 'finished' ? data.finishedProjects : data.openProjects).map((item) => ({
                 ...item,
                 id: item.route.id,

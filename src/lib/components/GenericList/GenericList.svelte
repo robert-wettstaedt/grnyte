@@ -4,7 +4,7 @@
   import { flip } from 'svelte/animate'
 
   interface Props {
-    classes?: string
+    class?: string
     listClasses?: string
 
     items: T[]
@@ -22,7 +22,7 @@
   }
 
   const {
-    classes,
+    class: classes,
     listClasses,
 
     items,

@@ -11,7 +11,7 @@
   let modalOpen = $state(false)
 </script>
 
-<label class="label mt-4">
+<label class="label mt-4 mb-2">
   <span>
     Rating
 

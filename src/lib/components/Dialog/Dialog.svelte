@@ -13,9 +13,11 @@
 </script>
 
 <Dialog {...props}>
-  <Dialog.Trigger>
-    {@render trigger?.()}
-  </Dialog.Trigger>
+  {#if trigger != null}
+    <Dialog.Trigger>
+      {@render trigger()}
+    </Dialog.Trigger>
+  {/if}
 
   <Portal>
     <Dialog.Backdrop class="bg-surface-50-950/50 fixed inset-0 z-50 backdrop-blur-sm" />

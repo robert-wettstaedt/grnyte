@@ -162,8 +162,16 @@
 </script>
 
 <div class="relative">
-  <a class="anchor absolute top-2 right-0" href="https://markdownguide.offshoot.io/cheat-sheet/" target="_blank">
-    Markdown supported
+  <a
+    class="anchor absolute top-0 right-0 z-1 flex items-center justify-center gap-2 text-xs opacity-80"
+    href="https://markdownguide.offshoot.io/cheat-sheet/"
+    target="_blank"
+  >
+    <i class="fa-brands fa-markdown"></i>
+
+    <span>
+      Markdown<br />supported
+    </span>
   </a>
 
   <Tabs onValueChange={(event) => (tab = event.value as 'write' | 'preview')} value={tab}>

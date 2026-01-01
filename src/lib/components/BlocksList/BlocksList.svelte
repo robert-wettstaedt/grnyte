@@ -134,7 +134,7 @@
 
       {#if blocksViewMode === 'list' || orderMode}
         <GenericList
-          classes="-mx-4"
+          class="-mx-2 md:-mx-4"
           listClasses={orderMode ? undefined : 'mt-4 bg-surface-200-800'}
           items={(sortedBlocks ?? []).map((item) => ({
             ...item,
@@ -170,7 +170,7 @@
                     </div>
                   {:else}
                     <GenericList
-                      classes="w-full"
+                      class="w-full"
                       items={routes.map((route) => ({
                         ...route,
                         id: route.id!,
@@ -189,7 +189,7 @@
           {/snippet}
         </GenericList>
       {:else}
-        <ul class="-mx-4">
+        <ul class="-mx-2 md:-mx-4">
           {#each sortedBlocks ?? [] as block}
             <li class="bg-surface-200-800 mt-4 pb-4">
               <div

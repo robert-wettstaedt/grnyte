@@ -146,18 +146,18 @@
 
           {#if (activity.entity.object?.temperature ?? activity.entity.object?.humidity) != null}
             <div class="my-2 flex items-center gap-x-1 md:gap-x-2">
-              <span class="opacity-80"> Conditions: </span>
-
               {#if activity.entity.object?.temperature != null}
-                {activity.entity.object.temperature}°C
-              {/if}
-
-              {#if activity.entity.object?.temperature != null && activity.entity.object?.humidity != null}
-                ·
+                <div class="chip preset-outlined-surface-500">
+                  <i class="fa-solid fa-temperature-full"></i>
+                  {activity.entity.object.temperature}°C
+                </div>
               {/if}
 
               {#if activity.entity.object?.humidity != null}
-                {activity.entity.object.humidity}% humidity
+                <div class="chip preset-outlined-surface-500">
+                  <i class="fa-solid fa-droplet"></i>
+                  {activity.entity.object.humidity}%
+                </div>
               {/if}
             </div>
           {/if}

@@ -37,8 +37,8 @@
     size="3"
     value={value ?? 'area'}
   >
-    <option value="area">Area</option>
-    <option value="crag">Crag</option>
-    <option value="sector">Sector</option>
+    <option class="rounded p-1" value="area">Area</option>
+    <option class="rounded p-1" value="crag">Crag</option>
+    <option class="rounded p-1" value="sector">Sector</option>
   </select>
 </label>
