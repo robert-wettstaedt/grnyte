@@ -216,9 +216,10 @@ type MockDb = {
       findMany: ReturnType<typeof vi.fn>
     }
   }
-  select: ReturnType<typeof vi.fn>
-  insert: ReturnType<typeof vi.fn>
-  update: ReturnType<typeof vi.fn>
+  // Callable function types to satisfy TS when invoking mocks
+  select: (...args: any[]) => any
+  insert: (...args: any[]) => { values: ReturnType<typeof vi.fn> }
+  update: (...args: any[]) => { set: ReturnType<typeof vi.fn> }
 }
 
 describe('Activity Feed', () => {

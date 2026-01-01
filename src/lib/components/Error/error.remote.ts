@@ -1,5 +1,5 @@
 import { command, getRequestEvent } from '$app/server'
-import { db } from '$lib/db/db.server'
+import { db } from '$lib/db/drizzle.server'
 import * as schema from '$lib/db/schema'
 import z from 'zod'
 
