@@ -136,7 +136,7 @@
 
   {#if page.data.session?.user != null && pageState.userRegions.length > 0}
     <Navigation class="sticky bottom-0 z-50 md:hidden" layout="bar">
-      <Navigation.Menu>
+      <Navigation.Menu class="grid grid-cols-5 gap-2">
         <NavTiles />
       </Navigation.Menu>
     </Navigation>
