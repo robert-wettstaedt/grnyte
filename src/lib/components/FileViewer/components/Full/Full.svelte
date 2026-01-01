@@ -5,7 +5,7 @@
   import { pageState } from '$lib/components/Layout'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { File } from '$lib/db/schema'
-  import { Popover, Portal } from '@skeletonlabs/skeleton-svelte'
+  import { Menu, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
   import type { MouseEventHandler } from 'svelte/elements'
   import type { FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
@@ -122,119 +122,109 @@
     {/if}
 
     <div class="flex items-center gap-1">
-      <Popover positioning={{ placement: 'bottom' }}>
-        <Popover.Trigger class="btn-icon bg-black/20 backdrop-blur-sm">
+      <Menu>
+        <Menu.Trigger class="btn-icon bg-black/20 backdrop-blur-sm">
           <i class={`fa-solid ${file.visibility === 'public' ? 'fa-globe' : 'fa-lock'}`}></i>
-        </Popover.Trigger>
+        </Menu.Trigger>
 
         <Portal>
-          <Popover.Positioner class="z-5000!">
-            <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4 shadow-lg">
-              <Popover.Description>
-                <p class="text-sm">
+          <Menu.Positioner class="z-5000!">
+            <Menu.Content class="max-w-[320px]">
+              <p class="p-2 text-sm">
+                {#if file.visibility === 'public'}
+                  The file is publicly accessible and can be viewed by everyone who has the link.
+                {:else}
+                  The file is private and only accessible by authenticated users.
+                {/if}
+              </p>
+
+              {#if file.bunnyStreamFk == null}
+                <p class="text-error-500 p-2">Only videos can be made public and shared.</p>
+              {:else}
+                {#if navigator.canShare?.(shareData) && navigator.share != null}
+                  <Menu.Item closeOnSelect={false} value="Share">
+                    <button class="flex w-full items-center" onclick={() => navigator.share(shareData)}>
+                      <i class="fa-solid fa-share me-2 w-5"></i>
+                      Share
+                    </button>
+                  </Menu.Item>
+                {:else}
+                  <Menu.Item closeOnSelect={false} value="Copy">
+                    <button class="flex w-full items-center" onclick={onCopyUrl}>
+                      <i class="fa-solid fa-copy me-2 w-5"></i>
+                      Copy
+                    </button>
+                  </Menu.Item>
+                {/if}
+
+                {#if !readOnly}
                   {#if file.visibility === 'public'}
-                    The file is publicly accessible and can be viewed by everyone who has the link.
-                  {:else}
-                    The file is private and only accessible by authenticated users.
-                  {/if}
-                </p>
-
-                <footer class="flex justify-between gap-2">
-                  {#if file.bunnyStreamFk == null}
-                    <p class="text-error-500">Only videos can be made public and shared.</p>
-                  {:else}
-                    {#if navigator.canShare?.(shareData) && navigator.share != null}
-                      <button class="btn btn-sm preset-tonal-primary" onclick={() => navigator.share(shareData)}>
-                        <i class="fa-solid fa-share"></i> Share
+                    <Menu.Item closeOnSelect={false} value="Make private">
+                      <button class="flex w-full items-center" onclick={updateVisibility.bind(null, 'private')}>
+                        <i class="fa-solid fa-lock me-2 w-5"></i>
+                        Make private
                       </button>
-                    {:else}
-                      <button class="btn btn-sm preset-tonal-primary" onclick={onCopyUrl}>
-                        <i class="fa-solid fa-copy"></i> Copy
+                    </Menu.Item>
+                  {:else}
+                    <Menu.Item closeOnSelect={false} value="Make public">
+                      <button class="flex w-full items-center" onclick={updateVisibility.bind(null, 'public')}>
+                        <i class="fa-solid fa-globe me-2 w-5"></i>
+                        Make public
                       </button>
-                    {/if}
-
-                    {#if !readOnly}
-                      {#if file.visibility === 'public'}
-                        <button
-                          class="btn btn-sm preset-tonal-primary"
-                          onclick={updateVisibility.bind(null, 'private')}
-                        >
-                          <i class="fa-solid fa-lock"></i> Make private
-                        </button>
-                      {:else}
-                        <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'public')}>
-                          <i class="fa-solid fa-globe"></i> Make public
-                        </button>
-                      {/if}
-                    {/if}
+                    </Menu.Item>
                   {/if}
-                </footer>
-              </Popover.Description>
-
-              <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
-                <Popover.ArrowTip />
-              </Popover.Arrow>
-            </Popover.Content>
-          </Popover.Positioner>
+                {/if}
+              {/if}
+            </Menu.Content>
+          </Menu.Positioner>
         </Portal>
-      </Popover>
+      </Menu>
 
       {#if !readOnly}
-        <Popover positioning={{ placement: 'bottom' }}>
-          <Popover.Trigger class="btn-icon bg-black/20 backdrop-blur-sm">
+        <Menu>
+          <Menu.Trigger class="btn-icon bg-black/20 backdrop-blur-sm">
             <i class="fa-solid fa-ellipsis-vertical"></i>
-          </Popover.Trigger>
+          </Menu.Trigger>
 
           <Portal>
-            <Popover.Positioner class="z-5000!">
-              <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4 shadow-lg">
-                <Popover.Description>
-                  <nav class="list-nav w-48">
-                    <ul>
-                      <li
-                        class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b whitespace-nowrap last:border-none"
-                      >
-                        <Popover positioning={{ placement: 'bottom' }}>
-                          <Popover.Trigger class="w-full p-2 text-left md:p-4">
-                            <i class="fa-solid fa-trash me-2 w-5"></i>Delete
-                          </Popover.Trigger>
+            <Menu.Positioner class="z-5000!">
+              <Menu.Content>
+                <Menu.Item closeOnSelect={false} value="topo-remove">
+                  <Popover positioning={{ placement: 'bottom' }}>
+                    <Popover.Trigger class="flex w-full items-center">
+                      <i class="fa-solid fa-trash me-2 w-5"></i>
+                      Delete
+                    </Popover.Trigger>
 
-                          <Portal>
-                            <Popover.Positioner class="z-5000!">
-                              <Popover.Content class="card bg-surface-300-700 w-full max-w-[320px] space-y-4 p-4">
-                                <Popover.Description>
-                                  <article>
-                                    <p>Are you sure you want to delete this file?</p>
-                                  </article>
+                    <Portal>
+                      <Popover.Positioner class="z-5000!">
+                        <Popover.Content class="card bg-surface-200-800 w-full max-w-[320px] space-y-4 p-4">
+                          <Popover.Description>
+                            <article>
+                              <p>Are you sure you want to delete this file?</p>
+                            </article>
 
-                                  <footer class="flex justify-end">
-                                    <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDelete}>
-                                      Yes
-                                    </button>
-                                  </footer>
-                                </Popover.Description>
+                            <footer class="flex justify-end">
+                              <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDelete}>
+                                Yes
+                              </button>
+                            </footer>
+                          </Popover.Description>
 
-                                <Popover.Arrow
-                                  class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
-                                >
-                                  <Popover.ArrowTip />
-                                </Popover.Arrow>
-                              </Popover.Content>
-                            </Popover.Positioner>
-                          </Portal>
-                        </Popover>
-                      </li>
-                    </ul>
-                  </nav>
-                </Popover.Description>
-
-                <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
-                  <Popover.ArrowTip />
-                </Popover.Arrow>
-              </Popover.Content>
-            </Popover.Positioner>
+                          <Popover.Arrow
+                            class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                          >
+                            <Popover.ArrowTip />
+                          </Popover.Arrow>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Portal>
+                  </Popover>
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
           </Portal>
-        </Popover>
+        </Menu>
       {/if}
     </div>
   </div>

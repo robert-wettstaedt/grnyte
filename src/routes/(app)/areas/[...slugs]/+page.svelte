@@ -56,8 +56,8 @@
     {area.name}
   {/snippet}
 
-  {#snippet actions()}
-    <AreaActions />
+  {#snippet actions(args)}
+    <AreaActions {args} />
   {/snippet}
 
   {#snippet content()}

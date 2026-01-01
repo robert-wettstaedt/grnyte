@@ -50,8 +50,8 @@
     {block.name}
   {/snippet}
 
-  {#snippet actions()}
-    <BlockActions />
+  {#snippet actions(args)}
+    <BlockActions {args} />
   {/snippet}
 
   {#snippet content()}

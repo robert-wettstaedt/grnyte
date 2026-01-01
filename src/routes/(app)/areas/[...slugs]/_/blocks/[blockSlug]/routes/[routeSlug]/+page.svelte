@@ -68,8 +68,8 @@
     <RouteName classes="flex-wrap" {route} />
   {/snippet}
 
-  {#snippet actions()}
-    <RouteActions {blockPath} />
+  {#snippet actions(args)}
+    <RouteActions {args} {blockPath} />
   {/snippet}
 
   {#snippet content()}

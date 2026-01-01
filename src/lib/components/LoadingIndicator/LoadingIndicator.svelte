@@ -1,13 +1,14 @@
 <script lang="ts">
   import { Progress } from '@skeletonlabs/skeleton-svelte'
+  import type { ClassValue } from 'svelte/elements'
 
   type Sizes = 4 | 6 | 8 | 12 | 20
 
   interface Props {
-    class?: string
+    class?: ClassValue | null
     rangeClass?: string
     size?: Sizes | string
-    style?: string
+    style?: string | null
     trackClass?: string
   }
 

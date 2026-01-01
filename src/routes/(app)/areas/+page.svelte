@@ -8,7 +8,7 @@
   import FavoritesList from '$lib/components/FavoritesList'
   import { pageState } from '$lib/components/Layout'
   import RouteList from '$lib/components/RouteList'
-  import { Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { Menu, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
   type TabValue = 'areas' | 'routes' | 'favorites'
@@ -39,10 +39,13 @@
 </svelte:head>
 
 <AppBar {hasActions}>
-  {#snippet actions()}
-    <a class="btn btn-sm preset-outlined-primary-500" href="{page.url.pathname}/add">
-      <i class="fa-solid fa-plus w-4"></i>Add area
-    </a>
+  {#snippet actions({ buttonProps, iconProps })}
+    <Menu.Item value="Add area">
+      <a {...buttonProps} href="{page.url.pathname}/add">
+        <i {...iconProps} class="fa-solid fa-pen {iconProps.class}"></i>
+        Add area
+      </a>
+    </Menu.Item>
   {/snippet}
 
   {#snippet content()}
