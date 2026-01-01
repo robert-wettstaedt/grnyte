@@ -21,10 +21,12 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Edit block</span>
-    <a class="anchor" href={basePath}>{block.name}</a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Edit block
+      <a class="anchor" href={basePath}>{block.name}</a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateBlock.enhance(enhanceForm())}>

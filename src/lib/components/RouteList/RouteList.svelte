@@ -2,12 +2,12 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import GenericList from '$lib/components/GenericList'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteListItem from '$lib/components/RouteListItem'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
   import type { RowWithRelations } from '$lib/db/zero'
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import RoutesFilter from './components/RoutesFilter'
   import { getRoutesFilterQuery } from './lib'
 
@@ -55,9 +55,7 @@
           }}
         >
           {#if details.type !== 'complete'}
-            <span class="me-2">
-              <ProgressRing size="size-4" value={null} />
-            </span>
+            <LoadingIndicator />
           {/if}
 
           Load more

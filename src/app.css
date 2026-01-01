@@ -3,10 +3,9 @@
 @plugin '@tailwindcss/typography';
 
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/optional/presets';
 @import '@skeletonlabs/skeleton/themes/catppuccin';
 
-@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
+@import '@skeletonlabs/skeleton-svelte';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -58,4 +57,8 @@ body {
 
 select option:checked {
   background-color: var(--color-primary-500);
+}
+
+[data-scope='popover'][data-part='description'] {
+  margin: 0;
 }

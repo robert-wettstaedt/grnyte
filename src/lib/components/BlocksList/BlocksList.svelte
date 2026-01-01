@@ -5,10 +5,11 @@
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing, Segment } from '@skeletonlabs/skeleton-svelte'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { updateBlockOrder } from './BlocksList.remote'
 
   interface Props {
@@ -73,7 +74,7 @@
   </nav>
 {:else}
   <div class="flex justify-between">
-    <Segment
+    <SegmentedControl
       name="blocks-view-mode"
       onValueChange={(event) => {
         blocksViewMode = event.value as 'list' | 'grid'
@@ -81,13 +82,23 @@
       }}
       value={blocksViewMode}
     >
-      <Segment.Item value="list">
-        <i class="fa-solid fa-list"></i>
-      </Segment.Item>
-      <Segment.Item value="grid">
-        <i class="fa-solid fa-table-cells-large"></i>
-      </Segment.Item>
-    </Segment>
+      <SegmentedControl.Control>
+        <SegmentedControl.Indicator />
+        <SegmentedControl.Item value="list">
+          <SegmentedControl.ItemText>
+            <i class="fa-solid fa-list"></i>
+          </SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+
+        <SegmentedControl.Item value="grid">
+          <SegmentedControl.ItemText>
+            <i class="fa-solid fa-table-cells-large"></i>
+          </SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+      </SegmentedControl.Control>
+    </SegmentedControl>
 
     {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
       <button
@@ -96,7 +107,7 @@
         onclick={() => (orderMode = !orderMode)}
       >
         {#if updateBlockOrder.pending > 0}
-          <ProgressRing size="size-4" value={null} />
+          <LoadingIndicator />
         {:else}
           <i class="fa-solid fa-sort"></i>
         {/if}
@@ -123,7 +134,7 @@
 
       {#if blocksViewMode === 'list' || orderMode}
         <GenericList
-          classes="-mx-4"
+          class="-mx-2 md:-mx-4"
           listClasses={orderMode ? undefined : 'mt-4 bg-surface-200-800'}
           items={(sortedBlocks ?? []).map((item) => ({
             ...item,
@@ -159,7 +170,7 @@
                     </div>
                   {:else}
                     <GenericList
-                      classes="w-full"
+                      class="w-full"
                       items={routes.map((route) => ({
                         ...route,
                         id: route.id!,
@@ -178,7 +189,7 @@
           {/snippet}
         </GenericList>
       {:else}
-        <ul class="-mx-4">
+        <ul class="-mx-2 md:-mx-4">
           {#each sortedBlocks ?? [] as block}
             <li class="bg-surface-200-800 mt-4 pb-4">
               <div

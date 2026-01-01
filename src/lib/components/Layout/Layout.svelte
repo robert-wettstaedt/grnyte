@@ -18,7 +18,7 @@
   import { formState } from '$lib/forms/enhance.svelte'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
-  import { Navigation, Toaster } from '@skeletonlabs/skeleton-svelte'
+  import { Navigation, Toast } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
   import { online } from 'svelte/reactivity/window'
@@ -80,15 +80,25 @@
 </svelte:head>
 
 <div>
-  <ProgressBar class="text-secondary-500 !z-[100]" />
-  <Toaster {toaster} />
+  <ProgressBar class="text-secondary-500 z-100!" />
+  <Toast.Group {toaster}>
+    {#snippet children(toast)}
+      <Toast {toast}>
+        <Toast.Message>
+          <Toast.Title>{toast.title}</Toast.Title>
+          <Toast.Description>{toast.description}</Toast.Description>
+        </Toast.Message>
+        <Toast.CloseTrigger />
+      </Toast>
+    {/snippet}
+  </Toast.Group>
 
   <HeaderBar />
 
   <main
     class="relative p-2 md:p-4 {page.data.session?.user == null || pageState.userRegions.length === 0
       ? 'min-h-[calc(100vh-3rem)]'
-      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
+      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-24 md:min-h-[calc(100vh-3rem)]'}"
   >
     <Breadcrumb url={page.url} />
 
@@ -125,15 +135,19 @@
   {/if}
 
   {#if page.data.session?.user != null && pageState.userRegions.length > 0}
-    <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
-      <NavTiles />
-    </Navigation.Bar>
-
-    <Navigation.Rail base="fixed top-[48px] hidden h-screen md:block">
-      {#snippet tiles()}
+    <Navigation class="sticky bottom-0 z-50 md:hidden" layout="bar">
+      <Navigation.Menu>
         <NavTiles />
-      {/snippet}
-    </Navigation.Rail>
+      </Navigation.Menu>
+    </Navigation>
+
+    <Navigation class="fixed top-12 hidden h-screen md:block" layout="rail">
+      <Navigation.Content>
+        <Navigation.Menu>
+          <NavTiles />
+        </Navigation.Menu>
+      </Navigation.Content>
+    </Navigation>
   {/if}
 </div>
 

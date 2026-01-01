@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
   import { pageState } from '../../page.svelte'
 
@@ -81,9 +81,7 @@
 </script>
 
 {#if isLoading}
-  <div class="fixed flex h-full w-full items-center justify-center">
-    <ProgressRing value={null} />
-  </div>
+  <LoadingIndicator class="fixed flex h-full w-full items-center justify-center" size={20} />
 {:else}
   {@render children?.()}
 {/if}

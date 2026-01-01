@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { Modal } from '@skeletonlabs/skeleton-svelte'
+  import Dialog from '$lib/components/Dialog'
   import OlGeolocation from 'ol/Geolocation.js'
   import type Map from 'ol/Map'
   import OlMap from 'ol/Map.js'
@@ -118,35 +118,15 @@
   ></i>
 </button>
 
-<Modal
-  open={modalOpen}
-  onOpenChange={(event) => (modalOpen = event.open)}
-  triggerBase="!hidden"
-  contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
-  backdropClasses="backdrop-blur-sm"
->
+<Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Geolocation error">
   {#snippet content()}
-    <button
-      aria-label="Close"
-      class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
-      onclick={() => (modalOpen = false)}
-    >
-      <i class="fa-solid fa-xmark"></i>
-    </button>
+    <p>The geolocation service is not working. Please check your browser settings and try again.</p>
 
-    <header>
-      <h4 class="h4">Geolocation error</h4>
-    </header>
-
-    <article class="opacity-60">
-      <p>The geolocation service is not working. Please check your browser settings and try again.</p>
-
-      <ul class="mt-4 list-inside list-disc">
-        <li>Check if location services are enabled in your browser</li>
-        <li>Ensure you have permission to share your location</li>
-        <li>Check if you have a GPS signal</li>
-        <li>Try a different browser or device</li>
-      </ul>
-    </article>
+    <ul class="mt-4 list-inside list-disc">
+      <li>Check if location services are enabled in your browser</li>
+      <li>Ensure you have permission to share your location</li>
+      <li>Check if you have a GPS signal</li>
+      <li>Try a different browser or device</li>
+    </ul>
   {/snippet}
-</Modal>
+</Dialog>

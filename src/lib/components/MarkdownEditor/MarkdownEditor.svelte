@@ -162,25 +162,34 @@
 </script>
 
 <div class="relative">
-  <a class="anchor absolute top-2 right-0" href="https://markdownguide.offshoot.io/cheat-sheet/" target="_blank">
-    Markdown supported
+  <a
+    class="anchor absolute top-0 right-0 z-1 flex items-center justify-center gap-2 text-xs opacity-80"
+    href="https://markdownguide.offshoot.io/cheat-sheet/"
+    target="_blank"
+  >
+    <i class="fa-brands fa-markdown"></i>
+
+    <span>
+      Markdown<br />supported
+    </span>
   </a>
 
   <Tabs onValueChange={(event) => (tab = event.value as 'write' | 'preview')} value={tab}>
-    {#snippet list()}
-      <Tabs.Control value="write">Write</Tabs.Control>
-      <Tabs.Control value="preview">Preview</Tabs.Control>
-    {/snippet}
-    {#snippet content()}
-      <Tabs.Panel value="write">
-        <div bind:this={element} class="bg-surface-700 h-64"></div>
-      </Tabs.Panel>
-      <Tabs.Panel value="preview">
-        <div class="markdown-body bg-surface-700 h-64 overflow-auto px-3 py-2">
-          {@html valueHtml}
-        </div>
-      </Tabs.Panel>
-    {/snippet}
+    <Tabs.List>
+      <Tabs.Trigger value="write">Write</Tabs.Trigger>
+      <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
+      <Tabs.Indicator />
+    </Tabs.List>
+
+    <Tabs.Content value="write">
+      <div bind:this={element} class="bg-surface-700 h-64"></div>
+    </Tabs.Content>
+
+    <Tabs.Content value="preview">
+      <div class="markdown-body bg-surface-700 h-64 overflow-auto px-3 py-2">
+        {@html valueHtml}
+      </div>
+    </Tabs.Content>
   </Tabs>
 </div>
 

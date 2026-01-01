@@ -1,10 +1,11 @@
 <script lang="ts">
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import type { EnrichedAscent } from '$lib/db/utils'
   import { convertMarkdownToHtml } from '$lib/markdown'
   import type { Pagination as PaginationType } from '$lib/pagination.server'
-  import { Pagination, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Pagination } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
 
   type PaginationProps = Parameters<typeof Pagination>[1]
@@ -59,7 +60,7 @@
               <tr class="notes">
                 <td colspan="4">
                   {#await convertMarkdownToHtml(ascent.notes)}
-                    <ProgressRing classes="m-auto" size="size-8" value={null} />
+                    <LoadingIndicator class="items-center justify-center" size={8} />
                   {:then value}
                     {@html value}
                   {/await}
@@ -75,12 +76,32 @@
 
 <div class="my-8 flex justify-end">
   <Pagination
-    buttonClasses="btn-sm md:btn-md"
     count={pagination.total}
-    data={[]}
     page={pagination.page}
     pageSize={pagination.pageSize}
     siblingCount={0}
     {...paginationProps}
-  />
+  >
+    <Pagination.PrevTrigger>
+      <i class="fa-solid fa-arrow-left"></i>
+    </Pagination.PrevTrigger>
+
+    <Pagination.Context>
+      {#snippet children(pagination)}
+        {#each pagination().pages as page, index (page)}
+          {#if page.type === 'page'}
+            <Pagination.Item {...page}>
+              {page.value}
+            </Pagination.Item>
+          {:else}
+            <Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+          {/if}
+        {/each}
+      {/snippet}
+    </Pagination.Context>
+
+    <Pagination.NextTrigger>
+      <i class="fa-solid fa-arrow-right"></i>
+    </Pagination.NextTrigger>
+  </Pagination>
 </div>

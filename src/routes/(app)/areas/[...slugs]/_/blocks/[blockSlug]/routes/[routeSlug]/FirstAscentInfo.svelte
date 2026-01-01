@@ -1,7 +1,7 @@
 <script lang="ts">
   import { pageState } from '$lib/components/Layout'
   import { getRouteContext } from '$lib/contexts/route'
-  import { Popover } from '@skeletonlabs/skeleton-svelte'
+  import { Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { claimFirstAscensionist, claimFirstAscent } from './page.remote'
 
   const { route } = getRouteContext()
@@ -25,38 +25,44 @@
           </a>
 
           {#if pageState.user?.firstAscensionistFk == null}
-            <Popover
-              arrow
-              arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-              contentBase="card bg-surface-200-800 max-w-[320px] space-y-4 p-4"
-              positioning={{ placement: 'top' }}
-              triggerBase="btn btn-sm preset-outlined-primary-500 me-auto !text-white"
-            >
-              {#snippet trigger()}
+            <Popover positioning={{ placement: 'top' }}>
+              <Popover.Trigger class="btn btn-sm preset-outlined-primary-500 me-auto text-white!">
                 That's me!
-              {/snippet}
+              </Popover.Trigger>
 
-              {#snippet content()}
-                <article>
-                  <p>
-                    All FAs with the name {firstAscent.firstAscensionist?.name} will be attributed to you. Are you sure that
-                    this is you?
-                  </p>
-                </article>
+              <Portal>
+                <Popover.Positioner>
+                  <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
+                    <Popover.Description>
+                      <article>
+                        <p>
+                          All FAs with the name {firstAscent.firstAscensionist?.name} will be attributed to you. Are you
+                          sure that this is you?
+                        </p>
+                      </article>
 
-                <footer class="flex justify-end">
-                  <button
-                    class="btn btn-sm preset-filled-primary-500 !text-white"
-                    onclick={() =>
-                      claimFirstAscensionist({
-                        firstAscensionistFk: firstAscent.firstAscensionist?.id,
-                        routeId: route.id,
-                      })}
-                  >
-                    Yes
-                  </button>
-                </footer>
-              {/snippet}
+                      <footer class="flex justify-end">
+                        <button
+                          class="btn btn-sm preset-filled-primary-500 text-white!"
+                          onclick={() =>
+                            claimFirstAscensionist({
+                              firstAscensionistFk: firstAscent.firstAscensionist?.id,
+                              routeId: route.id,
+                            })}
+                        >
+                          Yes
+                        </button>
+                      </footer>
+                    </Popover.Description>
+
+                    <Popover.Arrow
+                      class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                    >
+                      <Popover.ArrowTip />
+                    </Popover.Arrow>
+                  </Popover.Content>
+                </Popover.Positioner>
+              </Portal>
             </Popover>
           {/if}
         </span>
@@ -83,31 +89,33 @@
   {/if}
 
   {#if firstAscents.length === 0 && pageState.user?.firstAscensionistFk != null}
-    <Popover
-      arrow
-      arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-      contentBase="card bg-surface-200-800 max-w-[320px] space-y-4 p-4"
-      positioning={{ placement: 'top' }}
-      triggerBase="btn btn-sm preset-outlined-primary-500 !text-white"
-    >
-      {#snippet trigger()}
-        Claim FA
-      {/snippet}
+    <Popover positioning={{ placement: 'top' }}>
+      <Popover.Trigger class="btn btn-sm preset-outlined-primary-500 me-auto text-white!">Claim FA</Popover.Trigger>
 
-      {#snippet content()}
-        <article>
-          <p>This FA will be attributed to you. Are you sure?</p>
-        </article>
+      <Portal>
+        <Popover.Positioner>
+          <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
+            <Popover.Description>
+              <article>
+                <p>This FA will be attributed to you. Are you sure?</p>
+              </article>
 
-        <footer class="flex justify-end">
-          <button
-            class="btn btn-sm preset-filled-primary-500 !text-white"
-            onclick={() => route.id != null && claimFirstAscent(route.id)}
-          >
-            Yes
-          </button>
-        </footer>
-      {/snippet}
+              <footer class="flex justify-end">
+                <button
+                  class="btn btn-sm preset-filled-primary-500 text-white!"
+                  onclick={() => route.id != null && claimFirstAscent(route.id)}
+                >
+                  Yes
+                </button>
+              </footer>
+            </Popover.Description>
+
+            <Popover.Arrow class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]">
+              <Popover.ArrowTip />
+            </Popover.Arrow>
+          </Popover.Content>
+        </Popover.Positioner>
+      </Portal>
     </Popover>
   {/if}
 </span>

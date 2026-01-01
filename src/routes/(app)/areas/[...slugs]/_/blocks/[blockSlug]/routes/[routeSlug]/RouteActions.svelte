@@ -4,17 +4,20 @@
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import type { ActionItemArgs } from '$lib/components/AppBar'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { getRouteContext } from '$lib/contexts/route'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Menu } from '@skeletonlabs/skeleton-svelte'
   import { syncExternalResources, toggleRouteFavoriteStatus } from './page.remote'
 
   interface Props {
+    args: ActionItemArgs
     blockPath: string
   }
 
-  const { blockPath }: Props = $props()
+  const { args, blockPath }: Props = $props()
 
   const { block, route } = getRouteContext()
 
@@ -24,98 +27,135 @@
   const byUser = $derived(favoritesResult.data.some((fav) => fav.authUserFk === page.data.authUserId))
 </script>
 
-<a class="btn btn-sm preset-filled-primary-500" href={`${page.url.pathname}/ascents/add`}>
-  <i class="fa-solid fa-check w-4"></i>Log ascent
-</a>
+<Menu.ItemGroup>
+  <Menu.ItemGroupLabel>Route</Menu.ItemGroupLabel>
 
-<button
-  class="btn btn-sm preset-outlined-primary-500"
-  disabled={toggleRouteFavoriteStatus.pending > 0}
-  onclick={() => route.id != null && toggleRouteFavoriteStatus(route.id)}
->
-  {#if toggleRouteFavoriteStatus.pending > 0}
-    <ProgressRing size="size-4" value={null} />
-  {:else}
-    <i class="fa-solid fa-heart {byUser ? 'text-red-500' : 'text-white'}"></i>
-  {/if}
+  <Menu.Item value="Log ascent">
+    <a {...args.buttonProps} href={`${page.url.pathname}/ascents/add`}>
+      <i {...args.iconProps} class="fa-solid fa-check {args.iconProps.class}"></i>
+      Log ascent
+    </a>
+  </Menu.Item>
 
-  {#if favoritesResult.data.length === 0}
-    Favorite
-  {:else}
-    {favoritesResult.data.length} favorites
-  {/if}
-</button>
+  <Menu.Item closeOnSelect={false} value="Favorite">
+    <button
+      {...args.buttonProps}
+      disabled={toggleRouteFavoriteStatus.pending > 0}
+      onclick={() => route.id != null && toggleRouteFavoriteStatus(route.id)}
+    >
+      {#if toggleRouteFavoriteStatus.pending > 0}
+        <LoadingIndicator {...args.iconProps} />
+      {:else}
+        <i
+          {...args.iconProps}
+          class={['fa-solid fa-heart', byUser ? 'text-red-500' : 'text-white', args.iconProps.class]}
+        ></i>
+      {/if}
+
+      {#if favoritesResult.data.length === 0}
+        Favorite
+      {:else}
+        {favoritesResult.data.length} favorites
+      {/if}
+    </button>
+  </Menu.Item>
+</Menu.ItemGroup>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
-  <a class="btn btn-sm preset-outlined-primary-500" href={`${page.url.pathname}/edit`}>
-    <i class="fa-solid fa-pen w-4"></i>Edit route details
-  </a>
+  <Menu.Separator />
 
-  <a class="btn btn-sm preset-outlined-primary-500" href={`${page.url.pathname}/edit-first-ascent`}>
-    <i class="fa-solid fa-pen w-4"></i>Edit FA
-  </a>
+  <Menu.ItemGroup>
+    <Menu.ItemGroupLabel>Edit</Menu.ItemGroupLabel>
 
-  {#if block.topos.length > 0}
-    <a class="btn btn-sm preset-outlined-primary-500" href={`${blockPath}/topos/draw`}>
-      <i class="fa-solid fa-file-pen w-4"></i>Edit topo
-    </a>
-  {/if}
+    <Menu.Item value="Edit route details">
+      <a {...args.buttonProps} href={`${page.url.pathname}/edit`}>
+        <i {...args.iconProps} class="fa-solid fa-pen {args.iconProps.class}"></i>
+        Edit route details
+      </a>
+    </Menu.Item>
 
-  <a class="btn btn-sm preset-outlined-primary-500" href={`${page.url.pathname}/add-file`}>
-    <i class="fa-solid fa-cloud-arrow-up w-4"></i>Upload file
-  </a>
+    <Menu.Item value="Edit FA">
+      <a {...args.buttonProps} href={`${page.url.pathname}/edit-first-ascent`}>
+        <i {...args.iconProps} class="fa-solid fa-pen {args.iconProps.class}"></i>
+        Edit FA
+      </a>
+    </Menu.Item>
+
+    <Menu.Item value="Upload file">
+      <a {...args.buttonProps} href={`${page.url.pathname}/add-file`}>
+        <i {...args.iconProps} class="fa-solid fa-cloud-arrow-up {args.iconProps.class}"></i>
+        Upload file
+      </a>
+    </Menu.Item>
+  </Menu.ItemGroup>
 {/if}
 
-{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)}
-  <button
-    class="btn btn-sm preset-outlined-primary-500"
-    disabled={syncExternalResources.pending > 0}
-    onclick={() => route.id != null && syncExternalResources(route.id)}
-  >
-    {#if syncExternalResources.pending > 0}
-      <ProgressRing size="size-4" value={null} />
-    {:else}
-      <i class="fa-solid fa-sync"></i>
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) && block.topos.length > 0}
+  <Menu.Separator />
+
+  <Menu.ItemGroup>
+    <Menu.ItemGroupLabel>Topo</Menu.ItemGroupLabel>
+
+    <Menu.Item value="Edit topo">
+      <a {...args.buttonProps} href={`${blockPath}/topos/draw`}>
+        <i {...args.iconProps} class="fa-solid fa-file-pen {args.iconProps.class}"></i>
+        Edit topo
+      </a>
+    </Menu.Item>
+  </Menu.ItemGroup>
+{/if}
+
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk) || route.externalResources?.externalResource8a?.url != null || route.externalResources?.externalResource27crags?.url != null || route.externalResources?.externalResourceTheCrag?.url != null}
+  <Menu.Separator />
+
+  <Menu.ItemGroup>
+    <Menu.ItemGroupLabel>External Resources</Menu.ItemGroupLabel>
+
+    {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)}
+      <Menu.Item closeOnSelect={false} value="Sync external resources">
+        <button
+          {...args.buttonProps}
+          disabled={syncExternalResources.pending > 0}
+          onclick={() => route.id != null && syncExternalResources(route.id)}
+        >
+          {#if syncExternalResources.pending > 0}
+            <LoadingIndicator {...args.iconProps} />
+          {:else}
+            <i {...args.iconProps} class="fa-solid fa-sync {args.iconProps.class}"></i>
+          {/if}
+
+          Sync external resources
+        </button>
+      </Menu.Item>
     {/if}
 
-    Sync external resources
-  </button>
-{/if}
+    {#if route.id != null}
+      {#if route.externalResources?.externalResource8a?.url != null}
+        <Menu.Item value="Show on 8a.nu">
+          <a {...args.buttonProps} href={route.externalResources?.externalResource8a?.url} target="_blank">
+            <img {...args.iconProps} src={Logo8a} alt="8a" width={16} height={16} />
+            Show on 8a.nu
+          </a>
+        </Menu.Item>
+      {/if}
 
-{#if route.id != null}
-  {#if route.externalResources?.externalResource8a?.url != null}
-    <a
-      class="btn btn-sm preset-outlined-primary-500"
-      href={route.externalResources.externalResource8a.url}
-      target="_blank"
-    >
-      <img src={Logo8a} alt="8a" width={16} height={16} />
+      {#if route.externalResources?.externalResource27crags?.url != null}
+        <Menu.Item value="Show on 27crags">
+          <a {...args.buttonProps} href={route.externalResources?.externalResource27crags?.url} target="_blank">
+            <img {...args.iconProps} src={Logo27crags} alt="27crags" width={16} height={16} />
+            Show on 27crags
+          </a>
+        </Menu.Item>
+      {/if}
 
-      <span class="md:hidden"> Show on 8a.nu </span>
-    </a>
-  {/if}
-
-  {#if route.externalResources?.externalResource27crags?.url != null}
-    <a
-      class="btn btn-sm preset-outlined-primary-500"
-      href={route.externalResources.externalResource27crags.url}
-      target="_blank"
-    >
-      <img src={Logo27crags} alt="27crags" width={16} height={16} />
-
-      <span class="md:hidden"> Show on 27crags </span>
-    </a>
-  {/if}
-
-  {#if route.externalResources?.externalResourceTheCrag?.url != null}
-    <a
-      class="btn btn-sm preset-outlined-primary-500"
-      href={route.externalResources.externalResourceTheCrag.url}
-      target="_blank"
-    >
-      <img src={LogoTheCrag} alt="The Crag" width={16} height={16} />
-
-      <span class="md:hidden"> Show on theCrag </span>
-    </a>
-  {/if}
+      {#if route.externalResources?.externalResourceTheCrag?.url != null}
+        <Menu.Item value="Show on theCrag">
+          <a {...args.buttonProps} href={route.externalResources?.externalResourceTheCrag?.url} target="_blank">
+            <img {...args.iconProps} src={LogoTheCrag} alt="The Crag" width={16} height={16} />
+            Show on theCrag
+          </a>
+        </Menu.Item>
+      {/if}
+    {/if}
+  </Menu.ItemGroup>
 {/if}

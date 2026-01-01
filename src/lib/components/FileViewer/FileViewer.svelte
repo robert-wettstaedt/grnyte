@@ -55,7 +55,7 @@
 <Preview {file} bind:status onClick={onOpenFullscreen} />
 
 {#if isFullscreen}
-  <div class="fixed top-0 right-0 bottom-0 left-0 z-[5000] bg-black/90 backdrop-blur">
+  <div class="fixed top-0 right-0 bottom-0 left-0 z-5000 bg-black/90 backdrop-blur">
     <Full {file} {onDelete} {readOnly} bind:status>
       {#snippet topLeft()}
         <button aria-label="Close" class="btn-icon bg-black/20 text-xl backdrop-blur-sm" onclick={onCloseFullscreen}>

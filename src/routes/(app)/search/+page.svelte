@@ -3,15 +3,15 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { focus } from '$lib/actions/focus.svelte'
-  import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout/page.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { Region } from '$lib/db/zero'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
 
@@ -195,9 +195,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Search
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Search</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="mt-8">
@@ -257,9 +257,7 @@
   </div>
 {:else}
   {#if isLoading}
-    <div class="mt-8 flex justify-center">
-      <ProgressRing value={null} size="size-14" />
-    </div>
+    <LoadingIndicator class="mt-8 flex items-center justify-center" size={12} />
   {/if}
 
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
@@ -267,13 +265,13 @@
       {#snippet left(item)}
         <div class="flex items-center gap-2">
           {#if item.type === 'area'}
-            <i class="fa-solid fa-layer-group min-w-[64px] text-[51px] text-white"></i>
+            <i class="fa-solid fa-layer-group min-w-16 text-[51px] text-white"></i>
           {:else if item.type === 'block'}
             <Image path="/blocks/{item.data.id}/preview-image" size={64} />
           {:else if item.type === 'route'}
             <Image path="/blocks/{item.data.block?.id}/preview-image" size={64} />
           {:else if item.type === 'user'}
-            <i class="fa-solid fa-circle-user min-w-[64px] text-[51px] text-white"></i>
+            <i class="fa-solid fa-circle-user min-w-16 text-[51px] text-white"></i>
           {/if}
 
           {#if item.type === 'user'}

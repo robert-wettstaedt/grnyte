@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Row } from '$lib/db/zero'
   import { Accordion, Slider } from '@skeletonlabs/skeleton-svelte'
+  import { slide } from 'svelte/transition'
 
   interface Props {
     humidity: Row<'ascents'>['humidity'] | null | undefined
@@ -76,78 +77,127 @@
   })
 </script>
 
-<Accordion base="mt-4" collapsible onValueChange={(e) => (accordion = e.value)} value={accordion}>
-  <Accordion.Item
-    panelClasses="border-surface-500 my-2 rounded-md border-2 px-4 py-2"
-    controlPadding="px-0"
-    panelPadding="p-2 pb-16"
-    value="conditions"
-  >
-    {#snippet control()}
-      Conditions
-    {/snippet}
+<Accordion class="mt-4" collapsible onValueChange={(e) => (accordion = e.value)} value={accordion}>
+  <Accordion.Item value="club">
+    <h3>
+      <Accordion.ItemTrigger class="flex items-center justify-between gap-2 px-0">
+        Conditions
 
-    {#snippet panel()}
-      <label class="label my-4 flex items-center justify-between">
-        <span> Temperature </span>
+        <Accordion.ItemIndicator class="group">
+          <i class="fa-solid fa-chevron-down transition group-data-[state=open]:rotate-180"></i>
+        </Accordion.ItemIndicator>
+      </Accordion.ItemTrigger>
+    </h3>
 
-        <span>
-          {displayTemperature}°C
+    <Accordion.ItemContent class="border-surface-500 my-2 rounded-md border-2">
+      {#snippet element(attributes)}
+        {#if !attributes.hidden}
+          <div {...attributes} transition:slide={{ duration: 150 }}>
+            <Slider
+              class="mb-12"
+              defaultValue={defaultTemperature}
+              max={maxTemp}
+              min={minTemp}
+              onValueChange={(e) => (temperature = e.value[0])}
+              value={temperature == null ? undefined : [temperature]}
+            >
+              <Slider.Label class="my-4 flex items-center justify-between">
+                <span>
+                  <i class="fa-solid fa-temperature-full"></i>
+                  Temperature
+                </span>
 
-          <button
-            aria-label="Clear"
-            class="btn preset-filled-surface-500 h-9 w-9"
-            disabled={temperature == null}
-            onclick={() => (temperature = null)}
-            type="button"
-          >
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </span>
-      </label>
+                <span>
+                  {displayTemperature}°C
 
-      <Slider
-        defaultValue={defaultTemperature}
-        height="h-2"
-        markers={[-20, -10, 0, 10, 20, 30, 40]}
-        markersBase="mt-2"
-        max={maxTemp}
-        min={minTemp}
-        meterBg={tempColorClass.meterBg}
-        thumbRingColor={tempColorClass.thumbRingColor}
-        onValueChange={(e) => (temperature = e.value[0])}
-        value={temperature == null ? undefined : [temperature]}
-      />
+                  <button
+                    aria-label="Clear"
+                    class="btn preset-filled-surface-500 h-9 w-9"
+                    disabled={temperature == null}
+                    onclick={() => (temperature = null)}
+                    type="button"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </span>
+              </Slider.Label>
 
-      <label class="label mt-16 mb-4 flex items-center justify-between">
-        <span> Humidity </span>
+              <Slider.Control>
+                <Slider.Track>
+                  <Slider.Range class={tempColorClass.meterBg} />
+                </Slider.Track>
 
-        <span>
-          {displayHumidity}%
+                <Slider.Thumb class={tempColorClass.thumbRingColor} index={0}>
+                  <Slider.HiddenInput />
+                </Slider.Thumb>
+              </Slider.Control>
 
-          <button
-            aria-label="Clear"
-            class="btn preset-filled-surface-500 h-9 w-9"
-            disabled={humidity == null}
-            onclick={() => (humidity = null)}
-            type="button"
-          >
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </span>
-      </label>
+              <Slider.MarkerGroup>
+                <Slider.Marker value={-20} />
+                <Slider.Marker value={-10} />
+                <Slider.Marker value={0} />
+                <Slider.Marker value={10} />
+                <Slider.Marker value={20} />
+                <Slider.Marker value={30} />
+                <Slider.Marker value={40} />
+              </Slider.MarkerGroup>
+            </Slider>
 
-      <Slider
-        defaultValue={defaultHumidity}
-        height="h-2"
-        markers={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
-        markersBase="mt-2"
-        meterBg={humidityColorClass.meterBg}
-        thumbRingColor={humidityColorClass.thumbRingColor}
-        onValueChange={(e) => (humidity = e.value[0])}
-        value={humidity == null ? undefined : [humidity]}
-      />
-    {/snippet}
+            <Slider
+              class="mb-12"
+              defaultValue={defaultHumidity}
+              onValueChange={(e) => (humidity = e.value[0])}
+              value={humidity == null ? undefined : [humidity]}
+            >
+              <Slider.Label class="my-4 flex items-center justify-between">
+                <span>
+                  <i class="fa-solid fa-droplet"></i>
+                  Humidity
+                </span>
+
+                <span>
+                  {displayHumidity}%
+
+                  <button
+                    aria-label="Clear"
+                    class="btn preset-filled-surface-500 h-9 w-9"
+                    disabled={humidity == null}
+                    onclick={() => (humidity = null)}
+                    type="button"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </span>
+              </Slider.Label>
+
+              <Slider.Control>
+                <Slider.Track>
+                  <Slider.Range class={humidityColorClass.meterBg} />
+                </Slider.Track>
+
+                <Slider.Thumb class={humidityColorClass.thumbRingColor} index={0}>
+                  <Slider.HiddenInput />
+                </Slider.Thumb>
+              </Slider.Control>
+
+              <Slider.MarkerGroup>
+                <Slider.Marker value={0} />
+                <Slider.Marker value={10} />
+                <Slider.Marker value={20} />
+                <Slider.Marker value={30} />
+                <Slider.Marker value={40} />
+                <Slider.Marker value={50} />
+                <Slider.Marker value={60} />
+                <Slider.Marker value={70} />
+                <Slider.Marker value={80} />
+                <Slider.Marker value={90} />
+                <Slider.Marker value={100} />
+              </Slider.MarkerGroup>
+            </Slider>
+          </div>
+        {/if}
+      {/snippet}
+    </Accordion.ItemContent>
   </Accordion.Item>
 </Accordion>
 

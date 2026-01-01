@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Combobox } from '@skeletonlabs/skeleton-svelte'
+  import { Combobox, Portal } from '@skeletonlabs/skeleton-svelte'
   import { calculateRelevance } from './lib'
 
   interface Props {
@@ -58,7 +58,7 @@
 </script>
 
 {#if value != null}
-  <ul class="!mb-4 flex flex-col gap-2">
+  <ul class="mb-4! flex flex-col gap-2">
     {#each value as val}
       <li class="flex items-center justify-between">
         <span>{val}</span>
@@ -94,9 +94,27 @@
 
 <Combobox
   allowCustomValue
-  contentClasses="max-h-[200px] md:max-h-[400px] overflow-auto"
-  data={availableOptions}
   onInputValueChange={handleInputValueChange}
   onValueChange={handleValueChange}
   placeholder="Search..."
-/>
+>
+  <Combobox.Control>
+    <Combobox.Input />
+    <Combobox.Trigger />
+  </Combobox.Control>
+
+  <Combobox.ClearTrigger>Clear All</Combobox.ClearTrigger>
+
+  <Portal>
+    <Combobox.Positioner>
+      <Combobox.Content class="max-h-[200px] overflow-auto md:max-h-[400px]">
+        {#each availableOptions as item (item.value)}
+          <Combobox.Item {item}>
+            <Combobox.ItemText>{item.label}</Combobox.ItemText>
+            <Combobox.ItemIndicator />
+          </Combobox.Item>
+        {/each}
+      </Combobox.Content>
+    </Combobox.Positioner>
+  </Portal>
+</Combobox>

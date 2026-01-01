@@ -24,7 +24,7 @@
   import type { InferResultType } from '$lib/db/types'
   import type { EnrichedBlock } from '$lib/db/utils'
   import { type TopoDTO } from '$lib/topo'
-  import { Rating } from '@skeletonlabs/skeleton-svelte'
+  import { RatingGroup } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     block: Block
@@ -66,20 +66,25 @@
 
                 {#if (route.userRating ?? route.rating) != null}
                   <div class="flex items-center justify-center">
-                    <Rating
-                      controlClasses="!gap-0 text-xs md:text-sm"
-                      count={3}
-                      readOnly
-                      value={(route.userRating ?? route.rating)!}
-                    >
-                      {#snippet iconFull()}
-                        <i class="fa-solid fa-star text-warning-500"></i>
-                      {/snippet}
+                    <RatingGroup count={3} readOnly value={(route.userRating ?? route.rating)!}>
+                      <RatingGroup.Control class="gap-0! text-xs md:text-sm">
+                        <RatingGroup.Context>
+                          {#snippet children(ratingGroup)}
+                            {#each ratingGroup().items as index (index)}
+                              <RatingGroup.Item {index}>
+                                {#snippet full()}
+                                  <i class="fa-solid fa-star text-warning-500"></i>
+                                {/snippet}
 
-                      {#snippet iconEmpty()}
-                        <i class="fa-regular fa-star"></i>
-                      {/snippet}
-                    </Rating>
+                                {#snippet empty()}
+                                  <i class="fa-regular fa-star"></i>
+                                {/snippet}
+                              </RatingGroup.Item>
+                            {/each}
+                          {/snippet}
+                        </RatingGroup.Context>
+                      </RatingGroup.Control>
+                    </RatingGroup>
                   </div>
                 {/if}
               </h3>

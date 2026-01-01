@@ -7,11 +7,11 @@
   import nc from '$lib/assets/nc.svg'
   import sa from '$lib/assets/sa.svg'
   import BlockEntry from '$lib/components/AreaBlockListing/components/BlockEntry'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import type { NestedArea } from '$lib/db/types'
   import { convertException } from '$lib/errors'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import * as domtoimage from 'modern-screenshot'
   import '../../../../../../../../app.css'
@@ -86,7 +86,7 @@
 <div class={DEBUG ? undefined : 'h-full w-full overflow-hidden'}>
   {#if !DEBUG}
     <div
-      class="bg-surface-50-950 absolute top-0 left-0 z-[100] flex h-full w-full flex-col items-center justify-center gap-4"
+      class="bg-surface-50-950 absolute top-0 left-0 z-100 flex h-full w-full flex-col items-center justify-center gap-4"
     >
       {#if error != null}
         <aside class="card preset-tonal-error mt-8 p-2 whitespace-pre-line md:p-4">
@@ -109,9 +109,7 @@
           {/if}
         </div>
       {:else}
-        <div>
-          <ProgressRing value={null} />
-        </div>
+        <LoadingIndicator class="items-center" size={20} />
 
         Preparing export
       {/if}

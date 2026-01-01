@@ -1,6 +1,6 @@
 <script lang="ts">
+  import Dialog from '$lib/components/Dialog'
   import type { Row } from '$lib/db/zero'
-  import { Modal } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
     value: Row<'areas'>['type'] | null | undefined
@@ -15,37 +15,19 @@
   <span>
     Type
 
-    <Modal
-      open={modalOpen}
-      onOpenChange={(event) => (modalOpen = event.open)}
-      triggerBase="sl-2 fa-regular fa-circle-question"
-      contentBase="card bg-surface-100-900 max-h-[90vh] max-w-screen-sm space-y-4 overflow-y-auto p-4 shadow-xl"
-      backdropClasses="backdrop-blur-sm"
-    >
-      {#snippet trigger()}<i></i>{/snippet}
+    <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Area Type">
+      {#snippet trigger()}
+        <i class="sl-2 fa-regular fa-circle-question"></i>
+      {/snippet}
 
       {#snippet content()}
-        <button
-          aria-label="Close"
-          class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
-          onclick={() => (modalOpen = false)}
-        >
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-
-        <header>
-          <h4 class="h4">Area Type</h4>
-        </header>
-
-        <article class="opacity-60">
-          <ul class="mt-4 list-inside list-disc space-y-2">
-            <li>Sector: Can contain blocks and routes</li>
-            <li>Crag: Include multiple sectors</li>
-            <li>Area: A group of crags and sectors</li>
-          </ul>
-        </article>
+        <ul class="mt-4 list-inside list-disc space-y-2">
+          <li>Sector: Can contain blocks and routes</li>
+          <li>Crag: Include multiple sectors</li>
+          <li>Area: A group of crags and sectors</li>
+        </ul>
       {/snippet}
-    </Modal>
+    </Dialog>
   </span>
 
   <select
@@ -55,8 +37,8 @@
     size="3"
     value={value ?? 'area'}
   >
-    <option value="area">Area</option>
-    <option value="crag">Crag</option>
-    <option value="sector">Sector</option>
+    <option class="rounded p-1" value="area">Area</option>
+    <option class="rounded p-1" value="crag">Crag</option>
+    <option class="rounded p-1" value="sector">Sector</option>
   </select>
 </label>

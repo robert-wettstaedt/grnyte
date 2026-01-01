@@ -1,12 +1,12 @@
 <script lang="ts">
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
+  import { pageState } from '$lib/components/Layout'
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'
-  import type { RowWithRelations } from '$lib/db/zero'
-  import { Rating } from '@skeletonlabs/skeleton-svelte'
-  import { pageState } from '$lib/components/Layout'
   import type { InferResultType } from '$lib/db/types'
+  import type { RowWithRelations } from '$lib/db/zero'
+  import RouteRating from '../RouteRating'
 
   type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 
@@ -54,24 +54,7 @@
 
     <RouteGrade {route} ascents={route.ascents} />
 
-    {#if (route.userRating ?? route.rating) != null}
-      <div>
-        <Rating
-          controlClasses="!gap-0 text-xs md:text-sm"
-          count={3}
-          readOnly
-          value={(route.userRating ?? route.rating)!}
-        >
-          {#snippet iconFull()}
-            <i class="fa-solid fa-star text-warning-500"></i>
-          {/snippet}
-
-          {#snippet iconEmpty()}
-            <i class="fa-regular fa-star text-warning-500"></i>
-          {/snippet}
-        </Rating>
-      </div>
-    {/if}
+    <RouteRating value={route.userRating ?? route.rating} />
 
     <div class="overflow-hidden text-ellipsis">
       {route.name.length === 0 ? config.routes.defaultName : route.name}

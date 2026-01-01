@@ -1,12 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import FileUpload from '$lib/components/FileUpload'
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import { getBlockContext } from '$lib/contexts/block'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { addTopo } from './page.remote'
 
   const { block } = getBlockContext()
@@ -21,10 +21,12 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Edit topos of</span>
-    <a class="anchor" href={basePath}>{block.name}</a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Edit topos of
+      <a class="anchor" href={basePath}>{block.name}</a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form

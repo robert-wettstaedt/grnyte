@@ -10,7 +10,7 @@
   import AreaBlockListing from '$lib/components/AreaBlockListing'
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Progress } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import '../../../../../app.css'
 
@@ -63,18 +63,21 @@
 <div class={DEBUG ? undefined : 'h-full w-full overflow-hidden'}>
   {#if !DEBUG}
     <div
-      class="bg-surface-50-950 absolute top-0 left-0 z-[100] flex h-full w-full flex-col items-center justify-center gap-4"
+      class="bg-surface-50-950 absolute top-0 left-0 z-100 flex h-full w-full flex-col items-center justify-center gap-4"
       id="progress"
     >
       {#if done}
         Done
         <a class="btn preset-filled-primary-500" href={basePath}>Go back</a>
       {:else}
-        <div>
-          <ProgressRing max={noTopos + noMaps} value={loadedTopos + loadedMaps} />
-        </div>
-
-        Preparing export
+        <Progress max={noTopos + noMaps} value={loadedTopos + loadedMaps} class="w-fit items-center">
+          <Progress.Label>Preparing export</Progress.Label>
+          <Progress.Circle>
+            <Progress.CircleTrack />
+            <Progress.CircleRange />
+          </Progress.Circle>
+          <Progress.ValueText />
+        </Progress>
       {/if}
     </div>
   {/if}

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import AreaFormFields from '$lib/components/AreaFormFields'
   import FormActionBar from '$lib/components/FormActionBar'
   import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { Snapshot } from './$types'
   import { createArea } from './page.remote'
 
@@ -27,9 +27,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Create area</span>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Create area</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createArea.enhance(enhanceForm())}>

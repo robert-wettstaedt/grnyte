@@ -1,13 +1,13 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import BlockFormFields from '$lib/components/BlockFormFields'
   import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import { getAreaContext } from '$lib/contexts/area'
   import type { Row } from '$lib/db/zero'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createBlock } from './page.remote'
 
   interface Props {
@@ -25,10 +25,12 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Create block in</span>
-    <a class="anchor" href={basePath}>{area.name}</a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      Create block in
+      <a class="anchor" href={basePath}>{area.name}</a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form

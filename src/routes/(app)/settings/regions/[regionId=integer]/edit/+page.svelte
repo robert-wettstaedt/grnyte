@@ -1,8 +1,8 @@
 <script>
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import RegionFormFields from '$lib/components/RegionFormFields'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
 
@@ -14,9 +14,9 @@
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Edit {data.region.name}</span>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>Edit {data.region.name}</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" method="POST" use:enhance>

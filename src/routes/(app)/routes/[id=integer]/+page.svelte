@@ -2,10 +2,10 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
   import { queries } from '$lib/db/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
 </script>
 
 {#if page.params.id == null}
@@ -22,9 +22,7 @@
         <Error status={404} />
       {:else}
         {#await goto(pathname, { replaceState: true })}
-          <div class="flex justify-center">
-            <ProgressRing size="size-12" value={null} />
-          </div>
+          <LoadingIndicator class="flex justify-center" size={12} />
         {/await}
       {/if}
     {/snippet}

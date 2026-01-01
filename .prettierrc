@@ -5,5 +5,5 @@
 
   "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
   "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }],
-  "tailwindAttributes": ["arrowBackground", "base", "contentBase", "triggerBase", "controlPadding", "panelBase"]
+  "tailwindAttributes": ["rangeClass", "trackClass"]
 }
