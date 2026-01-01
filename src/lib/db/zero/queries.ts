@@ -668,8 +668,8 @@ export const queries = defineQueries({
     return {
       ...obj,
       [name]: defineQuery(
-        z.null(),
-        regionMemberCan<ReadonlyJSONValue, ReadonlyJSONValue>(() => zql[table]),
+        z.undefined(),
+        regionMemberCan<undefined, undefined>(() => zql[table]),
       ),
     }
   }, {}),

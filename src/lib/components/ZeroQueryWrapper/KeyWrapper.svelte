@@ -16,20 +16,20 @@
   const props: ZeroQueryWrapperProps<TTable, TInput, TOutput, TReturn, TContext> = $props()
 
   const hash = $derived.by(() => {
-    let query: Query<TTable, Schema, TReturn> | undefined
+    let queryDef: Query<TTable, Schema, TReturn> | undefined
 
     if (Object.hasOwn(props.query, 'query')) {
       const asQueryRequest = props.query as QueryRequest<TTable, TInput, TOutput, Schema, TReturn, any>
-      query = asQueryRequest.query.fn({ args: asQueryRequest.args, ctx: null })
+      queryDef = asQueryRequest.query.fn({ args: asQueryRequest.args, ctx: null })
     } else if (Object.hasOwn(props.query, 'start')) {
-      query = props.query as Query<TTable, Schema, TReturn>
+      queryDef = props.query as Query<TTable, Schema, TReturn>
     }
 
-    if (query == null) {
+    if (queryDef == null) {
       return null
     }
 
-    return asQueryInternals(query).hash()
+    return asQueryInternals(queryDef).hash()
   })
 </script>
 
