@@ -31,7 +31,7 @@
     {#if area.type !== 'sector' && canAddArea}
       <Menu.Item value="Add area">
         <a {...args.buttonProps} href="{page.url.pathname}/add">
-          <i {...args.iconProps} class="fa-solid fa-plus {args.iconProps.class}"></i>
+          <i {...args.iconProps} class={args.iconProps.class}></i>
           Add area
         </a>
       </Menu.Item>
@@ -40,7 +40,7 @@
     {#if area.type === 'sector'}
       <Menu.Item value="Add block">
         <a {...args.buttonProps} href="{page.url.pathname}/_/blocks/add">
-          <i {...args.iconProps} class="fa-solid fa-plus {args.iconProps.class}"></i>
+          <i {...args.iconProps} class={args.iconProps.class}></i>
           Add block
         </a>
       </Menu.Item>
@@ -64,7 +64,7 @@
     {#if area.type === 'sector'}
       <Menu.Item value="Export PDF">
         <a {...args.buttonProps} href="{page.url.pathname}/export">
-          <i {...args.iconProps} class="fa-solid fa-file-export {args.iconProps.class}"></i>
+          <i {...args.iconProps} class={args.iconProps.class}></i>
           Export PDF
         </a>
       </Menu.Item>

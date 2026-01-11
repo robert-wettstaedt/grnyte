@@ -76,14 +76,14 @@
 
     <Menu.Item value="Edit FA">
       <a {...args.buttonProps} href={`${page.url.pathname}/edit-first-ascent`}>
-        <i {...args.iconProps} class="fa-solid fa-pen {args.iconProps.class}"></i>
+        <i {...args.iconProps} class={args.iconProps.class}></i>
         Edit FA
       </a>
     </Menu.Item>
 
     <Menu.Item value="Upload file">
       <a {...args.buttonProps} href={`${page.url.pathname}/add-file`}>
-        <i {...args.iconProps} class="fa-solid fa-cloud-arrow-up {args.iconProps.class}"></i>
+        <i {...args.iconProps} class={args.iconProps.class}></i>
         Upload file
       </a>
     </Menu.Item>

@@ -27,7 +27,7 @@
 
     <Menu.Item value="Add route">
       <a {...args.buttonProps} href={`${page.url.pathname}/routes/add`}>
-        <i {...args.iconProps} class="fa-solid fa-plus {args.iconProps.class}"></i>
+        <i {...args.iconProps} class={args.iconProps.class}></i>
         Add route
       </a>
     </Menu.Item>
@@ -38,13 +38,6 @@
   <Menu.ItemGroup>
     <Menu.ItemGroupLabel>Topo</Menu.ItemGroupLabel>
 
-    <Menu.Item value="Upload topo image">
-      <a {...args.buttonProps} href={`${page.url.pathname}/topos/add`}>
-        <i {...args.iconProps} class="fa-solid fa-file-arrow-up {args.iconProps.class}"></i>
-        Upload image
-      </a>
-    </Menu.Item>
-
     {#if block.topos.length > 0}
       <Menu.Item value="Edit topo">
         <a {...args.buttonProps} href={`${page.url.pathname}/topos/draw`}>
@@ -53,6 +46,13 @@
         </a>
       </Menu.Item>
     {/if}
+
+    <Menu.Item value="Upload topo image">
+      <a {...args.buttonProps} href={`${page.url.pathname}/topos/add`}>
+        <i {...args.iconProps} class={args.iconProps.class}></i>
+        Upload topo image
+      </a>
+    </Menu.Item>
   </Menu.ItemGroup>
 
   <Menu.Separator />
@@ -73,7 +73,7 @@
   <Menu.ItemGroup>
     <Menu.Item value="Export block preview">
       <a {...args.buttonProps} href={`${page.url.pathname}/export`}>
-        <i {...args.iconProps} class="fa-solid fa-file-export {args.iconProps.class}"></i>
+        <i {...args.iconProps} class={args.iconProps.class}></i>
         Export block preview
       </a>
     </Menu.Item>
