@@ -4,6 +4,8 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
+  import { pageState } from '$lib/components/Layout'
+  import PageStateLoader from '$lib/components/Layout/components/PageStateLoader'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
@@ -107,11 +109,17 @@
       }
     })
   })
+
+  const canDeleteRoute = $derived(
+    selectedRoute?.route != null && selectedRoute.route.createdBy === pageState.user?.id && !isSaving,
+  )
 </script>
 
 <svelte:head>
   <title>Draw topo of {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
+
+<PageStateLoader />
 
 <div class="preset-filled-surface-100-900 fixed top-0 left-0 -z-10 h-screen w-screen"></div>
 
@@ -271,7 +279,10 @@
 
               <Menu.Item closeOnSelect={false} value="route-remove">
                 <Popover positioning={{ placement: 'bottom' }}>
-                  <Popover.Trigger class="flex w-full items-center {isSaving ? 'pointer-events-none opacity-50' : ''}">
+                  <Popover.Trigger
+                    aria-disabled={!canDeleteRoute}
+                    class="flex w-full items-center {canDeleteRoute ? '' : 'pointer-events-none opacity-50'}"
+                  >
                     <i class="fa-solid fa-trash me-2 w-5"></i>
                     Delete
                   </Popover.Trigger>
@@ -353,7 +364,7 @@
         {#if $selectedRouteStore != null}
           <button
             aria-label="Delete route's topo"
-            class="btn"
+            class="btn-icon px-4"
             disabled={isSaving || selectedRoute?.points.length === 0}
             onclick={() => {
               if (selectedRoute != null) {

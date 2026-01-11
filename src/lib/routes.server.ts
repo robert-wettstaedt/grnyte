@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import * as schema from '$lib/db/schema'
 import {
@@ -84,7 +84,12 @@ export const deleteRoute = async (params: DeleteRouteParams, db: PostgresJsDatab
     error(404)
   }
 
-  if (!checkRegionPermission(params.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)) {
+  const canDelete =
+    checkRegionPermission(params.userRegions, [REGION_PERMISSION_DELETE], route.regionFk) ||
+    (checkRegionPermission(params.userRegions, [REGION_PERMISSION_EDIT], route.regionFk) &&
+      route.createdBy === params.userId)
+
+  if (!canDelete) {
     error(401)
   }
 

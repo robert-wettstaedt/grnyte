@@ -83,7 +83,11 @@ const deleteBlockAction: Action<number> = async (blockId, db, user) => {
     error(404)
   }
 
-  if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)) {
+  const canDelete =
+    checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], block.regionFk) ||
+    (checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) && block.createdBy === user.id)
+
+  if (!canDelete) {
     error(401)
   }
 

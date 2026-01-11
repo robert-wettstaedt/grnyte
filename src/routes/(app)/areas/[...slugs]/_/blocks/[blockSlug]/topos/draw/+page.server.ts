@@ -60,14 +60,17 @@ export const load = (async ({ locals, params }) => {
               id: undefined,
               points: [],
               regionFk: topo.regionFk,
-              route: undefined,
+              route: { ...route, createdAt: route.createdAt.getTime() },
               routeFk: route.id,
               topoFk: topo.id,
               topType: 'topout',
             }
           }
 
-          return topoRoute
+          return {
+            ...topoRoute,
+            route: { ...route, createdAt: route.createdAt.getTime() },
+          }
         })
 
         return { ...enrichedTopo, routes }
@@ -222,8 +225,6 @@ export const actions = {
       if (locals.user == null) {
         return fail(404)
       }
-
-      const { areaId } = convertAreaSlug(params)
 
       const data = await request.formData()
       const routeId = Number(data.get('routeId'))

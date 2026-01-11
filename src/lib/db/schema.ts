@@ -474,6 +474,10 @@ export const areas = table(
 
     ...createBasicTablePolicies('areas'),
     policy(
+      `${REGION_PERMISSION_EDIT} can delete areas`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+    ),
+    policy(
       `${REGION_PERMISSION_READ} can update areas`,
       getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
@@ -513,6 +517,10 @@ export const blocks = table(
     index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
     ...createBasicTablePolicies('blocks'),
+    policy(
+      `${REGION_PERMISSION_EDIT} can delete blocks`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+    ),
     policy(
       `${REGION_PERMISSION_READ} can update blocks`,
       getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
@@ -1182,6 +1190,10 @@ export const geolocations = table(
     policy(
       `${REGION_PERMISSION_READ} can insert geolocations`,
       getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
+    ),
+    policy(
+      `${REGION_PERMISSION_EDIT} can delete geolocations`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
     ),
   ],
 ).enableRLS()

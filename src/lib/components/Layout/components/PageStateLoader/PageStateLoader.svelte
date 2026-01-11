@@ -6,7 +6,7 @@
   import { pageState } from '../../page.svelte'
 
   interface Props {
-    children: Snippet
+    children?: Snippet
   }
 
   const { children }: Props = $props()

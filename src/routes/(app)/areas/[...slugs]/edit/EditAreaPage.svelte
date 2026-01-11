@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
   import AreaFormFields from '$lib/components/AreaFormFields'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
@@ -34,6 +34,6 @@
   <FormActionBar label="Update area" pending={updateArea.pending} />
 </form>
 
-{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)}
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk) || (checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk) && area.createdBy === pageState.user?.id)}
   <DangerZone name="area" onDelete={() => (area.id == null ? undefined : deleteArea(area.id))} />
 {/if}

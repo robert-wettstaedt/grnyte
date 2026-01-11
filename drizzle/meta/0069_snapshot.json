@@ -1,0 +1,4976 @@
+{
+  "id": "07b7727b-9faa-42fc-aaf4-5c5fb972b611",
+  "prevId": "5cee2fe9-370c-4f15-acb0-24258bfd5b4c",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.activities": {
+      "name": "activities",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "activity_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_entity_id": {
+          "name": "parent_entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_entity_type": {
+          "name": "parent_entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "column_name": {
+          "name": "column_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "old_value": {
+          "name": "old_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "new_value": {
+          "name": "new_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notified": {
+          "name": "notified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "activities_created_at_idx": {
+          "name": "activities_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_entity_id_idx": {
+          "name": "activities_entity_id_idx",
+          "columns": [
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_entity_type_idx": {
+          "name": "activities_entity_type_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_notified_idx": {
+          "name": "activities_notified_idx",
+          "columns": [
+            {
+              "expression": "notified",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_parent_entity_id_idx": {
+          "name": "activities_parent_entity_id_idx",
+          "columns": [
+            {
+              "expression": "parent_entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_type_idx": {
+          "name": "activities_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_user_fk_idx": {
+          "name": "activities_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_region_fk_idx": {
+          "name": "activities_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "activities_region_fk_regions_id_fk": {
+          "name": "activities_region_fk_regions_id_fk",
+          "tableFrom": "activities",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "activities_user_fk_users_id_fk": {
+          "name": "activities_user_fk_users_id_fk",
+          "tableFrom": "activities",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can insert activities": {
+          "name": "region.read can insert activities",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.read can read activities": {
+          "name": "region.read can read activities",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.delete can delete activities": {
+          "name": "region.delete can delete activities",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.read can delete their own activities": {
+          "name": "region.read can delete their own activities",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.areas": {
+      "name": "areas",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'area'"
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "walking_paths": {
+          "name": "walking_paths",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "geo_paths": {
+          "name": "geo_paths",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_fk": {
+          "name": "parent_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "areas_description_idx": {
+          "name": "areas_description_idx",
+          "columns": [
+            {
+              "expression": "description",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "areas_region_fk_idx": {
+          "name": "areas_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "areas_slug_idx": {
+          "name": "areas_slug_idx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "areas_created_by_users_id_fk": {
+          "name": "areas_created_by_users_id_fk",
+          "tableFrom": "areas",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "areas_region_fk_regions_id_fk": {
+          "name": "areas_region_fk_regions_id_fk",
+          "tableFrom": "areas",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "areas_parent_fk_areas_id_fk": {
+          "name": "areas_parent_fk_areas_id_fk",
+          "tableFrom": "areas",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "parent_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read areas": {
+          "name": "region.read can read areas",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert areas": {
+          "name": "region.edit can insert areas",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update areas": {
+          "name": "region.edit can update areas",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete areas": {
+          "name": "region.delete can delete areas",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.edit can delete areas": {
+          "name": "region.edit can delete areas",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update areas": {
+          "name": "region.read can update areas",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.ascents": {
+      "name": "ascents",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_time": {
+          "name": "date_time",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "humidity": {
+          "name": "humidity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rating": {
+          "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "temperature": {
+          "name": "temperature",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grade_fk": {
+          "name": "grade_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ascents_created_by_idx": {
+          "name": "ascents_created_by_idx",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ascents_notes_idx": {
+          "name": "ascents_notes_idx",
+          "columns": [
+            {
+              "expression": "notes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ascents_region_fk_idx": {
+          "name": "ascents_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ascents_route_fk_idx": {
+          "name": "ascents_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ascents_region_fk_regions_id_fk": {
+          "name": "ascents_region_fk_regions_id_fk",
+          "tableFrom": "ascents",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ascents_created_by_users_id_fk": {
+          "name": "ascents_created_by_users_id_fk",
+          "tableFrom": "ascents",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ascents_grade_fk_grades_id_fk": {
+          "name": "ascents_grade_fk_grades_id_fk",
+          "tableFrom": "ascents",
+          "tableTo": "grades",
+          "columnsFrom": [
+            "grade_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ascents_route_fk_routes_id_fk": {
+          "name": "ascents_route_fk_routes_id_fk",
+          "tableFrom": "ascents",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can insert ascents": {
+          "name": "region.read can insert ascents",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.read can read ascents": {
+          "name": "region.read can read ascents",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.read can update their own ascents": {
+          "name": "region.read can update their own ascents",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        },
+        "region.read can delete their own ascents": {
+          "name": "region.read can delete their own ascents",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        },
+        "region.admin can fully access ascents": {
+          "name": "region.admin can fully access ascents",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.admin', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.blocks": {
+      "name": "blocks",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_fk": {
+          "name": "area_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geolocation_fk": {
+          "name": "geolocation_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "blocks_region_fk_idx": {
+          "name": "blocks_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "blocks_slug_idx": {
+          "name": "blocks_slug_idx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "blocks_geolocation_fk_idx": {
+          "name": "blocks_geolocation_fk_idx",
+          "columns": [
+            {
+              "expression": "geolocation_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "blocks_created_by_users_id_fk": {
+          "name": "blocks_created_by_users_id_fk",
+          "tableFrom": "blocks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "blocks_region_fk_regions_id_fk": {
+          "name": "blocks_region_fk_regions_id_fk",
+          "tableFrom": "blocks",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "blocks_area_fk_areas_id_fk": {
+          "name": "blocks_area_fk_areas_id_fk",
+          "tableFrom": "blocks",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "blocks_geolocation_fk_geolocations_id_fk": {
+          "name": "blocks_geolocation_fk_geolocations_id_fk",
+          "tableFrom": "blocks",
+          "tableTo": "geolocations",
+          "columnsFrom": [
+            "geolocation_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read blocks": {
+          "name": "region.read can read blocks",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert blocks": {
+          "name": "region.edit can insert blocks",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update blocks": {
+          "name": "region.edit can update blocks",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete blocks": {
+          "name": "region.delete can delete blocks",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.edit can delete blocks": {
+          "name": "region.edit can delete blocks",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update blocks": {
+          "name": "region.read can update blocks",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.bunny_streams": {
+      "name": "bunny_streams",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_fk": {
+          "name": "file_fk",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "bunny_streams_region_fk_idx": {
+          "name": "bunny_streams_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "bunny_streams_file_fk_idx": {
+          "name": "bunny_streams_file_fk_idx",
+          "columns": [
+            {
+              "expression": "file_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "bunny_streams_region_fk_regions_id_fk": {
+          "name": "bunny_streams_region_fk_regions_id_fk",
+          "tableFrom": "bunny_streams",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bunny_streams_file_fk_files_id_fk": {
+          "name": "bunny_streams_file_fk_files_id_fk",
+          "tableFrom": "bunny_streams",
+          "tableTo": "files",
+          "columnsFrom": [
+            "file_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can insert bunny_streams": {
+          "name": "region.read can insert bunny_streams",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.read can read bunny_streams": {
+          "name": "region.read can read bunny_streams",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.read can update bunny_streams for files of their own ascents": {
+          "name": "region.read can update bunny_streams for files of their own ascents",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        },
+        "region.read can delete bunny_streams for files of their own ascents": {
+          "name": "region.read can delete bunny_streams for files of their own ascents",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        },
+        "region.admin can fully access bunny_streams": {
+          "name": "region.admin can fully access bunny_streams",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.admin', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.client_error_logs": {
+      "name": "client_error_logs",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "navigator": {
+          "name": "navigator",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pathname": {
+          "name": "pathname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "client_error_logs_created_by_users_id_fk": {
+          "name": "client_error_logs_created_by_users_id_fk",
+          "tableFrom": "client_error_logs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.favorites": {
+      "name": "favorites",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "favorites_created_at_idx": {
+          "name": "favorites_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_entity_id_idx": {
+          "name": "favorites_entity_id_idx",
+          "columns": [
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_entity_type_idx": {
+          "name": "favorites_entity_type_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "favorites_region_fk_regions_id_fk": {
+          "name": "favorites_region_fk_regions_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "favorites_auth_user_fk_users_id_fk": {
+          "name": "favorites_auth_user_fk_users_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "favorites_user_fk_users_id_fk": {
+          "name": "favorites_user_fk_users_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "users can insert own favorites": {
+          "name": "users can insert own favorites",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "region.read can read favorites": {
+          "name": "region.read can read favorites",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "users can update own favorites": {
+          "name": "users can update own favorites",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can delete own favorites": {
+          "name": "users can delete own favorites",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.files": {
+      "name": "files",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_fk": {
+          "name": "area_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ascent_fk": {
+          "name": "ascent_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "block_fk": {
+          "name": "block_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bunny_stream_fk": {
+          "name": "bunny_stream_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "files_area_fk_idx": {
+          "name": "files_area_fk_idx",
+          "columns": [
+            {
+              "expression": "area_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "files_ascent_fk_idx": {
+          "name": "files_ascent_fk_idx",
+          "columns": [
+            {
+              "expression": "ascent_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "files_block_fk_idx": {
+          "name": "files_block_fk_idx",
+          "columns": [
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "files_region_fk_idx": {
+          "name": "files_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "files_route_fk_idx": {
+          "name": "files_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "files_region_fk_regions_id_fk": {
+          "name": "files_region_fk_regions_id_fk",
+          "tableFrom": "files",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "files_area_fk_areas_id_fk": {
+          "name": "files_area_fk_areas_id_fk",
+          "tableFrom": "files",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "files_ascent_fk_ascents_id_fk": {
+          "name": "files_ascent_fk_ascents_id_fk",
+          "tableFrom": "files",
+          "tableTo": "ascents",
+          "columnsFrom": [
+            "ascent_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "files_block_fk_blocks_id_fk": {
+          "name": "files_block_fk_blocks_id_fk",
+          "tableFrom": "files",
+          "tableTo": "blocks",
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "files_bunny_stream_fk_bunny_streams_id_fk": {
+          "name": "files_bunny_stream_fk_bunny_streams_id_fk",
+          "tableFrom": "files",
+          "tableTo": "bunny_streams",
+          "columnsFrom": [
+            "bunny_stream_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "files_route_fk_routes_id_fk": {
+          "name": "files_route_fk_routes_id_fk",
+          "tableFrom": "files",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can insert files": {
+          "name": "region.read can insert files",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.read can read files": {
+          "name": "region.read can read files",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can update files": {
+          "name": "region.edit can update files",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can delete files": {
+          "name": "region.edit can delete files",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update files belonging to their own ascents": {
+          "name": "region.read can update files belonging to their own ascents",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        },
+        "region.read can delete files belonging to their own ascents": {
+          "name": "region.read can delete files belonging to their own ascents",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.first_ascensionists": {
+      "name": "first_ascensionists",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "first_ascensionists_name_idx": {
+          "name": "first_ascensionists_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "first_ascensionists_region_fk_idx": {
+          "name": "first_ascensionists_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "first_ascensionists_user_fk_idx": {
+          "name": "first_ascensionists_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "first_ascensionists_region_fk_regions_id_fk": {
+          "name": "first_ascensionists_region_fk_regions_id_fk",
+          "tableFrom": "first_ascensionists",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "first_ascensionists_user_fk_users_id_fk": {
+          "name": "first_ascensionists_user_fk_users_id_fk",
+          "tableFrom": "first_ascensionists",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can fully access first_ascensionists": {
+          "name": "region.read can fully access first_ascensionists",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.geolocations": {
+      "name": "geolocations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lat": {
+          "name": "lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "long": {
+          "name": "long",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_fk": {
+          "name": "area_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "block_fk": {
+          "name": "block_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "geolocations_area_fk_idx": {
+          "name": "geolocations_area_fk_idx",
+          "columns": [
+            {
+              "expression": "area_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "geolocations_block_fk_idx": {
+          "name": "geolocations_block_fk_idx",
+          "columns": [
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "geolocations_region_fk_idx": {
+          "name": "geolocations_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "geolocations_region_fk_regions_id_fk": {
+          "name": "geolocations_region_fk_regions_id_fk",
+          "tableFrom": "geolocations",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "geolocations_area_fk_areas_id_fk": {
+          "name": "geolocations_area_fk_areas_id_fk",
+          "tableFrom": "geolocations",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "geolocations_block_fk_blocks_id_fk": {
+          "name": "geolocations_block_fk_blocks_id_fk",
+          "tableFrom": "geolocations",
+          "tableTo": "blocks",
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read geolocations": {
+          "name": "region.read can read geolocations",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert geolocations": {
+          "name": "region.edit can insert geolocations",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update geolocations": {
+          "name": "region.edit can update geolocations",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete geolocations": {
+          "name": "region.delete can delete geolocations",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.read can insert geolocations": {
+          "name": "region.read can insert geolocations",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can delete geolocations": {
+          "name": "region.edit can delete geolocations",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.grades": {
+      "name": "grades",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "FB": {
+          "name": "FB",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "V": {
+          "name": "V",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "authenticated users can read grades": {
+          "name": "authenticated users can read grades",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.push_subscriptions": {
+      "name": "push_subscriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endpoint": {
+          "name": "endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expiration_time": {
+          "name": "expiration_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "p256dh": {
+          "name": "p256dh",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth": {
+          "name": "auth",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "push_subscriptions_auth_user_fk_idx": {
+          "name": "push_subscriptions_auth_user_fk_idx",
+          "columns": [
+            {
+              "expression": "auth_user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "push_subscriptions_user_fk_idx": {
+          "name": "push_subscriptions_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "push_subscriptions_auth_user_fk_users_id_fk": {
+          "name": "push_subscriptions_auth_user_fk_users_id_fk",
+          "tableFrom": "push_subscriptions",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "push_subscriptions_user_fk_users_id_fk": {
+          "name": "push_subscriptions_user_fk_users_id_fk",
+          "tableFrom": "push_subscriptions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "users can delete own push_subscriptions": {
+          "name": "users can delete own push_subscriptions",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can insert own push_subscriptions": {
+          "name": "users can insert own push_subscriptions",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can read own push_subscriptions": {
+          "name": "users can read own push_subscriptions",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can update own push_subscriptions": {
+          "name": "users can update own push_subscriptions",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.region_invitations": {
+      "name": "region_invitations",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "invitation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_by": {
+          "name": "accepted_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "region_invitations_token_idx": {
+          "name": "region_invitations_token_idx",
+          "columns": [
+            {
+              "expression": "token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_invitations_region_fk_idx": {
+          "name": "region_invitations_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_invitations_email_idx": {
+          "name": "region_invitations_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_invitations_status_idx": {
+          "name": "region_invitations_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "region_invitations_region_fk_regions_id_fk": {
+          "name": "region_invitations_region_fk_regions_id_fk",
+          "tableFrom": "region_invitations",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_invitations_invited_by_users_id_fk": {
+          "name": "region_invitations_invited_by_users_id_fk",
+          "tableFrom": "region_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_invitations_accepted_by_users_id_fk": {
+          "name": "region_invitations_accepted_by_users_id_fk",
+          "tableFrom": "region_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "accepted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "region_invitations_token_unique": {
+          "name": "region_invitations_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {
+        "region.admin can insert region_invitations": {
+          "name": "region.admin can insert region_invitations",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
+        },
+        "users can read region_invitations": {
+          "name": "users can read region_invitations",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "users can update region_invitations": {
+          "name": "users can update region_invitations",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.region_members": {
+      "name": "region_members",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "app_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "region_members_auth_user_fk_idx": {
+          "name": "region_members_auth_user_fk_idx",
+          "columns": [
+            {
+              "expression": "auth_user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_members_region_fk_idx": {
+          "name": "region_members_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_members_user_fk_idx": {
+          "name": "region_members_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_members_region_auth_user_idx": {
+          "name": "region_members_region_auth_user_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "auth_user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "region_members_region_fk_regions_id_fk": {
+          "name": "region_members_region_fk_regions_id_fk",
+          "tableFrom": "region_members",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_members_auth_user_fk_users_id_fk": {
+          "name": "region_members_auth_user_fk_users_id_fk",
+          "tableFrom": "region_members",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_members_invited_by_users_id_fk": {
+          "name": "region_members_invited_by_users_id_fk",
+          "tableFrom": "region_members",
+          "tableTo": "users",
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_members_user_fk_users_id_fk": {
+          "name": "region_members_user_fk_users_id_fk",
+          "tableFrom": "region_members",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "app.admin can fully access region_members": {
+          "name": "app.admin can fully access region_members",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('app.admin'))",
+          "withCheck": "(SELECT authorize('app.admin'))"
+        },
+        "authenticated users can read region_members": {
+          "name": "authenticated users can read region_members",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "users can insert own region_members": {
+          "name": "users can insert own region_members",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can update own region_members": {
+          "name": "users can update own region_members",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can delete own region_members": {
+          "name": "users can delete own region_members",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.regions": {
+      "name": "regions",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_members": {
+          "name": "max_members",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settings": {
+          "name": "settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "regions_name_idx": {
+          "name": "regions_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "regions_created_by_users_id_fk": {
+          "name": "regions_created_by_users_id_fk",
+          "tableFrom": "regions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "authenticated users can create regions": {
+          "name": "authenticated users can create regions",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "true"
+        },
+        "app.admin can fully access regions": {
+          "name": "app.admin can fully access regions",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
+        "users can read regions they are members of": {
+          "name": "users can read regions they are members of",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              region_members as rm\n            WHERE\n              rm.region_fk = regions.id\n              AND rm.auth_user_fk = (SELECT auth.uid())\n              AND rm.is_active = true\n          )\n        "
+        },
+        "region.admin can update region that they are members of": {
+          "name": "region.admin can update region that they are members of",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              region_members as rm\n            WHERE\n              rm.region_fk = regions.id\n              AND rm.auth_user_fk = (SELECT auth.uid())\n              AND rm.is_active = true\n          )\n        "
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.role_permissions": {
+      "name": "role_permissions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "app_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permission": {
+          "name": "permission",
+          "type": "app_permission",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "authenticated users can read role_permissions": {
+          "name": "authenticated users can read role_permissions",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.route_external_resource_27crags": {
+      "name": "route_external_resource_27crags",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "searchable_id": {
+          "name": "searchable_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "searchable_type": {
+          "name": "searchable_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country_name": {
+          "name": "country_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_name": {
+          "name": "location_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "crag_id": {
+          "name": "crag_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_resources_fk": {
+          "name": "external_resources_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "route_external_resource_27crags_region_fk_regions_id_fk": {
+          "name": "route_external_resource_27crags_region_fk_regions_id_fk",
+          "tableFrom": "route_external_resource_27crags",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resource_27crags_external_resources_fk_route_external_resources_id_fk": {
+          "name": "route_external_resource_27crags_external_resources_fk_route_external_resources_id_fk",
+          "tableFrom": "route_external_resource_27crags",
+          "tableTo": "route_external_resources",
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read route_external_resource_27crags": {
+          "name": "region.read can read route_external_resource_27crags",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert route_external_resource_27crags": {
+          "name": "region.edit can insert route_external_resource_27crags",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resource_27crags": {
+          "name": "region.edit can update route_external_resource_27crags",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete route_external_resource_27crags": {
+          "name": "region.delete can delete route_external_resource_27crags",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.route_external_resource_8a": {
+      "name": "route_external_resource_8a",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zlaggable_name": {
+          "name": "zlaggable_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zlaggable_slug": {
+          "name": "zlaggable_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zlaggable_id": {
+          "name": "zlaggable_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "crag_name": {
+          "name": "crag_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "crag_slug": {
+          "name": "crag_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country_slug": {
+          "name": "country_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country_name": {
+          "name": "country_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_name": {
+          "name": "area_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_slug": {
+          "name": "area_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sector_name": {
+          "name": "sector_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sector_slug": {
+          "name": "sector_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade_index": {
+          "name": "grade_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "average_rating": {
+          "name": "average_rating",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "difficulty": {
+          "name": "difficulty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_resources_fk": {
+          "name": "external_resources_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "route_external_resource_8a_region_fk_regions_id_fk": {
+          "name": "route_external_resource_8a_region_fk_regions_id_fk",
+          "tableFrom": "route_external_resource_8a",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resource_8a_external_resources_fk_route_external_resources_id_fk": {
+          "name": "route_external_resource_8a_external_resources_fk_route_external_resources_id_fk",
+          "tableFrom": "route_external_resource_8a",
+          "tableTo": "route_external_resources",
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read route_external_resource_8a": {
+          "name": "region.read can read route_external_resource_8a",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert route_external_resource_8a": {
+          "name": "region.edit can insert route_external_resource_8a",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resource_8a": {
+          "name": "region.edit can update route_external_resource_8a",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete route_external_resource_8a": {
+          "name": "region.delete can delete route_external_resource_8a",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.route_external_resource_the_crag": {
+      "name": "route_external_resource_the_crag",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade": {
+          "name": "grade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "node": {
+          "name": "node",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rating": {
+          "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_resources_fk": {
+          "name": "external_resources_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "route_external_resource_the_crag_region_fk_regions_id_fk": {
+          "name": "route_external_resource_the_crag_region_fk_regions_id_fk",
+          "tableFrom": "route_external_resource_the_crag",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resource_the_crag_external_resources_fk_route_external_resources_id_fk": {
+          "name": "route_external_resource_the_crag_external_resources_fk_route_external_resources_id_fk",
+          "tableFrom": "route_external_resource_the_crag",
+          "tableTo": "route_external_resources",
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read route_external_resource_the_crag": {
+          "name": "region.read can read route_external_resource_the_crag",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert route_external_resource_the_crag": {
+          "name": "region.edit can insert route_external_resource_the_crag",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resource_the_crag": {
+          "name": "region.edit can update route_external_resource_the_crag",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete route_external_resource_the_crag": {
+          "name": "region.delete can delete route_external_resource_the_crag",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.route_external_resources": {
+      "name": "route_external_resources",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_resource_8a_fk": {
+          "name": "external_resource_8a_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_resource_27crags_fk": {
+          "name": "external_resource_27crags_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_resource_the_crag_fk": {
+          "name": "external_resource_the_crag_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "route_external_resources_route_fk_idx": {
+          "name": "route_external_resources_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "route_external_resources_region_fk_idx": {
+          "name": "route_external_resources_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "route_external_resources_region_fk_regions_id_fk": {
+          "name": "route_external_resources_region_fk_regions_id_fk",
+          "tableFrom": "route_external_resources",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resources_route_fk_routes_id_fk": {
+          "name": "route_external_resources_route_fk_routes_id_fk",
+          "tableFrom": "route_external_resources",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resources_external_resource_8a_fk_route_external_resource_8a_id_fk": {
+          "name": "route_external_resources_external_resource_8a_fk_route_external_resource_8a_id_fk",
+          "tableFrom": "route_external_resources",
+          "tableTo": "route_external_resource_8a",
+          "columnsFrom": [
+            "external_resource_8a_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resources_external_resource_27crags_fk_route_external_resource_27crags_id_fk": {
+          "name": "route_external_resources_external_resource_27crags_fk_route_external_resource_27crags_id_fk",
+          "tableFrom": "route_external_resources",
+          "tableTo": "route_external_resource_27crags",
+          "columnsFrom": [
+            "external_resource_27crags_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "route_external_resources_external_resource_the_crag_fk_route_external_resource_the_crag_id_fk": {
+          "name": "route_external_resources_external_resource_the_crag_fk_route_external_resource_the_crag_id_fk",
+          "tableFrom": "route_external_resources",
+          "tableTo": "route_external_resource_the_crag",
+          "columnsFrom": [
+            "external_resource_the_crag_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read route_external_resources": {
+          "name": "region.read can read route_external_resources",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert route_external_resources": {
+          "name": "region.edit can insert route_external_resources",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resources": {
+          "name": "region.edit can update route_external_resources",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete route_external_resources": {
+          "name": "region.delete can delete route_external_resources",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.routes": {
+      "name": "routes",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rating": {
+          "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_ascent_year": {
+          "name": "first_ascent_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_rating": {
+          "name": "user_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_fks": {
+          "name": "area_fks",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_ids": {
+          "name": "area_ids",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "block_fk": {
+          "name": "block_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_resources_fk": {
+          "name": "external_resources_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grade_fk": {
+          "name": "grade_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_grade_fk": {
+          "name": "user_grade_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "routes_block_fk_idx": {
+          "name": "routes_block_fk_idx",
+          "columns": [
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_description_idx": {
+          "name": "routes_description_idx",
+          "columns": [
+            {
+              "expression": "description",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_region_fk_idx": {
+          "name": "routes_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_slug_idx": {
+          "name": "routes_slug_idx",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_area_fks_gin_idx": {
+          "name": "routes_area_fks_gin_idx",
+          "columns": [
+            {
+              "expression": "area_fks",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "routes_area_ids_idx": {
+          "name": "routes_area_ids_idx",
+          "columns": [
+            {
+              "expression": "area_ids",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_grade_fk_idx": {
+          "name": "routes_grade_fk_idx",
+          "columns": [
+            {
+              "expression": "grade_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_user_grade_fk_idx": {
+          "name": "routes_user_grade_fk_idx",
+          "columns": [
+            {
+              "expression": "user_grade_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_rating_idx": {
+          "name": "routes_rating_idx",
+          "columns": [
+            {
+              "expression": "rating",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_first_ascent_year_idx": {
+          "name": "routes_first_ascent_year_idx",
+          "columns": [
+            {
+              "expression": "first_ascent_year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_created_by_idx": {
+          "name": "routes_created_by_idx",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "routes_created_by_users_id_fk": {
+          "name": "routes_created_by_users_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_region_fk_regions_id_fk": {
+          "name": "routes_region_fk_regions_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_block_fk_blocks_id_fk": {
+          "name": "routes_block_fk_blocks_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "blocks",
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_external_resources_fk_route_external_resources_id_fk": {
+          "name": "routes_external_resources_fk_route_external_resources_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "route_external_resources",
+          "columnsFrom": [
+            "external_resources_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_grade_fk_grades_id_fk": {
+          "name": "routes_grade_fk_grades_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "grades",
+          "columnsFrom": [
+            "grade_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_user_grade_fk_grades_id_fk": {
+          "name": "routes_user_grade_fk_grades_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "grades",
+          "columnsFrom": [
+            "user_grade_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read routes": {
+          "name": "region.read can read routes",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert routes": {
+          "name": "region.edit can insert routes",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update routes": {
+          "name": "region.edit can update routes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete routes": {
+          "name": "region.delete can delete routes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.edit can delete routes": {
+          "name": "region.edit can delete routes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update routes": {
+          "name": "region.read can update routes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.routes_to_first_ascensionists": {
+      "name": "routes_to_first_ascensionists",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_ascensionist_fk": {
+          "name": "first_ascensionist_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "routes_to_first_ascensionists_first_ascensionist_fk_idx": {
+          "name": "routes_to_first_ascensionists_first_ascensionist_fk_idx",
+          "columns": [
+            {
+              "expression": "first_ascensionist_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_to_first_ascensionists_route_fk_idx": {
+          "name": "routes_to_first_ascensionists_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "routes_to_first_ascensionists_region_fk_regions_id_fk": {
+          "name": "routes_to_first_ascensionists_region_fk_regions_id_fk",
+          "tableFrom": "routes_to_first_ascensionists",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_to_first_ascensionists_first_ascensionist_fk_first_ascensionists_id_fk": {
+          "name": "routes_to_first_ascensionists_first_ascensionist_fk_first_ascensionists_id_fk",
+          "tableFrom": "routes_to_first_ascensionists",
+          "tableTo": "first_ascensionists",
+          "columnsFrom": [
+            "first_ascensionist_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_to_first_ascensionists_route_fk_routes_id_fk": {
+          "name": "routes_to_first_ascensionists_route_fk_routes_id_fk",
+          "tableFrom": "routes_to_first_ascensionists",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can fully access routes_to_first_ascensionists": {
+          "name": "region.read can fully access routes_to_first_ascensionists",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.routes_to_tags": {
+      "name": "routes_to_tags",
+      "schema": "",
+      "columns": {
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_fk": {
+          "name": "tag_fk",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "routes_to_tags_region_fk_idx": {
+          "name": "routes_to_tags_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_to_tags_route_fk_idx": {
+          "name": "routes_to_tags_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_to_tags_tag_fk_idx": {
+          "name": "routes_to_tags_tag_fk_idx",
+          "columns": [
+            {
+              "expression": "tag_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "routes_to_tags_region_fk_regions_id_fk": {
+          "name": "routes_to_tags_region_fk_regions_id_fk",
+          "tableFrom": "routes_to_tags",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_to_tags_route_fk_routes_id_fk": {
+          "name": "routes_to_tags_route_fk_routes_id_fk",
+          "tableFrom": "routes_to_tags",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "routes_to_tags_tag_fk_tags_id_fk": {
+          "name": "routes_to_tags_tag_fk_tags_id_fk",
+          "tableFrom": "routes_to_tags",
+          "tableTo": "tags",
+          "columnsFrom": [
+            "tag_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "routes_to_tags_route_fk_tag_fk_pk": {
+          "name": "routes_to_tags_route_fk_tag_fk_pk",
+          "columns": [
+            "route_fk",
+            "tag_fk"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read routes_to_tags": {
+          "name": "region.read can read routes_to_tags",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert routes_to_tags": {
+          "name": "region.edit can insert routes_to_tags",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update routes_to_tags": {
+          "name": "region.edit can update routes_to_tags",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete routes_to_tags": {
+          "name": "region.delete can delete routes_to_tags",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.edit can delete routes_to_tags": {
+          "name": "region.edit can delete routes_to_tags",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.tags": {
+      "name": "tags",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "app.admin can fully access tags": {
+          "name": "app.admin can fully access tags",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('app.admin'))",
+          "withCheck": "(SELECT authorize('app.admin'))"
+        },
+        "authenticated users can read tags": {
+          "name": "authenticated users can read tags",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.topo_routes": {
+      "name": "topo_routes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "top_type": {
+          "name": "top_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "topo_fk": {
+          "name": "topo_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "topo_routes_region_fk_idx": {
+          "name": "topo_routes_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "topo_routes_route_fk_idx": {
+          "name": "topo_routes_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "topo_routes_topo_fk_idx": {
+          "name": "topo_routes_topo_fk_idx",
+          "columns": [
+            {
+              "expression": "topo_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "topo_routes_region_fk_regions_id_fk": {
+          "name": "topo_routes_region_fk_regions_id_fk",
+          "tableFrom": "topo_routes",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "topo_routes_route_fk_routes_id_fk": {
+          "name": "topo_routes_route_fk_routes_id_fk",
+          "tableFrom": "topo_routes",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "topo_routes_topo_fk_topos_id_fk": {
+          "name": "topo_routes_topo_fk_topos_id_fk",
+          "tableFrom": "topo_routes",
+          "tableTo": "topos",
+          "columnsFrom": [
+            "topo_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read topo_routes": {
+          "name": "region.read can read topo_routes",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert topo_routes": {
+          "name": "region.edit can insert topo_routes",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update topo_routes": {
+          "name": "region.edit can update topo_routes",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete topo_routes": {
+          "name": "region.delete can delete topo_routes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.edit can delete topo_routes": {
+          "name": "region.edit can delete topo_routes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.topos": {
+      "name": "topos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_fk": {
+          "name": "block_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_fk": {
+          "name": "file_fk",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "topos_block_fk_idx": {
+          "name": "topos_block_fk_idx",
+          "columns": [
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "topos_region_fk_idx": {
+          "name": "topos_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "topos_file_fk_idx": {
+          "name": "topos_file_fk_idx",
+          "columns": [
+            {
+              "expression": "file_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "topos_region_fk_regions_id_fk": {
+          "name": "topos_region_fk_regions_id_fk",
+          "tableFrom": "topos",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "topos_block_fk_blocks_id_fk": {
+          "name": "topos_block_fk_blocks_id_fk",
+          "tableFrom": "topos",
+          "tableTo": "blocks",
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "topos_file_fk_files_id_fk": {
+          "name": "topos_file_fk_files_id_fk",
+          "tableFrom": "topos",
+          "tableTo": "files",
+          "columnsFrom": [
+            "file_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "region.read can read topos": {
+          "name": "region.read can read topos",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert topos": {
+          "name": "region.edit can insert topos",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update topos": {
+          "name": "region.edit can update topos",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.delete can delete topos": {
+          "name": "region.delete can delete topos",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
+        },
+        "region.edit can delete topos": {
+          "name": "region.edit can delete topos",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.user_roles": {
+      "name": "user_roles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "app_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_roles_auth_user_fk_users_id_fk": {
+          "name": "user_roles_auth_user_fk_users_id_fk",
+          "tableFrom": "user_roles",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "auth admins can read user_roles": {
+          "name": "auth admins can read user_roles",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "supabase_auth_admin"
+          ],
+          "using": "true"
+        },
+        "users can read own user_roles": {
+          "name": "users can read own user_roles",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.user_settings": {
+      "name": "user_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cookie_8a": {
+          "name": "cookie_8a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cookie_27crags": {
+          "name": "cookie_27crags",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cookie_the_crag": {
+          "name": "cookie_the_crag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grading_scale": {
+          "name": "grading_scale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'FB'"
+        },
+        "notify_moderations": {
+          "name": "notify_moderations",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "notify_new_ascents": {
+          "name": "notify_new_ascents",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "notify_new_users": {
+          "name": "notify_new_users",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "user_settings_auth_user_fk_idx": {
+          "name": "user_settings_auth_user_fk_idx",
+          "columns": [
+            {
+              "expression": "auth_user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "user_settings_user_fk_idx": {
+          "name": "user_settings_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_settings_auth_user_fk_users_id_fk": {
+          "name": "user_settings_auth_user_fk_users_id_fk",
+          "tableFrom": "user_settings",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_settings_user_fk_users_id_fk": {
+          "name": "user_settings_user_fk_users_id_fk",
+          "tableFrom": "user_settings",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "users can insert own users_settings": {
+          "name": "users can insert own users_settings",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can read own users_settings": {
+          "name": "users can read own users_settings",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can update own users_settings": {
+          "name": "users can update own users_settings",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_ascentionist_fk": {
+          "name": "first_ascentionist_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_settings_fk": {
+          "name": "user_settings_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "users_auth_user_fk_idx": {
+          "name": "users_auth_user_fk_idx",
+          "columns": [
+            {
+              "expression": "auth_user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_first_ascentionist_fk_idx": {
+          "name": "users_first_ascentionist_fk_idx",
+          "columns": [
+            {
+              "expression": "first_ascentionist_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_username_idx": {
+          "name": "users_username_idx",
+          "columns": [
+            {
+              "expression": "username",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "users_auth_user_fk_users_id_fk": {
+          "name": "users_auth_user_fk_users_id_fk",
+          "tableFrom": "users",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "users_first_ascentionist_fk_first_ascensionists_id_fk": {
+          "name": "users_first_ascentionist_fk_first_ascensionists_id_fk",
+          "tableFrom": "users",
+          "tableTo": "first_ascensionists",
+          "columnsFrom": [
+            "first_ascentionist_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "users_user_settings_fk_user_settings_id_fk": {
+          "name": "users_user_settings_fk_user_settings_id_fk",
+          "tableFrom": "users",
+          "tableTo": "user_settings",
+          "columnsFrom": [
+            "user_settings_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "authenticated users can read users": {
+          "name": "authenticated users can read users",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "users can update own users": {
+          "name": "users can update own users",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {
+    "public.app_permission": {
+      "name": "app_permission",
+      "schema": "public",
+      "values": [
+        "region.read",
+        "region.edit",
+        "region.delete",
+        "region.admin",
+        "app.admin"
+      ]
+    },
+    "public.app_role": {
+      "name": "app_role",
+      "schema": "public",
+      "values": [
+        "app_admin",
+        "region_user",
+        "region_maintainer",
+        "region_admin"
+      ]
+    },
+    "public.invitation_status": {
+      "name": "invitation_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "accepted",
+        "expired"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

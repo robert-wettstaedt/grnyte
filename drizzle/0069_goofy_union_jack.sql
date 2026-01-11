@@ -1,0 +1,3 @@
+CREATE POLICY "region.edit can delete areas" ON "areas" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk)));--> statement-breakpoint
+CREATE POLICY "region.edit can delete blocks" ON "blocks" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk)));--> statement-breakpoint
+CREATE POLICY "region.edit can delete geolocations" ON "geolocations" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ((SELECT authorize_in_region('region.edit', region_fk)));
