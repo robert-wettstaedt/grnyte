@@ -50,6 +50,7 @@
     }
   }
 
+  // svelte-ignore state_referenced_locally
   let mediaIsLoading = $state(file.bunnyStreamFk == null)
   let mediaHasError = $state(false)
   const mediaAction = (el: HTMLElement) => {

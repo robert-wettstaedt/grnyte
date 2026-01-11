@@ -36,17 +36,19 @@
     goto(newUrl.toString(), { replaceState: true })
   }
 
-  const sends = data.ascents
-    ?.filter((ascent) => ascent.type !== 'attempt' && ascent.type !== 'repeat')
-    .map((ascent) => {
-      const grade = pageState.grades.find((grade) => grade.id === (ascent.gradeFk ?? ascent.route.gradeFk))
+  const sends = $derived(
+    data.ascents
+      ?.filter((ascent) => ascent.type !== 'attempt' && ascent.type !== 'repeat')
+      .map((ascent) => {
+        const grade = pageState.grades.find((grade) => grade.id === (ascent.gradeFk ?? ascent.route.gradeFk))
 
-      if (grade == null) {
-        return { ...ascent, grade: undefined }
-      }
+        if (grade == null) {
+          return { ...ascent, grade: undefined }
+        }
 
-      return { ...ascent, grade: grade[pageState.gradingScale] }
-    })
+        return { ...ascent, grade: grade[pageState.gradingScale] }
+      }),
+  )
 
   const loadData = async () => {
     const searchParams = new URLSearchParams(loadOpts)

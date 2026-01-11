@@ -95,7 +95,7 @@
     { label: 'Markers', name: 'markers' },
   ]
 
-  const isRootMap = showAreas && selectedArea == null && showBlocks && selectedBlock == null
+  const isRootMap = $derived(showAreas && selectedArea == null && showBlocks && selectedBlock == null)
 
   const createMap = (element: HTMLDivElement): OlMap => {
     const map = new OlMap({

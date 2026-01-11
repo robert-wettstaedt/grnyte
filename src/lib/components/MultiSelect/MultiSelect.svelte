@@ -22,6 +22,7 @@
 
   let { options, name, value = $bindable() }: Props = $props()
   let inputValue = $state('')
+  // svelte-ignore state_referenced_locally
   let filteredOptions = $state(options)
 
   // Transform all available options to the format Combobox expects
@@ -107,7 +108,7 @@
 
   <Portal>
     <Combobox.Positioner>
-      <Combobox.Content class="max-h-[200px] overflow-auto md:max-h-[400px]">
+      <Combobox.Content class="max-h-50 overflow-auto md:max-h-100">
         {#each availableOptions as item (item.value)}
           <Combobox.Item {item}>
             <Combobox.ItemText>{item.label}</Combobox.ItemText>

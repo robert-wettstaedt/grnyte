@@ -34,6 +34,7 @@
   }
 
   // https://github.com/sveltejs/kit/issues/12999
+  // svelte-ignore state_referenced_locally
   let topos = $state(data.topos)
   $effect(() => {
     topos = data.topos

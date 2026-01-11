@@ -19,13 +19,14 @@
   const DEBUG = false
   const ITEM_CLASS = 'break-after-page h-[210mm] w-[297mm]'
 
-  const noTopos = (
-    data.area.areas.length === 0
+  const noTopos = $derived(
+    (data.area.areas.length === 0
       ? data.area.blocks.flatMap((block) => block.topos)
       : data.area.areas.flatMap((area) => area.blocks.flatMap((block) => block.topos))
-  ).length
+    ).length,
+  )
 
-  const noMaps = data.area.areas.length === 0 ? 2 : data.area.areas.length + 1
+  const noMaps = $derived(data.area.areas.length === 0 ? 2 : data.area.areas.length + 1)
 
   let done = $state(false)
   let loadedTopos = $state(0)

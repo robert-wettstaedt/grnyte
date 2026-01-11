@@ -25,6 +25,7 @@
   }
 
   let { onChange, selectedArea = null, selectedBlock = null, modes }: Props = $props()
+  // svelte-ignore state_referenced_locally
   let mode = $state(modes?.[0].value)
   let map: Map | null = $state(null)
   let vectorSource = $state<VectorSource<Feature<Geometry>> | null>(null)
