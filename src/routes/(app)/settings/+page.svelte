@@ -12,6 +12,7 @@
   } from '$lib/components/PushNotificationSubscriber'
   import { timeoutFunction } from '$lib/errors'
   import { isIOS } from '$lib/features'
+  import { getI18n, getLanguage, languages } from '$lib/i18n'
   import { dropAllDatabases } from '@rocicorp/zero'
   import { AppBar, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
@@ -45,6 +46,9 @@
 
     await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
   }
+
+  const { changeLanguage } = $derived(getI18n())
+  const language = $derived(getLanguage())
 </script>
 
 <AppBar class="mx-auto max-w-lg">
@@ -62,6 +66,18 @@
 
   <section class="w-full space-y-5">
     <ul>
+      <li>
+        <div class="flex items-center justify-between gap-4 p-2">
+          <div>Language</div>
+
+          <select class="select w-32" value={language} onchange={(event) => changeLanguage(event.currentTarget.value)}>
+            {#each languages as language}
+              <option value={language}>{language}</option>
+            {/each}
+          </select>
+        </div>
+      </li>
+
       <li>
         <div class="flex items-center justify-between gap-4 p-2">
           <div>Grading scale</div>

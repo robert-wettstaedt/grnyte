@@ -16,11 +16,12 @@
   import { toaster } from '$lib/components/Toaster'
   import { convertException } from '$lib/errors'
   import { formState } from '$lib/forms/enhance.svelte'
+  import { initI18n } from '$lib/i18n'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation, Toast } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
-  import { onMount, type Snippet } from 'svelte'
+  import { onMount, setContext, type Snippet } from 'svelte'
   import { online } from 'svelte/reactivity/window'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
@@ -57,6 +58,8 @@
       window.location.href = navigation.to.url.pathname + search
     }
   })
+
+  initI18n()
 </script>
 
 <svelte:head>

@@ -1,6 +1,10 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { getI18n } from '$lib/i18n'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
+
+  const { t } = $derived(getI18n())
+  $inspect(t('key'))
 </script>
 
 <Navigation.TriggerAnchor href="/" class={page.url.pathname === '/' ? 'bg-primary-500' : undefined}>
