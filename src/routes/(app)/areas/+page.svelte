@@ -8,6 +8,7 @@
   import FavoritesList from '$lib/components/FavoritesList'
   import { pageState } from '$lib/components/Layout'
   import RouteList from '$lib/components/RouteList'
+  import { getI18n } from '$lib/i18n'
   import { Menu, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
@@ -27,6 +28,7 @@
     goto(newUrl.toString(), { replaceState: true })
   }
 
+  const { t } = $derived(getI18n())
   let hasActions = $derived(
     pageState.userRegions.some((region) =>
       checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], region.regionFk),
@@ -35,25 +37,25 @@
 </script>
 
 <svelte:head>
-  <title>Areas - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('nav.areas')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar {hasActions}>
   {#snippet actions({ buttonProps, iconProps })}
-    <Menu.Item value="Add area">
+    <Menu.Item value={t('areas.addArea')}>
       <a {...buttonProps} href="{page.url.pathname}/add">
         <i {...iconProps} class="fa-solid fa-pen {iconProps.class}"></i>
-        Add area
+        {t('areas.addArea')}
       </a>
     </Menu.Item>
   {/snippet}
 
   {#snippet content()}
     <Tabs onValueChange={onChangeTab} value={tabValue}>
-      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
-        <Tabs.Trigger class="flex-1" value="areas">Areas</Tabs.Trigger>
-        <Tabs.Trigger class="flex-1" value="routes">Routes</Tabs.Trigger>
-        <Tabs.Trigger class="flex-1" value="favorites">My Favorites</Tabs.Trigger>
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-125">
+        <Tabs.Trigger class="flex-1" value="areas">{t('nav.areas')}</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="routes">{t('nav.routes')}</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="favorites">{t('nav.favorites')}</Tabs.Trigger>
         <Tabs.Indicator />
       </Tabs.List>
 

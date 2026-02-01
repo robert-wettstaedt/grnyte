@@ -11,6 +11,8 @@
   import { selectedRouteStore } from '$lib/components/TopoViewer'
   import type { NestedArea } from '$lib/db/types'
   import { convertException } from '$lib/errors'
+  import { initI18n } from '$lib/i18n'
+  import { getI18n } from '$lib/i18n'
   import '@fortawesome/fontawesome-free/css/all.css'
   import 'github-markdown-css/github-markdown-dark.css'
   import * as domtoimage from 'modern-screenshot'
@@ -18,6 +20,9 @@
 
   let { data } = $props()
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
+
+  initI18n()
+  const { t } = getI18n()
 
   let dom: HTMLElement
   const date = new Date().toISOString().split('T')[0]
@@ -80,7 +85,7 @@
 </script>
 
 <svelte:head>
-  <title>Exporting {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('export.exportingTitle', { name: data.block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <div class={DEBUG ? undefined : 'h-full w-full overflow-hidden'}>
@@ -90,33 +95,33 @@
     >
       {#if error != null}
         <aside class="card preset-tonal-error mt-8 p-2 whitespace-pre-line md:p-4">
-          <p>Error: {error}</p>
+          <p>{t('common.errorLabel')}: {error}</p>
         </aside>
       {:else if shareData != null}
-        Done
+        {t('common.done')}
 
         <div class="flex gap-2">
           <button class="btn preset-filled-primary-500" onclick={onDownload}>
             <i class="fa-solid fa-floppy-disk"></i>
-            Save to device
+            {t('export.saveToDevice')}
           </button>
 
           {#if navigator.canShare?.(shareData) && navigator.share != null}
             <button class="btn preset-filled-primary-500" onclick={onShare}>
               <i class="fa-solid fa-share"></i>
-              Share
+              {t('share.share')}
             </button>
           {/if}
         </div>
       {:else}
         <LoadingIndicator class="items-center" size={20} />
 
-        Preparing export
+        {t('export.preparing')}
       {/if}
 
       <a class="btn preset-outlined-primary-500" href={basePath}>
         <i class="fa-solid fa-angle-left"></i>
-        Go back
+        {t('errors.goBack')}
       </a>
     </div>
   {/if}
@@ -132,17 +137,16 @@
       </div>
 
       <div class="mt-auto text-right">
-        <p>Version: {date}</p>
+        <p>{t('export.versionLabel')}: {date}</p>
 
         {#if PUBLIC_TOPO_EMAIL}
           <p>
-            Kontakt:
-            {PUBLIC_TOPO_EMAIL}
+            {t('export.contact')}: {PUBLIC_TOPO_EMAIL}
           </p>
         {/if}
 
         <p class="flex justify-end gap-1">
-          Lizenz: CC BY-NC-SA 4.0
+          {t('export.licenseLabel')}: {t('export.licenseCode')}
           <img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src={cc} alt="" />
           <img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src={by} alt="" />
           <img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src={nc} alt="" />

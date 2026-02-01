@@ -384,6 +384,7 @@
       {#if activity.entity.type === 'ascent' && activity.type === 'created' && (pageState.user?.id === activity.entity.object?.author?.id || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], activity.entity.object?.regionFk))}
         <a
           aria-label="Edit ascent"
+          title="Edit ascent"
           class="btn-icon preset-outlined-primary-500"
           href={`/ascents/${activity.entity.object?.id}/edit`}
         >

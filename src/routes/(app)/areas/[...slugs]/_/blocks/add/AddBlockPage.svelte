@@ -8,6 +8,7 @@
   import type { Row } from '$lib/db/zero'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
   import { createBlock } from './page.remote'
 
   interface Props {
@@ -18,16 +19,18 @@
   const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   let state = $state<EnhanceState>({})
+  const { t } = $derived(getI18n())
 </script>
 
 <svelte:head>
-  <title>Create block in {area.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('blocks.createBlockInTitle', { name: area.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Create block in
+      {t('blocks.createBlock')}
+      {t('common.in')}
       <a class="anchor" href={basePath}>{area.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
@@ -40,5 +43,5 @@
 >
   <BlockFormFields bind:name areaFk={area.id} fileUploadProps={{ state }} />
 
-  <FormActionBar label="Save block" pending={createBlock.pending} />
+  <FormActionBar label={t('blocks.saveBlock')} pending={createBlock.pending} />
 </form>

@@ -13,6 +13,7 @@
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
   import { deleteAscent, updateAscent } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     ascent: ZeroQueryResult<PageProps['data']['query']>
@@ -25,14 +26,15 @@
 
   let grade = $derived(pageState.grades.find((grade) => grade.id === ascent.route?.gradeFk))
   let state = $state<EnhanceState>({})
+  const { t } = getI18n()
+  const stars = $derived(ascent.route?.rating == null ? '' : `${Array(ascent.route?.rating).fill('★').join('')} `)
+  const gradeSuffix = $derived(grade == null ? '' : ` (${grade[pageState.gradingScale]})`)
+  const routeTitle = $derived(`${stars}${ascent.route?.name ?? ''}${gradeSuffix}`)
 </script>
 
 <svelte:head>
   <title>
-    Edit ascent of
-    {ascent.route?.rating == null ? '' : `${Array(ascent.route?.rating).fill('★').join('')} `}
-    {ascent.route?.name}
-    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
+    {t('ascents.editAscentOfTitle', { name: routeTitle })}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
@@ -40,10 +42,9 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Edit ascent
+      {t('ascents.editAscent')}
 
       {#if ascent.route != null}
-        of
         <a class="anchor" href={basePath}>
           <RouteName route={ascent.route} />
         </a>
@@ -70,9 +71,9 @@
     type={ascent.type}
   />
 
-  <FormActionBar label="Save ascent" pending={updateAscent.pending} />
+  <FormActionBar label={t('ascents.saveAscent')} pending={updateAscent.pending} />
 </form>
 
 {#if page.data.session?.user?.id === ascent.author?.authUserFk || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], ascent.route?.regionFk)}
-  <DangerZone name="ascent" onDelete={() => ascent.id != null && deleteAscent(ascent.id)} />
+  <DangerZone name={t('entities.ascent')} onDelete={() => ascent.id != null && deleteAscent(ascent.id)} />
 {/if}

@@ -12,17 +12,17 @@ import { validateFormData } from './validate.svelte'
 
 type Schema = typeof schema
 
-export type Action<Output = unknown> = (
-  values: Output,
+export type Action<Input = unknown, Output = unknown> = (
+  values: Input,
   db: PgTransaction<PostgresJsQueryResultHKT, Schema, ExtractTablesWithRelations<Schema>>,
   user: NonNullable<App.SafeSession['user']>,
-) => Promise<unknown>
+) => Promise<Output>
 
-export async function enhance<T = unknown>(values: T, callback: Action<T>) {
+export async function enhance<T = unknown, R = unknown>(values: T, callback: Action<T, R>): Promise<R> {
   const { locals } = getRequestEvent()
 
   const rls = await createDrizzleSupabaseClient(locals.supabase)
-  let returnValue: Awaited<unknown>
+  let returnValue: Awaited<R>
 
   try {
     returnValue = await rls(async (db) => {

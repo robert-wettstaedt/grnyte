@@ -1,5 +1,6 @@
 <script lang="ts">
   import { afterNavigate } from '$app/navigation'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     url: URL
@@ -15,6 +16,7 @@
   let breadcrumbRef: HTMLElement | null = $state(null)
   let isOverflowing = $state(false)
   let showOverflow = $state(false)
+  const { t } = getI18n()
 
   let crumbs: Crumb[] = $derived.by(() => {
     // Remove zero-length tokens.
@@ -90,7 +92,8 @@
 
     {#if isOverflowing || showOverflow}
       <button
-        aria-label={showOverflow ? 'Show less' : 'Show more'}
+        aria-label={showOverflow ? t('common.showLess') : t('common.showMore')}
+        title={showOverflow ? t('common.showLess') : t('common.showMore')}
         class="btn-icon absolute -top-1 right-0"
         onclick={onToggleOverflow}
       >

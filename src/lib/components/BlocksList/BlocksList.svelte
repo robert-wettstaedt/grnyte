@@ -11,6 +11,7 @@
   import { queries } from '$lib/db/zero'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { updateBlockOrder } from './BlocksList.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     areaFk: number | null | undefined
@@ -18,6 +19,8 @@
     regionFk: number | null | undefined
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
+
+  const { t } = getI18n()
 
   const blocksResult = $derived(page.data.z.q(queries.listBlocks({ areaId: areaFk ?? null })))
 
@@ -112,23 +115,23 @@
           <i class="fa-solid fa-sort"></i>
         {/if}
 
-        Reorder blocks
+        {t('blocks.reorderBlocks')}
       </button>
     {/if}
   </div>
 
   <section class="py-2 md:py-4">
     {#if sortedBlocks.length === 0}
-      No blocks yet
+      {t('blocks.noBlocksYet')}
     {:else}
       <label class="label my-4">
         <span class="label-text">
           <i class="fa-solid fa-arrow-down-a-z"></i>
-          Sort order
+          {t('blocks.sortOrder')}
         </span>
         <select bind:value={sortOrder} class="select" disabled={orderMode} onchange={() => (orderMode = false)}>
-          <option value="custom">Custom order</option>
-          <option value="alphabetical">Alphabetical order</option>
+          <option value="custom">{t('blocks.customOrder')}</option>
+          <option value="alphabetical">{t('blocks.alphabeticalOrder')}</option>
         </select>
       </label>
 
@@ -166,7 +169,7 @@
                         size={64}
                       />
 
-                      <div class="w-[calc(100%-64px)]">No routes yet</div>
+                      <div class="w-[calc(100%-64px)]">{t('routes.noRoutesYet')}</div>
                     </div>
                   {:else}
                     <GenericList
@@ -215,7 +218,7 @@
                 {/each}
 
                 {#if block.topos.length === 0}
-                  <div class="px-2">No topo yet</div>
+                  <div class="px-2">{t('topo.noTopoYet')}</div>
                 {/if}
               </div>
             </li>

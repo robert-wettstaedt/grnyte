@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { convertException } from '$lib/errors'
+  import { getI18n } from '$lib/i18n'
   import { onMount } from 'svelte'
   import { saveErrorLog } from './error.remote'
 
@@ -14,28 +15,28 @@
     status?: number | null
   }
 
-  const errors: Record<number, string | undefined> = {
-    401: 'You do not have permission to access this resource.',
-    404: 'The page you are looking for does not exist.',
-    500: 'An unexpected error occurred on the server.',
-  }
-
   const { error = page.error, reset, rawError, reportError, status = page.status }: Props = $props()
+
+  const { t } = $derived(getI18n())
 
   const state = $derived.by((): Props => {
     if (!navigator.onLine) {
-      return { error: { message: 'You are not connected to the internet' } }
+      return { error: { message: t('errors.notConnected') } }
     }
 
     if (error?.message != null) {
       return { error, status }
     }
 
-    if (status != null && errors[status] != null) {
-      return { error: { message: errors[status] }, status }
+    if (status != null) {
+      const errorKey = `errors.${status}` as const
+      const errorMessage = t(errorKey)
+      if (errorMessage !== errorKey) {
+        return { error: { message: errorMessage }, status }
+      }
     }
 
-    return { error: { message: 'An unexpected error occurred' }, status }
+    return { error: { message: t('errors.unexpected') }, status }
   })
 
   afterNavigate(() => reset?.())
@@ -79,7 +80,7 @@
 </script>
 
 <svelte:head>
-  <title>Error {status} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('errors.title')} {status} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <div class="flex min-h-[70vh] flex-col items-center justify-center px-4">
@@ -95,7 +96,7 @@
     {#if state.status != null}
       <div class="space-y-2 text-center">
         <h1 class="h1 text-error-500 font-bold tracking-wide">{state.status}</h1>
-        <h2 class="h3">Oops! Something went wrong</h2>
+        <h2 class="h3">{t('errors.oops')}</h2>
       </div>
     {/if}
 
@@ -110,17 +111,17 @@
     <div class="flex flex-col justify-center gap-4 sm:flex-row">
       <a href="/" class="btn variant-filled-primary w-full sm:w-auto">
         <i class="fa-solid fa-home mr-2"></i>
-        Return Home
+        {t('errors.returnHome')}
       </a>
       <button class="btn variant-soft w-full sm:w-auto" onclick={() => history.back()}>
         <i class="fa-solid fa-arrow-left mr-2"></i>
-        Go Back
+        {t('errors.goBack')}
       </button>
     </div>
   </div>
 
   <!-- Additional help text -->
   <p class="mt-8 text-center text-sm opacity-75">
-    If this problem persists, please contact support or try again later.
+    {t('errors.persistMessage')}
   </p>
 </div>

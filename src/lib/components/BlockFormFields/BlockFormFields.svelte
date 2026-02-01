@@ -1,6 +1,7 @@
 <script lang="ts">
   import FileUpload, { type FileUploadProps } from '$lib/components/FileUpload'
   import type { Row } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     areaFk: Row<'blocks'>['areaFk'] | undefined | null
@@ -10,6 +11,8 @@
   }
 
   let { areaFk, blockId, name = $bindable(), fileUploadProps }: Props = $props()
+
+  const { t } = $derived(getI18n())
 </script>
 
 {#if areaFk != null}
@@ -21,10 +24,10 @@
 {/if}
 
 <label class="label">
-  <span>Name</span>
-  <input class="input" name="name" type="text" placeholder="Enter name..." bind:value={name} />
+  <span>{t('common.name')}</span>
+  <input class="input" name="name" type="text" placeholder={t('common.enterName')} bind:value={name} />
 </label>
 
 {#if fileUploadProps != null}
-  <FileUpload accept="image/*" label="Topo image" {...fileUploadProps} />
+  <FileUpload accept="image/*" label={t('blocks.topoImage')} {...fileUploadProps} />
 {/if}

@@ -14,8 +14,10 @@
   import { onMount } from 'svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaInfo from './AreaInfo.svelte'
+  import { getI18n } from '$lib/i18n'
 
   const { area } = getAreaContext()
+  const { t } = $derived(getI18n())
 
   let downloadError: string | null = $state(null)
 
@@ -62,20 +64,20 @@
 
   {#snippet content()}
     <Tabs onValueChange={onChangeTab} value={tabValue}>
-      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-125">
         {#if area.type === 'sector'}
-          <Tabs.Trigger class="flex-1" value="info">Info</Tabs.Trigger>
+          <Tabs.Trigger class="flex-1" value="info">{t('common.info')}</Tabs.Trigger>
         {/if}
 
         {#if area.type === 'sector'}
-          <Tabs.Trigger class="flex-1" value="blocks">Blocks</Tabs.Trigger>
+          <Tabs.Trigger class="flex-1" value="blocks">{t('blocks.title')}</Tabs.Trigger>
         {:else}
-          <Tabs.Trigger class="flex-1" value="areas">Areas</Tabs.Trigger>
+          <Tabs.Trigger class="flex-1" value="areas">{t('areas.title')}</Tabs.Trigger>
         {/if}
 
-        <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="map">{t('map.title')}</Tabs.Trigger>
 
-        <Tabs.Trigger class="flex-1" value="routes">Routes</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="routes">{t('routes.title')}</Tabs.Trigger>
 
         <Tabs.Indicator />
       </Tabs.List>

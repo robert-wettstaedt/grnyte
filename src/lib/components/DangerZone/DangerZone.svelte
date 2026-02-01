@@ -1,6 +1,7 @@
 <script lang="ts">
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { enhance, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
   import { Accordion, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { slide } from 'svelte/transition'
 
@@ -11,6 +12,7 @@
 
   const { name, onDelete }: Props = $props()
 
+  const { t } = $derived(getI18n())
   let enhancedState = $state<EnhanceState>({})
   let open = $state(false)
 </script>
@@ -19,7 +21,7 @@
   <Accordion.Item value="club">
     <h3>
       <Accordion.ItemTrigger class="flex items-center justify-between gap-2 font-bold">
-        Danger zone
+        {t('dangerZone.title')}
 
         <Accordion.ItemIndicator class="group">
           <i class="fa-solid fa-chevron-down transition group-data-[state=open]:rotate-180"></i>
@@ -35,8 +37,8 @@
               <ul>
                 <li class="flex items-center justify-between p-2 md:p-4">
                   <div class="flex flex-col">
-                    <span> Delete {name} </span>
-                    <span class="text-sm opacity-70">This action cannot be undone</span>
+                    <span>{t('dangerZone.delete', { name })}</span>
+                    <span class="text-sm opacity-70">{t('dangerZone.cannotUndo')}</span>
                   </div>
 
                   <Popover
@@ -53,7 +55,7 @@
                         <i class="fa-solid fa-trash"></i>
                       {/if}
 
-                      Delete {name}
+                      {t('dangerZone.delete', { name })}
                     </Popover.Trigger>
 
                     <Portal>
@@ -61,7 +63,7 @@
                         <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
                           <Popover.Description>
                             <article>
-                              <p>Are you sure you want to delete this {name}?</p>
+                              <p>{t('dangerZone.confirmDelete', { name })}</p>
                             </article>
 
                             <footer class="flex justify-end">
@@ -72,7 +74,7 @@
                                   enhance(onDelete, enhancedState)
                                 }}
                               >
-                                Yes
+                                {t('common.yes')}
                               </button>
                             </footer>
                           </Popover.Description>

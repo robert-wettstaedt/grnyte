@@ -9,11 +9,13 @@
   import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar, Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
   import { deleteParkingLocation, updateParkingLocation } from './page.remote'
 
   const { area } = getAreaContext()
+  const { t } = $derived(getI18n())
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
@@ -35,13 +37,13 @@
 </script>
 
 <svelte:head>
-  <title>Edit parking location of {area.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('parking.editLocationOfTitle', { name: area.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Edit parking location of
+      {t('parking.editLocation')}
       <a class="anchor" href={basePath}>{area.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
@@ -52,8 +54,8 @@
 
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     <Tabs.List>
-      <Tabs.Trigger value="map">Map</Tabs.Trigger>
-      <Tabs.Trigger value="latlong">Lat Long</Tabs.Trigger>
+      <Tabs.Trigger value="map">{t('map.title')}</Tabs.Trigger>
+      <Tabs.Trigger value="latlong">{t('map.latLong')}</Tabs.Trigger>
       <Tabs.Indicator />
     </Tabs.List>
 
@@ -85,21 +87,24 @@
     <Tabs.Content value="latlong">
       <div class="flex flex-col gap-4">
         <label class="label">
-          <span>Latitude</span>
+          <span>{t('map.latitude')}</span>
           <input class="input" name="lat" onchange={onChangeLat} value={coordinate?.at(1) ?? ''} />
         </label>
 
         <label class="label">
-          <span>Longitude</span>
+          <span>{t('map.longitude')}</span>
           <input class="input" name="long" onchange={onChangeLong} value={coordinate?.at(0) ?? ''} />
         </label>
       </div>
     </Tabs.Content>
   </Tabs>
 
-  <FormActionBar label="Update parking location" pending={updateParkingLocation.pending} />
+  <FormActionBar label={t('parking.updateLocation')} pending={updateParkingLocation.pending} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)}
-  <DangerZone name="parking location" onDelete={() => (area.id == null ? undefined : deleteParkingLocation(area.id))} />
+  <DangerZone
+    name={t('parking.location')}
+    onDelete={() => (area.id == null ? undefined : deleteParkingLocation(area.id))}
+  />
 {/if}

@@ -9,6 +9,7 @@
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createRoute, createRouteAndReload } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     description: Partial<Row<'routes'>>['description']
@@ -27,20 +28,20 @@
   }: Props = $props()
 
   const { block } = getBlockContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
   const pending = $derived(createRoute.pending + createRouteAndReload.pending)
 </script>
 
 <svelte:head>
-  <title>Create route in {block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('routes.createRouteInTitle', { name: block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Create route in
-      <a class="anchor" href={basePath}>{block.name}</a>
+      {t('routes.createRoute')} <a class="anchor" href={basePath}>{block.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
@@ -50,7 +51,7 @@
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 
-  <FormActionBar label="Save route" {pending}>
+  <FormActionBar label={t('routes.saveRoute')} {pending}>
     {#snippet buttons()}
       <button
         class="btn preset-outlined-primary-500"
@@ -61,7 +62,7 @@
           <LoadingIndicator />
         {/if}
 
-        Save and create another
+        {t('routes.saveAndCreateAnother')}
       </button>
     {/snippet}
   </FormActionBar>

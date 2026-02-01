@@ -47,32 +47,32 @@
     await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
   }
 
-  const { changeLanguage } = $derived(getI18n())
+  const { changeLanguage, t } = $derived(getI18n())
   const language = $derived(getLanguage())
 </script>
 
 <AppBar class="mx-auto max-w-lg">
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Hello {pageState.user?.username ?? ''}
+      {t('settings.hello', { username: pageState.user?.username ?? '' })}
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="app-settings">
   <header class="space-y-1">
-    <h2 class="h4">App settings</h2>
+    <h2 class="h4">{t('settings.appSettings.title')}</h2>
   </header>
 
   <section class="w-full space-y-5">
     <ul>
       <li>
         <div class="flex items-center justify-between gap-4 p-2">
-          <div>Language</div>
+          <div>{t('settings.appSettings.language')}</div>
 
           <select class="select w-32" value={language} onchange={(event) => changeLanguage(event.currentTarget.value)}>
             {#each languages as language}
-              <option value={language}>{language}</option>
+              <option value={language}>{t(`settings.languages.${language}`)}</option>
             {/each}
           </select>
         </div>
@@ -80,7 +80,7 @@
 
       <li>
         <div class="flex items-center justify-between gap-4 p-2">
-          <div>Grading scale</div>
+          <div>{t('settings.appSettings.gradingScale')}</div>
 
           <select
             class="select w-24"
@@ -104,7 +104,7 @@
       {#if checkAppPermission(pageState.userPermissions, [APP_PERMISSION_ADMIN])}
         <li class="border-surface-800 border-t">
           <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/tags">
-            Manage tags
+            {t('settings.appSettings.manageTags')}
 
             <i class="fa-solid fa-chevron-right"></i>
           </a>
@@ -112,7 +112,7 @@
 
         <li class="border-surface-800 border-t">
           <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/users">
-            Manage users
+            {t('settings.appSettings.manageUsers')}
 
             <i class="fa-solid fa-chevron-right"></i>
           </a>
@@ -124,7 +124,7 @@
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="region-settings">
   <header class="space-y-1">
-    <h2 class="h4">Region settings</h2>
+    <h2 class="h4">{t('settings.regionSettings.title')}</h2>
   </header>
 
   <section class="w-full space-y-5">
@@ -144,7 +144,7 @@
 
       <li class={pageState.userRegions.length === 0 ? '' : 'border-surface-800 border-t'}>
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/settings/regions/add">
-          Create region
+          {t('settings.regionSettings.createRegion')}
 
           <i class="fa-solid fa-plus"></i>
         </a>
@@ -155,14 +155,14 @@
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="user-settings">
   <header class="space-y-1">
-    <h2 class="h4">User settings</h2>
+    <h2 class="h4">{t('settings.userSettings.title')}</h2>
   </header>
 
   <section class="w-full space-y-5">
     <ul>
       <li>
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/profile/edit">
-          Edit profile
+          {t('settings.userSettings.editProfile')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>
@@ -173,7 +173,7 @@
           class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2"
           href="/profile/change-password"
         >
-          Change password
+          {t('settings.userSettings.changePassword')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>
@@ -184,7 +184,7 @@
           class="hover:preset-tonal-primary flex w-full items-center justify-between gap-4 p-2"
           onclick={onSignout}
         >
-          Sign out
+          {t('auth.signOut')}
 
           <i class="fa-solid fa-sign-out"></i>
         </button>
@@ -195,23 +195,23 @@
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 mb-8 max-w-lg space-y-5 p-4" id="notifications">
   <header class="space-y-1">
-    <h2 class="h4">Notification settings</h2>
+    <h2 class="h4">{t('settings.notifications.title')}</h2>
 
     {#if isSupported()}
-      <p class="opacity-60">Select which notifications you want to receive.</p>
+      <p class="opacity-60">{t('settings.notifications.selectNotifications')}</p>
     {:else if isIOS}
       <aside class="card preset-tonal-warning my-4 p-4 whitespace-pre-line">
         <p>
-          To request permission to receive push notifications, web apps must first be added to the Home Screen.
+          {t('settings.notifications.addToHomeScreen')}
 
           <button class="anchor inline" onclick={() => (modalOpen = true)}>
-            Show me how <i class="fa-solid fa-chevron-right"></i>
+            {t('settings.notifications.showMeHow')} <i class="fa-solid fa-chevron-right"></i>
           </button>
         </p>
       </aside>
     {:else}
       <aside class="card preset-tonal-error my-4 p-4 whitespace-pre-line">
-        <p>Push notifications are not supported by your browser.</p>
+        <p>{t('settings.notifications.notSupported')}</p>
       </aside>
     {/if}
 
@@ -235,50 +235,63 @@
       }}
     >
       <ul>
-        <li class="flex items-center justify-between gap-4 p-2">
-          <p>New users</p>
+        <Switch
+          class="flex items-center justify-between gap-4 p-2"
+          checked={notifyNewUsers}
+          disabled={!isPushSubscribed || loading}
+          onCheckedChange={(details) => {
+            formEl?.requestSubmit()
+            console.log('notifyNewUsers', details)
+            notifyNewUsers = details.checked
+          }}
+          name="notifyNewUsers"
+        >
+          <Switch.Label>{t('settings.notifications.newUsers')}</Switch.Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+          <Switch.HiddenInput />
+        </Switch>
 
-          <Switch
-            checked={notifyNewUsers}
-            disabled={!isPushSubscribed || loading}
-            onCheckedChange={(details) => {
-              formEl?.requestSubmit()
-              console.log('notifyNewUsers', details)
-              notifyNewUsers = details.checked
-            }}
-            name="notifyNewUsers"
-          />
-        </li>
+        <hr class="hr" />
 
-        <li class="flex items-center justify-between gap-4 p-2">
-          <p>New ascents</p>
+        <Switch
+          class="flex items-center justify-between gap-4 p-2"
+          checked={notifyNewAscents}
+          disabled={!isPushSubscribed || loading}
+          onCheckedChange={(details) => {
+            formEl?.requestSubmit()
+            console.log('notifyNewAscents')
+            notifyNewAscents = details.checked
+          }}
+          name="notifyNewAscents"
+        >
+          <Switch.Label>{t('settings.notifications.newAscents')}</Switch.Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+          <Switch.HiddenInput />
+        </Switch>
 
-          <Switch
-            checked={notifyNewAscents}
-            disabled={!isPushSubscribed || loading}
-            onCheckedChange={(details) => {
-              formEl?.requestSubmit()
-              console.log('notifyNewAscents')
-              notifyNewAscents = details.checked
-            }}
-            name="notifyNewAscents"
-          />
-        </li>
+        <hr class="hr" />
 
-        <li class="flex items-center justify-between gap-4 p-2">
-          <p>New content updates</p>
-
-          <Switch
-            checked={notifyModerations}
-            disabled={!isPushSubscribed || loading}
-            onCheckedChange={(details) => {
-              formEl?.requestSubmit()
-              console.log('notifyModerations')
-              notifyModerations = details.checked
-            }}
-            name="notifyModerations"
-          />
-        </li>
+        <Switch
+          class="flex items-center justify-between gap-4 p-2"
+          checked={notifyModerations}
+          disabled={!isPushSubscribed || loading}
+          onCheckedChange={(details) => {
+            formEl?.requestSubmit()
+            console.log('notifyModerations')
+            notifyModerations = details.checked
+          }}
+          name="notifyModerations"
+        >
+          <Switch.Label>{t('settings.notifications.newContentUpdates')}</Switch.Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+          <Switch.HiddenInput />
+        </Switch>
       </ul>
     </form>
   </section>
@@ -286,14 +299,14 @@
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4" id="legal">
   <header class="space-y-1">
-    <h2 class="h4">Legal</h2>
+    <h2 class="h4">{t('common.legal')}</h2>
   </header>
 
   <section class="w-full space-y-5">
     <ul>
       <li>
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/privacy">
-          Privacy policy
+          {t('legal.privacyPolicy')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>
@@ -301,7 +314,7 @@
 
       <li class="border-surface-800 border-t">
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/terms">
-          Terms of service
+          {t('legal.termsOfService')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>
@@ -309,7 +322,7 @@
 
       <li class="border-surface-800 border-t">
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/cookies">
-          Cookie policy
+          {t('legal.cookiePolicy')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>
@@ -317,7 +330,7 @@
 
       <li class="border-surface-800 border-t">
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/legal/disclaimer">
-          Disclaimer
+          {t('legal.disclaimer')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>
@@ -331,7 +344,7 @@
     <ul>
       <li>
         <a class="hover:preset-tonal-primary flex items-center justify-between gap-4 p-2" href="/status">
-          Service Status
+          {t('settings.serviceStatus')}
 
           <i class="fa-solid fa-chevron-right"></i>
         </a>

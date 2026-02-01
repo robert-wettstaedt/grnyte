@@ -6,11 +6,13 @@
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
 
   interface Props extends ZeroQueryWrapperBaseProps {
     parentFk?: number | null
   }
   const { parentFk, ...rest }: Props = $props()
+  const { t } = getI18n()
 </script>
 
 <ZeroQueryWrapper
@@ -43,7 +45,7 @@
       {/snippet}
 
       {#snippet right(item)}
-        <div class="flex w-[110px] flex-col">
+        <div class="flex w-27.5 flex-col">
           <AreaStats
             areaId={item.id}
             axes={false}
@@ -53,13 +55,7 @@
           >
             {#snippet children(routes)}
               <div class="flex items-center justify-end text-sm opacity-70">
-                {routes.length}
-
-                {#if routes.length === 1}
-                  route
-                {:else}
-                  routes
-                {/if}
+                {t('routes.countLabel', { count: routes.length })}
               </div>
             {/snippet}
           </AreaStats>

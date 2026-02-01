@@ -4,6 +4,7 @@
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     onChange?: () => void
@@ -15,6 +16,7 @@
   let subscribed = $state(false)
   let errorMessage = $state('')
   let loading = $state(false)
+  const { t } = getI18n()
 
   onMount(async () => {
     subscribed = await isSubscribed()
@@ -35,8 +37,7 @@
             await timeoutFunction(unsubscribe, 10_000)
           } catch (exception) {
             if (exception instanceof TimeoutError) {
-              errorMessage =
-                'Unable to unsubscribe from push notifications. Please try again or check your browser settings.'
+              errorMessage = t('notifications.unableToUnsubscribeDetailed')
             } else {
               errorMessage = convertException(exception)
             }
@@ -65,13 +66,12 @@
           {#if loading}
             <LoadingIndicator />
           {/if}
-
-          Unsubscribe from Notifications
+          {t('notifications.unsubscribeButton')}
         </button>
       </form>
 
       <form action="?/test" method="post" use:enhance>
-        <button class="btn preset-outlined-primary-500" type="submit"> Send Test Notification </button>
+        <button class="btn preset-outlined-primary-500" type="submit">{t('notifications.sendTest')}</button>
       </form>
     {:else}
       <form
@@ -91,8 +91,7 @@
             }
           } catch (exception) {
             if (exception instanceof TimeoutError) {
-              errorMessage =
-                'Unable to subscribe to push notifications. Please try again or check your browser settings.'
+              errorMessage = t('notifications.unableToSubscribeDetailed')
             } else {
               errorMessage = convertException(exception)
             }
@@ -119,8 +118,7 @@
           {#if loading}
             <LoadingIndicator />
           {/if}
-
-          Receive Push Notifications
+          {t('notifications.receivePush')}
         </button>
       </form>
     {/if}

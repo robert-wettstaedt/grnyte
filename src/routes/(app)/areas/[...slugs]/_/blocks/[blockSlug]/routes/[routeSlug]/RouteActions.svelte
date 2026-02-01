@@ -11,6 +11,7 @@
   import { queries } from '$lib/db/zero'
   import { Menu } from '@skeletonlabs/skeleton-svelte'
   import { syncExternalResources, toggleRouteFavoriteStatus } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     args: ActionItemArgs
@@ -20,6 +21,7 @@
   const { args, blockPath }: Props = $props()
 
   const { block, route } = getRouteContext()
+  const { t } = getI18n()
 
   const favoritesResult = $derived(
     page.data.z.q(queries.favorites({ entity: { type: 'route', id: String(route.id) } })),
@@ -28,12 +30,12 @@
 </script>
 
 <Menu.ItemGroup>
-  <Menu.ItemGroupLabel>Route</Menu.ItemGroupLabel>
+  <Menu.ItemGroupLabel>{t('entities.route')}</Menu.ItemGroupLabel>
 
   <Menu.Item value="Log ascent">
     <a {...args.buttonProps} href={`${page.url.pathname}/ascents/add`}>
       <i {...args.iconProps} class="fa-solid fa-check {args.iconProps.class}"></i>
-      Log ascent
+      {t('ascents.addAscent')}
     </a>
   </Menu.Item>
 
@@ -53,9 +55,9 @@
       {/if}
 
       {#if favoritesResult.data.length === 0}
-        Favorite
+        {t('common.favorite')}
       {:else}
-        {favoritesResult.data.length} favorites
+        {favoritesResult.data.length} {t('common.favorites')}
       {/if}
     </button>
   </Menu.Item>
@@ -65,26 +67,26 @@
   <Menu.Separator />
 
   <Menu.ItemGroup>
-    <Menu.ItemGroupLabel>Edit</Menu.ItemGroupLabel>
+    <Menu.ItemGroupLabel>{t('common.edit')}</Menu.ItemGroupLabel>
 
     <Menu.Item value="Edit route details">
       <a {...args.buttonProps} href={`${page.url.pathname}/edit`}>
         <i {...args.iconProps} class="fa-solid fa-pen {args.iconProps.class}"></i>
-        Edit route details
+        {t('routes.editRouteDetails')}
       </a>
     </Menu.Item>
 
     <Menu.Item value="Edit FA">
       <a {...args.buttonProps} href={`${page.url.pathname}/edit-first-ascent`}>
         <i {...args.iconProps} class={args.iconProps.class}></i>
-        Edit FA
+        {t('firstAscent.edit')}
       </a>
     </Menu.Item>
 
     <Menu.Item value="Upload file">
       <a {...args.buttonProps} href={`${page.url.pathname}/add-file`}>
         <i {...args.iconProps} class={args.iconProps.class}></i>
-        Upload file
+        {t('fileUpload.uploadFile')}
       </a>
     </Menu.Item>
   </Menu.ItemGroup>
@@ -94,12 +96,12 @@
   <Menu.Separator />
 
   <Menu.ItemGroup>
-    <Menu.ItemGroupLabel>Topo</Menu.ItemGroupLabel>
+    <Menu.ItemGroupLabel>{t('topo.title')}</Menu.ItemGroupLabel>
 
     <Menu.Item value="Edit topo">
       <a {...args.buttonProps} href={`${blockPath}/topos/draw`}>
         <i {...args.iconProps} class="fa-solid fa-file-pen {args.iconProps.class}"></i>
-        Edit topo
+        {t('topo.editTopo')}
       </a>
     </Menu.Item>
   </Menu.ItemGroup>
@@ -109,7 +111,7 @@
   <Menu.Separator />
 
   <Menu.ItemGroup>
-    <Menu.ItemGroupLabel>External Resources</Menu.ItemGroupLabel>
+    <Menu.ItemGroupLabel>{t('externalResources.title')}</Menu.ItemGroupLabel>
 
     {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], block.regionFk)}
       <Menu.Item closeOnSelect={false} value="Sync external resources">
@@ -124,7 +126,7 @@
             <i {...args.iconProps} class="fa-solid fa-sync {args.iconProps.class}"></i>
           {/if}
 
-          Sync external resources
+          {t('sync.externalResources')}
         </button>
       </Menu.Item>
     {/if}
@@ -134,7 +136,7 @@
         <Menu.Item value="Show on 8a.nu">
           <a {...args.buttonProps} href={route.externalResources?.externalResource8a?.url} target="_blank">
             <img {...args.iconProps} src={Logo8a} alt="8a" width={16} height={16} />
-            Show on 8a.nu
+            {t('externalResources.showOn8a')}
           </a>
         </Menu.Item>
       {/if}
@@ -143,7 +145,7 @@
         <Menu.Item value="Show on 27crags">
           <a {...args.buttonProps} href={route.externalResources?.externalResource27crags?.url} target="_blank">
             <img {...args.iconProps} src={Logo27crags} alt="27crags" width={16} height={16} />
-            Show on 27crags
+            {t('externalResources.showOn27crags')}
           </a>
         </Menu.Item>
       {/if}
@@ -152,7 +154,7 @@
         <Menu.Item value="Show on theCrag">
           <a {...args.buttonProps} href={route.externalResources?.externalResourceTheCrag?.url} target="_blank">
             <img {...args.iconProps} src={LogoTheCrag} alt="The Crag" width={16} height={16} />
-            Show on theCrag
+            {t('externalResources.showOnTheCrag')}
           </a>
         </Menu.Item>
       {/if}

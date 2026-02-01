@@ -3,18 +3,21 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { pageState } from '$lib/components/Layout/page.svelte.js'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   const { data, form } = $props()
+
+  const { t } = $derived(getI18n())
 </script>
 
 <svelte:head>
-  <title>Edit profile - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('profile.editProfile')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
-    <AppBar.Headline>Edit profile</AppBar.Headline>
+    <AppBar.Headline>{t('profile.editProfile')}</AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
@@ -38,18 +41,18 @@
 
 {#if page.data.session?.user.email_confirmed_at == null}
   <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-    <p>Your email address is not confirmed. Please check your email for a confirmation link.</p>
+    <p>{t('profile.emailNotConfirmed')}</p>
   </aside>
 {/if}
 
 <form class="card mt-4 flex flex-col gap-4" method="post" use:enhance>
   <label class="label">
-    <span>Email</span>
+    <span>{t('common.email')}</span>
 
     <input
       name="email"
       type="email"
-      placeholder="you@example.com"
+      placeholder={t('common.enterEmail')}
       class="input"
       required
       value={data.session?.user.email}
@@ -57,19 +60,19 @@
   </label>
 
   <label class="label">
-    <span>Username</span>
+    <span>{t('common.username')}</span>
     <input
       name="username"
       type="text"
       class="input"
-      placeholder="Enter your username"
+      placeholder={t('common.enterUsername')}
       required
       value={pageState.user?.username}
     />
   </label>
 
   <div class="mt-4 flex justify-between">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-    <button class="btn preset-filled-primary-500" type="submit">Save profile</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">{t('common.cancel')}</button>
+    <button class="btn preset-filled-primary-500" type="submit">{t('profile.saveProfile')}</button>
   </div>
 </form>

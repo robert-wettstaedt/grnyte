@@ -14,8 +14,11 @@
   import { Menu, SegmentedControl, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
   import { onMount } from 'svelte'
+  import { getI18n } from '$lib/i18n'
 
   let { data } = $props()
+
+  const { t } = getI18n()
 
   let loadedData: PaginatedAscents | null = $state(null)
   let loadError: string | null = $state(null)
@@ -55,7 +58,7 @@
     const res = await fetch(`/api/users/${page.params.name}/ascents?${searchParams.toString()}`)
 
     if (res.status != 200) {
-      loadError = 'Unable to load ascents'
+      loadError = t('errors.unableToLoadAscents')
       return
     }
 
@@ -69,7 +72,9 @@
 </script>
 
 <svelte:head>
-  <title>Profile of {data.requestedUser?.username ?? data.firstAscensionist?.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title
+    >{t('users.profileOfTitle', { name: data.requestedUser?.username ?? data.firstAscensionist?.name })} - {PUBLIC_APPLICATION_NAME}</title
+  >
 </svelte:head>
 
 <AppBar hasActions={page.data.session?.user?.id === data.requestedUser?.authUserFk}>
@@ -85,14 +90,14 @@
         <Menu.Item value="Edit profile">
           <a {...buttonProps} href="/profile/edit">
             <i {...iconProps} class="fa-solid fa-pen {iconProps.class}"></i>
-            Edit profile
+            {t('profile.editProfile')}
           </a>
         </Menu.Item>
 
         <Menu.Item value="Change password">
           <a {...buttonProps} href="/profile/change-password">
             <i {...iconProps} class="fa-solid fa-key {iconProps.class}"></i>
-            Change password
+            {t('profile.changePassword')}
           </a>
         </Menu.Item>
       </Menu.ItemGroup>
@@ -104,10 +109,10 @@
       <Tabs onValueChange={onChangeTab} value={tabValue}>
         <Tabs.List class="overflow-x-auto overflow-y-hidden pb-px">
           {#if data.requestedUser != null}
-            <Tabs.Trigger class="flex-1" value="#sends">Ascents</Tabs.Trigger>
-            <Tabs.Trigger class="flex-1" value="#projects">Projects</Tabs.Trigger>
+            <Tabs.Trigger class="flex-1" value="#sends">{t('ascents.title')}</Tabs.Trigger>
+            <Tabs.Trigger class="flex-1" value="#projects">{t('projects.title')}</Tabs.Trigger>
           {/if}
-          <Tabs.Trigger class="flex-1" value="#first-ascents">First ascents</Tabs.Trigger>
+          <Tabs.Trigger class="flex-1" value="#first-ascents">{t('firstAscent.title')}</Tabs.Trigger>
           <Tabs.Indicator />
         </Tabs.List>
 
@@ -202,12 +207,12 @@
                 <SegmentedControl.Indicator />
 
                 <SegmentedControl.Item value="open">
-                  <SegmentedControl.ItemText>Open projects</SegmentedControl.ItemText>
+                  <SegmentedControl.ItemText>{t('projects.openProjects')}</SegmentedControl.ItemText>
                   <SegmentedControl.ItemHiddenInput />
                 </SegmentedControl.Item>
 
                 <SegmentedControl.Item value="finished">
-                  <SegmentedControl.ItemText>Finished projects</SegmentedControl.ItemText>
+                  <SegmentedControl.ItemText>{t('projects.finishedProjects')}</SegmentedControl.ItemText>
                   <SegmentedControl.ItemHiddenInput />
                 </SegmentedControl.Item>
               </SegmentedControl.Control>
@@ -228,9 +233,11 @@
                   <RouteName route={item.route} />
                 </dt>
 
-                <dd class="text-sm opacity-50">Sessions: {item.ascents.length}</dd>
+                <dd class="text-sm opacity-50">{t('ascents.sessions')}: {item.ascents.length}</dd>
                 <dd class="text-sm opacity-50">
-                  Last session: {DateTime.fromSQL(item.ascents[0].dateTime).toLocaleString(DateTime.DATE_FULL)}
+                  {t('ascents.lastSession')}: {DateTime.fromSQL(item.ascents[0].dateTime).toLocaleString(
+                    DateTime.DATE_FULL,
+                  )}
                 </dd>
               {/snippet}
 
