@@ -12,6 +12,9 @@
   import memoize from 'lodash.memoize'
   import { onDestroy, onMount } from 'svelte'
   import { pageState } from '$lib/components/Layout'
+  import { getI18n } from '$lib/i18n'
+
+  const { t } = getI18n()
 
   interface Props {
     value: string | null | undefined
@@ -77,7 +80,7 @@
             apply: `!routes:${item.id}!`,
             info: `${renderRouteName(item)}\n\n${item.description ?? ''}`,
             label: `${item.block.area.name} > ${item.block.name} > ${renderRouteName(item)}`,
-            section: 'Routes',
+            section: t('routes.title'),
             type: 'class',
           }),
         ),
@@ -86,7 +89,7 @@
             apply: `!blocks:${item.id}!`,
             info: item.name,
             label: `${item.area.name} > ${item.name}`,
-            section: 'Blocks',
+            section: t('blocks.title'),
             type: 'class',
           }),
         ),
@@ -95,7 +98,7 @@
             apply: `!areas:${item.id}!`,
             info: `${item.name}\n\n${item.description ?? ''}`,
             label: item.name,
-            section: 'Areas',
+            section: t('areas.title'),
             type: 'class',
           }),
         ),
@@ -166,18 +169,17 @@
     class="anchor absolute top-0 right-0 z-1 flex items-center justify-center gap-2 text-xs opacity-80"
     href="https://markdownguide.offshoot.io/cheat-sheet/"
     target="_blank"
+    aria-label={t('editor.openMarkdownCheatSheet')}
   >
     <i class="fa-brands fa-markdown"></i>
 
-    <span>
-      Markdown<br />supported
-    </span>
+    <span>{@html t('editor.markdownSupported')}</span>
   </a>
 
   <Tabs onValueChange={(event) => (tab = event.value as 'write' | 'preview')} value={tab}>
     <Tabs.List>
-      <Tabs.Trigger value="write">Write</Tabs.Trigger>
-      <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
+      <Tabs.Trigger value="write">{t('editor.write')}</Tabs.Trigger>
+      <Tabs.Trigger value="preview">{t('editor.preview')}</Tabs.Trigger>
       <Tabs.Indicator />
     </Tabs.List>
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Row } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
   import { Accordion, Slider } from '@skeletonlabs/skeleton-svelte'
   import { slide } from 'svelte/transition'
 
@@ -10,6 +11,7 @@
 
   let { humidity = $bindable(), temperature = $bindable() }: Props = $props()
 
+  const { t } = $derived(getI18n())
   let accordion = $state<string[]>(humidity != null || temperature != null ? ['conditions'] : [])
 
   const defaultTemperature = $derived.by(() => {
@@ -81,7 +83,7 @@
   <Accordion.Item value="club">
     <h3>
       <Accordion.ItemTrigger class="flex items-center justify-between gap-2 px-0">
-        Conditions
+        {t('conditions.title')}
 
         <Accordion.ItemIndicator class="group">
           <i class="fa-solid fa-chevron-down transition group-data-[state=open]:rotate-180"></i>
@@ -104,14 +106,15 @@
               <Slider.Label class="my-4 flex items-center justify-between">
                 <span>
                   <i class="fa-solid fa-temperature-full"></i>
-                  Temperature
+                  {t('conditions.temperature')}
                 </span>
 
                 <span>
                   {displayTemperature}°C
 
                   <button
-                    aria-label="Clear"
+                    aria-label={t('common.clear')}
+                    title={t('common.clear')}
                     class="btn preset-filled-surface-500 h-9 w-9"
                     disabled={temperature == null}
                     onclick={() => (temperature = null)}
@@ -152,14 +155,14 @@
               <Slider.Label class="my-4 flex items-center justify-between">
                 <span>
                   <i class="fa-solid fa-droplet"></i>
-                  Humidity
+                  {t('conditions.humidity')}
                 </span>
 
                 <span>
                   {displayHumidity}%
 
                   <button
-                    aria-label="Clear"
+                    aria-label={t('common.clear')}
                     class="btn preset-filled-surface-500 h-9 w-9"
                     disabled={humidity == null}
                     onclick={() => (humidity = null)}

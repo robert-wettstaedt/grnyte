@@ -9,8 +9,10 @@
   import { fromLonLat } from 'ol/proj.js'
   import GeolocationMarker from '../../assets/geolocation_marker.png'
   import GeolocationMarkerHeading from '../../assets/geolocation_marker_heading.png'
+  import { getI18n } from '$lib/i18n'
 
   const STORAGE_KEY = `[${PUBLIC_APPLICATION_NAME}].geolocation`
+  const { t } = getI18n()
 
   interface Props {
     map: Map | undefined | null
@@ -108,7 +110,7 @@
   })
 </script>
 
-<button aria-label="Geolocate" onclick={() => geolocate(true)} title="Geolocate" type="button">
+<button aria-label={t('map.geolocate')} onclick={() => geolocate(true)} title={t('map.geolocate')} type="button">
   <i
     class="fa-solid fa-location-crosshairs text-sm {isTrackingGeolocation
       ? 'text-primary-500'
@@ -118,15 +120,15 @@
   ></i>
 </button>
 
-<Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Geolocation error">
+<Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title={t('map.geolocationErrorTitle')}>
   {#snippet content()}
-    <p>The geolocation service is not working. Please check your browser settings and try again.</p>
+    <p>{t('map.geolocationErrorMessage')}</p>
 
     <ul class="mt-4 list-inside list-disc">
-      <li>Check if location services are enabled in your browser</li>
-      <li>Ensure you have permission to share your location</li>
-      <li>Check if you have a GPS signal</li>
-      <li>Try a different browser or device</li>
+      <li>{t('map.geolocationError.enableLocationServices')}</li>
+      <li>{t('map.geolocationError.sharePermission')}</li>
+      <li>{t('map.geolocationError.gpsSignal')}</li>
+      <li>{t('map.geolocationError.tryDifferentBrowser')}</li>
     </ul>
   {/snippet}
 </Dialog>

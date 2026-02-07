@@ -32,8 +32,10 @@
         class="btn btn-sm preset-outlined-primary-500"
         href={routeExternalResources.externalResource8a.url}
         target="_blank"
+        aria-label="8a.nu"
+        title="8a.nu"
       >
-        <img src={Logo8a} alt="The Crag" width={iconSize} height={iconSize} />
+        <img src={Logo8a} alt="8a.nu" width={iconSize} height={iconSize} />
       </a>
     {/if}
 
@@ -42,6 +44,8 @@
         class="btn btn-sm preset-outlined-primary-500"
         href={routeExternalResources.externalResource27crags.url}
         target="_blank"
+        aria-label="27crags"
+        title="27crags"
       >
         <img src={Logo27crags} alt="27crags" width={iconSize} height={iconSize} />
       </a>
@@ -52,6 +56,8 @@
         class="btn btn-sm preset-outlined-primary-500"
         href={routeExternalResources.externalResourceTheCrag.url}
         target="_blank"
+        aria-label="The Crag"
+        title="The Crag"
       >
         <img src={LogoTheCrag} alt="The Crag" width={iconSize} height={iconSize} />
       </a>

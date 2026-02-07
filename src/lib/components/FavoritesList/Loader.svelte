@@ -6,6 +6,7 @@
   import { queries } from '$lib/db/zero'
   import { zql } from '$lib/db/zero/zero-schema.gen'
   import FavoritesList from './FavoritesList.svelte'
+  import { getI18n } from '$lib/i18n'
 
   interface Props extends ZeroQueryWrapperBaseProps {
     authUserId: string
@@ -20,6 +21,8 @@
           zql.ascents.where('createdBy', pageState.user.id).orderBy('dateTime', 'desc').related('route').one(),
         ),
   )
+
+  const { t } = getI18n()
 </script>
 
 <ZeroQueryWrapper
@@ -33,12 +36,12 @@
           <i class="fa-solid fa-triangle-exclamation text-warning-500 mt-1"></i>
 
           <div class="flex w-full flex-col overflow-hidden">
-            <p class="text-warning-500">You do not have Favorites yet</p>
+            <p class="text-warning-500">{t('favorites.noFavoritesYetTitle')}</p>
 
-            <p class="text-warning-500 mt-2 text-xs opacity-70">Start by marking your favorite routes.</p>
+            <p class="text-warning-500 mt-2 text-xs opacity-70">{t('favorites.noFavoritesYetDescription')}</p>
 
             {#if latestAscentResult?.data?.route != null}
-              <p class="text-warning-500 mt-4 mb-2 text-xs opacity-70">For example how about this?</p>
+              <p class="text-warning-500 mt-4 mb-2 text-xs opacity-70">{t('favorites.suggestionIntro')}</p>
 
               <a
                 class="anchor relative max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap"

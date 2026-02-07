@@ -13,6 +13,7 @@
   import type { ActivityGroup } from '.'
   import Group from './components/Group'
   import type { ItemProps } from './components/Item'
+  import { getI18n } from '$lib/i18n'
 
   const { activities }: ActivityFeedProps = $props()
 
@@ -23,10 +24,12 @@
   afterNavigate(() => {
     filterValue = Array.from(page.url.searchParams.entries()).map(([key, value]) => `${key}=${value}`)
   })
+
+  const { t } = getI18n()
 </script>
 
 <label class="label flex flex-col gap-2">
-  <span class="label-text font-medium">Filter activity feed:</span>
+  <span class="label-text font-medium">{t('activityFeed.filterLabel')}</span>
   <select
     class="select select-bordered w-full sm:w-60"
     multiple
@@ -47,13 +50,13 @@
     size="2"
     value={filterValue}
   >
-    <option value="type=ascents">Show ascents only</option>
-    <option value="user=me">Show my activity only</option>
+    <option value="type=ascents">{t('activityFeed.showAscentsOnly')}</option>
+    <option value="user=me">{t('activityFeed.showMyActivityOnly')}</option>
   </select>
 </label>
 
 {#if activities.length === 0}
-  <p class="text-center opacity-75">No recent activity</p>
+  <p class="text-center opacity-75">{t('activityFeed.noRecentActivity')}</p>
 {:else}
   {#each activities as page}
     <div class="mt-8 space-y-8">
@@ -74,6 +77,6 @@
       goto(url, { noScroll: true, replaceState: true })
     }}
   >
-    Load more activities
+    {t('activityFeed.loadMoreActivities')}
   </button>
 </div>

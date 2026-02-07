@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Combobox, Portal } from '@skeletonlabs/skeleton-svelte'
   import { calculateRelevance } from './lib'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     options: string[]
@@ -24,6 +25,7 @@
   let inputValue = $state('')
   // svelte-ignore state_referenced_locally
   let filteredOptions = $state(options)
+  const { t } = getI18n()
 
   // Transform all available options to the format Combobox expects
   const availableOptions = $derived(
@@ -65,7 +67,8 @@
         <span>{val}</span>
 
         <button
-          aria-label="Remove"
+          aria-label={t('common.remove')}
+          title={t('common.remove')}
           class="btn-icon preset-outlined-error-500"
           onclick={() => (value = value?.filter((v) => v !== val))}
         >
@@ -88,7 +91,7 @@
         inputValue = ''
       }}
     >
-      Add "{inputValue}"
+      {t('common.addValue', { value: inputValue })}
     </button>
   </div>
 {/if}
@@ -97,14 +100,14 @@
   allowCustomValue
   onInputValueChange={handleInputValueChange}
   onValueChange={handleValueChange}
-  placeholder="Search..."
+  placeholder={t('common.search')}
 >
   <Combobox.Control>
     <Combobox.Input />
     <Combobox.Trigger />
   </Combobox.Control>
 
-  <Combobox.ClearTrigger>Clear All</Combobox.ClearTrigger>
+  <Combobox.ClearTrigger>{t('common.clearAll')}</Combobox.ClearTrigger>
 
   <Portal>
     <Combobox.Positioner>

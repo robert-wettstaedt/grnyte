@@ -14,12 +14,14 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { selectedRouteStore, TopoViewerLoader as TopoViewer } from '$lib/components/TopoViewer'
   import { getRouteContext } from '$lib/contexts/route'
+  import { getI18n } from '$lib/i18n'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy, onMount } from 'svelte'
   import FirstAscentInfo from './FirstAscentInfo.svelte'
   import RouteActions from './RouteActions.svelte'
 
   const { block, route } = getRouteContext()
+  const { t } = getI18n()
 
   let blockPath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
   let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
@@ -78,24 +80,24 @@
         <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
 
         <p>
-          The geolocation of this block is missing. Do you know where it is?
+          {t('blocks.geolocationMissing')}
 
-          <a class="anchor" href={`${blockPath}/edit-location`}>Add location</a>
+          <a class="anchor" href={`${blockPath}/edit-location`}>{t('map.addLocation')}</a>
         </p>
       </aside>
     {/if}
 
     <Tabs onValueChange={onChangeTab} value={tabValue}>
-      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
-        <Tabs.Trigger class="flex-1" value="info">Info</Tabs.Trigger>
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-125">
+        <Tabs.Trigger class="flex-1" value="info">{t('common.info')}</Tabs.Trigger>
 
         {#if block.topos.length > 0}
-          <Tabs.Trigger class="flex-1" value="topo">Topo</Tabs.Trigger>
+          <Tabs.Trigger class="flex-1" value="topo">{t('topo.title')}</Tabs.Trigger>
         {/if}
 
-        <Tabs.Trigger class="flex-1" value="activity">Activity</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="activity">{t('common.activity')}</Tabs.Trigger>
 
-        <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="map">{t('map.title')}</Tabs.Trigger>
 
         <Tabs.Indicator />
       </Tabs.List>
@@ -105,7 +107,12 @@
           <TopoViewer blockId={block.id} initialRouteId={route.id ?? undefined}>
             {#snippet actions()}
               {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
-                <a aria-label="Edit topo" class="btn-icon preset-filled" href={`${blockPath}/topos/draw`}>
+                <a
+                  aria-label={t('topo.editTopo')}
+                  title={t('topo.editTopo')}
+                  class="btn-icon preset-filled"
+                  href={`${blockPath}/topos/draw`}
+                >
                   <i class="fa-solid fa-pen"></i>
                 </a>
               {/if}
@@ -119,7 +126,7 @@
           <div class="mb-4 flex justify-center">
             <a class="btn preset-filled-primary-500" href={`${page.url.pathname}/ascents/add`}>
               <i class="fa-solid fa-check"></i>
-              Log ascent
+              {t('ascents.addAscent')}
             </a>
           </div>
 
@@ -141,7 +148,7 @@
         <dl>
           <div class="flex p-2">
             <span class="flex-auto">
-              <dt>FA</dt>
+              <dt>{t('firstAscent.title')}</dt>
               <dd class="flex items-center justify-between">
                 <FirstAscentInfo />
               </dd>
@@ -151,7 +158,7 @@
           {#if route.description != null && route.description.length > 0}
             <div class="flex p-2">
               <span class="flex-auto">
-                <dt>Description</dt>
+                <dt>{t('common.description')}</dt>
                 <dd>
                   <MarkdownRenderer markdown={route.description} />
                 </dd>
@@ -162,7 +169,7 @@
           {#if route.tags.length > 0}
             <div class="flex p-2">
               <span class="flex-auto">
-                <dt>Tags</dt>
+                <dt>{t('common.tags')}</dt>
                 <dd class="mt-1 flex gap-1">
                   {#each route.tags as tag}
                     <span class="chip preset-filled-surface-900-100">

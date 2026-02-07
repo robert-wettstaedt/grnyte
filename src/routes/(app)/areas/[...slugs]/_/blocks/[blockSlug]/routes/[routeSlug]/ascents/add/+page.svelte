@@ -10,8 +10,10 @@
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { addAscent } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   const { route } = getRouteContext()
+  const { t } = getI18n()
 
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
@@ -19,14 +21,14 @@
 
   let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
   let state = $state<EnhanceState>({})
+  const stars = $derived(route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `)
+  const gradeSuffix = $derived(grade == null ? '' : ` (${grade[pageState.gradingScale]})`)
+  const routeTitle = $derived(`${stars}${route.name}${gradeSuffix}`)
 </script>
 
 <svelte:head>
   <title>
-    Log ascent of
-    {route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `}
-    {route.name}
-    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
+    {t('ascents.logAscentOfTitle', { name: routeTitle })}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
@@ -34,7 +36,7 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Log ascent of
+      {t('ascents.logAscentOf')}
       <a class="anchor" href={basePath}>
         <RouteName {route} />
       </a>
@@ -60,5 +62,5 @@
     type={null}
   />
 
-  <FormActionBar label="Save ascent" pending={addAscent.pending} />
+  <FormActionBar label={t('ascents.saveAscent')} pending={addAscent.pending} />
 </form>

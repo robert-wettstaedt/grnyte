@@ -3,15 +3,17 @@
   import { getRouteContext } from '$lib/contexts/route'
   import { Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { claimFirstAscensionist, claimFirstAscent } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   const { route } = getRouteContext()
+  const { t } = getI18n()
 
   const { firstAscentYear, firstAscents } = route
 </script>
 
 <span class="flex flex-wrap items-center gap-2">
   {#if firstAscents.length === 0 && firstAscentYear == null}
-    <span>unknown</span>
+    <span>{t('common.unknown')}</span>
   {/if}
 
   {#each firstAscents as firstAscent, index}
@@ -27,7 +29,7 @@
           {#if pageState.user?.firstAscensionistFk == null}
             <Popover positioning={{ placement: 'top' }}>
               <Popover.Trigger class="btn btn-sm preset-outlined-primary-500 me-auto text-white!">
-                That's me!
+                {t('firstAscent.thatsMe')}
               </Popover.Trigger>
 
               <Portal>
@@ -36,8 +38,7 @@
                     <Popover.Description>
                       <article>
                         <p>
-                          All FAs with the name {firstAscent.firstAscensionist?.name} will be attributed to you. Are you
-                          sure that this is you?
+                          {t('firstAscent.claimAttributionDescription', { name: firstAscent.firstAscensionist?.name })}
                         </p>
                       </article>
 
@@ -50,7 +51,7 @@
                               routeId: route.id,
                             })}
                         >
-                          Yes
+                          {t('common.yes')}
                         </button>
                       </footer>
                     </Popover.Description>
@@ -90,14 +91,16 @@
 
   {#if firstAscents.length === 0 && pageState.user?.firstAscensionistFk != null}
     <Popover positioning={{ placement: 'top' }}>
-      <Popover.Trigger class="btn btn-sm preset-outlined-primary-500 me-auto text-white!">Claim FA</Popover.Trigger>
+      <Popover.Trigger class="btn btn-sm preset-outlined-primary-500 me-auto text-white!"
+        >{t('firstAscent.claimFA')}</Popover.Trigger
+      >
 
       <Portal>
         <Popover.Positioner>
           <Popover.Content class="card bg-surface-200-800 max-w-[320px] space-y-4 p-4">
             <Popover.Description>
               <article>
-                <p>This FA will be attributed to you. Are you sure?</p>
+                <p>{t('firstAscent.claimConfirmation')}</p>
               </article>
 
               <footer class="flex justify-end">
@@ -105,7 +108,7 @@
                   class="btn btn-sm preset-filled-primary-500 text-white!"
                   onclick={() => route.id != null && claimFirstAscent(route.id)}
                 >
-                  Yes
+                  {t('common.yes')}
                 </button>
               </footer>
             </Popover.Description>

@@ -7,6 +7,7 @@
   import type { Pagination as PaginationType } from '$lib/pagination.server'
   import { Pagination } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
+  import { getI18n } from '$lib/i18n'
 
   type PaginationProps = Parameters<typeof Pagination>[1]
 
@@ -17,20 +18,21 @@
   }
 
   let { ascents, pagination, paginationProps }: Props = $props()
+  const { t } = getI18n()
 </script>
 
 <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
   <div class="table-wrap">
     {#if ascents.length === 0}
-      No ascents yet
+      {t('ascents.noAscentsYet')}
     {:else}
       <table class="table">
         <thead>
           <tr>
-            <th>Climber</th>
-            <th>Date time</th>
-            <th>Type</th>
-            <th>Route</th>
+            <th>{t('ascents.climber')}</th>
+            <th>{t('ascents.dateTime')}</th>
+            <th>{t('common.type')}</th>
+            <th>{t('entities.route')}</th>
           </tr>
         </thead>
 

@@ -5,6 +5,7 @@
   import type { Snippet } from 'svelte'
   import type { References as ReferencesType } from '.'
   import References from './References.svelte'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     id: number
@@ -36,6 +37,8 @@
       ascentsResult.details.type !== 'complete' ||
       routesResult.details.type !== 'complete',
   )
+
+  const { t } = getI18n()
 </script>
 
 {#if references == null && isLoading}
@@ -48,7 +51,7 @@
   {#if children == null}
     <div class="flex p-2">
       <span class="flex-auto">
-        <dt>Mentioned in</dt>
+        <dt>{t('references.mentionedIn')}</dt>
 
         <dd class="mt-1 flex gap-1">
           <References {references} />

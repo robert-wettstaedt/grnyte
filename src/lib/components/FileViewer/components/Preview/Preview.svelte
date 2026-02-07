@@ -1,18 +1,22 @@
 <script lang="ts">
   import { PUBLIC_BUNNY_STREAM_HOSTNAME } from '$env/static/public'
-  import { getVideoThumbnailUrl } from '$lib/bunny'
+  import { getVideoThumbnailUrl, VideoStatus } from '$lib/bunny'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
-  import { upfetch } from '$lib/config'
   import type { File } from '$lib/db/schema'
-  import { FileStatusResponseSchema, type FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
+  import { getI18n } from '$lib/i18n'
+  import { getFileStatus } from './preview.remote'
 
   interface Props {
     file: File
     onClick: () => void
-    status?: FileStatusResponse
+    status?: VideoStatus
   }
 
   let { file, onClick, status = $bindable() }: Props = $props()
+  const { t } = getI18n()
+
+  const statusTitle = $derived(status == null ? null : t(`videoStatus.${status}.title`))
+  const statusMessage = $derived(status == null ? null : t(`videoStatus.${status}.message`))
 
   const resourcePath = $derived(`/nextcloud${file.path}`)
 
@@ -22,7 +26,7 @@
   const mediaAction = (el: HTMLElement) => {
     const onError = async () => {
       try {
-        status = await upfetch(`/api/files/${file.id}/status`, { schema: FileStatusResponseSchema })
+        status = await getFileStatus(file.id)
       } catch (error) {
         mediaHasError = true
       }
@@ -58,9 +62,9 @@
       <aside class="alert variant-filled-error flex h-full items-center justify-center p-1">
         <div class="alert-message text-center">
           <h5 class="h5">
-            {status?.title ?? (file.bunnyStreamFk == null ? 'Unable to load image' : 'Unable to play video')}
+            {statusTitle ?? (file.bunnyStreamFk == null ? t('files.unableToLoadImage') : t('files.unableToPlayVideo'))}
           </h5>
-          <p class="text-sm">{status?.message}</p>
+          <p class="text-sm">{statusMessage ?? ''}</p>
         </div>
       </aside>
     {:else}

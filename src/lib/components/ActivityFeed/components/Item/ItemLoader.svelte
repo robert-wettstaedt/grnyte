@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'

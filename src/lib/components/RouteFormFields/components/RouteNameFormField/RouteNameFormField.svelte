@@ -1,5 +1,6 @@
 <script lang="ts">
   import Dialog from '$lib/components/Dialog'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     value: string | undefined | null
@@ -8,36 +9,39 @@
   let { value = $bindable() }: Props = $props()
 
   let modalOpen = $state(false)
+
+  const { t } = getI18n()
 </script>
 
 <label class="label mt-4">
   <span>
-    Name
+    {t('common.name')}
 
-    <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Route Naming Guidelines">
+    <Dialog
+      open={modalOpen}
+      onOpenChange={(event) => (modalOpen = event.open)}
+      title={t('routes.namingGuidelines.title')}
+    >
       {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
 
       {#snippet content()}
-        <p class="font-semibold">When naming a route, please follow these guidelines:</p>
+        <p class="font-semibold">{t('routes.namingGuidelines.intro')}</p>
 
         <ul class="mt-4 list-inside list-disc space-y-2">
-          <li>Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content</li>
-          <li>Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content</li>
-          <li>Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content</li>
-          <li>Use names appropriate for all ages</li>
-          <li>Respect local cultures and Indigenous/First Nations peoples</li>
-          <li>Consider existing naming themes in the area</li>
-          <li>Ensure the name is unique within the climbing area</li>
-          <li>Names should be appropriate for public display and publication</li>
+          <li>{t('routes.namingGuidelines.items.respectfulInclusive')}</li>
+          <li>{t('routes.namingGuidelines.items.respectfulInclusive')}</li>
+          <li>{t('routes.namingGuidelines.items.respectfulInclusive')}</li>
+          <li>{t('routes.namingGuidelines.items.ageAppropriate')}</li>
+          <li>{t('routes.namingGuidelines.items.respectLocalCultures')}</li>
+          <li>{t('routes.namingGuidelines.items.considerNamingThemes')}</li>
+          <li>{t('routes.namingGuidelines.items.ensureUniqueWithinArea')}</li>
+          <li>{t('routes.namingGuidelines.items.appropriateForPublicDisplay')}</li>
         </ul>
 
-        <p class="mt-4 italic">
-          Remember: Route names become part of the climbing community's legacy and should reflect positively on the
-          sport.
-        </p>
+        <p class="mt-4 italic">{t('routes.namingGuidelines.reminder')}</p>
       {/snippet}
     </Dialog>
   </span>
 
-  <input bind:value class="input" name="name" type="text" placeholder="Leave empty if unknown" />
+  <input bind:value class="input" name="name" type="text" placeholder={t('routes.leaveEmptyIfUnknown')} />
 </label>

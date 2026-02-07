@@ -5,25 +5,28 @@
   import GenericList from '$lib/components/GenericList'
   import { pageState } from '$lib/components/Layout/page.svelte'
   import { appRoleLabels } from '$lib/db/schema'
+  import { getI18n } from '$lib/i18n'
   import { AppBar, Pagination } from '@skeletonlabs/skeleton-svelte'
 
   const { data } = $props()
+
+  const { t } = $derived(getI18n())
 </script>
 
 <svelte:head>
-  <title>Users - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('users.title')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
-    <AppBar.Headline>Users</AppBar.Headline>
+    <AppBar.Headline>{t('users.title')}</AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
 <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
   <div class="table-wrap">
     {#if data.users.length === 0}
-      No users yet
+      {t('users.noUsersYet')}
     {:else}
       <GenericList
         items={data.users.map((item) => ({ ...item, name: item.username, pathname: `/users/${item.username}` }))}

@@ -7,6 +7,7 @@
   import RatingFormField from '$lib/components/RatingFormField'
   import { ascentTypeEnum } from '$lib/db/schema'
   import type { Row } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
   import { DateTime } from 'luxon'
   import ConditionsFields from './ConditionsFields.svelte'
 
@@ -31,10 +32,12 @@
     temperature = $bindable(),
     type = $bindable(),
   }: Props = $props()
+
+  const { t } = $derived(getI18n())
 </script>
 
 <label class="label mt-4">
-  <span>Type</span>
+  <span>{t('common.type')}</span>
 
   <input name="type" type="hidden" value={type} />
 
@@ -65,7 +68,7 @@
 <RatingFormField bind:value={rating} />
 
 <label class="label mt-4">
-  <span>Date</span>
+  <span>{t('common.date')}</span>
   <input
     class="input"
     max={DateTime.now().toISODate()}
@@ -74,7 +77,6 @@
       const value = DateTime.fromISO(event.currentTarget.value)
       dateTime = value.isValid ? value.toMillis() : null
     }}
-    title="Input (date)"
     type="date"
     value={DateTime.fromMillis(dateTime ?? Date.now()).toISODate()}
   />
@@ -85,7 +87,7 @@
 <FileUpload {...fileUploadProps} />
 
 <label class="label mt-4">
-  <span>Notes</span>
+  <span>{t('common.notes')}</span>
   <textarea hidden name="notes" value={notes}></textarea>
 
   <MarkdownEditor bind:value={notes} />

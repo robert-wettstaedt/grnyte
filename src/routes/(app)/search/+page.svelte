@@ -11,12 +11,15 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { Region } from '$lib/db/zero'
   import { queries } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
 
   const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
   const MAX_RECENT_SEARCH = 7
+
+  const { t } = $derived(getI18n())
 
   interface BaseItem {
     fields: string[]
@@ -191,12 +194,12 @@
 </script>
 
 <svelte:head>
-  <title>Search - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('nav.search')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
-    <AppBar.Headline>Search</AppBar.Headline>
+    <AppBar.Headline>{t('nav.search')}</AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
@@ -208,14 +211,15 @@
         class="ig-input"
         name="q"
         onkeyup={debounce(onchange, 1000)}
-        placeholder="Search..."
+        placeholder={t('common.search')}
         type="search"
         use:focus
       />
 
       {#if searchQuery.trim().length > 0}
         <button
-          aria-label="Clear search"
+          aria-label={t('common.clearSearch')}
+          title={t('common.clearSearch')}
           class="ig-btn preset-outlined-surface-200-800"
           onclick={() => submitQuery('', 'q')}
         >
@@ -231,7 +235,7 @@
     <div class="card preset-filled-surface-100-900 mt-8 flex flex-col p-2 md:p-4">
       <div class="text-surface-500-900 mb-2 text-center text-sm">
         <i class="fa-solid fa-clock-rotate-left"></i>
-        Recent searches
+        {t('common.recentSearches')}
       </div>
 
       {#each recentSearch as item}
@@ -253,7 +257,7 @@
   </div>
 {:else if searchResults.length === 0}
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
-    No results found for <span class="text-primary-500">{searchQuery}</span>.
+    {t('common.noResults')} <span class="text-primary-500">{searchQuery}</span>.
   </div>
 {:else}
   {#if isLoading}

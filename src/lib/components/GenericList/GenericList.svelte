@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends { id: string | number, name: string, pathname: string }">
   import { draggable, TRIGGER_ELEMENT_CLASS } from '$lib/actions/draggable.svelte'
+  import { getI18n } from '$lib/i18n'
   import type { Snippet } from 'svelte'
   import { flip } from 'svelte/animate'
 
@@ -35,11 +36,13 @@
     onConsiderSort,
     onFinishSort,
   }: Props = $props()
+
+  const { t } = getI18n()
 </script>
 
 <nav class="list-nav {classes}">
   {#if items.length === 0}
-    No items yet
+    {t('common.noItemsYet')}
   {:else}
     <ul
       class="overflow-auto"

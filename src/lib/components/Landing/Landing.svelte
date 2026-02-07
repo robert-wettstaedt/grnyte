@@ -3,45 +3,42 @@
   import Logo27crags from '$lib/assets/27crags-logo.png'
   import Logo8a from '$lib/assets/8a-logo.png'
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
+  import { getI18n } from '$lib/i18n'
 
-  const features = [
+  const { t } = $derived(getI18n())
+
+  const features = $derived([
     {
       icon: 'fa-solid fa-lock',
-      title: 'Access Protection',
-      description:
-        'Keep sensitive areas private with invitation-only communities. Perfect for private land where public exposure risks closure.',
+      title: t('landing.features.accessProtection.title'),
+      description: t('landing.features.accessProtection.description'),
     },
     {
       icon: 'fa-solid fa-users-gear',
-      title: 'Professional Collaboration',
-      description:
-        'Replace email chains and version conflicts. Your entire team sees updates instantly with proper change tracking.',
+      title: t('landing.features.professionalCollaboration.title'),
+      description: t('landing.features.professionalCollaboration.description'),
     },
     {
       icon: 'fa-solid fa-database',
-      title: 'Data Integrity',
-      description:
-        'Import your Excel files and upgrade to professional area management. Never lose development work to corrupted files again.',
+      title: t('landing.features.dataIntegrity.title'),
+      description: t('landing.features.dataIntegrity.description'),
     },
     {
       icon: 'fa-solid fa-map-marked-alt',
-      title: 'Complete Area Management',
-      description:
-        'Organize areas, sectors, and problems with detailed topos, grades, and conditions. Built specifically for boulder development.',
+      title: t('landing.features.completeAreaManagement.title'),
+      description: t('landing.features.completeAreaManagement.description'),
     },
     {
       icon: 'fa-solid fa-chart-line',
-      title: 'Development Documentation',
-      description:
-        'Document first ascents, cleaning progress, and project status. See how your area evolves over time with detailed analytics.',
+      title: t('landing.features.developmentDocumentation.title'),
+      description: t('landing.features.developmentDocumentation.description'),
     },
     {
       icon: 'fa-solid fa-upload',
-      title: 'Easy Migration',
-      description:
-        'Import existing problem lists from Excel or CSV. Migrate decades of development work in minutes, not months.',
+      title: t('landing.features.easyMigration.title'),
+      description: t('landing.features.easyMigration.description'),
     },
-  ]
+  ])
 </script>
 
 <!-- Hero Section -->
@@ -57,17 +54,16 @@
   </div>
 
   <div class="container mx-auto px-4 text-center">
-    <h1 class="h1 mb-4">Protect Your Private Land Bouldering Areas</h1>
+    <h1 class="h1 mb-4">{t('landing.hero.title')}</h1>
 
     <p class="mx-auto mb-8 max-w-2xl text-xl opacity-75">
-      Professional area management for sensitive access locations. Keep your development projects secure, collaborate
-      with your community, and never lose your data again.
+      {t('landing.hero.subtitle')}
     </p>
 
     <div class="flex justify-center gap-4">
       <a href="/auth" class="btn preset-filled-primary-500">
         <i class="fa-solid fa-shield-heart mr-2"></i>
-        Secure My Areas
+        {t('landing.hero.secureAreas')}
       </a>
 
       {#if !PUBLIC_DEMO_MODE}
@@ -78,7 +74,7 @@
           target="_blank"
         >
           <i class="fa-solid fa-play mr-2"></i>
-          Try Demo
+          {t('landing.hero.tryDemo')}
         </a>
       {/if}
     </div>
@@ -88,17 +84,14 @@
 <!-- Problem Statement -->
 <section class="py-16">
   <div class="container mx-auto px-4 text-center">
-    <h2 class="h2 mb-8">Why Area Developers Choose Privacy-First Tools</h2>
+    <h2 class="h2 mb-8">{t('landing.problem.title')}</h2>
 
     <div class="mx-auto mb-12 max-w-3xl">
       <p class="mb-6 text-lg opacity-90">
-        Developing bouldering areas on private land requires careful balance between community collaboration and access
-        protection. One misplaced coordinate or overshared beta can jeopardize years of relationship building with
-        landowners.
+        {t('landing.problem.paragraph1')}
       </p>
       <p class="text-lg opacity-90">
-        Meanwhile, managing development data across scattered Excel files and email chains creates version conflicts,
-        data loss risks, and collaboration headaches that slow down progress.
+        {t('landing.problem.paragraph2')}
       </p>
     </div>
   </div>
@@ -107,7 +100,7 @@
 <!-- Core Features -->
 <section class="py-16">
   <div class="container mx-auto px-4">
-    <h2 class="h2 mb-12 text-center">Built for Area Developers Who Value Access</h2>
+    <h2 class="h2 mb-12 text-center">{t('landing.features.title')}</h2>
 
     <!-- Mobile Carousel with Scroll Snap (shown on mobile, hidden on md and up) -->
     <div class="md:hidden">
@@ -140,25 +133,25 @@
 <!-- Who This Is For -->
 <section class="bg-surface-100-900 py-16">
   <div class="container mx-auto px-4 text-center">
-    <h2 class="h2 mb-8">Perfect For</h2>
+    <h2 class="h2 mb-8">{t('landing.perfectFor.title')}</h2>
 
     <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
       <div class="p-6">
         <i class="fa-solid fa-hammer text-primary-500 mb-4 text-3xl"></i>
-        <h3 class="h5 mb-2">Area Developers</h3>
-        <p class="opacity-75">First ascentionists and route setters managing ongoing development projects</p>
+        <h3 class="h5 mb-2">{t('landing.perfectFor.areaDevelopers.title')}</h3>
+        <p class="opacity-75">{t('landing.perfectFor.areaDevelopers.description')}</p>
       </div>
 
       <div class="p-6">
         <i class="fa-solid fa-user-friends text-primary-500 mb-4 text-3xl"></i>
-        <h3 class="h5 mb-2">Local Communities</h3>
-        <p class="opacity-75">Tight-knit climbing groups with sensitive access areas requiring discretion</p>
+        <h3 class="h5 mb-2">{t('landing.perfectFor.localCommunities.title')}</h3>
+        <p class="opacity-75">{t('landing.perfectFor.localCommunities.description')}</p>
       </div>
 
       <div class="p-6">
         <i class="fa-solid fa-tree text-primary-500 mb-4 text-3xl"></i>
-        <h3 class="h5 mb-2">Private Land Stewards</h3>
-        <p class="opacity-75">Landowners and permitted groups managing sustainable access programs</p>
+        <h3 class="h5 mb-2">{t('landing.perfectFor.privateLandStewards.title')}</h3>
+        <p class="opacity-75">{t('landing.perfectFor.privateLandStewards.description')}</p>
       </div>
     </div>
   </div>
@@ -167,9 +160,9 @@
 <!-- Integration Section -->
 <section class="py-16 text-center">
   <div class="container mx-auto px-4">
-    <h2 class="h2 mb-8">When You're Ready to Go Public</h2>
+    <h2 class="h2 mb-8">{t('landing.integration.title')}</h2>
     <p class="mx-auto mb-8 max-w-2xl opacity-75">
-      Once access is secured and areas are established, easily export your data to public platforms when appropriate.
+      {t('landing.integration.description')}
     </p>
     <div class="flex items-center justify-center gap-8">
       <img src={Logo8a} alt="8a" class="h-8 opacity-75 transition-opacity hover:opacity-100" />

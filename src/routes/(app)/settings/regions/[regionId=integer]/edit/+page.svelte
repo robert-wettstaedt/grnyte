@@ -2,20 +2,22 @@
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import RegionFormFields from '$lib/components/RegionFormFields'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { data, form } = $props()
 
+  const { t } = $derived(getI18n())
   let isValid = $state(false)
 </script>
 
 <svelte:head>
-  <title>Edit {data.region.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('settings.regionSettings.editRegion')} {data.region.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
-    <AppBar.Headline>Edit {data.region.name}</AppBar.Headline>
+    <AppBar.Headline>{t('settings.regionSettings.editRegion')} {data.region.name}</AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
@@ -27,9 +29,9 @@
   />
 
   <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">{t('common.cancel')}</button>
     <button class="btn preset-filled-primary-500" disabled={!isValid} type="submit">
-      <i class="fa-solid fa-floppy-disk"></i> Save region
+      <i class="fa-solid fa-floppy-disk"></i> {t('settings.regionSettings.saveRegion')}
     </button>
   </div>
 </form>

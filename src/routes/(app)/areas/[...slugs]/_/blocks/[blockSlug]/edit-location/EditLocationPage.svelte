@@ -12,8 +12,10 @@
   import type { Coordinate } from 'ol/coordinate'
   import type { ChangeEventHandler } from 'svelte/elements'
   import { deleteGeolocation, updateLocation } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   const { block } = getBlockContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
@@ -45,14 +47,13 @@
 </script>
 
 <svelte:head>
-  <title>Edit geolocation of {block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('location.editLocationOfTitle', { name: block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Edit geolocation of
-      <a class="anchor" href={basePath}>{block.name}</a>
+      {t('location.editLocation')} <a class="anchor" href={basePath}>{block.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
@@ -62,8 +63,8 @@
 
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     <Tabs.List>
-      <Tabs.Trigger value="map">Map</Tabs.Trigger>
-      <Tabs.Trigger value="latlong">Lat Long</Tabs.Trigger>
+      <Tabs.Trigger value="map">{t('map.title')}</Tabs.Trigger>
+      <Tabs.Trigger value="latlong">{t('map.latLong')}</Tabs.Trigger>
       <Tabs.Indicator />
     </Tabs.List>
 
@@ -81,21 +82,24 @@
     <Tabs.Content value="latlong">
       <div class="flex flex-col gap-4">
         <label class="label">
-          <span>Latitude</span>
+          <span>{t('map.latitude')}</span>
           <input class="input" name="lat" onchange={onChangeLat} value={coordinate?.at(1) ?? ''} />
         </label>
 
         <label class="label">
-          <span>Longitude</span>
+          <span>{t('map.longitude')}</span>
           <input class="input" name="long" onchange={onChangeLong} value={coordinate?.at(0) ?? ''} />
         </label>
       </div>
     </Tabs.Content>
   </Tabs>
 
-  <FormActionBar disabled={coordinate == null} label="Update geolocation" pending={updateLocation.pending} />
+  <FormActionBar disabled={coordinate == null} label={t('location.updateLocation')} pending={updateLocation.pending} />
 </form>
 
 {#if block.geolocationFk != null && checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)}
-  <DangerZone name="geolocation" onDelete={() => (block.id == null ? undefined : deleteGeolocation(block.id))} />
+  <DangerZone
+    name={t('location.location')}
+    onDelete={() => (block.id == null ? undefined : deleteGeolocation(block.id))}
+  />
 {/if}

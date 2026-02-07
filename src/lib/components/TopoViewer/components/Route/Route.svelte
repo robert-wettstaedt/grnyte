@@ -15,6 +15,7 @@
   import type { MouseEventHandler } from 'svelte/elements'
   import { dragStore, selectedPointTypeStore, selectedRouteStore } from '../../stores'
   import { calcLines } from './lib'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     editable?: boolean
@@ -48,6 +49,7 @@
   let longPressTimer: ReturnType<typeof setTimeout> | undefined = $state()
   let longPressPoint: PointDTO | undefined = $state()
   const LONG_PRESS_DURATION = 1000
+  const { t } = getI18n()
 
   const clearLongPress = () => {
     clearTimeout(longPressTimer)
@@ -399,7 +401,7 @@
   >
     <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDeletePoint}>
       <i class="fa-solid fa-trash"></i>
-      Delete point
+      {t('topo.deletePoint')}
     </button>
   </foreignObject>
 {/if}

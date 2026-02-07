@@ -2,7 +2,9 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
+  import { getI18n } from '$lib/i18n'
   import GradeRangeSlider from '../GradeRangeSlider'
+  const { t } = getI18n()
 </script>
 
 <form class="flex flex-col items-center gap-4 px-2 md:px-4">
@@ -30,7 +32,7 @@
 
   <div class="flex w-full max-w-md gap-4">
     <label class="label">
-      <span class="label-text">Sort by</span>
+      <span class="label-text">{t('common.sortBy')}</span>
       <select
         class="select"
         name="sort"
@@ -41,14 +43,14 @@
         }}
         value={page.url.searchParams.get('sort') ?? 'rating'}
       >
-        <option value="rating">Rating</option>
-        <option value="grade">Grade</option>
-        <option value="firstAscentYear">Year of FA</option>
+        <option value="rating">{t('common.rating')}</option>
+        <option value="grade">{t('common.grade')}</option>
+        <option value="firstAscentYear">{t('routes.yearOfFA')}</option>
       </select>
     </label>
 
     <label class="label">
-      <span class="label-text">Sort order</span>
+      <span class="label-text">{t('common.sortOrder')}</span>
       <select
         class="select"
         name="sortOrder"
@@ -59,8 +61,8 @@
         }}
         value={page.url.searchParams.get('sortOrder') ?? 'desc'}
       >
-        <option value="desc">Descending ⬇</option>
-        <option value="asc">Ascending ⬆️</option>
+        <option value="desc">{t('common.descending')}</option>
+        <option value="asc">{t('common.ascending')}</option>
       </select>
     </label>
   </div>

@@ -14,6 +14,7 @@
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
   import { deleteFirstAscent, updateFirstAscent } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     firstAscensionists: ZeroQueryResult<PageProps['data']['faQuery']>
@@ -27,16 +28,17 @@
   )
 
   const { route } = getRouteContext()
+  const { t } = getI18n()
 
   let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
+  const stars = $derived(route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `)
+  const gradeSuffix = $derived(grade == null ? '' : ` (${grade[pageState.gradingScale]})`)
+  const routeTitle = $derived(`${stars}${route.name}${gradeSuffix}`)
 </script>
 
 <svelte:head>
   <title>
-    Edit FA of
-    {route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `}
-    {route.name}
-    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
+    {t('firstAscent.editFAOfTitle', { name: routeTitle })}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
@@ -44,7 +46,7 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Edit FA of
+      {t('firstAscent.editFAOf')}
       <a class="anchor" href={basePath}>
         <RouteName {route} />
       </a>
@@ -56,28 +58,28 @@
   <input name="routeId" type="hidden" value={route.id} />
 
   <label class="label">
-    <span>Year</span>
+    <span>{t('firstAscent.year')}</span>
     <input
       class="input"
       max={new Date().getFullYear()}
       min={1970}
       name="year"
-      placeholder="Enter year..."
+      placeholder={t('firstAscent.enterYear')}
       type="number"
       value={route.firstAscentYear}
     />
   </label>
 
-  <div class="mt-4">Climber</div>
+  <div class="mt-4">{t('firstAscent.climber')}</div>
   <MultiSelect
     name="climberName"
     options={firstAscensionists.map((firstAscensionist) => firstAscensionist.name)}
     value={route.firstAscents.map((fa) => (fa as FA).firstAscensionist?.name).filter((name) => name != null)}
   />
 
-  <FormActionBar label="Update FA" pending={updateFirstAscent.pending} />
+  <FormActionBar label={t('firstAscent.updateFA')} pending={updateFirstAscent.pending} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], route.regionFk)}
-  <DangerZone name="FA" onDelete={() => route.id != null && deleteFirstAscent(route.id)} />
+  <DangerZone name={t('firstAscent.title')} onDelete={() => route.id != null && deleteFirstAscent(route.id)} />
 {/if}

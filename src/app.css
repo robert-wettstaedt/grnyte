@@ -59,6 +59,12 @@ select option:checked {
   background-color: var(--color-primary-500);
 }
 
+[data-scope='app-bar'][data-part='headline'] {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
 [data-scope='popover'][data-part='description'] {
   margin: 0;
 }

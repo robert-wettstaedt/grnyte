@@ -13,8 +13,10 @@
   import { Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy, onMount } from 'svelte'
   import BlockActions from './BlockActions.svelte'
+  import { getI18n } from '$lib/i18n'
 
   const { block } = getBlockContext()
+  const { t } = getI18n()
 
   type TabValue = 'topo' | 'map'
   let tabValue: TabValue | undefined = $state(undefined)
@@ -60,17 +62,17 @@
         <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
 
         <p>
-          The geolocation of this block is missing. Do you know where it is?
+          {t('blocks.geolocationMissing')}
 
-          <a class="anchor" href={`${page.url.pathname}/edit-location`}>Add location</a>
+          <a class="anchor" href={`${page.url.pathname}/edit-location`}>{t('map.addLocation')}</a>
         </p>
       </aside>
     {/if}
 
     <Tabs onValueChange={onChangeTab} value={tabValue}>
-      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-[500px]">
-        <Tabs.Trigger class="flex-1" value="topo">Topo</Tabs.Trigger>
-        <Tabs.Trigger class="flex-1" value="map">Map</Tabs.Trigger>
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-125">
+        <Tabs.Trigger class="flex-1" value="topo">{t('topo.title')}</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="map">{t('map.title')}</Tabs.Trigger>
         <Tabs.Indicator />
       </Tabs.List>
 
@@ -84,7 +86,8 @@
                     {#snippet actions()}
                       {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk)}
                         <a
-                          aria-label="Edit topo"
+                          aria-label={t('topo.editTopo')}
+                          title={t('topo.editTopo')}
                           class="btn-icon preset-filled"
                           href={`${page.url.pathname}/topos/draw`}
                         >
@@ -98,7 +101,7 @@
 
               <section class={`mt-4 w-full md:mt-0 ${topos.length === 0 ? '' : 'md:w-2/4'}`}>
                 {#if routes.length === 0}
-                  No routes yet
+                  {t('routes.noRoutesYet')}
                 {:else}
                   <nav class="list-nav">
                     <ul>
@@ -131,7 +134,8 @@
 
                           {#if navigator.maxTouchPoints > 0}
                             <button
-                              aria-label="View route"
+                              aria-label={t('routes.viewRoute')}
+                              title={t('routes.viewRoute')}
                               class="btn-icon preset-tonal absolute top-1/2 right-2 -translate-y-1/2"
                               onclick={() => selectedRouteStore.set(route.id)}
                             >

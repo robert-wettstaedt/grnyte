@@ -1,6 +1,7 @@
 import { selectedPointTypeStore, selectedRouteStore } from '$lib/components/TopoViewer/stores'
 import type { TopoRouteDTO } from '$lib/topo'
-import { fireEvent, render } from '@testing-library/svelte'
+import { fireEvent } from '@testing-library/svelte'
+import { renderWithI18n } from '$lib/test/renderWithI18n'
 import { get } from 'svelte/store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import RouteView from './Route.svelte'
@@ -104,7 +105,7 @@ describe('RouteView Component', () => {
 
   describe('Rendering', () => {
     it('should render route lines correctly', () => {
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -113,6 +114,7 @@ describe('RouteView Component', () => {
           width: 600,
           scale: 1,
         },
+        lang: 'en',
       })
 
       const lines = container.querySelectorAll('line[data-id="line"]')
@@ -122,7 +124,7 @@ describe('RouteView Component', () => {
     })
 
     it('should render points when route is selected', async () => {
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -131,6 +133,7 @@ describe('RouteView Component', () => {
           width: 600,
           scale: 1,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -142,7 +145,7 @@ describe('RouteView Component', () => {
     })
 
     it('should style points based on type', async () => {
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -151,6 +154,7 @@ describe('RouteView Component', () => {
           width: 600,
           scale: 1,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -169,7 +173,7 @@ describe('RouteView Component', () => {
   describe('Interactions', () => {
     it('should handle point dragging', async () => {
       const onChange = vi.fn()
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -179,6 +183,7 @@ describe('RouteView Component', () => {
           scale: 1,
           onChange,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -205,7 +210,7 @@ describe('RouteView Component', () => {
 
     it('should handle point deletion', async () => {
       const onChange = vi.fn()
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -215,6 +220,7 @@ describe('RouteView Component', () => {
           scale: 1,
           onChange,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -262,7 +268,7 @@ describe('RouteView Component', () => {
     })
 
     it('should handle route selection', async () => {
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -271,6 +277,7 @@ describe('RouteView Component', () => {
           width: 600,
           scale: 1,
         },
+        lang: 'en',
       })
 
       const group = container.querySelector('g')
@@ -317,7 +324,7 @@ describe('RouteView Component', () => {
 
   describe('Styling', () => {
     it('should apply selected styles when route is selected', async () => {
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [mockRoute],
           index: 0,
@@ -326,6 +333,7 @@ describe('RouteView Component', () => {
           width: 600,
           scale: 1,
         },
+        lang: 'en',
       })
 
       const lines = container.querySelectorAll('line[data-id="line"]')
@@ -345,7 +353,7 @@ describe('RouteView Component', () => {
         topType: 'topout' as const,
       }
 
-      const { container } = render(RouteView, {
+      const { container } = renderWithI18n(RouteView, {
         props: {
           routes: [routeWithTopout],
           index: 0,
@@ -354,6 +362,7 @@ describe('RouteView Component', () => {
           width: 600,
           scale: 1,
         },
+        lang: 'en',
       })
 
       const topout = container.querySelector('#topout')

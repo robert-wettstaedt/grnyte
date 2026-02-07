@@ -10,6 +10,7 @@
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { replaceTopo } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     topo: RowWithRelations<'topos', { file: true }>
@@ -18,6 +19,7 @@
   const { topo }: Props = $props()
 
   const { block } = getBlockContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
@@ -25,14 +27,13 @@
 </script>
 
 <svelte:head>
-  <title>Replace topo of {block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('topo.replaceTopoOfTitle', { name: block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Replace topo of
-      <a class="anchor" href={basePath}>{block.name}</a>
+      {t('topo.replaceTopo')} <a class="anchor" href={basePath}>{block.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
@@ -53,5 +54,5 @@
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
   <input type="hidden" name="topoId" value={topo.id} />
 
-  <FormActionBar label="Replace image" pending={replaceTopo.pending} />
+  <FormActionBar label={t('topo.replaceImage')} pending={replaceTopo.pending} />
 </form>

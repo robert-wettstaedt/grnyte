@@ -10,6 +10,7 @@
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
   import RoutesFilter from './components/RoutesFilter'
   import { getRoutesFilterQuery } from './lib'
+  import { getI18n } from '$lib/i18n'
 
   interface Props extends ZeroQueryWrapperBaseProps {
     areaFk?: number | null
@@ -23,6 +24,8 @@
       .filter((route) => route.id != null)
       .map((route) => ({ ...route, id: route.id! }))
   }
+
+  const { t } = getI18n()
 </script>
 
 <div class="mt-8">
@@ -58,7 +61,7 @@
             <LoadingIndicator />
           {/if}
 
-          Load more
+          {t('common.showMore')}
         </button>
       </div>
     {/if}
