@@ -21,7 +21,7 @@
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation, Toast } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
-  import { onMount, setContext, type Snippet } from 'svelte'
+  import { onMount, type Snippet } from 'svelte'
   import { online } from 'svelte/reactivity/window'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'

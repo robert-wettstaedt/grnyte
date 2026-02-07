@@ -1,9 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { getI18n } from '$lib/i18n'
-  import type { PageData } from './$types'
 
-  export let data: PageData
+  const { data } = $props()
 
   const { t } = $derived(getI18n())
 </script>
