@@ -81,16 +81,16 @@
     "activity": {
       "someone": "Jemand",
       "ascent": {
-        "created": "@@user hat @@route {{type}}",
+        "created": "{{user}} hat {{route}} {{type}}",
         "updated": {
-          "bySelf": "@@user hat {{column}} seiner/ihrer Begehung von @@entity aktualisiert",
-          "byOther": "@@user hat {{column}} von @@other's Begehung von @@entity aktualisiert",
-          "byUnknown": "@@user hat {{column}} von einer Begehung von @@entity aktualisiert"
+          "bySelf": "{{user}} hat {{column}} seiner/ihrer Begehung von {{entity}} aktualisiert",
+          "byOther": "{{user}} hat {{column}} von {{other}}'s Begehung von {{entity}} aktualisiert",
+          "byUnknown": "{{user}} hat {{column}} von einer Begehung von {{entity}} aktualisiert"
         },
         "deleted": {
-          "bySelf": "@@user hat seine/ihre Begehung von @@entity gelöscht",
-          "byOther": "@@user hat @@other's Begehung von @@entity gelöscht",
-          "byUnknown": "@@user hat eine Begehung von @@entity gelöscht"
+          "bySelf": "{{user}} hat seine/ihre Begehung von {{entity}} gelöscht",
+          "byOther": "{{user}} hat {{other}}'s Begehung von {{entity}} gelöscht",
+          "byUnknown": "{{user}} hat eine Begehung von {{entity}} gelöscht"
         },
         "personalOpinion": "Persönliche Meinung",
         "types": {
@@ -103,68 +103,68 @@
       "user": {
         "approved": {
           "withRegion": {
-            "user": "@@user hat @@other für die Region {{region}} genehmigt",
-            "anon": "@@user hat einen Nutzer für die Region {{region}} genehmigt"
+            "user": "{{user}} hat {{other}} für die Region {{region}} genehmigt",
+            "anon": "{{user}} hat einen Nutzer für die Region {{region}} genehmigt"
           },
-          "user": "@@user hat @@other genehmigt",
-          "anon": "@@user hat einen Nutzer genehmigt"
+          "user": "{{user}} hat {{other}} genehmigt",
+          "anon": "{{user}} hat einen Nutzer genehmigt"
         },
         "roleUpdated": {
           "withRegion": {
-            "user": "@@user hat die Rolle von @@other in der Region {{region}} auf {{role}} aktualisiert",
-            "anon": "@@user hat die Rolle eines Nutzers in der Region {{region}} auf {{role}} aktualisiert"
+            "user": "{{user}} hat die Rolle von {{other}} in der Region {{region}} auf {{role}} aktualisiert",
+            "anon": "{{user}} hat die Rolle eines Nutzers in der Region {{region}} auf {{role}} aktualisiert"
           },
-          "user": "@@user hat die Rolle von @@other auf {{role}} aktualisiert",
-          "anon": "@@user hat die Rolle eines Nutzers auf {{role}} aktualisiert"
+          "user": "{{user}} hat die Rolle von {{other}} auf {{role}} aktualisiert",
+          "anon": "{{user}} hat die Rolle eines Nutzers auf {{role}} aktualisiert"
         },
         "removed": {
           "withRegion": {
-            "user": "@@user hat @@other aus der Region {{region}} entfernt",
-            "anon": "@@user hat einen Nutzer aus der Region {{region}} entfernt"
+            "user": "{{user}} hat {{other}} aus der Region {{region}} entfernt",
+            "anon": "{{user}} hat einen Nutzer aus der Region {{region}} entfernt"
           },
-          "user": "@@user hat @@other entfernt",
-          "anon": "@@user hat einen Nutzer entfernt"
+          "user": "{{user}} hat {{other}} entfernt",
+          "anon": "{{user}} hat einen Nutzer entfernt"
         }
       },
       "invitation": {
         "created": {
           "withRegion": {
-            "user": "@@user hat @@other in die Region {{region}} eingeladen",
-            "anon": "@@user hat einen Nutzer in die Region {{region}} eingeladen"
+            "user": "{{user}} hat {{other}} in die Region {{region}} eingeladen",
+            "anon": "{{user}} hat einen Nutzer in die Region {{region}} eingeladen"
           },
-          "user": "@@user hat @@other eingeladen",
-          "anon": "@@user hat einen Nutzer eingeladen"
+          "user": "{{user}} hat {{other}} eingeladen",
+          "anon": "{{user}} hat einen Nutzer eingeladen"
         },
         "accepted": {
           "withRegion": {
-            "user": "@@user hat die Einladung angenommen, der Region {{region}} beizutreten"
+            "user": "{{user}} hat die Einladung angenommen, der Region {{region}} beizutreten"
           },
-          "user": "@@user hat die Einladung angenommen beizutreten"
+          "user": "{{user}} hat die Einladung angenommen beizutreten"
         },
         "removed": {
           "withRegion": {
-            "user": "@@user hat die Einladung an @@other aus der Region {{region}} entfernt",
-            "anon": "@@user hat die Einladung an a user aus der Region {{region}} entfernt"
+            "user": "{{user}} hat die Einladung an {{other}} aus der Region {{region}} entfernt",
+            "anon": "{{user}} hat die Einladung an a user aus der Region {{region}} entfernt"
           },
-          "user": "@@user hat die Einladung an @@other entfernt",
-          "anon": "@@user hat die Einladung an a user entfernt"
+          "user": "{{user}} hat die Einladung an {{other}} entfernt",
+          "anon": "{{user}} hat die Einladung an a user entfernt"
         }
       },
       "favorite": {
-        "created": "@@user hat @@entity zu seinen/ihren Favoriten hinzugefügt",
-        "removed": "@@user hat @@entity aus seinen/ihren Favoriten entfernt"
+        "created": "{{user}} hat {{entity}} zu seinen/ihren Favoriten hinzugefügt",
+        "removed": "{{user}} hat {{entity}} aus seinen/ihren Favoriten entfernt"
       },
       "file": {
-        "uploaded": "@@user hat {{column}} hochgeladen",
+        "uploaded": "{{user}} hat {{column}} hochgeladen",
         "columns": {
           "file": "eine Datei",
           "topo image": "ein Topo Bild"
         }
       },
       "generic": {
-        "created": "@@user hat {{column}} @@entity erstellt",
-        "updated": "@@user hat {{column}} @@entity aktualisiert",
-        "deleted": "@@user hat {{column}} @@entity gelöscht"
+        "created": "{{user}} hat {{column}} {{entity}} erstellt",
+        "updated": "{{user}} hat {{column}} {{entity}} aktualisiert",
+        "deleted": "{{user}} hat {{column}} {{entity}} gelöscht"
       },
       "entities": {
         "area": {

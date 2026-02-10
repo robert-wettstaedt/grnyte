@@ -11,15 +11,19 @@
     children?: Snippet
     context?: string
     key: string
-    parts?: Record<string, Part<Component<any>> | null | undefined>
-    values?: Record<string, string | null | undefined>
+    values?: Record<string, string | Part<Component<any>> | null | undefined>
   }
 
-  const { children, context, key, parts, values }: Props = $props()
+  const { children, context, key, values }: Props = $props()
 
   const content = $derived.by(() => {
+    const stringValues: Record<string, string> = {}
+    Object.entries(values ?? {}).forEach(([key, value]) =>
+      typeof value === 'string' ? (stringValues[key] = value) : null,
+    )
+
     if (key) {
-      const options = { ...values, context }
+      const options = { ...stringValues, context }
       const result = t(key, options)
       const final = result && result !== key ? result : null
       if (final != null) {
@@ -37,14 +41,14 @@
       return []
     }
 
-    const regex = /(@@\w+)/
+    const regex = /(\{\{\w+\}\})/
     const split = content.split(regex)
-    const prefix = '@@'
+    const prefix = '{{'
 
     const replaced = split.map((part): RenderablePart | string => {
       if (part.startsWith(prefix)) {
-        const key = part.replace(prefix, '')
-        return parts?.[key] ?? part
+        const key = part.replace(/\{\{|\}\}/g, '')
+        return values?.[key] ?? part
       }
       return part
     })

@@ -1224,8 +1224,6 @@ describe('Sentence.svelte', () => {
         })
 
         const { container } = renderWithI18n(Sentence, { props: { activity, withDetails: true } })
-        console.log(container.innerHTML)
-
         expect(getTextContent(container)).toBe('testuser updated the topo of route Test Route "2020"')
       })
     })

@@ -11,7 +11,7 @@
 
 <Trans
   key="activity.favorite.created"
-  parts={{
+  values={{
     user: part(Username, { activity, withDetails }, ''),
     entity: part(
       EntityLink,

@@ -27,11 +27,9 @@
 
 <Trans
   {key}
-  parts={{
-    user: part(Username, { activity, withDetails }, ''),
-    other: user == null ? undefined : part(UserLink, { user }, ''),
-  }}
   values={{
     region: activity.region?.name,
+    user: part(Username, { activity, withDetails }, ''),
+    other: user == null ? undefined : part(UserLink, { user }, ''),
   }}
 ></Trans>

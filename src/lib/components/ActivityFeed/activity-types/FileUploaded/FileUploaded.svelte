@@ -14,11 +14,9 @@
 
 <Trans
   key="activity.file.uploaded"
-  parts={{
-    user: part(Username, { activity, withDetails }, ''),
-  }}
   values={{
     column: t(`activity.file.columns.${activity.columnName ?? activity.entityType}`),
+    user: part(Username, { activity, withDetails }, ''),
   }}
 ></Trans>
 

@@ -25,10 +25,8 @@
 
 <Trans
   {key}
-  parts={{
-    user: part(Username, { activity, withDetails }, ''),
-  }}
   values={{
     region: activity.region?.name,
+    user: part(Username, { activity, withDetails }, ''),
   }}
 ></Trans>

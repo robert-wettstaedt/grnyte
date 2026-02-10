@@ -73,7 +73,8 @@
   {#if activity.entity.type === 'ascent' && ascentKey != null}
     <Trans
       key={ascentKey}
-      parts={{
+      values={{
+        column,
         user: part(Username, { activity, withDetails }, ''),
         other: part(UserLink, { user: activity.entity.object?.author }, ''),
         entity: part(
@@ -89,14 +90,12 @@
           '',
         ),
       }}
-      values={{
-        column,
-      }}
     ></Trans>
   {:else}
     <Trans
       key="activity.generic.{activity.type}"
-      parts={{
+      values={{
+        column,
         user: part(Username, { activity, withDetails }, ''),
         entity: part(
           EntityLink,
@@ -110,9 +109,6 @@
           },
           '',
         ),
-      }}
-      values={{
-        column,
       }}
     ></Trans>
   {/if}

@@ -25,7 +25,8 @@
   {#if entity.object?.type != null}
     <Trans
       key="activity.ascent.created"
-      parts={{
+      values={{
+        type: t(`activity.ascent.types.${entity.object.type}`),
         user: part(Username, { activity, withDetails }, ''),
         route: part(
           EntityLink,
@@ -38,9 +39,6 @@
           },
           '',
         ),
-      }}
-      values={{
-        type: t(`activity.ascent.types.${entity.object.type}`),
       }}
     ></Trans>
   {/if}

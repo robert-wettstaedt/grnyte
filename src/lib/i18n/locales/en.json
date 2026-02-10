@@ -83,16 +83,16 @@
     "activity": {
       "someone": "Someone",
       "ascent": {
-        "created": "@@user {{type}} @@route",
+        "created": "{{user}} {{type}} {{route}}",
         "updated": {
-          "bySelf": "@@user updated {{column}} of their own ascent of @@entity",
-          "byOther": "@@user updated {{column}} of @@other's ascent of @@entity",
-          "byUnknown": "@@user updated {{column}} of an ascent of @@entity"
+          "bySelf": "{{user}} updated {{column}} of their own ascent of {{entity}}",
+          "byOther": "{{user}} updated {{column}} of {{other}}'s ascent of {{entity}}",
+          "byUnknown": "{{user}} updated {{column}} of an ascent of {{entity}}"
         },
         "deleted": {
-          "bySelf": "@@user deleted their own ascent of @@entity",
-          "byOther": "@@user deleted @@other's ascent of @@entity",
-          "byUnknown": "@@user deleted an ascent of @@entity"
+          "bySelf": "{{user}} deleted their own ascent of {{entity}}",
+          "byOther": "{{user}} deleted {{other}}'s ascent of {{entity}}",
+          "byUnknown": "{{user}} deleted an ascent of {{entity}}"
         },
         "personalOpinion": "Personal opinion",
         "types": {
@@ -105,68 +105,68 @@
       "user": {
         "approved": {
           "withRegion": {
-            "user": "@@user approved @@other to region {{region}}",
-            "anon": "@@user approved a user to region {{region}}"
+            "user": "{{user}} approved {{other}} to region {{region}}",
+            "anon": "{{user}} approved a user to region {{region}}"
           },
-          "user": "@@user approved @@other",
-          "anon": "@@user approved a user"
+          "user": "{{user}} approved {{other}}",
+          "anon": "{{user}} approved a user"
         },
         "roleUpdated": {
           "withRegion": {
-            "user": "@@user updated the role of @@other to {{role}} in region {{region}}",
-            "anon": "@@user updated the role of a user to {{role}} in region {{region}}"
+            "user": "{{user}} updated the role of {{other}} to {{role}} in region {{region}}",
+            "anon": "{{user}} updated the role of a user to {{role}} in region {{region}}"
           },
-          "user": "@@user updated the role of @@other to {{role}}",
-          "anon": "@@user updated the role of a user to {{role}}"
+          "user": "{{user}} updated the role of {{other}} to {{role}}",
+          "anon": "{{user}} updated the role of a user to {{role}}"
         },
         "removed": {
           "withRegion": {
-            "user": "@@user removed @@other from region {{region}}",
-            "anon": "@@user removed a user from region {{region}}"
+            "user": "{{user}} removed {{other}} from region {{region}}",
+            "anon": "{{user}} removed a user from region {{region}}"
           },
-          "user": "@@user removed @@other",
-          "anon": "@@user removed a user"
+          "user": "{{user}} removed {{other}}",
+          "anon": "{{user}} removed a user"
         }
       },
       "invitation": {
         "created": {
           "withRegion": {
-            "user": "@@user invited @@other to region {{region}}",
-            "anon": "@@user invited a user to region {{region}}"
+            "user": "{{user}} invited {{other}} to region {{region}}",
+            "anon": "{{user}} invited a user to region {{region}}"
           },
-          "user": "@@user invited @@other",
-          "anon": "@@user invited a user"
+          "user": "{{user}} invited {{other}}",
+          "anon": "{{user}} invited a user"
         },
         "accepted": {
           "withRegion": {
-            "user": "@@user accepted the invitation to join region {{region}}"
+            "user": "{{user}} accepted the invitation to join region {{region}}"
           },
-          "user": "@@user accepted the invitation to join"
+          "user": "{{user}} accepted the invitation to join"
         },
         "removed": {
           "withRegion": {
-            "user": "@@user removed the invitation to @@other from region {{region}}",
-            "anon": "@@user removed the invitation to a user from region {{region}}"
+            "user": "{{user}} removed the invitation to {{other}} from region {{region}}",
+            "anon": "{{user}} removed the invitation to a user from region {{region}}"
           },
-          "user": "@@user removed the invitation to @@other",
-          "anon": "@@user removed the invitation to a user"
+          "user": "{{user}} removed the invitation to {{other}}",
+          "anon": "{{user}} removed the invitation to a user"
         }
       },
       "favorite": {
-        "created": "@@user added @@entity to their favorites",
-        "removed": "@@user removed @@entity from their favorites"
+        "created": "{{user}} added {{entity}} to their favorites",
+        "removed": "{{user}} removed {{entity}} from their favorites"
       },
       "file": {
-        "uploaded": "@@user uploaded {{column}}",
+        "uploaded": "{{user}} uploaded {{column}}",
         "columns": {
           "file": "a file",
           "topo image": "a topo image"
         }
       },
       "generic": {
-        "created": "@@user created {{column}} @@entity",
-        "updated": "@@user updated {{column}} @@entity",
-        "deleted": "@@user deleted {{column}} @@entity"
+        "created": "{{user}} created {{column}} {{entity}}",
+        "updated": "{{user}} updated {{column}} {{entity}}",
+        "deleted": "{{user}} deleted {{column}} {{entity}}"
       },
       "entities": {
         "area": {

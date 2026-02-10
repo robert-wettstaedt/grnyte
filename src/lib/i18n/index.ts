@@ -5,7 +5,7 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import { getContext, setContext } from 'svelte'
 import { createI18nStore } from 'svelte-i18next'
 import { get, type Readable } from 'svelte/store'
-import { updateLanguage } from './language.remote'
+import { updateLanguage } from '$lib/i18n/language.remote'
 import de from './locales/de.json'
 import en from './locales/en.json'
 
