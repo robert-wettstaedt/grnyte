@@ -589,6 +589,11 @@ const pushSubscriptionsTable = {
       optional: false,
       customType: null as unknown as string,
     },
+    lang: {
+      type: 'string',
+      optional: true,
+      customType: null as unknown as string,
+    },
   },
   primaryKey: ['id'],
   serverName: 'push_subscriptions',
@@ -1733,206 +1738,148 @@ export type Schema = typeof schema
 /**
  * Represents a row from the "activities" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["activities"] instead from "@rocicorp/zero".
  */
-export type Activity = Row['activities']
+export type Activity = Row<(typeof schema)['tables']['activities']>
 /**
  * Represents a row from the "areas" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["areas"] instead from "@rocicorp/zero".
  */
-export type Area = Row['areas']
+export type Area = Row<(typeof schema)['tables']['areas']>
 /**
  * Represents a row from the "ascents" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["ascents"] instead from "@rocicorp/zero".
  */
-export type Ascent = Row['ascents']
+export type Ascent = Row<(typeof schema)['tables']['ascents']>
 /**
  * Represents a row from the "blocks" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["blocks"] instead from "@rocicorp/zero".
  */
-export type Block = Row['blocks']
+export type Block = Row<(typeof schema)['tables']['blocks']>
 /**
  * Represents a row from the "bunnyStreams" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["bunnyStreams"] instead from "@rocicorp/zero".
  */
-export type BunnyStream = Row['bunnyStreams']
+export type BunnyStream = Row<(typeof schema)['tables']['bunnyStreams']>
 /**
  * Represents a row from the "clientErrorLogs" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["clientErrorLogs"] instead from "@rocicorp/zero".
  */
-export type ClientErrorLog = Row['clientErrorLogs']
+export type ClientErrorLog = Row<(typeof schema)['tables']['clientErrorLogs']>
 /**
  * Represents a row from the "favorites" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["favorites"] instead from "@rocicorp/zero".
  */
-export type Favorite = Row['favorites']
+export type Favorite = Row<(typeof schema)['tables']['favorites']>
 /**
  * Represents a row from the "files" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["files"] instead from "@rocicorp/zero".
  */
-export type File = Row['files']
+export type File = Row<(typeof schema)['tables']['files']>
 /**
  * Represents a row from the "firstAscensionists" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["firstAscensionists"] instead from "@rocicorp/zero".
  */
-export type FirstAscensionist = Row['firstAscensionists']
+export type FirstAscensionist = Row<(typeof schema)['tables']['firstAscensionists']>
 /**
  * Represents a row from the "geolocations" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["geolocations"] instead from "@rocicorp/zero".
  */
-export type Geolocation = Row['geolocations']
+export type Geolocation = Row<(typeof schema)['tables']['geolocations']>
 /**
  * Represents a row from the "grades" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["grades"] instead from "@rocicorp/zero".
  */
-export type Grade = Row['grades']
+export type Grade = Row<(typeof schema)['tables']['grades']>
 /**
  * Represents a row from the "pushSubscriptions" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["pushSubscriptions"] instead from "@rocicorp/zero".
  */
-export type PushSubscription = Row['pushSubscriptions']
+export type PushSubscription = Row<(typeof schema)['tables']['pushSubscriptions']>
 /**
  * Represents a row from the "regionInvitations" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["regionInvitations"] instead from "@rocicorp/zero".
  */
-export type RegionInvitation = Row['regionInvitations']
+export type RegionInvitation = Row<(typeof schema)['tables']['regionInvitations']>
 /**
  * Represents a row from the "regionMembers" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["regionMembers"] instead from "@rocicorp/zero".
  */
-export type RegionMember = Row['regionMembers']
+export type RegionMember = Row<(typeof schema)['tables']['regionMembers']>
 /**
  * Represents a row from the "regions" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["regions"] instead from "@rocicorp/zero".
  */
-export type Region = Row['regions']
+export type Region = Row<(typeof schema)['tables']['regions']>
 /**
  * Represents a row from the "rolePermissions" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["rolePermissions"] instead from "@rocicorp/zero".
  */
-export type RolePermission = Row['rolePermissions']
+export type RolePermission = Row<(typeof schema)['tables']['rolePermissions']>
 /**
  * Represents a row from the "routeExternalResource27crags" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routeExternalResource27crags"] instead from "@rocicorp/zero".
  */
-export type RouteExternalResource27Crag = Row['routeExternalResource27crags']
+export type RouteExternalResource27Crag = Row<(typeof schema)['tables']['routeExternalResource27crags']>
 /**
  * Represents a row from the "routeExternalResource8a" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routeExternalResource8a"] instead from "@rocicorp/zero".
  */
-export type RouteExternalResource8A = Row['routeExternalResource8a']
+export type RouteExternalResource8A = Row<(typeof schema)['tables']['routeExternalResource8a']>
 /**
  * Represents a row from the "routeExternalResourceTheCrag" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routeExternalResourceTheCrag"] instead from "@rocicorp/zero".
  */
-export type RouteExternalResourceTheCrag = Row['routeExternalResourceTheCrag']
+export type RouteExternalResourceTheCrag = Row<(typeof schema)['tables']['routeExternalResourceTheCrag']>
 /**
  * Represents a row from the "routeExternalResources" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routeExternalResources"] instead from "@rocicorp/zero".
  */
-export type RouteExternalResource = Row['routeExternalResources']
+export type RouteExternalResource = Row<(typeof schema)['tables']['routeExternalResources']>
 /**
  * Represents a row from the "routes" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routes"] instead from "@rocicorp/zero".
  */
-export type Route = Row['routes']
+export type Route = Row<(typeof schema)['tables']['routes']>
 /**
  * Represents a row from the "routesToFirstAscensionists" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routesToFirstAscensionists"] instead from "@rocicorp/zero".
  */
-export type RoutesToFirstAscensionist = Row['routesToFirstAscensionists']
+export type RoutesToFirstAscensionist = Row<(typeof schema)['tables']['routesToFirstAscensionists']>
 /**
  * Represents a row from the "routesToTags" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["routesToTags"] instead from "@rocicorp/zero".
  */
-export type RoutesToTag = Row['routesToTags']
+export type RoutesToTag = Row<(typeof schema)['tables']['routesToTags']>
 /**
  * Represents a row from the "tags" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["tags"] instead from "@rocicorp/zero".
  */
-export type Tag = Row['tags']
+export type Tag = Row<(typeof schema)['tables']['tags']>
 /**
  * Represents a row from the "topoRoutes" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["topoRoutes"] instead from "@rocicorp/zero".
  */
-export type TopoRoute = Row['topoRoutes']
+export type TopoRoute = Row<(typeof schema)['tables']['topoRoutes']>
 /**
  * Represents a row from the "topos" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["topos"] instead from "@rocicorp/zero".
  */
-export type Topo = Row['topos']
+export type Topo = Row<(typeof schema)['tables']['topos']>
 /**
  * Represents a row from the "userRoles" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["userRoles"] instead from "@rocicorp/zero".
  */
-export type UserRole = Row['userRoles']
+export type UserRole = Row<(typeof schema)['tables']['userRoles']>
 /**
  * Represents a row from the "userSettings" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["userSettings"] instead from "@rocicorp/zero".
  */
-export type UserSetting = Row['userSettings']
+export type UserSetting = Row<(typeof schema)['tables']['userSettings']>
 /**
  * Represents a row from the "users" table.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use Row["users"] instead from "@rocicorp/zero".
  */
-export type User = Row['users']
+export type User = Row<(typeof schema)['tables']['users']>
 
 /**
  * Represents the ZQL query builder.
@@ -1942,8 +1889,6 @@ export const zql = createBuilder(schema)
 /**
  * Represents the Zero schema query builder.
  * This type is auto-generated from your Drizzle schema definition.
- *
- * @deprecated Use `zql` instead.
  */
 export const builder = zql
 

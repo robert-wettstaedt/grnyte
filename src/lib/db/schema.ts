@@ -247,6 +247,8 @@ export const pushSubscriptions = table(
     expirationTime: integer('expiration_time'),
     p256dh: text('p256dh').notNull(),
     auth: text('auth').notNull(),
+
+    lang: text('lang'),
   },
   (table) => [
     index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
