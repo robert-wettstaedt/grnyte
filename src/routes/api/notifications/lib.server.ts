@@ -5,7 +5,9 @@ import { config } from '$lib/config'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import type { Row } from '$lib/db/zero/types'
-import type { Notification } from '$lib/notifications'
+import { i18n } from '$lib/i18n/index.server'
+import { languages } from '$lib/i18n/utils'
+import type { NotificationTranslatable, TranslatedNotification } from '$lib/notifications'
 import { getGradeTemplateString } from '$lib/notifications/notifications.server'
 import { differenceInDays, differenceInMinutes } from 'date-fns'
 import { eq, inArray } from 'drizzle-orm'
@@ -57,7 +59,7 @@ export const groupActivities = (activities: schema.Activity[]) => {
   return groups
 }
 
-export const createNotifications = async (groups: Group[]): Promise<Notification[]> => {
+export const createNotifications = async (groups: Group[]): Promise<TranslatedNotification[]> => {
   const userFks = Array.from(new Set(groups.map((group) => group.userFk)))
   const users = await db.query.users.findMany({
     where: inArray(schema.users.id, userFks),
@@ -65,8 +67,15 @@ export const createNotifications = async (groups: Group[]): Promise<Notification
   })
 
   const notifications = await Promise.all(
-    groups.map(async (group): Promise<Notification | undefined> => {
-      const username = users.find((user) => user.id === group.userFk)?.username ?? 'Unknown User'
+    groups.map(async (group): Promise<TranslatedNotification | undefined> => {
+      const username = languages.reduce((obj, lang) => {
+        const t = i18n.getFixedT(lang)
+
+        return {
+          ...obj,
+          [lang]: users.find((user) => user.id === group.userFk)?.username ?? t('activity.someone'),
+        }
+      }, {} as NotificationTranslatable)
 
       switch (group.type) {
         case 'ascent':
@@ -87,7 +96,10 @@ export const createNotifications = async (groups: Group[]): Promise<Notification
   return notifications.filter((item) => item != null)
 }
 
-const getAscentNotification = async (group: Group, username: string): Promise<Notification | undefined> => {
+const getAscentNotification = async (
+  group: Group,
+  username: NotificationTranslatable,
+): Promise<TranslatedNotification | undefined> => {
   const ascentIds = Array.from(new Set(group.activities.map((activity) => Number(activity.entityId))))
   const ascents = await db.query.ascents.findMany({
     where: inArray(schema.ascents.id, ascentIds),
@@ -136,17 +148,32 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
       ? undefined
       : getVideoThumbnailUrl({ format: 'jpg', hostname: PUBLIC_BUNNY_STREAM_HOSTNAME, videoId: file.bunnyStreamFk })
 
-  return {
-    body: [
-      username,
-      ascentVerb(ascent),
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    const route = [
       ascent.route.name.length === 0 ? config.routes.defaultName : `"${ascent.route.name}"`,
       ascent.route.userGradeFk == null ? null : getGradeTemplateString(ascent.route.userGradeFk),
       ascent.route.userRating == null ? null : Array(ascent.route.userRating).fill('⭐️').join(''),
-      ascents.length > 1 ? `and climbed ${ascents.length - 1} more` : null,
     ]
       .filter(Boolean)
-      .join(' '),
+      .join(' ')
+
+    const type = t(`activity.ascent.types.${ascent.type}`)
+
+    return {
+      ...obj,
+      [lang]: [
+        t('activity.ascent.created', { user: username[lang], route, type }),
+        ascents.length === 1 ? undefined : t('activity.more.ascents', { count: ascents.length - 1 }),
+      ]
+        .filter(Boolean)
+        .join(' '),
+    }
+  }, {} as NotificationTranslatable)
+
+  return {
+    body,
     data: { pathname: `/ascents/${ascent.id}` },
     icon,
     tag: `${group.userFk}-${group.type}`,
@@ -156,41 +183,99 @@ const getAscentNotification = async (group: Group, username: string): Promise<No
   }
 }
 
-const getUserNotification = async (group: Group, username: string): Promise<Notification | undefined> => {
+const getUserNotification = async (
+  group: Group,
+  username: NotificationTranslatable,
+): Promise<TranslatedNotification | undefined> => {
   interface ActivityFilter {
     filter: (activity: schema.Activity) => boolean
     withEntity: boolean
-    getBody: (item: schema.Activity, user?: Row<'users'>) => string
+    getBody: (item: schema.Activity, user?: Row<'users'>) => NotificationTranslatable
   }
+
   const activityFilters: ActivityFilter[] = [
     {
       filter: (activity) => activity.type === 'created' && activity.columnName === 'role',
-      getBody: (_, user) => `${username} has approved ${user?.username}`,
+      getBody: (_, user) =>
+        languages.reduce(
+          (obj, lang) => ({
+            ...obj,
+            [lang]: i18n.getFixedT(lang)('activity.user.approved.user', {
+              user: username[lang],
+              other: user?.username,
+            }),
+          }),
+          {} as NotificationTranslatable,
+        ),
+      withEntity: true,
+    },
+    {
+      filter: (activity) => activity.type === 'updated' && activity.columnName === 'role',
+      getBody: (_, user) =>
+        languages.reduce(
+          (obj, lang) => ({
+            ...obj,
+            [lang]: i18n.getFixedT(lang)('activity.user.roleUpdated.user', {
+              user: username[lang],
+              other: user?.username,
+            }),
+          }),
+          {} as NotificationTranslatable,
+        ),
+      withEntity: true,
+    },
+    {
+      filter: (activity) => activity.type === 'deleted' && activity.columnName === 'role',
+      getBody: (_, user) =>
+        languages.reduce(
+          (obj, lang) => ({
+            ...obj,
+            [lang]: i18n.getFixedT(lang)('activity.user.removed.user', { user: username[lang], other: user?.username }),
+          }),
+          {} as NotificationTranslatable,
+        ),
       withEntity: true,
     },
     {
       filter: (activity) => activity.type === 'created' && activity.columnName === 'invitation',
-      getBody: (item) => `${username} has invited ${item.newValue}`,
+      getBody: (item) =>
+        languages.reduce(
+          (obj, lang) => ({
+            ...obj,
+            [lang]: i18n.getFixedT(lang)('activity.invitation.created.user', {
+              user: username[lang],
+              other: item.newValue,
+            }),
+          }),
+          {} as NotificationTranslatable,
+        ),
       withEntity: false,
-    },
-    {
-      filter: (activity) => activity.type === 'created' && activity.columnName === 'role',
-      getBody: (_, user) => `${username} has approved ${user?.username}`,
-      withEntity: true,
     },
     {
       filter: (activity) => activity.type === 'updated' && activity.columnName === 'invitation',
-      getBody: () => `${username} has accepted the invitation to join`,
+      getBody: (item) =>
+        languages.reduce(
+          (obj, lang) => ({
+            ...obj,
+            [lang]: i18n.getFixedT(lang)('activity.invitation.accepted.user', { user: username[lang] }),
+          }),
+          {} as NotificationTranslatable,
+        ),
       withEntity: false,
     },
     {
-      filter: (activity) => activity.type === 'deleted' && activity.columnName === 'role',
-      getBody: (_, user) => `${username} has removed ${user?.username}`,
-      withEntity: true,
-    },
-    {
-      filter: () => true,
-      getBody: () => `${username} has updated a user`,
+      filter: (activity) => activity.type === 'deleted' && activity.columnName === 'invitation',
+      getBody: (item) =>
+        languages.reduce(
+          (obj, lang) => ({
+            ...obj,
+            [lang]: i18n.getFixedT(lang)('activity.invitation.removed.user', {
+              user: username[lang],
+              other: item.newValue,
+            }),
+          }),
+          {} as NotificationTranslatable,
+        ),
       withEntity: false,
     },
   ]
@@ -220,7 +305,18 @@ const getUserNotification = async (group: Group, username: string): Promise<Noti
     const body = item.getBody(activity, user)
 
     return {
-      body: [body, array.length === 1 ? null : `and ${array.length - 1} more`].filter(Boolean).join(' '),
+      body: languages.reduce(
+        (obj, lang) => ({
+          ...obj,
+          [lang]: [
+            body[lang],
+            array.length === 1 ? null : i18n.getFixedT(lang)('activity.more.updates', { count: array.length - 1 }),
+          ]
+            .filter(Boolean)
+            .join(' '),
+        }),
+        {} as NotificationTranslatable,
+      ),
       data: { pathname: '/feed' },
       type: 'user',
       userId: group.userFk,
@@ -228,7 +324,10 @@ const getUserNotification = async (group: Group, username: string): Promise<Noti
   }
 }
 
-const getModerateNotification = async (group: Group, username: string): Promise<Notification | undefined> => {
+const getModerateNotification = async (
+  group: Group,
+  username: NotificationTranslatable,
+): Promise<TranslatedNotification | undefined> => {
   const activities = group.activities.toSorted((a, b) => activityPriority(a) - activityPriority(b))
 
   const activity = activities.at(0)
@@ -243,21 +342,36 @@ const getModerateNotification = async (group: Group, username: string): Promise<
   })
 
   const entity = parentEntity == null ? null : await postProcessEntity(db, activity.parentEntityType, parentEntity)
+  const { breadcrumb, object, type } = entity ?? {}
 
-  if (entity?.breadcrumb == null || entity.object == null || !('name' in entity.object)) {
+  if (breadcrumb == null || object == null || !('name' in object) || type == null) {
     return
   }
 
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: [
+        t(`activity.generic.updated`, {
+          user: username[lang],
+          column: '',
+          entity: breadcrumb.length === 0 ? object.name : breadcrumb.join(' > '),
+        }),
+        activities.length === 1
+          ? null
+          : i18n.getFixedT(lang)('activity.more.updates', { count: activities.length - 1 }),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' '),
+    }
+  }, {} as NotificationTranslatable)
+
   return {
-    body: [
-      username,
-      'has updated',
-      entity.breadcrumb.length === 0 ? entity.object.name : entity.breadcrumb.join(' > '),
-      activities.length === 1 ? null : `and ${activities.length - 1} more`,
-    ]
-      .filter(Boolean)
-      .join(' '),
-    data: { pathname: `/${entity.type}s/${entity.object.id}` },
+    body,
+    data: { pathname: `/${type}s/${object.id}` },
     tag: `${group.userFk}-${group.type}`,
 
     userId: group.userFk,
@@ -267,19 +381,6 @@ const getModerateNotification = async (group: Group, username: string): Promise<
 
 const ascentPriority = (ascent: schema.Ascent) => {
   return schema.ascentTypeEnum.indexOf(ascent.type)
-}
-
-const ascentVerb = (ascent: schema.Ascent) => {
-  switch (ascent.type) {
-    case 'flash':
-      return 'flashed'
-    case 'send':
-      return 'sent'
-    case 'attempt':
-      return 'attempted'
-    case 'repeat':
-      return 'repeated'
-  }
 }
 
 const activityPriority = (activity: schema.Activity) => {

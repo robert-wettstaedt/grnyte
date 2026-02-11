@@ -1,38 +1,52 @@
 import { PRIVATE_VAPID_KEY } from '$env/static/private'
 import { PUBLIC_TOPO_EMAIL, PUBLIC_VAPID_KEY } from '$env/static/public'
 import * as schema from '$lib/db/schema'
+import { defaultLanguage, type Language } from '$lib/i18n/utils'
 import { eq, inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import webpush from 'web-push'
-import type { Notification } from '.'
+import type { Notification, NotificationTranslatable, TranslatedNotification } from '.'
 
 webpush.setVapidDetails(`mailto:${PUBLIC_TOPO_EMAIL}`, PUBLIC_VAPID_KEY, PRIVATE_VAPID_KEY)
 
 export const getGradeTemplateString = (gradeFk: number) => `{grade: ${gradeFk}}`
 
 export const replaceGradeTemplateWithValue = (
-  title: string,
+  title: NotificationTranslatable,
   grades: schema.Grade[],
   gradingScale: keyof Omit<schema.Grade, 'id'> = 'FB',
-): string => {
-  return title.replace(/{grade: \d+}/g, (match) => {
-    const gradeFk = Number(match.match(/\d+/g)?.[0])
-    const grade = grades.find((grade) => grade.id === gradeFk)
-    return grade?.[gradingScale] ?? ''
-  })
+): NotificationTranslatable => {
+  function replace(s: string) {
+    return s.replace(/{grade: \d+}/g, (match) => {
+      const gradeFk = Number(match.match(/\d+/g)?.[0])
+      const grade = grades.find((grade) => grade.id === gradeFk)
+      return grade?.[gradingScale] ?? ''
+    })
+  }
+
+  return {
+    de: replace(title.de),
+    en: replace(title.en),
+  }
 }
 
 export const sendNotificationToSubscription = async (
-  notification: Notification,
+  { body, title, ...rest }: TranslatedNotification,
   subscription: schema.PushSubscription,
 ) => {
-  const { endpoint, expirationTime, auth, p256dh } = subscription
+  const { endpoint, expirationTime, auth, p256dh, lang } = subscription
+
+  const notification: Notification = {
+    ...rest,
+    body: body?.[(lang ?? defaultLanguage) as Language],
+    title: title?.[(lang ?? defaultLanguage) as Language],
+  }
 
   await webpush.sendNotification({ endpoint, keys: { auth, p256dh }, expirationTime }, JSON.stringify(notification))
 }
 
 export const sendNotificationsToAllSubscriptions = async (
-  notifications: Notification[],
+  notifications: TranslatedNotification[],
   db: PostgresJsDatabase<typeof schema>,
   userFk?: number,
   regionFk?: number,

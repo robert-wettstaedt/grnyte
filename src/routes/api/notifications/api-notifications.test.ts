@@ -388,19 +388,25 @@ describe('Notifications API Server Module', () => {
           // Ascent notification
           expect.objectContaining({
             type: 'ascent',
-            body: expect.stringContaining('climber1 flashed "Test Route"'),
+            body: expect.objectContaining({
+              en: expect.stringContaining('climber1 flashed "Test Route"'),
+            }),
             userId: 201,
           }),
           // User notification
           expect.objectContaining({
             type: 'user',
-            body: expect.stringContaining('climber1 has approved newuser'),
+            body: expect.objectContaining({
+              en: expect.stringContaining('climber1 approved newuser'),
+            }),
             userId: 201,
           }),
           // Moderation notification
           expect.objectContaining({
             type: 'moderate',
-            body: expect.stringContaining('moderator has updated Test Area > Test Block'),
+            body: expect.objectContaining({
+              en: expect.stringContaining('moderator updated Test Area > Test Block'),
+            }),
             userId: 301,
           }),
         ]),
@@ -553,7 +559,9 @@ describe('Notifications API Server Module', () => {
         expect.arrayContaining([
           expect.objectContaining({
             type: 'ascent',
-            body: expect.stringMatching(/.*{grade: 15}.*⭐️⭐️⭐️⭐️⭐️.*/),
+            body: expect.objectContaining({
+              en: expect.stringMatching(/.*{grade: 15}.*⭐️⭐️⭐️⭐️⭐️.*/),
+            }),
           }),
         ]),
         mockDb,

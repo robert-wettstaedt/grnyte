@@ -230,7 +230,8 @@ describe('createNotifications', () => {
 
       expect(notifications).toHaveLength(1)
       expect(notifications[0].type).toBe('ascent')
-      expect(notifications[0].body).toBe('climber1 flashed "Test Route" {grade: 15}')
+      expect(notifications[0].body?.de).toBe('climber1 hat "Test Route" {grade: 15} geflasht')
+      expect(notifications[0].body?.en).toBe('climber1 flashed "Test Route" {grade: 15}')
       expect(notifications[0].data).toEqual({ pathname: '/ascents/101' })
     })
 
@@ -249,7 +250,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([makeAscentGroup()])
 
-      expect(notifications[0].body).toBe('climber1 sent Unnamed Route')
+      expect(notifications[0].body?.de).toBe('climber1 hat Unnamed Route geschafft')
+      expect(notifications[0].body?.en).toBe('climber1 sent Unnamed Route')
     })
 
     it('should include star rating when present', async () => {
@@ -267,7 +269,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([makeAscentGroup()])
 
-      expect(notifications[0].body).toBe('climber1 flashed "Route" ⭐️⭐️⭐️')
+      expect(notifications[0].body?.de).toBe('climber1 hat "Route" ⭐️⭐️⭐️ geflasht')
+      expect(notifications[0].body?.en).toBe('climber1 flashed "Route" ⭐️⭐️⭐️')
     })
 
     it('should include "and climbed N more" for multiple ascents', async () => {
@@ -307,18 +310,19 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('climber1 flashed "Route 1" and climbed 2 more')
+      expect(notifications[0].body?.de).toBe('climber1 hat "Route 1" geflasht und 2 weitere Routen geklettert')
+      expect(notifications[0].body?.en).toBe('climber1 flashed "Route 1" and climbed 2 more routes')
     })
 
     it('should use correct verb for each ascent type', async () => {
       const types = [
-        { type: 'flash', verb: 'flashed' },
-        { type: 'send', verb: 'sent' },
-        { type: 'attempt', verb: 'attempted' },
-        { type: 'repeat', verb: 'repeated' },
+        { type: 'flash', de: 'geflasht', en: 'flashed' },
+        { type: 'send', de: 'geschafft', en: 'sent' },
+        { type: 'attempt', de: 'versucht', en: 'attempted' },
+        { type: 'repeat', de: 'wiederholt', en: 'repeated' },
       ] as const
 
-      for (const { type, verb } of types) {
+      for (const { type, de, en } of types) {
         vi.clearAllMocks()
         mockDb.query.users.findMany.mockResolvedValue([{ id: 201, username: 'climber1' }])
         mockDb.query.ascents.findMany.mockResolvedValue([
@@ -334,7 +338,8 @@ describe('createNotifications', () => {
 
         const notifications = await createNotifications([makeAscentGroup()])
 
-        expect(notifications[0].body).toBe(`climber1 ${verb} "Route"`)
+        expect(notifications[0].body?.de).toBe(`climber1 hat "Route" ${de}`)
+        expect(notifications[0].body?.en).toBe(`climber1 ${en} "Route"`)
       }
     })
 
@@ -364,7 +369,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('climber1 flashed "Route B" and climbed 1 more')
+      expect(notifications[0].body?.de).toBe('climber1 hat "Route B" geflasht und 1 weitere Route geklettert')
+      expect(notifications[0].body?.en).toBe('climber1 flashed "Route B" and climbed 1 more route')
       expect(notifications[0].data).toEqual({ pathname: '/ascents/102' })
     })
 
@@ -486,7 +492,8 @@ describe('createNotifications', () => {
 
       expect(notifications).toHaveLength(1)
       expect(notifications[0].type).toBe('user')
-      expect(notifications[0].body).toBe('admin1 has approved newuser')
+      expect(notifications[0].body?.de).toBe('admin1 hat newuser genehmigt')
+      expect(notifications[0].body?.en).toBe('admin1 approved newuser')
       expect(notifications[0].data).toEqual({ pathname: '/feed' })
     })
 
@@ -506,7 +513,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('admin1 has invited invited@example.com')
+      expect(notifications[0].body?.de).toBe('admin1 hat invited@example.com eingeladen')
+      expect(notifications[0].body?.en).toBe('admin1 invited invited@example.com')
     })
 
     it('should create an accepted invitation notification', async () => {
@@ -525,7 +533,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('newuser has accepted the invitation to join')
+      expect(notifications[0].body?.de).toBe('newuser hat die Einladung angenommen beizutreten')
+      expect(notifications[0].body?.en).toBe('newuser accepted the invitation to join')
     })
 
     it('should create a user removal notification', async () => {
@@ -551,7 +560,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('admin1 has removed removeduser')
+      expect(notifications[0].body?.de).toBe('admin1 hat removeduser entfernt')
+      expect(notifications[0].body?.en).toBe('admin1 removed removeduser')
     })
 
     it('should include "and N more" for multiple user activities', async () => {
@@ -574,10 +584,11 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('admin1 has approved newuser and 2 more')
+      expect(notifications[0].body?.de).toBe('admin1 hat newuser genehmigt und 2 weitere Updates')
+      expect(notifications[0].body?.en).toBe('admin1 approved newuser and 2 more updates')
     })
 
-    it('should fall back to generic message when no filter matches', async () => {
+    it('should return undefined when no filter matches', async () => {
       mockDb.query.users.findMany.mockResolvedValue([{ id: 201, username: 'admin1' }])
 
       const group = makeUserGroup({
@@ -593,7 +604,7 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('admin1 has updated a user')
+      expect(notifications[0]).toBeUndefined()
     })
   })
 
@@ -630,7 +641,8 @@ describe('createNotifications', () => {
 
       expect(notifications).toHaveLength(1)
       expect(notifications[0].type).toBe('moderate')
-      expect(notifications[0].body).toBe('moderator has updated Test Area > Test Block')
+      expect(notifications[0].body?.de).toBe('moderator hat Test Area > Test Block aktualisiert')
+      expect(notifications[0].body?.en).toBe('moderator updated Test Area > Test Block')
       expect(notifications[0].data).toEqual({ pathname: '/blocks/601' })
       expect(notifications[0].tag).toBe('301-moderate')
     })
@@ -649,7 +661,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([makeModerateGroup()])
 
-      expect(notifications[0].body).toBe('moderator has updated Direct Name')
+      expect(notifications[0].body?.de).toBe('moderator hat Direct Name aktualisiert')
+      expect(notifications[0].body?.en).toBe('moderator updated Direct Name')
     })
 
     it('should include "and N more" for multiple moderate activities', async () => {
@@ -695,7 +708,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications([group])
 
-      expect(notifications[0].body).toBe('moderator has updated Test Area > Test Block and 2 more')
+      expect(notifications[0].body?.de).toBe('moderator hat Test Area > Test Block aktualisiert und 2 weitere Updates')
+      expect(notifications[0].body?.en).toBe('moderator updated Test Area > Test Block and 2 more updates')
     })
 
     it('should return undefined when parentEntityId is missing', async () => {
@@ -819,7 +833,8 @@ describe('createNotifications', () => {
 
       const notifications = await createNotifications(groups)
 
-      expect(notifications[0].body).toBe('Unknown User flashed "Route"')
+      expect(notifications[0].body?.de).toBe('Jemand hat "Route" geflasht')
+      expect(notifications[0].body?.en).toBe('Someone flashed "Route"')
     })
   })
 })

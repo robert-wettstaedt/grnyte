@@ -166,6 +166,12 @@
         "updated": "{{user}} hat {{column}} {{entity}} aktualisiert",
         "deleted": "{{user}} hat {{column}} {{entity}} gelöscht"
       },
+      "more": {
+        "updates_one": "und {{count}} weiteres Update",
+        "updates_other": "und {{count}} weitere Updates",
+        "ascents_one": "und {{count}} weitere Route geklettert",
+        "ascents_other": "und {{count}} weitere Routen geklettert"
+      },
       "entities": {
         "area": {
           "withArticle": "ein Gebiet",
@@ -214,6 +220,34 @@
             "topo": "<span class=\"text-surface-500\">das</span> Topo"
           }
         }
+      }
+    },
+    "pushNotifications": {
+      "firstRoleAdded": {
+        "title": "Willkommen bei {{name}}",
+        "body": "Du hast Zugriff zu {{region}} erhalten"
+      },
+      "roleAdded": {
+        "title": "Update zu deinem {{name}} Konto",
+        "body": "Du hast Zugriff zu {{region}} erhalten"
+      },
+      "roleRemoved": {
+        "title": "Update zu deinem {{name}} Konto",
+        "body": "Dein Zugriff zu {{region}} wurde entfernt"
+      },
+      "roleUpdated": {
+        "title": "Update zu deinem {{name}} Konto",
+        "body": "Dein Zugriff zu {{region}} wurde zu {{role}} aktualisiert"
+      },
+      "invited": {
+        "title": "{{user}} hat dich eingeladen {{region}} beizutreten"
+      },
+      "invitationAccepted": {
+        "title": "{{user}} hat deine Einladung angenommen"
+      },
+      "userRegistered": {
+        "title": "Neuer Nutzer hat sich registriert",
+        "body": "Ein neuer Nutzer hat sich gerade registriert: {{user}} - {{email}}"
       }
     },
     "editor": {
