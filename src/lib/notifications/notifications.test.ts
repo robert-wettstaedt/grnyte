@@ -95,6 +95,7 @@ const mockSubscription: schema.PushSubscription = {
   expirationTime: null,
   p256dh: 'BIHxR0qPmtTMaGQSgZCJRNXyQGqCv_1pP9xkQOHH-dJKXWADm2S0HMHbqYTUVhqBXTsH0FACgGJ3HGHWvyIkXPI',
   auth: 'LHG-2DcCR0elNAH7Qr2cBg',
+  lang: 'en',
 }
 
 describe('Notifications Server Module', () => {

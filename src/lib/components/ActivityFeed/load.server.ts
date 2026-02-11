@@ -149,11 +149,10 @@ export const postProcessEntity = async (
   return { type: entityType, object } as Entity
 }
 
-interface HandleOpts
-  extends Pick<
-    schema.InsertActivity,
-    'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType' | 'regionFk'
-  > {
+interface HandleOpts extends Pick<
+  schema.InsertActivity,
+  'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType' | 'regionFk'
+> {
   oldEntity: Record<string, unknown>
   newEntity: Record<string, unknown>
   db: PostgresJsDatabase<typeof schema>

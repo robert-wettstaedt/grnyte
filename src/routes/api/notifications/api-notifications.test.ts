@@ -99,7 +99,7 @@ global.Response = MockResponse as any
 import * as schema from '$lib/db/schema'
 
 // Now we can safely import the modules that use the mocks
-import { POST } from '../src/routes/api/notifications/+server'
+import { POST } from './+server'
 
 // Create mocked notifications
 const mockedNotifications = [
