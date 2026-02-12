@@ -115,7 +115,7 @@
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.31.0",
     "drizzle-orm": "^0.45.0",
-    "eslint": "^9.0.0",
+    "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-drizzle": "^0.2.3",
     "eslint-plugin-svelte": "^3.0.0",
