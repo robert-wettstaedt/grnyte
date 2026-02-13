@@ -1,14 +1,13 @@
 <script lang="ts">
-  import { enhance } from '$app/forms'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
   import { getI18n } from '$lib/i18n'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
   import {
+    sendTest,
     subscribe as subscribeAction,
     unsubscribe as unsubscribeAction,
-    sendTest,
   } from './pushNotificationSubscriber.remote'
 
   interface Props {

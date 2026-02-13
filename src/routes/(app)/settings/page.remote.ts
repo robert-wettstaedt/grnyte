@@ -15,6 +15,11 @@ export const updateNotificationSettings = command(updateNotificationSettingsSche
   enhance(arg, updateNotificationSettingsAction),
 )
 
+const updateGradeSettingsSchema = z.enum(['FB', 'V'])
+type UpdateGradeSettingsValues = z.infer<typeof updateGradeSettingsSchema>
+
+export const updateGradeSettings = command(updateGradeSettingsSchema, (arg) => enhance(arg, updateGradeSettingsAction))
+
 const updateNotificationSettingsAction: Action<UpdateNotificationSettingsValues> = async (values, db, user) => {
   const [result] = await db
     .update(userSettings)
@@ -31,4 +36,8 @@ const updateNotificationSettingsAction: Action<UpdateNotificationSettingsValues>
     })
 
   return result
+}
+
+const updateGradeSettingsAction: Action<UpdateGradeSettingsValues> = async (gradingScale, db, user) => {
+  await db.update(userSettings).set({ gradingScale }).where(eq(userSettings.userFk, user.id))
 }

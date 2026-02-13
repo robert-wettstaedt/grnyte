@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { applyAction, enhance } from '$app/forms'
-  import { invalidateAll } from '$app/navigation'
   import { page } from '$app/state'
   import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
@@ -16,21 +14,18 @@
   import { dropAllDatabases } from '@rocicorp/zero'
   import { AppBar, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
-  import { updateNotificationSettings } from './page.remote'
-
-  let { form } = $props()
+  import { updateGradeSettings, updateNotificationSettings } from './page.remote'
 
   let isPushSubscribed = $state(false)
-  let formEl: HTMLFormElement | undefined = $state(undefined)
   let modalOpen = $state(false)
   let notifyModerations = $state(false)
   let notifyNewAscents = $state(false)
   let notifyNewUsers = $state(false)
 
   $effect(() => {
-    notifyModerations = (form?.notifyModerations as boolean) ?? pageState.user?.userSettings?.notifyModerations ?? false
-    notifyNewAscents = (form?.notifyNewAscents as boolean) ?? pageState.user?.userSettings?.notifyNewAscents ?? false
-    notifyNewUsers = (form?.notifyNewUsers as boolean) ?? pageState.user?.userSettings?.notifyNewUsers ?? false
+    notifyModerations = pageState.user?.userSettings?.notifyModerations ?? false
+    notifyNewAscents = pageState.user?.userSettings?.notifyNewAscents ?? false
+    notifyNewUsers = pageState.user?.userSettings?.notifyNewUsers ?? false
   })
 
   onMount(async () => {
@@ -84,15 +79,7 @@
           <select
             class="select w-24"
             value={pageState.user?.userSettings?.gradingScale}
-            onchange={async (event) => {
-              const response = await fetch(`/api/users/settings?gradingScale=${event.currentTarget.value}`, {
-                method: 'POST',
-              })
-
-              if (response.ok) {
-                invalidateAll()
-              }
-            }}
+            onchange={(event) => updateGradeSettings(event.currentTarget.value as 'FB' | 'V')}
           >
             <option value="FB">FB</option>
             <option value="V">V</option>
