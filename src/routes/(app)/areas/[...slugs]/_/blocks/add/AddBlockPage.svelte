@@ -29,9 +29,7 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      {t('blocks.createBlock')}
-      {t('common.in')}
-      <a class="anchor" href={basePath}>{area.name}</a>
+      {t('blocks.createBlockIn', { name: area.name, url: basePath })}
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
