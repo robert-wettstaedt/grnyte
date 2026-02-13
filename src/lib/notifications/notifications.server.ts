@@ -85,12 +85,13 @@ export const sendNotificationsToAllSubscriptions = async (
         notifications
           .filter(({ userId, type }) => {
             return (
+              type === 'test' ||
               //  Check user settings for allowed notification type
-              ((userSettings.notifyNewAscents && type === 'ascent') ||
+              (((userSettings.notifyNewAscents && type === 'ascent') ||
                 (userSettings.notifyNewUsers && type === 'user') ||
                 (userSettings.notifyModerations && type === 'moderate')) &&
-              // Do not send to user who created the notification
-              userId !== subscription.userFk
+                // Do not send to user who created the notification
+                userId !== subscription.userFk)
             )
           })
           .map(async (notification) => {

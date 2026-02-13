@@ -2,9 +2,9 @@
   import { applyAction, enhance } from '$app/forms'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
+  import { getI18n, getLanguage } from '$lib/i18n'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
-  import { getI18n } from '$lib/i18n'
 
   interface Props {
     onChange?: () => void
@@ -21,6 +21,8 @@
   onMount(async () => {
     subscribed = await isSubscribed()
   })
+
+  const lang = getLanguage()
 </script>
 
 {#if supported}
@@ -83,7 +85,7 @@
 
           try {
             const subscription = await timeoutFunction(subscribe, 10_000)
-            formData.set('subscription', JSON.stringify(subscription))
+            formData.set('subscription', JSON.stringify({ ...subscription, lang }))
 
             const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
             if (pushSubscriptionId) {

@@ -226,6 +226,9 @@
       }
     },
     "pushNotifications": {
+      "test": {
+        "title": "This is a test notification"
+      },
       "firstRoleAdded": {
         "title": "Welcome to {{name}}",
         "body": "You have been granted access to {{region}}"

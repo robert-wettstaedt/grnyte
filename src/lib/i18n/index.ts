@@ -42,3 +42,9 @@ export const getI18n = () => {
   const i18n = getContext('i18n') as Readable<I18nInstance>
   return get(i18n)
 }
+
+export const getLanguage = () => {
+  const { languages: userLanguages } = getI18n()
+  const language = userLanguages.find((lang) => languages.includes(lang as Language))
+  return language as Language
+}

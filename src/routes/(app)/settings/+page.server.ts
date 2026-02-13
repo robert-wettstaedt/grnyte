@@ -1,5 +1,5 @@
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { areas, pushSubscriptions, users, userSettings } from '$lib/db/schema'
+import { pushSubscriptions, userSettings } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import {
   notificationsActionSchema,
@@ -13,9 +13,12 @@ import {
   type UnsubscribePushSubscriptionActionValues,
 } from '$lib/forms/schemas'
 import { validateFormData, validateObject } from '$lib/forms/validate.server'
+import { languages } from '$lib/i18n'
+import { i18n } from '$lib/i18n/index.server'
+import type { Notification, NotificationTranslatable } from '$lib/notifications'
 import { sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { fail } from '@sveltejs/kit'
-import { and, eq, isNotNull, not, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 
 export const actions = {
   subscribe: async ({ locals, request }) => {
@@ -107,32 +110,56 @@ export const actions = {
         return fail(404)
       }
 
+      const regionIds = locals.userRegions.map((region) => region.regionFk)
+
       const randomArea = await db.query.areas.findFirst({
         orderBy: sql`RANDOM()`,
-        where: isNotNull(areas.parentFk),
+        where: (table, { isNotNull, and, inArray }) =>
+          and(isNotNull(table.parentFk), inArray(table.regionFk, regionIds)),
         with: { parent: true },
       })
 
-      const randomUser = await db.query.users.findFirst({
+      const randomUser = await db.query.regionMembers.findFirst({
         orderBy: sql`RANDOM()`,
-        where: not(eq(users.id, locals.user.id)),
+        where: (table, { not, eq, and, inArray }) =>
+          and(not(eq(table.userFk, locals.user!.id)), inArray(table.regionFk, regionIds)),
+        with: {
+          user: { columns: { username: true } },
+        },
       })
 
       if (randomArea == null || randomUser == null) {
         return fail(404)
       }
 
+      const body = languages.reduce((obj, lang) => {
+        const t = i18n.getFixedT(lang)
+
+        return {
+          ...obj,
+          [lang]: [
+            t('activity.generic.updated', { user: randomUser.user.username, columns: '', entity: randomArea.name }),
+            t('activity.more.updates', { count: 2 }),
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .replace(/\s+/g, ' '),
+        }
+      }, {} as NotificationTranslatable)
+
+      const title = languages.reduce((obj, lang) => {
+        const t = i18n.getFixedT(lang)
+
+        return {
+          ...obj,
+          [lang]: t('pushNotifications.test.title'),
+        }
+      }, {} as NotificationTranslatable)
+
       await sendNotificationsToAllSubscriptions(
-        [
-          {
-            body: `${randomUser.username} has updated ${randomArea.parent?.name} > ${randomArea.name} and 2 more`,
-            tag: 'test',
-            title: 'This is a test notification',
-            type: 'moderate',
-            userId: randomUser.id,
-          },
-        ],
+        [{ body, tag: 'test', title, type: 'test', userId: randomUser.id }],
         db,
+        locals.user.id,
       )
     })
   },

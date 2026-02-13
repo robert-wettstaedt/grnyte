@@ -223,6 +223,9 @@
       }
     },
     "pushNotifications": {
+      "test": {
+        "title": "Dies ist eine Test Benachrichtigung"
+      },
       "firstRoleAdded": {
         "title": "Willkommen bei {{name}}",
         "body": "Du hast Zugriff zu {{region}} erhalten"
@@ -307,7 +310,7 @@
         "manageUsers": "Benutzer verwalten"
       },
       "regionSettings": {
-        "title": "Regionseinstellungen",
+        "title": "Regions-Einstellungen",
         "titleWithName": "{{name}} Einstellungen",
         "createRegion": "Region erstellen",
         "editRegion": "Region bearbeiten",
@@ -320,12 +323,12 @@
         "maxMembersReached": "Diese Region hat die maximale Anzahl an Mitgliedern ({{max}}) erreicht."
       },
       "userSettings": {
-        "title": "Benutzereinstellungen",
+        "title": "Benutzer-Einstellungen",
         "editProfile": "Profil bearbeiten",
         "changePassword": "Passwort ändern"
       },
       "notifications": {
-        "title": "Benachrichtigungseinstellungen",
+        "title": "Benachrichtigung-Einstellungen",
         "selectNotifications": "Wähle aus, welche Benachrichtigungen du erhalten möchtest.",
         "addToHomeScreen": "Um Push-Benachrichtigungen zu aktivieren, muss die Web-App zuerst zum Startbildschirm hinzugefügt werden.",
         "showMeHow": "Zeig mir wie",

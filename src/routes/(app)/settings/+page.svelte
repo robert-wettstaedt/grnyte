@@ -47,8 +47,8 @@
     await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
   }
 
-  const { changeLanguage, t } = $derived(getI18n())
-  const language = $derived(getLanguage())
+  const { changeLanguage, t } = getI18n()
+  const language = getLanguage()
 </script>
 
 <AppBar class="mx-auto max-w-lg">

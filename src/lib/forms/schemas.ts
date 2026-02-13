@@ -146,6 +146,7 @@ export const pushSubscriptionSchema = z.object({
   expirationTime: z.number().nullable().optional(),
   p256dh: z.string(),
   auth: z.string(),
+  lang: z.string(),
 })
 export type PushSubscription = z.infer<typeof pushSubscriptionSchema>
 

@@ -11,7 +11,7 @@ const BaseNotificationSchema = z.object({
   icon: z.string().optional(),
 
   userId: z.number(),
-  type: z.enum(['ascent', 'user', 'moderate']),
+  type: z.enum(['ascent', 'user', 'moderate', 'test']),
 })
 
 export const NotificationSchema = z.intersection(
