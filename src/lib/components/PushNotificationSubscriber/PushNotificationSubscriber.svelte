@@ -1,11 +1,15 @@
 <script lang="ts">
-  import { applyAction, enhance } from '$app/forms'
+  import { enhance } from '$app/forms'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
-  import type { PushSubscription } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
+  import {
+    subscribe as subscribeAction,
+    unsubscribe as unsubscribeAction,
+    sendTest,
+  } from './pushNotificationSubscriber.remote'
 
   interface Props {
     onChange?: () => void
@@ -16,7 +20,6 @@
   const supported = isSupported()
   let subscribed = $state(false)
   let errorMessage = $state('')
-  let loading = $state(false)
   const { t } = getI18n()
 
   onMount(async () => {
@@ -29,12 +32,12 @@
 {#if supported}
   <div class="flex flex-wrap justify-center gap-2">
     {#if subscribed}
-      <form
-        action="?/unsubscribe"
-        method="post"
-        use:enhance={async ({ formData }) => {
+      <button
+        class="btn preset-filled-error-500"
+        disabled={unsubscribeAction.pending > 0}
+        type="submit"
+        onclick={async () => {
           errorMessage = ''
-          loading = true
 
           try {
             await timeoutFunction(unsubscribe, 10_000)
@@ -47,83 +50,68 @@
           }
 
           subscribed = false
-          const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
+          const pushSubscriptionId = Number(localStorage.getItem(STORAGE_KEY))
           localStorage.removeItem(STORAGE_KEY)
           onChange?.()
 
-          if (pushSubscriptionId == null) {
-            loading = false
+          if (Number.isNaN(pushSubscriptionId)) {
             throw new Error()
           }
 
-          formData.set('pushSubscriptionId', pushSubscriptionId)
-
-          return async ({ result }) => {
-            loading = false
-
-            return applyAction(result)
-          }
+          await unsubscribeAction(pushSubscriptionId)
         }}
       >
-        <button class="btn preset-filled-error-500" disabled={loading} type="submit">
-          {#if loading}
-            <LoadingIndicator />
-          {/if}
-          {t('notifications.unsubscribeButton')}
-        </button>
-      </form>
+        {#if unsubscribeAction.pending > 0}
+          <LoadingIndicator />
+        {/if}
+        {t('notifications.unsubscribeButton')}
+      </button>
 
-      <form action="?/test" method="post" use:enhance>
-        <button class="btn preset-outlined-primary-500" type="submit">{t('notifications.sendTest')}</button>
-      </form>
+      <button class="btn preset-outlined-primary-500" type="submit" onclick={() => sendTest()}>
+        {#if sendTest.pending > 0}
+          <LoadingIndicator />
+        {/if}
+        {t('notifications.sendTest')}
+      </button>
     {:else}
-      <form
-        action="?/subscribe"
-        method="post"
-        use:enhance={async ({ formData }) => {
+      <button
+        class="btn preset-filled-primary-500"
+        disabled={subscribeAction.pending > 0}
+        type="submit"
+        onclick={async () => {
           errorMessage = ''
-          loading = true
 
           try {
             const subscription = await timeoutFunction(subscribe, 10_000)
-            formData.set('subscription', JSON.stringify({ ...subscription, lang: language } satisfies PushSubscription))
+            const pushSubscriptionId = Number(localStorage.getItem(STORAGE_KEY))
 
-            const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
-            if (pushSubscriptionId) {
-              formData.set('pushSubscriptionId', pushSubscriptionId)
-            }
+            const result = await subscribeAction({
+              subscription: { ...subscription, lang: language },
+              pushSubscriptionId: Number.isNaN(pushSubscriptionId) ? undefined : pushSubscriptionId,
+            })
+
+            subscribed = true
+            localStorage.setItem(STORAGE_KEY, String(result))
           } catch (exception) {
             if (exception instanceof TimeoutError) {
               errorMessage = t('notifications.unableToSubscribeDetailed')
             } else {
               errorMessage = convertException(exception)
             }
-            loading = false
+
+            subscribed = false
+
             throw exception
-          }
-
-          return async ({ update, result }) => {
-            loading = false
+          } finally {
             onChange?.()
-
-            if (result.type === 'success' && typeof result.data?.subscriptionId === 'number') {
-              subscribed = true
-              localStorage.setItem(STORAGE_KEY, String(result.data.subscriptionId))
-            } else {
-              subscribed = false
-            }
-
-            return update()
           }
         }}
       >
-        <button class="btn preset-filled-primary-500" disabled={loading} type="submit">
-          {#if loading}
-            <LoadingIndicator />
-          {/if}
-          {t('notifications.receivePush')}
-        </button>
-      </form>
+        {#if subscribeAction.pending > 0}
+          <LoadingIndicator />
+        {/if}
+        {t('notifications.receivePush')}
+      </button>
     {/if}
   </div>
 

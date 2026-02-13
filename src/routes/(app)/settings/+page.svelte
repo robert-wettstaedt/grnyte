@@ -16,12 +16,12 @@
   import { dropAllDatabases } from '@rocicorp/zero'
   import { AppBar, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
+  import { updateNotificationSettings } from './page.remote'
 
   let { form } = $props()
 
   let isPushSubscribed = $state(false)
   let formEl: HTMLFormElement | undefined = $state(undefined)
-  let loading = $state(false)
   let modalOpen = $state(false)
   let notifyModerations = $state(false)
   let notifyNewAscents = $state(false)
@@ -220,79 +220,59 @@
   <section class="w-full space-y-5">
     <PushNotificationSubscriber onChange={async () => (isPushSubscribed = await isSubscribed())} />
 
-    <form
-      action="?/notifications"
-      bind:this={formEl}
-      method="post"
-      use:enhance={async () => {
-        loading = true
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        return ({ result }) => {
-          loading = false
-          return applyAction(result)
-        }
-      }}
-    >
-      <ul>
-        <Switch
-          class="flex items-center justify-between gap-4 p-2"
-          checked={notifyNewUsers}
-          disabled={!isPushSubscribed || loading}
-          onCheckedChange={(details) => {
-            formEl?.requestSubmit()
-            console.log('notifyNewUsers', details)
-            notifyNewUsers = details.checked
-          }}
-          name="notifyNewUsers"
-        >
-          <Switch.Label>{t('settings.notifications.newUsers')}</Switch.Label>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-          <Switch.HiddenInput />
-        </Switch>
+    <ul>
+      <Switch
+        class="flex items-center justify-between gap-4 p-2"
+        checked={notifyNewUsers}
+        disabled={!isPushSubscribed || updateNotificationSettings.pending > 0}
+        onCheckedChange={(details) => {
+          notifyNewUsers = details.checked
+          updateNotificationSettings({ notifyModerations, notifyNewAscents, notifyNewUsers })
+        }}
+      >
+        <Switch.Label>{t('settings.notifications.newUsers')}</Switch.Label>
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
+        <Switch.HiddenInput />
+      </Switch>
 
-        <hr class="hr" />
+      <hr class="hr" />
 
-        <Switch
-          class="flex items-center justify-between gap-4 p-2"
-          checked={notifyNewAscents}
-          disabled={!isPushSubscribed || loading}
-          onCheckedChange={(details) => {
-            formEl?.requestSubmit()
-            console.log('notifyNewAscents')
-            notifyNewAscents = details.checked
-          }}
-          name="notifyNewAscents"
-        >
-          <Switch.Label>{t('settings.notifications.newAscents')}</Switch.Label>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-          <Switch.HiddenInput />
-        </Switch>
+      <Switch
+        class="flex items-center justify-between gap-4 p-2"
+        checked={notifyNewAscents}
+        disabled={!isPushSubscribed || updateNotificationSettings.pending > 0}
+        onCheckedChange={(details) => {
+          notifyNewAscents = details.checked
+          updateNotificationSettings({ notifyModerations, notifyNewAscents, notifyNewUsers })
+        }}
+      >
+        <Switch.Label>{t('settings.notifications.newAscents')}</Switch.Label>
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
+        <Switch.HiddenInput />
+      </Switch>
 
-        <hr class="hr" />
+      <hr class="hr" />
 
-        <Switch
-          class="flex items-center justify-between gap-4 p-2"
-          checked={notifyModerations}
-          disabled={!isPushSubscribed || loading}
-          onCheckedChange={(details) => {
-            formEl?.requestSubmit()
-            console.log('notifyModerations')
-            notifyModerations = details.checked
-          }}
-          name="notifyModerations"
-        >
-          <Switch.Label>{t('settings.notifications.newContentUpdates')}</Switch.Label>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-          <Switch.HiddenInput />
-        </Switch>
-      </ul>
-    </form>
+      <Switch
+        class="flex items-center justify-between gap-4 p-2"
+        checked={notifyModerations}
+        disabled={!isPushSubscribed || updateNotificationSettings.pending > 0}
+        onCheckedChange={(details) => {
+          notifyModerations = details.checked
+          updateNotificationSettings({ notifyModerations, notifyNewAscents, notifyNewUsers })
+        }}
+      >
+        <Switch.Label>{t('settings.notifications.newContentUpdates')}</Switch.Label>
+        <Switch.Control>
+          <Switch.Thumb />
+        </Switch.Control>
+        <Switch.HiddenInput />
+      </Switch>
+    </ul>
   </section>
 </div>
 
