@@ -257,6 +257,11 @@
   const createSectorGeometry = (iconFeatures: Feature<Point>[]) => {
     const sectorSource = new VectorSource<Feature<Geometry>>({ features: iconFeatures })
     const extent = sectorSource.getExtent()
+
+    if (extent == null) {
+      return
+    }
+
     let geometry = fromExtent(extent)
     let area = geometry.getArea()
 
@@ -340,6 +345,10 @@
       const parents = findArea(sector)
       const geometry = createSectorGeometry(sectorMarkers)
 
+      if (geometry == null) {
+        return []
+      }
+
       return [
         new Feature({
           data: {
@@ -401,12 +410,15 @@
 
     // Add crag boundary
     const cragGeometry = createSectorGeometry(markers)
-    sectorsSource.addFeature(
-      new Feature({
-        geometry: cragGeometry,
-        text: crag.name,
-      }),
-    )
+
+    if (cragGeometry != null) {
+      sectorsSource.addFeature(
+        new Feature({
+          geometry: cragGeometry,
+          text: crag.name,
+        }),
+      )
+    }
 
     const sectorsLayer = new VectorLayer({
       declutter,
