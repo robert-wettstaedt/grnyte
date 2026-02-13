@@ -18,6 +18,18 @@
 
   const { t, language } = getI18n()
   const locale = $derived(language === 'de' ? de : enGB)
+
+  const routeNameClasses = $derived.by(() => {
+    if (
+      activity.entity.type === 'route' &&
+      activity.entity.object != null &&
+      ('userGradeFk' in activity.entity.object || 'userRating' in activity.entity.object)
+    ) {
+      return '-inset-y-px'
+    }
+
+    return ''
+  })
 </script>
 
 <span>
@@ -30,6 +42,7 @@
         route: part(
           EntityLink,
           {
+            className: `relative max-w-full overflow-hidden font-medium text-ellipsis whitespace-nowrap ${routeNameClasses}`,
             entity: activity.parentEntity,
             entityId: activity.parentEntityId,
             entityName: activity.parentEntityName,
