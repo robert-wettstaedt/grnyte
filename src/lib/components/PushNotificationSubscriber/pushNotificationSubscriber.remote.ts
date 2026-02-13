@@ -1,10 +1,9 @@
 import { command } from '$app/server'
 import { pushSubscriptions } from '$lib/db/schema'
 import { enhance, type Action } from '$lib/forms/enhance.server'
-import { languages } from '$lib/i18n'
+import { languages } from '$lib/i18n/utils'
 import { i18n } from '$lib/i18n/index.server'
 import type { NotificationTranslatable } from '$lib/notifications'
-import { sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { error } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'
 import z from 'zod'
@@ -64,6 +63,8 @@ const unsubscribeAction: Action<UnsubscribeActionValues> = async (pushSubscripti
 }
 
 const sendTestAction: Action = async (_, db, user) => {
+  const { sendNotificationsToAllSubscriptions } = await import('$lib/notifications/notifications.server')
+
   const userRegions = await db.query.regionMembers.findMany({
     where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, user.authUserFk), isNotNull(table.isActive)),
     columns: {
@@ -107,7 +108,7 @@ const sendTestAction: Action = async (_, db, user) => {
     return {
       ...obj,
       [lang]: [
-        t('activity.generic.updated', { user: randomUser.user.username, columns: '', entity: randomArea.name }),
+        t('activity.generic.updated', { user: randomUser.user.username, column: '', entity: randomArea.name }),
         t('activity.more.updates', { count: 2 }),
       ]
         .filter(Boolean)

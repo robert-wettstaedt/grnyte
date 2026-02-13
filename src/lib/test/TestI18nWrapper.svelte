@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { initI18n } from '$lib/i18n'
+  import { defaultLanguage, initI18n } from '$lib/i18n'
   import i18next from 'i18next'
   export let Component: any
   export let props: Record<string, any> = {}
-  export let lang: string = 'en'
+  export let lang: string = defaultLanguage
+
   // set context during component init (required by Svelte)
   initI18n()
   // then switch language in background (no gating to avoid races)
