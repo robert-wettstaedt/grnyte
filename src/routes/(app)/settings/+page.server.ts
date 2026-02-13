@@ -15,7 +15,7 @@ import {
 import { validateFormData, validateObject } from '$lib/forms/validate.server'
 import { languages } from '$lib/i18n'
 import { i18n } from '$lib/i18n/index.server'
-import type { Notification, NotificationTranslatable } from '$lib/notifications'
+import type { NotificationTranslatable } from '$lib/notifications'
 import { sendNotificationsToAllSubscriptions } from '$lib/notifications/notifications.server'
 import { fail } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'

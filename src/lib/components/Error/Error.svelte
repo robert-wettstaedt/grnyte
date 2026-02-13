@@ -17,7 +17,7 @@
 
   const { error = page.error, reset, rawError, reportError, status = page.status }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 
   const state = $derived.by((): Props => {
     if (!navigator.onLine) {

@@ -12,7 +12,7 @@
 
   let { areaFk, blockId, name = $bindable(), fileUploadProps }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 {#if areaFk != null}

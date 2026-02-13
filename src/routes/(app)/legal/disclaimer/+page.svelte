@@ -26,9 +26,9 @@
   <h2>1. General Disclaimer</h2>
   <p>
     The information provided by {PUBLIC_APPLICATION_NAME} ("Application", "Service") is for general informational purposes
-    only. All information in the Application is provided in good faith, however we make no representation or warranty of
-    any kind, express or implied, regarding the accuracy, adequacy, validity, reliability, availability, or completeness
-    of any information in the Application.
+    only. All information in the Application is provided in good faith, however we make no representation or warranty of any
+    kind, express or implied, regarding the accuracy, adequacy, validity, reliability, availability, or completeness of any
+    information in the Application.
   </p>
 
   <h2>2. Climbing Safety Disclaimer</h2>

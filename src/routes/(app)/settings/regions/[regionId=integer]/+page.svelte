@@ -13,9 +13,10 @@
   import { getI18n } from '$lib/i18n'
   import { AppBar, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { formatRelative } from 'date-fns'
-  import { enGB as locale } from 'date-fns/locale'
+  import { de, enGB } from 'date-fns/locale'
 
-  const { t } = $derived(getI18n())
+  const { t, language } = getI18n()
+  const locale = $derived(language === 'de' ? de : enGB)
 
   const { data } = $props()
   let baseUrl = $derived(`/settings/regions/${data.region.id}`)

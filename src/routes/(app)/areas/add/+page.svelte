@@ -13,7 +13,7 @@
   let name: Partial<Row<'areas'>>['name'] = $state()
   let regionFk: Partial<Row<'areas'>>['regionFk'] = $state()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 
   export const snapshot: Snapshot<Partial<Row<'areas'>>> = {
     capture: () => ({ description, name, regionFk }),

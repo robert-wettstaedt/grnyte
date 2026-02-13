@@ -5,7 +5,7 @@
   // @ts-ignore
   const repoUrl = __APP_REPO__
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <footer class="bg-surface-100-900 border-surface-500/20 mt-auto border-t">

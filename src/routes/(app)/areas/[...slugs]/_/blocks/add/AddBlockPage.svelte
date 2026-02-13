@@ -19,7 +19,7 @@
   const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   let state = $state<EnhanceState>({})
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <svelte:head>

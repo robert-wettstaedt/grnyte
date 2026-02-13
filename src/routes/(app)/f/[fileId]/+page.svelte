@@ -25,7 +25,7 @@
 
   const entityId = $derived(data.file.areaFk ?? data.file.blockFk ?? data.file.routeFk ?? data.file.ascentFk)
   const pathname = $derived(`/${entityType}s/${entityId}`)
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   const title = $derived.by(() => {
     if (data.file.ascent == null) {
       return t('files.sharedFile')

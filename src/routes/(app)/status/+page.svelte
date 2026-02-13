@@ -3,7 +3,7 @@
   import { getBunnyStatus, getNextcloudStatus, getSupabaseStatus, getZeroStatus } from './page.remote'
   import Status from './Status.svelte'
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <div class="card preset-filled-surface-100-900 mx-auto mt-8 max-w-lg space-y-5 p-4">

@@ -28,7 +28,7 @@
     goto(newUrl.toString(), { replaceState: true })
   }
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let hasActions = $derived(
     pageState.userRegions.some((region) =>
       checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], region.regionFk),

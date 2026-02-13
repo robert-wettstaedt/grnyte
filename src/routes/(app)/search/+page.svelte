@@ -19,7 +19,7 @@
   const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
   const MAX_RECENT_SEARCH = 7
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 
   interface BaseItem {
     fields: string[]

@@ -12,7 +12,7 @@
 
   let { onChange, name, settings }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let settingsString = $derived(JSON.stringify(settings))
 </script>
 

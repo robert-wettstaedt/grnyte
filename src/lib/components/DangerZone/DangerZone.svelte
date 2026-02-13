@@ -12,7 +12,7 @@
 
   const { name, onDelete }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let enhancedState = $state<EnhanceState>({})
   let open = $state(false)
 </script>

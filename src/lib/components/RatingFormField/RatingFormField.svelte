@@ -9,7 +9,7 @@
 
   let { value = $bindable() }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let modalOpen = $state(false)
 </script>
 

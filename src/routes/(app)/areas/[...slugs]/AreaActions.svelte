@@ -16,7 +16,7 @@
   let { canAddArea } = $derived(convertAreaSlug())
 
   const { area } = getAreaContext()
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}

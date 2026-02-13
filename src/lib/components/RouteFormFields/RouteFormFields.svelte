@@ -27,7 +27,7 @@
     routeTags = $bindable(),
   }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <input type="hidden" name="blockId" value={blockId} />

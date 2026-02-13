@@ -5,7 +5,7 @@
 
   const { activity, withDetails }: Pick<ItemProps, 'activity' | 'withDetails'> = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 {#if withDetails}

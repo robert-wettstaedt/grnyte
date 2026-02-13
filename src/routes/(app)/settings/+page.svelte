@@ -12,7 +12,7 @@
   } from '$lib/components/PushNotificationSubscriber'
   import { timeoutFunction } from '$lib/errors'
   import { isIOS } from '$lib/features'
-  import { getI18n, getLanguage, languages } from '$lib/i18n'
+  import { getI18n, languages } from '$lib/i18n'
   import { dropAllDatabases } from '@rocicorp/zero'
   import { AppBar, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
@@ -47,8 +47,7 @@
     await Promise.all([page.data.supabase?.auth.signOut(), dropAllDatabases()])
   }
 
-  const { changeLanguage, t } = getI18n()
-  const language = getLanguage()
+  const { changeLanguage, t, language } = getI18n()
 </script>
 
 <AppBar class="mx-auto max-w-lg">

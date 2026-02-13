@@ -2,7 +2,8 @@
   import { applyAction, enhance } from '$app/forms'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { convertException, TimeoutError, timeoutFunction } from '$lib/errors'
-  import { getI18n, getLanguage } from '$lib/i18n'
+  import type { PushSubscription } from '$lib/forms/schemas'
+  import { getI18n } from '$lib/i18n'
   import { onMount } from 'svelte'
   import { isSubscribed, isSupported, STORAGE_KEY, subscribe, unsubscribe } from './lib'
 
@@ -22,7 +23,7 @@
     subscribed = await isSubscribed()
   })
 
-  const lang = getLanguage()
+  const { language } = getI18n()
 </script>
 
 {#if supported}
@@ -85,7 +86,7 @@
 
           try {
             const subscription = await timeoutFunction(subscribe, 10_000)
-            formData.set('subscription', JSON.stringify({ ...subscription, lang }))
+            formData.set('subscription', JSON.stringify({ ...subscription, lang: language } satisfies PushSubscription))
 
             const pushSubscriptionId = localStorage.getItem(STORAGE_KEY)
             if (pushSubscriptionId) {

@@ -5,7 +5,7 @@
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { getI18n } from '$lib/i18n'
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 
   const features = $derived([
     {

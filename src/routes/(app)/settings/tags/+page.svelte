@@ -7,7 +7,7 @@
 
   let basePath = $derived('/settings/tags')
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
@@ -20,7 +20,8 @@
 
     <AppBar.Trail>
       <a class="btn btn-sm preset-filled-primary-500" href="{basePath}/add">
-        <i class="fa-solid fa-plus"></i> {t('tags.addTag')}
+        <i class="fa-solid fa-plus"></i>
+        {t('tags.addTag')}
       </a>
     </AppBar.Trail>
   </AppBar.Toolbar>
@@ -65,7 +66,8 @@
                               <form action="?/deleteTag" method="POST" use:enhance>
                                 <input type="hidden" name="id" value={tag.id} />
 
-                                <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit">{t('common.yes')}</button
+                                <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit"
+                                  >{t('common.yes')}</button
                                 >
                               </form>
                             </footer>

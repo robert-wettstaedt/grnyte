@@ -11,7 +11,7 @@
 
   let { humidity = $bindable(), temperature = $bindable() }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let accordion = $state<string[]>(humidity != null || temperature != null ? ['conditions'] : [])
 
   const defaultTemperature = $derived.by(() => {

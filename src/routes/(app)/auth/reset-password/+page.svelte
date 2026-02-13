@@ -7,7 +7,7 @@
 
   let { form } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   const error = $derived(page.url.searchParams.get('error_description'))
 </script>
 
@@ -31,7 +31,13 @@
   <form class="card mt-4 flex flex-col gap-4" method="post" use:enhance>
     <label class="label">
       <span>{t('auth.resetPassword.newPassword')}</span>
-      <input name="password" type="password" placeholder={t('auth.resetPassword.enterNewPassword')} class="input" required />
+      <input
+        name="password"
+        type="password"
+        placeholder={t('auth.resetPassword.enterNewPassword')}
+        class="input"
+        required
+      />
     </label>
 
     <label class="label">
@@ -46,7 +52,9 @@
     </label>
 
     <div class="mt-4 flex justify-between">
-      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">{t('common.cancel')}</button>
+      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+        >{t('common.cancel')}</button
+      >
       <button class="btn preset-filled-primary-500" type="submit">{t('auth.resetPassword.savePassword')}</button>
     </div>
   </form>

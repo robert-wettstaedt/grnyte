@@ -9,7 +9,7 @@
 
   const { activity, withBreadcrumbs, withDetails }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <Trans

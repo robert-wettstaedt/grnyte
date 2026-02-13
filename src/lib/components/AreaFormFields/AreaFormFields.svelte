@@ -16,7 +16,7 @@
     type = $bindable(),
   }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
 

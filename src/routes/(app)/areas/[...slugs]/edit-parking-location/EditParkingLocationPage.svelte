@@ -15,7 +15,7 @@
   import { deleteParkingLocation, updateParkingLocation } from './page.remote'
 
   const { area } = getAreaContext()
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
 

@@ -7,7 +7,7 @@
 
   let { form } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
@@ -24,9 +24,12 @@
   <TagFormFields id={form?.id ?? ''} />
 
   <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">{t('common.cancel')}</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+      >{t('common.cancel')}</button
+    >
     <button class="btn preset-filled-primary-500" type="submit">
-      <i class="fa-solid fa-floppy-disk"></i> {t('tags.saveTag')}
+      <i class="fa-solid fa-floppy-disk"></i>
+      {t('tags.saveTag')}
     </button>
   </div>
 </form>

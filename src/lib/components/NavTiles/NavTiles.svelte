@@ -3,7 +3,7 @@
   import { getI18n } from '$lib/i18n'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <Navigation.TriggerAnchor href="/" class={page.url.pathname === '/' ? 'bg-primary-500' : undefined}>

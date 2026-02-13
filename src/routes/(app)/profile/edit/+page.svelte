@@ -8,7 +8,7 @@
 
   const { data, form } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
@@ -72,7 +72,9 @@
   </label>
 
   <div class="mt-4 flex justify-between">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">{t('common.cancel')}</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+      >{t('common.cancel')}</button
+    >
     <button class="btn preset-filled-primary-500" type="submit">{t('profile.saveProfile')}</button>
   </div>
 </form>

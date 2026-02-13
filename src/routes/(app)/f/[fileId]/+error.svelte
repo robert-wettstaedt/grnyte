@@ -5,7 +5,7 @@
   import Error from '$lib/components/Error'
   import { getI18n } from '$lib/i18n'
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   const errorMessage = $derived(page.error?.message ?? t('errors.error'))
 </script>
 

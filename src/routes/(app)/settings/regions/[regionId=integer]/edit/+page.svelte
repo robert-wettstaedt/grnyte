@@ -7,7 +7,7 @@
 
   let { data, form } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let isValid = $state(false)
 </script>
 
@@ -29,9 +29,12 @@
   />
 
   <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">{t('common.cancel')}</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+      >{t('common.cancel')}</button
+    >
     <button class="btn preset-filled-primary-500" disabled={!isValid} type="submit">
-      <i class="fa-solid fa-floppy-disk"></i> {t('settings.regionSettings.saveRegion')}
+      <i class="fa-solid fa-floppy-disk"></i>
+      {t('settings.regionSettings.saveRegion')}
     </button>
   </div>
 </form>

@@ -20,8 +20,7 @@
 
   const { activity, withBreadcrumbs = false, withDetails = false, withFiles = false }: ItemProps = $props()
 
-  const { language } = $derived(getI18n())
-
+  const { language } = getI18n()
   const locale = $derived(language === 'de' ? de : enGB)
 
   const iconClasses = $derived.by(() => {

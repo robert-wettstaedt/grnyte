@@ -12,7 +12,7 @@
 
   let { value = $bindable(), withModal = false }: Props = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let grade = $state(value)
 
   $effect(() => {

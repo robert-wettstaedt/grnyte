@@ -5,7 +5,7 @@ import i18next from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { getContext, setContext } from 'svelte'
 import { createI18nStore } from 'svelte-i18next'
-import { get, type Readable } from 'svelte/store'
+import { fromStore, type Readable } from 'svelte/store'
 import de from './locales/de.json'
 import en from './locales/en.json'
 import { defaultLanguage, type Language, languages } from './utils'
@@ -39,12 +39,13 @@ export const initI18n = () => {
 }
 
 export const getI18n = () => {
-  const i18n = getContext('i18n') as Readable<I18nInstance>
-  return get(i18n)
-}
+  const i18nStore = getContext('i18n') as Readable<I18nInstance>
+  const reactive = fromStore(i18nStore)
+  const language = reactive.current.languages.find((lang) => languages.includes(lang as Language))
 
-export const getLanguage = () => {
-  const { languages: userLanguages } = getI18n()
-  const language = userLanguages.find((lang) => languages.includes(lang as Language))
-  return language as Language
+  return {
+    t: ((...args: Parameters<I18nInstance['t']>) => reactive.current.t(...args)) as I18nInstance['t'],
+    changeLanguage: (...args: Parameters<I18nInstance['changeLanguage']>) => reactive.current.changeLanguage(...args),
+    language: language as Language,
+  }
 }

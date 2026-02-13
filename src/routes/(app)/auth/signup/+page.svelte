@@ -5,7 +5,7 @@
 
   let { form } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
@@ -30,7 +30,14 @@
       <form method="POST" class="space-y-4" use:enhance>
         <label class="label">
           <span>{t('common.email')}</span>
-          <input name="email" type="email" placeholder={t('common.enterEmail')} class="input" required value={form?.email} />
+          <input
+            name="email"
+            type="email"
+            placeholder={t('common.enterEmail')}
+            class="input"
+            required
+            value={form?.email}
+          />
         </label>
 
         <label class="label">
@@ -52,7 +59,13 @@
 
         <label class="label">
           <span>{t('auth.signUp.passwordConfirmation')}</span>
-          <input name="passwordConfirmation" type="password" placeholder={t('common.enterPassword')} class="input" required />
+          <input
+            name="passwordConfirmation"
+            type="password"
+            placeholder={t('common.enterPassword')}
+            class="input"
+            required
+          />
         </label>
 
         <!-- Terms & Conditions acceptance -->

@@ -6,7 +6,7 @@
   import { getI18n } from '$lib/i18n'
 
   const { area } = getAreaContext()
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <dl>

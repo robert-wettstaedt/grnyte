@@ -10,7 +10,7 @@
 
   const { data } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 </script>
 
 <svelte:head>

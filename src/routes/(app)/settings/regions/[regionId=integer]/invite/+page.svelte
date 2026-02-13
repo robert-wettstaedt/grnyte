@@ -7,7 +7,7 @@
 
   const { data, form } = $props()
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
   let loading = $state(false)
 </script>
 

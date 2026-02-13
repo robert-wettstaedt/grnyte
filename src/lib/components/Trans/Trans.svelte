@@ -3,7 +3,7 @@
   import type { Component, Snippet } from 'svelte'
   import type { Part } from './part'
 
-  const { t } = $derived(getI18n())
+  const { t } = getI18n()
 
   type RenderablePart = readonly [Component<any>, Record<string, any>, string]
 

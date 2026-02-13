@@ -16,8 +16,7 @@
 
   const { activity, entity, withBreadcrumbs, withDetails }: Props = $props()
 
-  const { t, language } = $derived(getI18n())
-
+  const { t, language } = getI18n()
   const locale = $derived(language === 'de' ? de : enGB)
 </script>
 
