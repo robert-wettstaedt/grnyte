@@ -9,6 +9,7 @@
   import type { RowWithRelations } from '$lib/db/zero'
   import { convertException } from '$lib/errors'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
   import type { PageProps } from './$types'
 
   interface Props {
@@ -17,6 +18,7 @@
 
   let { routes }: Props = $props()
   const { area } = getAreaContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
@@ -75,13 +77,13 @@
 </script>
 
 <svelte:head>
-  <title>Sync external resources of {area.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('sync.externalResourcesOfTitle', { name: area.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Sync external resources of
+      {t('sync.externalResources')}
       <a class="anchor" href={basePath}>{area.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
@@ -124,7 +126,9 @@
 </div>
 
 <div class="mt-8 flex justify-between md:items-center">
-  <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+  <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+    >{t('common.cancel')}</button
+  >
 
   <button
     class="btn preset-filled-primary-500"
@@ -136,6 +140,6 @@
       <LoadingIndicator />
     {/if}
 
-    Sync external resources
+    {t('sync.externalResources')}
   </button>
 </div>

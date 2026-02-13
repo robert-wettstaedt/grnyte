@@ -2,21 +2,23 @@
   import { applyAction, enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   const { data, form } = $props()
 
+  const { t } = getI18n()
   let loading = $state(false)
 </script>
 
 <svelte:head>
-  <title>Invite to {data.region.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('settings.regionSettings.inviteToRegion')} {data.region.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 {#if data.regionMembers.count >= data.region.maxMembers}
   <aside class="card preset-tonal-error my-8 p-2 whitespace-pre-line md:p-4">
     <p>
-      This region has reached the maximum number of members ({data.region.maxMembers}).
+      {t('settings.regionSettings.maxMembersReached', { max: data.region.maxMembers })}
     </p>
   </aside>
 {/if}
@@ -24,7 +26,8 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Invite to {data.region.name}
+      {t('settings.regionSettings.inviteToRegion')}
+      {data.region.name}
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
@@ -41,19 +44,21 @@
   }}
 >
   <label class="label">
-    <span>Email</span>
+    <span>{t('common.email')}</span>
     <input
       class="input"
       disabled={data.regionMembers.count >= data.region.maxMembers}
       name="email"
       type="email"
-      placeholder="Enter email..."
+      placeholder={t('common.enterEmail')}
       value={form?.email ?? ''}
     />
   </label>
 
   <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+      >{t('common.cancel')}</button
+    >
     <button
       class="btn preset-filled-primary-500"
       type="submit"
@@ -63,7 +68,7 @@
         <LoadingIndicator />
       {/if}
 
-      Invite
+      {t('invite.sendInvite')}
     </button>
   </div>
 </form>

@@ -8,8 +8,10 @@
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { addTopo } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   const { block } = getBlockContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
@@ -17,14 +19,13 @@
 </script>
 
 <svelte:head>
-  <title>Edit topos of {block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('topo.uploadTopoImageOfTitle', { name: block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Edit topos of
-      <a class="anchor" href={basePath}>{block.name}</a>
+      {t('topo.uploadTopoImage')} <a class="anchor" href={basePath}>{block.name}</a>
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
@@ -39,7 +40,7 @@
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
   <input type="hidden" name="blockId" value={block.id} />
 
-  <p class="mt-8 text-sm text-gray-500">You can upload more topo images later.</p>
+  <p class="mt-8 text-sm text-gray-500">{t('topo.uploadMoreLater')}</p>
 
-  <FormActionBar label="Add file" pending={addTopo.pending} />
+  <FormActionBar label={t('fileUpload.uploadFile')} pending={addTopo.pending} />
 </form>

@@ -2,6 +2,7 @@
   import { pageState } from '$lib/components/Layout'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { Row } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
   import AreaTypeFormField from './components/AreaTypeFormField'
 
   type Props = Partial<Row<'areas'>>
@@ -15,6 +16,7 @@
     type = $bindable(),
   }: Props = $props()
 
+  const { t } = getI18n()
   let adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
 
@@ -23,8 +25,8 @@
 {/if}
 
 <label class="label">
-  <span>Name</span>
-  <input class="input" name="name" type="text" placeholder="Enter name..." bind:value={name} />
+  <span>{t('common.name')}</span>
+  <input class="input" name="name" type="text" placeholder={t('common.enterName')} bind:value={name} />
 </label>
 
 {#if parentFk}
@@ -34,7 +36,7 @@
   <input type="hidden" name="regionFk" value={regionFk ?? ''} />
 {:else}
   <label class="label mt-4">
-    <span>Region</span>
+    <span>{t('common.region')}</span>
     <select
       class="select"
       name="regionFk"
@@ -44,7 +46,7 @@
       }}
       value={adminRegions.length === 1 ? adminRegions[0].regionFk : (regionFk ?? '')}
     >
-      <option disabled value="">-- Select region --</option>
+      <option disabled value="">{t('common.selectRegion')}</option>
       {#each adminRegions as region}
         <option value={region.regionFk}>{region.name}</option>
       {/each}
@@ -53,7 +55,7 @@
 {/if}
 
 <label class="label mt-4">
-  <span>Description</span>
+  <span>{t('common.description')}</span>
   <textarea hidden name="description" value={description ?? ''}></textarea>
 
   <MarkdownEditor bind:value={description} />

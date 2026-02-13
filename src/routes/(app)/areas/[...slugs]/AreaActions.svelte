@@ -6,6 +6,7 @@
   import { getAreaContext } from '$lib/contexts/area'
   import { convertAreaSlug } from '$lib/helper'
   import { Menu } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     args: ActionItemArgs
@@ -15,42 +16,43 @@
   let { canAddArea } = $derived(convertAreaSlug())
 
   const { area } = getAreaContext()
+  const { t } = getI18n()
 </script>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
   <Menu.ItemGroup>
-    <Menu.ItemGroupLabel>Area</Menu.ItemGroupLabel>
+    <Menu.ItemGroupLabel>{t('entities.area')}</Menu.ItemGroupLabel>
 
-    <Menu.Item value="Edit area details">
+    <Menu.Item value={t('areas.editAreaDetails')}>
       <a {...args.buttonProps} href="{page.url.pathname}/edit">
         <i {...args.iconProps} class="fa-solid fa-pen {args.iconProps.class}"></i>
-        Edit area details
+        {t('areas.editAreaDetails')}
       </a>
     </Menu.Item>
 
     {#if area.type !== 'sector' && canAddArea}
-      <Menu.Item value="Add area">
+      <Menu.Item value={t('areas.addArea')}>
         <a {...args.buttonProps} href="{page.url.pathname}/add">
           <i {...args.iconProps} class={args.iconProps.class}></i>
-          Add area
+          {t('areas.addArea')}
         </a>
       </Menu.Item>
     {/if}
 
     {#if area.type === 'sector'}
-      <Menu.Item value="Add block">
+      <Menu.Item value={t('blocks.addBlock')}>
         <a {...args.buttonProps} href="{page.url.pathname}/_/blocks/add">
           <i {...args.iconProps} class={args.iconProps.class}></i>
-          Add block
+          {t('blocks.addBlock')}
         </a>
       </Menu.Item>
     {/if}
 
     {#if area.type !== 'area'}
-      <Menu.Item value="Add parking location">
+      <Menu.Item value={t('areas.addParkingLocation')}>
         <a {...args.buttonProps} href="{page.url.pathname}/edit-parking-location">
           <i {...args.iconProps} class="fa-solid fa-parking {args.iconProps.class}"></i>
-          Add parking location
+          {t('areas.addParkingLocation')}
         </a>
       </Menu.Item>
     {/if}
@@ -62,18 +64,18 @@
 
   <Menu.ItemGroup>
     {#if area.type === 'sector'}
-      <Menu.Item value="Export PDF">
+      <Menu.Item value={t('export.pdf')}>
         <a {...args.buttonProps} href="{page.url.pathname}/export">
           <i {...args.iconProps} class={args.iconProps.class}></i>
-          Export PDF
+          {t('export.pdf')}
         </a>
       </Menu.Item>
     {/if}
 
-    <Menu.Item value="Sync external resources">
+    <Menu.Item value={t('sync.externalResources')}>
       <a {...args.buttonProps} href="{page.url.pathname}/sync-external-resources">
         <i {...args.iconProps} class="fa-solid fa-sync {args.iconProps.class}"></i>
-        Sync external resources
+        {t('sync.externalResources')}
       </a>
     </Menu.Item>
   </Menu.ItemGroup>

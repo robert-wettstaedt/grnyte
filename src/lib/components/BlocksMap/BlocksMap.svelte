@@ -57,8 +57,10 @@
   import Geolocate from './components/Geolocate'
   import Layers, { visibleLayers, type Layer } from './components/Layers'
   import Popup from './components/Popup'
+  import { getI18n } from '$lib/i18n'
 
   const DEFAULT_ZOOM = 19
+  const { t } = getI18n()
 
   let {
     collapsibleAttribution = true,
@@ -85,14 +87,14 @@
 
   let layersIsVisible = $state(false)
   const layers: Layer[] = [
-    { label: 'OSM', name: 'osm' },
+    { label: t('map.osm'), name: 'osm' },
     ...pageState.userRegions.flatMap((region) =>
       (region.settings?.mapLayers ?? []).map((regionLayer) => ({
         label: regionLayer.name,
         name: regionLayer.name,
       })),
     ),
-    { label: 'Markers', name: 'markers' },
+    { label: t('map.markers'), name: 'markers' },
   ]
 
   const isRootMap = $derived(showAreas && selectedArea == null && showBlocks && selectedBlock == null)
@@ -211,7 +213,7 @@
       data: {
         avatar: { icon: 'fa-solid fa-parking' },
         geolocation: parkingLocation,
-        name: 'Parking',
+        name: t('parking.location'),
         priority: 1,
       } satisfies FeatureData,
       geometry: new Point(fromLonLat([parkingLocation.long, parkingLocation.lat])),
@@ -649,9 +651,9 @@
     <div class="relative z-10 {'ontouchstart' in window ? ' ol-touch' : ''}">
       <div class="ol-control ol-layers">
         <button
-          aria-label="Map layers"
+          aria-label={t('map.layers')}
           onclick={() => (layersIsVisible = !layersIsVisible)}
-          title="Map layers"
+          title={t('map.layers')}
           type="button"
         >
           <i class="fa-solid fa-layer-group text-sm {layersIsVisible ? 'text-primary-500' : ''}"></i>

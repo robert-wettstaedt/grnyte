@@ -80,12 +80,11 @@ vi.mock('zod', () => ({
 }))
 
 // Import the functions after all mocks are set up
-import { createRegion, updateRegionMember } from '$lib/forms/actions.server'
-import { checkAppPermission, checkRegionPermission, APP_PERMISSION_ADMIN, REGION_PERMISSION_ADMIN } from '$lib/auth'
+import { APP_PERMISSION_ADMIN, checkAppPermission, checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { convertException } from '$lib/errors'
+import { createRegion, updateRegionMember } from '$lib/forms/actions.server'
 import { validateFormData } from '$lib/forms/validate.server'
 import {
   notifyFirstRoleAdded,
@@ -94,7 +93,7 @@ import {
   notifyRoleUpdated,
 } from '$lib/notifications/samples.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { z, ZodError } from 'zod'
+import { ZodError } from 'zod'
 
 describe('actions.server.ts', () => {
   // Mock implementations

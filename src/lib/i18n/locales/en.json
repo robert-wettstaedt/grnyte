@@ -1,0 +1,821 @@
+{
+  "translation": {
+    "common": {
+      "actions": "Actions",
+      "activity": "Activity",
+      "add": "Add",
+      "addGrade": "Add grade",
+      "addValue": "Add \"{{value}}\"",
+      "ascending": "Ascending ⬆",
+      "cancel": "Cancel",
+      "clear": "Clear",
+      "clearAll": "Clear All",
+      "clearSearch": "Clear search",
+      "close": "Close",
+      "copied": "Copied",
+      "copy": "Copy",
+      "create": "Create",
+      "createdAt": "Created at",
+      "date": "Date",
+      "delete": "Delete",
+      "descending": "Descending ⬇",
+      "description": "Description",
+      "done": "Done",
+      "edit": "Edit",
+      "email": "Email",
+      "enterEmail": "you@example.com",
+      "enterId": "Enter ID...",
+      "enterName": "Enter name...",
+      "enterPassword": "Enter your password",
+      "enterUsername": "Enter your username",
+      "errorLabel": "Error",
+      "favorite": "Favorite",
+      "favorites": "favorites",
+      "getStarted": "Get Started",
+      "grade": "Grade",
+      "home": "Home",
+      "id": "ID",
+      "in": "in",
+      "info": "Info",
+      "legal": "Legal",
+      "loading": "Loading...",
+      "madeWithLove": "Made with <3 for climbers",
+      "name": "Name",
+      "no": "No",
+      "noGradeYet": "No grade yet",
+      "noItemsYet": "No items yet",
+      "noResults": "No results found for",
+      "notes": "Notes",
+      "password": "Password",
+      "rating": "Rating",
+      "recentSearches": "Recent searches",
+      "region": "Region",
+      "remove": "Remove",
+      "save": "Save",
+      "search": "Search...",
+      "selectRegion": "-- Select region --",
+      "settings": "Settings",
+      "showEntity": "Show {{entity}}",
+      "showLess": "Show less",
+      "showMore": "Show more",
+      "sortBy": "Sort by",
+      "sortOrder": "Sort order",
+      "source": "Source",
+      "tags": "Tags",
+      "type": "Type",
+      "undo": "Undo",
+      "unknown": "unknown",
+      "unsavedChangesConfirm": "You have unsaved changes. Are you sure you want to leave?",
+      "update": "Update",
+      "username": "Username",
+      "yes": "Yes"
+    },
+    "nav": {
+      "home": "Home",
+      "browse": "Browse",
+      "feed": "Feed",
+      "search": "Search",
+      "settings": "Settings",
+      "areas": "Areas",
+      "routes": "Routes",
+      "favorites": "My favorites"
+    },
+    "activity": {
+      "someone": "Someone",
+      "ascent": {
+        "created": "{{user}} {{type}} {{route}}",
+        "updated": {
+          "bySelf": "{{user}} updated {{column}} of their own ascent of {{entity}}",
+          "byOther": "{{user}} updated {{column}} of {{other}}'s ascent of {{entity}}",
+          "byUnknown": "{{user}} updated {{column}} of an ascent of {{entity}}"
+        },
+        "deleted": {
+          "bySelf": "{{user}} deleted their own ascent of {{entity}}",
+          "byOther": "{{user}} deleted {{other}}'s ascent of {{entity}}",
+          "byUnknown": "{{user}} deleted an ascent of {{entity}}"
+        },
+        "personalOpinion": "Personal opinion",
+        "types": {
+          "flash": "flashed",
+          "send": "sent",
+          "repeat": "repeated",
+          "attempt": "attempted"
+        }
+      },
+      "user": {
+        "approved": {
+          "withRegion": {
+            "user": "{{user}} approved {{other}} to region {{region}}",
+            "anon": "{{user}} approved a user to region {{region}}"
+          },
+          "user": "{{user}} approved {{other}}",
+          "anon": "{{user}} approved a user"
+        },
+        "roleUpdated": {
+          "withRegion": {
+            "user": "{{user}} updated the role of {{other}} to {{role}} in region {{region}}",
+            "anon": "{{user}} updated the role of a user to {{role}} in region {{region}}"
+          },
+          "user": "{{user}} updated the role of {{other}} to {{role}}",
+          "anon": "{{user}} updated the role of a user to {{role}}"
+        },
+        "removed": {
+          "withRegion": {
+            "user": "{{user}} removed {{other}} from region {{region}}",
+            "anon": "{{user}} removed a user from region {{region}}"
+          },
+          "user": "{{user}} removed {{other}}",
+          "anon": "{{user}} removed a user"
+        }
+      },
+      "invitation": {
+        "created": {
+          "withRegion": {
+            "user": "{{user}} invited {{other}} to region {{region}}",
+            "anon": "{{user}} invited a user to region {{region}}"
+          },
+          "user": "{{user}} invited {{other}}",
+          "anon": "{{user}} invited a user"
+        },
+        "accepted": {
+          "withRegion": {
+            "user": "{{user}} accepted the invitation to join region {{region}}"
+          },
+          "user": "{{user}} accepted the invitation to join"
+        },
+        "removed": {
+          "withRegion": {
+            "user": "{{user}} removed the invitation to {{other}} from region {{region}}",
+            "anon": "{{user}} removed the invitation to a user from region {{region}}"
+          },
+          "user": "{{user}} removed the invitation to {{other}}",
+          "anon": "{{user}} removed the invitation to a user"
+        }
+      },
+      "favorite": {
+        "created": "{{user}} added {{entity}} to their favorites",
+        "removed": "{{user}} removed {{entity}} from their favorites"
+      },
+      "file": {
+        "uploaded": "{{user}} uploaded {{column}}",
+        "columns": {
+          "file": "a file",
+          "topo image": "a topo image"
+        }
+      },
+      "generic": {
+        "created": "{{user}} created {{column}} {{entity}}",
+        "updated": "{{user}} updated {{column}} {{entity}}",
+        "deleted": "{{user}} deleted {{column}} {{entity}}"
+      },
+      "more": {
+        "updates_one": "and {{count}} more update",
+        "updates_other": "and {{count}} more updates",
+        "ascents_one": "and climbed {{count}} more route",
+        "ascents_other": "and climbed {{count}} more routes"
+      },
+      "entities": {
+        "area": {
+          "withArticle": "an area",
+          "withColumn": "{{column}} <span class=\"text-surface-500\">of</span> area",
+          "columns": {
+            "description": "<span class=\"text-surface-500\">the</span> description",
+            "name": "<span class=\"text-surface-500\">the</span> name",
+            "parking location": "<span class=\"text-surface-500\">the</span> parking location",
+            "type": "<span class=\"text-surface-500\">the</span> type",
+            "walking paths": "<span class=\"text-surface-500\">the</span> walking paths"
+          }
+        },
+        "ascent": {
+          "withColumn": "{{column}}",
+          "columns": {
+            "bunnyVideoIds": "<span class=\"text-surface-500\">the</span> video",
+            "dateTime": "<span class=\"text-surface-500\">the</span> date",
+            "gradeFk": "<span class=\"text-surface-500\">the</span> grade",
+            "humidity": "<span class=\"text-surface-500\">the</span> humidity",
+            "notes": "<span class=\"text-surface-500\">the</span> notes",
+            "rating": "<span class=\"text-surface-500\">the</span> rating",
+            "temperature": "<span class=\"text-surface-500\">the</span> temperature",
+            "type": "<span class=\"text-surface-500\">the</span> type"
+          }
+        },
+        "block": {
+          "withArticle": "a block",
+          "withColumn": "{{column}} <span class=\"text-surface-500\">of</span> block",
+          "columns": {
+            "location": "<span class=\"text-surface-500\">the</span> location",
+            "name": "<span class=\"text-surface-500\">the</span> name",
+            "topo image": "<span class=\"text-surface-500\">the</span> topo image",
+            "topo": "<span class=\"text-surface-500\">the</span> topo"
+          }
+        },
+        "route": {
+          "withArticle": "a route",
+          "withColumn": "{{column}} <span class=\"text-surface-500\">of</span> route",
+          "columns": {
+            "description": "<span class=\"text-surface-500\">the</span> description",
+            "file": "<span class=\"text-surface-500\">a</span> file",
+            "first ascent": "<span class=\"text-surface-500\">the</span> first ascent",
+            "gradeFk": "<span class=\"text-surface-500\">the</span> grade",
+            "name": "<span class=\"text-surface-500\">the</span> name",
+            "rating": "<span class=\"text-surface-500\">the</span> rating",
+            "tags": "<span class=\"text-surface-500\">the</span> tags",
+            "topo": "<span class=\"text-surface-500\">the</span> topo"
+          }
+        }
+      }
+    },
+    "pushNotifications": {
+      "test": {
+        "title": "This is a test notification"
+      },
+      "firstRoleAdded": {
+        "title": "Welcome to {{name}}",
+        "body": "You have been granted access to {{region}}"
+      },
+      "roleAdded": {
+        "title": "Update on your {{name}} account",
+        "body": "You have been granted access to {{region}}"
+      },
+      "roleRemoved": {
+        "title": "Update on your {{name}} account",
+        "body": "Your access to {{region}} has been removed"
+      },
+      "roleUpdated": {
+        "title": "Update on your {{name}} account",
+        "body": "Your access to {{region}} has been updated to {{role}}"
+      },
+      "invited": {
+        "title": "{{user}} invited you to join {{region}}"
+      },
+      "invitationAccepted": {
+        "title": "{{user}} accepted your invitation"
+      },
+      "userRegistered": {
+        "title": "New user registered",
+        "body": "A new user just signed up: {{user}} - {{email}}"
+      }
+    },
+    "editor": {
+      "write": "Write",
+      "preview": "Preview",
+      "markdownSupported": "Markdown<br />supported",
+      "openMarkdownCheatSheet": "Open Markdown cheat sheet"
+    },
+    "map": {
+      "title": "Map",
+      "layers": "Layers",
+      "geolocate": "Geolocate",
+      "latLong": "Lat Long",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "addLocation": "Add location",
+      "osm": "OSM",
+      "markers": "Markers",
+      "directions": "Directions",
+      "geolocationErrorTitle": "Geolocation error",
+      "geolocationErrorMessage": "The geolocation service is not working. Please check your browser settings and try again.",
+      "geolocationError": {
+        "enableLocationServices": "Check if location services are enabled in your browser",
+        "sharePermission": "Ensure you have permission to share your location",
+        "gpsSignal": "Check if you have a GPS signal",
+        "tryDifferentBrowser": "Try a different browser or device"
+      }
+    },
+    "auth": {
+      "signIn": {
+        "title": "Welcome Back",
+        "subtitle": "Sign in to continue to {{appName}}",
+        "login": "Login",
+        "forgotPassword": "Forgot Password?",
+        "createAccount": "Create Account"
+      },
+      "signUp": {
+        "title": "Create account",
+        "subtitle": "Sign up to continue to {{appName}}",
+        "success": "Success",
+        "successMessage": "We have sent a confirmation to your email address {{email}}. Please verify your email before signing in.",
+        "signUp": "Sign up",
+        "loginExisting": "Log into existing account",
+        "passwordConfirmation": "Password confirmation",
+        "acceptTerms": "I have read and agree to the",
+        "and": "and"
+      },
+      "forgotPassword": {
+        "title": "Forgot Password",
+        "enterEmail": "Enter your email",
+        "sendResetLink": "Send reset link",
+        "success": "Success",
+        "successMessage": "We have sent a reset link to your email address {{email}}."
+      },
+      "resetPassword": {
+        "title": "Reset password",
+        "newPassword": "New password",
+        "enterNewPassword": "Enter your new password",
+        "newPasswordConfirmation": "New password confirmation",
+        "confirmNewPassword": "Confirm your new password",
+        "savePassword": "Save password",
+        "successMessage": "Your password has been changed successfully."
+      },
+      "signOut": "Sign out"
+    },
+    "settings": {
+      "hello": "Hello {{username}}",
+      "languages": {
+        "en": "English",
+        "de": "Deutsch"
+      },
+      "appSettings": {
+        "title": "App settings",
+        "language": "Language",
+        "gradingScale": "Grading scale",
+        "manageTags": "Manage tags",
+        "manageUsers": "Manage users"
+      },
+      "regionSettings": {
+        "title": "Region settings",
+        "titleWithName": "{{name}} settings",
+        "createRegion": "Create region",
+        "editRegion": "Edit region",
+        "saveRegion": "Save region",
+        "inviteToRegion": "Invite to region",
+        "members": "Members",
+        "invitedBy": "Invited by",
+        "inviteMember": "Invite member",
+        "confirmRemoveFromRegion": "Are you sure you want to remove {{label}} from the region?",
+        "maxMembersReached": "This region has reached the maximum number of members ({{max}})."
+      },
+      "userSettings": {
+        "title": "User settings",
+        "editProfile": "Edit profile",
+        "changePassword": "Change password"
+      },
+      "notifications": {
+        "title": "Notification settings",
+        "selectNotifications": "Select which notifications you want to receive.",
+        "addToHomeScreen": "To request permission to receive push notifications, web apps must first be added to the Home Screen.",
+        "showMeHow": "Show me how",
+        "notSupported": "Push notifications are not supported by your browser.",
+        "newUsers": "New users",
+        "newAscents": "New ascents",
+        "newContentUpdates": "New content updates"
+      },
+      "serviceStatus": "Service Status"
+    },
+
+    "profile": {
+      "editProfile": "Edit profile",
+      "saveProfile": "Save profile",
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "enterCurrentPassword": "Enter your current password",
+      "emailNotConfirmed": "Your email address is not confirmed. Please check your email for a confirmation link."
+    },
+    "areas": {
+      "title": "Areas",
+      "createArea": "Create area",
+      "createAreaIn": "Create area in <a class=\"anchor\" href=\"{{url}}\">{{name}}</a>",
+      "createAreaInTitle": "Create area in {{name}}",
+      "saveArea": "Save area",
+      "updateArea": "Update area",
+      "addArea": "Add area",
+      "editAreaDetails": "Edit area details",
+      "editArea": "Edit area",
+      "editAreaOfTitle": "Edit area {{name}}",
+      "addParkingLocation": "Add parking location"
+    },
+    "blocks": {
+      "title": "Blocks",
+      "createBlock": "Create block",
+      "createBlockIn": "Create block in <a class=\"anchor\" href=\"{{url}}\">{{name}}</a>",
+      "createBlockInTitle": "Create block in {{name}}",
+      "addBlock": "Add block",
+      "saveBlock": "Save block",
+      "updateBlock": "Update block",
+      "topoImage": "Topo image",
+      "noBlocksYet": "No blocks yet",
+      "editBlockDetails": "Edit block details",
+      "exportPreview": "Export block preview",
+      "geolocationMissing": "The geolocation of this block is missing. Do you know where it is?",
+      "editBlockOfTitle": "Edit block {{name}}",
+      "reorderBlocks": "Reorder blocks",
+      "sortOrder": "Sort order",
+      "customOrder": "Custom order",
+      "alphabeticalOrder": "Alphabetical order"
+    },
+    "routes": {
+      "title": "Routes",
+      "createRoute": "Create route",
+      "createRouteInTitle": "Create route in {{name}}",
+      "addRoute": "Add route",
+      "saveRoute": "Save route",
+      "saveAndCreateAnother": "Save and create another",
+      "updateRoute": "Update route",
+      "editRoute": "Edit route",
+      "editRouteOfTitle": "Edit {{name}}",
+      "editRouteDetails": "Edit route details",
+      "countLabel_one": "{{count}} route",
+      "countLabel_other": "{{count}} routes",
+      "show": "Show",
+      "selectRouteLabel": "Select route",
+      "selectRoutePlaceholder": "-- Select route --",
+      "confirmDeleteRoute": "Are you sure you want to delete this route?",
+      "noRoutesYet": "No routes yet",
+      "viewRoute": "View route",
+      "leaveEmptyIfUnknown": "Leave empty if unknown",
+      "namingGuidelines": {
+        "title": "Route Naming Guidelines",
+        "intro": "When naming a route, please follow these guidelines:",
+        "items": {
+          "respectfulInclusive": "Keep names respectful and inclusive - avoid offensive, discriminatory or inappropriate content",
+          "ageAppropriate": "Use names appropriate for all ages",
+          "respectLocalCultures": "Respect local cultures and Indigenous/First Nations peoples",
+          "considerNamingThemes": "Consider existing naming themes in the area",
+          "ensureUniqueWithinArea": "Ensure the name is unique within the climbing area",
+          "appropriateForPublicDisplay": "Names should be appropriate for public display and publication"
+        },
+        "reminder": "Remember: Route names become part of the climbing community's legacy and should reflect positively on the sport."
+      },
+      "yearOfFA": "Year of FA"
+    },
+    "ascents": {
+      "title": "Ascents",
+      "noAscentsYet": "No ascents yet",
+      "addAscent": "Add ascent",
+      "saveAscent": "Save ascent",
+      "updateAscent": "Update ascent",
+      "logAscentOfTitle": "Log ascent of {{name}}",
+      "logAscentOf": "Log ascent of",
+      "editAscent": "Edit ascent",
+      "editAscentOfTitle": "Edit ascent of {{name}}",
+      "climber": "Climber",
+      "dateTime": "Date",
+      "sessions": "Sessions",
+      "lastSession": "Last session",
+      "types": {
+        "flash": "Flash",
+        "send": "Send",
+        "repeat": "Repeat",
+        "attempt": "Attempt"
+      },
+      "sentence": {
+        "flash": { "prefix": "{{username}} flashed", "suffix": "" },
+        "send": { "prefix": "{{username}} sent", "suffix": "" },
+        "repeat": { "prefix": "{{username}} repeated", "suffix": "" },
+        "attempt": { "prefix": "{{username}} attempted", "suffix": "" }
+      }
+    },
+    "tags": {
+      "title": "Tags",
+      "tagsSettings": "Tags settings",
+      "createTag": "Create tag",
+      "editTag": "Edit tag",
+      "saveTag": "Save tag",
+      "addTag": "Add tag",
+      "noTagsYet": "No tags yet",
+      "actions": "Actions",
+      "confirmDeleteTag": "Are you sure you want to delete this tag?"
+    },
+    "users": {
+      "title": "Users",
+      "usersSettings": "Users settings",
+      "manageUsers": "Manage users",
+      "noUsersYet": "No users yet",
+      "roleChangeNotice": "Hey, heads up!",
+      "roleChangeDescription": "Changing the role of a user will send them a notification about their updated permissions.",
+      "none": "-- None --",
+      "role": "Role",
+      "invitationPending": "Invitation pending",
+      "profileOfTitle": "Profile of {{name}}"
+    },
+    "favorites": {
+      "noFavoritesYetTitle": "You do not have favorites yet",
+      "noFavoritesYetDescription": "Start by marking your favorite routes.",
+      "suggestionIntro": "For example, how about this one?"
+    },
+    "legal": {
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "cookiePolicy": "Cookie Policy",
+      "disclaimer": "Disclaimer"
+    },
+    "footer": {
+      "tagline": "Secure boulder topo and session tracker. A hobby project for the bouldering community.",
+      "noCommercialIntent": "No commercial intent."
+    },
+    "errors": {
+      "title": "Error",
+      "oops": "Oops! Something went wrong",
+      "returnHome": "Return Home",
+      "goBack": "Go Back",
+      "persistMessage": "If this problem persists, please contact support or try again later.",
+      "notConnected": "You are not connected to the internet",
+      "unexpected": "An unexpected error occurred",
+      "401": "You do not have permission to access this resource.",
+      "404": "The page you are looking for does not exist.",
+      "500": "An unexpected error occurred on the server.",
+      "unableToLoadAscents": "Unable to load ascents"
+    },
+    "dangerZone": {
+      "title": "Danger zone",
+      "delete": "Delete {{name}}",
+      "cannotUndo": "This action cannot be undone",
+      "confirmDelete": "Are you sure you want to delete this {{name}}?"
+    },
+    "grade": {
+      "title": "Grade",
+      "opinions": "Grade opinions",
+      "originalGrade": "Original grade",
+      "opinionDescription": "This grade is merely a suggestion and not the final grade of the route. Users can state their opinion on the grade when logging an ascent of the route.",
+      "averageDescription": "The final grade will be the average of all the opinions."
+    },
+    "grades": {
+      "title": "Grades"
+    },
+    "rating": {
+      "title": "Rating",
+      "description": "As objective as possible try to consider these factors:",
+      "factors": {
+        "rockQuality": "The quality of the rock and holds",
+        "landingQuality": "The quality of the landing area",
+        "climbingMovement": "The climbing movement",
+        "surroundingBeauty": "The beauty of the surrounding area",
+        "topoutOrDropoff": "Is there a topout or only a dropoff?"
+      }
+    },
+    "landing": {
+      "hero": {
+        "title": "Protect Your Private Land Bouldering Areas",
+        "subtitle": "Professional area management for sensitive access locations. Keep your development projects secure, collaborate with your community, and never lose your data again.",
+        "secureAreas": "Secure My Areas",
+        "tryDemo": "Try Demo"
+      },
+      "problem": {
+        "title": "Why Area Developers Choose Privacy-First Tools",
+        "paragraph1": "Developing bouldering areas on private land requires careful balance between community collaboration and access protection. One misplaced coordinate or overshared beta can jeopardize years of relationship building with landowners.",
+        "paragraph2": "Meanwhile, managing development data across scattered Excel files and email chains creates version conflicts, data loss risks, and collaboration headaches that slow down progress."
+      },
+      "features": {
+        "title": "Built for Area Developers Who Value Access",
+        "accessProtection": {
+          "title": "Access Protection",
+          "description": "Keep sensitive areas private with invitation-only communities. Perfect for private land where public exposure risks closure."
+        },
+        "professionalCollaboration": {
+          "title": "Professional Collaboration",
+          "description": "Replace email chains and version conflicts. Your entire team sees updates instantly with proper change tracking."
+        },
+        "dataIntegrity": {
+          "title": "Data Integrity",
+          "description": "Import your Excel files and upgrade to professional area management. Never lose development work to corrupted files again."
+        },
+        "completeAreaManagement": {
+          "title": "Complete Area Management",
+          "description": "Organize areas, sectors, and problems with detailed topos, grades, and conditions. Built specifically for boulder development."
+        },
+        "developmentDocumentation": {
+          "title": "Development Documentation",
+          "description": "Document first ascents, cleaning progress, and project status. See how your area evolves over time with detailed analytics."
+        },
+        "easyMigration": {
+          "title": "Easy Migration",
+          "description": "Import existing problem lists from Excel or CSV. Migrate decades of development work in minutes, not months."
+        }
+      },
+      "perfectFor": {
+        "title": "Perfect For",
+        "areaDevelopers": {
+          "title": "Area Developers",
+          "description": "First ascentionists and route setters managing ongoing development projects"
+        },
+        "localCommunities": {
+          "title": "Local Communities",
+          "description": "Tight-knit climbing groups with sensitive access areas requiring discretion"
+        },
+        "privateLandStewards": {
+          "title": "Private Land Stewards",
+          "description": "Landowners and permitted groups managing sustainable access programs"
+        }
+      },
+      "integration": {
+        "title": "When You're Ready to Go Public",
+        "description": "Once access is secured and areas are established, easily export your data to public platforms when appropriate."
+      }
+    },
+    "invite": {
+      "title": "Region Invitation",
+      "accept": "Accept Invitation",
+      "invitedToJoin": "You have been invited to join",
+      "by": "by",
+      "sendInvite": "Send invite",
+      "inviteEmail": "Invite email"
+    },
+    "firstAscent": {
+      "title": "First Ascent",
+      "edit": "Edit first ascent",
+      "thatsMe": "That's me!",
+      "claimAttributionDescription": "All FAs with the name {{name}} will be attributed to you. Are you sure that this is you?",
+      "claimFA": "Claim FA",
+      "claimConfirmation": "This FA will be attributed to you. Are you sure?",
+      "editFAOfTitle": "Edit FA of {{name}}",
+      "editFAOf": "Edit FA of",
+      "year": "Year",
+      "enterYear": "Enter year...",
+      "climber": "Climber",
+      "updateFA": "Update FA"
+    },
+    "externalResources": {
+      "title": "External Resources",
+      "showOn8a": "Show on 8a.nu",
+      "showOn27crags": "Show on 27crags",
+      "showOnTheCrag": "Show on theCrag"
+    },
+    "files": {
+      "addFile": "Add file",
+      "sharedFile": "Shared file",
+      "ascentTitle": "{{username}}'s ascent of {{route}}",
+      "editFilesOfTitle": "Edit files of {{name}}",
+      "editFilesOf": "Edit files of",
+      "title": "Files",
+      "unableToPlayVideo": "Unable to play video",
+      "unableToLoadImage": "Unable to load image",
+      "visibility": {
+        "publicDescription": "The file is publicly accessible and can be viewed by everyone who has the link.",
+        "privateDescription": "The file is private and only accessible by authenticated users."
+      },
+      "onlyVideosPublic": "Only videos can be made public and shared.",
+      "makePrivate": "Make private",
+      "makePublic": "Make public",
+      "confirmDelete": "Are you sure you want to delete this file?"
+    },
+    "entities": {
+      "area": "area",
+      "block": "block",
+      "route": "route",
+      "ascent": "ascent"
+    },
+    "topo": {
+      "title": "Topo",
+      "addTopo": "Add topo",
+      "editTopo": "Edit topo",
+      "drawTopo": "Draw topo",
+      "drawTopoOfTitle": "Draw topo of {{name}}",
+      "uploadTopoImage": "Upload topo image",
+      "uploadTopoImageOfTitle": "Upload topo image of {{name}}",
+      "uploadMoreLater": "You can upload more topo images later.",
+      "replaceTopoOfTitle": "Replace topo of {{name}}",
+      "replaceTopo": "Replace topo of",
+      "replaceImage": "Replace image",
+      "confirmDeleteImage": "Are you sure you want to delete this image?",
+      "deleteRoutesTopo": "Delete route's topo",
+      "noTopoYet": "No topo yet",
+      "topout": "Topout",
+      "startPoint": "Start",
+      "middlePoint": "Middle",
+      "topPoint": "Top",
+      "previousTopo": "Previous Topo",
+      "nextTopo": "Next Topo",
+      "resetZoom": "Reset zoom",
+      "toggleLines": "Toggle lines",
+      "fullscreen": "Fullscreen",
+      "errorLoadingImage": "Error loading image",
+      "deletePoint": "Delete point"
+    },
+    "export": {
+      "title": "Export",
+      "pdf": "Export PDF",
+      "exportingTitle": "Exporting {{name}}",
+      "saveToDevice": "Save to device",
+      "preparing": "Preparing export",
+      "versionLabel": "Version",
+      "contact": "Contact",
+      "licenseLabel": "License",
+      "licenseCode": "CC BY-NC-SA 4.0"
+    },
+    "sync": {
+      "externalResources": "Sync external resources",
+      "externalResourcesOfTitle": "Sync external resources of {{name}}"
+    },
+
+    "parking": {
+      "editLocation": "Edit parking location",
+      "updateLocation": "Update parking location",
+      "location": "parking location",
+      "editLocationOfTitle": "Edit parking location of {{name}}"
+    },
+    "location": {
+      "editLocation": "Edit location",
+      "editLocationOfTitle": "Edit location of {{name}}",
+      "updateLocation": "Update location",
+      "location": "location"
+    },
+    "activityFeed": {
+      "title": "Activity Feed",
+      "filterLabel": "Filter activity feed:",
+      "showMoreChanges_one": "Show {{count}} more change",
+      "showMoreChanges_other": "Show {{count}} more changes",
+      "showAscentsOnly": "Show ascents only",
+      "showMyActivityOnly": "Show my activity only",
+      "noRecentActivity": "No recent activity",
+      "loadMoreActivities": "Load more activities"
+    },
+    "status": {
+      "title": "Service Status",
+      "services": {
+        "zero": "Zero",
+        "supabase": "Supabase",
+        "nextcloud": "Nextcloud",
+        "bunny": "Bunny"
+      }
+    },
+    "fileUpload": {
+      "uploadFile": "Upload file"
+    },
+    "homescreen": {
+      "addToHomeScreen": "Add to Home Screen",
+      "iosInstructions": "To add this app to your Home Screen:",
+      "clickBelow": "Click below on",
+      "chooseAddToHomeScreen": "Choose Add to Home Screen"
+    },
+    "projects": {
+      "title": "Projects",
+      "openProjects": "Open projects",
+      "finishedProjects": "Finished projects"
+    },
+    "notifications": {
+      "unableToUnsubscribe": "Unable to unsubscribe from push notifications",
+      "unableToUnsubscribeDetailed": "Unable to unsubscribe from push notifications. Please try again or check your browser settings.",
+      "unableToSubscribeDetailed": "Unable to subscribe to push notifications. Please try again or check your browser settings.",
+      "unsubscribeButton": "Unsubscribe from Notifications",
+      "receivePush": "Receive Push Notifications",
+      "sendTest": "Send Test Notification"
+    },
+    "updates": {
+      "updatingApp": "Updating the app...",
+      "updatedApp": "Updated the app",
+      "unableToUpdate": "Unable to update the app"
+    },
+    "newUser": {
+      "thankYouTitle": "Thank you for signing up for {{appName}}",
+      "notMember": "You are not currently a member of any regions. You need to be invited by a region admin to join a region.",
+      "orCreate": "Or you can create a new region here:",
+      "contactIntro": "If you need support or want to be invited to an existing region, please reach out to us at"
+    },
+    "share": {
+      "wantsToShare": "wants to share a file with you",
+      "iWantToShare": "I want to share a file with you",
+      "share": "Share"
+    },
+    "references": {
+      "mentionedIn": "Mentioned in",
+      "ascentOfPrefix": "{{username}}'s ascent of"
+    },
+    "videoStatus": {
+      "Created": {
+        "title": "Created",
+        "message": "The video has been created but not yet uploaded."
+      },
+      "Uploaded": {
+        "title": "Uploaded",
+        "message": "The video has been uploaded but not yet processed."
+      },
+      "Processing": {
+        "title": "Processing",
+        "message": "The video is being processed. This may take a few minutes."
+      },
+      "Transcoding": {
+        "title": "Transcoding",
+        "message": "The video is being transcoded. This may take a few minutes."
+      },
+      "Finished": {
+        "title": "Finished",
+        "message": "The video has been transcoded and is ready to be played."
+      },
+      "Error": {
+        "title": "Error",
+        "message": "The video has encountered an error. Please try again."
+      },
+      "UploadFailed": {
+        "title": "Upload Failed",
+        "message": "The video has failed to upload. Please try again."
+      },
+      "JitSegmenting": {
+        "title": "JIT Segmenting",
+        "message": "The video is being segmented. This may take a few minutes."
+      },
+      "JitPlaylistsCreated": {
+        "title": "JIT Playlists Created",
+        "message": "The video playlists have been created. This may take a few minutes."
+      },
+      "Unknown": {
+        "title": "Unknown",
+        "message": "The video status is unknown."
+      }
+    },
+    "conditions": {
+      "title": "Conditions",
+      "temperature": "Temperature",
+      "humidity": "Humidity"
+    }
+  }
+}

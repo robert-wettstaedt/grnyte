@@ -9,6 +9,8 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
+  import { initI18n } from '$lib/i18n'
+  import { getI18n } from '$lib/i18n'
   import { type TopoDTO } from '$lib/topo'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { Menu, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
@@ -18,6 +20,9 @@
   import '../../../../../../../../../app.css'
 
   let { form, data } = $props()
+
+  initI18n()
+  const { t } = getI18n()
 
   interface UndoHistory {
     topos: TopoDTO[]
@@ -105,7 +110,7 @@
         return
       }
 
-      if (!window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+      if (!window.confirm(t('common.unsavedChangesConfirm'))) {
         cancel()
       }
     })
@@ -117,7 +122,7 @@
 </script>
 
 <svelte:head>
-  <title>Draw topo of {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('topo.drawTopoOfTitle', { name: data.block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <PageStateLoader />
@@ -125,7 +130,12 @@
 <div class="preset-filled-surface-100-900 fixed top-0 left-0 -z-10 h-screen w-screen"></div>
 
 <div class="m-2 flex justify-between md:m-4">
-  <a aria-label="Close" class="btn-icon bg-white/20 text-xl backdrop-blur-sm" href={basePath}>
+  <a
+    aria-label={t('common.close')}
+    title={t('common.close')}
+    class="btn-icon bg-white/20 text-xl backdrop-blur-sm"
+    href={basePath}
+  >
     <i class="fa-solid fa-arrow-left"></i>
   </a>
 
@@ -144,7 +154,8 @@
       }}
     >
       <button
-        aria-label="Save"
+        aria-label={t('common.save')}
+        title={t('common.save')}
         class="btn-icon preset-filled-primary-500"
         disabled={isSaving || undoHistory.length <= 1}
       >
@@ -159,7 +170,8 @@
     </form>
 
     <button
-      aria-label="Undo"
+      aria-label={t('common.undo')}
+      title={t('common.undo')}
       class="btn-icon bg-white/20 backdrop-blur-sm"
       disabled={undoHistory.length <= 1}
       onclick={onUndo}
@@ -176,12 +188,12 @@
         <Menu.Positioner>
           <Menu.Content class="z-50">
             <Menu.ItemGroup>
-              <Menu.ItemGroupLabel>Topo</Menu.ItemGroupLabel>
+              <Menu.ItemGroupLabel>{t('topo.title')}</Menu.ItemGroupLabel>
 
               <Menu.Item value="topo-upload">
                 <a class="flex w-full items-center" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
                   <i class="fa-solid fa-cloud-arrow-up me-2 w-5"></i>
-                  Upload
+                  {t('topo.uploadTopoImage')}
                 </a>
               </Menu.Item>
 
@@ -191,7 +203,7 @@
                   href="{basePath}/topos/{topos[selectedTopoIndex].id}/edit?redirect={basePath}/topos/draw"
                 >
                   <i class="fa-solid fa-retweet me-2 w-5"></i>
-                  Replace
+                  {t('topo.replaceImage')}
                 </a>
               </Menu.Item>
 
@@ -199,7 +211,7 @@
                 <Popover positioning={{ placement: 'bottom' }}>
                   <Popover.Trigger class="flex w-full items-center {isSaving ? 'pointer-events-none opacity-50' : ''}">
                     <i class="fa-solid fa-trash me-2 w-5"></i>
-                    Remove
+                    {t('common.delete')}
                   </Popover.Trigger>
 
                   <Portal>
@@ -207,7 +219,7 @@
                       <Popover.Content class="card bg-surface-200-800 z-50 max-w-[320px] space-y-4 p-4">
                         <Popover.Description>
                           <article>
-                            <p>Are you sure you want to delete this image?</p>
+                            <p>{t('topo.confirmDeleteImage')}</p>
                           </article>
 
                           <footer class="flex justify-end">
@@ -228,7 +240,9 @@
                               }}
                             >
                               <input hidden name="id" value={topos[selectedTopoIndex]?.id} />
-                              <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit">Yes</button>
+                              <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit"
+                                >{t('common.yes')}</button
+                              >
                             </form>
                           </footer>
                         </Popover.Description>
@@ -248,11 +262,11 @@
             <Menu.Separator />
 
             <Menu.ItemGroup>
-              <Menu.ItemGroupLabel>Route</Menu.ItemGroupLabel>
+              <Menu.ItemGroupLabel>{t('entities.route')}</Menu.ItemGroupLabel>
 
               <Menu.Item value="route-new">
                 <a class="flex w-full items-center" href="{basePath}/routes/add?redirect={basePath}/topos/draw">
-                  <i class="fa-solid fa-plus me-2 w-5"></i>New
+                  <i class="fa-solid fa-plus me-2 w-5"></i>{t('routes.addRoute')}
                 </a>
               </Menu.Item>
 
@@ -262,7 +276,7 @@
                   aria-disabled={selectedRoute == null}
                   href={selectedRoute == null ? '' : `${basePath}/routes/${selectedRoute.routeFk}`}
                 >
-                  <i class="fa-solid fa-eye me-2 w-5"></i>Show
+                  <i class="fa-solid fa-eye me-2 w-5"></i>{t('routes.show')}
                 </a>
               </Menu.Item>
 
@@ -274,7 +288,7 @@
                     ? ''
                     : `${basePath}/routes/${selectedRoute.routeFk}/edit?redirect=${basePath}/topos/draw`}
                 >
-                  <i class="fa-solid fa-pen me-2 w-5"></i>Edit
+                  <i class="fa-solid fa-pen me-2 w-5"></i>{t('common.edit')}
                 </a>
               </Menu.Item>
 
@@ -285,7 +299,7 @@
                     class="flex w-full items-center {canDeleteRoute ? '' : 'pointer-events-none opacity-50'}"
                   >
                     <i class="fa-solid fa-trash me-2 w-5"></i>
-                    Delete
+                    {t('common.delete')}
                   </Popover.Trigger>
 
                   <Portal>
@@ -293,7 +307,7 @@
                       <Popover.Content class="card bg-surface-200-800 z-50 max-w-[320px] space-y-4 p-4">
                         <Popover.Description>
                           <article>
-                            <p>Are you sure you want to delete this route?</p>
+                            <p>{t('routes.confirmDeleteRoute')}</p>
                           </article>
 
                           <footer class="flex justify-end">
@@ -313,7 +327,9 @@
                               }}
                             >
                               <input hidden name="routeId" value={selectedRoute?.routeFk} />
-                              <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit">Yes</button>
+                              <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit"
+                                >{t('common.yes')}</button
+                              >
                             </form>
                           </footer>
                         </Popover.Description>
@@ -349,10 +365,10 @@
         class="select"
         disabled={isSaving}
         onchange={onChangeSelect}
-        placeholder="Select route"
+        placeholder={t('routes.selectRouteLabel')}
         value={$selectedRouteStore ?? ''}
       >
-        <option disabled value="">-- Select route --</option>
+        <option disabled value="">{t('routes.selectRoutePlaceholder')}</option>
 
         {#each data.block.routes as route}
           <option value={route.id}>
@@ -364,7 +380,8 @@
       <div>
         {#if $selectedRouteStore != null}
           <button
-            aria-label="Delete route's topo"
+            aria-label={t('topo.deleteRoutesTopo')}
+            title={t('topo.deleteRoutesTopo')}
             class="btn-icon px-4"
             disabled={isSaving || selectedRoute?.points.length === 0}
             onclick={() => {

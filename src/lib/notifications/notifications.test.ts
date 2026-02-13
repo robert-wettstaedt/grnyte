@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as schema from '$lib/db/schema'
+import type { Notification, TranslatedNotification } from '$lib/notifications'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { Notification } from '$lib/notifications'
-import * as schema from '$lib/db/schema'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock the environment variables before importing actual code
 vi.mock('$env/static/private', () => ({
@@ -78,13 +78,22 @@ mockDelete.mockReturnValue({ where: mockWhere })
 mockWhere.mockResolvedValue(undefined)
 
 // Sample data for tests
-const mockNotification: Notification = {
-  title: 'Test notification with {grade: 10}',
-  body: 'Test body',
+const mockTranslatedNotification: TranslatedNotification = {
+  title: { de: 'Test notification with {grade: 10}', en: 'Test notification with {grade: 10}' },
+  body: { de: 'Test body', en: 'Test body' },
   userId: 1,
   type: 'ascent',
   tag: 'test-tag',
   data: { pathname: '/test' },
+}
+
+const mockNotification: Notification = {
+  userId: 1,
+  type: 'ascent',
+  tag: 'test-tag',
+  data: { pathname: '/test' },
+  body: 'Test body',
+  title: 'Test notification with {grade: 10}',
 }
 
 const mockSubscription: schema.PushSubscription = {
@@ -95,6 +104,7 @@ const mockSubscription: schema.PushSubscription = {
   expirationTime: null,
   p256dh: 'BIHxR0qPmtTMaGQSgZCJRNXyQGqCv_1pP9xkQOHH-dJKXWADm2S0HMHbqYTUVhqBXTsH0FACgGJ3HGHWvyIkXPI',
   auth: 'LHG-2DcCR0elNAH7Qr2cBg',
+  lang: 'en',
 }
 
 describe('Notifications Server Module', () => {
@@ -117,39 +127,39 @@ describe('Notifications Server Module', () => {
     ]
 
     it('should replace grade template with FB grade by default', () => {
-      const title = 'Test route {grade: 2}'
+      const title = { de: 'Test route {grade: 2}', en: 'Test route {grade: 2}' }
       const result = replaceGradeTemplateWithValue(title, mockGrades)
-      expect(result).toBe('Test route 5A')
+      expect(result.en).toBe('Test route 5A')
     })
 
     it('should replace grade template with V grade when specified', () => {
-      const title = 'Test route {grade: 3}'
+      const title = { de: 'Test route {grade: 3}', en: 'Test route {grade: 3}' }
       const result = replaceGradeTemplateWithValue(title, mockGrades, 'V')
-      expect(result).toBe('Test route V2')
+      expect(result.en).toBe('Test route V2')
     })
 
     it('should handle multiple grade templates in one string', () => {
-      const title = 'Compare {grade: 1} with {grade: 2}'
+      const title = { de: 'Compare {grade: 1} with {grade: 2}', en: 'Compare {grade: 1} with {grade: 2}' }
       const result = replaceGradeTemplateWithValue(title, mockGrades)
-      expect(result).toBe('Compare 4A with 5A')
+      expect(result.en).toBe('Compare 4A with 5A')
     })
 
     it('should handle non-existent grade IDs', () => {
-      const title = 'Test route {grade: 999}'
+      const title = { de: 'Test route {grade: 999}', en: 'Test route {grade: 999}' }
       const result = replaceGradeTemplateWithValue(title, mockGrades)
-      expect(result).toBe('Test route ')
+      expect(result.en).toBe('Test route ')
     })
 
     it('should not modify strings without grade templates', () => {
-      const title = 'Test route without grade'
+      const title = { de: 'Test route without grade', en: 'Test route without grade' }
       const result = replaceGradeTemplateWithValue(title, mockGrades)
-      expect(result).toBe('Test route without grade')
+      expect(result.en).toBe('Test route without grade')
     })
   })
 
   describe('sendNotificationToSubscription', () => {
     it('should call webpush.sendNotification with correct parameters', async () => {
-      await sendNotificationToSubscription(mockNotification, mockSubscription)
+      await sendNotificationToSubscription(mockTranslatedNotification, mockSubscription)
 
       expect(mockSendNotification).toHaveBeenCalledWith(
         {
@@ -167,7 +177,9 @@ describe('Notifications Server Module', () => {
     it('should throw if webpush.sendNotification throws', async () => {
       mockSendNotification.mockRejectedValueOnce(new Error('Push error'))
 
-      await expect(sendNotificationToSubscription(mockNotification, mockSubscription)).rejects.toThrow('Push error')
+      await expect(sendNotificationToSubscription(mockTranslatedNotification, mockSubscription)).rejects.toThrow(
+        'Push error',
+      )
     })
   })
 
@@ -209,9 +221,18 @@ describe('Notifications Server Module', () => {
 
     const mockGrades = [{ id: 10, FB: '6A', UIAA: 'VII' }]
 
-    const mockNotifications: Notification[] = [
-      { ...mockNotification, userId: 1, type: 'ascent' },
-      { ...mockNotification, userId: 4, type: 'user', title: 'Another notification' },
+    const mockNotifications: TranslatedNotification[] = [
+      {
+        ...mockTranslatedNotification,
+        userId: 1,
+        type: 'ascent',
+      },
+      {
+        ...mockTranslatedNotification,
+        userId: 4,
+        type: 'user',
+        title: { de: 'Another notification', en: 'Another notification' },
+      },
     ]
 
     beforeEach(() => {
@@ -280,9 +301,9 @@ describe('Notifications Server Module', () => {
 
       mockFindMany.mockImplementationOnce(() => [{ id: 10, FB: '6A', UIAA: 'VII' }])
 
-      const notificationWithGrade: Notification = {
-        ...mockNotification,
-        body: 'Test notification with {grade: 10}',
+      const notificationWithGrade: TranslatedNotification = {
+        ...mockTranslatedNotification,
+        body: { de: 'Test notification with {grade: 10}', en: 'Test notification with {grade: 10}' },
         userId: 4, // Different from subscription userFks
       }
 
@@ -313,7 +334,7 @@ describe('Notifications Server Module', () => {
       ])
       mockFindMany.mockImplementationOnce(() => mockGrades)
 
-      await sendNotificationsToAllSubscriptions([{ ...mockNotification, userId: 1 }], mockDb)
+      await sendNotificationsToAllSubscriptions([{ ...mockTranslatedNotification, userId: 1 }], mockDb)
 
       // Should not send to user who created the notification
       expect(mockSendNotification).not.toHaveBeenCalled()
@@ -336,9 +357,9 @@ describe('Notifications Server Module', () => {
 
       await sendNotificationsToAllSubscriptions(
         [
-          { ...mockNotification, type: 'ascent', userId: 1 },
-          { ...mockNotification, type: 'user', userId: 1 },
-          { ...mockNotification, type: 'moderate', userId: 1 },
+          { ...mockTranslatedNotification, type: 'ascent', userId: 1 },
+          { ...mockTranslatedNotification, type: 'user', userId: 1 },
+          { ...mockTranslatedNotification, type: 'moderate', userId: 1 },
         ],
         mockDb,
       )
@@ -398,7 +419,7 @@ describe('Notifications Server Module', () => {
         new WebPushError('Moved Permanently', 301, {}, '', 'https://new-endpoint.com'),
       )
 
-      await sendNotificationsToAllSubscriptions([{ ...mockNotification, userId: 1 }], mockDb)
+      await sendNotificationsToAllSubscriptions([{ ...mockTranslatedNotification, userId: 1 }], mockDb)
 
       // Should update the subscription with the new endpoint
       expect(mockUpdate).toHaveBeenCalledWith(schema.pushSubscriptions)
@@ -433,7 +454,7 @@ describe('Notifications Server Module', () => {
       // Mock webpush throwing a 404 error
       mockSendNotification.mockRejectedValueOnce(new WebPushError('Not Found', 404, {}, '', ''))
 
-      await sendNotificationsToAllSubscriptions([{ ...mockNotification, userId: 1 }], mockDb)
+      await sendNotificationsToAllSubscriptions([{ ...mockTranslatedNotification, userId: 1 }], mockDb)
 
       // Should delete the subscription
       expect(mockDelete).toHaveBeenCalledWith(schema.pushSubscriptions)
@@ -462,7 +483,7 @@ describe('Notifications Server Module', () => {
       // Spy on console.error
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      await sendNotificationsToAllSubscriptions([{ ...mockNotification, userId: 1 }], mockDb)
+      await sendNotificationsToAllSubscriptions([{ ...mockTranslatedNotification, userId: 1 }], mockDb)
 
       // Should log the error
       expect(consoleSpy).toHaveBeenCalledWith(genericError)

@@ -90,17 +90,14 @@ vi.mock('zod', () => ({
 }))
 
 // Import the actions after all mocks are set up
-import { actions } from '$lib/../routes/(app)/settings/regions/[regionId=integer]/invite/+page.server'
+import { actions } from './+page.server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { convertException } from '$lib/errors'
 import { validateFormData } from '$lib/forms/validate.server'
 import { notifyInvite } from '$lib/notifications/samples.server'
 import { error, fail, redirect } from '@sveltejs/kit'
-import { randomUUID } from 'crypto'
-import { addDays } from 'date-fns'
 
 describe('invite +page.server.ts - default action', () => {
   // Mock implementations

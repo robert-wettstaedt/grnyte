@@ -8,6 +8,7 @@
   import { Full } from '$lib/components/FileViewer'
   import { pageState } from '$lib/components/Layout'
   import RouteName from '$lib/components/RouteName'
+  import { getI18n } from '$lib/i18n'
   import { formatDistance } from 'date-fns'
 
   const { data } = $props()
@@ -24,9 +25,10 @@
 
   const entityId = $derived(data.file.areaFk ?? data.file.blockFk ?? data.file.routeFk ?? data.file.ascentFk)
   const pathname = $derived(`/${entityType}s/${entityId}`)
+  const { t } = getI18n()
   const title = $derived.by(() => {
     if (data.file.ascent == null) {
-      return 'Shared file'
+      return t('files.sharedFile')
     }
 
     const routename = [
@@ -37,9 +39,9 @@
         : `(${pageState.grades.at(data.file.ascent.route.gradeFk)?.[pageState.gradingScale]})`,
     ].join(' ')
 
-    return `${data.file.ascent.author.username}'s ascent of ${routename}`
+    return t('files.ascentTitle', { username: data.file.ascent.author.username, route: routename })
   })
-  const description = $derived(`${title} - Secure boulder topo and session tracker.`)
+  const description = $derived(`${title} - ${t('footer.tagline')}`)
 
   let isNotesExpanded = $state(false)
 </script>
@@ -77,7 +79,7 @@
       {#snippet topLeft()}
         {#if data.session != null && checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_READ], data.file.regionFk)}
           <a class="btn btn-sm bg-black/20 backdrop-blur-sm" href={pathname}>
-            Show {entityType}
+            {t('common.showEntity', { entity: t(`entities.${entityType}`) })}
 
             <i class="fa-solid fa-arrow-right"></i>
           </a>
@@ -106,23 +108,19 @@
         </span>
 
         <div class="flex flex-wrap items-center gap-2">
-          <span>{data.file.ascent.author.username}</span>
-
-          {data.file.ascent.type === 'flash'
-            ? 'flashed'
-            : data.file.ascent.type === 'send'
-              ? 'sent'
-              : data.file.ascent.type === 'repeat'
-                ? 'repeated'
-                : 'attempted'}
-
+          <span
+            >{t(`ascents.sentence.${data.file.ascent.type}.prefix`, {
+              username: data.file.ascent.author.username,
+            })}</span
+          >
           <RouteName route={data.file.ascent.route} />
+          <span>{t(`ascents.sentence.${data.file.ascent.type}.suffix`)}</span>
         </div>
 
         {#if data.notes != null}
           <div
             class="markdown-body {isNotesExpanded
-              ? 'max-h-[300px] overflow-auto'
+              ? 'max-h-75 overflow-auto'
               : 'max-h-8 overflow-hidden'} -mt-2 transition-all duration-300"
           >
             {@html data.notes}

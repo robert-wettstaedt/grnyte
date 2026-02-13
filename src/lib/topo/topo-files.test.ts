@@ -1,7 +1,7 @@
 import type { Block, InsertGeolocation } from '$lib/db/schema'
 import * as schema from '$lib/db/schema'
 import { blocks, geolocations } from '$lib/db/schema'
-import { createGeolocationFromFiles, createOrUpdateGeolocation } from '$lib/topo-files.server'
+import { createGeolocationFromFiles, createOrUpdateGeolocation } from '$lib/topo/topo-files.server'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import exif from 'exifr'
 import { beforeEach, describe, expect, it, vi } from 'vitest'

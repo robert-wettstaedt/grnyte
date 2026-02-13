@@ -544,3 +544,16 @@ export const getVideoIframeUrl = ({ libraryId, videoId }: GetVideoIframeUrlOptio
 export const getStatus = async () => {
   return upfetch('https://status.bunny.net/api/v2/status.json', { schema: statusSchema })
 }
+
+export enum VideoStatus {
+  Created = 0,
+  Uploaded = 1,
+  Processing = 2,
+  Transcoding = 3,
+  Finished = 4,
+  Error = 5,
+  UploadFailed = 6,
+  JitSegmenting = 7,
+  JitPlaylistsCreated = 8,
+  Unknown = 999,
+}

@@ -11,22 +11,24 @@
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { deleteRoute, updateRoute } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   const { route } = getRouteContext()
+  const { t } = getI18n()
 
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
 
   let grade = $derived(pageState.grades.find((grade) => grade.id === route.gradeFk))
+  const stars = $derived(route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `)
+  const gradeSuffix = $derived(grade == null ? '' : ` (${grade[pageState.gradingScale]})`)
+  const routeTitle = $derived(`${stars}${route.name}${gradeSuffix}`)
 </script>
 
 <svelte:head>
   <title>
-    Edit
-    {route.rating == null ? '' : `${Array(route.rating).fill('★').join('')} `}
-    {route.name}
-    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
+    {t('routes.editRouteOfTitle', { name: routeTitle })}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
@@ -34,7 +36,7 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      Edit route
+      {t('routes.editRoute')}
       <a class="anchor" href={basePath}>
         <RouteName {route} />
       </a>
@@ -55,9 +57,9 @@
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 
-  <FormActionBar label="Update route" pending={updateRoute.pending} />
+  <FormActionBar label={t('routes.updateRoute')} pending={updateRoute.pending} />
 </form>
 
 {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], route.regionFk) || (checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], route.regionFk) && route.createdBy === pageState.user?.id)}
-  <DangerZone name="route" onDelete={() => (route.id == null ? undefined : deleteRoute(route.id))} />
+  <DangerZone name={t('entities.route')} onDelete={() => (route.id == null ? undefined : deleteRoute(route.id))} />
 {/if}

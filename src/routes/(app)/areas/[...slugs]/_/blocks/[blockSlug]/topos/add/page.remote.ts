@@ -6,7 +6,7 @@ import { config } from '$lib/config'
 import { topos } from '$lib/db/schema'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { addFileActionSchema } from '$lib/forms/schemas'
-import { createGeolocationFromFiles } from '$lib/topo-files.server'
+import { createGeolocationFromFiles } from '$lib/topo/topo-files.server'
 import { error } from '@sveltejs/kit'
 import z from 'zod'
 

@@ -7,12 +7,14 @@
   import { Accordion } from '@skeletonlabs/skeleton-svelte'
   import { DateTime } from 'luxon'
   import { slide } from 'svelte/transition'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     routes: ZeroQueryResult<ReturnType<typeof queries.listRoutesWithRelations>>
   }
 
   const props: Props = $props()
+  const { t } = getI18n()
 
   let value = $state<string[]>([])
 
@@ -73,15 +75,15 @@
                       <RouteListItem {route} showPath>
                         {#snippet description()}
                           <div class="flex items-center gap-2">
-                            <p class="text-xs text-white opacity-50">Sessions: {route.ascents.length}</p>
+                            <p class="text-xs text-white opacity-50">{t('ascents.sessions')}: {route.ascents.length}</p>
 
                             <p class="text-xs text-white opacity-50">·</p>
 
                             {#if route.ascents[0]?.dateTime != null}
                               <p class="text-xs text-white opacity-50">
-                                Last: {DateTime.fromMillis(route.ascents[0].dateTime).toLocaleString(
-                                  DateTime.DATE_FULL,
-                                )}
+                                {t('ascents.lastSession')}: {DateTime.fromMillis(
+                                  route.ascents[0].dateTime,
+                                ).toLocaleString(DateTime.DATE_FULL)}
                               </p>
                             {/if}
                           </div>

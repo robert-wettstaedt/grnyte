@@ -1,9 +1,10 @@
 <script lang="ts">
   import { pushState } from '$app/navigation'
   import { page } from '$app/state'
+  import type { VideoStatus } from '$lib/bunny'
   import type { File } from '$lib/db/schema'
+  import { getI18n } from '$lib/i18n'
   import type { FileStat } from 'webdav'
-  import { type FileStatusResponse } from '../../../routes/api/files/[id]/status/lib'
   import Full from './components/Full'
   import Preview from './components/Preview'
 
@@ -20,8 +21,9 @@
 
   let { file, readOnly = true, ...props }: Props = $props()
 
-  let status = $state<FileStatusResponse | undefined>(undefined)
+  let status = $state<VideoStatus | undefined>(undefined)
   let isFullscreen = $state(false)
+  const { t } = getI18n()
 
   const onDelete = () => {
     isFullscreen = false
@@ -58,7 +60,11 @@
   <div class="fixed top-0 right-0 bottom-0 left-0 z-5000 bg-black/90 backdrop-blur">
     <Full {file} {onDelete} {readOnly} bind:status>
       {#snippet topLeft()}
-        <button aria-label="Close" class="btn-icon bg-black/20 text-xl backdrop-blur-sm" onclick={onCloseFullscreen}>
+        <button
+          aria-label={t('common.close')}
+          class="btn-icon bg-black/20 text-xl backdrop-blur-sm"
+          onclick={onCloseFullscreen}
+        >
           <i class="fa-solid fa-arrow-left"></i>
         </button>
       {/snippet}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { afterNavigate } from '$app/navigation'
   import { toaster } from '$lib/components/Toaster'
+  import { getI18n } from '$lib/i18n'
   import { useRegisterSW } from 'virtual:pwa-register/svelte'
 
   const { needRefresh, updateServiceWorker } = useRegisterSW({
@@ -28,6 +29,8 @@
     },
   })
 
+  const { t } = getI18n()
+
   afterNavigate(() => {
     requestAnimationFrame(() => {
       if ($needRefresh) {
@@ -41,9 +44,9 @@
 
     if (forms.length === 0) {
       toaster.promise(updateServiceWorker(true), {
-        loading: { title: 'Updating the app...' },
-        success: { title: 'Updated the app' },
-        error: { title: 'Unable to update the app' },
+        loading: { title: t('updates.updatingApp') },
+        success: { title: t('updates.updatedApp') },
+        error: { title: t('updates.unableToUpdate') },
       })
     }
   }

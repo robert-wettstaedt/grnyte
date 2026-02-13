@@ -2,29 +2,32 @@
   import { applyAction, enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { appRole, appRoleLabels } from '$lib/db/schema'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   const { data } = $props()
+
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
-  <title>Users settings - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('users.usersSettings')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
-    <AppBar.Headline>Users settings</AppBar.Headline>
+    <AppBar.Headline>{t('users.usersSettings')}</AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
 <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
   {#if data.users.length === 0}
-    No users yet
+    {t('users.noUsersYet')}
   {:else}
     <div class="card preset-outlined-surface-950-50 my-8 w-full p-4">
-      <p class="font-bold">Hey, heads up!</p>
+      <p class="font-bold">{t('users.roleChangeNotice')}</p>
       <p class="text-xs opacity-60">
-        Changing the role of a user will send them a notification about their updated permissions.
+        {t('users.roleChangeDescription')}
       </p>
     </div>
 
@@ -32,9 +35,9 @@
       <table class="table-hover table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
+            <th>{t('common.id')}</th>
+            <th>{t('common.name')}</th>
+            <th>{t('common.email')}</th>
 
             {#each data.regions as region}
               <th>
@@ -69,10 +72,10 @@
                     <input type="hidden" name="userId" value={user.id} />
                     <input type="hidden" name="regionId" value={region.id} />
 
-                    <button aria-label="Submit" class="hidden" type="submit"></button>
+                    <button aria-label="Submit" title="Submit" class="hidden" type="submit"></button>
 
                     <select
-                      class="select min-w-[150px]"
+                      class="select min-w-37.5"
                       name="role"
                       onchange={(event) => {
                         const target = event.target as HTMLSelectElement
@@ -82,7 +85,7 @@
                         (regionMember) => regionMember.userFk === user.id && regionMember.regionFk === region.id,
                       )?.role ?? ''}
                     >
-                      <option value="">-- None --</option>
+                      <option value="">{t('users.none')}</option>
 
                       {#each appRole.enumValues.filter((role) => role !== 'app_admin') as role}
                         <option value={role}>{appRoleLabels[role]}</option>

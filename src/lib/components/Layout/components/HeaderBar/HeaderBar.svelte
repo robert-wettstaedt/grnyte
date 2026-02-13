@@ -4,6 +4,8 @@
   import Logo from '$lib/assets/logo.svg'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
+  const { t } = getI18n()
 </script>
 
 <AppBar class="sticky top-0 z-50 p-2 shadow-xl">
@@ -18,7 +20,7 @@
 
     {#if page.data.session?.user == null}
       <AppBar.Trail>
-        <a href="/auth" class="btn btn-sm preset-filled-primary-500"> Get Started </a>
+        <a href="/auth" class="btn btn-sm preset-filled-primary-500">{t('common.getStarted')}</a>
       </AppBar.Trail>
     {/if}
   </AppBar.Toolbar>

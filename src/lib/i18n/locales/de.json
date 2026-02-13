@@ -1,0 +1,818 @@
+{
+  "translation": {
+    "common": {
+      "actions": "Aktionen",
+      "activity": "Aktivität",
+      "add": "Hinzufuegen",
+      "addGrade": "Schwierigkeit hinzufügen",
+      "addValue": "\"{{value}}\" hinzufügen",
+      "ascending": "Aufsteigend ⬆",
+      "cancel": "Abbrechen",
+      "clear": "Leeren",
+      "clearAll": "Alle löschen",
+      "clearSearch": "Suche leeren",
+      "close": "Schließen",
+      "copied": "Kopiert",
+      "copy": "Kopieren",
+      "create": "Erstellen",
+      "createdAt": "Erstellt am",
+      "date": "Datum",
+      "delete": "Löschen",
+      "descending": "Absteigend ⬇",
+      "description": "Beschreibung",
+      "done": "Fertig",
+      "edit": "Bearbeiten",
+      "email": "E-Mail",
+      "enterEmail": "du@beispiel.de",
+      "enterId": "ID eingeben...",
+      "enterName": "Name eingeben...",
+      "enterPassword": "Gib dein Passwort ein",
+      "enterUsername": "Gib deinen Benutzernamen ein",
+      "errorLabel": "Fehler",
+      "favorite": "Favorit",
+      "favorites": "Favoriten",
+      "getStarted": "Los geht's",
+      "grade": "Schwierigkeit",
+      "home": "Start",
+      "id": "ID",
+      "in": "in",
+      "info": "Info",
+      "legal": "Rechtliches",
+      "loading": "Laden...",
+      "madeWithLove": "Mit <3 für Kletterer gemacht",
+      "name": "Name",
+      "no": "Nein",
+      "noGradeYet": "Noch keine Schwierigkeit",
+      "noItemsYet": "Noch keine Einträge",
+      "noResults": "Keine Ergebnisse gefunden für",
+      "notes": "Notizen",
+      "password": "Passwort",
+      "rating": "Bewertung",
+      "recentSearches": "Letzte Suchen",
+      "region": "Region",
+      "remove": "Entfernen",
+      "save": "Speichern",
+      "search": "Suchen...",
+      "selectRegion": "-- Region auswählen --",
+      "settings": "Einstellungen",
+      "showEntity": "Zeige {{entity}}",
+      "showLess": "Weniger anzeigen",
+      "showMore": "Mehr anzeigen",
+      "sortBy": "Sortieren nach",
+      "sortOrder": "Sortierreihenfolge",
+      "source": "Quellcode",
+      "tags": "Tags",
+      "type": "Typ",
+      "undo": "Rückgängig",
+      "unknown": "unbekannt",
+      "unsavedChangesConfirm": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du die Seite verlassen möchtest?",
+      "update": "Aktualisieren",
+      "username": "Benutzername",
+      "yes": "Ja"
+    },
+    "nav": {
+      "home": "Start",
+      "browse": "Durchsuchen",
+      "feed": "Feed",
+      "search": "Suche",
+      "settings": "Einstellungen",
+      "areas": "Gebiete",
+      "routes": "Routen",
+      "favorites": "Meine Favoriten"
+    },
+    "activity": {
+      "someone": "Jemand",
+      "ascent": {
+        "created": "{{user}} hat {{route}} {{type}}",
+        "updated": {
+          "bySelf": "{{user}} hat {{column}} seiner/ihrer Begehung von {{entity}} aktualisiert",
+          "byOther": "{{user}} hat {{column}} von {{other}}'s Begehung von {{entity}} aktualisiert",
+          "byUnknown": "{{user}} hat {{column}} von einer Begehung von {{entity}} aktualisiert"
+        },
+        "deleted": {
+          "bySelf": "{{user}} hat seine/ihre Begehung von {{entity}} gelöscht",
+          "byOther": "{{user}} hat {{other}}'s Begehung von {{entity}} gelöscht",
+          "byUnknown": "{{user}} hat eine Begehung von {{entity}} gelöscht"
+        },
+        "personalOpinion": "Persönliche Meinung",
+        "types": {
+          "flash": "geflasht",
+          "send": "geschafft",
+          "repeat": "wiederholt",
+          "attempt": "versucht"
+        }
+      },
+      "user": {
+        "approved": {
+          "withRegion": {
+            "user": "{{user}} hat {{other}} für die Region {{region}} genehmigt",
+            "anon": "{{user}} hat einen Nutzer für die Region {{region}} genehmigt"
+          },
+          "user": "{{user}} hat {{other}} genehmigt",
+          "anon": "{{user}} hat einen Nutzer genehmigt"
+        },
+        "roleUpdated": {
+          "withRegion": {
+            "user": "{{user}} hat die Rolle von {{other}} in der Region {{region}} auf {{role}} aktualisiert",
+            "anon": "{{user}} hat die Rolle eines Nutzers in der Region {{region}} auf {{role}} aktualisiert"
+          },
+          "user": "{{user}} hat die Rolle von {{other}} auf {{role}} aktualisiert",
+          "anon": "{{user}} hat die Rolle eines Nutzers auf {{role}} aktualisiert"
+        },
+        "removed": {
+          "withRegion": {
+            "user": "{{user}} hat {{other}} aus der Region {{region}} entfernt",
+            "anon": "{{user}} hat einen Nutzer aus der Region {{region}} entfernt"
+          },
+          "user": "{{user}} hat {{other}} entfernt",
+          "anon": "{{user}} hat einen Nutzer entfernt"
+        }
+      },
+      "invitation": {
+        "created": {
+          "withRegion": {
+            "user": "{{user}} hat {{other}} in die Region {{region}} eingeladen",
+            "anon": "{{user}} hat einen Nutzer in die Region {{region}} eingeladen"
+          },
+          "user": "{{user}} hat {{other}} eingeladen",
+          "anon": "{{user}} hat einen Nutzer eingeladen"
+        },
+        "accepted": {
+          "withRegion": {
+            "user": "{{user}} hat die Einladung angenommen, der Region {{region}} beizutreten"
+          },
+          "user": "{{user}} hat die Einladung angenommen beizutreten"
+        },
+        "removed": {
+          "withRegion": {
+            "user": "{{user}} hat die Einladung an {{other}} aus der Region {{region}} entfernt",
+            "anon": "{{user}} hat die Einladung an a user aus der Region {{region}} entfernt"
+          },
+          "user": "{{user}} hat die Einladung an {{other}} entfernt",
+          "anon": "{{user}} hat die Einladung an a user entfernt"
+        }
+      },
+      "favorite": {
+        "created": "{{user}} hat {{entity}} zu seinen/ihren Favoriten hinzugefügt",
+        "removed": "{{user}} hat {{entity}} aus seinen/ihren Favoriten entfernt"
+      },
+      "file": {
+        "uploaded": "{{user}} hat {{column}} hochgeladen",
+        "columns": {
+          "file": "eine Datei",
+          "topo image": "ein Topo Bild"
+        }
+      },
+      "generic": {
+        "created": "{{user}} hat {{column}} {{entity}} erstellt",
+        "updated": "{{user}} hat {{column}} {{entity}} aktualisiert",
+        "deleted": "{{user}} hat {{column}} {{entity}} gelöscht"
+      },
+      "more": {
+        "updates_one": "und {{count}} weiteres Update",
+        "updates_other": "und {{count}} weitere Updates",
+        "ascents_one": "und {{count}} weitere Route geklettert",
+        "ascents_other": "und {{count}} weitere Routen geklettert"
+      },
+      "entities": {
+        "area": {
+          "withArticle": "ein Gebiet",
+          "withColumn": "{{column}} <span class=\"text-surface-500\">des</span> Gebiets",
+          "columns": {
+            "description": "<span class=\"text-surface-500\">die</span> Beschreibung",
+            "name": "<span class=\"text-surface-500\">den</span> Namen",
+            "parking location": "<span class=\"text-surface-500\">den</span> Parkplatz Standort",
+            "type": "<span class=\"text-surface-500\">den</span> Typ",
+            "walking paths": "<span class=\"text-surface-500\">den</span> Zugangsweg"
+          }
+        },
+        "ascent": {
+          "columns": {
+            "bunnyVideoIds": "<span class=\"text-surface-500\">das</span> Video",
+            "dateTime": "<span class=\"text-surface-500\">das</span> Datum",
+            "gradeFk": "<span class=\"text-surface-500\">die</span> Schwierigkeit",
+            "humidity": "<span class=\"text-surface-500\">die</span> Luftfeuchtigkeit",
+            "notes": "<span class=\"text-surface-500\">die</span> Notizen",
+            "rating": "<span class=\"text-surface-500\">die</span> Bewertung",
+            "temperature": "<span class=\"text-surface-500\">die</span> Temperatur",
+            "type": "<span class=\"text-surface-500\">den</span> Typ"
+          }
+        },
+        "block": {
+          "withArticle": "einen Block",
+          "withColumn": "{{column}} <span class=\"text-surface-500\">des</span> Blocks",
+          "columns": {
+            "location": "<span class=\"text-surface-500\">den</span> Standort",
+            "name": "<span class=\"text-surface-500\">den</span> Namen",
+            "topo image": "<span class=\"text-surface-500\">das</span> Topo Bild",
+            "topo": "<span class=\"text-surface-500\">das</span> Topo"
+          }
+        },
+        "route": {
+          "withArticle": "eine Route",
+          "withColumn": "{{column}} <span class=\"text-surface-500\">der</span> Route",
+          "columns": {
+            "description": "<span class=\"text-surface-500\">die</span> Beschreibung",
+            "file": "<span class=\"text-surface-500\">eine</span> Datei",
+            "first ascent": "<span class=\"text-surface-500\">die</span> Erstbegehung",
+            "gradeFk": "<span class=\"text-surface-500\">die</span> Schwierigkeit",
+            "name": "<span class=\"text-surface-500\">den</span> Namen",
+            "rating": "<span class=\"text-surface-500\">die</span> Bewertung",
+            "tags": "<span class=\"text-surface-500\">die</span> Tags",
+            "topo": "<span class=\"text-surface-500\">das</span> Topo"
+          }
+        }
+      }
+    },
+    "pushNotifications": {
+      "test": {
+        "title": "Dies ist eine Test Benachrichtigung"
+      },
+      "firstRoleAdded": {
+        "title": "Willkommen bei {{name}}",
+        "body": "Du hast Zugriff zu {{region}} erhalten"
+      },
+      "roleAdded": {
+        "title": "Update zu deinem {{name}} Konto",
+        "body": "Du hast Zugriff zu {{region}} erhalten"
+      },
+      "roleRemoved": {
+        "title": "Update zu deinem {{name}} Konto",
+        "body": "Dein Zugriff zu {{region}} wurde entfernt"
+      },
+      "roleUpdated": {
+        "title": "Update zu deinem {{name}} Konto",
+        "body": "Dein Zugriff zu {{region}} wurde zu {{role}} aktualisiert"
+      },
+      "invited": {
+        "title": "{{user}} hat dich eingeladen {{region}} beizutreten"
+      },
+      "invitationAccepted": {
+        "title": "{{user}} hat deine Einladung angenommen"
+      },
+      "userRegistered": {
+        "title": "Neuer Nutzer hat sich registriert",
+        "body": "Ein neuer Nutzer hat sich gerade registriert: {{user}} - {{email}}"
+      }
+    },
+    "editor": {
+      "write": "Schreiben",
+      "preview": "Vorschau",
+      "markdownSupported": "Markdown<br />unterstützt",
+      "openMarkdownCheatSheet": "Markdown-Spickzettel öffnen"
+    },
+    "auth": {
+      "signIn": {
+        "title": "Willkommen zurück",
+        "subtitle": "Melde dich an, um zu {{appName}} zu gelangen",
+        "login": "Anmelden",
+        "forgotPassword": "Passwort vergessen?",
+        "createAccount": "Konto erstellen"
+      },
+      "signUp": {
+        "title": "Konto erstellen",
+        "subtitle": "Registriere dich, um zu {{appName}} zu gelangen",
+        "success": "Erfolg",
+        "successMessage": "Wir haben eine Bestätigung an deine E-Mail-Adresse {{email}} gesendet. Bitte bestätigen, bevor du dich anmeldest.",
+        "signUp": "Registrieren",
+        "loginExisting": "Mit bestehendem Konto anmelden",
+        "passwordConfirmation": "Passwort bestätigen",
+        "acceptTerms": "Ich habe gelesen und stimme zu den",
+        "and": "und"
+      },
+      "forgotPassword": {
+        "title": "Passwort vergessen",
+        "enterEmail": "Gib deine E-Mail ein",
+        "sendResetLink": "Link zum Zurücksetzen senden",
+        "success": "Erfolg",
+        "successMessage": "Wir haben einen Link zum Zurücksetzen an deine E-Mail-Adresse {{email}} gesendet."
+      },
+      "resetPassword": {
+        "title": "Passwort zurücksetzen",
+        "newPassword": "Neues Passwort",
+        "enterNewPassword": "Gib dein neues Passwort ein",
+        "newPasswordConfirmation": "Neues Passwort bestätigen",
+        "confirmNewPassword": "Bestätigen dein neues Passwort",
+        "savePassword": "Passwort speichern",
+        "successMessage": "Dein Passwort wurde erfolgreich geändert."
+      },
+      "signOut": "Abmelden"
+    },
+    "settings": {
+      "hello": "Hallo {{username}}",
+      "languages": {
+        "en": "English",
+        "de": "Deutsch"
+      },
+      "appSettings": {
+        "title": "App-Einstellungen",
+        "language": "Sprache",
+        "gradingScale": "Bewertungsskala",
+        "manageTags": "Tags verwalten",
+        "manageUsers": "Benutzer verwalten"
+      },
+      "regionSettings": {
+        "title": "Regions-Einstellungen",
+        "titleWithName": "{{name}} Einstellungen",
+        "createRegion": "Region erstellen",
+        "editRegion": "Region bearbeiten",
+        "saveRegion": "Region speichern",
+        "inviteToRegion": "Zur Region einladen",
+        "members": "Mitglieder",
+        "invitedBy": "Eingeladen von",
+        "inviteMember": "Mitglied einladen",
+        "confirmRemoveFromRegion": "Bist du sicher, dass du {{label}} aus der Region entfernen möchtest?",
+        "maxMembersReached": "Diese Region hat die maximale Anzahl an Mitgliedern ({{max}}) erreicht."
+      },
+      "userSettings": {
+        "title": "Benutzer-Einstellungen",
+        "editProfile": "Profil bearbeiten",
+        "changePassword": "Passwort ändern"
+      },
+      "notifications": {
+        "title": "Benachrichtigung-Einstellungen",
+        "selectNotifications": "Wähle aus, welche Benachrichtigungen du erhalten möchtest.",
+        "addToHomeScreen": "Um Push-Benachrichtigungen zu aktivieren, muss die Web-App zuerst zum Startbildschirm hinzugefügt werden.",
+        "showMeHow": "Zeig mir wie",
+        "notSupported": "Push-Benachrichtigungen werden von deinem Browser nicht unterstützt.",
+        "newUsers": "Neue Benutzer",
+        "newAscents": "Neue Begehungen",
+        "newContentUpdates": "Neue Inhaltsaktualisierungen"
+      },
+      "serviceStatus": "Service Status"
+    },
+    "profile": {
+      "editProfile": "Profil bearbeiten",
+      "saveProfile": "Profil speichern",
+      "changePassword": "Passwort ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "enterCurrentPassword": "Gib dein aktuelles Passwort ein",
+      "emailNotConfirmed": "Deine E-Mail-Adresse ist nicht bestätigt. Bitte prüfe deinen Posteingang auf einen Bestätigungslink."
+    },
+    "areas": {
+      "title": "Gebiete",
+      "createArea": "Gebiet erstellen",
+      "createAreaIn": "Gebiet in <a class=\"anchor\" href=\"{{url}}\">{{name}}</a> erstellen",
+      "createAreaInTitle": "Gebiet in {{name}} erstellen",
+      "saveArea": "Gebiet speichern",
+      "updateArea": "Gebiet aktualisieren",
+      "addArea": "Gebiet hinzufügen",
+      "editAreaDetails": "Details bearbeiten",
+      "editArea": "Gebiet bearbeiten",
+      "editAreaOfTitle": "Gebiet {{name}} bearbeiten",
+      "addParkingLocation": "Parkplatz hinzufügen"
+    },
+    "blocks": {
+      "title": "Blöcke",
+      "createBlock": "Block erstellen",
+      "createBlockIn": "Block in <a class=\"anchor\" href=\"{{url}}\">{{name}}</a> erstellen",
+      "createBlockInTitle": "Block in {{name}} erstellen",
+      "addBlock": "Block hinzufügen",
+      "saveBlock": "Block speichern",
+      "updateBlock": "Block aktualisieren",
+      "topoImage": "Topo Bild",
+      "noBlocksYet": "Noch keine Blöcke",
+      "editBlockDetails": "Details bearbeiten",
+      "exportPreview": "Blockvorschau exportieren",
+      "geolocationMissing": "Die Standortangabe dieses Blocks fehlt. Weißt du, wo er ist?",
+      "editBlockOfTitle": "Block {{name}} bearbeiten",
+      "reorderBlocks": "Sortierung ändern",
+      "sortOrder": "Sortierung",
+      "customOrder": "Benutzerdefinierte Sortierung",
+      "alphabeticalOrder": "Alphabetische Sortierung"
+    },
+    "routes": {
+      "title": "Routen",
+      "createRoute": "Route erstellen",
+      "createRouteInTitle": "Route in {{name}} erstellen",
+      "addRoute": "Route hinzufügen",
+      "saveRoute": "Route speichern",
+      "saveAndCreateAnother": "Speichern und weitere erstellen",
+      "updateRoute": "Route aktualisieren",
+      "editRoute": "Route bearbeiten",
+      "editRouteOfTitle": "{{name}} bearbeiten",
+      "editRouteDetails": "Details bearbeiten",
+      "countLabel_one": "{{count}} Route",
+      "countLabel_other": "{{count}} Routen",
+      "show": "Anzeigen",
+      "selectRouteLabel": "Route auswählen",
+      "selectRoutePlaceholder": "-- Route auswählen --",
+      "confirmDeleteRoute": "Bist du sicher, dass du diese Route löschen möchtest?",
+      "noRoutesYet": "Noch keine Routen",
+      "viewRoute": "Route ansehen",
+      "leaveEmptyIfUnknown": "Leer lassen, wenn unbekannt",
+      "namingGuidelines": {
+        "title": "Richtlinien für Routennamen",
+        "intro": "Bitte beachte beim Benennen einer Route folgende Richtlinien:",
+        "items": {
+          "respectfulInclusive": "Wähle respektvolle und inklusive Namen – vermeide anstößige, diskriminierende oder unangemessene Inhalte",
+          "ageAppropriate": "Verwende Namen, die für alle Altersgruppen geeignet sind",
+          "respectLocalCultures": "Respektiere lokale Kulturen und indigene Bevölkerungsgruppen",
+          "considerNamingThemes": "Berücksichtige bestehende Namensmuster in der Region",
+          "ensureUniqueWithinArea": "Stelle sicher, dass der Name innerhalb des Klettergebiets einzigartig ist",
+          "appropriateForPublicDisplay": "Namen sollten für die öffentliche Darstellung und Veröffentlichung geeignet sein"
+        },
+        "reminder": "Denke daran: Routennamen werden Teil des Vermächtnisses der Klettergemeinschaft und sollten positiv auf den Sport wirken."
+      },
+      "yearOfFA": "Jahr der Erstbegehung"
+    },
+    "ascents": {
+      "title": "Begehungen",
+      "noAscentsYet": "Noch keine Begehungen",
+      "addAscent": "Begehung hinzufügen",
+      "saveAscent": "Begehung speichern",
+      "updateAscent": "Begehung aktualisieren",
+      "logAscentOfTitle": "Begehung von {{name}} protokollieren",
+      "logAscentOf": "Begehung von",
+      "editAscent": "Begehung bearbeiten",
+      "editAscentOfTitle": "Begehung von {{name}} bearbeiten",
+      "climber": "Kletterer",
+      "dateTime": "Datum",
+      "sessions": "Sessions",
+      "lastSession": "Letzte Session",
+      "types": {
+        "flash": "Flash",
+        "send": "Begehung",
+        "repeat": "Wiederholung",
+        "attempt": "Versuch"
+      },
+      "sentence": {
+        "flash": { "prefix": "{{username}} hat", "suffix": "geflashed" },
+        "send": { "prefix": "{{username}} hat", "suffix": "durchgestiegen" },
+        "repeat": { "prefix": "{{username}} hat", "suffix": "wiederholt" },
+        "attempt": { "prefix": "{{username}} hat", "suffix": "versucht" }
+      }
+    },
+    "tags": {
+      "title": "Tags",
+      "tagsSettings": "Tags-Einstellungen",
+      "createTag": "Tag erstellen",
+      "editTag": "Tag bearbeiten",
+      "saveTag": "Tag speichern",
+      "addTag": "Tag hinzufügen",
+      "noTagsYet": "Noch keine Tags",
+      "actions": "Aktionen",
+      "confirmDeleteTag": "Bist du sicher, dass du diesen Tag löschen möchtest?"
+    },
+    "users": {
+      "title": "Benutzer",
+      "usersSettings": "Benutzer-Einstellungen",
+      "manageUsers": "Benutzer verwalten",
+      "noUsersYet": "Noch keine Benutzer",
+      "roleChangeNotice": "Achtung!",
+      "roleChangeDescription": "Das Ändern der Rolle eines Benutzers sendet ihm eine Benachrichtigung über seine aktualisierten Berechtigungen.",
+      "none": "-- Keine --",
+      "role": "Rolle",
+      "invitationPending": "Einladung ausstehend",
+      "profileOfTitle": "Profil von {{name}}"
+    },
+    "favorites": {
+      "noFavoritesYetTitle": "Du hast noch keine Favoriten",
+      "noFavoritesYetDescription": "Markiere deine Lieblingsrouten.",
+      "suggestionIntro": "Wie wäre es mit dieser?"
+    },
+    "legal": {
+      "privacyPolicy": "Datenschutzerklärung",
+      "termsOfService": "Nutzungsbedingungen",
+      "cookiePolicy": "Cookie-Richtlinie",
+      "disclaimer": "Haftungsausschluss"
+    },
+    "footer": {
+      "tagline": "Sichere Boulder-Topo und Session-Tracker. Ein Hobbyprojekt für die Boulder-Community.",
+      "noCommercialIntent": "Keine kommerziellen Absichten."
+    },
+    "errors": {
+      "title": "Fehler",
+      "oops": "Upps! Da ist ist etwas schiefgelaufen",
+      "returnHome": "Zur Startseite",
+      "goBack": "Zurück",
+      "persistMessage": "Wenn dieses Problem weiterhin besteht, kontaktiere bitte den Support oder versuche es später erneut.",
+      "notConnected": "Du bist nicht mit dem Internet verbunden",
+      "unexpected": "Ein unerwarteter Fehler ist aufgetreten",
+      "401": "Du hast keine Berechtigung, auf diese Ressource zuzugreifen.",
+      "404": "Die gesuchte Seite existiert nicht.",
+      "500": "Ein unerwarteter Serverfehler ist aufgetreten.",
+      "unableToLoadAscents": "Begehungen konnten nicht geladen werden"
+    },
+    "dangerZone": {
+      "title": "Gefahrenzone",
+      "delete": "{{name}} löschen",
+      "cannotUndo": "Diese Aktion kann nicht rückgängig gemacht werden",
+      "confirmDelete": "Bist du sicher, dass du dieses {{name}} löschen möchtest?"
+    },
+    "grade": {
+      "title": "Schwierigkeit",
+      "opinions": "Schwierigkeitsmeinungen",
+      "originalGrade": "Original Schwierigkeit",
+      "opinionDescription": "Diese Schwierigkeit ist nur ein Vorschlag und nicht die endgültige Schwierigkeit der Route. Benutzer können ihre Meinung zur Schwierigkeit angeben, wenn sie eine Begehung protokollieren.",
+      "averageDescription": "Die endgültige Schwierigkeit ist der Durchschnitt aller Meinungen."
+    },
+    "grades": {
+      "title": "Schwierigkeiten"
+    },
+    "rating": {
+      "title": "Bewertung",
+      "description": "Versuche so objektiv wie möglich diese Faktoren zu berücksichtigen:",
+      "factors": {
+        "rockQuality": "Die Qualität des Felsens und der Griffe",
+        "landingQuality": "Die Qualität der Landezone",
+        "climbingMovement": "Die Kletterbewegung",
+        "surroundingBeauty": "Die Schönheit der Umgebung",
+        "topoutOrDropoff": "Gibt es einen Topout oder nur einen Absprung?"
+      }
+    },
+    "landing": {
+      "hero": {
+        "title": "Schütze deine privaten Boulder-Gebiete",
+        "subtitle": "Professionelles Gebietsmanagement für sensible Zugangsstandorte. Halte deine Entwicklungsprojekte sicher, arbeite mit deiner Community zusammen und verliere nie wieder deine Daten.",
+        "secureAreas": "Meine Gebiete sichern",
+        "tryDemo": "Demo ausprobieren"
+      },
+      "problem": {
+        "title": "Warum Gebietsentwickler datenschutzorientierte Tools wählen",
+        "paragraph1": "Die Entwicklung von Boulder-Gebieten auf privatem Land erfordert eine sorgfältige Balance zwischen Community-Zusammenarbeit und Zugangsschutz. Eine falsch platzierte Koordinate oder zu viel geteilte Beta kann jahrelange Beziehungsarbeit mit Grundstückseigentümern gefährden.",
+        "paragraph2": "Gleichzeitig führt das Verwalten von Entwicklungsdaten über verstreute Excel-Dateien und E-Mail-Ketten zu Versionskonflikten, Datenverlustrrisiken und Zusammenarbeitsproblemen, die den Fortschritt verlangsamen."
+      },
+      "features": {
+        "title": "Entwickelt für Gebietsentwickler, denen Zugang wichtig ist",
+        "accessProtection": {
+          "title": "Zugangsschutz",
+          "description": "Halte sensible Gebiete privat mit einladungsbasierten Communities. Perfekt für privates Land, wo öffentliche Bekanntheit eine Schliessung riskiert."
+        },
+        "professionalCollaboration": {
+          "title": "Professionelle Zusammenarbeit",
+          "description": "Ersetze E-Mail-Ketten und Versionskonflikte. Dein gesamtes Team sieht Updates sofort mit ordentlicher Änderungsverfolgung."
+        },
+        "dataIntegrity": {
+          "title": "Datenintegrität",
+          "description": "Importiere deine Excel-Dateien und wechsle zu professionellem Gebietsmanagement. Verliere nie wieder Entwicklungsarbeit durch beschädigte Dateien."
+        },
+        "completeAreaManagement": {
+          "title": "Vollständiges Gebietsmanagement",
+          "description": "Organisiere Gebiete, Sektoren und Probleme mit detaillierten Topos, Schwierigkeiten und Bedingungen. Speziell für Boulder-Entwicklung gebaut."
+        },
+        "developmentDocumentation": {
+          "title": "Entwicklungsdokumentation",
+          "description": "Dokumentiere Erstbegehungen, Reinigungsfortschritt und Projektstatus. Sieh, wie sich dein Gebiet im Laufe der Zeit mit detaillierten Analysen entwickelt."
+        },
+        "easyMigration": {
+          "title": "Einfache Migration",
+          "description": "Importiere bestehende Problemlisten aus Excel oder CSV. Migriere jahrzehntelange Entwicklungsarbeit in Minuten, nicht Monaten."
+        }
+      },
+      "perfectFor": {
+        "title": "Perfekt für",
+        "areaDevelopers": {
+          "title": "Gebietsentwickler",
+          "description": "Erstbegeher und Routensetzer, die laufende Entwicklungsprojekte verwalten"
+        },
+        "localCommunities": {
+          "title": "Lokale Communities",
+          "description": "Eng verbundene Klettergruppen mit sensiblen Zugangsgebieten, die Diskretion erfordern"
+        },
+        "privateLandStewards": {
+          "title": "Private Landverwalter",
+          "description": "Grundstückseigentümer und berechtigte Gruppen, die nachhaltige Zugangsprogramme verwalten"
+        }
+      },
+      "integration": {
+        "title": "Wenn du bereit bist, öffentlich zu werden",
+        "description": "Sobald der Zugang gesichert und die Gebiete etabliert sind, exportiere deine Daten einfach auf öffentliche Plattformen, wenn es angemessen ist."
+      }
+    },
+    "invite": {
+      "title": "Regionseinladung",
+      "accept": "Einladung annehmen",
+      "invitedToJoin": "Du wurdest eingeladen, beizutreten",
+      "by": "von",
+      "sendInvite": "Einladung senden",
+      "inviteEmail": "Einladungs-E-Mail"
+    },
+    "firstAscent": {
+      "title": "Erstbegehung",
+      "edit": "Erstbegehung bearbeiten",
+      "thatsMe": "Das bin ich!",
+      "claimAttributionDescription": "Alle Erstbegehungen mit dem Namen {{name}} werden dir zugeordnet. Bist du sicher, dass du das bist?",
+      "claimFA": "FA beanspruchen",
+      "claimConfirmation": "Diese Erstbegehung wird dir zugeordnet. Bist du sicher?",
+      "editFAOfTitle": "Erstbegehung von {{name}} bearbeiten",
+      "editFAOf": "Erstbegehung von",
+      "year": "Jahr",
+      "enterYear": "Jahr eingeben...",
+      "climber": "Kletterer",
+      "updateFA": "Erstbegehung aktualisieren"
+    },
+    "externalResources": {
+      "title": "Externe Ressourcen",
+      "showOn8a": "Auf 8a.nu anzeigen",
+      "showOn27crags": "Auf 27crags anzeigen",
+      "showOnTheCrag": "Auf theCrag anzeigen"
+    },
+    "files": {
+      "addFile": "Datei hinzufügen",
+      "sharedFile": "Geteilte Datei",
+      "ascentTitle": "Begehung von {{route}} durch {{username}}",
+      "editFilesOfTitle": "Dateien von {{name}} bearbeiten",
+      "editFilesOf": "Dateien von",
+      "title": "Dateien",
+      "unableToPlayVideo": "Video kann nicht abgespielt werden",
+      "unableToLoadImage": "Bild kann nicht geladen werden",
+      "visibility": {
+        "publicDescription": "Die Datei ist öffentlich zugänglich und kann von allen mit dem Link angesehen werden.",
+        "privateDescription": "Die Datei ist privat und nur für authentifizierte Benutzer zugänglich."
+      },
+      "onlyVideosPublic": "Nur Videos können öffentlich gemacht und geteilt werden.",
+      "makePrivate": "Privat machen",
+      "makePublic": "Öffentlich machen",
+      "confirmDelete": "Bist du sicher, dass du diese Datei löschen möchtest?"
+    },
+    "entities": {
+      "area": "Gebiet",
+      "block": "Block",
+      "route": "Route",
+      "ascent": "Begehung"
+    },
+    "topo": {
+      "title": "Topo",
+      "addTopo": "Topo hinzufügen",
+      "editTopo": "Topo bearbeiten",
+      "drawTopo": "Topo zeichnen",
+      "drawTopoOfTitle": "Topo von {{name}} zeichnen",
+      "uploadTopoImage": "Topo Bild hochladen",
+      "uploadTopoImageOfTitle": "Topo Bild von {{name}} hochladen",
+      "uploadMoreLater": "Du kannst später weitere Topo Bilder hochladen.",
+      "replaceTopoOfTitle": "Topo von {{name}} ersetzen",
+      "replaceTopo": "Topo ersetzen",
+      "replaceImage": "Topo Bild ersetzen",
+      "confirmDeleteImage": "Bist du sicher, dass du dieses Bild löschen möchtest?",
+      "deleteRoutesTopo": "Topo der Route löschen",
+      "noTopoYet": "Noch kein Topo",
+      "topout": "Topout",
+      "startPoint": "Start",
+      "middlePoint": "Mitte",
+      "topPoint": "Top",
+      "previousTopo": "Vorheriges Topo",
+      "nextTopo": "Nächstes Topo",
+      "resetZoom": "Zoom zurücksetzen",
+      "toggleLines": "Linien ein-/ausblenden",
+      "fullscreen": "Vollbild",
+      "errorLoadingImage": "Fehler beim Laden des Bildes",
+      "deletePoint": "Punkt löschen"
+    },
+    "export": {
+      "title": "Export",
+      "pdf": "PDF exportieren",
+      "exportingTitle": "Export von {{name}}",
+      "saveToDevice": "Auf Gerät speichern",
+      "preparing": "Export wird vorbereitet",
+      "versionLabel": "Version",
+      "contact": "Kontakt",
+      "licenseLabel": "Lizenz",
+      "licenseCode": "CC BY-NC-SA 4.0"
+    },
+    "sync": {
+      "externalResources": "Externe Ressourcen synchronisieren",
+      "externalResourcesOfTitle": "Externe Ressourcen von {{name}} synchronisieren"
+    },
+    "map": {
+      "title": "Karte",
+      "layers": "Ebenen",
+      "geolocate": "Standort",
+      "latLong": "Koordinaten",
+      "latitude": "Breitengrad",
+      "longitude": "Längengrad",
+      "addLocation": "Standort hinzufügen",
+      "osm": "OSM",
+      "markers": "Markierungen",
+      "directions": "Navigation",
+      "geolocationErrorTitle": "Standortfehler",
+      "geolocationErrorMessage": "Der Standortdienst funktioniert nicht. Bitte überprüfe deine Browsereinstellungen und versuche es erneut.",
+      "geolocationError": {
+        "enableLocationServices": "Prüfe, ob die Ortungsdienste im Browser aktiviert sind",
+        "sharePermission": "Stelle sicher, dass du die Berechtigung zum Teilen deines Standorts hast",
+        "gpsSignal": "Prüfe, ob ein GPS-Signal vorhanden ist",
+        "tryDifferentBrowser": "Versuche einen anderen Browser oder ein anderes Gerät"
+      }
+    },
+    "parking": {
+      "editLocation": "Parkplatz bearbeiten",
+      "updateLocation": "Parkplatz aktualisieren",
+      "location": "Parkplatz",
+      "editLocationOfTitle": "Parkplatz von {{name}} bearbeiten"
+    },
+    "location": {
+      "editLocation": "Standort bearbeiten",
+      "editLocationOfTitle": "Standort von {{name}} bearbeiten",
+      "updateLocation": "Standort aktualisieren",
+      "location": "Standort"
+    },
+    "activityFeed": {
+      "title": "Aktivitätsfeed",
+      "filterLabel": "Aktivitätsfeed filtern:",
+      "showMoreChanges_one": "Zeige {{count}} weitere Änderung",
+      "showMoreChanges_other": "Zeige {{count}} weitere Änderungen",
+      "showAscentsOnly": "Nur Begehungen anzeigen",
+      "showMyActivityOnly": "Nur meine Aktivität anzeigen",
+      "noRecentActivity": "Keine aktuellen Aktivitäten",
+      "loadMoreActivities": "Weitere Aktivitäten laden"
+    },
+    "status": {
+      "title": "Dienststatus",
+      "services": {
+        "zero": "Zero",
+        "supabase": "Supabase",
+        "nextcloud": "Nextcloud",
+        "bunny": "Bunny"
+      }
+    },
+    "fileUpload": {
+      "uploadFile": "Datei hochladen"
+    },
+    "homescreen": {
+      "addToHomeScreen": "Zum Startbildschirm hinzufügen",
+      "iosInstructions": "Um diese App zu deinem Startbildschirm hinzuzufügen:",
+      "clickBelow": "Klicke unten auf",
+      "chooseAddToHomeScreen": "Wähle Zum Home-Bildschirm"
+    },
+    "projects": {
+      "title": "Projekte",
+      "openProjects": "Offene Projekte",
+      "finishedProjects": "Abgeschlossene Projekte"
+    },
+    "notifications": {
+      "unableToUnsubscribe": "Push-Benachrichtigungen konnten nicht abbestellt werden",
+      "unableToUnsubscribeDetailed": "Push-Benachrichtigungen konnten nicht abbestellt werden. Bitte versuche es erneut oder überprüfe deine Browsereinstellungen.",
+      "unableToSubscribeDetailed": "Push-Benachrichtigungen konnten nicht abonniert werden. Bitte versuche es erneut oder überprüfe deine Browsereinstellungen.",
+      "unsubscribeButton": "Benachrichtigungen abbestellen",
+      "receivePush": "Push-Benachrichtigungen erhalten",
+      "sendTest": "Testbenachrichtigung senden"
+    },
+    "updates": {
+      "updatingApp": "App wird aktualisiert...",
+      "updatedApp": "App aktualisiert",
+      "unableToUpdate": "App konnte nicht aktualisiert werden"
+    },
+    "newUser": {
+      "thankYouTitle": "Danke für deine Anmeldung bei {{appName}}",
+      "notMember": "Du bist derzeit kein Mitglied einer Region. Du musst von einem Regions-Administrator eingeladen werden, um einer Region beizutreten.",
+      "orCreate": "Oder du erstellst hier eine neue Region:",
+      "contactIntro": "Wenn du Unterstützung benötigst oder in eine bestehende Region eingeladen werden möchtest, kontaktiere uns unter"
+    },
+    "share": {
+      "wantsToShare": "möchte eine Datei mit dir teilen",
+      "iWantToShare": "Ich möchte eine Datei mit dir teilen",
+      "share": "Teilen"
+    },
+    "references": {
+      "mentionedIn": "Erwähnt in",
+      "ascentOfPrefix": "{{username}}'s Begehung von"
+    },
+    "videoStatus": {
+      "Created": {
+        "title": "Erstellt",
+        "message": "Das Video wurde erstellt, aber noch nicht hochgeladen."
+      },
+      "Uploaded": {
+        "title": "Hochgeladen",
+        "message": "Das Video wurde hochgeladen, aber noch nicht verarbeitet."
+      },
+      "Processing": {
+        "title": "Verarbeitung",
+        "message": "Das Video wird verarbeitet. Dies kann einige Minuten dauern."
+      },
+      "Transcoding": {
+        "title": "Transkodierung",
+        "message": "Das Video wird transkodiert. Dies kann einige Minuten dauern."
+      },
+      "Finished": {
+        "title": "Fertig",
+        "message": "Das Video wurde transkodiert und ist bereit zum Abspielen."
+      },
+      "Error": {
+        "title": "Fehler",
+        "message": "Beim Video ist ein Fehler aufgetreten. Bitte versuche es erneut."
+      },
+      "UploadFailed": {
+        "title": "Upload fehlgeschlagen",
+        "message": "Der Upload des Videos ist fehlgeschlagen. Bitte versuche es erneut."
+      },
+      "JitSegmenting": {
+        "title": "JIT‑Segmentierung",
+        "message": "Das Video wird segmentiert. Dies kann einige Minuten dauern."
+      },
+      "JitPlaylistsCreated": {
+        "title": "JIT‑Playlisten erstellt",
+        "message": "Die Playlisten wurden erstellt. Dies kann einige Minuten dauern."
+      },
+      "Unknown": {
+        "title": "Unbekannt",
+        "message": "Der Videostatus ist unbekannt."
+      }
+    },
+    "conditions": {
+      "title": "Bedingungen",
+      "temperature": "Temperatur",
+      "humidity": "Luftfeuchtigkeit"
+    }
+  }
+}

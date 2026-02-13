@@ -2,18 +2,21 @@
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import TagFormFields from '$lib/components/TagFormFields'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { form } = $props()
+
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
-  <title>Create tag - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('tags.createTag')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
   <AppBar.Toolbar class="flex">
-    <AppBar.Headline>Create tag</AppBar.Headline>
+    <AppBar.Headline>{t('tags.createTag')}</AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
 
@@ -21,9 +24,12 @@
   <TagFormFields id={form?.id ?? ''} />
 
   <div class="mt-8 flex justify-between md:items-center">
-    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+    <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+      >{t('common.cancel')}</button
+    >
     <button class="btn preset-filled-primary-500" type="submit">
-      <i class="fa-solid fa-floppy-disk"></i> Save tag
+      <i class="fa-solid fa-floppy-disk"></i>
+      {t('tags.saveTag')}
     </button>
   </div>
 </form>

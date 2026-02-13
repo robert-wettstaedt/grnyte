@@ -1,4 +1,3 @@
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import type {
   Ascent,
   Grade,

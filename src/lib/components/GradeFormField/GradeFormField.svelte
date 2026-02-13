@@ -3,6 +3,7 @@
   import { pageState } from '$lib/components/Layout'
   import type { Route } from '$lib/db/schema'
   import { getGradeColor } from '$lib/grades'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     value: Route['gradeFk'] | null | undefined
@@ -11,6 +12,7 @@
 
   let { value = $bindable(), withModal = false }: Props = $props()
 
+  const { t } = getI18n()
   let grade = $state(value)
 
   $effect(() => {
@@ -74,19 +76,18 @@
 
 <label class="label mt-4">
   <span>
-    Grade
+    {t('common.grade')}
 
     {#if withModal}
-      <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title="Grade opinions">
+      <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title={t('grade.opinions')}>
         {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
 
         {#snippet content()}
           <p>
-            This grade is merely a suggestion and not the final grade of the route. Users can state their opinion on the
-            grade when logging an ascent of the route.
+            {t('grade.opinionDescription')}
           </p>
 
-          <p class="mt-4">The final grade will be the average of all the opinions.</p>
+          <p class="mt-4">{t('grade.averageDescription')}</p>
         {/snippet}
       </Dialog>
     {/if}
@@ -97,10 +98,11 @@
   <div class="flex items-end justify-between gap-2">
     {#if grade == null}
       <div class="border-surface-500 my-2 rounded-md border-2 px-4 py-2 text-sm">
-        No grade yet
+        {t('common.noGradeYet')}
 
         <button
-          aria-label="Add grade"
+          aria-label={t('common.addGrade')}
+          title={t('common.addGrade')}
           class="btn preset-filled-surface-500 btn-sm ms-1 h-6 w-6"
           onclick={() => (value = pageState.grades.at(Math.floor(pageState.grades.length / 2))?.id)}
           type="button"
@@ -146,7 +148,8 @@
       </div>
 
       <button
-        aria-label="Clear"
+        aria-label={t('common.clear')}
+        title={t('common.clear')}
         class="btn preset-filled-surface-500 h-9 w-9"
         onclick={() => (value = null)}
         type="button"

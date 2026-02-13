@@ -4,6 +4,7 @@
   import { pageState } from '$lib/components/Layout'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     entityId: number
@@ -12,6 +13,7 @@
   }
 
   const { entityId, entityType, regionFk }: Props = $props()
+  const { t } = getI18n()
 </script>
 
 <ZeroQueryWrapper
@@ -27,7 +29,7 @@
           {#if allFiles.length > 0}
             <div class="flex p-2">
               <span class="flex-auto">
-                <dt>Files</dt>
+                <dt>{t('files.title')}</dt>
                 <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
                   {#each allFiles as file}
                     <FileViewer
@@ -44,7 +46,7 @@
     {:else if files.length > 0}
       <div class="flex p-2">
         <span class="flex-auto">
-          <dt>Files</dt>
+          <dt>{t('files.title')}</dt>
           <dd class="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
             {#each files as file}
               <FileViewer
