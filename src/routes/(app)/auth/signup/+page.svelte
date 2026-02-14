@@ -72,10 +72,7 @@
         <label class="label mt-6 flex items-start gap-3">
           <input name="acceptTerms" type="checkbox" class="checkbox mt-1" />
           <span class="text-sm leading-5">
-            {t('auth.signUp.acceptTerms')}
-            <a href="/legal/terms" target="_blank" class="anchor">{t('legal.termsOfService')}</a>
-            {t('auth.signUp.and')}
-            <a href="/legal/privacy" target="_blank" class="anchor">{t('legal.privacyPolicy')}</a>.
+            {@html t('auth.signUp.acceptTerms')}
           </span>
         </label>
 

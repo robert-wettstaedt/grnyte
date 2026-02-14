@@ -273,12 +273,11 @@
         "title": "Konto erstellen",
         "subtitle": "Registriere dich, um zu {{appName}} zu gelangen",
         "success": "Erfolg",
-        "successMessage": "Wir haben eine Bestätigung an deine E-Mail-Adresse {{email}} gesendet. Bitte bestätigen, bevor du dich anmeldest.",
+        "successMessage": "Wir haben eine Bestätigung an deine E-Mail-Adresse {{email}} gesendet. Bitte bestätige sie, bevor du dich anmeldest.",
         "signUp": "Registrieren",
         "loginExisting": "Mit bestehendem Konto anmelden",
         "passwordConfirmation": "Passwort bestätigen",
-        "acceptTerms": "Ich habe gelesen und stimme zu den",
-        "and": "und"
+        "acceptTerms": "Ich habe die <a href=\"/legal/terms\" target=\"_blank\" class=\"anchor\">Nutzungsbedingungen</a> und <a href=\"/legal/privacy\" target=\"_blank\" class=\"anchor\">Datenschutzerklärung</a> gelesen und stimme diesen zu."
       },
       "forgotPassword": {
         "title": "Passwort vergessen",

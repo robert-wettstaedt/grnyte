@@ -298,8 +298,7 @@
         "signUp": "Sign up",
         "loginExisting": "Log into existing account",
         "passwordConfirmation": "Password confirmation",
-        "acceptTerms": "I have read and agree to the",
-        "and": "and"
+        "acceptTerms": "I have read and agree to the <a href=\"/legal/terms\" target=\"_blank\" class=\"anchor\">terms</a> and <a href=\"/legal/privacy\" target=\"_blank\" class=\"anchor\">privacy policy</a>."
       },
       "forgotPassword": {
         "title": "Forgot Password",
