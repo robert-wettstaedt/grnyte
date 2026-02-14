@@ -34,7 +34,7 @@
       disabled={createRegion.pending > 0}
       type="submit"
     >
-      {#if createRegion.pending > 0 || 1}
+      {#if createRegion.pending > 0}
         <LoadingIndicator />
       {:else}
         <i class="fa-solid fa-chevron-right"></i>
