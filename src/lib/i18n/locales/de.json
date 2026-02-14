@@ -552,7 +552,7 @@
           "description": "Organisiere Gebiete, Sektoren und Probleme mit detaillierten Topos, Schwierigkeiten und Bedingungen. Speziell für Boulder-Entwicklung gebaut."
         },
         "developmentDocumentation": {
-          "title": "Entwicklungsdokumentation",
+          "title": "Entwicklungs-Dokumentation",
           "description": "Dokumentiere Erstbegehungen, Reinigungsfortschritt und Projektstatus. Sieh, wie sich dein Gebiet im Laufe der Zeit mit detaillierten Analysen entwickelt."
         },
         "easyMigration": {
