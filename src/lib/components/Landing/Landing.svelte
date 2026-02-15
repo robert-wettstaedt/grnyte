@@ -60,7 +60,7 @@
       {t('landing.hero.subtitle')}
     </p>
 
-    <div class="flex justify-center gap-4">
+    <div class="flex flex-wrap justify-center gap-4">
       <a href="/auth" class="btn preset-filled-primary-500">
         <i class="fa-solid fa-shield-heart mr-2"></i>
         {t('landing.hero.secureAreas')}
