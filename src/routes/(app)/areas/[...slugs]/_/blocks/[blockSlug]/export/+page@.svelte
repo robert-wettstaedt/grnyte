@@ -145,7 +145,7 @@
           </p>
         {/if}
 
-        <p class="flex justify-end gap-1">
+        <p class="flex flex-nowrap justify-end gap-1 text-nowrap">
           {t('export.licenseLabel')}: {t('export.licenseCode')}
           <img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src={cc} alt="" />
           <img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src={by} alt="" />
