@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { pageState } from '$lib/components/Layout'
   import { queries } from '$lib/db/zero'
   import {
     convertMarkdownToHtmlSync,
@@ -37,7 +38,7 @@
       : markdown
 
     const enrichedMarkdown = enrichMarkdownWithReferences(value, refs)
-    const html = convertMarkdownToHtmlSync(enrichedMarkdown, encloseReferences)
+    const html = convertMarkdownToHtmlSync(enrichedMarkdown, pageState.grades, encloseReferences)
 
     return html
   })

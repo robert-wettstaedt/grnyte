@@ -39,6 +39,7 @@ body {
   &.short {
     @apply w-full;
 
+    &,
     & > * {
       @apply list-none;
       @apply overflow-hidden;
@@ -51,6 +52,14 @@ body {
 
     img {
       display: none;
+    }
+
+    .badge {
+      color: var(--color-white);
+      opacity: 0.8;
+      padding-block: calc(var(--spacing) * 1);
+      padding-inline: calc(var(--spacing) * 3);
+      width: auto;
     }
   }
 }
