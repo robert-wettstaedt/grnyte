@@ -1,7 +1,13 @@
 import * as schema from '$lib/db/schema'
-import { convertMarkdownToHtml, replaceMention } from '$lib/markdown'
+import { convertMarkdownToHtml, convertMarkdownToHtmlSync, replaceMention } from '$lib/markdown'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('$lib/grades', () => {
+  return {
+    getGradeColor: () => '#b91c1c',
+  }
+})
 
 const mockDb = {
   select: vi.fn(() => ({
@@ -125,7 +131,96 @@ describe('Markdown Conversion', () => {
     } as unknown as PostgresJsDatabase<typeof schema>
 
     const markdown = '!routes:123!!'
-    expect(convertMarkdownToHtml(markdown, mockDb)).rejects.toThrowError()
+    await expect(convertMarkdownToHtml(markdown, mockDb)).rejects.toThrowError()
+  })
+})
+
+describe('Markdown grade badges', () => {
+  it('renders an FB grade as a badge div with class and style', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('Test 7A+ ok', grades)
+
+    expect(html).toContain('<span class="badge font-semibold text-white" style="background: #b91c1c">7A+</span>')
+  })
+
+  it('renders a V grade as a badge div with class and style', () => {
+    const grades = [{ FB: null, V: 'V5' }] as any
+    const html = convertMarkdownToHtmlSync('Go V5 now', grades)
+
+    expect(html).toContain('<span class="badge font-semibold text-white" style="background: #b91c1c">V5</span>')
+  })
+
+  it('does not nest badges inside badges', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('Test 7A+ and 7A+ again', grades)
+
+    const badgeCount = (html.match(/<span class="badge\b/g) ?? []).length
+    expect(badgeCount).toBe(2)
+
+    // Specifically guard against the previously-seen pattern: a badge containing another badge.
+    expect(html).not.toMatch(/<span class="badge[^>]*>(?:(?!<\/span>).)*<span class="badge/)
+  })
+
+  it('escapes grade labels when generating badge nodes', () => {
+    const grades = [{ FB: '7A+<', V: null }] as any
+    const html = convertMarkdownToHtmlSync('Try 7A+<', grades)
+
+    expect(html).toMatch(/7A\+(?:&lt;|&#x3C;)/)
+    expect(html).not.toContain('7A+<')
+  })
+
+  it('does not turn 7A- into 7A+ (no partial token matches)', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('Try 7A- please', grades)
+
+    expect(html).toContain('7A-')
+    expect(html).not.toContain('7A+</span>-')
+  })
+
+  it('matches grades case-insensitively', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('try 7a+ now', grades)
+
+    expect(html).toContain('>7A+</span>')
+  })
+
+  it('matches when surrounded by punctuation', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('do (7A+), ok.', grades)
+
+    expect(html).toContain('<p>do (')
+    expect(html).toContain('<span class="badge')
+    expect(html).toMatch(/>7A\+<\/span>[),.!?]/)
+    expect(html).toContain('ok.</p>')
+  })
+
+  it('does not match inside words', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('x7A+ y', grades)
+
+    expect(html).toContain('x7A+ y')
+    expect(html).not.toContain('<span class="badge')
+  })
+
+  it('does not match with extra +/- characters after a token', () => {
+    const grades = [{ FB: '7A+', V: null }] as any
+    const html1 = convertMarkdownToHtmlSync('weird 7A++ case', grades)
+    const html2 = convertMarkdownToHtmlSync('weird 7A+- case', grades)
+
+    expect(html1).toContain('7A++')
+    expect(html1).not.toContain('<span class="badge')
+
+    expect(html2).toContain('7A+-')
+    expect(html2).not.toContain('<span class="badge')
+  })
+
+  it('supports FB grades with spaces (matches the short token)', () => {
+    const grades = [{ FB: 'FB 7A+', V: null }] as any
+    const html = convertMarkdownToHtmlSync('try 7A+ and FB 7A+', grades)
+
+    // Both should render with the canonical label from the grade row.
+    const badges = html.match(/>FB 7A\+<\/span>/g) ?? []
+    expect(badges.length).toBe(2)
   })
 })
 
