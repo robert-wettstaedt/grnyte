@@ -71,7 +71,7 @@
     type={ascent.type}
   />
 
-  <FormActionBar label={t('ascents.saveAscent')} pending={updateAscent.pending} />
+  <FormActionBar label={t('ascents.saveAscent')} pending={state.loading ? 1 : updateAscent.pending} />
 </form>
 
 {#if page.data.session?.user?.id === ascent.author?.authUserFk || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], ascent.route?.regionFk)}

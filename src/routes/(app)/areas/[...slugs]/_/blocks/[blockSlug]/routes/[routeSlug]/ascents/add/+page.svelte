@@ -62,5 +62,5 @@
     type={null}
   />
 
-  <FormActionBar label={t('ascents.saveAscent')} pending={addAscent.pending} />
+  <FormActionBar label={t('ascents.saveAscent')} pending={state.loading ? 1 : addAscent.pending} />
 </form>

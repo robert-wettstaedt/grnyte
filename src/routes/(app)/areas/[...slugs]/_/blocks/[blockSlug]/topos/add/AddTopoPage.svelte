@@ -42,5 +42,5 @@
 
   <p class="mt-8 text-sm text-gray-500">{t('topo.uploadMoreLater')}</p>
 
-  <FormActionBar label={t('fileUpload.uploadFile')} pending={addTopo.pending} />
+  <FormActionBar label={t('fileUpload.uploadFile')} pending={state.loading ? 1 : addTopo.pending} />
 </form>

@@ -54,5 +54,5 @@
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
   <input type="hidden" name="topoId" value={topo.id} />
 
-  <FormActionBar label={t('topo.replaceImage')} pending={replaceTopo.pending} />
+  <FormActionBar label={t('topo.replaceImage')} pending={state.loading ? 1 : replaceTopo.pending} />
 </form>

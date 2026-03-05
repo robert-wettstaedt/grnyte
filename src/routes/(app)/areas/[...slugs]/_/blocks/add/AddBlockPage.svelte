@@ -41,5 +41,5 @@
 >
   <BlockFormFields bind:name areaFk={area.id} fileUploadProps={{ state }} />
 
-  <FormActionBar label={t('blocks.saveBlock')} pending={createBlock.pending} />
+  <FormActionBar label={t('blocks.saveBlock')} pending={state.loading ? 1 : createBlock.pending} />
 </form>

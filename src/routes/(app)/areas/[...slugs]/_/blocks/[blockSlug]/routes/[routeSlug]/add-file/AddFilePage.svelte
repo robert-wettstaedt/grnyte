@@ -51,5 +51,5 @@
 
   <FileUpload {state} />
 
-  <FormActionBar label={t('fileUpload.uploadFile')} pending={addFile.pending} />
+  <FormActionBar label={t('fileUpload.uploadFile')} pending={state.loading ? 1 : addFile.pending} />
 </form>
