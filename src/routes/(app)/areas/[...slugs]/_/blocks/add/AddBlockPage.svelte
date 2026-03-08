@@ -29,7 +29,7 @@
 <AppBar>
   <AppBar.Toolbar class="flex">
     <AppBar.Headline>
-      {t('blocks.createBlockIn', { name: area.name, url: basePath })}
+      {@html t('blocks.createBlockIn', { name: area.name, url: basePath })}
     </AppBar.Headline>
   </AppBar.Toolbar>
 </AppBar>
