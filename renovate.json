@@ -9,7 +9,7 @@
       "automerge": true
     },
     {
-      "matchPackageNames": ["/sharp/", "/dotenv/"],
+      "matchPackageNames": ["/sharp/", "/dotenv/", "/svelte/"],
       "matchManagers": ["npm"],
       "enabled": false
     }
