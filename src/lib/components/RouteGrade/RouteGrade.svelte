@@ -13,7 +13,7 @@
 
   const send = $derived(
     ascents
-      ?.filter((ascent) => String(ascent.createdBy) === String(pageState.user!.id))
+      ?.filter((ascent) => String(ascent.createdBy) === String(pageState.user?.id))
       .find((ascent) => ascent.type === 'send'),
   )
 </script>
