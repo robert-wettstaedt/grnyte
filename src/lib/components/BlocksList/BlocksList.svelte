@@ -15,10 +15,12 @@
 
   interface Props {
     areaFk: number | null | undefined
+    basePath?: string
     onLoad?: () => void
     regionFk: number | null | undefined
+    sortable?: boolean
   }
-  const { areaFk, onLoad, regionFk }: Props = $props()
+  const { areaFk, basePath, onLoad, regionFk, sortable = true }: Props = $props()
 
   const { t } = getI18n()
 
@@ -76,7 +78,11 @@
     </ul>
   </nav>
 {:else}
-  <div class="flex justify-between">
+  <div class="flex items-center justify-between">
+    {#if !sortable}
+      <div>{t('blocks.title')}</div>
+    {/if}
+
     <SegmentedControl
       name="blocks-view-mode"
       onValueChange={(event) => {
@@ -85,27 +91,27 @@
       }}
       value={blocksViewMode}
     >
-      <SegmentedControl.Control>
+      <SegmentedControl.Control class="p-0">
         <SegmentedControl.Indicator />
         <SegmentedControl.Item value="list">
           <SegmentedControl.ItemText>
-            <i class="fa-solid fa-list"></i>
+            <i class="fa-solid fa-list text-xs"></i>
           </SegmentedControl.ItemText>
           <SegmentedControl.ItemHiddenInput />
         </SegmentedControl.Item>
 
         <SegmentedControl.Item value="grid">
           <SegmentedControl.ItemText>
-            <i class="fa-solid fa-table-cells-large"></i>
+            <i class="fa-solid fa-table-cells-large text-xs"></i>
           </SegmentedControl.ItemText>
           <SegmentedControl.ItemHiddenInput />
         </SegmentedControl.Item>
       </SegmentedControl.Control>
     </SegmentedControl>
 
-    {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
+    {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk) && sortable}
       <button
-        class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
+        class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-surface-200-800'}"
         disabled={sortOrder !== 'custom' || updateBlockOrder.pending > 0}
         onclick={() => (orderMode = !orderMode)}
       >
@@ -124,25 +130,27 @@
     {#if sortedBlocks.length === 0}
       {t('blocks.noBlocksYet')}
     {:else}
-      <label class="label my-4">
-        <span class="label-text">
-          <i class="fa-solid fa-arrow-down-a-z"></i>
-          {t('blocks.sortOrder')}
-        </span>
-        <select bind:value={sortOrder} class="select" disabled={orderMode} onchange={() => (orderMode = false)}>
-          <option value="custom">{t('blocks.customOrder')}</option>
-          <option value="alphabetical">{t('blocks.alphabeticalOrder')}</option>
-        </select>
-      </label>
+      {#if sortable}
+        <label class="label my-4">
+          <span class="label-text">
+            <i class="fa-solid fa-arrow-down-a-z"></i>
+            {t('blocks.sortOrder')}
+          </span>
+          <select bind:value={sortOrder} class="select" disabled={orderMode} onchange={() => (orderMode = false)}>
+            <option value="custom">{t('blocks.customOrder')}</option>
+            <option value="alphabetical">{t('blocks.alphabeticalOrder')}</option>
+          </select>
+        </label>
+      {/if}
 
       {#if blocksViewMode === 'list' || orderMode}
         <GenericList
           class="-mx-2 md:-mx-4"
-          listClasses={orderMode ? undefined : 'mt-4 bg-surface-200-800'}
+          listClasses={orderMode ? undefined : 'border-b border-surface-700 last:border-none py-2'}
           items={(sortedBlocks ?? []).map((item) => ({
             ...item,
             id: item.id!,
-            pathname: `${page.url.pathname}/_/blocks/${item.slug}`,
+            pathname: basePath == null ? `${page.url.pathname}/_/blocks/${item.slug}` : `${basePath}/blocks/${item.id}`,
           }))}
           onConsiderSort={orderMode ? (items) => (blocks = items) : undefined}
           onFinishSort={orderMode ? onChangeCustomSortOrder : undefined}
@@ -178,7 +186,10 @@
                         ...route,
                         id: route.id!,
                         name: route.name,
-                        pathname: `${page.url.pathname}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`,
+                        pathname:
+                          basePath == null
+                            ? `${page.url.pathname}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`
+                            : `${basePath}/routes/${route.id}`,
                       }))}
                     >
                       {#snippet left(route)}
@@ -194,7 +205,7 @@
       {:else}
         <ul class="-mx-2 md:-mx-4">
           {#each sortedBlocks ?? [] as block}
-            <li class="bg-surface-200-800 mt-4 pb-4">
+            <li class="border-surface-700 border-b pt-2 pb-5 last:border-none">
               <div
                 class="hover:preset-tonal-primary border-surface-800 flex flex-wrap items-center justify-between rounded whitespace-nowrap"
               >

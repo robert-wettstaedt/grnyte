@@ -7,6 +7,8 @@
       "addGrade": "Schwierigkeit hinzufügen",
       "addValue": "\"{{value}}\" hinzufügen",
       "ascending": "Aufsteigend ⬆",
+      "back": "Zurück",
+      "basics": "Grundlagen",
       "cancel": "Abbrechen",
       "clear": "Leeren",
       "clearAll": "Alle löschen",
@@ -31,6 +33,7 @@
       "errorLabel": "Fehler",
       "favorite": "Favorit",
       "favorites": "Favoriten",
+      "filter": "Filter",
       "getStarted": "Los geht's",
       "grade": "Schwierigkeit",
       "home": "Start",
@@ -354,12 +357,17 @@
       "createAreaIn": "Gebiet in <a class=\"anchor\" href=\"{{url}}\">{{name}}</a> erstellen",
       "createAreaInTitle": "Gebiet in {{name}} erstellen",
       "saveArea": "Gebiet speichern",
-      "updateArea": "Gebiet aktualisieren",
       "addArea": "Gebiet hinzufügen",
       "editAreaDetails": "Details bearbeiten",
       "editArea": "Gebiet bearbeiten",
       "editAreaOfTitle": "Gebiet {{name}} bearbeiten",
-      "addParkingLocation": "Parkplatz hinzufügen"
+      "addParkingLocation": "Parkplatz hinzufügen",
+      "areaType": "Gebietstyp",
+      "typeDescription": {
+        "sector": "Sektor: Kann Blöcke und Routen enthalten",
+        "crag": "Fels: Enthält mehrere Sektoren",
+        "area": "Gebiet: Eine Gruppe von Felsen und Sektoren"
+      }
     },
     "blocks": {
       "title": "Blöcke",
@@ -382,6 +390,8 @@
     },
     "routes": {
       "title": "Routen",
+      "routesCount_one": "{{count}} Route",
+      "routesCount_other": "{{count}} Routen",
       "createRoute": "Route erstellen",
       "createRouteInTitle": "Route in {{name}} erstellen",
       "addRoute": "Route hinzufügen",
@@ -397,6 +407,7 @@
       "selectRouteLabel": "Route auswählen",
       "selectRoutePlaceholder": "-- Route auswählen --",
       "confirmDeleteRoute": "Bist du sicher, dass du diese Route löschen möchtest?",
+      "allRoutes": "Alle Routen",
       "noRoutesYet": "Noch keine Routen",
       "viewRoute": "Route ansehen",
       "leaveEmptyIfUnknown": "Leer lassen, wenn unbekannt",
@@ -627,6 +638,8 @@
     },
     "entities": {
       "area": "Gebiet",
+      "sector": "Sektor",
+      "crag": "Crag",
       "block": "Block",
       "route": "Route",
       "ascent": "Begehung"
@@ -676,6 +689,11 @@
     "map": {
       "title": "Karte",
       "layers": "Ebenen",
+      "zoomIn": "Hineinzoomen",
+      "zoomOut": "Herauszoomen",
+      "showMyLocation": "Meinen Standort anzeigen",
+      "toggleFullscreen": "Vollbild umschalten",
+      "toggleLayers": "Ebenen umschalten",
       "geolocate": "Standort",
       "latLong": "Koordinaten",
       "latitude": "Breitengrad",
@@ -758,8 +776,10 @@
       "contactIntro": "Wenn du Unterstützung benötigst oder in eine bestehende Region eingeladen werden möchtest, kontaktiere uns unter"
     },
     "share": {
-      "wantsToShare": "möchte eine Datei mit dir teilen",
-      "iWantToShare": "Ich möchte eine Datei mit dir teilen",
+      "wantsToShare": "möchte {{content}} mit dir teilen",
+      "iWantToShare": "Ich möchte {{content}} mit dir teilen",
+      "wantsToShareFile": "möchte eine Datei mit dir teilen",
+      "iWantToShareFile": "Ich möchte eine Datei mit dir teilen",
       "share": "Teilen"
     },
     "references": {

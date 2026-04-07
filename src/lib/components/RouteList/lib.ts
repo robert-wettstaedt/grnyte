@@ -5,7 +5,7 @@ import { validateObject } from '$lib/forms/validate.svelte'
 import { paginationParamsSchema } from '$lib/pagination.svelte'
 import { z } from 'zod'
 
-const searchParamsSchema = z.intersection(
+export const searchParamsSchema = z.intersection(
   z.object({
     maxGrade: z.number().optional(),
     minGrade: z.number().optional(),

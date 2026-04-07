@@ -7,11 +7,14 @@
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'
   import { getI18n } from '$lib/i18n'
+  import type { BaseGenericListProps } from '../GenericList/types'
 
   interface Props extends ZeroQueryWrapperBaseProps {
+    basePath?: string
+    listProps?: Partial<BaseGenericListProps>
     parentFk?: number | null
   }
-  const { parentFk, ...rest }: Props = $props()
+  const { basePath, parentFk, listProps, ...rest }: Props = $props()
   const { t } = getI18n()
 </script>
 
@@ -25,10 +28,11 @@
       items={areas.map((item) => ({
         ...item,
         id: item.id!,
-        pathname: `${page.url.pathname}/${item.slug}-${item.id}`,
+        pathname: basePath == null ? `${page.url.pathname}/${item.slug}-${item.id}` : `${basePath}/areas/${item.id}`,
       }))}
       listClasses="border-b-[1px] border-surface-700 last:border-none py-2"
       wrap={false}
+      {...listProps}
     >
       {#snippet left(item)}
         {item.name}

@@ -17,6 +17,10 @@ i18next.use(LanguageDetector).init({
   resources: { en, de },
   interpolation: {
     escapeValue: false, // not needed for svelte as it escapes by default
+    format: function (value, format) {
+      if (format === 'capitalize') return `${value.substr(0, 1).toUpperCase()}${value.substr(1)}`
+      return value
+    },
   },
 })
 

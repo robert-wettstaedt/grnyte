@@ -64,6 +64,11 @@ body {
   }
 }
 
+label > span {
+  @apply text-xs;
+  @apply text-surface-800-200;
+}
+
 select option:checked {
   background-color: var(--color-primary-500);
 }
@@ -76,4 +81,10 @@ select option:checked {
 
 [data-scope='popover'][data-part='description'] {
   margin: 0;
+}
+
+.preset-glass-neutral {
+  background: color-mix(in oklab, var(--color-surface-50-950) 75%, transparent) !important;
+  box-shadow: 0 0px 30px color-mix(in oklab, var(--color-surface-50-950) 30%, transparent) inset;
+  backdrop-filter: blur(16px);
 }

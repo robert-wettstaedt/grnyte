@@ -1,28 +1,14 @@
 <script lang="ts" generics="T extends { id: string | number, name: string, pathname: string }">
   import { draggable, TRIGGER_ELEMENT_CLASS } from '$lib/actions/draggable.svelte'
   import { getI18n } from '$lib/i18n'
-  import type { Snippet } from 'svelte'
   import { flip } from 'svelte/animate'
+  import type { GenericListProps } from './types'
 
-  interface Props {
-    class?: string
-    listClasses?: string
-
-    items: T[]
-    wrap?: boolean
-
-    left: Snippet<[T]>
-    leftClasses?: string
-
-    right?: Snippet<[T]>
-
-    children?: Snippet<[T]>
-
-    onConsiderSort?: (items: T[]) => void
-    onFinishSort?: (items: T[]) => void
-  }
+  const { t } = getI18n()
 
   const {
+    empty = t('common.noItemsYet'),
+
     class: classes,
     listClasses,
 
@@ -35,14 +21,12 @@
 
     onConsiderSort,
     onFinishSort,
-  }: Props = $props()
-
-  const { t } = getI18n()
+  }: GenericListProps<T> = $props()
 </script>
 
 <nav class="list-nav {classes}">
   {#if items.length === 0}
-    {t('common.noItemsYet')}
+    {empty}
   {:else}
     <ul
       class="overflow-auto"

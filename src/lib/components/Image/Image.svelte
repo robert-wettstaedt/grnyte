@@ -43,7 +43,7 @@
 
     <img
       alt=""
-      class="relative z-0 object-cover"
+      class="relative z-0 rounded object-cover"
       loading="lazy"
       src="{path}?x={size}&y={size}&mimeFallback=true&a=0"
       style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px;"

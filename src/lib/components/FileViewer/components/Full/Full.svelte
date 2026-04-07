@@ -26,7 +26,9 @@
   const statusMessage = $derived(status == null ? null : t(`videoStatus.${status}.message`))
 
   let shareData = $derived({
-    text: pageState.user?.username ? `${pageState.user?.username} ${t('share.wantsToShare')}` : t('share.iWantToShare'),
+    text: pageState.user?.username
+      ? `${pageState.user?.username} ${t('share.wantsToShareFile')}`
+      : t('share.iWantToShareFile'),
     title: PUBLIC_APPLICATION_NAME,
     url: `${page.url.origin}/f/${file.id}`,
   } satisfies ShareData)

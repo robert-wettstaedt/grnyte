@@ -54,6 +54,10 @@ declare global {
     }
     interface PageState {
       blocksViewMode?: 'list' | 'grid'
+      mapView?: {
+        center: [number, number]
+        zoom: number
+      }
     }
     // interface Platform {}
   }
