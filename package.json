@@ -109,7 +109,7 @@
     "@types/lodash.debounce": "^4.0.9",
     "@types/lodash.memoize": "^4.1.9",
     "@types/luxon": "^3.4.2",
-    "@types/node": "^24.0.0",
+    "@types/node": "^25.5.0",
     "@types/web-push": "^3.6.4",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
