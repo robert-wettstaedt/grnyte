@@ -93,7 +93,7 @@
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^4.0.0",
-    "@skeletonlabs/skeleton-svelte": "^4.0.0",
+    "@skeletonlabs/skeleton-svelte": "^4.14.0",
     "@sveltejs/adapter-auto": "^7.0.0",
     "@sveltejs/adapter-node": "^5.2.12",
     "@sveltejs/kit": "2.39.1",
