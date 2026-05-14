@@ -8,7 +8,7 @@
   import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
-  import { createRoute, createRouteAndReload } from './page.remote'
+  import { createRoute } from './page.remote'
   import { getI18n } from '$lib/i18n'
 
   interface Props {
@@ -31,7 +31,6 @@
   const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
-  const pending = $derived(createRoute.pending + createRouteAndReload.pending)
 </script>
 
 <svelte:head>
@@ -51,14 +50,14 @@
 
   <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
 
-  <FormActionBar label={t('routes.saveRoute')} {pending}>
+  <FormActionBar label={t('routes.saveRoute')} pending={createRoute.pending}>
     {#snippet buttons()}
       <button
         class="btn preset-outlined-primary-500"
-        disabled={pending > 0}
-        {...createRouteAndReload.buttonProps.enhance(enhanceForm())}
+        disabled={createRoute.pending > 0}
+        {...createRoute.fields.reload.as('submit', 'true')}
       >
-        {#if pending > 0}
+        {#if createRoute.pending > 0}
           <LoadingIndicator />
         {/if}
 

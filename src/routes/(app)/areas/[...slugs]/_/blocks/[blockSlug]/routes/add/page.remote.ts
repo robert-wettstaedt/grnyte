@@ -19,15 +19,12 @@ const createRouteActionSchema = z.intersection(
   z.object({
     blockId: stringToInt,
     redirect: z.string().optional(),
+    reload: z.string().optional(),
   }),
   routeActionSchema,
 )
 
 export const createRoute = form(createRouteActionSchema, (data) => enhanceForm(data, createRouteAction))
-
-export const createRouteAndReload = form(createRouteActionSchema, (data) =>
-  enhanceForm(data, createRouteAndReloadAction),
-)
 
 const createRouteAction: Action<CreateRouteActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -108,12 +105,14 @@ const createRouteAction: Action<CreateRouteActionValues> = async (values, db, us
     error(400, `Unable to create route external resources: ${convertException(exception)}`)
   }
 
-  return values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'routes', route.id].join('/')
-}
+  const path =
+    values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'routes', route.id].join('/')
 
-const createRouteAndReloadAction: Action<CreateRouteActionValues> = async (values, db, ...rest) => {
-  await createRouteAction(values, db, ...rest)
-  return '?reload=true'
+  if (values.reload) {
+    return `${path}?reload=true`
+  }
+
+  return path
 }
 
 async function getAreaIds(blockId: number, db: PostgresJsDatabase<typeof schema>) {

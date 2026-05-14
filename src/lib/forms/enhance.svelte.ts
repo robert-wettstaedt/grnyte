@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation'
 import { convertException } from '$lib/errors'
-import type { RemoteQuery, RemoteQueryOverride } from '@sveltejs/kit'
+import type { RemoteQuery, RemoteQueryOverride, RemoteQueryUpdate } from '@sveltejs/kit'
 
 export interface EnhanceState {
   error?: string
@@ -34,8 +34,8 @@ export function enhanceForm(state?: EnhanceState) {
   return async function ({
     submit,
   }: {
-    submit: () => Promise<void> & {
-      updates: (...queries: Array<RemoteQuery<any> | RemoteQueryOverride>) => Promise<void>
+    submit: () => Promise<boolean> & {
+      updates: (...updates: RemoteQueryUpdate[]) => Promise<boolean>
     }
   }) {
     await enhance(submit, state)
