@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
   import DangerZone from '$lib/components/DangerZone'
@@ -9,8 +8,8 @@
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
-  import { deleteArea, updateArea } from '../page.remote'
-  import AreaFormFields from './AreaFormFields.svelte'
+  import AreaFormFields from '../AreaFormFields'
+  import { deleteArea, updateArea } from './page.remote'
 
   const { area } = getAreaContext()
   const { t } = getI18n()

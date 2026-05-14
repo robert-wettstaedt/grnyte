@@ -3,7 +3,7 @@
   import Error from '$lib/components/Error'
   import { pageState } from '$lib/components/Layout'
   import { getAreaContext } from '$lib/contexts/area'
-  import EditAreaPage from './EditAreaPage'
+  import EditAreaPage from './EditAreaPage.svelte'
 
   const { area } = getAreaContext()
 </script>
