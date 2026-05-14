@@ -3,7 +3,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { files } from '$lib/db/schema'
 import { getNextcloud } from '$lib/nextcloud/nextcloud.server'
 import { eq } from 'drizzle-orm'
-import { type BufferLike, type Headers, type ResponseDataDetailed } from 'webdav'
+import { type Headers, type ResponseDataDetailed } from 'webdav'
 
 export async function GET({ locals, request, params }) {
   const rls = await createDrizzleSupabaseClient(locals.supabase)

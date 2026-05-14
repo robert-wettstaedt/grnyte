@@ -55,7 +55,7 @@ vi.mock('$lib/components/ActivityFeed/load.server', () => ({
 }))
 
 import type * as schema from '$lib/db/schema'
-import { type Group, groupActivities, createNotifications, DEBOUNCE_MINUTES } from './lib.server'
+import { createNotifications, DEBOUNCE_MINUTES, type Group, groupActivities } from './lib.server'
 
 const makeActivity = (overrides: Partial<schema.Activity> = {}): schema.Activity =>
   ({

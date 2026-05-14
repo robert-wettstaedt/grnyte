@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation'
 import { convertException } from '$lib/errors'
-import type { RemoteQuery, RemoteQueryOverride, RemoteQueryUpdate } from '@sveltejs/kit'
+import type { RemoteQueryUpdate } from '@sveltejs/kit'
 
 export interface EnhanceState {
   error?: string
