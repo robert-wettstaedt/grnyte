@@ -118,7 +118,7 @@ const deleteAreaAction: Action<number> = async (areaId, db, user) => {
     entityId: String(areaId),
     entityType: 'area',
     oldValue: area.name,
-    parentEntityId: String(area.parentFk),
+    parentEntityId: area.parentFk?.toString(),
     parentEntityType: 'area',
     regionFk: area.regionFk,
   })
