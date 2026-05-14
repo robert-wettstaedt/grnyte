@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
   import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
@@ -32,29 +33,30 @@
     <label class="label">
       <span>{t('auth.resetPassword.newPassword')}</span>
       <input
-        name="password"
-        type="password"
-        placeholder={t('auth.resetPassword.enterNewPassword')}
         class="input"
+        name="password"
+        placeholder={t('auth.resetPassword.enterNewPassword')}
         required
+        type="password"
+        use:focus
       />
     </label>
 
     <label class="label">
       <span>{t('auth.resetPassword.newPasswordConfirmation')}</span>
       <input
-        name="passwordConfirmation"
-        type="password"
-        placeholder={t('auth.resetPassword.confirmNewPassword')}
         class="input"
+        name="passwordConfirmation"
+        placeholder={t('auth.resetPassword.confirmNewPassword')}
         required
+        type="password"
       />
     </label>
 
     <div class="mt-4 flex justify-between">
-      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
-        >{t('common.cancel')}</button
-      >
+      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">
+        {t('common.cancel')}
+      </button>
       <button class="btn preset-filled-primary-500" type="submit">{t('auth.resetPassword.savePassword')}</button>
     </div>
   </form>

@@ -1,7 +1,7 @@
 import { selectedPointTypeStore, selectedRouteStore } from '$lib/components/TopoViewer/stores'
+import { renderWithI18n } from '$lib/test/renderWithI18n'
 import type { TopoRouteDTO } from '$lib/topo'
 import { fireEvent } from '@testing-library/svelte'
-import { renderWithI18n } from '$lib/test/renderWithI18n'
 import { get } from 'svelte/store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import RouteView from './Route.svelte'

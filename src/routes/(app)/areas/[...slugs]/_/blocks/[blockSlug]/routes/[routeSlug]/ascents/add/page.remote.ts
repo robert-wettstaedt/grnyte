@@ -5,12 +5,20 @@ import { config } from '$lib/config'
 import { ascents } from '$lib/db/schema'
 import { checkExternalSessions, logExternalAscent } from '$lib/external-resources/index.server'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { ascentActionSchema } from '$lib/forms/schemas'
+import { ascentActionSchema, stringToInt } from '$lib/forms/schemas'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error } from '@sveltejs/kit'
 import z from 'zod'
 
-export const addAscent = form((data) => enhanceForm(data, addAscentActionSchema, addAscentAction))
+type AddAscentActionValues = z.infer<typeof addAscentActionSchema>
+const addAscentActionSchema = z.intersection(
+  z.object({
+    routeId: stringToInt,
+  }),
+  ascentActionSchema,
+)
+
+export const addAscent = form(addAscentActionSchema, (data) => enhanceForm(data, addAscentAction))
 
 const addAscentAction: Action<AddAscentActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -44,7 +52,7 @@ const addAscentAction: Action<AddAscentActionValues> = async (values, db, user) 
     regionFk: ascent.regionFk,
   })
 
-  if (values.folderName != null) {
+  if (values.folderName != null || values.bunnyVideoIds != null) {
     const dstFolder = `${config.files.folders.userContent}/${user.authUserFk}`
     const createdFiles = await handleFileUpload(
       db,
@@ -75,11 +83,3 @@ const addAscentAction: Action<AddAscentActionValues> = async (values, db, user) 
 
   return ['', 'ascents', ascent.id].join('/')
 }
-
-type AddAscentActionValues = z.infer<typeof addAscentActionSchema>
-const addAscentActionSchema = z.intersection(
-  z.object({
-    routeId: z.number(),
-  }),
-  ascentActionSchema,
-)

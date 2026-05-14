@@ -8,7 +8,7 @@
     REGION_PERMISSION_ADMIN,
     REGION_PERMISSION_EDIT,
   } from '$lib/auth'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { appRole, appRoleLabels } from '$lib/db/schema'
   import { getI18n } from '$lib/i18n'
   import { AppBar, Popover, Portal } from '@skeletonlabs/skeleton-svelte'

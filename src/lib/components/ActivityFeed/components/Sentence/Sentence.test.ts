@@ -37,7 +37,7 @@ vi.mock('diff', () => ({
 }))
 
 // Mock pageState
-vi.mock('$lib/components/Layout', () => ({
+vi.mock('$lib/components/Layout/page.svelte', () => ({
   pageState: {
     user: { id: 1, username: 'currentuser', authUserFk: 'auth-1' },
     grades: [

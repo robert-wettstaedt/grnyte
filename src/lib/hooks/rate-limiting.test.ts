@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { rateLimit } from '$lib/hooks/rate-limit'
 import { config } from '$lib/config'
+import { rateLimit } from '$lib/hooks/rate-limit'
 import type { RequestEvent } from '@sveltejs/kit'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('Rate Limiting Middleware', () => {
   beforeEach(() => {

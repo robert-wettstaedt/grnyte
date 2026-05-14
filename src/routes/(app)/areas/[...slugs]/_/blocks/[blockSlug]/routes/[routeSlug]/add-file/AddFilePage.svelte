@@ -2,15 +2,14 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FileUpload from '$lib/components/FileUpload'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { addFile } from './page.remote'
-  import { getI18n } from '$lib/i18n'
 
   const { route } = getRouteContext()
   const { t } = getI18n()
@@ -42,14 +41,10 @@
   </AppBar.Toolbar>
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...addFile.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...addFile.enhance(enhanceForm(state))}>
   <input type="hidden" name="routeId" value={route.id} />
 
   <FileUpload {state} />
 
-  <FormActionBar label={t('fileUpload.uploadFile')} pending={state.loading ? 1 : addFile.pending} />
+  <FormActionBar {state} label={t('fileUpload.uploadFile')} pending={state.loading ? 1 : addFile.pending} />
 </form>

@@ -7,7 +7,7 @@
   import { ActivityFeedLoader as ActivityFeed } from '$lib/components/ActivityFeed'
   import AppBar from '$lib/components/AppBar'
   import FileList from '$lib/components/FileList'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { ReferencesLoader } from '$lib/components/References'
   import RouteGradeMap from '$lib/components/RouteGradeMap'

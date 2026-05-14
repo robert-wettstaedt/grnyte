@@ -1,12 +1,13 @@
 <script lang="ts">
   import Dialog from '$lib/components/Dialog'
-  import type { Row } from '$lib/db/zero'
+  import FormFieldError from '$lib/components/FormFieldError'
+  import type { RemoteFormField } from '@sveltejs/kit'
 
   interface Props {
-    value: Row<'areas'>['type'] | null | undefined
+    field: RemoteFormField<string>
   }
 
-  let { value = $bindable() }: Props = $props()
+  let { field }: Props = $props()
 
   let modalOpen = $state(false)
 </script>
@@ -31,14 +32,15 @@
   </span>
 
   <select
-    class="select max-h-[300px] overflow-auto"
-    name="type"
-    onchange={(event) => (value = event.currentTarget.value as Row<'areas'>['type'])}
+    aria-errormessage={field.issues() ? 'area-form-fields-type-error' : undefined}
+    class="select max-h-75 overflow-auto"
     size="3"
-    value={value ?? 'area'}
+    {...field.as('select')}
   >
     <option class="rounded p-1" value="area">Area</option>
     <option class="rounded p-1" value="crag">Crag</option>
     <option class="rounded p-1" value="sector">Sector</option>
   </select>
+
+  <FormFieldError id="area-form-fields-type-error" issues={field.issues()} />
 </label>

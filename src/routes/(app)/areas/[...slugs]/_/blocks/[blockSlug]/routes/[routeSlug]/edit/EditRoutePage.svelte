@@ -4,7 +4,7 @@
   import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
@@ -15,6 +15,19 @@
 
   const { route } = getRouteContext()
   const { t } = getI18n()
+
+  $effect(() => {
+    updateRoute.fields.set({
+      blockId: String(route.blockFk),
+      description: route.description ?? undefined,
+      gradeFk: route.gradeFk?.toString(),
+      name: route.name,
+      rating: route.rating?.toString(),
+      redirect: page.url.searchParams.get('redirect') ?? '',
+      routeId: String(route.id),
+      tags: route.tags.map((tag) => tag.tagFk),
+    })
+  })
 
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
@@ -45,17 +58,10 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateRoute.enhance(enhanceForm())}>
-  <RouteFormFields
-    blockId={route.blockFk}
-    description={route.description}
-    gradeFk={route.gradeFk}
-    name={route.name}
-    rating={route.rating ?? null}
-    routeId={route.id}
-    routeTags={route.tags.map((tag) => tag.tagFk)}
-  />
+  <input type="hidden" {...updateRoute.fields.routeId.as('text')} />
+  <input type="hidden" {...updateRoute.fields.redirect.as('text')} />
 
-  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
+  <RouteFormFields fields={updateRoute.fields} />
 
   <FormActionBar label={t('routes.updateRoute')} pending={updateRoute.pending} />
 </form>

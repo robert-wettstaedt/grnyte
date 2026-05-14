@@ -1,7 +1,7 @@
 import type { Row, RowWithRelations } from '$lib/db/zero'
 
-export { default } from './References.svelte'
 export { default as ReferencesLoader } from './Loader.svelte'
+export { default } from './References.svelte'
 
 export interface References {
   areas: Row<'areas'>[]

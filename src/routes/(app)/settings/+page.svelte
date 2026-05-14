@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { APP_PERMISSION_ADMIN, checkAppPermission } from '$lib/auth'
   import AddToHomescreen from '$lib/components/AddToHomescreen'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import PushNotificationSubscriber, {
     isSubscribed,
     isSupported,

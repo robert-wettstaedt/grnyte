@@ -1,5 +1,5 @@
-import { convertAreaSlug } from '$lib/helper.server'
 import { generateSlug } from '$lib/db/schema'
+import { convertAreaSlug } from '$lib/helper.server'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('$lib/db/db.server.ts', () => ({}))

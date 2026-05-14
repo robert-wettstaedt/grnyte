@@ -2,15 +2,14 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FileUpload from '$lib/components/FileUpload'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import Image from '$lib/components/Image'
   import { getBlockContext } from '$lib/contexts/block'
   import type { RowWithRelations } from '$lib/db/zero'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { replaceTopo } from './page.remote'
-  import { getI18n } from '$lib/i18n'
 
   interface Props {
     topo: RowWithRelations<'topos', { file: true }>
@@ -20,6 +19,13 @@
 
   const { block } = getBlockContext()
   const { t } = getI18n()
+
+  $effect(() => {
+    replaceTopo.fields.set({
+      redirect: page.url.searchParams.get('redirect') ?? '',
+      topoId: String(topo.id),
+    })
+  })
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
@@ -44,15 +50,11 @@
   </div>
 {/if}
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...replaceTopo.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...replaceTopo.enhance(enhanceForm(state))}>
   <FileUpload {state} accept="image/*" />
 
-  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
-  <input type="hidden" name="topoId" value={topo.id} />
+  <input type="hidden" {...replaceTopo.fields.redirect.as('text')} />
+  <input type="hidden" {...replaceTopo.fields.topoId.as('text')} />
 
-  <FormActionBar label={t('topo.replaceImage')} pending={state.loading ? 1 : replaceTopo.pending} />
+  <FormActionBar {state} label={t('topo.replaceImage')} pending={state.loading ? 1 : replaceTopo.pending} />
 </form>

@@ -1,12 +1,14 @@
 <script lang="ts">
   import Dialog from '$lib/components/Dialog'
+  import FormFieldError from '$lib/components/FormFieldError'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormField } from '@sveltejs/kit'
 
   interface Props {
-    value: string | undefined | null
+    field: RemoteFormField<string>
   }
 
-  let { value = $bindable() }: Props = $props()
+  let { field }: Props = $props()
 
   let modalOpen = $state(false)
 
@@ -43,5 +45,12 @@
     </Dialog>
   </span>
 
-  <input bind:value class="input" name="name" type="text" placeholder={t('routes.leaveEmptyIfUnknown')} />
+  <input
+    class="input"
+    aria-errormessage={field.issues() == null ? undefined : 'route-form-name-error'}
+    placeholder={t('routes.leaveEmptyIfUnknown')}
+    {...field.as('text')}
+  />
+
+  <FormFieldError id="route-form-name-error" issues={field.issues()} />
 </label>

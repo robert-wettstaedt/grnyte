@@ -10,7 +10,7 @@
 <script lang="ts">
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { getI18n } from '$lib/i18n'
   import { formatRelative } from 'date-fns'

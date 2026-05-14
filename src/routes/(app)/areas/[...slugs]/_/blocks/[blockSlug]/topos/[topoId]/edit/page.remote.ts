@@ -5,14 +5,23 @@ import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { topos } from '$lib/db/schema'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { addFileActionSchema } from '$lib/forms/schemas'
+import { addFileActionSchema, stringToInt } from '$lib/forms/schemas'
 import { deleteFile } from '$lib/nextcloud/nextcloud.server'
 import { createGeolocationFromFiles } from '$lib/topo/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
-export const replaceTopo = form((data) => enhanceForm(data, replaceTopoFileActionSchema, replaceTopoAction))
+type ReplaceTopoFileActionValues = z.infer<typeof replaceTopoFileActionSchema>
+const replaceTopoFileActionSchema = z.intersection(
+  z.object({
+    redirect: z.string().optional(),
+    topoId: stringToInt,
+  }),
+  addFileActionSchema,
+)
+
+export const replaceTopo = form(replaceTopoFileActionSchema, (data) => enhanceForm(data, replaceTopoAction))
 
 const replaceTopoAction: Action<ReplaceTopoFileActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -42,44 +51,37 @@ const replaceTopoAction: Action<ReplaceTopoFileActionValues> = async (values, db
     values.bunnyVideoIds,
   )
 
-  const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
+  if (createdFiles.length > 0) {
+    const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
-  await createGeolocationFromFiles(db, topo.block, fileBuffers, 'create')
-  await Promise.all(
-    createdFiles.map((result) =>
-      db
-        .update(topos)
-        .set({ fileFk: result.file.id })
-        .where(eq(topos.id, Number(values.topoId))),
-    ),
-  )
+    await createGeolocationFromFiles(db, topo.block, fileBuffers, 'create')
+    await Promise.all(
+      createdFiles.map((result) =>
+        db
+          .update(topos)
+          .set({ fileFk: result.file.id })
+          .where(eq(topos.id, Number(values.topoId))),
+      ),
+    )
 
-  await deleteFile(topo.file)
+    await deleteFile(topo.file)
 
-  await insertActivity(
-    db,
-    createdFiles.map(({ file }) => ({
-      type: 'uploaded',
-      userFk: user.id,
-      entityId: String(file.id),
-      entityType: 'file',
-      columnName: 'topo image',
-      parentEntityId: String(topo.blockFk),
-      parentEntityType: 'block',
-      regionFk: file.regionFk,
-    })),
-  )
+    await insertActivity(
+      db,
+      createdFiles.map(({ file }) => ({
+        type: 'uploaded',
+        userFk: user.id,
+        entityId: String(file.id),
+        entityType: 'file',
+        columnName: 'topo image',
+        parentEntityId: String(topo.blockFk),
+        parentEntityType: 'block',
+        regionFk: file.regionFk,
+      })),
+    )
+  }
 
   return values.redirect != null && values.redirect.length > 0
     ? values.redirect
     : ['', 'blocks', topo.blockFk].join('/')
 }
-
-type ReplaceTopoFileActionValues = z.infer<typeof replaceTopoFileActionSchema>
-const replaceTopoFileActionSchema = z.intersection(
-  z.object({
-    redirect: z.string().nullish(),
-    topoId: z.number(),
-  }),
-  addFileActionSchema,
-)

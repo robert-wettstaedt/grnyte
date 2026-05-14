@@ -5,33 +5,22 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteFormFields from '$lib/components/RouteFormFields'
   import { getBlockContext } from '$lib/contexts/block'
-  import type { Row } from '$lib/db/zero'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { AppBar } from '@skeletonlabs/skeleton-svelte'
-  import { createRoute, createRouteAndReload } from './page.remote'
   import { getI18n } from '$lib/i18n'
-
-  interface Props {
-    description: Partial<Row<'routes'>>['description']
-    gradeFk: Partial<Row<'routes'>>['gradeFk']
-    name: Partial<Row<'routes'>>['name']
-    rating: Partial<Row<'routes'>>['rating']
-    routeTags: string[] | null | undefined
-  }
-
-  let {
-    description = $bindable(),
-    gradeFk = $bindable(),
-    name = $bindable(),
-    rating = $bindable(),
-    routeTags = $bindable(),
-  }: Props = $props()
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
+  import { createRoute } from './page.remote'
 
   const { block } = getBlockContext()
   const { t } = getI18n()
 
+  $effect(() => {
+    createRoute.fields.set({
+      blockId: String(block.id),
+      redirect: page.url.searchParams.get('redirect') ?? '',
+    })
+  })
+
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
-  const pending = $derived(createRoute.pending + createRouteAndReload.pending)
 </script>
 
 <svelte:head>
@@ -47,18 +36,18 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createRoute.enhance(enhanceForm())}>
-  <RouteFormFields blockId={block.id} bind:description bind:gradeFk bind:name bind:rating bind:routeTags />
+  <RouteFormFields fields={createRoute.fields} />
 
-  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
+  <input type="hidden" {...createRoute.fields.redirect.as('text')} />
 
-  <FormActionBar label={t('routes.saveRoute')} {pending}>
+  <FormActionBar label={t('routes.saveRoute')} pending={createRoute.pending}>
     {#snippet buttons()}
       <button
         class="btn preset-outlined-primary-500"
-        disabled={pending > 0}
-        {...createRouteAndReload.buttonProps.enhance(enhanceForm())}
+        disabled={createRoute.pending > 0}
+        {...createRoute.fields.reload.as('submit', 'true')}
       >
-        {#if pending > 0}
+        {#if createRoute.pending > 0}
           <LoadingIndicator />
         {/if}
 
