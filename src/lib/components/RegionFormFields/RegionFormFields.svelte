@@ -1,29 +1,44 @@
 <script lang="ts">
   import JsonEditor from '$lib/components/JSONEditor'
-  import type { Region } from '$lib/db/schema'
-  import { regionSettingsSchema } from '$lib/forms/schemas'
+  import { regionSettingsSchema, type RegionActionValues } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormFields } from '@sveltejs/kit'
+  import FormFieldError from '../FormFieldError'
 
   interface Props {
+    fields: RemoteFormFields<RegionActionValues>
     onChange?: (isValid: boolean) => void
-    name: Region['name']
-    settings: Region['settings'] | string
   }
 
-  let { onChange, name, settings }: Props = $props()
+  let { fields, onChange }: Props = $props()
 
   const { t } = getI18n()
-  let settingsString = $derived(JSON.stringify(settings))
 </script>
 
 <label class="label">
   <span>{t('common.name')}</span>
-  <input class="input" name="name" type="text" placeholder={t('common.enterName')} value={name} />
+  <input
+    aria-errormessage={fields.name.issues() == null ? undefined : 'region-form-name-error'}
+    class="input"
+    placeholder={t('common.enterName')}
+    {...fields.name.as('text')}
+  />
+
+  <FormFieldError id="region-form-name-error" issues={fields.name.issues()} />
 </label>
 
 <label class="label mt-4">
   <span>{t('common.settings')}</span>
-  <input name="settings" type="hidden" value={settingsString} />
+  <input type="hidden" {...fields.settings.as('text')} />
 </label>
 
-<JsonEditor {onChange} schema={regionSettingsSchema} bind:value={settings} />
+<JsonEditor
+  onChange={(value, isValid) => {
+    fields.settings.set(value == null ? undefined : JSON.stringify(value))
+    onChange?.(isValid)
+  }}
+  schema={regionSettingsSchema}
+  value={fields.settings.value()}
+/>
+
+<FormFieldError id="region-form-settings-error" issues={fields.settings.issues()} />

@@ -131,7 +131,7 @@ export const regionSettingsSchema = z.object({
 export type RegionSettings = z.infer<typeof regionSettingsSchema>
 
 export const regionActionSchema = z.object({
-  name: z.string().min(3),
+  name: z.string().min(3, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 3 } }) }),
   settings: z.string().optional(),
 })
 export type RegionActionValues = z.infer<typeof regionActionSchema>

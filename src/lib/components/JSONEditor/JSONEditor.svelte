@@ -8,14 +8,13 @@
   import { z } from 'zod'
 
   interface Props {
-    onChange?: (isValid: boolean) => void
-    schema: z.ZodSchema
-    value: T
+    onChange?: (value: T | null, isValid: boolean) => void
+    schema: z.ZodSchema<T>
+    value: string | undefined
   }
 
-  let { onChange, schema, value = $bindable() }: Props = $props()
+  let { onChange, schema, value }: Props = $props()
 
-  let stringValue = $derived(value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value, null, 2))
   let jsonSchema = $derived(z.toJSONSchema(schema) as JSONSchema7)
 
   let element: HTMLDivElement | undefined = $state()
@@ -34,10 +33,9 @@
       }
 
       value = jsonValue
-      onChange?.(true)
+      onChange?.(jsonValue, true)
     } catch (error) {
-      console.error(error)
-      onChange?.(false)
+      onChange?.(null, false)
     }
   }
 
@@ -48,7 +46,7 @@
 
   onMount(async () => {
     view = new EditorView({
-      doc: stringValue,
+      doc: value,
       dispatchTransactions: transactionHandler,
       parent: element,
       extensions: [
@@ -59,6 +57,16 @@
         jsonSchemaExtension(jsonSchema),
       ],
     })
+  })
+
+  $effect(() => {
+    try {
+      const parsed = JSON.parse(value ?? '')
+      const stringified = JSON.stringify(parsed, null, 2)
+      view?.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: stringified },
+      })
+    } catch (error) {}
   })
 
   onDestroy(() => {

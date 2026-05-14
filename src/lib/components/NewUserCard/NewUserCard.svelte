@@ -2,8 +2,9 @@
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { createRegion } from './data.remote'
   import { getI18n } from '$lib/i18n'
+  import FormFieldError from '../FormFieldError'
+  import { createRegion } from './data.remote'
 
   const { t } = getI18n()
 </script>
@@ -31,7 +32,7 @@
       aria-label={t('settings.regionSettings.createRegion')}
       title={t('settings.regionSettings.createRegion')}
       class="btn-icon preset-filled-primary-500 h-4.5 rounded-tl-none rounded-bl-none"
-      disabled={createRegion.pending > 0}
+      disabled={createRegion.pending > 0 || !createRegion.fields.name.value()}
       type="submit"
     >
       {#if createRegion.pending > 0}
@@ -42,11 +43,7 @@
     </button>
   </form>
 
-  {#each createRegion.fields.name.issues() as issue}
-    <div id="new-user-card-name-error">
-      <p class="text-error-500 text-sm opacity-80">{issue.message}</p>
-    </div>
-  {/each}
+  <FormFieldError id="new-user-card-name-error" issues={createRegion.fields.name.issues()} />
 
   {#if PUBLIC_TOPO_EMAIL}
     <p class="mt-6 text-center opacity-75">
