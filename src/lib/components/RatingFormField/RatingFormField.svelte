@@ -1,8 +1,8 @@
 <script lang="ts">
   import Dialog from '$lib/components/Dialog'
+  import FormFieldError from '$lib/components/FormFieldError'
   import { getI18n } from '$lib/i18n'
   import type { RemoteFormField } from '@sveltejs/kit'
-  import FormFieldError from '../FormFieldError'
 
   interface Props {
     field: RemoteFormField<string>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FormFieldError from '$lib/components/FormFieldError'
   import GradeFormField from '$lib/components/GradeFormField'
   import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
@@ -6,7 +7,6 @@
   import type { RouteActionValuesIn } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
   import type { RemoteFormFields } from '@sveltejs/kit'
-  import FormFieldError from '../FormFieldError'
   import RouteNameFormField from './components/RouteNameFormField'
 
   interface Props {

@@ -1,9 +1,9 @@
 <script lang="ts">
+  import FormFieldError from '$lib/components/FormFieldError'
   import { getI18n } from '$lib/i18n'
   import { Accordion, Slider } from '@skeletonlabs/skeleton-svelte'
   import type { RemoteFormField } from '@sveltejs/kit'
   import { slide } from 'svelte/transition'
-  import FormFieldError from '../FormFieldError'
 
   interface Props {
     humidityField: RemoteFormField<string>

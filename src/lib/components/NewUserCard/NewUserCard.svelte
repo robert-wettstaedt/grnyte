@@ -1,9 +1,9 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+  import FormFieldError from '$lib/components/FormFieldError'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { getI18n } from '$lib/i18n'
-  import FormFieldError from '../FormFieldError'
   import { createRegion } from './data.remote'
 
   const { t } = getI18n()

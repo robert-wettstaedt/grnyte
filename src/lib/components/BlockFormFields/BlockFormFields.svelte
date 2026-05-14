@@ -1,9 +1,9 @@
 <script lang="ts">
   import FileUpload, { type FileUploadProps } from '$lib/components/FileUpload'
+  import FormFieldError from '$lib/components/FormFieldError'
   import type { BlockActionValuesIn } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
   import type { RemoteFormFields } from '@sveltejs/kit'
-  import FormFieldError from '../FormFieldError'
 
   interface Props {
     fields: RemoteFormFields<BlockActionValuesIn>

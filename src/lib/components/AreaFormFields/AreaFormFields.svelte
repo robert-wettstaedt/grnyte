@@ -1,11 +1,11 @@
 <script lang="ts">
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
+  import FormFieldError from '$lib/components/FormFieldError'
   import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { AreaActionValuesIn } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
   import type { RemoteFormFields } from '@sveltejs/kit'
-  import FormFieldError from '../FormFieldError'
   import AreaTypeFormField from './components/AreaTypeFormField'
 
   interface Props {

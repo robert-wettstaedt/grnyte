@@ -1,9 +1,9 @@
 <script lang="ts">
+  import FormFieldError from '$lib/components/FormFieldError'
   import JsonEditor from '$lib/components/JSONEditor'
   import { regionSettingsSchema, type RegionActionValues } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
   import type { RemoteFormFields } from '@sveltejs/kit'
-  import FormFieldError from '../FormFieldError'
 
   interface Props {
     fields: RemoteFormFields<RegionActionValues>

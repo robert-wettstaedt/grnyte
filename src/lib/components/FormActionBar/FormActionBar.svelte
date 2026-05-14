@@ -1,9 +1,9 @@
 <script lang="ts">
   import { processFileUpload } from '$lib/components/FileUpload/enhance.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { getI18n } from '$lib/i18n'
   import type { Snippet } from 'svelte'
-  import LoadingIndicator from '../LoadingIndicator'
 
   interface Props {
     buttons?: Snippet

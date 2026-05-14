@@ -2,6 +2,7 @@
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
   import type { FileUploadProps } from '$lib/components/FileUpload'
   import FileUpload from '$lib/components/FileUpload'
+  import FormFieldError from '$lib/components/FormFieldError'
   import GradeFormField from '$lib/components/GradeFormField'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
@@ -10,7 +11,6 @@
   import { getI18n } from '$lib/i18n'
   import type { RemoteFormFields } from '@sveltejs/kit'
   import { DateTime } from 'luxon'
-  import FormFieldError from '../FormFieldError'
   import ConditionsFields from './ConditionsFields.svelte'
 
   interface Props {
