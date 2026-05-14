@@ -23,6 +23,7 @@ describe('Labels Component', () => {
         firstAscentYear: 2021,
         blockFk: 1,
         externalResourcesFk: 1,
+        areaFks: [],
         areaIds: '',
         userRating: null,
         userGradeFk: null,
@@ -52,6 +53,7 @@ describe('Labels Component', () => {
         firstAscentYear: 2021,
         blockFk: 1,
         externalResourcesFk: 1,
+        areaFks: [],
         areaIds: '',
         userRating: null,
         userGradeFk: null,
@@ -74,7 +76,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const labels = container.querySelectorAll('div[style*="position: absolute"]')
+      const labels = container.querySelectorAll('div[data-testid="route-label"]')
       expect(labels.length).toBe(2) // One label per start point (2 routes with different start points)
     })
 
@@ -87,7 +89,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const label = container.querySelector('div[style*="position: absolute"]')
+      const label = container.querySelector('div[data-testid="route-label"]')
       expect(label).not.toBeNull()
       expect(label?.getAttribute('style')).toContain('left: 100px')
       expect(label?.getAttribute('style')).toContain('top: 240px') // y + 40 for start points
@@ -102,7 +104,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const label = container.querySelector('div[style*="position: absolute"]')
+      const label = container.querySelector('div[data-testid="route-label"]')
       expect(label?.textContent?.trim()).toBe('10')
     })
 
@@ -114,7 +116,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const labels = container.querySelectorAll('div[style*="position: absolute"]')
+      const labels = container.querySelectorAll('div[data-testid="route-label"]')
       expect(labels.length).toBe(0)
     })
   })
@@ -130,7 +132,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const label = container.querySelector('div[style*="position: absolute"]')
+      const label = container.querySelector('div[data-testid="route-label"]')
       expect(label).not.toBeNull()
       expect(label?.getAttribute('style')).toContain('left: 200px')
       expect(label?.getAttribute('style')).toContain('top: 480px')
@@ -147,7 +149,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const label = container.querySelector('div[style*="position: absolute"]')
+      const label = container.querySelector('div[data-testid="route-label"]')
       expect(label).not.toBeNull()
       expect(label?.getAttribute('style')).toContain('left: 100px')
       expect(label?.getAttribute('style')).toContain('top: 240px')
@@ -175,7 +177,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const labels = container.querySelectorAll('div[style*="position: absolute"]')
+      const labels = container.querySelectorAll('div[data-testid="route-label"]')
       expect(labels.length).toBe(3) // One for shared start, two for tops
       expect(labels[0]?.textContent?.trim()).toBe('1, 3') // Combined route keys for shared start
     })
@@ -194,7 +196,7 @@ describe('Labels Component', () => {
         },
       })
 
-      const labels = container.querySelectorAll('div[style*="position: absolute"]')
+      const labels = container.querySelectorAll('div[data-testid="route-label"]')
       expect(labels.length).toBe(0)
     })
   })

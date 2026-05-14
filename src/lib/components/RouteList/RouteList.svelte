@@ -2,15 +2,15 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import GenericList from '$lib/components/GenericList'
-  import Image from '$lib/components/Image'
-  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import RouteListItem from '$lib/components/RouteListItem'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
   import type { RowWithRelations } from '$lib/db/zero'
   import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
   import RoutesFilter from './components/RoutesFilter'
   import { getRoutesFilterQuery } from './lib'
+  import { getI18n } from '$lib/i18n'
 
   interface Props extends ZeroQueryWrapperBaseProps {
     areaFk?: number | null
@@ -24,29 +24,21 @@
       .filter((route) => route.id != null)
       .map((route) => ({ ...route, id: route.id! }))
   }
+
+  const { t } = getI18n()
 </script>
 
 <div class="mt-8">
   <RoutesFilter />
 </div>
 
-<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={getRoutesFilterQuery(areaFk ?? undefined)}>
+<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={getRoutesFilterQuery(areaFk)}>
   {#snippet children(_routes)}
     {@const routes = mapRoutes(_routes)}
 
     <GenericList items={routes.flat()}>
-      {#snippet left(item)}
-        <div class="flex gap-2">
-          <Image path="/blocks/{item.block?.id}/preview-image" size={64} />
-
-          <div class="flex flex-col gap-1">
-            <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-              {item.block?.area?.name} / {item.block?.name}
-            </p>
-
-            <RouteName route={item} />
-          </div>
-        </div>
+      {#snippet left(route)}
+        <RouteListItem {route} showPath />
       {/snippet}
     </GenericList>
   {/snippet}
@@ -66,12 +58,10 @@
           }}
         >
           {#if details.type !== 'complete'}
-            <span class="me-2">
-              <ProgressRing size="size-4" value={null} />
-            </span>
+            <LoadingIndicator />
           {/if}
 
-          Load more
+          {t('common.showMore')}
         </button>
       </div>
     {/if}

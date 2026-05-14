@@ -57,8 +57,10 @@
   import Geolocate from './components/Geolocate'
   import Layers, { visibleLayers, type Layer } from './components/Layers'
   import Popup from './components/Popup'
+  import { getI18n } from '$lib/i18n'
 
   const DEFAULT_ZOOM = 19
+  const { t } = getI18n()
 
   let {
     collapsibleAttribution = true,
@@ -85,17 +87,17 @@
 
   let layersIsVisible = $state(false)
   const layers: Layer[] = [
-    { label: 'OSM', name: 'osm' },
+    { label: t('map.osm'), name: 'osm' },
     ...pageState.userRegions.flatMap((region) =>
       (region.settings?.mapLayers ?? []).map((regionLayer) => ({
         label: regionLayer.name,
         name: regionLayer.name,
       })),
     ),
-    { label: 'Markers', name: 'markers' },
+    { label: t('map.markers'), name: 'markers' },
   ]
 
-  const isRootMap = showAreas && selectedArea == null && showBlocks && selectedBlock == null
+  const isRootMap = $derived(showAreas && selectedArea == null && showBlocks && selectedBlock == null)
 
   const createMap = (element: HTMLDivElement): OlMap => {
     const map = new OlMap({
@@ -143,7 +145,7 @@
     const parents = area == null ? [] : [area]
     let current = area
 
-    while (current != null && (type == null ? true : current.type !== type)) {
+    while (current != null && (type == null ? true : current.type !== type || current.parent?.type === type)) {
       current = current.parent as NestedArea | null
       current != null && parents.unshift(current)
     }
@@ -211,7 +213,7 @@
       data: {
         avatar: { icon: 'fa-solid fa-parking' },
         geolocation: parkingLocation,
-        name: 'Parking',
+        name: t('parking.location'),
         priority: 1,
       } satisfies FeatureData,
       geometry: new Point(fromLonLat([parkingLocation.long, parkingLocation.lat])),
@@ -257,6 +259,11 @@
   const createSectorGeometry = (iconFeatures: Feature<Point>[]) => {
     const sectorSource = new VectorSource<Feature<Geometry>>({ features: iconFeatures })
     const extent = sectorSource.getExtent()
+
+    if (extent == null) {
+      return
+    }
+
     let geometry = fromExtent(extent)
     let area = geometry.getArea()
 
@@ -340,6 +347,10 @@
       const parents = findArea(sector)
       const geometry = createSectorGeometry(sectorMarkers)
 
+      if (geometry == null) {
+        return []
+      }
+
       return [
         new Feature({
           data: {
@@ -401,12 +412,15 @@
 
     // Add crag boundary
     const cragGeometry = createSectorGeometry(markers)
-    sectorsSource.addFeature(
-      new Feature({
-        geometry: cragGeometry,
-        text: crag.name,
-      }),
-    )
+
+    if (cragGeometry != null) {
+      sectorsSource.addFeature(
+        new Feature({
+          geometry: cragGeometry,
+          text: crag.name,
+        }),
+      )
+    }
 
     const sectorsLayer = new VectorLayer({
       declutter,
@@ -449,9 +463,7 @@
     })
     map.addLayer(vectorLayer)
 
-    const allCrags = blocks
-      .map((block) => findArea(block.area, 'crag').at(0))
-      .filter((d) => d != null) as NestedBlock['area'][]
+    const allCrags = blocks.map((block) => findArea(block.area, 'crag').at(0)).filter((d) => d != null)
     const cragsMap = new Map(allCrags.map((area) => [area.id, area]))
     const crags = Array.from(cragsMap.values())
 
@@ -639,9 +651,9 @@
     <div class="relative z-10 {'ontouchstart' in window ? ' ol-touch' : ''}">
       <div class="ol-control ol-layers">
         <button
-          aria-label="Map layers"
+          aria-label={t('map.layers')}
           onclick={() => (layersIsVisible = !layersIsVisible)}
-          title="Map layers"
+          title={t('map.layers')}
           type="button"
         >
           <i class="fa-solid fa-layer-group text-sm {layersIsVisible ? 'text-primary-500' : ''}"></i>

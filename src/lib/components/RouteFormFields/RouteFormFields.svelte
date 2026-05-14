@@ -4,16 +4,17 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
   import type { Row } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
   import RouteNameFormField from './components/RouteNameFormField'
 
   interface Props {
     blockId: Row<'blocks'>['id']
-    description: Row<'routes'>['description']
-    gradeFk: Row<'routes'>['gradeFk']
-    name: Row<'routes'>['name']
-    rating: Row<'routes'>['rating']
-    routeId?: Row<'routes'>['id']
-    routeTags: string[]
+    description: Row<'routes'>['description'] | null | undefined
+    gradeFk: Row<'routes'>['gradeFk'] | null | undefined
+    name: Row<'routes'>['name'] | null | undefined
+    rating: Row<'routes'>['rating'] | null | undefined
+    routeId?: Row<'routes'>['id'] | null | undefined
+    routeTags: string[] | null | undefined
   }
 
   let {
@@ -23,8 +24,10 @@
     name = $bindable(),
     rating = $bindable(),
     routeId,
-    routeTags,
+    routeTags = $bindable(),
   }: Props = $props()
+
+  const { t } = getI18n()
 </script>
 
 <input type="hidden" name="blockId" value={blockId} />
@@ -32,22 +35,22 @@
 
 <RouteNameFormField bind:value={name} />
 
-<GradeFormField bind:value={gradeFk} />
+<GradeFormField bind:value={gradeFk} withModal />
 
 <RatingFormField bind:value={rating} />
 
 <label class="label mt-4">
-  <span>Description</span>
+  <span>{t('common.description')}</span>
   <textarea hidden name="description" value={description}></textarea>
 
   <MarkdownEditor bind:value={description} />
 </label>
 
 <label class="label mt-4">
-  <span>Tags</span>
-  <select class="select max-h-[300px] overflow-auto" multiple name="tags" value={routeTags}>
+  <span>{t('common.tags')}</span>
+  <select class="select max-h-75 overflow-auto" multiple name="tags" bind:value={routeTags}>
     {#each pageState.tags as tag}
-      <option value={tag.id}>{tag.id}</option>
+      <option class="rounded p-1" value={tag.id}>{tag.id}</option>
     {/each}
   </select>
 </label>

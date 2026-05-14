@@ -7,7 +7,7 @@ import { blocks, generateSlug, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { blockActionSchema, stringToInt } from '$lib/forms/schemas'
-import { createGeolocationFromFiles } from '$lib/topo-files.server'
+import { createGeolocationFromFiles } from '$lib/topo/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
 import z from 'zod'
@@ -73,17 +73,32 @@ const createBlockAction: Action<CreateBlockActionValues> = async (values, db, us
 
   if (values.folderName != null && block != null) {
     try {
-      const results = await handleFileUpload(db, locals.supabase, values.folderName!, config.files.folders.topos, {
+      const createdFiles = await handleFileUpload(db, locals.supabase, values.folderName!, config.files.folders.topos, {
         blockFk: block.id,
         regionFk: block.regionFk,
       })
 
-      const fileBuffers = results.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
+      const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
       await createGeolocationFromFiles(db, block, fileBuffers)
       await Promise.all(
-        results.map((result) =>
+        createdFiles.map((result) =>
           db.insert(topos).values({ blockFk: block.id, fileFk: result.file.id, regionFk: area.regionFk }),
+        ),
+      )
+
+      await Promise.all(
+        createdFiles.map(({ file }) =>
+          insertActivity(db, {
+            type: 'uploaded',
+            userFk: user.id,
+            entityId: String(file.id),
+            entityType: 'file',
+            columnName: 'topo image',
+            parentEntityId: String(block.id),
+            parentEntityType: 'block',
+            regionFk: file.regionFk,
+          }),
         ),
       )
     } catch (exception) {

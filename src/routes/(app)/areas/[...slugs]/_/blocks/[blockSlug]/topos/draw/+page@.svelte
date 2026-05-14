@@ -4,17 +4,25 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
+  import { pageState } from '$lib/components/Layout'
+  import PageStateLoader from '$lib/components/Layout/components/PageStateLoader'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'
   import TopoViewer, { selectedRouteStore } from '$lib/components/TopoViewer'
+  import { initI18n } from '$lib/i18n'
+  import { getI18n } from '$lib/i18n'
   import { type TopoDTO } from '$lib/topo'
   import '@fortawesome/fontawesome-free/css/all.css'
-  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { Menu, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount } from 'svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
   import '../../../../../../../../../app.css'
 
   let { form, data } = $props()
+
+  initI18n()
+  const { t } = getI18n()
 
   interface UndoHistory {
     topos: TopoDTO[]
@@ -31,6 +39,7 @@
   }
 
   // https://github.com/sveltejs/kit/issues/12999
+  // svelte-ignore state_referenced_locally
   let topos = $state(data.topos)
   $effect(() => {
     topos = data.topos
@@ -101,21 +110,32 @@
         return
       }
 
-      if (!window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+      if (!window.confirm(t('common.unsavedChangesConfirm'))) {
         cancel()
       }
     })
   })
+
+  const canDeleteRoute = $derived(
+    selectedRoute?.route != null && selectedRoute.route.createdBy === pageState.user?.id && !isSaving,
+  )
 </script>
 
 <svelte:head>
-  <title>Draw topo of {data.block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('topo.drawTopoOfTitle', { name: data.block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
+
+<PageStateLoader />
 
 <div class="preset-filled-surface-100-900 fixed top-0 left-0 -z-10 h-screen w-screen"></div>
 
 <div class="m-2 flex justify-between md:m-4">
-  <a aria-label="Close" class="btn-icon bg-white/20 text-xl backdrop-blur-sm" href={basePath}>
+  <a
+    aria-label={t('common.close')}
+    title={t('common.close')}
+    class="btn-icon bg-white/20 text-xl backdrop-blur-sm"
+    href={basePath}
+  >
     <i class="fa-solid fa-arrow-left"></i>
   </a>
 
@@ -134,12 +154,13 @@
       }}
     >
       <button
-        aria-label="Save"
+        aria-label={t('common.save')}
+        title={t('common.save')}
         class="btn-icon preset-filled-primary-500"
         disabled={isSaving || undoHistory.length <= 1}
       >
         {#if isSaving}
-          <ProgressRing size="size-4" value={null} />
+          <LoadingIndicator />
         {:else}
           <i class="fa-solid fa-floppy-disk"></i>
         {/if}
@@ -149,7 +170,8 @@
     </form>
 
     <button
-      aria-label="Undo"
+      aria-label={t('common.undo')}
+      title={t('common.undo')}
       class="btn-icon bg-white/20 backdrop-blur-sm"
       disabled={undoHistory.length <= 1}
       onclick={onUndo}
@@ -157,74 +179,47 @@
       <i class="fa-solid fa-undo"></i>
     </button>
 
-    <Popover
-      arrow
-      arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-      contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-      zIndex="50"
-      positioning={{ placement: 'bottom' }}
-      triggerBase="btn-icon bg-white/20 backdrop-blur-sm"
-    >
-      {#snippet trigger()}
+    <Menu>
+      <Menu.Trigger class="btn-icon bg-white/20 backdrop-blur-sm">
         <i class="fa-solid fa-ellipsis-vertical"></i>
-      {/snippet}
+      </Menu.Trigger>
 
-      {#snippet content()}
-        <nav class="list-nav w-48">
-          <ul>
-            <Popover
-              arrow
-              arrowBackground="!bg-surface-300 dark:!bg-surface-700"
-              contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px] shadow-lg"
-              zIndex="50"
-              positioning={{ placement: 'bottom' }}
-              triggerClasses="hover:preset-tonal-primary flex flex-wrap justify-between items-center whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded w-full p-2 md:p-4"
-            >
-              {#snippet trigger()}
-                Topo <i class="fa-solid fa-chevron-down"></i>
-              {/snippet}
+      <Portal>
+        <Menu.Positioner>
+          <Menu.Content class="z-50">
+            <Menu.ItemGroup>
+              <Menu.ItemGroupLabel>{t('topo.title')}</Menu.ItemGroupLabel>
 
-              {#snippet content()}
-                <nav class="list-nav w-48">
-                  <ul>
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <a class="w-full p-2 md:p-4" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
-                        <i class="fa-solid fa-cloud-arrow-up me-2 w-5"></i>Upload
-                      </a>
-                    </li>
+              <Menu.Item value="topo-upload">
+                <a class="flex w-full items-center" href="{basePath}/topos/add?redirect={basePath}/topos/draw">
+                  <i class="fa-solid fa-cloud-arrow-up me-2 w-5"></i>
+                  {t('topo.uploadTopoImage')}
+                </a>
+              </Menu.Item>
 
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <a
-                        class="w-full p-2 md:p-4"
-                        href="{basePath}/topos/{topos[selectedTopoIndex].id}/edit?redirect={basePath}/topos/draw"
-                      >
-                        <i class="fa-solid fa-retweet me-2 w-5"></i>Replace
-                      </a>
-                    </li>
+              <Menu.Item value="topo-replace">
+                <a
+                  class="flex w-full items-center"
+                  href="{basePath}/topos/{topos[selectedTopoIndex].id}/edit?redirect={basePath}/topos/draw"
+                >
+                  <i class="fa-solid fa-retweet me-2 w-5"></i>
+                  {t('topo.replaceImage')}
+                </a>
+              </Menu.Item>
 
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <Popover
-                        arrow
-                        arrowBackground="!bg-surface-400 dark:!bg-surface-600"
-                        contentBase="card bg-surface-400-600 p-4 space-y-4 max-w-[320px]"
-                        positioning={{ placement: 'bottom' }}
-                        zIndex="50"
-                        triggerClasses="p-2 md:p-4 w-full text-left {isSaving ? 'pointer-events-none opacity-50' : ''}"
-                        classes="w-full"
-                      >
-                        {#snippet trigger()}
-                          <i class="fa-solid fa-trash me-2 w-5"></i>Remove
-                        {/snippet}
+              <Menu.Item closeOnSelect={false} value="topo-remove">
+                <Popover positioning={{ placement: 'bottom' }}>
+                  <Popover.Trigger class="flex w-full items-center {isSaving ? 'pointer-events-none opacity-50' : ''}">
+                    <i class="fa-solid fa-trash me-2 w-5"></i>
+                    {t('common.delete')}
+                  </Popover.Trigger>
 
-                        {#snippet content()}
+                  <Portal>
+                    <Popover.Positioner>
+                      <Popover.Content class="card bg-surface-200-800 z-50 max-w-[320px] space-y-4 p-4">
+                        <Popover.Description>
                           <article>
-                            <p>Are you sure you want to delete this image?</p>
+                            <p>{t('topo.confirmDeleteImage')}</p>
                           </article>
 
                           <footer class="flex justify-end">
@@ -245,87 +240,74 @@
                               }}
                             >
                               <input hidden name="id" value={topos[selectedTopoIndex]?.id} />
-                              <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
+                              <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit"
+                                >{t('common.yes')}</button
+                              >
                             </form>
                           </footer>
-                        {/snippet}
-                      </Popover>
-                    </li>
-                  </ul>
-                </nav>
-              {/snippet}
-            </Popover>
+                        </Popover.Description>
 
-            <Popover
-              arrow
-              arrowBackground="!bg-surface-300 dark:!bg-surface-700"
-              contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px] shadow-lg"
-              zIndex="50"
-              positioning={{ placement: 'bottom' }}
-              triggerClasses="hover:preset-tonal-primary flex flex-wrap justify-between items-center whitespace-nowrap border-b-[1px] last:border-none border-surface-800 rounded w-full p-2 md:p-4"
-            >
-              {#snippet trigger()}
-                Route <i class="fa-solid fa-chevron-down"></i>
-              {/snippet}
+                        <Popover.Arrow
+                          class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                        >
+                          <Popover.ArrowTip />
+                        </Popover.Arrow>
+                      </Popover.Content>
+                    </Popover.Positioner>
+                  </Portal>
+                </Popover>
+              </Menu.Item>
+            </Menu.ItemGroup>
 
-              {#snippet content()}
-                <nav class="list-nav w-48">
-                  <ul>
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <a class="w-full p-2 md:p-4" href="{basePath}/routes/add?redirect={basePath}/topos/draw">
-                        <i class="fa-solid fa-plus me-2 w-5"></i>New
-                      </a>
-                    </li>
+            <Menu.Separator />
 
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <a
-                        class="w-full p-2 md:p-4 {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
-                        aria-disabled={selectedRoute == null}
-                        href={selectedRoute == null ? '' : `${basePath}/routes/${selectedRoute.routeFk}`}
-                      >
-                        <i class="fa-solid fa-eye me-2 w-5"></i>Show
-                      </a>
-                    </li>
+            <Menu.ItemGroup>
+              <Menu.ItemGroupLabel>{t('entities.route')}</Menu.ItemGroupLabel>
 
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <a
-                        class="w-full p-2 md:p-4 {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
-                        aria-disabled={selectedRoute == null}
-                        href={selectedRoute == null
-                          ? ''
-                          : `${basePath}/routes/${selectedRoute.routeFk}/edit?redirect=${basePath}/topos/draw`}
-                      >
-                        <i class="fa-solid fa-pen me-2 w-5"></i>Edit
-                      </a>
-                    </li>
+              <Menu.Item value="route-new">
+                <a class="flex w-full items-center" href="{basePath}/routes/add?redirect={basePath}/topos/draw">
+                  <i class="fa-solid fa-plus me-2 w-5"></i>{t('routes.addRoute')}
+                </a>
+              </Menu.Item>
 
-                    <li
-                      class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                    >
-                      <Popover
-                        arrow
-                        arrowBackground="!bg-surface-400 dark:!bg-surface-600"
-                        contentBase="card bg-surface-400-600 p-4 space-y-4 max-w-[320px]"
-                        positioning={{ placement: 'bottom' }}
-                        zIndex="50"
-                        triggerClasses="p-2 md:p-4 w-full text-left {selectedRoute == null || isSaving
-                          ? 'pointer-events-none opacity-50'
-                          : ''}"
-                        classes="w-full"
-                      >
-                        {#snippet trigger()}
-                          <i class="fa-solid fa-trash me-2 w-5"></i>Delete
-                        {/snippet}
+              <Menu.Item value="route-show">
+                <a
+                  class="flex w-full items-center {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
+                  aria-disabled={selectedRoute == null}
+                  href={selectedRoute == null ? '' : `${basePath}/routes/${selectedRoute.routeFk}`}
+                >
+                  <i class="fa-solid fa-eye me-2 w-5"></i>{t('routes.show')}
+                </a>
+              </Menu.Item>
 
-                        {#snippet content()}
+              <Menu.Item value="route-edit">
+                <a
+                  class="flex w-full items-center {selectedRoute == null ? 'pointer-events-none opacity-50' : ''}"
+                  aria-disabled={selectedRoute == null}
+                  href={selectedRoute == null
+                    ? ''
+                    : `${basePath}/routes/${selectedRoute.routeFk}/edit?redirect=${basePath}/topos/draw`}
+                >
+                  <i class="fa-solid fa-pen me-2 w-5"></i>{t('common.edit')}
+                </a>
+              </Menu.Item>
+
+              <Menu.Item closeOnSelect={false} value="route-remove">
+                <Popover positioning={{ placement: 'bottom' }}>
+                  <Popover.Trigger
+                    aria-disabled={!canDeleteRoute}
+                    class="flex w-full items-center {canDeleteRoute ? '' : 'pointer-events-none opacity-50'}"
+                  >
+                    <i class="fa-solid fa-trash me-2 w-5"></i>
+                    {t('common.delete')}
+                  </Popover.Trigger>
+
+                  <Portal>
+                    <Popover.Positioner>
+                      <Popover.Content class="card bg-surface-200-800 z-50 max-w-[320px] space-y-4 p-4">
+                        <Popover.Description>
                           <article>
-                            <p>Are you sure you want to delete this route?</p>
+                            <p>{t('routes.confirmDeleteRoute')}</p>
                           </article>
 
                           <footer class="flex justify-end">
@@ -345,20 +327,28 @@
                               }}
                             >
                               <input hidden name="routeId" value={selectedRoute?.routeFk} />
-                              <button class="btn btn-sm preset-filled-error-500 !text-white" type="submit">Yes</button>
+                              <button class="btn btn-sm preset-filled-error-500 text-white!" type="submit"
+                                >{t('common.yes')}</button
+                              >
                             </form>
                           </footer>
-                        {/snippet}
-                      </Popover>
-                    </li>
-                  </ul>
-                </nav>
-              {/snippet}
-            </Popover>
-          </ul>
-        </nav>
-      {/snippet}
-    </Popover>
+                        </Popover.Description>
+
+                        <Popover.Arrow
+                          class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                        >
+                          <Popover.ArrowTip />
+                        </Popover.Arrow>
+                      </Popover.Content>
+                    </Popover.Positioner>
+                  </Portal>
+                </Popover>
+              </Menu.Item>
+            </Menu.ItemGroup>
+          </Menu.Content>
+        </Menu.Positioner>
+      </Portal>
+    </Menu>
   </div>
 </div>
 
@@ -375,10 +365,10 @@
         class="select"
         disabled={isSaving}
         onchange={onChangeSelect}
-        placeholder="Select route"
+        placeholder={t('routes.selectRouteLabel')}
         value={$selectedRouteStore ?? ''}
       >
-        <option disabled value="">-- Select route --</option>
+        <option disabled value="">{t('routes.selectRoutePlaceholder')}</option>
 
         {#each data.block.routes as route}
           <option value={route.id}>
@@ -390,8 +380,9 @@
       <div>
         {#if $selectedRouteStore != null}
           <button
-            aria-label="Delete route's topo"
-            class="btn"
+            aria-label={t('topo.deleteRoutesTopo')}
+            title={t('topo.deleteRoutesTopo')}
+            class="btn-icon px-4"
             disabled={isSaving || selectedRoute?.points.length === 0}
             onclick={() => {
               if (selectedRoute != null) {

@@ -1,7 +1,7 @@
 import { command, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
-import { firstAscensionists, routesToFirstAscensionists, users } from '$lib/db/schema'
+import { favorites, firstAscensionists, routesToFirstAscensionists, users } from '$lib/db/schema'
 import { insertExternalResources } from '$lib/external-resources/index.server'
 import { enhance, type Action } from '$lib/forms/enhance.server'
 import { error } from '@sveltejs/kit'
@@ -21,6 +21,8 @@ export const claimFirstAscensionist = command(claimFirstAscensionistActionSchema
 )
 
 export const claimFirstAscent = command(z.number(), (data) => enhance(data, claimFirstAscentAction))
+
+export const toggleRouteFavoriteStatus = command(z.number(), (data) => enhance(data, toggleRouteFavoriteStatusAction))
 
 const syncExternalResourcesAction: Action<number> = async (routeId, db, user) => {
   const { locals } = getRequestEvent()
@@ -85,8 +87,6 @@ const claimFirstAscensionistAction: Action<ClaimFirstAscensionistActionValues> =
 }
 
 const claimFirstAscentAction: Action<number> = async (routeId, db, user) => {
-  const { locals } = getRequestEvent()
-
   const route = await db.query.routes.findFirst({
     where: (table, { eq }) => eq(table.id, routeId),
     with: {
@@ -154,4 +154,53 @@ const claimFirstAscentAction: Action<number> = async (routeId, db, user) => {
     parentEntityType: 'block',
     regionFk: route.regionFk,
   })
+}
+
+const toggleRouteFavoriteStatusAction: Action<number> = async (routeId, db, user) => {
+  const route = await db.query.routes.findFirst({
+    where: (table, { eq }) => eq(table.id, routeId),
+  })
+
+  if (route == null) {
+    error(404)
+  }
+
+  const favorite = await db.query.favorites.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.authUserFk, user.authUserFk), eq(table.entityType, 'route'), eq(table.entityId, String(routeId))),
+  })
+
+  if (favorite == null) {
+    await db.insert(favorites).values({
+      authUserFk: user.authUserFk,
+      entityId: String(routeId),
+      entityType: 'route',
+      regionFk: route.regionFk,
+      userFk: user.id,
+    })
+
+    await insertActivity(db, {
+      type: 'created',
+      userFk: user.id,
+      entityId: String(route.id),
+      entityType: 'route',
+      columnName: 'favorite',
+      parentEntityId: String(route.blockFk),
+      parentEntityType: 'block',
+      regionFk: route.regionFk,
+    })
+  } else {
+    await db.delete(favorites).where(eq(favorites.id, favorite.id))
+
+    await insertActivity(db, {
+      type: 'deleted',
+      userFk: user.id,
+      entityId: String(route.id),
+      entityType: 'route',
+      columnName: 'favorite',
+      parentEntityId: String(route.blockFk),
+      parentEntityType: 'block',
+      regionFk: route.regionFk,
+    })
+  }
 }

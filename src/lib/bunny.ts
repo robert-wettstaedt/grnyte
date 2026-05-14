@@ -1,5 +1,4 @@
 import { upfetch } from '$lib/config'
-import { digestMessage } from '$lib/helper'
 import type { Readable } from 'stream'
 import * as tus from 'tus-js-client'
 import { z } from 'zod'
@@ -347,6 +346,28 @@ export const videoPlaySchema = z.intersection(
   }),
 )
 
+export const statusSchema = z.object({
+  page: z.object({
+    id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    time_zone: z.string(),
+    updated_at: z.string(),
+  }),
+  status: z.object({
+    indicator: z.enum(['none']),
+    description: z.string(),
+  }),
+})
+
+async function digestMessage(message: string) {
+  const msgUint8 = new TextEncoder().encode(message) // encode as (utf-8) Uint8Array
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8) // hash the message
+  const hashArray = Array.from(new Uint8Array(hashBuffer)) // convert buffer to byte array
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('') // convert bytes to hex string
+  return hashHex
+}
+
 interface GetCollectionsOptions extends BunnyOptions {
   search?: string
 }
@@ -518,4 +539,21 @@ interface GetVideoIframeUrlOptions extends Pick<BunnyOptions, 'libraryId'> {
 }
 export const getVideoIframeUrl = ({ libraryId, videoId }: GetVideoIframeUrlOptions) => {
   return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=true&loop=false&muted=false&preload=true&responsive=true`
+}
+
+export const getStatus = async () => {
+  return upfetch('https://status.bunny.net/api/v2/status.json', { schema: statusSchema })
+}
+
+export enum VideoStatus {
+  Created = 0,
+  Uploaded = 1,
+  Processing = 2,
+  Transcoding = 3,
+  Finished = 4,
+  Error = 5,
+  UploadFailed = 6,
+  JitSegmenting = 7,
+  JitPlaylistsCreated = 8,
+  Unknown = 999,
 }

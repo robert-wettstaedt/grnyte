@@ -2,11 +2,13 @@ import { RESEND_API_KEY, RESEND_SENDER_EMAIL } from '$env/static/private'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
+import { i18n } from '$lib/i18n/index.server'
+import { languages } from '$lib/i18n/utils'
 import type { RequestEvent } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import { authUsers } from 'drizzle-orm/supabase'
 import { Resend } from 'resend'
-import type { Notification } from '.'
+import type { NotificationTranslatable, TranslatedNotification } from '.'
 import { sendNotificationToSubscription } from './notifications.server'
 
 const resend = new Resend(RESEND_API_KEY)
@@ -77,15 +79,32 @@ export const notifyFirstRoleAdded = async (
   { authUserFk, regionName }: NotifyFirstRoleAddedProps,
 ) => {
   const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
-  const title = `Welcome to ${PUBLIC_APPLICATION_NAME}`
 
   if (authUser?.email == null || user == null) {
     return
   }
 
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.firstRoleAdded.title', { name: PUBLIC_APPLICATION_NAME }),
+    }
+  }, {} as NotificationTranslatable)
+
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.firstRoleAdded.body', { region: regionName }),
+    }
+  }, {} as NotificationTranslatable)
+
   if (pushSubscriptions.length > 0) {
-    const notification: Notification = {
-      body: `You have been granted access to ${regionName}`,
+    const notification: TranslatedNotification = {
+      body,
       title,
       type: 'user',
       userId: user.id,
@@ -100,9 +119,9 @@ export const notifyFirstRoleAdded = async (
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [authUser.email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <h1
           style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
@@ -194,15 +213,32 @@ interface NotifyRoleAddedProps extends BaseOpts {
 }
 export const notifyRoleAdded = async (event: RequestEvent, { authUserFk, regionName }: NotifyRoleAddedProps) => {
   const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
-  const title = `Update on your ${PUBLIC_APPLICATION_NAME} Account`
 
   if (authUser?.email == null || user == null) {
     return
   }
 
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.roleAdded.title', { name: PUBLIC_APPLICATION_NAME }),
+    }
+  }, {} as NotificationTranslatable)
+
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.roleAdded.body', { region: regionName }),
+    }
+  }, {} as NotificationTranslatable)
+
   if (pushSubscriptions.length > 0) {
-    const notification: Notification = {
-      body: `You have been granted access to ${regionName}`,
+    const notification: TranslatedNotification = {
+      body,
       title,
       type: 'user',
       userId: user.id,
@@ -217,9 +253,9 @@ export const notifyRoleAdded = async (event: RequestEvent, { authUserFk, regionN
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [authUser.email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <h1
           style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
@@ -291,15 +327,32 @@ interface NotifyRoleRemovedProps extends BaseOpts {
 }
 export const notifyRoleRemoved = async (event: RequestEvent, { authUserFk, regionName }: NotifyRoleRemovedProps) => {
   const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
-  const title = `Update on your ${PUBLIC_APPLICATION_NAME} Account`
 
   if (authUser?.email == null || user == null) {
     return
   }
 
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.roleRemoved.title', { name: PUBLIC_APPLICATION_NAME }),
+    }
+  }, {} as NotificationTranslatable)
+
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.roleRemoved.body', { region: regionName }),
+    }
+  }, {} as NotificationTranslatable)
+
   if (pushSubscriptions.length > 0) {
-    const notification: Notification = {
-      body: `Your access to ${regionName} has been removed`,
+    const notification: TranslatedNotification = {
+      body,
       title,
       type: 'user',
       userId: user.id,
@@ -314,9 +367,9 @@ export const notifyRoleRemoved = async (event: RequestEvent, { authUserFk, regio
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [authUser.email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <h1
           style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
@@ -387,15 +440,32 @@ export const notifyRoleUpdated = async (
   { authUserFk, regionName, role }: NotifyRoleUpdatedProps,
 ) => {
   const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
-  const title = `Update on your ${PUBLIC_APPLICATION_NAME} Account`
 
   if (authUser?.email == null || user == null) {
     return
   }
 
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.roleUpdated.title', { name: PUBLIC_APPLICATION_NAME }),
+    }
+  }, {} as NotificationTranslatable)
+
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.roleUpdated.body', { region: regionName, role }),
+    }
+  }, {} as NotificationTranslatable)
+
   if (pushSubscriptions.length > 0) {
-    const notification: Notification = {
-      body: `Your access to ${regionName} has been updated to ${role}`,
+    const notification: TranslatedNotification = {
+      body,
       title,
       type: 'user',
       userId: user.id,
@@ -410,9 +480,9 @@ export const notifyRoleUpdated = async (
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [authUser.email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <h1
           style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
@@ -486,10 +556,18 @@ export const notifyInvite = async (
   { authUserFk, email, inviteUrl, regionName, username }: NotifyInvitedProps,
 ) => {
   const { pushSubscriptions, user } = authUserFk == null ? {} : await getNotificationBase({ authUserFk })
-  const title = `${username} has invited you to join ${regionName}`
+
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.invited.title', { user: username, region: regionName }),
+    }
+  }, {} as NotificationTranslatable)
 
   if (user != null && pushSubscriptions != null && pushSubscriptions.length > 0) {
-    const notification: Notification = {
+    const notification: TranslatedNotification = {
       title,
       type: 'user',
       userId: user.id,
@@ -504,9 +582,9 @@ export const notifyInvite = async (
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <h1
           style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">
@@ -582,14 +660,22 @@ export const notifyAcceptedInvite = async (
   { authUserFk, regionName, username }: NotifyAcceptedInviteProps,
 ) => {
   const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
-  const title = `${username} has accepted your invitation`
 
   if (authUser?.email == null || user == null) {
     return
   }
 
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.invitationAccepted.title', { user: username }),
+    }
+  }, {} as NotificationTranslatable)
+
   if (pushSubscriptions.length > 0) {
-    const notification: Notification = {
+    const notification: TranslatedNotification = {
       title,
       type: 'user',
       userId: user.id,
@@ -604,9 +690,9 @@ export const notifyAcceptedInvite = async (
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [authUser.email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <p
           style="font-size:16px;line-height:24px;color:rgb(75,85,99);margin-top:0px;margin-bottom:24px">
@@ -669,15 +755,31 @@ interface NotifyNewUserProps extends BaseOpts {
 }
 export const notifyNewUser = async (event: RequestEvent, { authUserFk, username, email }: NotifyNewUserProps) => {
   const { pushSubscriptions, authUser, user } = await getNotificationBase({ authUserFk })
-  const title = 'New user registered'
-
   if (authUser?.email == null || user == null) {
     return
   }
 
+  const title = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.userRegistered.title'),
+    }
+  }, {} as NotificationTranslatable)
+
+  const body = languages.reduce((obj, lang) => {
+    const t = i18n.getFixedT(lang)
+
+    return {
+      ...obj,
+      [lang]: t('pushNotifications.userRegistered.body', { user: username, email }),
+    }
+  }, {} as NotificationTranslatable)
+
   if (pushSubscriptions.length > 0) {
-    const notification: Notification = {
-      body: `A new user just signed up: ${username} - ${email}`,
+    const notification: TranslatedNotification = {
+      body,
       title,
       type: 'user',
       userId: user.id,
@@ -692,9 +794,9 @@ export const notifyNewUser = async (event: RequestEvent, { authUserFk, username,
   await resend.emails.send({
     from: RESEND_SENDER_EMAIL,
     to: [authUser.email],
-    subject: title,
+    subject: title.en,
     html: getEmailBase(
-      title,
+      title.en,
       `
         <h1
           style="font-size:24px;font-weight:700;color:rgb(31,41,55);margin:0px;margin-bottom:24px">

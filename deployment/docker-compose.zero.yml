@@ -3,7 +3,7 @@ services:
     image: rocicorp/zero
     container_name: zero-server-prod
     expose:
-      - '4848'
+      - "4848"
     env_file:
       - .env.prod
     environment:
@@ -11,12 +11,13 @@ services:
       - ZERO_SCHEMA_PATH=/app/zero-schema.ts
       - ZERO_CVR_MAX_CONNS=10
       - ZERO_UPSTREAM_MAX_CONNS=10
+      - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
       - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
       - zero_data_prod:/data
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:4848']
+      test: ["CMD", "curl", "-f", "http://localhost:4848"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,7 +29,7 @@ services:
     image: rocicorp/zero
     container_name: zero-server-demo
     expose:
-      - '4848'
+      - "4848"
     env_file:
       - .env.demo
     environment:
@@ -36,12 +37,13 @@ services:
       - ZERO_SCHEMA_PATH=/app/zero-schema.ts
       - ZERO_CVR_MAX_CONNS=10
       - ZERO_UPSTREAM_MAX_CONNS=10
+      - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
       - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
       - zero_data_demo:/data
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:4848']
+      test: ["CMD", "curl", "-f", "http://localhost:4848"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,8 +55,8 @@ services:
     image: nginx:alpine
     container_name: nginx-main
     ports:
-      - '80:80'
-      - '443:443'
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.zero.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro

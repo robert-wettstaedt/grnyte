@@ -2,12 +2,14 @@
   import Image from '$lib/components/Image'
   import { isAndroid, isIOS } from '$lib/features'
   import type { FeatureData } from '../../BlocksMap.svelte'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     feature: FeatureData
   }
 
   const { feature }: Props = $props()
+  const { t } = getI18n()
 
   const navigationUrl = $derived.by(() => {
     if (feature.geolocation == null) {
@@ -57,7 +59,7 @@
       {#if navigationUrl != null}
         <div class="mt-auto flex justify-end">
           <a href={navigationUrl} class="btn btn-sm preset-outlined-primary-500">
-            <i class="fa-solid fa-diamond-turn-right"></i>Directions
+            <i class="fa-solid fa-diamond-turn-right"></i>{t('map.directions')}
           </a>
         </div>
       {/if}

@@ -16,9 +16,10 @@
   import { toaster } from '$lib/components/Toaster'
   import { convertException } from '$lib/errors'
   import { formState } from '$lib/forms/enhance.svelte'
+  import { initI18n } from '$lib/i18n'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
-  import { Navigation, Toaster } from '@skeletonlabs/skeleton-svelte'
+  import { Navigation, Toast } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import { onMount, type Snippet } from 'svelte'
   import { online } from 'svelte/reactivity/window'
@@ -57,6 +58,8 @@
       window.location.href = navigation.to.url.pathname + search
     }
   })
+
+  initI18n()
 </script>
 
 <svelte:head>
@@ -79,59 +82,77 @@
   {@html webManifest}
 </svelte:head>
 
-<PageStateLoader>
-  <div>
-    <ProgressBar class="text-secondary-500 !z-[100]" />
-    <Toaster {toaster}></Toaster>
+<div>
+  <ProgressBar class="text-secondary-500 z-100!" />
+  <Toast.Group {toaster}>
+    {#snippet children(toast)}
+      <Toast {toast}>
+        <Toast.Message>
+          <Toast.Title>{toast.title}</Toast.Title>
+          <Toast.Description>{toast.description}</Toast.Description>
+        </Toast.Message>
+        <Toast.CloseTrigger />
+      </Toast>
+    {/snippet}
+  </Toast.Group>
 
-    <HeaderBar />
+  <HeaderBar />
 
-    <main
-      class="relative p-2 md:p-4 {page.data.session?.user == null
-        ? 'min-h-[calc(100vh-3rem)]'
-        : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-[6rem] md:min-h-[calc(100vh-3rem)]'}"
-    >
-      <Breadcrumb url={page.url} />
+  <main
+    class="relative p-2 md:p-4 {page.data.session?.user == null || pageState.userRegions.length === 0
+      ? 'min-h-[calc(100vh-3rem)]'
+      : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-24 md:min-h-[calc(100vh-3rem)]'}"
+  >
+    <Breadcrumb url={page.url} />
 
-      {#if page.form?.error ?? formState.error}
-        <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
-          <p>{online.current ? (page.form?.error ?? formState.error) : 'You are offline'}</p>
-        </aside>
-      {/if}
+    {#if page.form?.error ?? formState.error}
+      <aside class="card preset-tonal-warning my-8 p-2 whitespace-pre-line md:p-4">
+        <p>{online.current ? (page.form?.error ?? formState.error) : 'You are offline'}</p>
+      </aside>
+    {/if}
 
-      <svelte:boundary>
-        {#snippet failed(exception, reset)}
-          <Error
-            {reset}
-            error={dev ? { message: convertException(exception) } : undefined}
-            rawError={exception}
-            reportError
-            status={400}
-          />
-        {/snippet}
+    <svelte:boundary>
+      {#snippet failed(exception, reset)}
+        <Error
+          {reset}
+          error={dev ? { message: convertException(exception) } : undefined}
+          rawError={exception}
+          reportError
+          status={400}
+        />
+      {/snippet}
 
+      {#if page.data.session?.user == null}
         {@render children?.()}
-      </svelte:boundary>
-    </main>
+      {:else}
+        <PageStateLoader>
+          {@render children?.()}
+        </PageStateLoader>
+      {/if}
+    </svelte:boundary>
+  </main>
 
-    <!-- Footer - only show for logged-out users or on certain pages -->
-    {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
-      <Footer />
-    {/if}
+  <!-- Footer - only show for logged-out users or on certain pages -->
+  {#if page.data.session?.user == null || page.url.pathname.match(/^\/(legal)$/)}
+    <Footer />
+  {/if}
 
-    {#if pageState.userRegions.length > 0}
-      <Navigation.Bar classes="md:hidden sticky bottom-0 z-50">
+  {#if page.data.session?.user != null && pageState.userRegions.length > 0}
+    <Navigation class="sticky bottom-0 z-50 md:hidden" layout="bar">
+      <Navigation.Menu class="grid grid-cols-5 gap-2">
         <NavTiles />
-      </Navigation.Bar>
+      </Navigation.Menu>
+    </Navigation>
 
-      <Navigation.Rail base="fixed top-[48px] hidden h-screen md:block">
-        {#snippet tiles()}
+    <Navigation class="fixed top-12 hidden h-screen md:block" layout="rail">
+      <Navigation.Content>
+        <Navigation.Menu>
           <NavTiles />
-        {/snippet}
-      </Navigation.Rail>
-    {/if}
-  </div>
-</PageStateLoader>
+        </Navigation.Menu>
+      </Navigation.Content>
+    </Navigation>
+  {/if}
+</div>
 
 {#await import('$lib/components/ReloadPrompt') then { default: ReloadPrompt }}
   <ReloadPrompt />

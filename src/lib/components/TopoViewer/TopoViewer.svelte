@@ -16,6 +16,7 @@
 </script>
 
 <script lang="ts">
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getDistance } from '$lib/geometry'
   import type { PointDTO, TopoDTO, TopoRouteDTO } from '$lib/topo'
@@ -27,6 +28,7 @@
   import Magnifier from './components/Magnifier'
   import RouteView from './components/Route'
   import { selectedPointTypeStore, selectedRouteStore } from './stores'
+  import { getI18n } from '$lib/i18n'
 
   let {
     actions,
@@ -60,6 +62,7 @@
 
   let zoom: d3.ZoomBehavior<Element, unknown> | null = $state(null)
   let zoomTransform: d3.ZoomTransform | undefined = $state()
+  const { t } = getI18n()
 
   let selectedTopo = $derived.by(() => {
     const topo = topos.at(selectedTopoIndex)
@@ -296,7 +299,7 @@
           type="checkbox"
         />
 
-        <p>Topout</p>
+        <p>{t('topo.topout')}</p>
       </label>
 
       <div class="flex gap-1">
@@ -305,14 +308,14 @@
           disabled={(selectedTopoRoute?.points ?? []).filter((point) => point.type === 'start').length >= 2}
           onclick={onChangeType('start')}
         >
-          Start
+          {t('topo.startPoint')}
         </button>
 
         <button
           class={`btn btn-sm ${$selectedPointTypeStore === 'middle' ? 'preset-filled-success-500' : 'preset-filled-secondary-500'}`}
           onclick={onChangeType('middle')}
         >
-          Middle
+          {t('topo.middlePoint')}
         </button>
 
         <button
@@ -320,7 +323,7 @@
           disabled={(selectedTopoRoute?.points ?? []).filter((point) => point.type === 'top').length >= 1}
           onclick={onChangeType('top')}
         >
-          Top
+          {t('topo.topPoint')}
         </button>
       </div>
     {/if}
@@ -330,7 +333,7 @@
 <div
   bind:this={imgWrapper}
   class="relative flex h-full w-full items-center justify-center overflow-hidden {isFullscreen
-    ? '!fixed top-0 left-0 !z-[1000]'
+    ? 'fixed! top-0 left-0 z-1000!'
     : ''}"
   style={elementHeight == null ? undefined : `min-height: ${elementHeight}px`}
 >
@@ -358,7 +361,7 @@
 
       <Magnifier file={selectedTopo.file} {rect} {width} {height} />
     {:else}
-      <p>Error loading image</p>
+      <p>{t('topo.errorLoadingImage')}</p>
     {/if}
   {/if}
 
@@ -413,7 +416,8 @@
       {#if topos.length > 1}
         <div class="flex gap-1">
           <button
-            aria-label="Previous Topo"
+            aria-label={t('topo.previousTopo')}
+            title={t('topo.previousTopo')}
             class="btn-icon bg-white/70 text-black backdrop-blur-sm"
             disabled={selectedTopoIndex <= 0}
             onclick={onPrevTopo}
@@ -422,7 +426,8 @@
           </button>
 
           <button
-            aria-label="Next Topo"
+            aria-label={t('topo.nextTopo')}
+            title={t('topo.nextTopo')}
             class="btn-icon bg-white/70 text-black backdrop-blur-sm"
             disabled={selectedTopoIndex >= topos.length - 1}
             onclick={onNextTopo}
@@ -433,7 +438,8 @@
       {/if}
 
       <button
-        aria-label="Reset zoom"
+        aria-label={t('topo.resetZoom')}
+        title={t('topo.resetZoom')}
         class="btn-icon bg-white/70 text-black backdrop-blur-sm"
         disabled={zoomTransform == null}
         onclick={onResetZoom}
@@ -442,7 +448,8 @@
       </button>
 
       <button
-        aria-label="Toggle lines"
+        aria-label={t('topo.toggleLines')}
+        title={t('topo.toggleLines')}
         class="btn-icon {linesVisible ? 'bg-white/70' : 'preset-filled-secondary-500'} text-black backdrop-blur-sm"
         onclick={onToggleLines}
       >
@@ -450,7 +457,8 @@
       </button>
 
       <button
-        aria-label="Fullscreen"
+        aria-label={t('topo.fullscreen')}
+        title={t('topo.fullscreen')}
         class="btn-icon {isFullscreen ? 'preset-filled-secondary-500' : 'bg-white/70'} text-black backdrop-blur-sm"
         onclick={() => onToggleFullscreen()}
       >
@@ -471,6 +479,12 @@
       transition:slide={{ duration: 100 }}
     >
       <RouteName route={selectedTopoRoute.route} />
+
+      <MarkdownRenderer
+        className="short"
+        encloseReferences="strong"
+        markdown={selectedTopoRoute.route.description ?? ''}
+      />
     </a>
   {/if}
 </div>

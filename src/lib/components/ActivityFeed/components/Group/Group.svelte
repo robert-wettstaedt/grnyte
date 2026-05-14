@@ -2,6 +2,7 @@
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
   import { pageState } from '$lib/components/Layout'
+  import { getI18n } from '$lib/i18n'
   import type { ActivityGroup } from '../..'
   import Item, { ItemLoader } from '../Item'
 
@@ -12,6 +13,7 @@
   const { group }: Props = $props()
 
   let hasBeenOpened = $state(0)
+  const { t } = getI18n()
 </script>
 
 <ItemLoader activity={group.items[0]}>
@@ -46,11 +48,11 @@
 
                 <details class="mt-4" ontoggle={(event) => (hasBeenOpened |= Number(event.currentTarget.open))}>
                   <summary class="hover:text-primary-500 cursor-pointer transition-colors">
-                    Show {group.items.length - 1} more change{group.items.length - 1 === 1 ? '' : 's'}
+                    {t('activityFeed.showMoreChanges', { count: group.items.length - 1 })}
                   </summary>
 
                   {#if hasBeenOpened}
-                    <div class="border-surface-200-800 mt-4 space-y-4 border-l-2 pl-2">
+                    <div class="border-surface-200-800 -ms-10 mt-4 space-y-4 border-l-2 pl-2 md:ms-0">
                       {#each group.items.slice(1) as activity}
                         <ItemLoader {activity}>
                           {#snippet children(activity)}

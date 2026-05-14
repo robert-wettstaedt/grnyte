@@ -1,24 +1,27 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import AreaFormFields from '$lib/components/AreaFormFields'
   import FormActionBar from '$lib/components/FormActionBar'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createArea } from './page.remote'
+
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
-  <title>Create area - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('areas.createArea')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Create area</span>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>{t('areas.createArea')}</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createArea.enhance(enhanceForm())}>
   <AreaFormFields fields={createArea.fields} />
 
-  <FormActionBar label="Save area" pending={createArea.pending} />
+  <FormActionBar label={t('areas.saveArea')} pending={createArea.pending} />
 </form>

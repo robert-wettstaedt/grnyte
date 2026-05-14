@@ -26,6 +26,18 @@ export const isSubscribed = async () => {
   }
 }
 
+export const getSubscriptionId = async (): Promise<number | null> => {
+  if (await isSubscribed()) {
+    const id = Number(localStorage.getItem(STORAGE_KEY))
+
+    if (!Number.isNaN(id)) {
+      return id
+    }
+  }
+
+  return null
+}
+
 export const subscribe = async () => {
   // Check browser compatibility
   if (!isSupported()) {

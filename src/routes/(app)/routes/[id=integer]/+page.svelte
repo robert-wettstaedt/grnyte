@@ -2,30 +2,26 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { routeWithPathname } from '$lib/db/utils.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { queries } from '$lib/db/zero'
 </script>
 
-<ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={page.data.z.current.query.routes
-    .where('id', Number(page.params.id))
-    .related('block', (q) =>
-      q.related('area', (q) => q.related('parent', (q) => q.related('parent', (q) => q.related('parent')))),
-    )
-    .limit(1)}
->
-  {#snippet children([route])}
-    {@const { pathname } = routeWithPathname(route) ?? {}}
-    {#if pathname == null}
-      <Error status={404} />
-    {:else}
-      {#await goto(pathname, { replaceState: true })}
-        <div class="flex justify-center">
-          <ProgressRing size="size-12" value={null} />
-        </div>
-      {/await}
-    {/if}
-  {/snippet}
-</ZeroQueryWrapper>
+{#if page.params.id == null}
+  <Error status={404} />
+{:else}
+  <ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.route({ routeSlug: page.params.id })}>
+    {#snippet children(block)}
+      {@const route = block?.routes.at(0)}
+      {@const { pathname } = (route == null ? undefined : routeWithPathname({ ...route, block })) ?? {}}
+      {#if pathname == null}
+        <Error status={404} />
+      {:else}
+        {#await goto(pathname, { replaceState: true })}
+          <LoadingIndicator class="flex justify-center" size={12} />
+        {/await}
+      {/if}
+    {/snippet}
+  </ZeroQueryWrapper>
+{/if}

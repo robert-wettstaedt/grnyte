@@ -1,10 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { pageState } from '$lib/components/Layout'
+  import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
-  import { Query } from 'zero-svelte'
   import type { References as ReferencesType } from '.'
   import References from './References.svelte'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     id: number
@@ -13,43 +14,44 @@
   }
   const { children, id, type }: Props = $props()
 
-  const areasQuery = $derived(page.data.z.current.query.areas.where('description', 'ILIKE', `%!${type}:${id}!%`))
-  // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
+  const areasResult = $derived(page.data.z.q(queries.listAreas({ content: `!${type}:${id}!` })))
 
-  const ascentsQuery = $derived(
-    page.data.z.current.query.ascents.where('notes', 'ILIKE', `%!${type}:${id}!%`).related('author').related('route'),
-  )
-  // svelte-ignore state_referenced_locally
-  const ascentsResult = new Query(ascentsQuery)
-  $effect(() => ascentsResult.updateQuery(ascentsQuery))
+  const ascentsResult = $derived(page.data.z.q(queries.listAscents({ notes: `!${type}:${id}!` })))
 
-  const routesQuery = $derived(
-    page.data.z.current.query.routes
-      .where('description', 'ILIKE', `%!${type}:${id}!%`)
-      .related('ascents', (q) => q.where('createdBy', '=', pageState.user?.id!)),
+  const routesResult = $derived(
+    page.data.z.q(queries.listRoutes({ content: `!${type}:${id}!`, userId: pageState.user?.id })),
   )
-  // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
 
   const references = $derived(
-    areasResult.current.length + ascentsResult.current.length + routesResult.current.length === 0
+    areasResult.data.length + ascentsResult.data.length + routesResult.data.length === 0
       ? null
       : ({
-          areas: areasResult.current,
-          ascents: ascentsResult.current,
-          routes: routesResult.current,
+          areas: areasResult.data,
+          ascents: ascentsResult.data,
+          routes: routesResult.data,
         } as ReferencesType),
   )
+
+  const isLoading = $derived(
+    areasResult.details.type !== 'complete' ||
+      ascentsResult.details.type !== 'complete' ||
+      routesResult.details.type !== 'complete',
+  )
+
+  const { t } = getI18n()
 </script>
 
-{#if references != null}
+{#if references == null && isLoading}
+  <nav class="list-nav">
+    <ul class="overflow-auto">
+      <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
+    </ul>
+  </nav>
+{:else if references != null}
   {#if children == null}
     <div class="flex p-2">
       <span class="flex-auto">
-        <dt>Mentioned in</dt>
+        <dt>{t('references.mentionedIn')}</dt>
 
         <dd class="mt-1 flex gap-1">
           <References {references} />

@@ -463,6 +463,34 @@
       "when": 1756671770590,
       "tag": "0066_huge_gabe_jones",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1762597928745,
+      "tag": "0067_magenta_makkari",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1767110035883,
+      "tag": "0068_moaning_nekra",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1768121711019,
+      "tag": "0069_goofy_union_jack",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1770748896267,
+      "tag": "0070_curved_reptil",
+      "breakpoints": true
     }
   ]
 }

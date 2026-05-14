@@ -5,12 +5,14 @@
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import AppBar from '$lib/components/AppBar'
   import AreaList from '$lib/components/AreaList'
+  import FavoritesList from '$lib/components/FavoritesList'
   import { pageState } from '$lib/components/Layout'
   import RouteList from '$lib/components/RouteList'
-  import { Tabs } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
+  import { Menu, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
 
-  type TabValue = 'areas' | 'routes'
+  type TabValue = 'areas' | 'routes' | 'favorites'
   let tabValue: TabValue | undefined = $state(undefined)
   let loadedTabs = $state(false)
   let tabFromUrl = $derived(page.url.searchParams.get('tab') as TabValue | undefined)
@@ -26,6 +28,7 @@
     goto(newUrl.toString(), { replaceState: true })
   }
 
+  const { t } = getI18n()
   let hasActions = $derived(
     pageState.userRegions.some((region) =>
       checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], region.regionFk),
@@ -34,44 +37,45 @@
 </script>
 
 <svelte:head>
-  <title>Areas - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('nav.areas')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar {hasActions}>
-  {#snippet lead()}{/snippet}
-
-  {#snippet actions()}
-    <a class="btn btn-sm preset-outlined-primary-500" href="{page.url.pathname}/add">
-      <i class="fa-solid fa-plus w-4"></i>Add area
-    </a>
+  {#snippet actions({ buttonProps, iconProps })}
+    <Menu.Item value={t('areas.addArea')}>
+      <a {...buttonProps} href="{page.url.pathname}/add">
+        <i {...iconProps} class="fa-solid fa-pen {iconProps.class}"></i>
+        {t('areas.addArea')}
+      </a>
+    </Menu.Item>
   {/snippet}
 
-  {#snippet headline()}
-    <Tabs
-      fluid
-      listClasses="overflow-x-auto overflow-y-hidden pb-[1px] md:w-[500px]"
-      listGap="0"
-      onValueChange={onChangeTab}
-      value={tabValue}
-    >
-      {#snippet list()}
-        <Tabs.Control value="areas">Areas</Tabs.Control>
-        <Tabs.Control value="routes">Routes</Tabs.Control>
-      {/snippet}
+  {#snippet content()}
+    <Tabs onValueChange={onChangeTab} value={tabValue}>
+      <Tabs.List class="gap-0 overflow-x-auto overflow-y-hidden pb-px md:w-125">
+        <Tabs.Trigger class="flex-1" value="areas">{t('nav.areas')}</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="routes">{t('nav.routes')}</Tabs.Trigger>
+        <Tabs.Trigger class="flex-1" value="favorites">{t('nav.favorites')}</Tabs.Trigger>
+        <Tabs.Indicator />
+      </Tabs.List>
 
-      {#snippet content()}
-        <Tabs.Panel value="areas">
-          {#if tabValue === 'areas' || loadedTabs}
-            <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
-          {/if}
-        </Tabs.Panel>
+      <Tabs.Content value="areas">
+        {#if tabValue === 'areas' || loadedTabs}
+          <AreaList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+        {/if}
+      </Tabs.Content>
 
-        <Tabs.Panel value="routes">
-          {#if tabValue === 'routes' || loadedTabs}
-            <RouteList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
-          {/if}
-        </Tabs.Panel>
-      {/snippet}
+      <Tabs.Content value="routes">
+        {#if tabValue === 'routes' || loadedTabs}
+          <RouteList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} />
+        {/if}
+      </Tabs.Content>
+
+      <Tabs.Content value="favorites">
+        {#if tabValue === 'favorites' || loadedTabs}
+          <FavoritesList onLoad={() => setTimeout(() => (loadedTabs = true), 100)} authUserId={page.data.authUserId!} />
+        {/if}
+      </Tabs.Content>
     </Tabs>
   {/snippet}
 </AppBar>

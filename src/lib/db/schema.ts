@@ -184,8 +184,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   areas: many(areas),
   ascents: many(ascents),
   blocks: many(blocks),
+  favorites: many(favorites),
   routes: many(routes),
   pushSubscriptions: many(pushSubscriptions),
+  regionMemberships: many(regionMembers),
 }))
 
 export const userSettings = table(
@@ -225,8 +227,8 @@ export type UserSettings = InferSelectModel<typeof userSettings>
 export type InsertUserSettings = InferInsertModel<typeof userSettings>
 
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
-  authUser: one(authUsers, { fields: [userSettings.authUserFk], references: [authUsers.id] }),
   user: one(users, { fields: [userSettings.userFk], references: [users.id] }),
+  authUser: one(authUsers, { fields: [userSettings.authUserFk], references: [authUsers.id] }),
 }))
 
 export const pushSubscriptions = table(
@@ -245,6 +247,8 @@ export const pushSubscriptions = table(
     expirationTime: integer('expiration_time'),
     p256dh: text('p256dh').notNull(),
     auth: text('auth').notNull(),
+
+    lang: text('lang'),
   },
   (table) => [
     index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
@@ -261,8 +265,8 @@ export type PushSubscription = InferSelectModel<typeof pushSubscriptions>
 export type InsertPushSubscription = InferInsertModel<typeof pushSubscriptions>
 
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
-  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
   user: one(users, { fields: [pushSubscriptions.userFk], references: [users.id] }),
+  authUser: one(authUsers, { fields: [pushSubscriptions.authUserFk], references: [authUsers.id] }),
 }))
 
 export const regions = table(
@@ -360,11 +364,11 @@ export type RegionMember = InferSelectModel<typeof regionMembers>
 export type InsertRegionMember = InferInsertModel<typeof regionMembers>
 
 export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
-  authUser: one(authUsers, { fields: [regionMembers.authUserFk], references: [authUsers.id] }),
+  user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
   invitedBy: one(users, { fields: [regionMembers.invitedByFk], references: [users.id] }),
   region: one(regions, { fields: [regionMembers.regionFk], references: [regions.id] }),
-  user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
   rolePermission: one(rolePermissions, { fields: [regionMembers.role], references: [rolePermissions.role] }),
+  authUser: one(authUsers, { fields: [regionMembers.authUserFk], references: [authUsers.id] }),
 }))
 
 export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired'])
@@ -472,6 +476,10 @@ export const areas = table(
 
     ...createBasicTablePolicies('areas'),
     policy(
+      `${REGION_PERMISSION_EDIT} can delete areas`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+    ),
+    policy(
       `${REGION_PERMISSION_READ} can update areas`,
       getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
@@ -511,6 +519,10 @@ export const blocks = table(
     index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
     ...createBasicTablePolicies('blocks'),
+    policy(
+      `${REGION_PERMISSION_EDIT} can delete blocks`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+    ),
     policy(
       `${REGION_PERMISSION_READ} can update blocks`,
       getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
@@ -822,8 +834,10 @@ export const ascents = table(
     createdBy: baseContentFields.createdBy,
 
     dateTime: date('date_time').notNull().defaultNow(),
+    humidity: integer('humidity'),
     notes: text('notes'),
     rating: integer('rating'),
+    temperature: integer('temperature'),
     type: text('type', { enum: ascentTypeEnum }).notNull(),
 
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),
@@ -1179,6 +1193,10 @@ export const geolocations = table(
       `${REGION_PERMISSION_READ} can insert geolocations`,
       getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
     ),
+    policy(
+      `${REGION_PERMISSION_EDIT} can delete geolocations`,
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
+    ),
   ],
 ).enableRLS()
 export type Geolocation = InferSelectModel<typeof geolocations>
@@ -1190,7 +1208,8 @@ export const geolocationsRelations = relations(geolocations, ({ one }) => ({
   region: one(regions, { fields: [geolocations.regionFk], references: [regions.id] }),
 }))
 
-export const activityTypeEnum = pgEnum('activity_type', ['created', 'updated', 'deleted', 'uploaded'])
+export const activityType: ['created', 'updated', 'deleted', 'uploaded'] = ['created', 'updated', 'deleted', 'uploaded']
+export const activityParentEntityType: ['block', 'route', 'area', 'ascent'] = ['block', 'route', 'area', 'ascent']
 
 export const activities = table(
   'activities',
@@ -1198,14 +1217,14 @@ export const activities = table(
     ...baseFields,
     ...baseRegionFields,
 
-    type: activityTypeEnum('type').notNull(),
+    type: pgEnum('activity_type', activityType)('type').notNull(),
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),
     entityId: text('entity_id').notNull(),
-    entityType: text('entity_type', { enum: ['block', 'route', 'area', 'ascent', 'file', 'user'] }).notNull(),
+    entityType: text('entity_type', { enum: [...activityParentEntityType, 'file', 'user'] }).notNull(),
     parentEntityId: text('parent_entity_id'),
-    parentEntityType: text('parent_entity_type', { enum: ['block', 'route', 'area', 'ascent'] }),
+    parentEntityType: text('parent_entity_type', { enum: activityParentEntityType }),
     columnName: text('column_name'), // Only populated for 'updated' activities
     metadata: text('metadata'), // JSON string containing relevant changes
     oldValue: text('old_value'), // Only populated for 'updated' activities
@@ -1260,6 +1279,48 @@ export type InsertActivity = InferInsertModel<typeof activities>
 export const activitiesRelations = relations(activities, ({ one }) => ({
   region: one(regions, { fields: [activities.regionFk], references: [regions.id] }),
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
+}))
+
+export const favoriteEntityType: ['block', 'route', 'area'] = ['block', 'route', 'area']
+
+export const favorites = table(
+  'favorites',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+
+    entityId: text('entity_id').notNull(),
+    entityType: text('entity_type', { enum: favoriteEntityType }).notNull(),
+  },
+  (table) => [
+    index('favorites_created_at_idx').on(table.createdAt),
+    index('favorites_entity_id_idx').on(table.entityId),
+    index('favorites_entity_type_idx').on(table.entityType),
+
+    policy(`users can insert own favorites`, getOwnEntryPolicyConfig('insert')),
+    policy(
+      `${REGION_PERMISSION_READ} can read favorites`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    policy(`users can update own favorites`, getOwnEntryPolicyConfig('update')),
+    policy(`users can delete own favorites`, getOwnEntryPolicyConfig('delete')),
+  ],
+).enableRLS()
+
+export type Favorite = InferSelectModel<typeof favorites>
+export type InsertFavorite = InferInsertModel<typeof favorites>
+
+export const favoritesRelations = relations(favorites, ({ one }) => ({
+  user: one(users, { fields: [favorites.userFk], references: [users.id] }),
+  authUser: one(authUsers, { fields: [favorites.authUserFk], references: [authUsers.id] }),
+  region: one(regions, { fields: [favorites.regionFk], references: [regions.id] }),
 }))
 
 const jsonSchema = z.json()

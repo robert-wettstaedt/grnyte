@@ -47,6 +47,7 @@ declare global {
       supabase: SupabaseClient
     }
     interface PageData {
+      authUserId: string | undefined
       session?: Session | undefined | null
       supabase?: Locals['supabase']
       z: Z<Schema>

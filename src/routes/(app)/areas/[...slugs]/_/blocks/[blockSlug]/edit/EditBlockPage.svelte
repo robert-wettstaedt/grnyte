@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
+  import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
   import BlockFormFields from '$lib/components/BlockFormFields'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
@@ -10,29 +10,32 @@
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { deleteBlock, updateBlock } from './page.remote'
+  import { getI18n } from '$lib/i18n'
 
   const { block } = getBlockContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 </script>
 
 <svelte:head>
-  <title>Edit {block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('blocks.editBlockOfTitle', { name: block.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Edit block</span>
-    <a class="anchor" href={basePath}>{block.name}</a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      {t('blocks.editBlockDetails')} <a class="anchor" href={basePath}>{block.name}</a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateBlock.enhance(enhanceForm())}>
   <BlockFormFields areaFk={block.areaFk} blockId={block.id} name={block.name} />
 
-  <FormActionBar label="Update block" pending={updateBlock.pending} />
+  <FormActionBar label={t('blocks.updateBlock')} pending={updateBlock.pending} />
 </form>
 
-{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)}
-  <DangerZone name="block" onDelete={() => (block.id == null ? undefined : deleteBlock(block.id))} />
+{#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], block.regionFk) || (checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], block.regionFk) && block.createdBy === pageState.user?.id)}
+  <DangerZone name={t('entities.block')} onDelete={() => (block.id == null ? undefined : deleteBlock(block.id))} />
 {/if}

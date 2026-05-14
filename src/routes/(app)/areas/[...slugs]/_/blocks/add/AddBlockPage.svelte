@@ -1,36 +1,40 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
   import BlockFormFields from '$lib/components/BlockFormFields'
   import FormActionBar from '$lib/components/FormActionBar'
   import { getAreaContext } from '$lib/contexts/area'
+  import type { Row } from '$lib/db/zero'
   import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createBlock } from './page.remote'
 
   interface Props {
-    name: string
+    name: Row<'blocks'>['name']
   }
 
-  let { name }: Props = $props()
+  let { name = $bindable() }: Props = $props()
   const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   let state = $state<EnhanceState>({})
+  const { t } = getI18n()
 </script>
 
 <svelte:head>
-  <title>Create block in {area.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('blocks.createBlockInTitle', { name: area.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Create block in</span>
-    <a class="anchor" href={basePath}>{area.name}</a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      {@html t('blocks.createBlockIn', { name: area.name, url: basePath })}
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createBlock.enhance(enhanceForm(state))}>
-  <BlockFormFields {name} areaFk={area.id} fileUploadProps={{ state }} />
+  <BlockFormFields bind:name areaFk={area.id} fileUploadProps={{ state }} />
 
-  <FormActionBar {state} label="Save block" pending={createBlock.pending} />
+  <FormActionBar {state} label={t('blocks.saveBlock')} pending={state.loading ? 1 : createBlock.pending} />
 </form>

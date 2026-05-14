@@ -1,25 +1,27 @@
 import { getRequestEvent } from '$app/server'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import { createDrizzleSupabaseClient } from '$lib/db/drizzle.server'
 import * as schema from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { error, redirect } from '@sveltejs/kit'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgTransaction } from 'drizzle-orm/pg-core'
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js'
+import { z } from 'zod'
+import type { ActionFailure } from './schemas'
 
 type Schema = typeof schema
 
-export type Action<Output = unknown> = (
-  values: Output,
+export type Action<Input = unknown, Output = unknown> = (
+  values: Input,
   db: PgTransaction<PostgresJsQueryResultHKT, Schema, ExtractTablesWithRelations<Schema>>,
   user: NonNullable<App.SafeSession['user']>,
-) => Promise<unknown>
+) => Promise<Output>
 
-export async function enhance<T = unknown>(values: T, callback: Action<T>) {
+export async function enhance<T = unknown, R = unknown>(values: T, callback: Action<T, R>): Promise<R> {
   const { locals } = getRequestEvent()
 
   const rls = await createDrizzleSupabaseClient(locals.supabase)
-  let returnValue: Awaited<unknown>
+  let returnValue: Awaited<R>
 
   try {
     returnValue = await rls(async (db) => {

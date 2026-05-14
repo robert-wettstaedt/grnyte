@@ -2,27 +2,20 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { areaWithPathname } from '$lib/db/utils.svelte'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { queries } from '$lib/db/zero'
 </script>
 
-<ZeroQueryWrapper
-  loadingIndicator={{ type: 'spinner' }}
-  query={page.data.z.current.query.areas
-    .where('id', Number(page.params.id))
-    .related('parent', (q) => q.related('parent', (q) => q.related('parent')))
-    .limit(1)}
->
-  {#snippet children([area])}
-    {@const { pathname } = areaWithPathname(area) ?? {}}
+<ZeroQueryWrapper loadingIndicator={{ type: 'spinner' }} query={queries.area({ id: Number(page.params.id) })}>
+  {#snippet children(area)}
+    {@const { pathname } = (area == null ? null : areaWithPathname(area)) ?? {}}
     {#if pathname == null}
       <Error status={404} />
     {:else}
       {#await goto(pathname, { replaceState: true })}
-        <div class="flex justify-center">
-          <ProgressRing size="size-12" value={null} />
-        </div>
+        <LoadingIndicator class="flex justify-center" size={12} />
       {/await}
     {/if}
   {/snippet}

@@ -1,24 +1,21 @@
 <script lang="ts">
-  import { page } from '$app/state'
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
   import { pageState } from '$lib/components/Layout'
-  import type { Row } from '$lib/db/zero'
+  import { queries, type Row } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
   interface Props extends Partial<GradeHistogramProps> {
     areaId: number
     children?: Snippet<[Row<'routes'>[]]>
+    skeletonHeight?: string
   }
-  const { areaId, children: propsChildren, ...rest }: Props = $props()
+  const { areaId, children: propsChildren, skeletonHeight, ...rest }: Props = $props()
 </script>
 
 <ZeroQueryWrapper
-  loadingIndicator={{
-    type: 'spinner',
-    size: rest.opts?.height == null || rest.opts.height > 64 ? undefined : 'size-12',
-  }}
-  query={page.data.z.current.query.routes.where('areaIds', 'ILIKE', `%^${areaId}$%`)}
+  loadingIndicator={{ count: 1, height: skeletonHeight, type: 'skeleton' }}
+  query={queries.listRoutes({ areaId })}
 >
   {#snippet children(routes)}
     {@const stats = routes.map((route): GradeHistogramProps['data'][0] => {

@@ -1,29 +1,32 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
-  import { getVideoIframeUrl } from '$lib/bunny'
+  import { getVideoIframeUrl, VideoStatus } from '$lib/bunny'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { File } from '$lib/db/schema'
-  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
+  import { Menu, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
   import type { MouseEventHandler } from 'svelte/elements'
-  import type { FileStatusResponse } from '../../../../../routes/api/files/[id]/status/lib'
 
   interface Props {
     file: File
     onDelete?: () => void
     readOnly?: boolean
-    status?: FileStatusResponse
+    status?: VideoStatus
 
     topLeft?: Snippet
   }
 
   let { file, readOnly = true, status = $bindable(), topLeft, ...props }: Props = $props()
+  const { t } = getI18n()
+
+  const statusTitle = $derived(status == null ? null : t(`videoStatus.${status}.title`))
+  const statusMessage = $derived(status == null ? null : t(`videoStatus.${status}.message`))
 
   let shareData = $derived({
-    text: pageState.user?.username
-      ? `${pageState.user?.username} wants to share a file with you`
-      : 'I want to share a file with you',
+    text: pageState.user?.username ? `${pageState.user?.username} ${t('share.wantsToShare')}` : t('share.iWantToShare'),
     title: PUBLIC_APPLICATION_NAME,
     url: `${page.url.origin}/f/${file.id}`,
   } satisfies ShareData)
@@ -49,6 +52,7 @@
     }
   }
 
+  // svelte-ignore state_referenced_locally
   let mediaIsLoading = $state(file.bunnyStreamFk == null)
   let mediaHasError = $state(false)
   const mediaAction = (el: HTMLElement) => {
@@ -79,7 +83,7 @@
 
     await navigator.clipboard.writeText(shareData.url)
 
-    target.innerHTML = 'Copied'
+    target.innerHTML = t('common.copied')
     setTimeout(() => {
       target.innerHTML = text
     }, 2000)
@@ -89,16 +93,14 @@
 <div class="relative h-full w-full">
   {#if mediaHasError || status != null}
     <aside class="alert variant-filled-error flex h-full items-center justify-center p-1">
-      <div class="alert-message max-w-[200px] text-center">
-        <h5 class="h5">{status?.title ?? 'Unable to play video'}</h5>
-        <p class="text-sm">{status?.message}</p>
+      <div class="alert-message max-w-50 text-center">
+        <h5 class="h5">{status != null ? statusTitle : t('files.unableToPlayVideo')}</h5>
+        <p class="text-sm">{status != null ? statusMessage : ''}</p>
       </div>
     </aside>
   {:else}
     {#if mediaIsLoading}
-      <div class="absolute flex h-full w-full items-center justify-center bg-black/80">
-        <ProgressRing value={null} />
-      </div>
+      <LoadingIndicator class="absolute flex h-full w-full items-center justify-center bg-black/80" size={20} />
     {/if}
 
     {#if file.bunnyStreamFk != null}
@@ -123,104 +125,109 @@
     {/if}
 
     <div class="flex items-center gap-1">
-      <Popover
-        arrow
-        arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-        contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-        zIndex="5000"
-        positioning={{ placement: 'bottom' }}
-        triggerBase="btn-icon bg-black/20 backdrop-blur-sm"
-      >
-        {#snippet trigger()}
+      <Menu>
+        <Menu.Trigger class="btn-icon bg-black/20 backdrop-blur-sm">
           <i class={`fa-solid ${file.visibility === 'public' ? 'fa-globe' : 'fa-lock'}`}></i>
-        {/snippet}
+        </Menu.Trigger>
 
-        {#snippet content()}
-          <p class="text-sm">
-            {#if file.visibility === 'public'}
-              The file is publicly accessible and can be viewed by everyone who has the link.
-            {:else}
-              The file is private and only accessible by authenticated users.
-            {/if}
-          </p>
-
-          <footer class="flex justify-between gap-2">
-            {#if file.bunnyStreamFk == null}
-              <p class="text-error-500">Only videos can be made public and shared.</p>
-            {:else}
-              {#if navigator.canShare?.(shareData) && navigator.share != null}
-                <button class="btn btn-sm preset-tonal-primary" onclick={() => navigator.share(shareData)}>
-                  <i class="fa-solid fa-share"></i> Share
-                </button>
-              {:else}
-                <button class="btn btn-sm preset-tonal-primary" onclick={onCopyUrl}>
-                  <i class="fa-solid fa-copy"></i> Copy
-                </button>
-              {/if}
-
-              {#if !readOnly}
+        <Portal>
+          <Menu.Positioner class="z-5000!">
+            <Menu.Content class="max-w-[320px]">
+              <p class="p-2 text-sm">
                 {#if file.visibility === 'public'}
-                  <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'private')}>
-                    <i class="fa-solid fa-lock"></i> Make private
-                  </button>
+                  {t('files.visibility.publicDescription')}
                 {:else}
-                  <button class="btn btn-sm preset-tonal-primary" onclick={updateVisibility.bind(null, 'public')}>
-                    <i class="fa-solid fa-globe"></i> Make public
-                  </button>
+                  {t('files.visibility.privateDescription')}
+                {/if}
+              </p>
+
+              {#if file.bunnyStreamFk == null}
+                <p class="text-error-500 p-2">{t('files.onlyVideosPublic')}</p>
+              {:else}
+                {#if navigator.canShare?.(shareData) && navigator.share != null}
+                  <Menu.Item closeOnSelect={false} value="Share">
+                    <button class="flex w-full items-center" onclick={() => navigator.share(shareData)}>
+                      <i class="fa-solid fa-share me-2 w-5"></i>
+                      {t('share.share')}
+                    </button>
+                  </Menu.Item>
+                {:else}
+                  <Menu.Item closeOnSelect={false} value="Copy">
+                    <button class="flex w-full items-center" onclick={onCopyUrl}>
+                      <i class="fa-solid fa-copy me-2 w-5"></i>
+                      {t('common.copy')}
+                    </button>
+                  </Menu.Item>
+                {/if}
+
+                {#if !readOnly}
+                  {#if file.visibility === 'public'}
+                    <Menu.Item closeOnSelect={false} value="Make private">
+                      <button class="flex w-full items-center" onclick={updateVisibility.bind(null, 'private')}>
+                        <i class="fa-solid fa-lock me-2 w-5"></i>
+                        {t('files.makePrivate')}
+                      </button>
+                    </Menu.Item>
+                  {:else}
+                    <Menu.Item closeOnSelect={false} value="Make public">
+                      <button class="flex w-full items-center" onclick={updateVisibility.bind(null, 'public')}>
+                        <i class="fa-solid fa-globe me-2 w-5"></i>
+                        {t('files.makePublic')}
+                      </button>
+                    </Menu.Item>
+                  {/if}
                 {/if}
               {/if}
-            {/if}
-          </footer>
-        {/snippet}
-      </Popover>
+            </Menu.Content>
+          </Menu.Positioner>
+        </Portal>
+      </Menu>
 
       {#if !readOnly}
-        <Popover
-          arrow
-          arrowBackground="!bg-surface-200 dark:!bg-surface-800"
-          contentBase="card bg-surface-200-800 p-4 space-y-4 max-w-[320px] shadow-lg"
-          zIndex="5000"
-          positioning={{ placement: 'bottom' }}
-          triggerBase="btn-icon bg-black/20 backdrop-blur-sm"
-        >
-          {#snippet trigger()}
+        <Menu>
+          <Menu.Trigger class="btn-icon bg-black/20 backdrop-blur-sm">
             <i class="fa-solid fa-ellipsis-vertical"></i>
-          {/snippet}
+          </Menu.Trigger>
 
-          {#snippet content()}
-            <nav class="list-nav w-48">
-              <ul>
-                <li
-                  class="hover:preset-tonal-primary border-surface-800 flex flex-wrap justify-between rounded border-b-[1px] whitespace-nowrap last:border-none"
-                >
-                  <Popover
-                    arrow
-                    arrowBackground="!bg-surface-300 dark:!bg-surface-700"
-                    contentBase="card bg-surface-300-700 p-4 space-y-4 max-w-[320px]"
-                    positioning={{ placement: 'bottom' }}
-                    zIndex="5000"
-                    triggerClasses="p-2 md:p-4 w-full text-left"
-                    classes="w-full"
-                  >
-                    {#snippet trigger()}
-                      <i class="fa-solid fa-trash me-2 w-5"></i>Delete
-                    {/snippet}
+          <Portal>
+            <Menu.Positioner class="z-5000!">
+              <Menu.Content>
+                <Menu.Item closeOnSelect={false} value="topo-remove">
+                  <Popover positioning={{ placement: 'bottom' }}>
+                    <Popover.Trigger class="flex w-full items-center">
+                      <i class="fa-solid fa-trash me-2 w-5"></i>
+                      {t('common.delete')}
+                    </Popover.Trigger>
 
-                    {#snippet content()}
-                      <article>
-                        <p>Are you sure you want to delete this file?</p>
-                      </article>
+                    <Portal>
+                      <Popover.Positioner class="z-5000!">
+                        <Popover.Content class="card bg-surface-200-800 w-full max-w-[320px] space-y-4 p-4">
+                          <Popover.Description>
+                            <article>
+                              <p>{t('files.confirmDelete')}</p>
+                            </article>
 
-                      <footer class="flex justify-end">
-                        <button class="btn btn-sm preset-filled-error-500 !text-white" onclick={onDelete}> Yes </button>
-                      </footer>
-                    {/snippet}
+                            <footer class="flex justify-end">
+                              <button class="btn btn-sm preset-filled-error-500 text-white!" onclick={onDelete}>
+                                {t('common.yes')}
+                              </button>
+                            </footer>
+                          </Popover.Description>
+
+                          <Popover.Arrow
+                            class="[--arrow-background:var(--color-surface-200-800)] [--arrow-size:--spacing(2)]"
+                          >
+                            <Popover.ArrowTip />
+                          </Popover.Arrow>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Portal>
                   </Popover>
-                </li>
-              </ul>
-            </nav>
-          {/snippet}
-        </Popover>
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Portal>
+        </Menu>
       {/if}
     </div>
   </div>

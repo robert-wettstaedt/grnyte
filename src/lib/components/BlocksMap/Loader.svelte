@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { onMount } from 'svelte'
   import BlocksMap, { type BlocksMapProps } from './BlocksMap.svelte'
 
@@ -36,7 +36,5 @@
 {/if}
 
 {#if loading}
-  <div class="flex h-full items-center justify-center">
-    <ProgressRing size="size-20" value={null} />
-  </div>
+  <LoadingIndicator class="flex h-full items-center justify-center" size={20} />
 {/if}

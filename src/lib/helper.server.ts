@@ -162,3 +162,75 @@ export const deleteFiles = async (opts: DeleteFilesOpts, db: PostgresJsDatabase<
     throw error
   }
 }
+
+export async function getUserPermissions(
+  db: PostgresJsDatabase<typeof schema>,
+  authUserId: string,
+): Promise<App.SafeSession> {
+  const userRole = await db.query.userRoles.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUserId),
+  })
+
+  const userRegions = await db.query.regionMembers.findMany({
+    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUserId), isNotNull(table.isActive)),
+    columns: {
+      regionFk: true,
+      role: true,
+    },
+    with: {
+      region: {
+        columns: {
+          name: true,
+          settings: true,
+        },
+      },
+    },
+  })
+
+  const permissions = await db.query.rolePermissions.findMany()
+
+  const userPermissions =
+    userRole == null
+      ? undefined
+      : permissions.filter((permission) => permission.role === userRole.role).map(({ permission }) => permission)
+
+  const userRegionsResult = userRegions.map((member) => ({
+    ...member,
+    permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
+    name: member.region.name,
+    settings: member.region.settings,
+  }))
+
+  return {
+    userRole: userRole?.role,
+    userRegions: userRegionsResult,
+    userPermissions,
+    user: undefined,
+    session: undefined,
+  }
+}
+
+export async function getPageState(
+  db: PostgresJsDatabase<typeof schema>,
+  authUserId: string,
+): Promise<App.SafeSession> {
+  const user = await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.authUserFk, authUserId),
+    with: {
+      userSettings: {
+        columns: {
+          gradingScale: true,
+          notifyModerations: true,
+          notifyNewAscents: true,
+          notifyNewUsers: true,
+        },
+      },
+    },
+  })
+
+  return {
+    ...(await getUserPermissions(db, authUserId)),
+    session: undefined,
+    user,
+  }
+}

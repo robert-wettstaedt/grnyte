@@ -12,9 +12,12 @@
   import memoize from 'lodash.memoize'
   import { onDestroy, onMount } from 'svelte'
   import { pageState } from '$lib/components/Layout'
+  import { getI18n } from '$lib/i18n'
+
+  const { t } = getI18n()
 
   interface Props {
-    value: string | null
+    value: string | null | undefined
   }
 
   let { value = $bindable() }: Props = $props()
@@ -77,7 +80,7 @@
             apply: `!routes:${item.id}!`,
             info: `${renderRouteName(item)}\n\n${item.description ?? ''}`,
             label: `${item.block.area.name} > ${item.block.name} > ${renderRouteName(item)}`,
-            section: 'Routes',
+            section: t('routes.title'),
             type: 'class',
           }),
         ),
@@ -86,7 +89,7 @@
             apply: `!blocks:${item.id}!`,
             info: item.name,
             label: `${item.area.name} > ${item.name}`,
-            section: 'Blocks',
+            section: t('blocks.title'),
             type: 'class',
           }),
         ),
@@ -95,7 +98,7 @@
             apply: `!areas:${item.id}!`,
             info: `${item.name}\n\n${item.description ?? ''}`,
             label: item.name,
-            section: 'Areas',
+            section: t('areas.title'),
             type: 'class',
           }),
         ),
@@ -162,25 +165,33 @@
 </script>
 
 <div class="relative">
-  <a class="anchor absolute top-2 right-0" href="https://markdownguide.offshoot.io/cheat-sheet/" target="_blank">
-    Markdown supported
+  <a
+    class="anchor absolute top-0 right-0 z-1 flex items-center justify-center gap-2 text-xs opacity-80"
+    href="https://markdownguide.offshoot.io/cheat-sheet/"
+    target="_blank"
+    aria-label={t('editor.openMarkdownCheatSheet')}
+  >
+    <i class="fa-brands fa-markdown"></i>
+
+    <span>{@html t('editor.markdownSupported')}</span>
   </a>
 
   <Tabs onValueChange={(event) => (tab = event.value as 'write' | 'preview')} value={tab}>
-    {#snippet list()}
-      <Tabs.Control value="write">Write</Tabs.Control>
-      <Tabs.Control value="preview">Preview</Tabs.Control>
-    {/snippet}
-    {#snippet content()}
-      <Tabs.Panel value="write">
-        <div bind:this={element} class="bg-surface-700 h-64"></div>
-      </Tabs.Panel>
-      <Tabs.Panel value="preview">
-        <div class="markdown-body bg-surface-700 h-64 overflow-auto px-3 py-2">
-          {@html valueHtml}
-        </div>
-      </Tabs.Panel>
-    {/snippet}
+    <Tabs.List>
+      <Tabs.Trigger value="write">{t('editor.write')}</Tabs.Trigger>
+      <Tabs.Trigger value="preview">{t('editor.preview')}</Tabs.Trigger>
+      <Tabs.Indicator />
+    </Tabs.List>
+
+    <Tabs.Content value="write">
+      <div bind:this={element} class="bg-surface-700 h-64"></div>
+    </Tabs.Content>
+
+    <Tabs.Content value="preview">
+      <div class="markdown-body bg-surface-700 h-64 overflow-auto px-3 py-2">
+        {@html valueHtml}
+      </div>
+    </Tabs.Content>
   </Tabs>
 </div>
 

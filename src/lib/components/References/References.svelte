@@ -1,12 +1,14 @@
 <script lang="ts">
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { References } from '.'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     references: References
   }
 
   let { references }: Props = $props()
+  const { t } = getI18n()
 </script>
 
 <nav class="list-nav">
@@ -34,7 +36,9 @@
             class="anchor hover:preset-tonal-primary flex px-4 py-3 hover:text-white"
             href={`/routes/${ascent.route?.id}`}
           >
-            {ascent.author.username}'s tick of&nbsp;<RouteName route={ascent.route} />
+            {t('references.ascentOfPrefix', { username: ascent.author.username })}
+            &nbsp;
+            <RouteName route={ascent.route} />
           </a>
         </li>
       {/if}

@@ -85,18 +85,23 @@
 
 {#each labels as label}
   <div
-    style="
-      background: rgba(0, 0, 0, 0.75);
-      color: #ff7f0e;
-      font-size:{25 * scale}px;
-      left: {label.x * scale}px;
-      padding: 0.25rem;
-      position: absolute;
-      print-color-adjust: exact !important;
-      top: {label.y * scale}px;
-      transform: translateX(-50%);
-    "
+    class="route-label"
+    data-testid="route-label"
+    style:font-size={25 * scale + 'px'}
+    style:left={label.x * scale + 'px'}
+    style:top={label.y * scale + 'px'}
   >
     {label.text}
   </div>
 {/each}
+
+<style>
+  .route-label {
+    background: rgba(0, 0, 0, 0.75);
+    color: #ff7f0e;
+    padding: 0.25rem;
+    position: absolute;
+    transform: translateX(-50%);
+    print-color-adjust: exact !important;
+  }
+</style>

@@ -82,8 +82,16 @@ const deleteAreaAction: Action<number> = async (areaId, db, user) => {
     },
   })
 
-  if (area == null || !checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], area.regionFk)) {
+  if (area == null) {
     error(404)
+  }
+
+  const canDelete =
+    checkRegionPermission(locals.userRegions, [REGION_PERMISSION_DELETE], area.regionFk) ||
+    (checkRegionPermission(locals.userRegions, [REGION_PERMISSION_EDIT], area.regionFk) && area.createdBy === user.id)
+
+  if (!canDelete) {
+    error(401)
   }
 
   if (area.areas.length > 0) {

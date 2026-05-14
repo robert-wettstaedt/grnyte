@@ -17,7 +17,7 @@
 {#if data.session == null}
   <Landing />
 {:else if pageState.userRegions.length > 0}
-  <div class="-m-[0.5rem] md:-m-[1rem]" use:fitHeightAction={{ paddingBottom: 0 }}>
+  <div class="-m-2 md:-m-4" use:fitHeightAction={{ paddingBottom: 0 }}>
     {#await import('$lib/components/BlocksMap/ZeroLoader.svelte') then BlocksMap}
       <BlocksMap.default />
     {/await}

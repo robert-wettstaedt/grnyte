@@ -1,14 +1,15 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import AppBar from '$lib/components/AppBar'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteExternalResourceLinks from '$lib/components/RouteExternalResourceLinks'
   import RouteName from '$lib/components/RouteName/RouteNameLoader.svelte'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { getAreaContext } from '$lib/contexts/area'
   import type { RowWithRelations } from '$lib/db/zero'
   import { convertException } from '$lib/errors'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
   import type { PageProps } from './$types'
 
   interface Props {
@@ -17,6 +18,7 @@
 
   let { routes }: Props = $props()
   const { area } = getAreaContext()
+  const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
 
@@ -75,14 +77,16 @@
 </script>
 
 <svelte:head>
-  <title>Sync external resources of {area.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('sync.externalResourcesOfTitle', { name: area.name })} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    <span>Sync external resources of</span>
-    <a class="anchor" href={basePath}>{area.name}</a>
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      {t('sync.externalResources')}
+      <a class="anchor" href={basePath}>{area.name}</a>
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 {#if error != null}
@@ -103,7 +107,7 @@
           <RouteName {route} />
 
           {#if loading && values?.find((value) => value.routeFk === route.id) == null}
-            <ProgressRing size="size-4" value={null} />
+            <LoadingIndicator />
           {:else}
             <RouteExternalResourceLinks
               iconSize={16}
@@ -122,7 +126,9 @@
 </div>
 
 <div class="mt-8 flex justify-between md:items-center">
-  <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
+  <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button"
+    >{t('common.cancel')}</button
+  >
 
   <button
     class="btn preset-filled-primary-500"
@@ -131,11 +137,9 @@
     type="submit"
   >
     {#if loading}
-      <span class="me-2">
-        <ProgressRing size="size-4" value={null} />
-      </span>
+      <LoadingIndicator />
     {/if}
 
-    Sync external resources
+    {t('sync.externalResources')}
   </button>
 </div>

@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { Combobox } from '@skeletonlabs/skeleton-svelte'
+  import { Combobox, Portal } from '@skeletonlabs/skeleton-svelte'
+  import { calculateRelevance } from './lib'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     options: string[]
@@ -21,10 +23,32 @@
 
   let { options, name, value = $bindable() }: Props = $props()
   let inputValue = $state('')
+  // svelte-ignore state_referenced_locally
+  let filteredOptions = $state(options)
+  const { t } = getI18n()
+
+  // Transform all available options to the format Combobox expects
+  const availableOptions = $derived(
+    inputValue.trim().length === 0 ? [] : filteredOptions.map((option) => ({ label: option, value: option })),
+  )
 
   // Function to regenerate the available options on each input change
   function handleInputValueChange(event: InputValueChangeEvent) {
     inputValue = event.inputValue
+
+    if (event.inputValue.trim().length === 0) {
+      filteredOptions = options
+      return
+    }
+
+    const scoredOptions = options
+      .map((option) => ({ option, score: calculateRelevance(option, event.inputValue) }))
+      .filter((item) => item.score > 0)
+      .toSorted((a, b) => b.score - a.score)
+      .map((item) => item.option)
+      .slice(0, 15)
+
+    filteredOptions = scoredOptions
   }
 
   // Handle when an item is selected from the dropdown
@@ -34,19 +58,17 @@
       inputValue = ''
     }
   }
-
-  // Transform all available options to the format Combobox expects
-  const availableOptions = $derived(options.map((option) => ({ label: option, value: option })))
 </script>
 
 {#if value != null}
-  <ul class="!mb-4 flex flex-col gap-2">
+  <ul class="mb-4! flex flex-col gap-2">
     {#each value as val}
       <li class="flex items-center justify-between">
         <span>{val}</span>
 
         <button
-          aria-label="Remove"
+          aria-label={t('common.remove')}
+          title={t('common.remove')}
           class="btn-icon preset-outlined-error-500"
           onclick={() => (value = value?.filter((v) => v !== val))}
         >
@@ -69,16 +91,34 @@
         inputValue = ''
       }}
     >
-      Add "{inputValue}"
+      {t('common.addValue', { value: inputValue })}
     </button>
   </div>
 {/if}
 
 <Combobox
   allowCustomValue
-  contentClasses="max-h-[200px] md:max-h-[400px] overflow-auto"
-  data={availableOptions}
   onInputValueChange={handleInputValueChange}
   onValueChange={handleValueChange}
-  placeholder="Search..."
-/>
+  placeholder={t('common.search')}
+>
+  <Combobox.Control>
+    <Combobox.Input />
+    <Combobox.Trigger />
+  </Combobox.Control>
+
+  <Combobox.ClearTrigger>{t('common.clearAll')}</Combobox.ClearTrigger>
+
+  <Portal>
+    <Combobox.Positioner>
+      <Combobox.Content class="max-h-50 overflow-auto md:max-h-100">
+        {#each availableOptions as item (item.value)}
+          <Combobox.Item {item}>
+            <Combobox.ItemText>{item.label}</Combobox.ItemText>
+            <Combobox.ItemIndicator />
+          </Combobox.Item>
+        {/each}
+      </Combobox.Content>
+    </Combobox.Positioner>
+  </Portal>
+</Combobox>

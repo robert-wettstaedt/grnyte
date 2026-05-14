@@ -10,7 +10,9 @@ export const fitHeightAction: Action<HTMLElement, Opts | undefined> = (node, opt
 
   const calcHeight = () => {
     const bcr = node.getBoundingClientRect()
-    const navBarBcr = document.querySelector('[data-testid="nav-bar"]')?.getBoundingClientRect()
+    const navBarBcr = document
+      .querySelector('[data-scope="navigation"][data-part="root"][data-layout="bar"]')
+      ?.getBoundingClientRect()
     const h = heightSubtrahend > 0 ? heightSubtrahend : (navBarBcr?.height ?? 0)
 
     node.style.height = `${window.innerHeight - bcr.top - paddingBottom - h}px`

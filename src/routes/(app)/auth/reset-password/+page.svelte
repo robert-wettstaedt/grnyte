@@ -3,50 +3,61 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { focus } from '$lib/actions/focus.svelte'
-  import AppBar from '$lib/components/AppBar'
+  import { getI18n } from '$lib/i18n'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
 
   let { form } = $props()
 
+  const { t } = getI18n()
   const error = $derived(page.url.searchParams.get('error_description'))
 </script>
 
 <svelte:head>
-  <title>Reset password - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('auth.resetPassword.title')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Reset password
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>{t('auth.resetPassword.title')}</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 {#if form?.success}
   <aside class="card preset-tonal-success my-8 p-2 whitespace-pre-line md:p-4">
-    <p>Your password has been changed successfully.</p>
+    <p>{t('auth.resetPassword.successMessage')}</p>
   </aside>
 {/if}
 
 {#if error == null}
   <form class="card mt-4 flex flex-col gap-4" method="post" use:enhance>
     <label class="label">
-      <span>New password</span>
-      <input name="password" type="password" placeholder="Enter your new password" class="input" required use:focus />
+      <span>{t('auth.resetPassword.newPassword')}</span>
+      <input
+        class="input"
+        name="password"
+        placeholder={t('auth.resetPassword.enterNewPassword')}
+        required
+        type="password"
+        use:focus
+      />
     </label>
 
     <label class="label">
-      <span>New password confirmation</span>
+      <span>{t('auth.resetPassword.newPasswordConfirmation')}</span>
       <input
-        name="passwordConfirmation"
-        type="password"
-        placeholder="Confirm your new password"
         class="input"
+        name="passwordConfirmation"
+        placeholder={t('auth.resetPassword.confirmNewPassword')}
         required
+        type="password"
       />
     </label>
 
     <div class="mt-4 flex justify-between">
-      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">Cancel</button>
-      <button class="btn preset-filled-primary-500" type="submit">Save password</button>
+      <button class="btn preset-outlined-primary-500" onclick={() => history.back()} type="button">
+        {t('common.cancel')}
+      </button>
+      <button class="btn preset-filled-primary-500" type="submit">{t('auth.resetPassword.savePassword')}</button>
     </div>
   </form>
 {:else}

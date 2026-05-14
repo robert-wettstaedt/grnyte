@@ -1,55 +1,37 @@
 <script lang="ts">
+  import Dialog from '$lib/components/Dialog'
   import type { Route } from '$lib/db/schema'
-  import { Modal } from '@skeletonlabs/skeleton-svelte'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
-    value: Route['rating']
+    value: Route['rating'] | null | undefined
   }
 
   let { value = $bindable() }: Props = $props()
 
+  const { t } = getI18n()
   let modalOpen = $state(false)
 </script>
 
-<label class="label mt-4">
+<label class="label mt-4 mb-2">
   <span>
-    Rating
+    {t('common.rating')}
 
-    <Modal
-      open={modalOpen}
-      onOpenChange={(event) => (modalOpen = event.open)}
-      triggerBase="sl-2 fa-regular fa-circle-question"
-      contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm max-h-[90vh] overflow-y-auto"
-      backdropClasses="backdrop-blur-sm"
-    >
-      {#snippet trigger()}<i></i>{/snippet}
+    <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title={t('rating.title')}>
+      {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
 
       {#snippet content()}
-        <button
-          aria-label="Close"
-          class="btn preset-filled-primary-500 fixed top-4 right-2 z-10 h-12 w-12 rounded-full"
-          onclick={() => (modalOpen = false)}
-        >
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <p>{t('rating.description')}</p>
 
-        <header>
-          <h4 class="h4">Rating</h4>
-        </header>
-
-        <article class="opacity-60">
-          <p>As objective as possible try to consider these factors:</p>
-
-          <ul class="mt-4 list-inside list-disc">
-            <li>The quality of the rock and holds</li>
-            <li>The quality of the landing area</li>
-            <li>The climbing movement</li>
-            <li>The beauty of the surrounding area</li>
-            <li>Is there a topout or only a dropoff?</li>
-          </ul>
-        </article>
+        <ul class="mt-4 list-inside list-disc">
+          <li>{t('rating.factors.rockQuality')}</li>
+          <li>{t('rating.factors.landingQuality')}</li>
+          <li>{t('rating.factors.climbingMovement')}</li>
+          <li>{t('rating.factors.surroundingBeauty')}</li>
+          <li>{t('rating.factors.topoutOrDropoff')}</li>
+        </ul>
       {/snippet}
-    </Modal>
+    </Dialog>
   </span>
 
   <input name="rating" type="hidden" {value} />
@@ -59,7 +41,8 @@
   <div class="flex gap-1">
     {#each [1, 2, 3] as rating}
       <button
-        aria-label={`Rating ${rating}`}
+        aria-label={`${t('common.rating')} ${rating}`}
+        title={`${t('common.rating')} ${rating}`}
         onclick={(event) => {
           event.preventDefault()
           value = rating
@@ -75,7 +58,12 @@
   </div>
 
   {#if value != null}
-    <button aria-label="Clear" class="btn preset-filled-surface-500 h-9 w-9" onclick={() => (value = null)}>
+    <button
+      aria-label={t('common.clear')}
+      title={t('common.clear')}
+      class="btn preset-filled-surface-500 h-9 w-9"
+      onclick={() => (value = null)}
+    >
       <i class="fa-solid fa-xmark"></i>
     </button>
   {/if}

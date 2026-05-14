@@ -3,6 +3,7 @@
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import type { Row } from '$lib/db/zero'
   import type { AreaActionValuesIn } from '$lib/forms/schemas'
+  import { getI18n } from '$lib/i18n'
   import type { RemoteFormFields } from '@sveltejs/kit'
   import AreaTypeFormField from './components/AreaTypeFormField'
 
@@ -14,6 +15,8 @@
   let { defaultValue, fields }: Props = $props()
   let type = $state(defaultValue?.type ?? 'area')
   let description = $state(defaultValue?.description ?? '')
+
+  const { t } = getI18n()
 
   const adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
 
@@ -31,11 +34,11 @@
 {/if}
 
 <label class="label">
-  <span>Name</span>
+  <span>{t('common.name')}</span>
   <input
     aria-errormessage={fields.name.issues() ? 'area-form-fields-name-error' : undefined}
     class="input"
-    placeholder="Enter name..."
+    placeholder={t('common.enterName')}
     {...fields.name.as('text')}
   />
 
@@ -53,13 +56,13 @@
   <input type="hidden" name="regionFk" value={defaultValue.regionFk ?? ''} />
 {:else}
   <label class="label mt-4">
-    <span>Region</span>
+    <span>{t('common.region')}</span>
     <select
       aria-errormessage={fields.regionFk.issues() ? 'area-form-fields-name-error' : undefined}
       class="select"
       {...fields.regionFk.as('select')}
     >
-      <option disabled value="">-- Select region --</option>
+      <option disabled value="">{t('common.selectRegion')}</option>
       {#each adminRegions as region}
         <option value={region.regionFk}>{region.name}</option>
       {/each}
@@ -74,7 +77,7 @@
 {/if}
 
 <label class="label mt-4">
-  <span>Description</span>
+  <span>{t('common.description')}</span>
   <textarea hidden name="description" value={description ?? ''}></textarea>
 
   <MarkdownEditor bind:value={description} />

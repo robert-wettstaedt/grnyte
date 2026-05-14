@@ -4,11 +4,14 @@
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
-  import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
-  import { TopoViewerLoader } from '$lib/components/TopoViewer'
-  import { Segment } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
   import { pageState } from '$lib/components/Layout'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import RouteListItem from '$lib/components/RouteListItem'
+  import { TopoViewerLoader } from '$lib/components/TopoViewer'
+  import { queries } from '$lib/db/zero'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
+  import { updateBlockOrder } from './BlocksList.remote'
+  import { getI18n } from '$lib/i18n'
 
   interface Props {
     areaFk: number | null | undefined
@@ -17,22 +20,15 @@
   }
   const { areaFk, onLoad, regionFk }: Props = $props()
 
-  const query = $derived(
-    page.data.z.current.query.blocks
-      .where('areaFk', 'IS', areaFk ?? null)
-      .orderBy('order', 'asc')
-      .orderBy('name', 'asc')
-      .related('topos', (q) => q.orderBy('id', 'asc').related('file')),
-  )
-  // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(query)
-  $effect(() => blocksResult.updateQuery(query))
+  const { t } = getI18n()
+
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks({ areaId: areaFk ?? null })))
 
   // https://github.com/sveltejs/kit/issues/12999
   // svelte-ignore state_referenced_locally
-  let blocks = $state(blocksResult.current)
+  let blocks = $state(blocksResult.data)
   $effect(() => {
-    blocks = blocksResult.current
+    blocks = blocksResult.data
   })
 
   $effect(() => {
@@ -65,15 +61,13 @@
   const onChangeCustomSortOrder = async (items: typeof sortedBlocks) => {
     blocks = items
 
-    const searchParams = new URLSearchParams()
-    items?.forEach((item) => searchParams.append('id', String(item.id)))
-    await fetch(`/api/areas/${areaFk}/blocks/order?${searchParams.toString()}`, {
-      method: 'PUT',
-    })
+    if (areaFk != null && items != null && items.length > 0) {
+      await updateBlockOrder({ areaId: areaFk, blockIds: items.map((i) => i.id).filter((d) => d != null) })
+    }
   }
 </script>
 
-{#if blocksResult.current.length === 0 && blocksResult.details.type !== 'complete'}
+{#if blocksResult.data.length === 0 && blocksResult.details.type !== 'complete'}
   <nav class="list-nav">
     <ul class="overflow-auto">
       {#each Array(10) as _}
@@ -83,7 +77,7 @@
   </nav>
 {:else}
   <div class="flex justify-between">
-    <Segment
+    <SegmentedControl
       name="blocks-view-mode"
       onValueChange={(event) => {
         blocksViewMode = event.value as 'list' | 'grid'
@@ -91,45 +85,59 @@
       }}
       value={blocksViewMode}
     >
-      <Segment.Item value="list">
-        <i class="fa-solid fa-list"></i>
-      </Segment.Item>
-      <Segment.Item value="grid">
-        <i class="fa-solid fa-table-cells-large"></i>
-      </Segment.Item>
-    </Segment>
+      <SegmentedControl.Control>
+        <SegmentedControl.Indicator />
+        <SegmentedControl.Item value="list">
+          <SegmentedControl.ItemText>
+            <i class="fa-solid fa-list"></i>
+          </SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+
+        <SegmentedControl.Item value="grid">
+          <SegmentedControl.ItemText>
+            <i class="fa-solid fa-table-cells-large"></i>
+          </SegmentedControl.ItemText>
+          <SegmentedControl.ItemHiddenInput />
+        </SegmentedControl.Item>
+      </SegmentedControl.Control>
+    </SegmentedControl>
 
     {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk)}
       <button
         class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-primary-500'}"
-        disabled={sortOrder !== 'custom'}
+        disabled={sortOrder !== 'custom' || updateBlockOrder.pending > 0}
         onclick={() => (orderMode = !orderMode)}
       >
-        <i class="fa-solid fa-sort"></i>
+        {#if updateBlockOrder.pending > 0}
+          <LoadingIndicator />
+        {:else}
+          <i class="fa-solid fa-sort"></i>
+        {/if}
 
-        Reorder blocks
+        {t('blocks.reorderBlocks')}
       </button>
     {/if}
   </div>
 
   <section class="py-2 md:py-4">
     {#if sortedBlocks.length === 0}
-      No blocks yet
+      {t('blocks.noBlocksYet')}
     {:else}
       <label class="label my-4">
         <span class="label-text">
           <i class="fa-solid fa-arrow-down-a-z"></i>
-          Sort order
+          {t('blocks.sortOrder')}
         </span>
         <select bind:value={sortOrder} class="select" disabled={orderMode} onchange={() => (orderMode = false)}>
-          <option value="custom">Custom order</option>
-          <option value="alphabetical">Alphabetical order</option>
+          <option value="custom">{t('blocks.customOrder')}</option>
+          <option value="alphabetical">{t('blocks.alphabeticalOrder')}</option>
         </select>
       </label>
 
       {#if blocksViewMode === 'list' || orderMode}
         <GenericList
-          classes="-mx-4"
+          class="-mx-2 md:-mx-4"
           listClasses={orderMode ? undefined : 'mt-4 bg-surface-200-800'}
           items={(sortedBlocks ?? []).map((item) => ({
             ...item,
@@ -161,11 +169,11 @@
                         size={64}
                       />
 
-                      <div class="w-[calc(100%-64px)]">No routes yet</div>
+                      <div class="w-[calc(100%-64px)]">{t('routes.noRoutesYet')}</div>
                     </div>
                   {:else}
                     <GenericList
-                      classes="w-full"
+                      class="w-full"
                       items={routes.map((route) => ({
                         ...route,
                         id: route.id!,
@@ -174,16 +182,7 @@
                       }))}
                     >
                       {#snippet left(route)}
-                        <div class="flex items-center gap-2">
-                          <Image
-                            path={route.topo?.file?.path == null ? null : `/nextcloud/${route.topo.file.path}/preview`}
-                            size={64}
-                          />
-
-                          <div class="w-[calc(100%-64px)]">
-                            <RouteName {route} />
-                          </div>
-                        </div>
+                        <RouteListItem route={{ ...route, block: item }} />
                       {/snippet}
                     </GenericList>
                   {/if}
@@ -193,7 +192,7 @@
           {/snippet}
         </GenericList>
       {:else}
-        <ul class="-mx-4">
+        <ul class="-mx-2 md:-mx-4">
           {#each sortedBlocks ?? [] as block}
             <li class="bg-surface-200-800 mt-4 pb-4">
               <div
@@ -219,7 +218,7 @@
                 {/each}
 
                 {#if block.topos.length === 0}
-                  <div class="px-2">No topo yet</div>
+                  <div class="px-2">{t('topo.noTopoYet')}</div>
                 {/if}
               </div>
             </li>

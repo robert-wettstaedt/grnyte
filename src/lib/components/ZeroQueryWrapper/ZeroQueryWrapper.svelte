@@ -1,8 +1,17 @@
-<script lang="ts" generics="TSchema extends Schema, TTable extends keyof TSchema['tables'] & string, TReturn">
+<script
+  lang="ts"
+  generics="TTable extends keyof Schema['tables'] & string,
+  TInput extends ReadonlyJSONValue | undefined,
+  TOutput extends ReadonlyJSONValue | undefined,
+  TReturn = PullRow<TTable, Schema>,
+  TContext = DefaultContext"
+>
+  import { page } from '$app/state'
   import Error from '$lib/components/Error'
-  import type { Schema } from '@rocicorp/zero'
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
-  import { Query } from 'zero-svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import type { Schema } from '$lib/db/zero/zero-schema'
+  import type { DefaultContext, PullRow } from '@rocicorp/zero'
+  import type { ReadonlyJSONValue } from 'drizzle-zero'
   import type { ZeroQueryWrapperProps } from '.'
 
   const {
@@ -12,12 +21,10 @@
     onLoad,
     query,
     showEmpty = false,
-  }: ZeroQueryWrapperProps<TSchema, TTable, TReturn> = $props()
+  }: ZeroQueryWrapperProps<TTable, TInput, TOutput, TReturn, TContext> = $props()
 
-  const result = new Query(query)
-  $effect(() => result.updateQuery(query))
-
-  const isEmpty = $derived(Array.isArray(result.current) ? result.current.length === 0 : result.current == null)
+  const result = $derived(page.data.z.q(query))
+  const isEmpty = $derived(Array.isArray(result.data) ? result.data.length === 0 : result.data == null)
 
   $effect(() => {
     if (result.details.type === 'complete') {
@@ -33,17 +40,15 @@
     <nav class="list-nav">
       <ul class="overflow-auto">
         {#each Array(loadingIndicator?.count ?? 10) as _}
-          <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
+          <li class="placeholder my-2 w-full animate-pulse {loadingIndicator.height ?? 'h-20'}"></li>
         {/each}
       </ul>
     </nav>
   {:else if loadingIndicator.type === 'spinner'}
-    <div class="flex justify-center">
-      <ProgressRing size={loadingIndicator.size ?? 'size-12'} value={null} />
-    </div>
+    <LoadingIndicator class="flex justify-center" size={12} />
   {/if}
 {:else}
-  {@render children?.(result.current, result.details)}
+  {@render children?.(result.data, result.details)}
 {/if}
 
-{@render after?.(result.current, result.details)}
+{@render after?.(result.data, result.details)}

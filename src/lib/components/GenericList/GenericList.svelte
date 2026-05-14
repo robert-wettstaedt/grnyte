@@ -1,10 +1,11 @@
 <script lang="ts" generics="T extends { id: string | number, name: string, pathname: string }">
   import { draggable, TRIGGER_ELEMENT_CLASS } from '$lib/actions/draggable.svelte'
+  import { getI18n } from '$lib/i18n'
   import type { Snippet } from 'svelte'
   import { flip } from 'svelte/animate'
 
   interface Props {
-    classes?: string
+    class?: string
     listClasses?: string
 
     items: T[]
@@ -14,8 +15,6 @@
     leftClasses?: string
 
     right?: Snippet<[T]>
-    rightContent?: (item: T) => string
-    rightPathname?: (item: T) => string
 
     children?: Snippet<[T]>
 
@@ -24,7 +23,7 @@
   }
 
   const {
-    classes,
+    class: classes,
     listClasses,
 
     items,
@@ -32,18 +31,18 @@
     left,
     leftClasses = 'anchor',
     right,
-    rightContent,
-    rightPathname,
     children,
 
     onConsiderSort,
     onFinishSort,
   }: Props = $props()
+
+  const { t } = getI18n()
 </script>
 
 <nav class="list-nav {classes}">
   {#if items.length === 0}
-    No items yet
+    {t('common.noItemsYet')}
   {:else}
     <ul
       class="overflow-auto"
@@ -65,39 +64,19 @@
             <a
               class="
               {leftClasses}
-              {wrap ? 'w-full' : 'w-1/2 sm:w-auto'}
+              {wrap ? 'w-full md:w-auto' : 'w-1/2'}
               grow
               overflow-hidden
               px-2
               py-3
               text-ellipsis
               hover:text-white
-              md:w-auto
               md:px-4
             "
               href={item.pathname}
             >
               {@render left(item)}
             </a>
-
-            {#if rightContent != null}
-              <a
-                class="
-                {wrap ? 'w-full' : 'w-1/2 sm:w-auto'}
-                anchor
-                overflow-hidden
-                px-2
-                py-3
-                text-ellipsis
-                hover:text-white
-                md:w-auto
-                md:px-4
-              "
-                href={rightPathname?.(item)}
-              >
-                {rightContent(item)}
-              </a>
-            {/if}
 
             {#if right != null}
               <div

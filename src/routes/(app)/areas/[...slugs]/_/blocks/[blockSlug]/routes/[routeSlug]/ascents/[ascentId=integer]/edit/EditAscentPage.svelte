@@ -2,7 +2,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-  import AppBar from '$lib/components/AppBar'
   import AscentFormFields from '$lib/components/AscentFormFields'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
@@ -10,6 +9,8 @@
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
   import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
   import { deleteAscent, updateAscent } from './page.remote'
 
@@ -24,44 +25,51 @@
 
   let grade = $derived(pageState.grades.find((grade) => grade.id === ascent.route?.gradeFk))
   let state = $state<EnhanceState>({})
+  const { t } = getI18n()
+  const stars = $derived(ascent.route?.rating == null ? '' : `${Array(ascent.route?.rating).fill('★').join('')} `)
+  const gradeSuffix = $derived(grade == null ? '' : ` (${grade[pageState.gradingScale]})`)
+  const routeTitle = $derived(`${stars}${ascent.route?.name ?? ''}${gradeSuffix}`)
 </script>
 
 <svelte:head>
   <title>
-    Edit ascent of
-    {ascent.route?.rating == null ? '' : `${Array(ascent.route?.rating).fill('★').join('')} `}
-    {ascent.route?.name}
-    {grade == null ? '' : ` (${grade[pageState.gradingScale]})`}
+    {t('ascents.editAscentOfTitle', { name: routeTitle })}
     - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    {#if ascent.route != null}
-      <span>Edit ascent of</span>
-      <a class="anchor" href={basePath}>
-        <RouteName route={ascent.route} />
-      </a>
-    {/if}
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>
+      {t('ascents.editAscent')}
+
+      {#if ascent.route != null}
+        <a class="anchor" href={basePath}>
+          <RouteName route={ascent.route} />
+        </a>
+      {/if}
+    </AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateAscent.enhance(enhanceForm(state))}>
   <input type="hidden" name="ascentId" value={ascent.id} />
 
   <AscentFormFields
-    fileUploadProps={{ state }}
+    fields={updateAscent.fields}
     dateTime={ascent.dateTime}
+    fileUploadProps={{ state }}
     gradeFk={ascent.gradeFk}
+    humidity={ascent.humidity}
     notes={ascent.notes}
     rating={ascent.rating ?? null}
+    temperature={ascent.temperature}
     type={ascent.type}
   />
 
-  <FormActionBar {state} label="Save ascent" pending={updateAscent.pending} />
+  <FormActionBar {state} label={t('ascents.saveAscent')} pending={state.loading ? 1 : updateAscent.pending} />
 </form>
 
 {#if page.data.session?.user?.id === ascent.author?.authUserFk || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], ascent.route?.regionFk)}
-  <DangerZone name="ascent" onDelete={() => ascent.id != null && deleteAscent(ascent.id)} />
+  <DangerZone name={t('entities.ascent')} onDelete={() => ascent.id != null && deleteAscent(ascent.id)} />
 {/if}

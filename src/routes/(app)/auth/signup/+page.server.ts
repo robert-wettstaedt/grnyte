@@ -59,11 +59,15 @@ export const actions = {
         where: eq(schema.userRoles.role, 'app_admin'),
       })
 
-      await Promise.all(
-        appAdmins.map((admin) =>
-          notifyNewUser(event, { authUserFk: admin.authUserFk, username: values.username, email: values.email }),
-        ),
-      )
+      try {
+        await Promise.all(
+          appAdmins.map((admin) =>
+            notifyNewUser(event, { authUserFk: admin.authUserFk, username: values.username, email: values.email }),
+          ),
+        )
+      } catch (error) {
+        console.log(error)
+      }
 
       return { email: values.email, username: values.username, success: true }
     }

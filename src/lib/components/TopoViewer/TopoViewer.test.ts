@@ -1,5 +1,6 @@
 import type { TopoDTO, TopoRouteDTO } from '$lib/topo'
-import { fireEvent, render, screen } from '@testing-library/svelte'
+import { fireEvent, screen } from '@testing-library/svelte'
+import { renderWithI18n } from '$lib/test/renderWithI18n'
 import * as d3 from 'd3'
 import { get } from 'svelte/store'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -120,11 +121,12 @@ describe('TopoViewer Component', () => {
 
   describe('View Mode', () => {
     it('should render topo image correctly', () => {
-      const { container } = render(TopoViewer, {
+      const { container } = renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: false,
         },
+        lang: 'en',
       })
 
       const images = container.querySelectorAll('img')
@@ -133,11 +135,12 @@ describe('TopoViewer Component', () => {
     })
 
     it('should handle zoom interactions', async () => {
-      const { container } = render(TopoViewer, {
+      const { container } = renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: false,
         },
+        lang: 'en',
       })
 
       const svg = container.querySelector('svg')
@@ -151,11 +154,12 @@ describe('TopoViewer Component', () => {
 
   describe('Edit Mode', () => {
     it('should show point type buttons when route is selected', async () => {
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
         },
+        lang: 'en',
       })
 
       // Set the store value and wait for next tick
@@ -173,12 +177,13 @@ describe('TopoViewer Component', () => {
 
     it('should handle point placement', async () => {
       const onChange = vi.fn()
-      const { container } = render(TopoViewer, {
+      const { container } = renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
           onChange,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -201,12 +206,13 @@ describe('TopoViewer Component', () => {
 
     it('should handle topout type change', async () => {
       const onChange = vi.fn()
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
           onChange,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -221,11 +227,12 @@ describe('TopoViewer Component', () => {
     })
 
     it('should handle point type selection', async () => {
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -256,11 +263,12 @@ describe('TopoViewer Component', () => {
         ],
       }
 
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: [topoWithMaxStarts],
           editable: true,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -271,11 +279,12 @@ describe('TopoViewer Component', () => {
     })
 
     it('should disable top button when max top points reached', async () => {
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
         },
+        lang: 'en',
       })
 
       selectedRouteStore.set(1)
@@ -288,11 +297,12 @@ describe('TopoViewer Component', () => {
 
   describe('Navigation', () => {
     it('should handle topo navigation', async () => {
-      const { container } = render(TopoViewer, {
+      const { container } = renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
         },
+        lang: 'en',
       })
 
       // Initial state should show first topo
@@ -317,11 +327,12 @@ describe('TopoViewer Component', () => {
     })
 
     it('should disable navigation buttons at boundaries', () => {
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: mockTopos,
           editable: true,
         },
+        lang: 'en',
       })
 
       // At first topo, prev should be disabled
@@ -344,11 +355,12 @@ describe('TopoViewer Component', () => {
         },
       }
 
-      render(TopoViewer, {
+      renderWithI18n(TopoViewer, {
         props: {
           topos: [topoWithError],
           editable: true,
         },
+        lang: 'en',
       })
 
       expect(screen.getByText('Error loading image')).toBeInTheDocument()

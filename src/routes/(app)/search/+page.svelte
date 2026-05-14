@@ -3,42 +3,49 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { focus } from '$lib/actions/focus.svelte'
-  import AppBar from '$lib/components/AppBar'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
   import { pageState } from '$lib/components/Layout/page.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
+  import type { Region } from '$lib/db/zero'
+  import { queries } from '$lib/db/zero'
+  import { getI18n } from '$lib/i18n'
+  import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import debounce from 'lodash.debounce'
   import type { KeyboardEventHandler } from 'svelte/elements'
-  import { Query } from 'zero-svelte'
 
   const KEY = `[${PUBLIC_APPLICATION_NAME}] recent-search`
   const MAX_RECENT_SEARCH = 7
+
+  const { t } = getI18n()
 
   interface BaseItem {
     fields: string[]
     id: string
     name: string
     pathname: string
+    region: Region | undefined
   }
 
   interface AreaItem extends BaseItem {
-    data: (typeof areasResult.current)[0]
+    data: (typeof areasResult.data)[0]
     type: 'area'
   }
 
   interface BlockItem extends BaseItem {
-    data: (typeof blocksResult.current)[0]
+    data: (typeof blocksResult.data)[0]
     type: 'block'
   }
 
   interface RouteItem extends BaseItem {
-    data: (typeof routesResult.current)[0]
+    data: (typeof routesResult.data)[0]
     type: 'route'
   }
 
   interface UserItem extends BaseItem {
-    data: (typeof usersResult.current)[0]
+    data: (typeof usersResult.data)[0]
     type: 'user'
   }
 
@@ -52,46 +59,21 @@
     value = searchQuery
   })
 
-  const areasQuery = $derived(
-    page.data.z.current.query.areas
-      .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
-      .related('parent', (q) => q.related('parent'))
-      .related('region'),
-  )
-  // svelte-ignore state_referenced_locally
-  const areasResult = new Query(areasQuery)
-  $effect(() => areasResult.updateQuery(areasQuery))
+  const { data: regions } = $derived(page.data.z.q(queries.regions()))
 
-  const blocksQuery = $derived(
-    page.data.z.current.query.blocks
-      .where('name', 'ILIKE', `%${searchQuery}%`)
-      .related('area', (q) => q.related('parent'))
-      .related('region'),
-  )
-  // svelte-ignore state_referenced_locally
-  const blocksResult = new Query(blocksQuery)
-  $effect(() => blocksResult.updateQuery(blocksQuery))
+  const areasResult = $derived(page.data.z.q(queries.listAreas({ content: searchQuery })))
 
-  const routesQuery = $derived(
-    page.data.z.current.query.routes
-      .where((q) => q.or(q.cmp('name', 'ILIKE', `%${searchQuery}%`), q.cmp('description', 'ILIKE', `%${searchQuery}%`)))
-      .related('block', (q) => q.related('area', (q) => q.related('parent')))
-      .related('region'),
-  )
-  // svelte-ignore state_referenced_locally
-  const routesResult = new Query(routesQuery)
-  $effect(() => routesResult.updateQuery(routesQuery))
+  const blocksResult = $derived(page.data.z.q(queries.listBlocks({ content: searchQuery })))
 
-  const usersQuery = $derived(page.data.z.current.query.users.where('username', 'ILIKE', `%${searchQuery}%`))
-  // svelte-ignore state_referenced_locally
-  const usersResult = new Query(usersQuery)
-  $effect(() => usersResult.updateQuery(usersQuery))
+  const routesResult = $derived(page.data.z.q(queries.listRoutesWithRelations({ content: searchQuery })))
+
+  const usersResult = $derived(page.data.z.q(queries.listUsers({ content: searchQuery })))
 
   const isLoading = $derived(
-    (areasResult.current.length === 0 && areasResult.details.type !== 'complete') ||
-      (blocksResult.current.length === 0 && blocksResult.details.type !== 'complete') ||
-      (routesResult.current.length === 0 && routesResult.details.type !== 'complete') ||
-      (usersResult.current.length === 0 && usersResult.details.type !== 'complete'),
+    (areasResult.data.length === 0 && areasResult.details.type !== 'complete') ||
+      (blocksResult.data.length === 0 && blocksResult.details.type !== 'complete') ||
+      (routesResult.data.length === 0 && routesResult.details.type !== 'complete') ||
+      (usersResult.data.length === 0 && usersResult.details.type !== 'complete'),
   )
 
   const searchResults = $derived.by(() => {
@@ -100,49 +82,66 @@
     }
 
     const items: SearchItem[] = [
-      ...areasResult.current.map(
+      ...areasResult.data.map(
         (item): AreaItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
           name: item.name,
           id: `/areas/${item.id}`,
           pathname: `/areas/${item.id}`,
+          region: undefined,
           type: 'area',
         }),
       ),
-      ...blocksResult.current.map(
+      ...blocksResult.data.map(
         (item): BlockItem => ({
           data: item,
           fields: [item.name],
           name: item.name,
           id: `/blocks/${item.id}`,
           pathname: `/blocks/${item.id}`,
+          region: undefined,
           type: 'block',
         }),
       ),
-      ...routesResult.current.map(
+      ...routesResult.data.map(
         (item): RouteItem => ({
           data: item,
           fields: [item.name, item.description].filter((s) => s != null),
           name: item.name,
           id: `/routes/${item.id}`,
           pathname: `/routes/${item.id}`,
+          region: undefined,
           type: 'route',
         }),
       ),
-      ...usersResult.current.map(
+      ...usersResult.data.map(
         (item): UserItem => ({
           data: item,
           fields: [item.username],
           name: item.username,
           id: `/users/${item.username}`,
           pathname: `/users/${item.username}`,
+          region: undefined,
           type: 'user',
         }),
       ),
     ]
 
-    const sorted = items.toSorted((a, b) => {
+    const withRegions = items.map((item) => {
+      const regionFk = 'regionFk' in item.data ? item.data.regionFk : undefined
+
+      if (regionFk == null) {
+        return item
+      }
+
+      return {
+        ...item,
+        region: regions.find((region) => region.id === regionFk),
+      }
+    })
+
+    const sorted = withRegions.toSorted((a, b) => {
       const indexA = Math.min(
         ...a.fields.map((field) => field.toLowerCase().indexOf(searchQuery.toLowerCase())).filter((i) => i >= 0),
       )
@@ -195,13 +194,13 @@
 </script>
 
 <svelte:head>
-  <title>Search - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{t('nav.search')} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 <AppBar>
-  {#snippet lead()}
-    Search
-  {/snippet}
+  <AppBar.Toolbar class="flex">
+    <AppBar.Headline>{t('nav.search')}</AppBar.Headline>
+  </AppBar.Toolbar>
 </AppBar>
 
 <form class="mt-8">
@@ -212,14 +211,15 @@
         class="ig-input"
         name="q"
         onkeyup={debounce(onchange, 1000)}
-        placeholder="Search..."
+        placeholder={t('common.search')}
         type="search"
         use:focus
       />
 
       {#if searchQuery.trim().length > 0}
         <button
-          aria-label="Clear search"
+          aria-label={t('common.clearSearch')}
+          title={t('common.clearSearch')}
           class="ig-btn preset-outlined-surface-200-800"
           onclick={() => submitQuery('', 'q')}
         >
@@ -235,7 +235,7 @@
     <div class="card preset-filled-surface-100-900 mt-8 flex flex-col p-2 md:p-4">
       <div class="text-surface-500-900 mb-2 text-center text-sm">
         <i class="fa-solid fa-clock-rotate-left"></i>
-        Recent searches
+        {t('common.recentSearches')}
       </div>
 
       {#each recentSearch as item}
@@ -245,7 +245,7 @@
       {/each}
     </div>
   {/if}
-{:else if isLoading}
+{:else if isLoading && searchResults.length === 0}
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     <nav class="list-nav">
       <ul class="overflow-auto">
@@ -257,30 +257,34 @@
   </div>
 {:else if searchResults.length === 0}
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
-    No results found for <span class="text-primary-500">{searchQuery}</span>.
+    {t('common.noResults')} <span class="text-primary-500">{searchQuery}</span>.
   </div>
 {:else}
+  {#if isLoading}
+    <LoadingIndicator class="mt-8 flex items-center justify-center" size={12} />
+  {/if}
+
   <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
     <GenericList items={searchResults}>
       {#snippet left(item)}
         <div class="flex items-center gap-2">
           {#if item.type === 'area'}
-            <i class="fa-solid fa-layer-group text-[51px] text-white"></i>
+            <i class="fa-solid fa-layer-group min-w-16 text-[51px] text-white"></i>
           {:else if item.type === 'block'}
             <Image path="/blocks/{item.data.id}/preview-image" size={64} />
           {:else if item.type === 'route'}
             <Image path="/blocks/{item.data.block?.id}/preview-image" size={64} />
           {:else if item.type === 'user'}
-            <i class="fa-solid fa-circle-user text-[51px] text-white"></i>
+            <i class="fa-solid fa-circle-user min-w-16 text-[51px] text-white"></i>
           {/if}
 
           {#if item.type === 'user'}
             {item.name}
           {:else}
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1 overflow-hidden">
               <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-                {#if pageState.userRegions.length > 1 && item.data.region != null}
-                  {item.data.region.name}
+                {#if pageState.userRegions.length > 1 && item.region != null}
+                  {item.region.name}
 
                   {#if item.type === 'area'}
                     {#if item.data.parent != null}
@@ -323,6 +327,10 @@
                 <RouteName route={item.data} />
               {:else}
                 {item.name}
+              {/if}
+
+              {#if 'description' in item.data}
+                <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.data.description ?? ''} />
               {/if}
             </div>
           {/if}

@@ -5,32 +5,65 @@
   import GradeFormField from '$lib/components/GradeFormField'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
+  import { ascentTypeEnum } from '$lib/db/schema'
   import type { Row } from '$lib/db/zero'
   import type { AscentActionValuesIn } from '$lib/forms/schemas'
   import type { RemoteFormFields } from '@sveltejs/kit'
+  import { getI18n } from '$lib/i18n'
   import { DateTime } from 'luxon'
+  import ConditionsFields from './ConditionsFields.svelte'
 
   interface Props {
     fields: RemoteFormFields<AscentActionValuesIn>
-    dateTime: Row<'ascents'>['dateTime']
+    dateTime: Row<'ascents'>['dateTime'] | null | undefined
     fileUploadProps: FileUploadProps
-    gradeFk: Row<'ascents'>['gradeFk']
-    notes: Row<'ascents'>['notes']
-    rating: Row<'ascents'>['rating']
-    type: Row<'ascents'>['type'] | null
+    gradeFk: Row<'ascents'>['gradeFk'] | null | undefined
+    humidity: Row<'ascents'>['humidity'] | null | undefined
+    notes: Row<'ascents'>['notes'] | null | undefined
+    rating: Row<'ascents'>['rating'] | null | undefined
+    temperature: Row<'ascents'>['temperature'] | null | undefined
+    type: Row<'ascents'>['type'] | null | undefined
   }
 
-  let { dateTime, gradeFk, notes, rating, type, fileUploadProps }: Props = $props()
+  let {
+    dateTime = $bindable(),
+    fileUploadProps,
+    gradeFk = $bindable(),
+    humidity = $bindable(),
+    notes = $bindable(),
+    rating = $bindable(),
+    temperature = $bindable(),
+    type = $bindable(),
+  }: Props = $props()
+
+  const { t } = getI18n()
 </script>
 
 <label class="label mt-4">
-  <span>Type</span>
-  <select class="select max-h-[300px] overflow-auto" name="type" size="4" bind:value={type}>
-    <option value="flash"><AscentTypeLabel type="flash" /></option>
-    <option value="send"><AscentTypeLabel type="send" /></option>
-    <option value="repeat"><AscentTypeLabel type="repeat" /></option>
-    <option value="attempt"><AscentTypeLabel type="attempt" /></option>
-  </select>
+  <span>{t('common.type')}</span>
+
+  <input name="type" type="hidden" value={type} />
+
+  <div class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
+    {#each ascentTypeEnum as ascentType}
+      <label
+        class="flex cursor-pointer items-center justify-center rounded-md border-2 p-2 transition-colors md:p-4 {type ===
+        ascentType
+          ? 'bg-primary-500 border-primary-500'
+          : 'border-surface-500 bg-transparent'}"
+      >
+        <input
+          checked={type === ascentType}
+          class="hidden"
+          name="type"
+          onchange={() => (type = ascentType)}
+          type="radio"
+          value={ascentType}
+        />
+        <AscentTypeLabel type={ascentType} />
+      </label>
+    {/each}
+  </div>
 </label>
 
 <GradeFormField bind:value={gradeFk} />
@@ -38,21 +71,26 @@
 <RatingFormField bind:value={rating} />
 
 <label class="label mt-4">
-  <span>Date</span>
+  <span>{t('common.date')}</span>
   <input
     class="input"
     max={DateTime.now().toISODate()}
     name="dateTime"
-    title="Input (date)"
+    onchange={(event) => {
+      const value = DateTime.fromISO(event.currentTarget.value)
+      dateTime = value.isValid ? value.toMillis() : null
+    }}
     type="date"
-    value={dateTime == null ? '' : DateTime.fromMillis(dateTime).toISODate()}
+    value={DateTime.fromMillis(dateTime ?? Date.now()).toISODate()}
   />
 </label>
+
+<ConditionsFields bind:humidity bind:temperature />
 
 <FileUpload {...fileUploadProps} />
 
 <label class="label mt-4">
-  <span>Notes</span>
+  <span>{t('common.notes')}</span>
   <textarea hidden name="notes" value={notes}></textarea>
 
   <MarkdownEditor bind:value={notes} />

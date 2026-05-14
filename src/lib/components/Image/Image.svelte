@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ProgressRing } from '@skeletonlabs/skeleton-svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
 
   interface Props {
     path: string | undefined | null
@@ -34,13 +34,12 @@
     <i class="fa-solid fa-image"></i>
   </div>
 {:else}
-  <div class="relative">
-    <div
+  <div class="relative flex h-full items-center justify-center">
+    <LoadingIndicator
       class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
       style="min-width: {progressSize}px; width: {progressSize}px; min-height: {progressSize}px; height: {progressSize}px;"
-    >
-      <ProgressRing size="size-full" value={null} />
-    </div>
+      size="{progressSize}px"
+    />
 
     <img
       alt=""
