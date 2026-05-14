@@ -3,7 +3,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FileUpload from '$lib/components/FileUpload'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { getRouteContext } from '$lib/contexts/route'
   import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'

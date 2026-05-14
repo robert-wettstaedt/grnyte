@@ -3,7 +3,7 @@ import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { areas, geolocations } from '$lib/db/schema'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { stringToInt, stringToNumber } from '$lib/forms/schemas'
+import { stringToInt, stringToNumberOptional } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
@@ -11,8 +11,8 @@ import z from 'zod'
 const updateParkingLocationSchema = z.object({
   areaId: stringToInt,
 
-  lat: stringToNumber.optional(),
-  long: stringToNumber.optional(),
+  lat: stringToNumberOptional,
+  long: stringToNumberOptional,
 
   polyline: z.string().optional(),
 })

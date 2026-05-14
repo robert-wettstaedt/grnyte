@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
   import type { ActionItemArgs } from '$lib/components/AppBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getAreaContext } from '$lib/contexts/area'
   import { convertAreaSlug } from '$lib/helper'
   import { Menu } from '@skeletonlabs/skeleton-svelte'

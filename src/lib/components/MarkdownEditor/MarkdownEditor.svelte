@@ -11,16 +11,17 @@
   import debounce from 'lodash.debounce'
   import memoize from 'lodash.memoize'
   import { onDestroy, onMount } from 'svelte'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getI18n } from '$lib/i18n'
 
   const { t } = getI18n()
 
   interface Props {
+    onchange?: (value: string) => void
     value: string | null | undefined
   }
 
-  let { value = $bindable() }: Props = $props()
+  let { onchange, value = $bindable() }: Props = $props()
 
   let element: HTMLDivElement | undefined = $state()
   let view: EditorView | null = null
@@ -119,6 +120,7 @@
     view.update(trs)
 
     value = view.state.doc.toString()
+    onchange?.(value)
     valueHtml = await convertMarkdownToHtml(value)
   }
 

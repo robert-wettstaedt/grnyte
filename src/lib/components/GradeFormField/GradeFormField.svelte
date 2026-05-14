@@ -1,22 +1,22 @@
 <script lang="ts">
   import Dialog from '$lib/components/Dialog'
-  import { pageState } from '$lib/components/Layout'
-  import type { Route } from '$lib/db/schema'
+  import FormFieldError from '$lib/components/FormFieldError'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getGradeColor } from '$lib/grades'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormField } from '@sveltejs/kit'
 
   interface Props {
-    value: Route['gradeFk'] | null | undefined
-    withModal?: boolean
+    field: RemoteFormField<string>
   }
 
-  let { value = $bindable(), withModal = false }: Props = $props()
+  let { field }: Props = $props()
 
   const { t } = getI18n()
-  let grade = $state(value)
 
-  $effect(() => {
-    grade = value
+  const grade = $derived.by(() => {
+    const value = Number(field.value())
+    return Number.isNaN(value) ? null : value
   })
 
   let userGrade = $derived.by(() => {
@@ -57,13 +57,18 @@
   let inputElement = $state<HTMLInputElement>()
   let rangeElement = $state<HTMLDivElement>()
 
+  function onAddGrade() {
+    const midGrade = pageState.grades.at(Math.floor(pageState.grades.length / 2))?.id
+    field.set(midGrade?.toString())
+  }
+
   function updateRange() {
-    if (!inputElement || !rangeElement || value == null) {
-      grade = null
+    if (!inputElement || !rangeElement || grade == null) {
+      field.set(undefined)
       return
     }
 
-    grade = parseInt(inputElement.value)
+    field.set(inputElement.value)
     const percent = (grade / parseInt(inputElement.max)) * 100
 
     rangeElement.style.width = percent + '%'
@@ -78,22 +83,20 @@
   <span>
     {t('common.grade')}
 
-    {#if withModal}
-      <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title={t('grade.opinions')}>
-        {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
+    <Dialog open={modalOpen} onOpenChange={(event) => (modalOpen = event.open)} title={t('grade.opinions')}>
+      {#snippet trigger()}<i class="sl-2 fa-regular fa-circle-question"></i>{/snippet}
 
-        {#snippet content()}
-          <p>
-            {t('grade.opinionDescription')}
-          </p>
+      {#snippet content()}
+        <p>
+          {t('grade.opinionDescription')}
+        </p>
 
-          <p class="mt-4">{t('grade.averageDescription')}</p>
-        {/snippet}
-      </Dialog>
-    {/if}
+        <p class="mt-4">{t('grade.averageDescription')}</p>
+      {/snippet}
+    </Dialog>
   </span>
 
-  <input name="gradeFk" type="hidden" {value} />
+  <input type="hidden" {...field.as('text')} />
 
   <div class="flex items-end justify-between gap-2">
     {#if grade == null}
@@ -104,7 +107,7 @@
           aria-label={t('common.addGrade')}
           title={t('common.addGrade')}
           class="btn preset-filled-surface-500 btn-sm ms-1 h-6 w-6"
-          onclick={() => (value = pageState.grades.at(Math.floor(pageState.grades.length / 2))?.id)}
+          onclick={onAddGrade}
           type="button"
         >
           <i class="fa-solid fa-plus"></i>
@@ -133,13 +136,14 @@
 
         <div class="relative mt-2">
           <input
+            aria-errormessage={field.issues() == null ? undefined : 'grade-error'}
             bind:this={inputElement}
             class="[&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:border-primary-500 [&::-moz-range-thumb]:bg-primary-500 [&::-moz-range-thumb]:border-primary-500 pointer-events-none absolute h-1 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full"
             id="minGrade"
             max={pageState.grades.at(-1)?.id}
             min={pageState.grades.at(0)?.id}
             oninput={updateRange}
-            onchange={(event) => (value = Number(event.currentTarget.value))}
+            onchange={(event) => field.set(event.currentTarget.value)}
             name="minGrade"
             type="range"
             value={grade}
@@ -151,11 +155,13 @@
         aria-label={t('common.clear')}
         title={t('common.clear')}
         class="btn preset-filled-surface-500 h-9 w-9"
-        onclick={() => (value = null)}
+        onclick={() => field.set(undefined)}
         type="button"
       >
         <i class="fa-solid fa-xmark"></i>
       </button>
     {/if}
   </div>
+
+  <FormFieldError id="grade-error" issues={field.issues()} />
 </label>

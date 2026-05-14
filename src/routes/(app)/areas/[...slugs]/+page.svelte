@@ -7,7 +7,7 @@
   import AppBar from '$lib/components/AppBar'
   import AreaList from '$lib/components/AreaList'
   import BlocksList from '$lib/components/BlocksList'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteList from '$lib/components/RouteList'
   import { getAreaContext } from '$lib/contexts/area'
   import { Tabs } from '@skeletonlabs/skeleton-svelte'

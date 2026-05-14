@@ -1,5 +1,4 @@
-import { getSubscriptionId } from '$lib/components/PushNotificationSubscriber'
-import { updateLanguage } from '$lib/i18n/language.remote'
+import { getSubscriptionId } from '$lib/components/PushNotificationSubscriber/lib'
 import type { i18n as I18nInstance } from 'i18next'
 import i18next from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
@@ -30,6 +29,7 @@ export const initI18n = () => {
       const pushSubscriptionId = await getSubscriptionId()
 
       if (language != null && pushSubscriptionId != null) {
+        const { updateLanguage } = await import('$lib/i18n/language.remote')
         await updateLanguage({ language, pushSubscriptionId })
       }
     } catch (error) {

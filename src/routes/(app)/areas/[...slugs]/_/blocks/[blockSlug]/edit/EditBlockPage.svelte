@@ -5,17 +5,25 @@
   import BlockFormFields from '$lib/components/BlockFormFields'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getBlockContext } from '$lib/contexts/block'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { deleteBlock, updateBlock } from './page.remote'
-  import { getI18n } from '$lib/i18n'
 
   const { block } = getBlockContext()
   const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
+
+  $effect(() => {
+    updateBlock.fields.set({
+      areaId: String(block.areaFk),
+      blockId: String(block.id),
+      name: block.name,
+    })
+  })
 </script>
 
 <svelte:head>
@@ -31,7 +39,9 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateBlock.enhance(enhanceForm())}>
-  <BlockFormFields areaFk={block.areaFk} blockId={block.id} name={block.name} />
+  <input type="hidden" {...updateBlock.fields.blockId.as('text')} />
+
+  <BlockFormFields fields={updateBlock.fields} />
 
   <FormActionBar label={t('blocks.updateBlock')} pending={updateBlock.pending} />
 </form>

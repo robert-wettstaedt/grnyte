@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { page } from '$app/state'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getI18n } from '$lib/i18n'
   import GradeRangeSlider from '../GradeRangeSlider'
   const { t } = getI18n()

@@ -53,7 +53,7 @@
   import CircleStyle from 'ol/style/Circle'
   import { onMount } from 'svelte'
   import type { GetBlockKey, NestedBlock } from '.'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import Geolocate from './components/Geolocate'
   import Layers, { visibleLayers, type Layer } from './components/Layers'
   import Popup from './components/Popup'

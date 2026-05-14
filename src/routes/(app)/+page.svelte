@@ -2,7 +2,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import Landing from '$lib/components/Landing'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import NewUserCard from '$lib/components/NewUserCard'
 
   const { data } = $props()

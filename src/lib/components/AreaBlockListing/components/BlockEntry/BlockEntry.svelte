@@ -19,7 +19,7 @@
 
 <script lang="ts">
   import type { GetBlockKey } from '$lib/components/BlocksMap'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import TopoViewer, { type TopoViewerProps } from '$lib/components/TopoViewer'
   import type { InferResultType } from '$lib/db/types'
   import type { EnrichedBlock } from '$lib/db/utils'

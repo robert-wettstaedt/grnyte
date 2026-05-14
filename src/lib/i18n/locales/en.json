@@ -70,6 +70,14 @@
       "username": "Username",
       "yes": "Yes"
     },
+    "form": {
+      "required": "This field is required",
+      "charsMin": "At least {{count}} characters required",
+      "numBetween": "Must be between {{min}} and {{max}}",
+      "numInvalid": "Invalid number",
+      "yearInvalid": "Invalid year",
+      "acceptTerms": "You must accept the Terms of Service and Privacy Policy to create an account"
+    },
     "nav": {
       "home": "Home",
       "browse": "Browse",

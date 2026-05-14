@@ -1,7 +1,7 @@
 <script lang="ts">
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import Error from '$lib/components/Error'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getAreaContext } from '$lib/contexts/area'
   import AddAreaPage from './AddAreaPage.svelte'
 

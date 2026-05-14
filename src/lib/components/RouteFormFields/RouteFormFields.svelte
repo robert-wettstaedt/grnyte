@@ -1,56 +1,56 @@
 <script lang="ts">
   import GradeFormField from '$lib/components/GradeFormField'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor'
   import RatingFormField from '$lib/components/RatingFormField'
-  import type { Row } from '$lib/db/zero'
+  import type { RouteActionValuesIn } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormFields } from '@sveltejs/kit'
+  import FormFieldError from '../FormFieldError'
   import RouteNameFormField from './components/RouteNameFormField'
 
   interface Props {
-    blockId: Row<'blocks'>['id']
-    description: Row<'routes'>['description'] | null | undefined
-    gradeFk: Row<'routes'>['gradeFk'] | null | undefined
-    name: Row<'routes'>['name'] | null | undefined
-    rating: Row<'routes'>['rating'] | null | undefined
-    routeId?: Row<'routes'>['id'] | null | undefined
-    routeTags: string[] | null | undefined
+    fields: RemoteFormFields<RouteActionValuesIn>
   }
 
-  let {
-    blockId,
-    description = $bindable(),
-    gradeFk = $bindable(),
-    name = $bindable(),
-    rating = $bindable(),
-    routeId,
-    routeTags = $bindable(),
-  }: Props = $props()
+  let { fields }: Props = $props()
 
   const { t } = getI18n()
 </script>
 
-<input type="hidden" name="blockId" value={blockId} />
-<input type="hidden" name="routeId" value={routeId} />
+<input type="hidden" {...fields.blockId.as('text')} />
 
-<RouteNameFormField bind:value={name} />
+<RouteNameFormField field={fields.name} />
 
-<GradeFormField bind:value={gradeFk} withModal />
+<GradeFormField field={fields.gradeFk} />
 
-<RatingFormField bind:value={rating} />
+<RatingFormField field={fields.rating} />
 
 <label class="label mt-4">
   <span>{t('common.description')}</span>
-  <textarea hidden name="description" value={description}></textarea>
+  <textarea
+    aria-errormessage={fields.description.issues() == null ? undefined : 'route-form-description-error'}
+    hidden
+    {...fields.description.as('text')}
+  ></textarea>
 
-  <MarkdownEditor bind:value={description} />
+  <MarkdownEditor onchange={(value) => fields.description.set(value)} value={fields.description.value()} />
+
+  <FormFieldError id="route-form-description-error" issues={fields.description.issues()} />
 </label>
 
 <label class="label mt-4">
   <span>{t('common.tags')}</span>
-  <select class="select max-h-75 overflow-auto" multiple name="tags" bind:value={routeTags}>
+
+  <select
+    aria-errormessage={fields.tags.issues() == null ? undefined : 'route-form-tags-error'}
+    class="select max-h-75 overflow-auto"
+    {...fields.tags.as('select multiple')}
+  >
     {#each pageState.tags as tag}
       <option class="rounded p-1" value={tag.id}>{tag.id}</option>
     {/each}
   </select>
+
+  <FormFieldError id="route-form-tags-error" issues={fields.tags.issues()} />
 </label>

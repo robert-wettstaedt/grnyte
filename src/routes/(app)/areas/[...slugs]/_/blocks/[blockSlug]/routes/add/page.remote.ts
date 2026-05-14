@@ -8,21 +8,21 @@ import type { InferResultType } from '$lib/db/types'
 import { buildNestedAreaQuery } from '$lib/db/utils'
 import { convertException } from '$lib/errors'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { routeActionSchema, stringToInt } from '$lib/forms/schemas'
+import { routeActionSchema } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import z from 'zod'
 
-type CreateRouteActionValues = z.infer<typeof createRouteActionSchema>
 const createRouteActionSchema = z.intersection(
   z.object({
-    blockId: stringToInt,
-    redirect: z.string().optional(),
     reload: z.string().optional(),
   }),
   routeActionSchema,
 )
+
+export type CreateRouteActionValuesIn = z.input<typeof createRouteActionSchema>
+type CreateRouteActionValues = z.output<typeof createRouteActionSchema>
 
 export const createRoute = form(createRouteActionSchema, (data) => enhanceForm(data, createRouteAction))
 

@@ -6,7 +6,7 @@
   import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_READ } from '$lib/auth'
   import { getVideoThumbnailUrl } from '$lib/bunny'
   import { Full } from '$lib/components/FileViewer'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteName from '$lib/components/RouteName'
   import { getI18n } from '$lib/i18n'
   import { formatDistance } from 'date-fns'

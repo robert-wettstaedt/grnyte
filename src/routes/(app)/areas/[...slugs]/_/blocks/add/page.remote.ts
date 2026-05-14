@@ -6,23 +6,14 @@ import { config } from '$lib/config'
 import { blocks, generateSlug, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { blockActionSchema, stringToInt } from '$lib/forms/schemas'
+import { blockActionSchema, type BlockActionValues } from '$lib/forms/schemas'
 import { createGeolocationFromFiles } from '$lib/topo/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
-import z from 'zod'
 
-type CreateBlockActionValues = z.infer<typeof createBlockActionSchema>
-const createBlockActionSchema = z.intersection(
-  z.object({
-    areaId: stringToInt,
-  }),
-  blockActionSchema,
-)
+export const createBlock = form(blockActionSchema, (data) => enhanceForm(data, createBlockAction))
 
-export const createBlock = form(createBlockActionSchema, (data) => enhanceForm(data, createBlockAction))
-
-const createBlockAction: Action<CreateBlockActionValues> = async (values, db, user) => {
+const createBlockAction: Action<BlockActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
 
   const slug = generateSlug(values.name)

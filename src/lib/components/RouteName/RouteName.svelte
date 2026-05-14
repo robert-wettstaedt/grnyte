@@ -1,6 +1,6 @@
 <script lang="ts">
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteGrade from '$lib/components/RouteGrade'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'

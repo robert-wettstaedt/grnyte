@@ -20,6 +20,13 @@
   const { block } = getBlockContext()
   const { t } = getI18n()
 
+  $effect(() => {
+    replaceTopo.fields.set({
+      redirect: page.url.searchParams.get('redirect') ?? '',
+      topoId: String(topo.id),
+    })
+  })
+
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
   let state = $state<EnhanceState>({})
@@ -46,8 +53,8 @@
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...replaceTopo.enhance(enhanceForm(state))}>
   <FileUpload {state} accept="image/*" />
 
-  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
-  <input type="hidden" name="topoId" value={topo.id} />
+  <input type="hidden" {...replaceTopo.fields.redirect.as('text')} />
+  <input type="hidden" {...replaceTopo.fields.topoId.as('text')} />
 
   <FormActionBar {state} label={t('topo.replaceImage')} pending={state.loading ? 1 : replaceTopo.pending} />
 </form>

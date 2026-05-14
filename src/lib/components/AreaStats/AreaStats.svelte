@@ -1,6 +1,6 @@
 <script lang="ts">
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { queries, type Row } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import ZeroQueryWrapper from '../ZeroQueryWrapper'

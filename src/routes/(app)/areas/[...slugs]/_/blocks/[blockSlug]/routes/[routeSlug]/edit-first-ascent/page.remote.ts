@@ -8,15 +8,14 @@ import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 
-const firstAscentActionSchema = z
-  .object({
-    climberName: z.array(z.string().trim()).optional(),
-    routeId: stringToInt,
-    year: stringToInt
-      .refine((value) => value > 1950 && value <= new Date().getFullYear(), 'Must be a valid year')
-      .optional(),
-  })
-  .refine((x) => x.climberName != null || x.year != null, 'Either climberName or year must be set')
+const firstAscentActionSchema = z.object({
+  climberName: z.array(z.string().trim()).optional(),
+  routeId: stringToInt,
+  year: z
+    .number()
+    .refine((value) => value > 1950 && value <= new Date().getFullYear(), 'form.yearInvalid')
+    .optional(),
+})
 type FirstAscentActionValues = z.infer<typeof firstAscentActionSchema>
 
 export const updateFirstAscent = form(firstAscentActionSchema, (data) => enhanceForm(data, updateFirstAscentAction))

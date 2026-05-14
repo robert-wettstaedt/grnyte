@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import AreaStats from '$lib/components/AreaStats'
   import GenericList from '$lib/components/GenericList'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'

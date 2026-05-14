@@ -1,7 +1,7 @@
 <script lang="ts">
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'
   import { getI18n } from '$lib/i18n'

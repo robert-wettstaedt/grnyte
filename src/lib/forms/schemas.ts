@@ -3,15 +3,41 @@ import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
 import { type ActionFailure as KitActionFailure } from '@sveltejs/kit'
 import { z } from 'zod'
 
-export const stringToInt = z.codec(z.string({ error: 'Field is required' }).regex(z.regexes.integer), z.int(), {
-  decode: (str) => Number.parseInt(str, 10),
-  encode: (num) => num.toString(),
-})
+export const stringToInt = z.codec(
+  z.string({ error: 'form.required' }).regex(z.regexes.integer, 'form.numInvalid'),
+  z.int(),
+  {
+    decode: (str) => Number.parseInt(str, 10),
+    encode: (num) => num.toString(),
+  },
+)
 
-export const stringToNumber = z.codec(z.string({ error: 'Field is required' }).regex(z.regexes.number), z.number(), {
-  decode: (str) => Number.parseFloat(str),
-  encode: (num) => num.toString(),
-})
+export const stringToIntOptional = z.codec(
+  z.union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.integer, 'form.numInvalid')]),
+  z.int().optional(),
+  {
+    decode: (str) => (str === '' ? undefined : Number.parseInt(str, 10)),
+    encode: (num) => (num == null ? '' : num.toString()),
+  },
+)
+
+export const stringToNumber = z.codec(
+  z.string({ error: 'form.required' }).regex(z.regexes.number, 'form.numInvalid'),
+  z.number(),
+  {
+    decode: (str) => Number.parseFloat(str),
+    encode: (num) => num.toString(),
+  },
+)
+
+export const stringToNumberOptional = z.codec(
+  z.union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.number, 'form.numInvalid')]),
+  z.number().optional(),
+  {
+    decode: (str) => (str === '' ? undefined : Number.parseFloat(str)),
+    encode: (num) => (num == null ? '' : num.toString()),
+  },
+)
 
 export type ActionFailure<T> = KitActionFailure<T & { error: string }>
 
@@ -24,7 +50,10 @@ export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 export const areaActionSchema = z.object({
   description: z.string().optional().default(''),
   id: stringToInt.optional(),
-  name: z.string({ error: 'Field is required' }).trim().min(3, { error: 'At least 3 characters required' }),
+  name: z
+    .string({ error: 'form.required' })
+    .trim()
+    .min(3, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 3 } }) }),
   parentFk: stringToInt.optional(),
   regionFk: stringToInt,
   type: z.enum(areaTypeEnum).default('area'),
@@ -32,33 +61,47 @@ export const areaActionSchema = z.object({
 export type AreaActionValuesIn = z.input<typeof areaActionSchema>
 export type AreaActionValues = z.output<typeof areaActionSchema>
 
-export type BlockActionValues = z.infer<typeof blockActionSchema>
 export const blockActionSchema = z.intersection(
   z.object({
-    name: z.string(),
+    areaId: stringToInt,
+    name: z
+      .string()
+      .trim()
+      .min(1, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 1 } }) }),
   }),
   addFileActionSchema,
 )
+export type BlockActionValuesIn = z.input<typeof blockActionSchema>
+export type BlockActionValues = z.output<typeof blockActionSchema>
 
 export const routeActionSchema = z.object({
+  blockId: stringToInt,
   description: z.string().default(''),
-  gradeFk: stringToInt.optional(),
+  gradeFk: stringToIntOptional,
   name: z.string().trim().default(''),
-  rating: stringToInt.refine((value) => value >= 1 && value <= 3, 'Must be between 1 and 3').optional(),
+  rating: stringToIntOptional.refine(
+    (value) => value == null || (value >= 1 && value <= 3),
+    JSON.stringify({ message: 'form.numBetween', params: { min: 1, max: 3 } }),
+  ),
+  redirect: z.string().optional(),
   tags: z.array(z.string()).optional(),
 })
-export type RouteActionValues = z.infer<typeof routeActionSchema>
+export type RouteActionValuesIn = z.input<typeof routeActionSchema>
+export type RouteActionValues = z.output<typeof routeActionSchema>
 
 export const ascentActionSchema = z.intersection(
   z.object({
     dateTime: z.iso.date(),
     filePaths: z.array(z.string()).optional(),
-    gradeFk: stringToInt.optional(),
-    humidity: z.number().optional(),
+    gradeFk: stringToIntOptional,
+    humidity: stringToIntOptional,
     notes: z.string().optional(),
-    rating: stringToInt.refine((value) => value >= 1 && value <= 3, 'Must be between 1 and 3').optional(),
-    temperature: z.number().optional(),
-    type: z.enum(ascentTypeEnum),
+    rating: stringToIntOptional.refine(
+      (value) => value == null || (value >= 1 && value <= 3),
+      JSON.stringify({ message: 'form.numBetween', params: { min: 1, max: 3 } }),
+    ),
+    temperature: stringToIntOptional,
+    type: z.enum(ascentTypeEnum, 'form.required'),
   }),
   addFileActionSchema,
 )
@@ -129,9 +172,7 @@ const baseCreateUserActionSchema = z.intersection(profileActionSchema, passwordA
 export const createUserActionSchema = z.intersection(
   baseCreateUserActionSchema,
   z.object({
-    acceptTerms: z.literal('on', {
-      message: 'You must accept the Terms of Service and Privacy Policy to create an account',
-    }),
+    acceptTerms: z.literal('on', { message: 'form.acceptTerms' }),
   }),
 )
 export type CreateUserActionValues = z.infer<typeof createUserActionSchema>

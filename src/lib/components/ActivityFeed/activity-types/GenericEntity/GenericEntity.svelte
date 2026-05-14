@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import CorrectedGrade from '$lib/components/RouteGrade/components/CorrectedGrade'
   import RouteRating from '$lib/components/RouteRating'
   import Trans, { part } from '$lib/components/Trans'

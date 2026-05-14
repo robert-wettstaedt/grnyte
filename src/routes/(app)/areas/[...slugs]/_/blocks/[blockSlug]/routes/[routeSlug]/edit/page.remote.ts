@@ -15,8 +15,6 @@ import z from 'zod'
 type EditRouteActionValues = z.infer<typeof editRouteActionSchema>
 const editRouteActionSchema = z.intersection(
   z.object({
-    blockId: stringToInt,
-    redirect: z.string().optional(),
     routeId: stringToInt,
   }),
   routeActionSchema,
@@ -67,7 +65,12 @@ const updateRouteAction: Action<EditRouteActionValues> = async (values, db, user
   // Update the route in the database with the validated values
   await db
     .update(routes)
-    .set({ ...entity, slug })
+    .set({
+      ...entity,
+      gradeFk: entity.gradeFk == null ? null : entity.gradeFk,
+      rating: entity.rating == null ? null : entity.rating,
+      slug,
+    })
     .where(eq(routes.id, route.id))
 
   // Delete existing route-to-tag associations for the route

@@ -1,13 +1,19 @@
 <script lang="ts">
   import Dialog from '$lib/components/Dialog'
-  import type { Route } from '$lib/db/schema'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormField } from '@sveltejs/kit'
+  import FormFieldError from '../FormFieldError'
 
   interface Props {
-    value: Route['rating'] | null | undefined
+    field: RemoteFormField<string>
   }
 
-  let { value = $bindable() }: Props = $props()
+  let { field }: Props = $props()
+
+  const value = $derived.by(() => {
+    const val = Number(field.value())
+    return Number.isNaN(val) ? null : val
+  })
 
   const { t } = getI18n()
   let modalOpen = $state(false)
@@ -34,7 +40,7 @@
     </Dialog>
   </span>
 
-  <input name="rating" type="hidden" {value} />
+  <input aria-errormessage={field.issues() == null ? undefined : 'rating-error'} type="hidden" {...field.as('text')} />
 </label>
 
 <div class="flex h-10 items-center justify-between">
@@ -45,7 +51,7 @@
         title={`${t('common.rating')} ${rating}`}
         onclick={(event) => {
           event.preventDefault()
-          value = rating
+          field.set(rating.toString())
         }}
       >
         {#if value != null && value >= rating}
@@ -62,9 +68,11 @@
       aria-label={t('common.clear')}
       title={t('common.clear')}
       class="btn preset-filled-surface-500 h-9 w-9"
-      onclick={() => (value = null)}
+      onclick={() => field.set(undefined)}
     >
       <i class="fa-solid fa-xmark"></i>
     </button>
   {/if}
 </div>
+
+<FormFieldError id="rating-error" issues={field.issues()} />

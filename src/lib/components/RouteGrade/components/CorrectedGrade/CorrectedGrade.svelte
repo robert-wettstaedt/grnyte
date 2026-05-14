@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getGradeColor } from '$lib/grades'
 
   interface Props {

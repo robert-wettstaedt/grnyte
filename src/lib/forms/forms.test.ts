@@ -70,10 +70,11 @@ describe('validateAreaForm', () => {
 describe('validateBlockForm', () => {
   it('should validate and return correct values', async () => {
     const formData = new FormData()
+    formData.set('areaId', '1')
     formData.set('name', 'Test Block')
 
     const result = await validateFormData(blockActionSchema, formData)
-    expect(result).toEqual({ name: 'Test Block' })
+    expect(result).toEqual({ name: 'Test Block', areaId: 1 })
   })
 
   it('should throw an error if name is missing', async () => {
@@ -86,15 +87,17 @@ describe('validateBlockForm', () => {
 describe('validateRouteForm', () => {
   it('should validate and return correct values', async () => {
     const formData = new FormData()
-    formData.set('name', 'Test Route')
+    formData.set('blockId', '1')
     formData.set('gradeFk', '1')
+    formData.set('name', 'Test Route')
     formData.set('rating', '1')
 
     const result = await validateFormData(routeActionSchema, formData)
     expect(result).toEqual({
+      blockId: 1,
       description: '',
-      name: 'Test Route',
       gradeFk: 1,
+      name: 'Test Route',
       rating: 1,
     })
   })
@@ -109,17 +112,15 @@ describe('validateRouteForm', () => {
 
   it('should handle setting null values', async () => {
     const formData = new FormData()
+    formData.set('blockId', '1')
     formData.set('description', '')
-    formData.set('gradeFk', '')
     formData.set('name', '')
-    formData.set('rating', '')
 
     const result = await validateFormData(routeActionSchema, formData)
     expect(result).toEqual({
+      blockId: 1,
       description: '',
-      gradeFk: null,
       name: '',
-      rating: null,
     })
   })
 })
@@ -183,17 +184,13 @@ describe('validateAscentForm', () => {
     const formData = new FormData()
     formData.set('dateTime', '2023-01-01')
     formData.set('type', 'flash')
-    formData.set('rating', '')
     formData.set('notes', '')
-    formData.set('gradeFk', '')
 
     const result = await validateFormData(ascentActionSchema, formData)
     expect(result).toEqual({
       dateTime: '2023-01-01',
       type: 'flash',
-      gradeFk: null,
-      notes: null,
-      rating: null,
+      notes: undefined,
     })
   })
 })

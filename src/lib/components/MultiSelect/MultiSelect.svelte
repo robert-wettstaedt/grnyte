@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { Combobox, Portal } from '@skeletonlabs/skeleton-svelte'
-  import { calculateRelevance } from './lib'
   import { getI18n } from '$lib/i18n'
+  import { Combobox, Portal, type ComboboxRootProps } from '@skeletonlabs/skeleton-svelte'
+  import { calculateRelevance } from './lib'
 
-  interface Props {
+  interface Props extends ComboboxRootProps {
+    label?: string
     options: string[]
-    value: string[] | undefined | null
+    value: string[] | undefined
     name?: string
   }
 
@@ -21,7 +22,8 @@
     [key: string]: any
   }
 
-  let { options, name, value = $bindable() }: Props = $props()
+  let { label, options, name, value = $bindable(), ...rest }: Props = $props()
+
   let inputValue = $state('')
   // svelte-ignore state_referenced_locally
   let filteredOptions = $state(options)
@@ -60,7 +62,9 @@
   }
 </script>
 
-{#if value != null}
+<div class="mt-4">{label}</div>
+
+{#if value?.length}
   <ul class="mb-4! flex flex-col gap-2">
     {#each value as val}
       <li class="flex items-center justify-between">
@@ -97,6 +101,7 @@
 {/if}
 
 <Combobox
+  {...rest}
   allowCustomValue
   onInputValueChange={handleInputValueChange}
   onValueChange={handleValueChange}

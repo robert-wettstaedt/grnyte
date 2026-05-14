@@ -1,18 +1,29 @@
 <script lang="ts">
-  import type { Row } from '$lib/db/zero'
   import { getI18n } from '$lib/i18n'
   import { Accordion, Slider } from '@skeletonlabs/skeleton-svelte'
+  import type { RemoteFormField } from '@sveltejs/kit'
   import { slide } from 'svelte/transition'
+  import FormFieldError from '../FormFieldError'
 
   interface Props {
-    humidity: Row<'ascents'>['humidity'] | null | undefined
-    temperature: Row<'ascents'>['temperature'] | null | undefined
+    humidityField: RemoteFormField<string>
+    temperatureField: RemoteFormField<string>
   }
 
-  let { humidity = $bindable(), temperature = $bindable() }: Props = $props()
+  let { humidityField, temperatureField }: Props = $props()
+
+  const humidity = $derived.by(() => {
+    const value = Number(humidityField.value())
+    return Number.isNaN(value) ? undefined : value
+  })
+
+  const temperature = $derived.by(() => {
+    const value = Number(temperatureField.value())
+    return Number.isNaN(value) ? undefined : value
+  })
 
   const { t } = getI18n()
-  let accordion = $state<string[]>(humidity != null || temperature != null ? ['conditions'] : [])
+  let accordion = $state<string[]>([])
 
   const defaultTemperature = $derived.by(() => {
     const temps = [-2.8, -0.8, 3.5, 8.4, 13.2, 16.9, 19.2, 19.3, 14.7, 9.5, 4.4, -0.7]
@@ -83,7 +94,27 @@
   <Accordion.Item value="club">
     <h3>
       <Accordion.ItemTrigger class="flex items-center justify-between gap-2 px-0">
-        {t('conditions.title')}
+        <span class="flex items-center gap-2">
+          {t('conditions.title')}
+
+          {#if accordion.length === 0 && (temperature ?? humidity) != null}
+            <div class="my-2 flex items-center gap-x-1 md:gap-x-2">
+              {#if temperature != null}
+                <div class="chip preset-outlined-surface-500">
+                  <i class="fa-solid fa-temperature-full"></i>
+                  {temperature}°C
+                </div>
+              {/if}
+
+              {#if humidity != null}
+                <div class="chip preset-outlined-surface-500">
+                  <i class="fa-solid fa-droplet"></i>
+                  {humidity}%
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </span>
 
         <Accordion.ItemIndicator class="group">
           <i class="fa-solid fa-chevron-down transition group-data-[state=open]:rotate-180"></i>
@@ -96,11 +127,12 @@
         {#if !attributes.hidden}
           <div {...attributes} transition:slide={{ duration: 150 }}>
             <Slider
+              aria-errormessage={temperatureField.issues() == null ? undefined : 'ascent-form-temperature-error'}
               class="mb-12"
               defaultValue={defaultTemperature}
               max={maxTemp}
               min={minTemp}
-              onValueChange={(e) => (temperature = e.value[0])}
+              onValueChange={(e) => temperatureField.set(String(e.value[0]))}
               value={temperature == null ? undefined : [temperature]}
             >
               <Slider.Label class="my-4 flex items-center justify-between">
@@ -117,7 +149,7 @@
                     title={t('common.clear')}
                     class="btn preset-filled-surface-500 h-9 w-9"
                     disabled={temperature == null}
-                    onclick={() => (temperature = null)}
+                    onclick={() => temperatureField.set(undefined)}
                     type="button"
                   >
                     <i class="fa-solid fa-xmark"></i>
@@ -146,10 +178,13 @@
               </Slider.MarkerGroup>
             </Slider>
 
+            <FormFieldError id="ascent-form-temperature-error" issues={temperatureField.issues()} />
+
             <Slider
+              aria-errormessage={humidityField.issues() == null ? undefined : 'ascent-form-humidity-error'}
               class="mb-12"
               defaultValue={defaultHumidity}
-              onValueChange={(e) => (humidity = e.value[0])}
+              onValueChange={(e) => humidityField.set(String(e.value[0]))}
               value={humidity == null ? undefined : [humidity]}
             >
               <Slider.Label class="my-4 flex items-center justify-between">
@@ -165,7 +200,7 @@
                     aria-label={t('common.clear')}
                     class="btn preset-filled-surface-500 h-9 w-9"
                     disabled={humidity == null}
-                    onclick={() => (humidity = null)}
+                    onclick={() => humidityField.set(undefined)}
                     type="button"
                   >
                     <i class="fa-solid fa-xmark"></i>
@@ -197,6 +232,8 @@
                 <Slider.Marker value={100} />
               </Slider.MarkerGroup>
             </Slider>
+
+            <FormFieldError id="ascent-form-humidity-error" issues={humidityField.issues()} />
           </div>
         {/if}
       {/snippet}
@@ -204,5 +241,10 @@
   </Accordion.Item>
 </Accordion>
 
-<input name="temperature" type="hidden" value={temperature} />
-<input name="humidity" type="hidden" value={humidity} />
+<input type="hidden" {...temperatureField.as('text')} />
+<input type="hidden" {...humidityField.as('text')} />
+
+{#if accordion.length === 0}
+  <FormFieldError id="ascent-form-temperature-error" issues={temperatureField.issues()} />
+  <FormFieldError id="ascent-form-humidity-error" issues={humidityField.issues()} />
+{/if}

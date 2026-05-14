@@ -13,6 +13,13 @@
   const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   const { t } = getI18n()
+
+  $effect(() => {
+    createArea.fields.set({
+      parentFk: String(area.id),
+      regionFk: String(area.regionFk),
+    })
+  })
 </script>
 
 <svelte:head>
@@ -36,7 +43,7 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createArea.enhance(enhanceForm())}>
-  <AreaFormFields defaultValue={{ parentFk: area?.id, regionFk: area?.regionFk }} fields={createArea.fields} />
+  <AreaFormFields fields={createArea.fields} />
 
   <FormActionBar label={t('areas.saveArea')} pending={createArea.pending} />
 </form>

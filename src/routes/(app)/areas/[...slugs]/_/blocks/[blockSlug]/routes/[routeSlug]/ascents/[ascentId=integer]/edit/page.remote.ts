@@ -50,7 +50,14 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
 
   await db
     .update(ascents)
-    .set({ ...entity, routeFk: ascent.route.id })
+    .set({
+      ...entity,
+      gradeFk: entity.gradeFk == null ? null : entity.gradeFk,
+      humidity: entity.humidity == null ? null : entity.humidity,
+      rating: entity.rating == null ? null : entity.rating,
+      routeFk: ascent.route.id,
+      temperature: entity.temperature == null ? null : entity.temperature,
+    })
     .where(eq(ascents.id, ascent.id))
 
   await updateRoutesUserData(ascent.route.id, db)

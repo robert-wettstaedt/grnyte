@@ -14,11 +14,18 @@
     name: Row<'blocks'>['name']
   }
 
-  let { name = $bindable() }: Props = $props()
+  let { name }: Props = $props()
   const { area } = getAreaContext()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   let state = $state<EnhanceState>({})
   const { t } = getI18n()
+
+  $effect(() => {
+    createBlock.fields.set({
+      areaId: String(area.id),
+      name,
+    })
+  })
 </script>
 
 <svelte:head>
@@ -34,7 +41,7 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createBlock.enhance(enhanceForm(state))}>
-  <BlockFormFields bind:name areaFk={area.id} fileUploadProps={{ state }} />
+  <BlockFormFields fields={createBlock.fields} fileUploadProps={{ state }} />
 
   <FormActionBar {state} label={t('blocks.saveBlock')} pending={state.loading ? 1 : createBlock.pending} />
 </form>
