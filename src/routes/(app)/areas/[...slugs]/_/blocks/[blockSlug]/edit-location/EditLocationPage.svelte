@@ -20,9 +20,6 @@
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
-  let coordinate: Coordinate | null = $state(
-    block.geolocation == null ? null : [block.geolocation.long, block.geolocation.lat],
-  )
   let tabSet = $state('map')
 
   $effect(() => {
@@ -121,7 +118,11 @@
     </Tabs.Content>
   </Tabs>
 
-  <FormActionBar disabled={coordinate == null} label={t('location.updateLocation')} pending={updateLocation.pending} />
+  <FormActionBar
+    disabled={!updateLocation.fields.lat.value() || !updateLocation.fields.long.value()}
+    label={t('location.updateLocation')}
+    pending={updateLocation.pending}
+  />
 </form>
 
 {#if block.geolocationFk != null && checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], block.regionFk)}
