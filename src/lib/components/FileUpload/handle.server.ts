@@ -56,7 +56,7 @@ export const handleSupabaseFileUpload = async (
         .returning()
 
       const ext =
-        typeof supabaseFile.metadata.mimetype === 'string' && supabaseFile.metadata.mimetype.startsWith('image/')
+        typeof supabaseFile.metadata?.mimetype === 'string' && supabaseFile.metadata.mimetype.startsWith('image/')
           ? 'jpg'
           : supabaseFile.name.split('.').at(-1)
 
@@ -83,13 +83,16 @@ export const handleSupabaseFileUpload = async (
 
         let fileBuffer = await downloadResult.data.arrayBuffer()
 
-        if (supabaseFile.metadata.mimetype === 'image/heic') {
+        if (supabaseFile.metadata?.mimetype === 'image/heic') {
           // https://github.com/catdad-experiments/heic-convert/issues/34
           const buffer = new Uint8Array(fileBuffer) as unknown as ArrayBufferLike
           fileBuffer = await convert({ buffer, format: 'JPEG', quality: 1 })
         }
 
-        if (typeof supabaseFile.metadata.mimetype === 'string' && supabaseFile.metadata.mimetype.startsWith('image/')) {
+        if (
+          typeof supabaseFile.metadata?.mimetype === 'string' &&
+          supabaseFile.metadata.mimetype.startsWith('image/')
+        ) {
           const image = sharp(fileBuffer)
           const metadata = await image.metadata()
 
