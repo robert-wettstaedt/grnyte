@@ -5,7 +5,7 @@
   import LogoTheCrag from '$lib/assets/thecrag-logo.png'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
   import type { ActionItemArgs } from '$lib/components/AppBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { getRouteContext } from '$lib/contexts/route'
   import { queries } from '$lib/db/zero'

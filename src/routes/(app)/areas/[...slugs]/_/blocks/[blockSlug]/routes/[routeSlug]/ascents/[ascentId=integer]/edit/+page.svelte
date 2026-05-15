@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import Error from '$lib/components/Error'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import EditAscentPage from './EditAscentPage.svelte'
 

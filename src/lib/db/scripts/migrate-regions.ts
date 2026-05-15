@@ -1,8 +1,8 @@
 import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import fs from 'node:fs'
 import * as schema from '../schema'
 import type { InferResultType } from '../types'
-import fs from 'node:fs'
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   const rootAreas = await db.query.areas.findMany({

@@ -3,7 +3,6 @@
 
   export interface FileUploadProps {
     accept?: string
-    folderName?: string | null | undefined
     label?: string
     state: EnhanceState | undefined
   }
@@ -13,13 +12,13 @@
   import { Progress } from '@skeletonlabs/skeleton-svelte'
   import { getI18n } from '$lib/i18n'
 
-  let { accept = 'image/*,video/*', folderName, label, state }: FileUploadProps = $props()
+  let { accept = 'image/*,video/*', label, state }: FileUploadProps = $props()
   const { t } = getI18n()
 </script>
 
 <label class="label mt-4">
   <span class="label">{label ?? t('fileUpload.uploadFile')}</span>
-  <input class="input" name="files" type="file" {accept} />
+  <input class="input" name="files" type="file" {accept} form="file-upload-form" />
 
   {#if state?.loading}
     <Progress max={100} value={state.progress}>
@@ -29,5 +28,7 @@
     </Progress>
   {/if}
 
-  <input type="hidden" name="folderName" value={folderName} />
+  {#each Object.entries(state?.additionalFields ?? {}) as [name, value]}
+    <input type="hidden" {name} {value} />
+  {/each}
 </label>

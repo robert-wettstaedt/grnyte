@@ -13,7 +13,7 @@ import { error } from '@sveltejs/kit'
 import { and, eq, isNull, not } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateArea = form((data) => enhanceForm(data, areaActionSchema, updateAreaAction))
+export const updateArea = form(areaActionSchema, (data) => enhanceForm(data, updateAreaAction))
 
 export const deleteArea = command(z.number(), (id) => enhance(id, deleteAreaAction))
 
@@ -118,7 +118,7 @@ const deleteAreaAction: Action<number> = async (areaId, db, user) => {
     entityId: String(areaId),
     entityType: 'area',
     oldValue: area.name,
-    parentEntityId: String(area.parentFk),
+    parentEntityId: area.parentFk?.toString(),
     parentEntityType: 'area',
     regionFk: area.regionFk,
   })

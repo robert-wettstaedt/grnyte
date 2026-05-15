@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getI18n } from '$lib/i18n'
   import { AppBar, Popover, Portal } from '@skeletonlabs/skeleton-svelte'
 

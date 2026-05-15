@@ -4,7 +4,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import PageStateLoader from '$lib/components/Layout/components/PageStateLoader'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteName from '$lib/components/RouteName'

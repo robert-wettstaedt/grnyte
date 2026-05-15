@@ -8,7 +8,7 @@
 <script lang="ts">
   import Vega, { type VegaProps } from '$lib/components/Vega'
   import { getGradeColor } from '$lib/grades'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
 
   const { axes = true, data, ...rest }: GradeHistogramProps = $props()
 </script>

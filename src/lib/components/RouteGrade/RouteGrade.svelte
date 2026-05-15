@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Row } from '$lib/db/zero'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import CorrectedGrade from './components/CorrectedGrade'
   import type { InferResultType } from '$lib/db/types'
 

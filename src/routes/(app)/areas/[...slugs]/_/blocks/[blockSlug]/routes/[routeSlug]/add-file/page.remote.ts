@@ -4,11 +4,19 @@ import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { addFileActionSchema } from '$lib/forms/schemas'
+import { addFileActionSchema, stringToInt } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
 import z from 'zod'
 
-export const addFile = form((data) => enhanceForm(data, addRouteFileActionSchema, addFileAction))
+type AddRouteFileActionValues = z.infer<typeof addRouteFileActionSchema>
+const addRouteFileActionSchema = z.intersection(
+  z.object({
+    routeId: stringToInt,
+  }),
+  addFileActionSchema,
+)
+
+export const addFile = form(addRouteFileActionSchema, (data) => enhanceForm(data, addFileAction))
 
 const addFileAction: Action<AddRouteFileActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -50,11 +58,3 @@ const addFileAction: Action<AddRouteFileActionValues> = async (values, db, user)
 
   return ['', 'routes', route.id].join('/')
 }
-
-type AddRouteFileActionValues = z.infer<typeof addRouteFileActionSchema>
-const addRouteFileActionSchema = z.intersection(
-  z.object({
-    routeId: z.number(),
-  }),
-  addFileActionSchema,
-)

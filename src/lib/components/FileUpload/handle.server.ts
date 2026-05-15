@@ -16,16 +16,16 @@ interface FileUploadResult {
 export const handleFileUpload = async (
   db: PostgresJsDatabase<typeof schema>,
   supabase: SupabaseClient,
-  srcFolder: string,
+  srcFolder: string | undefined,
   dstFolder: string,
   fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
-  bunnyVideoIds?: string[] | null,
+  bunnyVideoIds?: string | string[] | null,
 ): Promise<FileUploadResult[]> => {
   const files: FileUploadResult[] = []
 
   if (bunnyVideoIds != null) {
     files.push(...(await handleBunnyVideoUpload(db, bunnyVideoIds, fileInit)))
-  } else {
+  } else if (srcFolder != null) {
     files.push(...(await handleSupabaseFileUpload(db, supabase, srcFolder, dstFolder, fileInit)))
   }
 
@@ -56,7 +56,7 @@ export const handleSupabaseFileUpload = async (
         .returning()
 
       const ext =
-        typeof supabaseFile.metadata.mimetype === 'string' && supabaseFile.metadata.mimetype.startsWith('image/')
+        typeof supabaseFile.metadata?.mimetype === 'string' && supabaseFile.metadata.mimetype.startsWith('image/')
           ? 'jpg'
           : supabaseFile.name.split('.').at(-1)
 
@@ -83,13 +83,16 @@ export const handleSupabaseFileUpload = async (
 
         let fileBuffer = await downloadResult.data.arrayBuffer()
 
-        if (supabaseFile.metadata.mimetype === 'image/heic') {
+        if (supabaseFile.metadata?.mimetype === 'image/heic') {
           // https://github.com/catdad-experiments/heic-convert/issues/34
           const buffer = new Uint8Array(fileBuffer) as unknown as ArrayBufferLike
           fileBuffer = await convert({ buffer, format: 'JPEG', quality: 1 })
         }
 
-        if (typeof supabaseFile.metadata.mimetype === 'string' && supabaseFile.metadata.mimetype.startsWith('image/')) {
+        if (
+          typeof supabaseFile.metadata?.mimetype === 'string' &&
+          supabaseFile.metadata.mimetype.startsWith('image/')
+        ) {
           const image = sharp(fileBuffer)
           const metadata = await image.metadata()
 
@@ -135,9 +138,11 @@ export const handleSupabaseFileUpload = async (
 
 export const handleBunnyVideoUpload = async (
   db: PostgresJsDatabase<typeof schema>,
-  bunnyVideoIds: string[],
+  bunnyVideoId: string | string[],
   fileInit: Partial<schema.InsertFile> & Required<Pick<schema.InsertFile, 'regionFk'>>,
 ): Promise<FileUploadResult[]> => {
+  const bunnyVideoIds = Array.isArray(bunnyVideoId) ? bunnyVideoId : [bunnyVideoId]
+
   return Promise.all(
     bunnyVideoIds.map(async (bunnyVideoId) => {
       const [dbFile] = await db

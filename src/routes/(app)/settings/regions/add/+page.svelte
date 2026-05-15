@@ -7,6 +7,12 @@
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { createRegion } from './page.remote'
 
+  $effect(() => {
+    createRegion.fields.set({
+      settings: JSON.stringify({ mapLayers: [] }),
+    })
+  })
+
   let isValid = $state(false)
 
   const { t } = getI18n()
@@ -23,7 +29,7 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...createRegion.enhance(enhanceForm())}>
-  <RegionFormFields name={''} onChange={(valid) => (isValid = valid)} settings={{ mapLayers: [] }} />
+  <RegionFormFields fields={createRegion.fields} onChange={(valid) => (isValid = valid)} />
 
   <FormActionBar disabled={!isValid} label={t('settings.regionSettings.saveRegion')} pending={createRegion.pending} />
 </form>

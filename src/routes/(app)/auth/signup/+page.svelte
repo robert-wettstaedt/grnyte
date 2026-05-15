@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
   import { getI18n } from '$lib/i18n'
 
   let { form } = $props()
@@ -31,11 +32,12 @@
         <label class="label">
           <span>{t('common.email')}</span>
           <input
-            name="email"
-            type="email"
-            placeholder={t('common.enterEmail')}
             class="input"
+            name="email"
+            placeholder={t('common.enterEmail')}
             required
+            type="email"
+            use:focus
             value={form?.email}
           />
         </label>
@@ -43,11 +45,11 @@
         <label class="label">
           <span>{t('common.username')}</span>
           <input
-            name="username"
-            type="text"
             class="input"
+            name="username"
             placeholder={t('common.enterUsername')}
             required
+            type="text"
             value={form?.username}
           />
         </label>
@@ -60,11 +62,11 @@
         <label class="label">
           <span>{t('auth.signUp.passwordConfirmation')}</span>
           <input
-            name="passwordConfirmation"
-            type="password"
-            placeholder={t('common.enterPassword')}
             class="input"
+            name="passwordConfirmation"
+            placeholder={t('common.enterPassword')}
             required
+            type="password"
           />
         </label>
 

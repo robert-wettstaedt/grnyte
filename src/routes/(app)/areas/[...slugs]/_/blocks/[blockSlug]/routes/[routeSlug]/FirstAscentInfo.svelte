@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getRouteContext } from '$lib/contexts/route'
   import { Popover, Portal } from '@skeletonlabs/skeleton-svelte'
   import { claimFirstAscensionist, claimFirstAscent } from './page.remote'

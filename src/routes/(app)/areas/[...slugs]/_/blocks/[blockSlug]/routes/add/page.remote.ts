@@ -14,11 +14,17 @@ import { and, eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import z from 'zod'
 
-export const createRoute = form((data) => enhanceForm(data, createRouteActionSchema, createRouteAction))
-
-export const createRouteAndReload = form((data) =>
-  enhanceForm(data, createRouteActionSchema, createRouteAndReloadAction),
+const createRouteActionSchema = z.intersection(
+  z.object({
+    reload: z.string().optional(),
+  }),
+  routeActionSchema,
 )
+
+export type CreateRouteActionValuesIn = z.input<typeof createRouteActionSchema>
+type CreateRouteActionValues = z.output<typeof createRouteActionSchema>
+
+export const createRoute = form(createRouteActionSchema, (data) => enhanceForm(data, createRouteAction))
 
 const createRouteAction: Action<CreateRouteActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
@@ -99,22 +105,15 @@ const createRouteAction: Action<CreateRouteActionValues> = async (values, db, us
     error(400, `Unable to create route external resources: ${convertException(exception)}`)
   }
 
-  return values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'routes', route.id].join('/')
-}
+  const path =
+    values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'routes', route.id].join('/')
 
-const createRouteAndReloadAction: Action<CreateRouteActionValues> = async (values, db, ...rest) => {
-  await createRouteAction(values, db, ...rest)
-  return '?reload=true'
-}
+  if (values.reload) {
+    return `${path}?reload=true`
+  }
 
-type CreateRouteActionValues = z.infer<typeof createRouteActionSchema>
-const createRouteActionSchema = z.intersection(
-  z.object({
-    blockId: z.number(),
-    redirect: z.string().nullish(),
-  }),
-  routeActionSchema,
-)
+  return path
+}
 
 async function getAreaIds(blockId: number, db: PostgresJsDatabase<typeof schema>) {
   const block = await db.query.blocks.findFirst({

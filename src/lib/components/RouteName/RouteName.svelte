@@ -1,12 +1,12 @@
 <script lang="ts">
   import AscentTypeLabel from '$lib/components/AscentTypeLabel'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteGrade from '$lib/components/RouteGrade'
+  import RouteRating from '$lib/components/RouteRating'
   import { config } from '$lib/config'
   import type { Ascent } from '$lib/db/schema'
   import type { InferResultType } from '$lib/db/types'
   import type { RowWithRelations } from '$lib/db/zero'
-  import RouteRating from '../RouteRating'
 
   type RouteWithAscents = InferResultType<'routes', { ascents: true }>
 

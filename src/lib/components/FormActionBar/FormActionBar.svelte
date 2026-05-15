@@ -1,16 +1,19 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
+  import { processFileUpload } from '$lib/components/FileUpload/enhance.svelte'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import type { EnhanceState } from '$lib/forms/enhance.svelte'
   import { getI18n } from '$lib/i18n'
-  import LoadingIndicator from '../LoadingIndicator'
+  import type { Snippet } from 'svelte'
 
   interface Props {
     buttons?: Snippet
     disabled?: boolean
     label: string
     pending: number
+    state?: EnhanceState
   }
 
-  const { buttons, disabled = false, label, pending }: Props = $props()
+  const { buttons, disabled = false, label, pending, state }: Props = $props()
 
   const { t } = getI18n()
 </script>
@@ -25,7 +28,21 @@
       {@render buttons()}
     {/if}
 
-    <button class="btn preset-filled-primary-500" type="submit" disabled={pending > 0 || disabled}>
+    <button
+      class="btn preset-filled-primary-500"
+      type="submit"
+      disabled={pending > 0 || disabled}
+      onclick={async (event) => {
+        event.preventDefault()
+        const form = event.currentTarget.form
+
+        if (form != null && state != null) {
+          await processFileUpload(form, state)
+        }
+
+        form?.requestSubmit()
+      }}
+    >
       {#if pending > 0}
         <LoadingIndicator />
       {/if}

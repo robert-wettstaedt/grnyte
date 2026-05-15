@@ -6,7 +6,7 @@
   import AppBar from '$lib/components/AppBar'
   import AreaList from '$lib/components/AreaList'
   import FavoritesList from '$lib/components/FavoritesList'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import RouteList from '$lib/components/RouteList'
   import { getI18n } from '$lib/i18n'
   import { Menu, Tabs } from '@skeletonlabs/skeleton-svelte'

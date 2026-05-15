@@ -4,22 +4,36 @@
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import AscentFormFields from '$lib/components/AscentFormFields'
   import DangerZone from '$lib/components/DangerZone'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import type { ZeroQueryResult } from '$lib/components/ZeroQueryWrapper'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import type { PageProps } from './$types'
   import { deleteAscent, updateAscent } from './page.remote'
-  import { getI18n } from '$lib/i18n'
+  import { DateTime } from 'luxon'
 
   interface Props {
     ascent: ZeroQueryResult<PageProps['data']['query']>
   }
 
   let { ascent }: Props = $props()
+
+  $effect(() => {
+    updateAscent.fields.set({
+      ascentId: String(ascent.id),
+      dateTime: ascent.dateTime == null ? undefined : (DateTime.fromMillis(ascent.dateTime).toISODate() ?? undefined),
+      gradeFk: ascent.gradeFk?.toString(),
+      humidity: ascent.humidity?.toString(),
+      notes: ascent.notes?.toString(),
+      rating: ascent.rating?.toString(),
+      temperature: ascent.temperature?.toString(),
+      type: ascent.type,
+    })
+  })
+
   let basePath = $derived(
     `/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}/routes/${page.params.routeSlug}`,
   )
@@ -53,25 +67,12 @@
   </AppBar.Toolbar>
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...updateAscent.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateAscent.enhance(enhanceForm(state))}>
   <input type="hidden" name="ascentId" value={ascent.id} />
 
-  <AscentFormFields
-    dateTime={ascent.dateTime}
-    fileUploadProps={{ state }}
-    gradeFk={ascent.gradeFk}
-    humidity={ascent.humidity}
-    notes={ascent.notes}
-    rating={ascent.rating ?? null}
-    temperature={ascent.temperature}
-    type={ascent.type}
-  />
+  <AscentFormFields fields={updateAscent.fields} fileUploadProps={{ state }} />
 
-  <FormActionBar label={t('ascents.saveAscent')} pending={state.loading ? 1 : updateAscent.pending} />
+  <FormActionBar {state} label={t('ascents.saveAscent')} pending={state.loading ? 1 : updateAscent.pending} />
 </form>
 
 {#if page.data.session?.user?.id === ascent.author?.authUserFk || checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], ascent.route?.regionFk)}

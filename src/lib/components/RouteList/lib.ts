@@ -1,5 +1,5 @@
 import { page } from '$app/state'
-import { pageState } from '$lib/components/Layout'
+import { pageState } from '$lib/components/Layout/page.svelte'
 import { queries } from '$lib/db/zero'
 import { validateObject } from '$lib/forms/validate.svelte'
 import { paginationParamsSchema } from '$lib/pagination.svelte'
