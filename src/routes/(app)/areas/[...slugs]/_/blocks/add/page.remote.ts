@@ -6,15 +6,14 @@ import { config } from '$lib/config'
 import { blocks, generateSlug, topos } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { blockActionSchema } from '$lib/forms/schemas'
+import { blockActionSchema, type BlockActionValues } from '$lib/forms/schemas'
 import { createGeolocationFromFiles } from '$lib/topo/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
-import z from 'zod'
 
-export const createBlock = form((data) => enhanceForm(data, createBlockActionSchema, createBlockAction))
+export const createBlock = form(blockActionSchema, (data) => enhanceForm(data, createBlockAction))
 
-const createBlockAction: Action<CreateBlockActionValues> = async (values, db, user) => {
+const createBlockAction: Action<BlockActionValues> = async (values, db, user) => {
   const { locals } = getRequestEvent()
 
   const slug = generateSlug(values.name)
@@ -65,14 +64,10 @@ const createBlockAction: Action<CreateBlockActionValues> = async (values, db, us
 
   if (values.folderName != null && block != null) {
     try {
-      const createdFiles = await handleFileUpload(
-        db,
-        locals.supabase,
-        values.folderName!,
-        config.files.folders.topos,
-        { blockFk: block.id, regionFk: block.regionFk },
-        values.bunnyVideoIds,
-      )
+      const createdFiles = await handleFileUpload(db, locals.supabase, values.folderName!, config.files.folders.topos, {
+        blockFk: block.id,
+        regionFk: block.regionFk,
+      })
 
       const fileBuffers = createdFiles.map((result) => result.fileBuffer).filter((buffer) => buffer != null)
 
@@ -108,11 +103,3 @@ const createBlockAction: Action<CreateBlockActionValues> = async (values, db, us
   // Redirect to the newly created block's page
   return ['', 'blocks', block.id].join('/')
 }
-
-type CreateBlockActionValues = z.infer<typeof createBlockActionSchema>
-const createBlockActionSchema = z.intersection(
-  z.object({
-    areaId: z.number(),
-  }),
-  blockActionSchema,
-)

@@ -1,9 +1,9 @@
 <script lang="ts">
   import GradeHistogram, { type GradeHistogramProps } from '$lib/components/GradeHistogram'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
+  import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper'
   import { queries, type Row } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
-  import ZeroQueryWrapper from '../ZeroQueryWrapper'
 
   interface Props extends Partial<GradeHistogramProps> {
     areaId: number

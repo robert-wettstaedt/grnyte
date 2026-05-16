@@ -5,7 +5,7 @@
   import AreaFormFields from '$lib/components/AreaFormFields'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
@@ -16,6 +16,17 @@
   const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
+
+  $effect(() => {
+    updateArea.fields.set({
+      description: area.description ?? undefined,
+      id: String(area.id),
+      name: area.name,
+      parentFk: area.parentFk?.toString(),
+      regionFk: String(area.regionFk),
+      type: area.type ?? undefined,
+    })
+  })
 </script>
 
 <svelte:head>
@@ -32,7 +43,8 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateArea.enhance(enhanceForm())}>
-  <AreaFormFields {...area} />
+  <AreaFormFields fields={updateArea.fields} />
+
   <FormActionBar label={t('areas.updateArea')} pending={updateArea.pending} />
 </form>
 

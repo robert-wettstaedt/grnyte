@@ -3,60 +3,109 @@ import { areaTypeEnum, ascentTypeEnum } from '$lib/db/schema'
 import { type ActionFailure as KitActionFailure } from '@sveltejs/kit'
 import { z } from 'zod'
 
+export const stringToInt = z.codec(
+  z.string({ error: 'form.required' }).regex(z.regexes.integer, 'form.numInvalid'),
+  z.int(),
+  {
+    decode: (str) => Number.parseInt(str, 10),
+    encode: (num) => num.toString(),
+  },
+)
+
+export const stringToIntOptional = z.codec(
+  z.union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.integer, 'form.numInvalid')]),
+  z.int().optional(),
+  {
+    decode: (str) => (str === '' ? undefined : Number.parseInt(str, 10)),
+    encode: (num) => (num == null ? '' : num.toString()),
+  },
+)
+
+export const stringToNumber = z.codec(
+  z.string({ error: 'form.required' }).regex(z.regexes.number, 'form.numInvalid'),
+  z.number(),
+  {
+    decode: (str) => Number.parseFloat(str),
+    encode: (num) => num.toString(),
+  },
+)
+
+export const stringToNumberOptional = z.codec(
+  z.union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.number, 'form.numInvalid')]),
+  z.number().optional(),
+  {
+    decode: (str) => (str === '' ? undefined : Number.parseFloat(str)),
+    encode: (num) => (num == null ? '' : num.toString()),
+  },
+)
+
 export type ActionFailure<T> = KitActionFailure<T & { error: string }>
 
 export const addFileActionSchema = z.object({
-  bunnyVideoIds: z.array(z.string()).nullish(),
-  folderName: z.string(),
+  bunnyVideoIds: z.string().optional(),
+  folderName: z.string().optional(),
 })
 export type AddFileActionValues = z.infer<typeof addFileActionSchema>
 
-export const addOptionalFileActionSchema = z.object({
-  bunnyVideoIds: z.array(z.string()).nullish(),
-  folderName: z.string().nullable().optional(),
-})
-export type AddOptionalFileActionValues = z.infer<typeof addOptionalFileActionSchema>
-
-export type AreaActionValues = z.infer<typeof areaActionSchema>
 export const areaActionSchema = z.object({
-  description: z.string().nullable().default(''),
-  id: z.number().nullish(),
-  name: z.string().trim(),
-  parentFk: z.number().nullish(),
-  regionFk: z.number(),
+  description: z.string().optional().default(''),
+  id: stringToInt.optional(),
+  name: z
+    .string({ error: 'form.required' })
+    .trim()
+    .min(3, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 3 } }) }),
+  parentFk: stringToInt.optional(),
+  regionFk: stringToInt,
   type: z.enum(areaTypeEnum).default('area'),
 })
+export type AreaActionValuesIn = z.input<typeof areaActionSchema>
+export type AreaActionValues = z.output<typeof areaActionSchema>
 
-export type BlockActionValues = z.infer<typeof blockActionSchema>
 export const blockActionSchema = z.intersection(
   z.object({
-    name: z.string(),
+    areaId: stringToInt,
+    name: z
+      .string()
+      .trim()
+      .min(1, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 1 } }) }),
   }),
-  addOptionalFileActionSchema,
+  addFileActionSchema,
 )
+export type BlockActionValuesIn = z.input<typeof blockActionSchema>
+export type BlockActionValues = z.output<typeof blockActionSchema>
 
 export const routeActionSchema = z.object({
-  description: z.string().nullable().default(''),
-  gradeFk: z.number().nullable().optional(),
+  blockId: stringToInt,
+  description: z.string().default(''),
+  gradeFk: stringToIntOptional,
   name: z.string().trim().default(''),
-  rating: z.number().min(1).max(3).nullable().optional(),
-  tags: z.array(z.string()).nullable().optional(),
+  rating: stringToIntOptional.refine(
+    (value) => value == null || (value >= 1 && value <= 3),
+    JSON.stringify({ message: 'form.numBetween', params: { min: 1, max: 3 } }),
+  ),
+  redirect: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 })
-export type RouteActionValues = z.infer<typeof routeActionSchema>
+export type RouteActionValuesIn = z.input<typeof routeActionSchema>
+export type RouteActionValues = z.output<typeof routeActionSchema>
 
 export const ascentActionSchema = z.intersection(
   z.object({
-    dateTime: z.string().date(),
-    filePaths: z.array(z.string()).nullable().optional(),
-    gradeFk: z.number().nullable().optional(),
-    humidity: z.number().nullable().optional(),
-    notes: z.string().nullable().optional(),
-    rating: z.number().min(1).max(3).nullable().optional(),
-    temperature: z.number().nullable().optional(),
-    type: z.enum(ascentTypeEnum),
+    dateTime: z.iso.date(),
+    filePaths: z.array(z.string()).optional(),
+    gradeFk: stringToIntOptional,
+    humidity: stringToIntOptional,
+    notes: z.string().optional(),
+    rating: stringToIntOptional.refine(
+      (value) => value == null || (value >= 1 && value <= 3),
+      JSON.stringify({ message: 'form.numBetween', params: { min: 1, max: 3 } }),
+    ),
+    temperature: stringToIntOptional,
+    type: z.enum(ascentTypeEnum, 'form.required'),
   }),
-  addOptionalFileActionSchema,
+  addFileActionSchema,
 )
+export type AscentActionValuesIn = z.input<typeof ascentActionSchema>
 export type AscentActionValues = z.infer<typeof ascentActionSchema>
 
 export const tagActionSchema = z.object({
@@ -82,8 +131,8 @@ export const regionSettingsSchema = z.object({
 export type RegionSettings = z.infer<typeof regionSettingsSchema>
 
 export const regionActionSchema = z.object({
-  name: z.string(),
-  settings: z.string().nullish(),
+  name: z.string().min(3, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 3 } }) }),
+  settings: z.string().optional(),
 })
 export type RegionActionValues = z.infer<typeof regionActionSchema>
 
@@ -123,9 +172,7 @@ const baseCreateUserActionSchema = z.intersection(profileActionSchema, passwordA
 export const createUserActionSchema = z.intersection(
   baseCreateUserActionSchema,
   z.object({
-    acceptTerms: z.literal('on', {
-      message: 'You must accept the Terms of Service and Privacy Policy to create an account',
-    }),
+    acceptTerms: z.literal('on', { message: 'form.acceptTerms' }),
   }),
 )
 export type CreateUserActionValues = z.infer<typeof createUserActionSchema>

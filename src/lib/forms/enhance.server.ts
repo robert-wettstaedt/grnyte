@@ -6,8 +6,6 @@ import { error, redirect } from '@sveltejs/kit'
 import type { ExtractTablesWithRelations } from 'drizzle-orm'
 import type { PgTransaction } from 'drizzle-orm/pg-core'
 import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js'
-import { z } from 'zod'
-import type { ActionFailure } from './schemas'
 
 type Schema = typeof schema
 
@@ -38,25 +36,9 @@ export async function enhance<T = unknown, R = unknown>(values: T, callback: Act
   return returnValue
 }
 
-export async function enhanceForm<Output = unknown, Input = Output>(
-  formData: FormData,
-  schema: z.ZodType<Output, Input>,
-  callback: Action<Output>,
-) {
-  const { validateFormData } = await import('./validate.svelte')
-
-  const returnValue = await enhance(formData, async (values, db, user) => {
-    let validated: Output
-
-    try {
-      // Validate the form data
-      validated = await validateFormData(schema, values)
-    } catch (exception) {
-      const failure = exception as ActionFailure<Output>
-      error(failure.status, failure.data.error)
-    }
-
-    return await callback(validated, db, user)
+export async function enhanceForm<T = unknown>(data: T, callback: Action<T>) {
+  const returnValue = await enhance(data, async (values, db, user) => {
+    return await callback(values, db, user)
   })
 
   if (typeof returnValue === 'string') {

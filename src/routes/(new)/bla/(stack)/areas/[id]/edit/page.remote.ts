@@ -13,7 +13,7 @@ import { error } from '@sveltejs/kit'
 import { and, eq, isNull, not } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateArea = form((data) => enhanceForm(data, areaActionSchema, updateAreaAction))
+export const updateArea = form(areaActionSchema, (data) => enhanceForm(data, updateAreaAction))
 
 export const deleteArea = command(z.number(), (id) => enhance(id, deleteAreaAction))
 

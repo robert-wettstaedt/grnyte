@@ -1,2 +1,2 @@
-export { default } from './Trans.svelte'
 export * from './part'
+export { default } from './Trans.svelte'

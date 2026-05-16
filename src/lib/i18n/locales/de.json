@@ -73,6 +73,14 @@
       "username": "Benutzername",
       "yes": "Ja"
     },
+    "form": {
+      "required": "Dieses Feld ist erforderlich",
+      "charsMin": "Mindestens {{count}} Zeichen erforderlich",
+      "numBetween": "Muss zwischen {{min}} und {{max}} liegen",
+      "numInvalid": "Ungültige Zahl",
+      "yearInvalid": "Ungültiges Jahr",
+      "acceptTerms": "Du musst die Nutzungsbedingungen und die Datenschutzrichtlinie akzeptieren, um ein Konto zu erstellen"
+    },
     "nav": {
       "home": "Start",
       "browse": "Durchsuchen",

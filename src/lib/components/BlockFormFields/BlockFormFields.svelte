@@ -1,31 +1,34 @@
 <script lang="ts">
   import FileUpload, { type FileUploadProps } from '$lib/components/FileUpload'
-  import type { Row } from '$lib/db/zero'
+  import FormFieldError from '$lib/components/FormFieldError'
+  import type { BlockActionValuesIn } from '$lib/forms/schemas'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormFields } from '@sveltejs/kit'
 
   interface Props {
-    areaFk: Row<'blocks'>['areaFk'] | undefined | null
-    blockId?: Row<'blocks'>['id'] | undefined | null
-    name: Row<'blocks'>['name'] | undefined | null
+    fields: RemoteFormFields<BlockActionValuesIn>
     fileUploadProps?: FileUploadProps
   }
 
-  let { areaFk, blockId, name = $bindable(), fileUploadProps }: Props = $props()
+  let { fields, fileUploadProps }: Props = $props()
 
   const { t } = getI18n()
 </script>
 
-{#if areaFk != null}
-  <input type="hidden" name="areaId" value={areaFk} />
-{/if}
-
-{#if blockId != null}
-  <input type="hidden" name="blockId" value={blockId} />
+{#if fields.areaId.value() != null}
+  <input type="hidden" {...fields.areaId.as('text')} />
 {/if}
 
 <label class="label">
   <span>{t('common.name')}</span>
-  <input class="input" name="name" type="text" placeholder={t('common.enterName')} bind:value={name} />
+  <input
+    class="input"
+    aria-errormessage={fields.name.issues() == null ? undefined : 'block-form-fields-name-error'}
+    placeholder={t('common.enterName')}
+    {...fields.name.as('text')}
+  />
+
+  <FormFieldError id="block-form-fields-name-error" issues={fields.name.issues()} />
 </label>
 
 {#if fileUploadProps != null}

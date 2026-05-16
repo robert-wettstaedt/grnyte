@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
   import { queries } from '$lib/db/zero'

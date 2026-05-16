@@ -1,5 +1,4 @@
-import { getSubscriptionId } from '$lib/components/PushNotificationSubscriber'
-import { updateLanguage } from '$lib/i18n/language.remote'
+import { getSubscriptionId } from '$lib/components/PushNotificationSubscriber/lib'
 import type { i18n as I18nInstance } from 'i18next'
 import i18next from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
@@ -12,17 +11,24 @@ import { defaultLanguage, type Language, languages } from './utils'
 
 export * from './utils'
 
-i18next.use(LanguageDetector).init({
-  fallbackLng: defaultLanguage,
-  resources: { en, de },
-  interpolation: {
-    escapeValue: false, // not needed for svelte as it escapes by default
-    format: function (value, format) {
-      if (format === 'capitalize') return `${value.substr(0, 1).toUpperCase()}${value.substr(1)}`
-      return value
+i18next
+  .use(LanguageDetector)
+  .init({
+    fallbackLng: defaultLanguage,
+    resources: { en, de },
+    interpolation: {
+      escapeValue: false, // not needed for svelte as it escapes by default
     },
-  },
-})
+  })
+  .then(() => {
+    i18next.services.formatter?.add('capitalize', (value) => {
+      if (typeof value !== 'string' || value.length === 0) {
+        return String(value)
+      }
+
+      return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`
+    })
+  })
 
 export const initI18n = () => {
   const store = createI18nStore(i18next)
@@ -34,6 +40,7 @@ export const initI18n = () => {
       const pushSubscriptionId = await getSubscriptionId()
 
       if (language != null && pushSubscriptionId != null) {
+        const { updateLanguage } = await import('$lib/i18n/language.remote')
         await updateLanguage({ language, pushSubscriptionId })
       }
     } catch (error) {

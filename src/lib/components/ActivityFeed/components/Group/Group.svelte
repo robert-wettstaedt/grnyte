@@ -1,7 +1,7 @@
 <script lang="ts">
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import FileViewer from '$lib/components/FileViewer'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getI18n } from '$lib/i18n'
   import type { ActivityGroup } from '../..'
   import Item, { ItemLoader } from '../Item'

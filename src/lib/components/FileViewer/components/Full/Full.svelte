@@ -2,7 +2,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_BUNNY_STREAM_LIBRARY_ID } from '$env/static/public'
   import { getVideoIframeUrl, VideoStatus } from '$lib/bunny'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import type { File } from '$lib/db/schema'
   import { getI18n } from '$lib/i18n'

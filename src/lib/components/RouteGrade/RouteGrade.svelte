@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Row } from '$lib/db/zero'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import CorrectedGrade from './components/CorrectedGrade'
   import type { InferResultType } from '$lib/db/types'
 
@@ -13,7 +13,7 @@
 
   const send = $derived(
     ascents
-      ?.filter((ascent) => String(ascent.createdBy) === String(pageState.user!.id))
+      ?.filter((ascent) => String(ascent.createdBy) === String(pageState.user?.id))
       .find((ascent) => ascent.type === 'send'),
   )
 </script>

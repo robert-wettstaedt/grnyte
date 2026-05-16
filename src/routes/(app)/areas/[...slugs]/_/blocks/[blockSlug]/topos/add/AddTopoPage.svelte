@@ -2,16 +2,22 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FileUpload from '$lib/components/FileUpload'
-  import { enhanceWithFile } from '$lib/components/FileUpload/enhance.svelte'
   import FormActionBar from '$lib/components/FormActionBar'
   import { getBlockContext } from '$lib/contexts/block'
-  import type { EnhanceState } from '$lib/forms/enhance.svelte'
+  import { enhanceForm, type EnhanceState } from '$lib/forms/enhance.svelte'
+  import { getI18n } from '$lib/i18n'
   import { AppBar } from '@skeletonlabs/skeleton-svelte'
   import { addTopo } from './page.remote'
-  import { getI18n } from '$lib/i18n'
 
   const { block } = getBlockContext()
   const { t } = getI18n()
+
+  $effect(() => {
+    addTopo.fields.set({
+      blockId: String(block.id),
+      redirect: page.url.searchParams.get('redirect') ?? '',
+    })
+  })
 
   let basePath = $derived(`/areas/${page.params.slugs}/_/blocks/${page.params.blockSlug}`)
 
@@ -30,17 +36,13 @@
   </AppBar.Toolbar>
 </AppBar>
 
-<form
-  class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4"
-  {...addTopo.enhance(enhanceWithFile(state))}
-  enctype="multipart/form-data"
->
+<form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...addTopo.enhance(enhanceForm(state))}>
   <FileUpload {state} accept="image/*" />
 
-  <input type="hidden" name="redirect" value={page.url.searchParams.get('redirect') ?? ''} />
-  <input type="hidden" name="blockId" value={block.id} />
+  <input type="hidden" {...addTopo.fields.redirect.as('text')} />
+  <input type="hidden" {...addTopo.fields.blockId.as('text')} />
 
   <p class="mt-8 text-sm text-gray-500">{t('topo.uploadMoreLater')}</p>
 
-  <FormActionBar label={t('fileUpload.uploadFile')} pending={state.loading ? 1 : addTopo.pending} />
+  <FormActionBar {state} label={t('fileUpload.uploadFile')} pending={state.loading ? 1 : addTopo.pending} />
 </form>

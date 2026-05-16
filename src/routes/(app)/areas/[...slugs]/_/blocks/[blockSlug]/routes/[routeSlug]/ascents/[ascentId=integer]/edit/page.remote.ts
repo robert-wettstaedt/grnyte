@@ -5,7 +5,7 @@ import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
 import { activities, ascents } from '$lib/db/schema'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
-import { ascentActionSchema } from '$lib/forms/schemas'
+import { ascentActionSchema, stringToInt } from '$lib/forms/schemas'
 import { deleteFiles } from '$lib/helper.server'
 import { updateRoutesUserData } from '$lib/routes.server'
 import { error } from '@sveltejs/kit'
@@ -13,7 +13,15 @@ import { differenceInMinutes } from 'date-fns'
 import { and, eq } from 'drizzle-orm'
 import z from 'zod'
 
-export const updateAscent = form((data) => enhanceForm(data, editAscentActionSchema, updateAscentAction))
+type EditAscentActionValues = z.infer<typeof editAscentActionSchema>
+const editAscentActionSchema = z.intersection(
+  z.object({
+    ascentId: stringToInt,
+  }),
+  ascentActionSchema,
+)
+
+export const updateAscent = form(editAscentActionSchema, (data) => enhanceForm(data, updateAscentAction))
 
 export const deleteAscent = command(z.number(), (id) => enhance(id, deleteAscentAction))
 
@@ -42,7 +50,14 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
 
   await db
     .update(ascents)
-    .set({ ...entity, routeFk: ascent.route.id })
+    .set({
+      ...entity,
+      gradeFk: entity.gradeFk == null ? null : entity.gradeFk,
+      humidity: entity.humidity == null ? null : entity.humidity,
+      rating: entity.rating == null ? null : entity.rating,
+      routeFk: ascent.route.id,
+      temperature: entity.temperature == null ? null : entity.temperature,
+    })
     .where(eq(ascents.id, ascent.id))
 
   await updateRoutesUserData(ascent.route.id, db)
@@ -61,7 +76,7 @@ const updateAscentAction: Action<EditAscentActionValues> = async (values, db, us
     })
   }
 
-  if (folderName != null) {
+  if (folderName != null || bunnyVideoIds != null) {
     const dstFolder = `${config.files.folders.userContent}/${user.id}`
     const createdFiles = await handleFileUpload(
       db,
@@ -134,11 +149,3 @@ const deleteAscentAction: Action<number> = async (ascentId, db, user) => {
 
   return ['', 'routes', ascent.routeFk].join('/')
 }
-
-type EditAscentActionValues = z.infer<typeof editAscentActionSchema>
-const editAscentActionSchema = z.intersection(
-  z.object({
-    ascentId: z.number(),
-  }),
-  ascentActionSchema,
-)

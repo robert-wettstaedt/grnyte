@@ -1,6 +1,6 @@
 declare module 'remark-mentions' {
-  import type { Plugin } from 'unified'
   import type { Root } from 'mdast'
+  import type { Plugin } from 'unified'
 
   interface Options {
     usernameLink: (username: string) => string

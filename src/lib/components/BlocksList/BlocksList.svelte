@@ -4,7 +4,7 @@
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import GenericList from '$lib/components/GenericList'
   import Image from '$lib/components/Image'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'

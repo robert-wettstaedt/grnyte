@@ -5,16 +5,16 @@ import {
   REGION_PERMISSION_ADMIN,
   REGION_PERMISSION_READ,
 } from '$lib/auth'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { updateRegionMember } from '$lib/forms/actions.server'
-import { error, fail, redirect } from '@sveltejs/kit'
-import type { PageServerLoad } from './$types'
-import { z } from 'zod'
-import { validateFormData } from '$lib/forms/validate.server'
-import type { ActionFailure } from '$lib/forms/schemas'
-import * as schema from '$lib/db/schema'
-import { eq } from 'drizzle-orm'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
+import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import * as schema from '$lib/db/schema'
+import { updateRegionMember } from '$lib/forms/actions.server'
+import type { ActionFailure } from '$lib/forms/schemas'
+import { validateFormData } from '$lib/forms/validate.server'
+import { error, fail, redirect } from '@sveltejs/kit'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import type { PageServerLoad } from './$types'
 
 export const load = (async ({ locals, params }) => {
   if (!checkRegionPermission(locals.userRegions, [REGION_PERMISSION_READ], Number(params.regionId))) {

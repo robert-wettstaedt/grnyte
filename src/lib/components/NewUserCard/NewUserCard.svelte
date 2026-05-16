@@ -1,9 +1,10 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME, PUBLIC_TOPO_EMAIL } from '$env/static/public'
+  import FormFieldError from '$lib/components/FormFieldError'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { createRegion } from './data.remote'
   import { getI18n } from '$lib/i18n'
+  import { createRegion } from './data.remote'
 
   const { t } = getI18n()
 </script>
@@ -19,11 +20,11 @@
     <label class="label">
       <span>{t('common.name')}</span>
       <input
+        aria-errormessage={createRegion.fields.name.issues() ? 'new-user-card-name-error' : undefined}
         class="input h-8.5 rounded-tr-none rounded-br-none"
         disabled={createRegion.pending > 0}
-        name="name"
         placeholder={t('common.enterName')}
-        type="text"
+        {...createRegion.fields.name.as('text')}
       />
     </label>
 
@@ -31,7 +32,7 @@
       aria-label={t('settings.regionSettings.createRegion')}
       title={t('settings.regionSettings.createRegion')}
       class="btn-icon preset-filled-primary-500 h-4.5 rounded-tl-none rounded-bl-none"
-      disabled={createRegion.pending > 0}
+      disabled={createRegion.pending > 0 || !createRegion.fields.name.value()}
       type="submit"
     >
       {#if createRegion.pending > 0}
@@ -41,6 +42,8 @@
       {/if}
     </button>
   </form>
+
+  <FormFieldError id="new-user-card-name-error" issues={createRegion.fields.name.issues()} />
 
   {#if PUBLIC_TOPO_EMAIL}
     <p class="mt-6 text-center opacity-75">

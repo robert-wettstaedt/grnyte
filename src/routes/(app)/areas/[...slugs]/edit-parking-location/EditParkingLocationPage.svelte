@@ -5,34 +5,35 @@
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import DangerZone from '$lib/components/DangerZone'
   import FormActionBar from '$lib/components/FormActionBar'
-  import { pageState } from '$lib/components/Layout'
+  import { pageState } from '$lib/components/Layout/page.svelte'
   import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
-  import { AppBar, Tabs } from '@skeletonlabs/skeleton-svelte'
   import { getI18n } from '$lib/i18n'
-  import type { Coordinate } from 'ol/coordinate'
+  import { AppBar, Tabs } from '@skeletonlabs/skeleton-svelte'
   import type { ChangeEventHandler } from 'svelte/elements'
   import { deleteParkingLocation, updateParkingLocation } from './page.remote'
+  import FormFieldError from '$lib/components/FormFieldError'
 
   const { area } = getAreaContext()
   const { t } = getI18n()
 
   let basePath = $derived(`/areas/${page.params.slugs}`)
-
-  let coordinate: Coordinate | null = $state(null)
-  let polyline: string | null = $state(null)
   let tabSet = $state('map')
 
-  const getValue: ChangeEventHandler<HTMLInputElement> = (event): number => {
-    return Number((event.target as HTMLInputElement).value)
+  $effect(() => {
+    updateParkingLocation.fields.areaId.set(String(area.id))
+  })
+
+  const getValue: ChangeEventHandler<HTMLInputElement> = (event): string => {
+    return String((event.target as HTMLInputElement).value)
   }
 
   const onChangeLat: ChangeEventHandler<HTMLInputElement> = (event) => {
-    coordinate = [coordinate?.at(0), getValue(event)]
+    updateParkingLocation.fields.lat.set(getValue(event))
   }
 
   const onChangeLong: ChangeEventHandler<HTMLInputElement> = (event) => {
-    coordinate = [getValue(event), coordinate?.at(1)]
+    updateParkingLocation.fields.long.set(getValue(event))
   }
 </script>
 
@@ -50,7 +51,12 @@
 </AppBar>
 
 <form class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4" {...updateParkingLocation.enhance(enhanceForm())}>
-  <input type="hidden" name="areaId" value={area.id} />
+  <input type="hidden" {...updateParkingLocation.fields.areaId.as('text')} />
+  <input type="hidden" {...updateParkingLocation.fields.lat.as('text')} />
+  <input type="hidden" {...updateParkingLocation.fields.long.as('text')} />
+  <input type="hidden" {...updateParkingLocation.fields.polyline.as('text')} />
+
+  <FormFieldError issues={updateParkingLocation.fields.polyline.issues()} />
 
   <Tabs onValueChange={(event) => (tabSet = event.value ?? 'map')} value={tabSet}>
     <Tabs.List>
@@ -60,6 +66,9 @@
     </Tabs.List>
 
     <Tabs.Content value="map">
+      <FormFieldError issues={updateParkingLocation.fields.lat.issues()} />
+      <FormFieldError issues={updateParkingLocation.fields.long.issues()} />
+
       <div use:fitHeightAction>
         {#await import('$lib/components/BlocksMapWithAddableMarker') then BlocksMap}
           <BlocksMap.default
@@ -69,31 +78,44 @@
             ]}
             onChange={(value) => {
               if (typeof value === 'string') {
-                polyline = value
+                updateParkingLocation.fields.polyline.set(value)
               } else {
-                coordinate = value
+                updateParkingLocation.fields.lat.set(String(value.at(1)))
+                updateParkingLocation.fields.long.set(String(value.at(0)))
               }
             }}
             selectedArea={area}
           />
         {/await}
       </div>
-
-      <input hidden name="lat" value={coordinate?.at(1)} />
-      <input hidden name="long" value={coordinate?.at(0)} />
-      <input hidden name="polyline" value={polyline} />
     </Tabs.Content>
 
     <Tabs.Content value="latlong">
       <div class="flex flex-col gap-4">
         <label class="label">
           <span>{t('map.latitude')}</span>
-          <input class="input" name="lat" onchange={onChangeLat} value={coordinate?.at(1) ?? ''} />
+          <input
+            class="input"
+            aria-errormessage={updateParkingLocation.fields.lat.issues() ? 'parking-form-fields-lat-error' : undefined}
+            onchange={onChangeLat}
+            value={updateParkingLocation.fields.lat.value()}
+          />
+
+          <FormFieldError id="parking-form-fields-lat-error" issues={updateParkingLocation.fields.lat.issues()} />
         </label>
 
         <label class="label">
           <span>{t('map.longitude')}</span>
-          <input class="input" name="long" onchange={onChangeLong} value={coordinate?.at(0) ?? ''} />
+          <input
+            class="input"
+            aria-errormessage={updateParkingLocation.fields.long.issues()
+              ? 'parking-form-fields-long-error'
+              : undefined}
+            onchange={onChangeLong}
+            value={updateParkingLocation.fields.long.value()}
+          />
+
+          <FormFieldError id="parking-form-fields-long-error" issues={updateParkingLocation.fields.long.issues()} />
         </label>
       </div>
     </Tabs.Content>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { focus } from '$lib/actions/focus.svelte'
   import { getI18n } from '$lib/i18n'
 
   let { form } = $props()
@@ -35,6 +36,7 @@
             placeholder={t('common.enterEmail')}
             required
             type="email"
+            use:focus
             value={form?.email}
           />
         </label>
