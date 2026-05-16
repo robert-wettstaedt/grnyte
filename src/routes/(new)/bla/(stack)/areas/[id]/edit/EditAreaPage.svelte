@@ -21,12 +21,12 @@
   </title>
 </svelte:head>
 
-<div class="py-16">
-  <form {...updateArea.enhance(enhanceForm())}>
-    <AppBar class="fixed top-0 z-10">
+<div class="m-auto flex max-w-xl flex-col items-center py-16">
+  <form class="w-full" {...updateArea.enhance(enhanceForm())}>
+    <AppBar class="fixed top-0 z-10 max-w-xl">
       <AppBar.Toolbar class="grid-cols-[auto_1fr_auto]">
         <AppBar.Lead>
-          <button type="button" class="btn-icon" onclick={() => history.back()} title={t('common.back')}>
+          <button class="btn-icon" onclick={() => history.back()} title={t('common.back')} type="button">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
         </AppBar.Lead>
@@ -58,7 +58,7 @@
   </form>
 
   {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk) || (checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk) && area.createdBy === pageState.user?.id)}
-    <div class="px-3">
+    <div class="w-full px-3 md:px-0">
       <DangerZone name={t('entities.area')} onDelete={() => (area.id == null ? undefined : deleteArea(area.id))} />
     </div>
   {/if}

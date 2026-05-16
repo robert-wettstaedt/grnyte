@@ -35,7 +35,7 @@
           <div {...attributes} transition:slide={{ duration: 150 }}>
             <nav>
               <ul>
-                <li class="flex items-center justify-between p-2 md:p-4">
+                <li class="flex items-center justify-between gap-4">
                   <div class="flex flex-col">
                     <span>{t('dangerZone.delete', { name })}</span>
                     <span class="text-sm opacity-70">{t('dangerZone.cannotUndo')}</span>

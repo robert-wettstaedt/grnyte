@@ -1,5 +1,5 @@
 import { getSubscriptionId } from '$lib/components/PushNotificationSubscriber/lib'
-import type { i18n as I18nInstance } from 'i18next'
+import type { Callback, i18n as I18nInstance, TFunction } from 'i18next'
 import i18next from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { getContext, setContext } from 'svelte'
@@ -30,7 +30,16 @@ i18next
     })
   })
 
-export const initI18n = () => {
+interface I18n {
+  t: TFunction<['translation', ...string[]], undefined>
+  changeLanguage: (
+    lng?: string | undefined,
+    callback?: Callback | undefined,
+  ) => Promise<TFunction<'translation', undefined>>
+  language: Language
+}
+
+export const initI18n = (): I18n => {
   const store = createI18nStore(i18next)
   setContext('i18n', store)
 
@@ -47,16 +56,22 @@ export const initI18n = () => {
       console.log(error)
     }
   })
+
+  return {
+    t: i18next.t,
+    changeLanguage: i18next.changeLanguage,
+    language: i18next.language as Language,
+  }
 }
 
-export const getI18n = () => {
+export const getI18n = (): I18n => {
   const i18nStore = getContext('i18n') as Readable<I18nInstance>
   const reactive = fromStore(i18nStore)
   const language = reactive.current.languages.find((lang) => languages.includes(lang as Language))
 
   return {
-    t: ((...args: Parameters<I18nInstance['t']>) => reactive.current.t(...args)) as I18nInstance['t'],
-    changeLanguage: (...args: Parameters<I18nInstance['changeLanguage']>) => reactive.current.changeLanguage(...args),
+    t: ((...args) => reactive.current.t(...args)) as I18nInstance['t'],
+    changeLanguage: (...args) => reactive.current.changeLanguage(...args),
     language: language as Language,
   }
 }

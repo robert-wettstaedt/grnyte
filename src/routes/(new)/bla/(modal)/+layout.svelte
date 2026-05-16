@@ -1,7 +1,9 @@
 <script lang="ts">
-  import Logo from '$lib/assets/logo.svg'
   import { afterNavigate, beforeNavigate, goto, replaceState } from '$app/navigation'
   import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { fitHeightAction } from '$lib/actions/fit-height.svelte'
+  import Logo from '$lib/assets/logo.svg'
   import BottomSheetPanel, { sheetState } from '$lib/components/BottomSheetPanel'
   import LoadingIndicator from '$lib/components/LoadingIndicator'
   import RoutesFilter from '$lib/components/RouteList/components/RoutesFilter'
@@ -11,10 +13,9 @@
   import { validateObject } from '$lib/forms/validate.svelte'
   import { getI18n } from '$lib/i18n'
   import { fly } from 'svelte/transition'
-  import Map, { type BlocksMapProps, type MapFocus, type NestedBlock } from '../map'
-  import Search from '../search/Search.svelte'
+  import Map, { type BlocksMapProps, type MapFocus, type NestedBlock } from '../Map'
+  import Search from '../Search'
   import type { LayoutProps } from './$types'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
   let { children }: LayoutProps = $props()
 
@@ -149,15 +150,17 @@
   const effectiveFocus: MapFocus | null = $derived(focus ?? restoredFocus)
 </script>
 
-<Map {...data} focus={effectiveFocus} onviewchange={(view) => (mapViewState = view)} />
+<div use:fitHeightAction={{ paddingBottom: 0 }}>
+  <Map {...data} focus={effectiveFocus} onviewchange={(view) => (mapViewState = view)} />
+</div>
 
 {#if !isDetailSheetOpen || page.route.id?.includes('/search')}
   <div
-    class="absolute top-2 left-1/2 z-10 flex w-full -translate-x-1/2 gap-2 px-2"
+    class="absolute top-2 left-0 z-10 flex w-full justify-center gap-2 px-2"
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
-    <a href="/bla">
+    <a class="md:hidden" href="/bla">
       <img class="min-h-9 min-w-9 rounded" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
     </a>
 

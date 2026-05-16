@@ -20,7 +20,11 @@
   let titleEl = $state<HTMLElement>()
   let contentEl = $state<HTMLElement>()
   let innerHeight = $state(window.innerHeight)
+  let innerWidth = $state(window.innerWidth)
   let sheet = $state<ReturnType<TypeOfBottomSheet> | undefined>(undefined)
+
+  const MD_BREAKPOINT_PX = 768
+  const isMdUp = $derived(innerWidth >= MD_BREAKPOINT_PX)
 
   function calc() {
     const titleHeight = titleEl?.clientHeight
@@ -76,16 +80,20 @@
   })
 </script>
 
-<svelte:window bind:innerHeight />
+<svelte:window bind:innerHeight bind:innerWidth />
 <svelte:document onclick={handleDocumentClick} />
 
 {#snippet content()}
-  <BottomSheet.Sheet class="preset-filled-surface-100-900!">
-    <BottomSheet.Handle style="background: var(--color-surface-100-900)" />
+  <BottomSheet.Sheet
+    class="preset-filled-surface-100-900! block! max-w-md! md:top-12! md:right-auto! md:bottom-12! md:left-25! md:m-auto md:rounded-lg!"
+  >
+    {#if !isMdUp}
+      <BottomSheet.Handle style="background: var(--color-surface-100-900)" />
+    {/if}
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-100-900 sticky top-9 z-100 flex items-center justify-between p-2 shadow md:p-4"
+      class="preset-filled-surface-100-900 sticky top-9 z-100 flex items-center justify-between p-2 shadow md:top-0 md:p-4"
     >
       <div class="flex flex-col">
         {#if sheetState.subtitle}
@@ -115,7 +123,7 @@
       </button>
     </div>
 
-    <BottomSheet.Content class="w-full">
+    <BottomSheet.Content class="w-full pt-0!">
       <div bind:this={contentEl}>
         {@render children()}
       </div>
@@ -126,13 +134,20 @@
 <BottomSheet
   {...rest}
   bind:this={sheet}
-  settings={{
-    maxHeight,
-    ...rest.settings,
-    snapPoints: isNonClosable
-      ? [titleSnapPoint, ...(rest.settings?.snapPoints ?? [1])]
-      : (rest.settings?.snapPoints ?? [1]),
-  }}
+  settings={isMdUp
+    ? {
+        ...rest.settings,
+        disableDragging: true,
+        maxHeight: 0.9,
+        snapPoints: [1],
+      }
+    : {
+        maxHeight,
+        ...rest.settings,
+        snapPoints: isNonClosable
+          ? [titleSnapPoint, ...(rest.settings?.snapPoints ?? [1])]
+          : (rest.settings?.snapPoints ?? [1]),
+      }}
   bind:isSheetOpen
 >
   {#if showOverlay}
