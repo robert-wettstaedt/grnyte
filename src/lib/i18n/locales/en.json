@@ -417,7 +417,7 @@
       "createBlockInTitle": "Create block in {{name}}",
       "addBlock": "Add block",
       "saveBlock": "Save block",
-      "updateBlock": "Update block",
+      "editBlock": "Edit block",
       "topoImage": "Topo image",
       "noBlocksYet": "No blocks yet",
       "editBlockDetails": "Edit block details",

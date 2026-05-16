@@ -157,7 +157,7 @@
 </script>
 
 {#if isLoading && searchResults.length === 0}
-  <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
+  <div class="card p-2 md:p-4">
     <nav class="list-nav">
       <ul class="overflow-auto">
         {#each Array(10) as _}
@@ -167,7 +167,7 @@
     </nav>
   </div>
 {:else if searchResults.length === 0}
-  <div class="card preset-filled-surface-100-900 mt-8 p-2 md:p-4">
+  <div class="card mt-4 p-2 md:p-4">
     {t('common.noResults')} <span class="text-primary-500">{searchQuery}</span>.
   </div>
 {:else}
@@ -175,76 +175,80 @@
     <LoadingIndicator class="mt-8 flex items-center justify-center" size={12} />
   {/if}
 
-  <GenericList items={searchResults}>
-    {#snippet left(item)}
-      <div class="flex items-center gap-2">
-        {#if item.type === 'area'}
-          <i class="fa-solid fa-layer-group min-w-16 text-[51px] text-white"></i>
-        {:else if item.type === 'block'}
-          <Image path="/blocks/{item.data.id}/preview-image" size={64} />
-        {:else if item.type === 'route'}
-          <Image path="/blocks/{item.data.block?.id}/preview-image" size={64} />
-        {:else if item.type === 'user'}
-          <i class="fa-solid fa-circle-user min-w-16 text-[51px] text-white"></i>
-        {/if}
+  <div class="pt-4">
+    <GenericList items={searchResults}>
+      {#snippet left(item)}
+        <div class="flex items-center gap-2">
+          {#if item.type === 'area'}
+            <i class="fa-solid fa-layer-group text-surface-contrast-200-800 min-w-16 text-[51px]"></i>
+          {:else if item.type === 'block'}
+            <Image path="/blocks/{item.data.id}/preview-image" size={64} />
+          {:else if item.type === 'route'}
+            <Image path="/blocks/{item.data.block?.id}/preview-image" size={64} />
+          {:else if item.type === 'user'}
+            <i class="fa-solid fa-circle-user text-surface-contrast-200-800 min-w-16 text-[51px]"></i>
+          {/if}
 
-        {#if item.type === 'user'}
-          {item.name}
-        {:else}
-          <div class="flex flex-col gap-1 overflow-hidden">
-            <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-              {#if pageState.userRegions.length > 1 && item.region != null}
-                {item.region.name}
+          {#if item.type === 'user'}
+            {item.name}
+          {:else}
+            <div class="flex flex-col gap-1 overflow-hidden">
+              <p
+                class="text-surface-contrast-200-800 overflow-hidden text-xs text-ellipsis whitespace-nowrap opacity-50"
+              >
+                {#if pageState.userRegions.length > 1 && item.region != null}
+                  {item.region.name}
 
-                {#if item.type === 'area'}
-                  {#if item.data.parent != null}
+                  {#if item.type === 'area'}
+                    {#if item.data.parent != null}
+                      ·
+                    {/if}
+                  {:else}
                     ·
                   {/if}
-                {:else}
-                  ·
                 {/if}
-              {/if}
 
-              {#if item.type === 'area'}
-                {#if item.data.parent?.parent != null}
-                  {item.data.parent.parent.name} /
-                {/if}
-                {#if item.data.parent != null}
-                  {item.data.parent.name}
-                {/if}
-              {:else if item.type === 'block'}
-                {#if item.data.area?.parent != null}
-                  {item.data.area.parent.name} /
-                {/if}
-                {#if item.data.area != null}
-                  {item.data.area.name}
-                {/if}
-              {:else if item.type === 'route'}
-                {#if item.data.block?.area?.parent == null}
-                  {#if item.data.block?.area != null}
-                    {item.data.block.area.name} /
+                {#if item.type === 'area'}
+                  {#if item.data.parent?.parent != null}
+                    {item.data.parent.parent.name} /
                   {/if}
-                {:else}
-                  {item.data.block.area.parent.name} /
+                  {#if item.data.parent != null}
+                    {item.data.parent.name}
+                  {/if}
+                {:else if item.type === 'block'}
+                  {#if item.data.area?.parent != null}
+                    {item.data.area.parent.name} /
+                  {/if}
+                  {#if item.data.area != null}
+                    {item.data.area.name}
+                  {/if}
+                {:else if item.type === 'route'}
+                  {#if item.data.block?.area?.parent == null}
+                    {#if item.data.block?.area != null}
+                      {item.data.block.area.name} /
+                    {/if}
+                  {:else}
+                    {item.data.block.area.parent.name} /
+                  {/if}
+                  {#if item.data.block != null}
+                    {item.data.block.name}
+                  {/if}
                 {/if}
-                {#if item.data.block != null}
-                  {item.data.block.name}
-                {/if}
+              </p>
+
+              {#if item.type === 'route'}
+                <RouteName route={item.data} />
+              {:else}
+                {item.name}
               {/if}
-            </p>
 
-            {#if item.type === 'route'}
-              <RouteName route={item.data} />
-            {:else}
-              {item.name}
-            {/if}
-
-            {#if 'description' in item.data}
-              <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.data.description ?? ''} />
-            {/if}
-          </div>
-        {/if}
-      </div>
-    {/snippet}
-  </GenericList>
+              {#if 'description' in item.data}
+                <MarkdownRenderer className="short" encloseReferences="strong" markdown={item.data.description ?? ''} />
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/snippet}
+    </GenericList>
+  </div>
 {/if}

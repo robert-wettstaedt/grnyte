@@ -42,7 +42,7 @@
     {/if}
 
     {#if area.type !== 'area'}
-      <Action href="{page.url.pathname}/edit-parking-location">
+      <Action href="{page.url.pathname}/parking/edit">
         <i class="fa-solid fa-parking"></i>
         {t('areas.addParkingLocation')}
       </Action>
@@ -52,7 +52,7 @@
   {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk)}
     {#if area.type === 'sector'}
       <Action href="{page.url.pathname}/export">
-        <i class="fa-solid fa-export"></i>
+        <i class="fa-solid fa-file-pdf"></i>
         {t('export.pdf')}
       </Action>
     {/if}

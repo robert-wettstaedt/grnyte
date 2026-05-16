@@ -85,7 +85,7 @@
 
 {#snippet content()}
   <BottomSheet.Sheet
-    class="preset-filled-surface-50-950! block! max-w-md! md:top-12! md:right-auto! md:bottom-12! md:left-25! md:m-auto md:rounded-lg!"
+    class="preset-filled-surface-50-950! block! w-md! md:top-12! md:right-auto! md:bottom-12! md:left-25! md:m-auto md:rounded-lg!"
   >
     {#if !isMdUp}
       <BottomSheet.Handle style="background: var(--color-surface-50-950)" />

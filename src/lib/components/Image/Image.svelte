@@ -28,7 +28,7 @@
 
 {#if path == null || mediaHasError}
   <div
-    class="flex items-center justify-center text-white"
+    class="text-surface-contrast-200-800 flex items-center justify-center"
     style="min-width: {size}px; width: {size}px; min-height: {size}px; height: {size}px; font-size: {fontSize}px"
   >
     <i class="fa-solid fa-image"></i>

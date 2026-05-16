@@ -337,36 +337,37 @@
       <i class="fa-solid fa-layer-group text-sm" class:text-primary-500={isLayersSheetOpen}></i>
     </button>
   </div>
-
-  <BottomSheetPanel bind:isSheetOpen={isLayersSheetOpen} autoHeight title={t('map.layers')}>
-    <div class="flex flex-wrap justify-around gap-2">
-      {#each layerEntries as entry (entry.name)}
-        <button
-          aria-label={entry.label}
-          aria-pressed={entry.visible}
-          class="flex w-25 flex-col items-center justify-center gap-1"
-          onclick={() => handleToggleLayer(entry.name)}
-        >
-          <div
-            class="color-primary-500 flex h-25 w-25 items-center justify-center rounded-lg transition-colors {entry.visible
-              ? 'border-primary-500 border-2'
-              : 'border-surface-500/30 border'}"
-          >
-            <i class="{entry.icon} text-6xl transition-colors {entry.visible ? 'text-primary-500' : 'text-gray-400'}"
-            ></i>
-          </div>
-          <span
-            class="w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors {entry.visible
-              ? 'text-primary-500'
-              : 'text-gray-400'}"
-          >
-            {entry.label}
-          </span>
-        </button>
-      {/each}
-    </div>
-  </BottomSheetPanel>
 </div>
+
+<BottomSheetPanel bind:isSheetOpen={isLayersSheetOpen} autoHeight title={t('map.layers')}>
+  <div class="mt-4 flex flex-wrap justify-around gap-2">
+    {#each layerEntries as entry (entry.name)}
+      <button
+        aria-label={entry.label}
+        aria-pressed={entry.visible}
+        class="flex w-25 flex-col items-center justify-center gap-1"
+        onclick={() => handleToggleLayer(entry.name)}
+      >
+        <div
+          class={[
+            'color-primary-500 flex h-25 w-25 items-center justify-center rounded-lg transition-colors',
+            entry.visible ? 'preset-filled-primary-500' : 'border-surface-500/30 border',
+          ]}
+        >
+          <i class={['text-6xl transition-colors', entry.icon, !entry.visible && 'text-surface-500/30']}></i>
+        </div>
+        <span
+          class={[
+            'w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors',
+            entry.visible ? 'text-primary-500' : 'text-surface-500',
+          ]}
+        >
+          {entry.label}
+        </span>
+      </button>
+    {/each}
+  </div>
+</BottomSheetPanel>
 
 <style>
   :global(.geolocation-marker) {

@@ -72,7 +72,7 @@
     clearLongPress()
   }
   onMount(() => {
-    if (group != null) {
+    if (group != null && (editable || onChange != null)) {
       const drag = d3
         .drag()
         .on('start', (event) => {

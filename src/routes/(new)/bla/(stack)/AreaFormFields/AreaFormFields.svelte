@@ -15,14 +15,13 @@
   let { fields }: Props = $props()
 
   const { t } = getI18n()
-  let adminRegions = $derived(pageState.userRegions.filter((region) => region.role === 'region_admin'))
 </script>
 
 {#if fields.id.value() != null}
   <input type="hidden" {...fields.id.as('text')} />
 {/if}
 
-<fieldset class="card preset-filled-surface-100-900 relative mx-2 mt-16 p-3 md:mx-0">
+<fieldset class="card preset-filled-surface-100-900 relative mx-3 mt-16 p-3 md:mx-0">
   <legend class="text-surface-700-300 absolute -top-8 text-xs font-extrabold uppercase">
     {t('common.basics')}
   </legend>
@@ -70,7 +69,7 @@
   {/if}
 </fieldset>
 
-<fieldset class="card preset-filled-surface-100-900 relative mx-2 mt-16 p-3 md:mx-0">
+<fieldset class="card preset-filled-surface-100-900 relative mx-3 mt-16 p-3 md:mx-0">
   <legend class="text-surface-700-300 absolute -top-8 text-xs font-extrabold uppercase">
     {t('common.description')}
   </legend>

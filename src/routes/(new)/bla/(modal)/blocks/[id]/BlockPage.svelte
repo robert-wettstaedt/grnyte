@@ -4,12 +4,13 @@
   import { getBlockContext } from '$lib/contexts/block'
   import { getI18n } from '$lib/i18n'
   import i18next from 'i18next'
+  import BlockInfo from './BlockInfo.svelte'
 
   const { block } = getBlockContext()
   const { t } = getI18n()
 
   const allParents = $derived.by(() => {
-    let parent = block.area?.parent
+    let parent = block.area
 
     type Parent = typeof parent
     const arr: NonNullable<Parent>[] = []
@@ -51,4 +52,6 @@
   </div>
 {/snippet}
 
-<hr class="hr border-surface-300-700 my-4" />
+<BlockInfo />
+
+<hr class="hr border-surface-100-900 my-4" />

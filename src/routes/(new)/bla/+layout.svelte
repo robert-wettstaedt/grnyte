@@ -17,18 +17,18 @@
 {#if page.data.session?.user == null}
   {@render children?.()}
 {:else}
-  <PageStateLoader>
-    <main
-      class={[
-        'relative',
-        page.data.session?.user == null || pageState.userRegions.length === 0
-          ? 'min-h-[calc(100vh-3rem)]'
-          : 'min-h-[calc(100vh-3rem-4.515625rem)] md:ms-24 md:min-h-[calc(100vh-3rem)]',
-      ]}
-    >
+  <main
+    class={[
+      'relative',
+      page.data.session?.user == null || pageState.userRegions.length === 0
+        ? 'min-h-[calc(100vh-3rem)]'
+        : 'min-h-[calc(100vh-61px)] md:ms-24 md:min-h-screen',
+    ]}
+  >
+    <PageStateLoader>
       {@render children?.()}
-    </main>
-  </PageStateLoader>
+    </PageStateLoader>
+  </main>
 
   <Navigation class="sticky bottom-0 md:hidden" layout="bar">
     <Navigation.Menu class="grid grid-cols-5 gap-2">

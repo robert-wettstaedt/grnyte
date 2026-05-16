@@ -157,7 +157,7 @@
       >
         {#snippet left(item)}
           {#if item?.geolocationFk == null}
-            <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
+            <i class="fa-solid fa-exclamation-triangle text-warning-500"></i>
           {/if}
 
           {item.name}

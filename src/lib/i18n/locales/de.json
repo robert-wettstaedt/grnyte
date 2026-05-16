@@ -390,7 +390,7 @@
       "createBlockInTitle": "Block in {{name}} erstellen",
       "addBlock": "Block hinzufügen",
       "saveBlock": "Block speichern",
-      "updateBlock": "Block aktualisieren",
+      "editBlock": "Block bearbeiten",
       "topoImage": "Topo Bild",
       "noBlocksYet": "Noch keine Blöcke",
       "editBlockDetails": "Details bearbeiten",

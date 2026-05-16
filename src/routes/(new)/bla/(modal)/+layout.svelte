@@ -198,5 +198,7 @@
 </BottomSheetPanel>
 
 <BottomSheetPanel bind:isSheetOpen={isFilterSheetOpen} title={t('common.filter')} autoHeight>
-  <RoutesFilter numRoutes={routesResult.data.length} />
+  <div class="mt-4">
+    <RoutesFilter numRoutes={routesResult.data.length} />
+  </div>
 </BottomSheetPanel>
