@@ -66,5 +66,5 @@ const action: Action<AreaActionValues> = async (values, db, user) => {
   })
 
   // Construct the merged path for the new area
-  return ['', 'areas', createdArea.id].join('/')
+  return ['', 'bla', 'areas', createdArea.id].join('/')
 }

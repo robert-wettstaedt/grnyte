@@ -37,6 +37,10 @@
       x: {
         axis: axes
           ? {
+              domainColor: 'var(--color-surface-contrast-50-950)',
+              gridColor: 'var(--color-surface-contrast-50-950)',
+              labelColor: 'var(--color-surface-contrast-50-950)',
+              tickColor: 'var(--color-surface-contrast-50-950)',
               title: null,
               labelExpr: "indexof(domain('x'), datum.value) % 2 === 1 || datum.value === 'no grade' ? datum.label : ''",
             }
@@ -49,7 +53,15 @@
         title: 'Grade',
       },
       y: {
-        axis: axes ? { title: null } : null,
+        axis: axes
+          ? {
+              domainColor: 'var(--color-surface-contrast-50-950)',
+              gridColor: 'var(--color-surface-contrast-50-950)',
+              labelColor: 'var(--color-surface-contrast-50-950)',
+              tickColor: 'var(--color-surface-contrast-50-950)',
+              title: null,
+            }
+          : null,
         aggregate: 'count',
         field: 'grade',
         title: 'Count',

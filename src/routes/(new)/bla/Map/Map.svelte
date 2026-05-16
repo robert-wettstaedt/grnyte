@@ -147,7 +147,9 @@
     const wmsLayers = createWmsLayers(pageState.userRegions)
 
     const mapInstance = new OlMap({
-      controls: defaultControls({ attribution: false, zoom: false }).extend([new Attribution({ collapsible: true })]),
+      controls: defaultControls({ attribution: false, zoom: false, rotate: false }).extend([
+        new Attribution({ collapsible: true }),
+      ]),
       target: node as HTMLElement,
       layers: [new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' } }), ...wmsLayers],
       view: new View({

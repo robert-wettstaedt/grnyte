@@ -69,173 +69,169 @@
   }
 </script>
 
-{#if blocksResult.data.length === 0 && blocksResult.details.type !== 'complete'}
-  <nav class="list-nav">
-    <ul class="overflow-auto">
-      {#each Array(10) as _}
-        <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
-      {/each}
-    </ul>
-  </nav>
-{:else}
-  <div class="flex items-center justify-between">
-    {#if !sortable}
-      <div>{t('blocks.title')}</div>
-    {/if}
+<div class="flex items-center justify-between">
+  {#if !sortable}
+    <div>{t('blocks.title')}</div>
+  {/if}
 
-    <SegmentedControl
-      name="blocks-view-mode"
-      onValueChange={(event) => {
-        blocksViewMode = event.value as 'list' | 'grid'
-        replaceState('blocks', { blocksViewMode })
-      }}
-      value={blocksViewMode}
+  <SegmentedControl
+    name="blocks-view-mode"
+    onValueChange={(event) => {
+      blocksViewMode = event.value as 'list' | 'grid'
+      replaceState('', { blocksViewMode })
+    }}
+    value={blocksViewMode}
+  >
+    <SegmentedControl.Control class="p-0">
+      <SegmentedControl.Indicator />
+      <SegmentedControl.Item value="list">
+        <SegmentedControl.ItemText class="flex min-h-6 items-center">
+          <i class="fa-solid fa-list text-xs"></i>
+        </SegmentedControl.ItemText>
+        <SegmentedControl.ItemHiddenInput />
+      </SegmentedControl.Item>
+
+      <SegmentedControl.Item value="grid">
+        <SegmentedControl.ItemText class="flex min-h-6 items-center">
+          <i class="fa-solid fa-table-cells-large text-xs"></i>
+        </SegmentedControl.ItemText>
+        <SegmentedControl.ItemHiddenInput />
+      </SegmentedControl.Item>
+    </SegmentedControl.Control>
+  </SegmentedControl>
+
+  {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk) && sortable}
+    <button
+      class={['btn', orderMode ? 'preset-filled-primary-500' : 'preset-outlined-surface-200-800']}
+      disabled={sortOrder !== 'custom' || updateBlockOrder.pending > 0}
+      onclick={() => (orderMode = !orderMode)}
     >
-      <SegmentedControl.Control class="p-0">
-        <SegmentedControl.Indicator />
-        <SegmentedControl.Item value="list">
-          <SegmentedControl.ItemText>
-            <i class="fa-solid fa-list text-xs"></i>
-          </SegmentedControl.ItemText>
-          <SegmentedControl.ItemHiddenInput />
-        </SegmentedControl.Item>
-
-        <SegmentedControl.Item value="grid">
-          <SegmentedControl.ItemText>
-            <i class="fa-solid fa-table-cells-large text-xs"></i>
-          </SegmentedControl.ItemText>
-          <SegmentedControl.ItemHiddenInput />
-        </SegmentedControl.Item>
-      </SegmentedControl.Control>
-    </SegmentedControl>
-
-    {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], regionFk) && sortable}
-      <button
-        class="btn {orderMode ? 'preset-filled-primary-500' : 'preset-outlined-surface-200-800'}"
-        disabled={sortOrder !== 'custom' || updateBlockOrder.pending > 0}
-        onclick={() => (orderMode = !orderMode)}
-      >
-        {#if updateBlockOrder.pending > 0}
-          <LoadingIndicator />
-        {:else}
-          <i class="fa-solid fa-sort"></i>
-        {/if}
-
-        {t('blocks.reorderBlocks')}
-      </button>
-    {/if}
-  </div>
-
-  <section class="py-2 md:py-4">
-    {#if sortedBlocks.length === 0}
-      {t('blocks.noBlocksYet')}
-    {:else}
-      {#if sortable}
-        <label class="label my-4">
-          <span class="label-text">
-            <i class="fa-solid fa-arrow-down-a-z"></i>
-            {t('blocks.sortOrder')}
-          </span>
-          <select bind:value={sortOrder} class="select" disabled={orderMode} onchange={() => (orderMode = false)}>
-            <option value="custom">{t('blocks.customOrder')}</option>
-            <option value="alphabetical">{t('blocks.alphabeticalOrder')}</option>
-          </select>
-        </label>
-      {/if}
-
-      {#if blocksViewMode === 'list' || orderMode}
-        <GenericList
-          class="-mx-2 md:-mx-4"
-          listClasses={orderMode ? undefined : 'border-b border-surface-700 last:border-none py-2'}
-          items={(sortedBlocks ?? []).map((item) => ({
-            ...item,
-            id: item.id!,
-            pathname: basePath == null ? `${page.url.pathname}/_/blocks/${item.slug}` : `${basePath}/blocks/${item.id}`,
-          }))}
-          onConsiderSort={orderMode ? (items) => (blocks = items) : undefined}
-          onFinishSort={orderMode ? onChangeCustomSortOrder : undefined}
-          wrap={!orderMode}
-        >
-          {#snippet left(item)}
-            {#if item?.geolocationFk == null}
-              <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
-            {/if}
-
-            {item.name}
-          {/snippet}
-
-          {#snippet children(item)}
-            {#if !orderMode}
-              <TopoViewerLoader blockId={item.id}>
-                {#snippet children(_, routes)}
-                  {#if routes.length === 0}
-                    <div class="flex items-center gap-2 px-2 py-3 md:px-4">
-                      <Image
-                        path={item.topos?.[0]?.file?.path == null
-                          ? null
-                          : `/nextcloud${item.topos[0].file.path}/preview`}
-                        size={64}
-                      />
-
-                      <div class="w-[calc(100%-64px)]">{t('routes.noRoutesYet')}</div>
-                    </div>
-                  {:else}
-                    <GenericList
-                      class="w-full"
-                      items={routes.map((route) => ({
-                        ...route,
-                        id: route.id!,
-                        name: route.name,
-                        pathname:
-                          basePath == null
-                            ? `${page.url.pathname}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`
-                            : `${basePath}/routes/${route.id}`,
-                      }))}
-                    >
-                      {#snippet left(route)}
-                        <RouteListItem route={{ ...route, block: item }} />
-                      {/snippet}
-                    </GenericList>
-                  {/if}
-                {/snippet}
-              </TopoViewerLoader>
-            {/if}
-          {/snippet}
-        </GenericList>
+      {#if updateBlockOrder.pending > 0}
+        <LoadingIndicator />
       {:else}
-        <ul class="-mx-2 md:-mx-4">
-          {#each sortedBlocks ?? [] as block}
-            <li class="border-surface-700 border-b pt-2 pb-5 last:border-none">
-              <div
-                class="hover:preset-tonal-primary border-surface-800 flex flex-wrap items-center justify-between rounded whitespace-nowrap"
-              >
-                <a
-                  href={`${page.url.pathname}/_/blocks/${block.slug}`}
-                  class="anchor w-full grow overflow-hidden px-2 py-3 text-ellipsis hover:text-white md:w-auto md:px-4"
-                >
-                  {#if block.geolocationFk == null}
-                    <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
-                  {/if}
-
-                  {block.name}
-                </a>
-              </div>
-
-              <div class="mt-2 flex flex-wrap gap-2">
-                {#each block.topos as topo}
-                  <div class="flex flex-1 items-center justify-center md:flex-none md:justify-start">
-                    <Image path={topo?.file?.path == null ? null : `/nextcloud${topo.file.path}/preview`} size={320} />
-                  </div>
-                {/each}
-
-                {#if block.topos.length === 0}
-                  <div class="px-2">{t('topo.noTopoYet')}</div>
-                {/if}
-              </div>
-            </li>
-          {/each}
-        </ul>
+        <i class="fa-solid fa-sort"></i>
       {/if}
+
+      {t('blocks.reorderBlocks')}
+    </button>
+  {/if}
+</div>
+
+<section class="py-2 md:py-4">
+  {#if blocksResult.data.length === 0 && blocksResult.details.type !== 'complete'}
+    <nav class="list-nav">
+      <ul class="overflow-auto">
+        {#each Array(10) as _}
+          <li class="placeholder my-2 h-20 w-full animate-pulse"></li>
+        {/each}
+      </ul>
+    </nav>
+  {:else if sortedBlocks.length === 0}
+    {t('blocks.noBlocksYet')}
+  {:else}
+    {#if sortable}
+      <label class="label my-4">
+        <span class="label-text">
+          <i class="fa-solid fa-arrow-down-a-z"></i>
+          {t('blocks.sortOrder')}
+        </span>
+        <select bind:value={sortOrder} class="select" disabled={orderMode} onchange={() => (orderMode = false)}>
+          <option value="custom">{t('blocks.customOrder')}</option>
+          <option value="alphabetical">{t('blocks.alphabeticalOrder')}</option>
+        </select>
+      </label>
     {/if}
-  </section>
-{/if}
+
+    {#if blocksViewMode === 'list' || orderMode}
+      <GenericList
+        class="-mx-2 md:-mx-4"
+        listClasses={orderMode ? undefined : 'border-b border-surface-100-900 last:border-none py-2'}
+        items={(sortedBlocks ?? []).map((item) => ({
+          ...item,
+          id: item.id!,
+          pathname: basePath == null ? `${page.url.pathname}/_/blocks/${item.slug}` : `${basePath}/blocks/${item.id}`,
+        }))}
+        onConsiderSort={orderMode ? (items) => (blocks = items) : undefined}
+        onFinishSort={orderMode ? onChangeCustomSortOrder : undefined}
+        wrap={!orderMode}
+      >
+        {#snippet left(item)}
+          {#if item?.geolocationFk == null}
+            <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
+          {/if}
+
+          {item.name}
+        {/snippet}
+
+        {#snippet children(item)}
+          {#if !orderMode}
+            <TopoViewerLoader blockId={item.id}>
+              {#snippet children(_, routes)}
+                {#if routes.length === 0}
+                  <div class="flex items-center gap-2 px-2 py-3 md:px-4">
+                    <Image
+                      path={item.topos?.[0]?.file?.path == null ? null : `/nextcloud${item.topos[0].file.path}/preview`}
+                      size={64}
+                    />
+
+                    <div class="w-[calc(100%-64px)]">{t('routes.noRoutesYet')}</div>
+                  </div>
+                {:else}
+                  <GenericList
+                    class="w-full"
+                    items={routes.map((route) => ({
+                      ...route,
+                      id: route.id!,
+                      name: route.name,
+                      pathname:
+                        basePath == null
+                          ? `${page.url.pathname}/_/blocks/${item.slug}/routes/${route.slug.length === 0 ? route.id : route.slug}`
+                          : `${basePath}/routes/${route.id}`,
+                    }))}
+                  >
+                    {#snippet left(route)}
+                      <RouteListItem route={{ ...route, block: item }} />
+                    {/snippet}
+                  </GenericList>
+                {/if}
+              {/snippet}
+            </TopoViewerLoader>
+          {/if}
+        {/snippet}
+      </GenericList>
+    {:else}
+      <ul class="-mx-2 md:-mx-4">
+        {#each sortedBlocks ?? [] as block}
+          <li class="border-surface-100-900 border-b pt-2 pb-5 last:border-none">
+            <div
+              class="hover:preset-tonal-primary border-surface-100-900 flex flex-wrap items-center justify-between rounded whitespace-nowrap"
+            >
+              <a
+                href={`${page.url.pathname}/_/blocks/${block.slug}`}
+                class="anchor w-full grow overflow-hidden px-2 py-3 text-ellipsis hover:text-white hover:no-underline md:w-auto md:px-4"
+              >
+                {#if block.geolocationFk == null}
+                  <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
+                {/if}
+
+                {block.name}
+              </a>
+            </div>
+
+            <div class="mt-2 flex flex-wrap gap-2">
+              {#each block.topos as topo}
+                <div class="flex flex-1 items-center justify-center md:flex-none md:justify-start">
+                  <Image path={topo?.file?.path == null ? null : `/nextcloud${topo.file.path}/preview`} size={320} />
+                </div>
+              {/each}
+
+              {#if block.topos.length === 0}
+                <div class="px-2">{t('topo.noTopoYet')}</div>
+              {/if}
+            </div>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  {/if}
+</section>

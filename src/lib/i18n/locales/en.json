@@ -343,6 +343,12 @@
       "appSettings": {
         "title": "App settings",
         "language": "Language",
+        "lightMode": "Appearance",
+        "lightModeOptions": {
+          "light": "Light",
+          "dark": "Dark",
+          "system": "System"
+        },
         "gradingScale": "Grading scale",
         "manageTags": "Manage tags",
         "manageUsers": "Manage users"

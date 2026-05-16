@@ -186,11 +186,11 @@
     </Tabs.List>
 
     <Tabs.Content value="write">
-      <div bind:this={element} class="bg-surface-700 h-64"></div>
+      <div bind:this={element} class="bg-surface-300-700 h-64"></div>
     </Tabs.Content>
 
     <Tabs.Content value="preview">
-      <div class="markdown-body bg-surface-700 h-64 overflow-auto px-3 py-2">
+      <div class="markdown-body bg-surface-300-700 h-64 overflow-auto px-3 py-2">
         {@html valueHtml}
       </div>
     </Tabs.Content>

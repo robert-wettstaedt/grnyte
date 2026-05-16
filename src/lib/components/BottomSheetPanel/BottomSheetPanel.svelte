@@ -85,15 +85,15 @@
 
 {#snippet content()}
   <BottomSheet.Sheet
-    class="preset-filled-surface-100-900! block! max-w-md! md:top-12! md:right-auto! md:bottom-12! md:left-25! md:m-auto md:rounded-lg!"
+    class="preset-filled-surface-50-950! block! max-w-md! md:top-12! md:right-auto! md:bottom-12! md:left-25! md:m-auto md:rounded-lg!"
   >
     {#if !isMdUp}
-      <BottomSheet.Handle style="background: var(--color-surface-100-900)" />
+      <BottomSheet.Handle style="background: var(--color-surface-50-950)" />
     {/if}
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-100-900 sticky top-9 z-100 flex items-center justify-between p-2 shadow md:top-0 md:p-4"
+      class="preset-filled-surface-50-950 sticky top-9 z-100 flex items-center justify-between p-2 shadow md:top-0 md:p-4"
     >
       <div class="flex flex-col">
         {#if sheetState.subtitle}
@@ -123,7 +123,7 @@
       </button>
     </div>
 
-    <BottomSheet.Content class="w-full pt-0!">
+    <BottomSheet.Content class="w-full px-4! pt-0! md:px-6!">
       <div bind:this={contentEl}>
         {@render children()}
       </div>

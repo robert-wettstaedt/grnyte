@@ -37,41 +37,28 @@
       {#each items as item (item.id)}
         <li animate:flip={{ duration: 200 }} class={listClasses}>
           <div
-            class="hover:preset-tonal-primary flex {wrap
-              ? 'flex-wrap'
-              : ''} border-surface-800 items-center justify-between rounded whitespace-nowrap"
+            class={[
+              'hover:preset-filled-primary-500 border-surface-800 flex items-center justify-between rounded whitespace-nowrap',
+              wrap && 'flex-wrap',
+            ]}
           >
             {#if onFinishSort != null}
               <i class="fa-solid fa-grip-vertical ml-2 cursor-grab {TRIGGER_ELEMENT_CLASS}"></i>
             {/if}
 
             <a
-              class="
-              {leftClasses}
-              {wrap ? 'w-full md:w-auto' : 'w-1/2'}
-              grow
-              overflow-hidden
-              px-2
-              py-3
-              text-ellipsis
-              hover:text-white
-              md:px-4
-            "
+              class={[
+                'grow overflow-hidden px-2 py-3 text-ellipsis hover:text-white hover:no-underline md:px-4',
+                leftClasses,
+                wrap ? 'w-full md:w-auto' : 'w-1/2',
+              ]}
               href={item.pathname}
             >
               {@render left(item)}
             </a>
 
             {#if right != null}
-              <div
-                class="
-              {wrap ? 'w-full' : 'shrink'}
-              flex
-              overflow-hidden
-              text-ellipsis
-              md:w-auto
-            "
-              >
+              <div class={['flex overflow-hidden text-ellipsis md:w-auto', wrap ? 'w-full' : 'shrink']}>
                 {@render right(item)}
               </div>
             {/if}

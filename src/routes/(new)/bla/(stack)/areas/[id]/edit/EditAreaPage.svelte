@@ -13,6 +13,18 @@
 
   const { area } = getAreaContext()
   const { t } = getI18n()
+  let form = $state<HTMLFormElement>()
+
+  $effect(() => {
+    updateArea.fields.set({
+      description: area.description ?? undefined,
+      id: String(area.id),
+      name: area.name,
+      parentFk: area.parentFk?.toString(),
+      regionFk: String(area.regionFk),
+      type: area.type ?? undefined,
+    })
+  })
 </script>
 
 <svelte:head>
@@ -21,40 +33,42 @@
   </title>
 </svelte:head>
 
-<div class="m-auto flex max-w-xl flex-col items-center py-16">
-  <form class="w-full" {...updateArea.enhance(enhanceForm())}>
-    <AppBar class="fixed top-0 z-10 max-w-xl">
-      <AppBar.Toolbar class="grid-cols-[auto_1fr_auto]">
-        <AppBar.Lead>
-          <button class="btn-icon" onclick={() => history.back()} title={t('common.back')} type="button">
-            <i class="fa-solid fa-arrow-left"></i>
-          </button>
-        </AppBar.Lead>
+<AppBar
+  class="preset-filled-surface-100-900 md:border-surface-50-950 fixed top-0 z-10 rounded-b-xl md:right-0 md:left-25 md:w-auto md:border-l-2"
+>
+  <AppBar.Toolbar class="grid-cols-[auto_1fr_auto]">
+    <AppBar.Lead>
+      <button class="btn-icon" onclick={() => history.back()} title={t('common.back')} type="button">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </AppBar.Lead>
 
-        <AppBar.Headline class="flex-col">
-          <span class="leading-none">
-            {t('areas.editArea')}
-          </span>
+    <AppBar.Headline class="flex-col">
+      <span class="leading-none">
+        {t('areas.editArea')}
+      </span>
 
-          <span class="text-surface-500 text-xs leading-none">
-            {t('common.in')}
-            {area.name}
-          </span>
-        </AppBar.Headline>
+      <span class="text-surface-500 text-xs leading-none">
+        {t('common.in')}
+        {area.name}
+      </span>
+    </AppBar.Headline>
 
-        <AppBar.Trail>
-          <button class="btn-icon preset-filled-primary-500" title={t('common.save')} type="submit">
-            {#if updateArea.pending > 0}
-              <LoadingIndicator />
-            {:else}
-              <i class="fa-solid fa-floppy-disk"></i>
-            {/if}
-          </button>
-        </AppBar.Trail>
-      </AppBar.Toolbar>
-    </AppBar>
+    <AppBar.Trail>
+      <button class="btn-icon preset-filled-primary-500" onclick={() => form?.requestSubmit()} title={t('common.save')}>
+        {#if updateArea.pending > 0}
+          <LoadingIndicator />
+        {:else}
+          <i class="fa-solid fa-floppy-disk"></i>
+        {/if}
+      </button>
+    </AppBar.Trail>
+  </AppBar.Toolbar>
+</AppBar>
 
-    <AreaFormFields {...area} />
+<div class="m-auto flex flex-col items-center py-16 md:max-w-xl">
+  <form bind:this={form} class="w-full" {...updateArea.enhance(enhanceForm())}>
+    <AreaFormFields fields={updateArea.fields} />
   </form>
 
   {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_DELETE], area.regionFk) || (checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk) && area.createdBy === pageState.user?.id)}

@@ -30,7 +30,7 @@
         id: item.id!,
         pathname: basePath == null ? `${page.url.pathname}/${item.slug}-${item.id}` : `${basePath}/areas/${item.id}`,
       }))}
-      listClasses="border-b-[1px] border-surface-700 last:border-none py-2"
+      listClasses="border-b-[1px] border-surface-100-900 last:border-none py-2"
       wrap={false}
       {...listProps}
     >

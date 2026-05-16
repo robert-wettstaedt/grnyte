@@ -317,6 +317,12 @@
       "appSettings": {
         "title": "App-Einstellungen",
         "language": "Sprache",
+        "lightMode": "Darstellung",
+        "lightModeOptions": {
+          "light": "Hell",
+          "dark": "Dunkel",
+          "system": "System"
+        },
         "gradingScale": "Bewertungsskala",
         "manageTags": "Tags verwalten",
         "manageUsers": "Benutzer verwalten"

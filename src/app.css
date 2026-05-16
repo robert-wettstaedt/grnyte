@@ -7,7 +7,7 @@
 
 @import '@skeletonlabs/skeleton-svelte';
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 html,
 body {
@@ -64,7 +64,7 @@ body {
   }
 }
 
-label > span {
+.label > span {
   @apply text-xs;
   @apply text-surface-800-200;
 }

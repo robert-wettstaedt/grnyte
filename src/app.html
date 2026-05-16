@@ -1,11 +1,25 @@
 <!doctype html>
-<html class="dark" data-theme="catppuccin" lang="en">
+<html data-mode="dark" data-theme="catppuccin" lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 
+    <script>
+      ;(() => {
+        const mode = localStorage.getItem('mode')
+        const resolvedMode =
+          mode === 'light' || mode === 'dark'
+            ? mode
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+
+        document.documentElement.setAttribute('data-mode', resolvedMode)
+      })()
+    </script>
+
     <style>
-      html.dark {
+      html[data-mode='dark'] {
         background-color: oklch(0.2429 0.03 283.92);
       }
     </style>

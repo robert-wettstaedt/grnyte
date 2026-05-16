@@ -48,7 +48,7 @@
 
 <AreaInfo />
 
-<hr class="hr border-surface-300-700 my-4" />
+<hr class="hr border-surface-100-900 my-4" />
 
 {#if area.type === 'sector'}
   <BlocksList areaFk={area.id} basePath="/bla" regionFk={area.regionFk} sortable={false} />

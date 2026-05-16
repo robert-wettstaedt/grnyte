@@ -1,13 +1,15 @@
 <script lang="ts">
   import BottomSheetPanel from '$lib/components/BottomSheetPanel'
+  import FormFieldError from '$lib/components/FormFieldError'
   import type { Row } from '$lib/db/zero'
   import { getI18n } from '$lib/i18n'
+  import type { RemoteFormField } from '@sveltejs/kit'
 
   interface Props {
-    value: Row<'areas'>['type'] | null | undefined
+    field: RemoteFormField<string>
   }
 
-  let { value = $bindable() }: Props = $props()
+  let { field }: Props = $props()
 
   let isSheetOpen = $state(false)
 
@@ -32,15 +34,14 @@
     </button>
   </span>
 
-  <input type="hidden" name="type" value={value ?? ''} />
+  <input id={field.issues() == null ? undefined : 'area-form-fields-type-error'} type="hidden" {...field.as('text')} />
 
   <div>
     <nav class="btn-group preset-outlined-surface-200-800">
       {#each options as option (option)}
         <button
-          class:preset-filled={value == option}
-          class="btn capitalize"
-          onclick={() => (value = option)}
+          class={['btn capitalize', field.value() === option && 'preset-filled']}
+          onclick={() => field.set(option ?? undefined)}
           type="button"
         >
           {t(`entities.${option}`)}
@@ -48,6 +49,8 @@
       {/each}
     </nav>
   </div>
+
+  <FormFieldError id="area-form-fields-type-error" issues={field.issues()} />
 </label>
 
 <BottomSheetPanel bind:isSheetOpen autoHeight showOverlay title={t('areas.areaType')}>

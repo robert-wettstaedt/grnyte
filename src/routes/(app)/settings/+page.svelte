@@ -15,6 +15,7 @@
   import { AppBar, Switch } from '@skeletonlabs/skeleton-svelte'
   import { onMount } from 'svelte'
   import { updateGradeSettings, updateNotificationSettings } from './page.remote'
+  import LightSwitch from './LightSwitch.svelte'
 
   let isPushSubscribed = $state(false)
   let modalOpen = $state(false)
@@ -69,6 +70,14 @@
               <option value={language}>{t(`settings.languages.${language}`)}</option>
             {/each}
           </select>
+        </div>
+      </li>
+
+      <li>
+        <div class="flex items-center justify-between gap-4 p-2">
+          <div>{t('settings.appSettings.lightMode')}</div>
+
+          <LightSwitch />
         </div>
       </li>
 

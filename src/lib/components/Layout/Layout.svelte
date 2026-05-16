@@ -20,7 +20,8 @@
   import '@fortawesome/fontawesome-free/css/all.css'
   import { ProgressBar } from '@prgm/sveltekit-progress-bar'
   import { Navigation, Toast } from '@skeletonlabs/skeleton-svelte'
-  import 'github-markdown-css/github-markdown-dark.css'
+  import markdownDarkCssUrl from 'github-markdown-css/github-markdown-dark.css?url'
+  import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
   import { onMount, type Snippet } from 'svelte'
   import { online } from 'svelte/reactivity/window'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
@@ -34,15 +35,34 @@
   let { children }: LayoutProps = $props()
 
   let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
+  let markdownCssHref = $state(markdownLightCssUrl)
 
   onMount(() => {
+    const updateMarkdownTheme = () => {
+      markdownCssHref =
+        document.documentElement.getAttribute('data-mode') === 'dark'
+          ? markdownDarkCssUrl
+          : markdownLightCssUrl
+    }
+
+    updateMarkdownTheme()
+
+    const observer = new MutationObserver(updateMarkdownTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-mode'],
+    })
+
     const value = page.data.supabase?.auth.onAuthStateChange((_, newSession) => {
       if (newSession?.expires_at !== page.data.session?.expires_at) {
         invalidateAll()
       }
     })
 
-    return () => value?.data.subscription.unsubscribe()
+    return () => {
+      observer.disconnect()
+      value?.data.subscription.unsubscribe()
+    }
   })
 
   afterNavigate((navigation) => {
@@ -63,6 +83,7 @@
 </script>
 
 <svelte:head>
+  <link rel="stylesheet" href={markdownCssHref} />
   <title>{PUBLIC_APPLICATION_NAME}</title>
   <meta name="description" content="Secure boulder topo and session tracker." />
   <meta property="og:title" content={PUBLIC_APPLICATION_NAME} />

@@ -3,8 +3,6 @@ import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { areas, generateSlug, geolocations } from '$lib/db/schema'
 import { buildNestedAreaQuery } from '$lib/db/utils'
-import { areaWithPathname } from '$lib/db/utils.svelte'
-import type { RowWithRelations } from '$lib/db/zero'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { areaActionSchema, type AreaActionValues } from '$lib/forms/schemas'
 import { deleteFiles } from '$lib/helper.server'
@@ -65,9 +63,7 @@ const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
     regionFk: area.regionFk,
   })
 
-  const nested = { ...area, slug } as unknown as RowWithRelations<'areas', { parent: true }>
-  const { pathname } = areaWithPathname(nested) ?? {}
-  return pathname
+  return ['', 'bla', 'areas', area.id].join('/')
 }
 
 const deleteAreaAction: Action<number> = async (areaId, db, user) => {
@@ -123,5 +119,5 @@ const deleteAreaAction: Action<number> = async (areaId, db, user) => {
     regionFk: area.regionFk,
   })
 
-  return ['', 'areas', area.parentFk].filter((i) => i != null).join('/')
+  return ['', 'bla', 'areas', area.parentFk].filter((i) => i != null).join('/')
 }
