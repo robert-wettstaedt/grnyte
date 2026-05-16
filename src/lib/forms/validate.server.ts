@@ -81,6 +81,11 @@ export async function validateObject<Output = unknown, Input = Output>(
       })()
 
       if (typeof value === 'string' && value.trim().length === 0) {
+        // Preserve empty input for pipe/codec schemas so their input-side validation can run.
+        if (type === 'pipe') {
+          return { ...obj, [key]: '' }
+        }
+
         return { ...obj, [key]: nullable ? null : undefined }
       }
 
