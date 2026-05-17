@@ -19,7 +19,7 @@
       "automerge": true
     },
     {
-      "matchPackageNames": ["/sharp/", "/dotenv/", "/svelte/", "fast-xml-parser"],
+      "matchPackageNames": ["/sharp/", "/dotenv/"],
       "matchManagers": ["npm"],
       "enabled": false
     }
