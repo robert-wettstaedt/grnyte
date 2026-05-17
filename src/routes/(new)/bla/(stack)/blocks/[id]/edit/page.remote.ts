@@ -1,10 +1,9 @@
+import { resolve } from '$app/paths'
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { blocks, generateSlug, geolocations, topoRoutes, topos } from '$lib/db/schema'
 import { buildNestedAreaQuery } from '$lib/db/utils'
-import { blockWithPathname } from '$lib/db/utils.svelte'
-import type { RowWithRelations } from '$lib/db/zero'
 import { enhance, enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { blockActionSchema, stringToInt } from '$lib/forms/schemas'
 import { deleteFiles } from '$lib/helper.server'
@@ -73,7 +72,7 @@ const updateBlockAction: Action<EditBlockActionValues> = async (values, db, user
     regionFk: block.regionFk,
   })
 
-  return ['', 'bla', 'blocks', block.id].join('/')
+  return resolve('/(new)/bla/(modal)/blocks/[id]', { id: block.id.toString() })
 }
 
 const deleteBlockAction: Action<number> = async (blockId, db, user) => {
@@ -135,5 +134,5 @@ const deleteBlockAction: Action<number> = async (blockId, db, user) => {
     regionFk: block.regionFk,
   })
 
-  return ['', 'bla', 'areas', block.areaFk].join('/')
+  return resolve('/(new)/bla/(modal)/areas/[id]', { id: block.areaFk.toString() })
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { getI18n } from '$lib/i18n'
   import type { KeyboardEventHandler } from 'svelte/elements'
@@ -17,7 +18,7 @@
     }
 
     const url = new URL(page.url)
-    url.pathname = '/bla/search'
+    url.pathname = resolve('/(new)/bla/(modal)/search')
     url.search = searchParams.toString()
 
     goto(url, { keepFocus: true, replaceState: true })

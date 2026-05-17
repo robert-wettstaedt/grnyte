@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import AreaStats from '$lib/components/AreaStats'
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { ReferencesLoader } from '$lib/components/References'
@@ -28,7 +29,7 @@
       <dt class="flex justify-between">
         {t('grades.title')}
 
-        <a class="anchor" href="/bla/areas/{area.id}/routes">
+        <a class="anchor" href={resolve('/(new)/bla/(modal)/areas/[id]/routes', { id: area.id.toString() })}>
           {t('routes.allRoutes')}
 
           <i class="fa-solid fa-arrow-right"></i>

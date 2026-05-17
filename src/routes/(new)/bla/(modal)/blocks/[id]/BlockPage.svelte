@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { sheetState } from '$lib/components/BottomSheetPanel'
   import { getBlockContext } from '$lib/contexts/block'
@@ -44,7 +45,9 @@
 {#snippet mySubtitleSnippet()}
   <div class="flex items-center gap-2">
     {#each parents as parent, index}
-      <a class="anchor text-xs" href="/bla/areas/{parent.id}">{parent.name}</a>
+      <a class="anchor text-xs" href={resolve('/(new)/bla/(modal)/areas/[id]', { id: parent.id.toString() })}>
+        {parent.name}
+      </a>
 
       {#if index < parents.length - 1}
         <span class="text-xs">·</span>

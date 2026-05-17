@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AreaList from '$lib/components/AreaList'
   import BlocksList from '$lib/components/BlocksList'
@@ -37,7 +38,9 @@
 {#snippet mySubtitleSnippet()}
   <div class="flex items-center gap-2">
     {#each parents as parent, index}
-      <a class="anchor text-xs" href="/bla/areas/{parent.id}">{parent.name}</a>
+      <a class="anchor text-xs" href={resolve('/(new)/bla/(modal)/areas/[id]', { id: parent.id.toString() })}>
+        {parent.name}
+      </a>
 
       {#if index < parents.length - 1}
         <span class="text-xs">·</span>
@@ -51,7 +54,7 @@
 <hr class="hr border-surface-100-900 my-4" />
 
 {#if area.type === 'sector'}
-  <BlocksList areaFk={area.id} basePath="/bla" regionFk={area.regionFk} sortable={false} />
+  <BlocksList areaFk={area.id} basePath={resolve('/bla')} regionFk={area.regionFk} sortable={false} />
 {:else}
-  <AreaList basePath="/bla" listProps={{ empty: '' }} parentFk={area.id} />
+  <AreaList basePath={resolve('/bla')} listProps={{ empty: '' }} parentFk={area.id} />
 {/if}

@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { command, form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createUpdateActivity, insertActivity } from '$lib/components/ActivityFeed/load.server'
@@ -63,7 +64,7 @@ const updateAreaAction: Action<AreaActionValues> = async (values, db, user) => {
     regionFk: area.regionFk,
   })
 
-  return ['', 'bla', 'areas', area.id].join('/')
+  return resolve('/(new)/bla/(modal)/areas/[id]', { id: area.id.toString() })
 }
 
 const deleteAreaAction: Action<number> = async (areaId, db, user) => {
@@ -119,5 +120,9 @@ const deleteAreaAction: Action<number> = async (areaId, db, user) => {
     regionFk: area.regionFk,
   })
 
-  return ['', 'bla', 'areas', area.parentFk].filter((i) => i != null).join('/')
+  if (area.parentFk == null) {
+    return resolve('/bla')
+  }
+
+  return resolve('/(new)/bla/(modal)/areas/[id]', { id: area.parentFk.toString() })
 }

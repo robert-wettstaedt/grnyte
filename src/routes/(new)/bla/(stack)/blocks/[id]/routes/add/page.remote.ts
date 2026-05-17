@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
@@ -106,7 +107,9 @@ const createRouteAction: Action<CreateRouteActionValues> = async (values, db, us
   }
 
   const path =
-    values.redirect != null && values.redirect.length > 0 ? values.redirect : ['', 'bla', 'routes', route.id].join('/')
+    values.redirect != null && values.redirect.length > 0
+      ? values.redirect
+      : resolve('/(new)/bla/(modal)/routes/[id]', { id: route.id.toString() })
 
   if (values.reload) {
     return `${path}?reload=true`

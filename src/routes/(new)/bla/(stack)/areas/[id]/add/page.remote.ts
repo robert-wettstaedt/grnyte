@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
@@ -66,5 +67,5 @@ const action: Action<AreaActionValues> = async (values, db, user) => {
   })
 
   // Construct the merged path for the new area
-  return ['', 'bla', 'areas', createdArea.id].join('/')
+  return resolve('/(new)/bla/(modal)/areas/[id]', { id: createdArea.id.toString() })
 }

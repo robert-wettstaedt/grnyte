@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
@@ -50,7 +51,7 @@
         onOpenChange={(event) => (open = event.open)}
         onsave={async () => {
           const block = await createBlock({ areaId: String(area.id) })
-          goto(`/bla/blocks/${block.id}`)
+          goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: block.id.toString() }))
         }}
         pending={createBlock.pending}
         saveText={t('common.ok')}

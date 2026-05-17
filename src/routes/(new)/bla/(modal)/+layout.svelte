@@ -1,5 +1,6 @@
 <script lang="ts">
   import { afterNavigate, beforeNavigate, goto, replaceState } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
@@ -21,8 +22,9 @@
 
   const { t } = getI18n()
 
-  let isDetailSheetOpen = $state(false)
+  let isDetailSheetOpen = $state(page.route.id?.includes('(modal)') ?? false)
   let isFilterSheetOpen = $state(false)
+  let hasOpenedDetailSheet = false
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
@@ -38,6 +40,7 @@
   afterNavigate((event) => {
     isDetailSheetOpen = !(event.to?.route.id?.endsWith('(modal)') ?? false)
     if (isDetailSheetOpen) {
+      hasOpenedDetailSheet = true
       sheetState.requestSnap = 0.75
     }
 
@@ -160,7 +163,7 @@
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
-    <a class="md:hidden" href="/bla">
+    <a class="md:hidden" href={resolve('/bla')}>
       <img class="min-h-9 min-w-9 rounded" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
     </a>
 
@@ -185,7 +188,13 @@
 
 <BottomSheetPanel
   bind:isSheetOpen={isDetailSheetOpen}
-  onclose={() => goto('/bla')}
+  onclose={() => {
+    if (!hasOpenedDetailSheet) {
+      return
+    }
+
+    goto(resolve('/bla'))
+  }}
   settings={{
     snapPoints: [0.25, 0.5, 0.75],
     maxHeight: 1,

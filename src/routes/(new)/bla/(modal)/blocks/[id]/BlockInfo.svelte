@@ -28,8 +28,6 @@
       return { ...route, topo }
     }),
   )
-
-  $inspect(topos, routes)
 </script>
 
 <BlockActions />
@@ -39,9 +37,12 @@
     class="scrollbar-thin -mx-4 flex snap-x snap-mandatory snap-center scroll-px-4 gap-2 overflow-x-auto scroll-smooth px-4 py-4 md:-mx-6 md:px-6"
   >
     {#each topos as topo (topo.id)}
-      <div class="shrink-0 snap-start">
-        <TopoImage height={200} value={topo} />
-      </div>
+      <a
+        class="h-50 shrink-0 snap-start *:rounded-xl *:transition hover:*:scale-105 hover:*:opacity-90"
+        href="/bla/topos/{topo.id}"
+      >
+        <TopoImage value={topo} />
+      </a>
     {/each}
   </div>
 {/if}

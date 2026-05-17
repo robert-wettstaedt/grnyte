@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import { goto } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import BottomSheetPanel from '$lib/components/BottomSheetPanel'
   import { pageState } from '$lib/components/Layout'
   import { getI18n } from '$lib/i18n'
@@ -206,9 +207,9 @@
         const blockId = feature.get('blockId')
         const areaId = feature.get('areaId')
         if (blockId != null) {
-          goto(`/bla/blocks/${blockId}`)
+          goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))
         } else if (areaId != null) {
-          goto(`/bla/areas/${areaId}`)
+          goto(resolve('/(new)/bla/(modal)/areas/[id]', { id: areaId.toString() }))
         }
       }
     })

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { sheetState } from '$lib/components/BottomSheetPanel'
   import GenericList from '$lib/components/GenericList'
@@ -75,7 +76,7 @@
           fields: [item.name, item.description].filter((s) => s != null),
           name: item.name,
           id: `/areas/${item.id}`,
-          pathname: `/bla/areas/${item.id}`,
+          pathname: resolve('/(new)/bla/(modal)/areas/[id]', { id: item.id.toString() }),
           region: undefined,
           type: 'area',
         }),
@@ -86,7 +87,7 @@
           fields: [item.name],
           name: item.name,
           id: `/blocks/${item.id}`,
-          pathname: `/bla/blocks/${item.id}`,
+          pathname: resolve('/(new)/bla/(modal)/blocks/[id]', { id: item.id.toString() }),
           region: undefined,
           type: 'block',
         }),
@@ -97,7 +98,7 @@
           fields: [item.name, item.description].filter((s) => s != null),
           name: item.name,
           id: `/routes/${item.id}`,
-          pathname: `/bla/routes/${item.id}`,
+          pathname: resolve('/(new)/bla/(modal)/routes/[id]', { id: item.id.toString() }),
           region: undefined,
           type: 'route',
         }),
@@ -108,7 +109,7 @@
           fields: [item.username],
           name: item.username,
           id: `/users/${item.username}`,
-          pathname: `/bla/users/${item.username}`,
+          pathname: resolve('/users/[username]', { username: item.username }),
           region: undefined,
           type: 'user',
         }),
