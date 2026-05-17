@@ -1,15 +1,22 @@
 <script lang="ts">
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import { getI18n } from '$lib/i18n'
   import type { DialogRootProps } from '@skeletonlabs/skeleton-svelte'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
 
   interface Props extends DialogRootProps {
     content?: Snippet
+    onsave?: () => void | Promise<unknown>
+    pending?: number
+    saveText?: string
     title?: string
     trigger?: Snippet
   }
 
-  const { content, title, trigger, ...props }: Props = $props()
+  const { t } = getI18n()
+
+  const { content, onsave, pending = 0, saveText = t('common.save'), title, trigger, ...props }: Props = $props()
 </script>
 
 <Dialog {...props}>
@@ -36,6 +43,30 @@
         <Dialog.Description class="opacity-60">
           {@render content?.()}
         </Dialog.Description>
+
+        {#if onsave != null}
+          <footer class="flex justify-end gap-2">
+            <Dialog.CloseTrigger class="btn preset-tonal">
+              {t('common.cancel')}
+            </Dialog.CloseTrigger>
+
+            <button
+              disabled={pending > 0}
+              type="button"
+              class="btn preset-filled"
+              onclick={async () => {
+                await onsave?.()
+                props.onOpenChange?.({ open: false })
+              }}
+            >
+              {#if pending > 0}
+                <LoadingIndicator />
+              {/if}
+
+              {saveText}
+            </button>
+          </footer>
+        {/if}
       </Dialog.Content>
     </Dialog.Positioner>
   </Portal>

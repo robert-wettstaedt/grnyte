@@ -13,9 +13,7 @@ export const stringToInt = z.codec(
 )
 
 export const stringToIntOptional = z.codec(
-  z
-    .union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.integer, 'form.numInvalid')])
-    .optional(),
+  z.union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.integer, 'form.numInvalid')]).optional(),
   z.int().optional(),
   {
     decode: (str) => (str == null || str === '' ? undefined : Number.parseInt(str, 10)),
@@ -33,9 +31,7 @@ export const stringToNumber = z.codec(
 )
 
 export const stringToNumberOptional = z.codec(
-  z
-    .union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.number, 'form.numInvalid')])
-    .optional(),
+  z.union([z.literal(''), z.string({ error: 'form.required' }).regex(z.regexes.number, 'form.numInvalid')]).optional(),
   z.number().optional(),
   {
     decode: (str) => (str == null || str === '' ? undefined : Number.parseFloat(str)),
@@ -68,10 +64,7 @@ export type AreaActionValues = z.output<typeof areaActionSchema>
 export const blockActionSchema = z.intersection(
   z.object({
     areaId: stringToInt,
-    name: z
-      .string()
-      .trim()
-      .min(1, { error: JSON.stringify({ message: 'form.charsMin', params: { count: 1 } }) }),
+    name: z.string().trim().optional().default(''),
   }),
   addFileActionSchema,
 )

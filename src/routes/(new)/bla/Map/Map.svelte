@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import { goto } from '$app/navigation'
+  import BottomSheetPanel from '$lib/components/BottomSheetPanel'
   import { pageState } from '$lib/components/Layout'
   import { getI18n } from '$lib/i18n'
   import OlGeolocation from 'ol/Geolocation.js'
@@ -15,7 +16,6 @@
   import 'ol/ol.css'
   import { fromLonLat, toLonLat } from 'ol/proj.js'
   import OSM from 'ol/source/OSM'
-  import BottomSheetPanel from '$lib/components/BottomSheetPanel'
   import type { Attachment } from 'svelte/attachments'
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
@@ -26,7 +26,7 @@
     createPathLayer,
     createSectorLayer,
     createWmsLayers,
-  } from './layers'
+  } from './layers.svelte'
   import { BLOCK_LABEL_ZOOM, type BlocksMapProps, type LayerEntry } from './types'
 
   const { t } = getI18n()

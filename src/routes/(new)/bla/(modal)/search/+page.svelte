@@ -9,6 +9,7 @@
   import RouteName from '$lib/components/RouteName/RouteNameLoader.svelte'
   import type { Region } from '$lib/db/zero'
   import { queries } from '$lib/db/zero'
+  import { getBlockName } from '$lib/helper.svelte'
   import { getI18n } from '$lib/i18n'
 
   const { t } = getI18n()
@@ -231,7 +232,7 @@
                     {item.data.block.area.parent.name} /
                   {/if}
                   {#if item.data.block != null}
-                    {item.data.block.name}
+                    {getBlockName(item.data.block)}
                   {/if}
                 {/if}
               </p>

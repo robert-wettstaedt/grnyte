@@ -6,6 +6,7 @@
   import { pageState } from '$lib/components/Layout'
   import { getBlockContext } from '$lib/contexts/block'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
+  import { getBlockName } from '$lib/helper.svelte'
   import { getI18n } from '$lib/i18n'
   import BlockFormFields from '../../../BlockFormFields'
   import { deleteBlock, updateBlock } from './page.remote'
@@ -27,7 +28,7 @@
 
 <svelte:head>
   <title>
-    {t('blocks.editBlockOfTitle', { name: block.name })} - {PUBLIC_APPLICATION_NAME}
+    {t('blocks.editBlockOfTitle', { name: getBlockName(block) })} - {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
 

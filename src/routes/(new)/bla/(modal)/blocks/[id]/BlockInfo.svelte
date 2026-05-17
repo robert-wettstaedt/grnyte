@@ -3,12 +3,10 @@
   import RouteListItem from '$lib/components/RouteListItem'
   import TopoImage from '$lib/components/TopoViewer/TopoImage.svelte'
   import { getBlockContext } from '$lib/contexts/block'
-  import { getI18n } from '$lib/i18n'
   import { enrichTopo, sortRoutesByTopo } from '$lib/topo'
   import BlockActions from './BlockActions.svelte'
 
   const { block } = getBlockContext()
-  const { t } = getI18n()
 
   const topos = $derived(
     block.topos
@@ -30,6 +28,8 @@
       return { ...route, topo }
     }),
   )
+
+  $inspect(topos, routes)
 </script>
 
 <BlockActions />

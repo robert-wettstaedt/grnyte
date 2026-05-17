@@ -240,6 +240,7 @@ export const queries = defineQueries({
       return zql.areas
         .where('id', args.id)
         .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
+        .related('blocks', r)
         .related('author')
         .related('files', r)
         .related('parkingLocations', r)

@@ -1,9 +1,9 @@
-import { form, getRequestEvent } from '$app/server'
+import { command, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { insertActivity } from '$lib/components/ActivityFeed/load.server'
 import { handleFileUpload } from '$lib/components/FileUpload/handle.server'
 import { config } from '$lib/config'
-import { blocks, generateSlug, topos } from '$lib/db/schema'
+import { blocks, generateSlug, topos, type Block } from '$lib/db/schema'
 import { convertException } from '$lib/errors'
 import { enhanceForm, type Action } from '$lib/forms/enhance.server'
 import { blockActionSchema, type BlockActionValues } from '$lib/forms/schemas'
@@ -11,12 +11,10 @@ import { createGeolocationFromFiles } from '$lib/topo/topo-files.server'
 import { error } from '@sveltejs/kit'
 import { count, eq } from 'drizzle-orm'
 
-export const createBlock = form(blockActionSchema, (data) => enhanceForm(data, createBlockAction))
+export const createBlock = command(blockActionSchema, (data) => enhanceForm(data, createBlockAction))
 
-const createBlockAction: Action<BlockActionValues> = async (values, db, user) => {
+const createBlockAction: Action<BlockActionValues, Block> = async (values, db, user) => {
   const { locals } = getRequestEvent()
-
-  const slug = generateSlug(values.name)
 
   const area = await db.query.areas.findFirst({
     where: (table, { eq }) => eq(table.id, values.areaId),
@@ -27,14 +25,17 @@ const createBlockAction: Action<BlockActionValues> = async (values, db, user) =>
     error(404)
   }
 
-  // Check if a block with the same slug already exists in the area
-  const existingBlocksResult = await db.query.blocks.findFirst({
-    where: (table, { and, eq }) => and(eq(table.slug, slug), eq(table.areaFk, values.areaId)),
-  })
+  const slug = generateSlug(values.name)
+  if (slug.length > 0) {
+    // Check if a block with the same slug already exists in the area
+    const existingBlocksResult = await db.query.blocks.findFirst({
+      where: (table, { and, eq }) => and(eq(table.slug, slug), eq(table.areaFk, values.areaId)),
+    })
 
-  if (existingBlocksResult != null) {
-    // If a block with the same slug exists, return a 400 error with a message
-    error(400, `Block with name "${existingBlocksResult.name}" already exists in area "${area.name}"`)
+    if (existingBlocksResult != null) {
+      // If a block with the same slug exists, return a 400 error with a message
+      error(400, `Block with name "${existingBlocksResult.name}" already exists in area "${area.name}"`)
+    }
   }
 
   const [blocksCount] = await db.select({ count: count() }).from(blocks).where(eq(blocks.areaFk, values.areaId))
@@ -46,7 +47,7 @@ const createBlockAction: Action<BlockActionValues> = async (values, db, user) =>
       ...values,
       createdBy: user.id,
       areaFk: values.areaId,
-      order: blocksCount.count,
+      order: blocksCount.count + 1,
       regionFk: area.regionFk,
       slug,
     })
@@ -100,6 +101,5 @@ const createBlockAction: Action<BlockActionValues> = async (values, db, user) =>
     }
   }
 
-  // Redirect to the newly created block's page
-  return ['', 'bla', 'blocks', block.id].join('/')
+  return block
 }

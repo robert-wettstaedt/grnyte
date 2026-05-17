@@ -2,6 +2,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { sheetState } from '$lib/components/BottomSheetPanel'
   import { getBlockContext } from '$lib/contexts/block'
+  import { getBlockName } from '$lib/helper.svelte'
   import { getI18n } from '$lib/i18n'
   import i18next from 'i18next'
   import BlockInfo from './BlockInfo.svelte'
@@ -31,13 +32,13 @@
   })
 
   $effect(() => {
-    sheetState.title = `${i18next.format(t('entities.block'), 'capitalize')} · ${block.name}`
+    sheetState.title = `${i18next.format(t('entities.block'), 'capitalize')} · ${getBlockName(block)}`
     sheetState.subtitle = mySubtitleSnippet
   })
 </script>
 
 <svelte:head>
-  <title>{block.name} - {PUBLIC_APPLICATION_NAME}</title>
+  <title>{getBlockName(block)} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
 {#snippet mySubtitleSnippet()}
@@ -53,5 +54,3 @@
 {/snippet}
 
 <BlockInfo />
-
-<hr class="hr border-surface-100-900 my-4" />

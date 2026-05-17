@@ -36,7 +36,7 @@ export async function enhance<T = unknown, R = unknown>(values: T, callback: Act
   return returnValue
 }
 
-export async function enhanceForm<T = unknown>(data: T, callback: Action<T>) {
+export async function enhanceForm<Input = unknown, Output = unknown>(data: Input, callback: Action<Input, Output>) {
   const returnValue = await enhance(data, async (values, db, user) => {
     return await callback(values, db, user)
   })

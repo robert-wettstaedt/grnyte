@@ -9,9 +9,10 @@
   import RouteListItem from '$lib/components/RouteListItem'
   import { TopoViewerLoader } from '$lib/components/TopoViewer'
   import { queries } from '$lib/db/zero'
+  import { getBlockName } from '$lib/helper.svelte'
+  import { getI18n } from '$lib/i18n'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { updateBlockOrder } from './BlocksList.remote'
-  import { getI18n } from '$lib/i18n'
 
   interface Props {
     areaFk: number | null | undefined
@@ -48,14 +49,11 @@
       return blocks
     } else {
       return blocks.toSorted((a, b) => {
-        const aNum = Number(a.name.match(/\d+/)?.at(0))
-        const bNum = Number(b.name.match(/\d+/)?.at(0))
-
-        if (Number.isNaN(aNum) || Number.isNaN(bNum)) {
+        if (a.name.length > 0 && b.name.length > 0) {
           return a.name.localeCompare(b.name)
         }
 
-        return aNum - bNum
+        return a.order - b.order
       })
     }
   })
@@ -160,7 +158,7 @@
             <i class="fa-solid fa-exclamation-triangle text-warning-500"></i>
           {/if}
 
-          {item.name}
+          {getBlockName(item)}
         {/snippet}
 
         {#snippet children(item)}
@@ -207,14 +205,16 @@
               class="hover:preset-tonal-primary border-surface-100-900 flex flex-wrap items-center justify-between rounded whitespace-nowrap"
             >
               <a
-                href={`${page.url.pathname}/_/blocks/${block.slug}`}
+                href={basePath == null
+                  ? `${page.url.pathname}/_/blocks/${block.slug}`
+                  : `${basePath}/blocks/${block.id}`}
                 class="anchor w-full grow overflow-hidden px-2 py-3 text-ellipsis hover:text-white hover:no-underline md:w-auto md:px-4"
               >
                 {#if block.geolocationFk == null}
                   <i class="fa-solid fa-exclamation-triangle text-warning-800-200"></i>
                 {/if}
 
-                {block.name}
+                {getBlockName(block)}
               </a>
             </div>
 

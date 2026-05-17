@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
   import { Action, ActionBar } from '$lib/components/BottomSheetPanel'
+  import Dialog from '$lib/components/Dialog'
   import { pageState } from '$lib/components/Layout'
   import { getAreaContext } from '$lib/contexts/area'
   import { getI18n } from '$lib/i18n'
+  import { createBlock } from './page.remote'
 
   const { area } = getAreaContext()
   const { t } = getI18n()
@@ -18,6 +21,8 @@
     title: PUBLIC_APPLICATION_NAME,
     url: page.url.toString(),
   }
+
+  let open = $state(false)
 </script>
 
 <ActionBar>
@@ -35,10 +40,26 @@
     {/if}
 
     {#if area.type === 'sector'}
-      <Action href="{page.url.pathname}/blocks/add">
+      <Action onclick={() => (open = true)}>
         <i class="fa-solid fa-plus"></i>
         {t('blocks.addBlock')}
       </Action>
+
+      <Dialog
+        {open}
+        onOpenChange={(event) => (open = event.open)}
+        onsave={async () => {
+          const block = await createBlock({ areaId: String(area.id) })
+          goto(`/bla/blocks/${block.id}`)
+        }}
+        pending={createBlock.pending}
+        saveText={t('common.ok')}
+        title={t('blocks.createBlockInTitle', { name: area.name })}
+      >
+        {#snippet content()}
+          {t('blocks.createBlockConfirmation', { count: area.blocks.length + 1 })}
+        {/snippet}
+      </Dialog>
     {/if}
 
     {#if area.type !== 'area'}

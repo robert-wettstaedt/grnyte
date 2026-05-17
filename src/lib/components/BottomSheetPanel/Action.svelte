@@ -2,14 +2,21 @@
   import type { Snippet } from 'svelte'
 
   interface Props {
-    class?: string
     children?: Snippet
+    class?: string
     href?: string
+    onclick?: () => void
   }
 
-  const { class: className, children, href }: Props = $props()
+  const { children, class: className, href, onclick }: Props = $props()
 </script>
 
-<a class="btn preset-tonal btn-sm md:btn-base shrink-0 snap-start {className}" {href}>
-  {@render children?.()}
-</a>
+{#if href != null}
+  <a class="btn preset-tonal btn-sm md:btn-base shrink-0 snap-start {className}" {href}>
+    {@render children?.()}
+  </a>
+{:else if onclick != null}
+  <button class="btn preset-tonal btn-sm md:btn-base shrink-0 snap-start {className}" {onclick}>
+    {@render children?.()}
+  </button>
+{/if}

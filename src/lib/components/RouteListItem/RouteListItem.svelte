@@ -4,11 +4,13 @@
   import MarkdownRenderer from '$lib/components/MarkdownRenderer'
   import { RouteNameLoader as RouteName } from '$lib/components/RouteName'
   import { queries, type RowWithRelations } from '$lib/db/zero'
+  import { getBlockName } from '$lib/helper.svelte'
+  import type { TopoDTO } from '$lib/topo'
   import type { Snippet } from 'svelte'
 
   interface Props {
     description?: Snippet
-    route: RowWithRelations<'routes', { block: true }>
+    route: RowWithRelations<'routes', { block: true }> & { topo?: TopoDTO }
     showImage?: boolean
     showPath?: boolean
   }
@@ -26,7 +28,11 @@
 <div class="flex gap-2">
   <div class="relative">
     {#if showImage}
-      <Image path="/blocks/{block?.id}/preview-image" size={64} />
+      {#if route.topo != null}
+        <Image path="/nextcloud/{route.topo.file.path}/preview" size={64} />
+      {:else if block != null}
+        <Image path="/blocks/{block.id}/preview-image" size={64} />
+      {/if}
     {/if}
 
     <!-- TODO: check when showImage=false and is favorite -->
@@ -41,7 +47,7 @@
   <div class="flex w-full flex-col justify-center gap-1 overflow-hidden">
     {#if showPath}
       <p class="overflow-hidden text-xs text-ellipsis whitespace-nowrap text-white opacity-50">
-        {block?.area?.name} / {block?.name}
+        {block?.area?.name} / {getBlockName(block)}
       </p>
     {/if}
 

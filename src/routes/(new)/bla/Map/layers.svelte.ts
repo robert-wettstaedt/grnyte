@@ -12,6 +12,7 @@ import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
 import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM, type NestedBlock } from './types'
+import { getBlockName } from '$lib/helper.svelte'
 
 export function createWmsLayers(userRegions: App.UserRegion[]): TileLayer[] {
   return userRegions.flatMap((region) =>
@@ -177,7 +178,7 @@ export function createBlockLayer(
     const geo = block.geolocation!
     const feature = new Feature({
       geometry: new Point(fromLonLat([geo.long, geo.lat])),
-      name: block.name,
+      name: getBlockName(block),
       blockId: block.id,
       routeCount: routeCountByBlock.get(block.id) ?? 0,
     })

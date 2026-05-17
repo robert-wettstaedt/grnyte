@@ -43,15 +43,16 @@ const updateBlockAction: Action<EditBlockActionValues> = async (values, db, user
   }
 
   const slug = generateSlug(entity.name)
+  if (slug.length > 0) {
+    // Check if a block with the same slug already exists in the area
+    const existingBlocksResult = await db.query.blocks.findFirst({
+      where: (table, { and, eq }) => and(eq(table.slug, slug), eq(table.areaFk, block.areaFk)),
+    })
 
-  // Check if a block with the same slug already exists in the area
-  const existingBlocksResult = await db.query.blocks.findFirst({
-    where: (table, { and, eq }) => and(eq(table.slug, slug), eq(table.areaFk, block.areaFk)),
-  })
-
-  if (existingBlocksResult != null && existingBlocksResult.id !== block.id) {
-    // If a block with the same slug exists, return a 400 error with a message
-    error(400, `Block with name "${existingBlocksResult.name}" already exists in area "${block.area.name}"`)
+    if (existingBlocksResult != null && existingBlocksResult.id !== block.id) {
+      // If a block with the same slug exists, return a 400 error with a message
+      error(400, `Block with name "${existingBlocksResult.name}" already exists in area "${block.area.name}"`)
+    }
   }
 
   // Update the block in the database with the validated values
