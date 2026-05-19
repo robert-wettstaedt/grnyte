@@ -5,20 +5,10 @@
   import { getI18n } from '$lib/i18n'
   import GradeRangeSlider from '../GradeRangeSlider'
 
-  interface Props {
-    numRoutes?: number
-  }
-
-  const { numRoutes }: Props = $props()
-
   const { t } = getI18n()
 </script>
 
 <form class="flex flex-col items-center gap-4 px-2 md:px-4">
-  {#if numRoutes != null}
-    {t('routes.routesCount', { count: numRoutes })}
-  {/if}
-
   <GradeRangeSlider
     minGrade={page.url.searchParams.get('minGrade') == null ? undefined : Number(page.url.searchParams.get('minGrade'))}
     maxGrade={page.url.searchParams.get('maxGrade') == null ? undefined : Number(page.url.searchParams.get('maxGrade'))}

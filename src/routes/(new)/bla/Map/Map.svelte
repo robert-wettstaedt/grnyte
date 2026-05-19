@@ -5,8 +5,8 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
-  import BottomSheetPanel from '$lib/components/BottomSheetPanel'
   import { pageState } from '$lib/components/Layout'
+  import Modal from '$lib/components/Modal'
   import { getI18n } from '$lib/i18n'
   import OlGeolocation from 'ol/Geolocation.js'
   import OlMap from 'ol/Map.js'
@@ -300,75 +300,85 @@
   <div class="h-full" {@attach mapAttachment}></div>
 
   <div class="absolute right-2 bottom-2 z-20 flex flex-col gap-1">
-    <button class="preset-filled-surface-200-800 btn-icon" onclick={handleZoomIn} aria-label={t('map.zoomIn')}>
+    <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomIn} aria-label={t('map.zoomIn')}>
       <i class="fa-solid fa-plus text-sm"></i>
     </button>
 
-    <button class="preset-filled-surface-200-800 btn-icon" onclick={handleZoomOut} aria-label={t('map.zoomOut')}>
+    <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomOut} aria-label={t('map.zoomOut')}>
       <i class="fa-solid fa-minus text-sm"></i>
     </button>
 
     <div class="h-8"></div>
 
     <button
-      class="preset-filled-surface-200-800 btn-icon"
-      onclick={handleGeolocate}
       aria-label={t('map.showMyLocation')}
+      class={[
+        'btn-icon',
+        isTrackingGeolocation
+          ? 'preset-filled-primary-500'
+          : isGeolocationError
+            ? 'preset-filled-error-500'
+            : 'preset-filled-surface-100-900',
+      ]}
+      onclick={handleGeolocate}
     >
-      <i
-        class="fa-solid fa-location-crosshairs text-sm"
-        class:text-primary-500={isTrackingGeolocation}
-        class:text-error-500={isGeolocationError}
-      ></i>
+      <i class="fa-solid fa-location-crosshairs text-sm"></i>
     </button>
 
     <button
-      class="preset-filled-surface-200-800 btn-icon"
-      onclick={handleFullscreen}
       aria-label={t('map.toggleFullscreen')}
+      class={['btn-icon', isFullscreen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900']}
+      onclick={handleFullscreen}
     >
-      <i class="fa-solid text-sm" class:fa-expand={!isFullscreen} class:fa-compress={isFullscreen}></i>
+      <i class={['fa-solid text-sm', isFullscreen ? 'fa-compress' : 'fa-expand']}></i>
     </button>
 
-    <button
-      class="preset-filled-surface-200-800 btn-icon"
-      onclick={() => (isLayersSheetOpen = !isLayersSheetOpen)}
-      aria-label={t('map.toggleLayers')}
-    >
-      <i class="fa-solid fa-layer-group text-sm" class:text-primary-500={isLayersSheetOpen}></i>
-    </button>
+    <Modal bind:open={isLayersSheetOpen} popoverProps={{ positioning: { placement: 'left' } }} title={t('map.layers')}>
+      {#snippet trigger(props)}
+        <button
+          {...props}
+          aria-label={t('map.toggleLayers')}
+          class={[
+            props.class,
+            'btn-icon',
+            isLayersSheetOpen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900',
+          ]}
+          onclick={() => (isLayersSheetOpen = !isLayersSheetOpen)}
+        >
+          <i class="fa-solid fa-layer-group text-sm"></i>
+        </button>
+      {/snippet}
+
+      <div class="mt-4 flex flex-wrap justify-around gap-2">
+        {#each layerEntries as entry (entry.name)}
+          <button
+            aria-label={entry.label}
+            aria-pressed={entry.visible}
+            class="flex w-25 flex-col items-center justify-center gap-1"
+            onclick={() => handleToggleLayer(entry.name)}
+          >
+            <div
+              class={[
+                'color-primary-500 flex h-25 w-25 items-center justify-center rounded-lg transition-colors',
+                entry.visible ? 'preset-filled-primary-500' : 'border-surface-500/30 border',
+              ]}
+            >
+              <i class={['text-6xl transition-colors', entry.icon, !entry.visible && 'text-surface-500/30']}></i>
+            </div>
+            <span
+              class={[
+                'w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors',
+                entry.visible ? 'text-primary-500' : 'text-surface-500',
+              ]}
+            >
+              {entry.label}
+            </span>
+          </button>
+        {/each}
+      </div>
+    </Modal>
   </div>
 </div>
-
-<BottomSheetPanel bind:isSheetOpen={isLayersSheetOpen} autoHeight title={t('map.layers')}>
-  <div class="mt-4 flex flex-wrap justify-around gap-2">
-    {#each layerEntries as entry (entry.name)}
-      <button
-        aria-label={entry.label}
-        aria-pressed={entry.visible}
-        class="flex w-25 flex-col items-center justify-center gap-1"
-        onclick={() => handleToggleLayer(entry.name)}
-      >
-        <div
-          class={[
-            'color-primary-500 flex h-25 w-25 items-center justify-center rounded-lg transition-colors',
-            entry.visible ? 'preset-filled-primary-500' : 'border-surface-500/30 border',
-          ]}
-        >
-          <i class={['text-6xl transition-colors', entry.icon, !entry.visible && 'text-surface-500/30']}></i>
-        </div>
-        <span
-          class={[
-            'w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors',
-            entry.visible ? 'text-primary-500' : 'text-surface-500',
-          ]}
-        >
-          {entry.label}
-        </span>
-      </button>
-    {/each}
-  </div>
-</BottomSheetPanel>
 
 <style>
   :global(.geolocation-marker) {

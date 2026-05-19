@@ -1,6 +1,7 @@
 <script lang="ts">
   import { pageState } from '$lib/components/Layout/page.svelte'
   import { getGradeColor } from '$lib/grades'
+  import { getI18n } from '$lib/i18n'
 
   interface Values {
     minGrade: number
@@ -12,6 +13,8 @@
   }
 
   let { minGrade = $bindable(), maxGrade = $bindable(), onchange }: Props = $props()
+
+  const { t } = getI18n()
 
   let minUserGrade = $derived.by(() => {
     if (minGrade == null) {
@@ -107,7 +110,9 @@
   })
 </script>
 
-<div class="relative w-full max-w-md pb-4">
+<fieldset class="relative mx-auto mt-10 w-full max-w-md pb-4">
+  <legend class="text-surface-700-300 absolute -top-8 text-xs font-extrabold uppercase">{t('grades.range')}</legend>
+
   <div class="relative mx-2.5 h-8">
     {#if minUserGrade != null && minGrade != null}
       <label
@@ -171,4 +176,4 @@
       value={maxGrade}
     />
   </div>
-</div>
+</fieldset>

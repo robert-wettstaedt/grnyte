@@ -37,10 +37,10 @@
   }
 </script>
 
-<div class="input-group flex">
+<div class="input-group flex md:grow">
   <input
     bind:value
-    class="ig-input preset-filled-surface-200-800 w-full max-w-64"
+    class="ig-input preset-filled-surface-100-900 w-full max-w-64 md:max-w-none"
     name="q"
     onkeyup={onchange}
     placeholder={t('common.search')}
@@ -48,7 +48,7 @@
   />
 
   <button
-    class="ig-cell preset-filled-surface-200-800"
+    class="ig-cell preset-filled-surface-100-900 text-sm"
     onclick={() => submitQuery(value, 'q')}
     title={t('common.search')}
   >

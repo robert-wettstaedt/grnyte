@@ -5,32 +5,28 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { fitHeightAction } from '$lib/actions/fit-height.svelte'
   import Logo from '$lib/assets/logo.svg'
-  import BottomSheetPanel, { sheetState } from '$lib/components/BottomSheetPanel'
-  import LoadingIndicator from '$lib/components/LoadingIndicator'
-  import RoutesFilter from '$lib/components/RouteList/components/RoutesFilter'
   import { searchParamsSchema } from '$lib/components/RouteList/lib'
   import type { Geolocation } from '$lib/db/schema'
   import { queries } from '$lib/db/zero'
   import { validateObject } from '$lib/forms/validate.svelte'
-  import { getI18n } from '$lib/i18n'
   import { fly } from 'svelte/transition'
   import Map, { type BlocksMapProps, type MapFocus, type NestedBlock } from '../Map'
-  import Search from '../Search'
   import type { LayoutProps } from './$types'
+  import Filter from './Filter'
+  import Modal, { sheetState } from './Modal'
+  import SearchBar from './SearchBar'
 
   let { children }: LayoutProps = $props()
 
-  const { t } = getI18n()
-
-  let isDetailSheetOpen = $state(page.route.id?.includes('(modal)') ?? false)
-  let isFilterSheetOpen = $state(false)
-  let hasOpenedDetailSheet = false
+  let open = $state(!(page.route.id?.endsWith('(modal)') ?? false))
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
-  beforeNavigate(() => {
-    sheetState.title = ''
-    sheetState.subtitle = null
+  beforeNavigate((navigation) => {
+    if (navigation.from?.route.id !== navigation.to?.route.id) {
+      sheetState.title = ''
+      sheetState.subtitle = null
+    }
 
     if (mapViewState != null) {
       replaceState('', $state.snapshot({ ...page.state, mapView: mapViewState }))
@@ -38,9 +34,8 @@
   })
 
   afterNavigate((event) => {
-    isDetailSheetOpen = !(event.to?.route.id?.endsWith('(modal)') ?? false)
-    if (isDetailSheetOpen) {
-      hasOpenedDetailSheet = true
+    open = !(event.to?.route.id?.endsWith('(modal)') ?? false)
+    if (open) {
       sheetState.requestSnap = 0.75
     }
 
@@ -157,9 +152,9 @@
   <Map {...data} focus={effectiveFocus} onviewchange={(view) => (mapViewState = view)} />
 </div>
 
-{#if !isDetailSheetOpen || page.route.id?.includes('/search')}
+{#if !open || page.route.id?.includes('/search')}
   <div
-    class="absolute top-2 left-0 z-10 flex w-full justify-center gap-2 px-2"
+    class="fixed top-2 left-0 z-10 flex w-full justify-center gap-2 px-1 md:left-25 md:w-sm md:px-0 lg:w-md"
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
@@ -167,47 +162,20 @@
       <img class="min-h-9 min-w-9 rounded" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
     </a>
 
-    <Search />
+    <SearchBar />
 
-    <button
-      class="btn btn-sm {isFilterSheetOpen ? 'preset-filled-primary-500' : 'preset-filled-surface-200-800'}"
-      onclick={() => (isFilterSheetOpen = true)}
-    >
-      {#if routesResult.data.length === 0 && routesResult.details.type !== 'complete'}
-        <LoadingIndicator class="flex justify-center" size={4} />
-      {:else}
-        <i class="fa-solid fa-filter"></i>
-      {/if}
-    </button>
+    <Filter
+      active={searchParams.maxGrade != null || searchParams.minGrade != null}
+      loading={routesResult.data.length === 0 && routesResult.details.type !== 'complete'}
+      numRoutes={routesResult.data.length}
+    />
   </div>
 {/if}
 
-{#if !isDetailSheetOpen}
+{#if !open}
   {@render children?.()}
 {/if}
 
-<BottomSheetPanel
-  bind:isSheetOpen={isDetailSheetOpen}
-  onclose={() => {
-    if (!hasOpenedDetailSheet) {
-      return
-    }
-
-    goto(resolve('/bla'))
-  }}
-  settings={{
-    snapPoints: [0.25, 0.5, 0.75],
-    maxHeight: 1,
-    startingSnapPoint: 0.75,
-    disableClosing: true,
-    closeThreshold: 0,
-  }}
->
+<Modal bind:open onclose={() => goto(resolve('/bla'))}>
   {@render children?.()}
-</BottomSheetPanel>
-
-<BottomSheetPanel bind:isSheetOpen={isFilterSheetOpen} title={t('common.filter')} autoHeight>
-  <div class="mt-4">
-    <RoutesFilter numRoutes={routesResult.data.length} />
-  </div>
-</BottomSheetPanel>
+</Modal>

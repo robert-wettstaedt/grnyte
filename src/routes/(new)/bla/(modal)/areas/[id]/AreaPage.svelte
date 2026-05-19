@@ -3,10 +3,10 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AreaList from '$lib/components/AreaList'
   import BlocksList from '$lib/components/BlocksList'
-  import { sheetState } from '$lib/components/BottomSheetPanel'
   import { getAreaContext } from '$lib/contexts/area'
   import { getI18n } from '$lib/i18n'
   import i18n from 'i18next'
+  import { sheetState } from '../../Modal'
   import AreaInfo from './AreaInfo.svelte'
 
   const { area } = getAreaContext()

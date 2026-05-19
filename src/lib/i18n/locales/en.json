@@ -6,6 +6,7 @@
       "add": "Add",
       "addGrade": "Add grade",
       "addValue": "Add \"{{value}}\"",
+      "apply": "Apply",
       "ascending": "Ascending ⬆",
       "back": "Back",
       "basics": "Basics",
@@ -55,6 +56,7 @@
       "recentSearches": "Recent searches",
       "region": "Region",
       "remove": "Remove",
+      "reset": "Reset",
       "save": "Save",
       "search": "Search...",
       "selectRegion": "-- Select region --",
@@ -561,7 +563,8 @@
       "averageDescription": "The final grade will be the average of all the opinions."
     },
     "grades": {
-      "title": "Grades"
+      "title": "Grades",
+      "range": "Grade range"
     },
     "rating": {
       "title": "Rating",

@@ -4,11 +4,11 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import { Action, ActionBar } from '$lib/components/BottomSheetPanel'
   import Dialog from '$lib/components/Dialog'
   import { pageState } from '$lib/components/Layout'
   import { getAreaContext } from '$lib/contexts/area'
   import { getI18n } from '$lib/i18n'
+  import { Action, ActionBar } from '../../ActionBar'
   import { createBlock } from './page.remote'
 
   const { area } = getAreaContext()

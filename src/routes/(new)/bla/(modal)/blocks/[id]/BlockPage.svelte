@@ -1,11 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import { sheetState } from '$lib/components/BottomSheetPanel'
   import { getBlockContext } from '$lib/contexts/block'
   import { getBlockName } from '$lib/helper.svelte'
   import { getI18n } from '$lib/i18n'
   import i18next from 'i18next'
+  import { sheetState } from '../../Modal'
   import BlockInfo from './BlockInfo.svelte'
 
   const { block } = getBlockContext()

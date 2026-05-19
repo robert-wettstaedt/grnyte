@@ -6,6 +6,7 @@
       "add": "Hinzufuegen",
       "addGrade": "Schwierigkeit hinzufügen",
       "addValue": "\"{{value}}\" hinzufügen",
+      "apply": "Anwenden",
       "ascending": "Aufsteigend ⬆",
       "back": "Zurück",
       "basics": "Grundlagen",
@@ -55,6 +56,7 @@
       "recentSearches": "Letzte Suchen",
       "region": "Region",
       "remove": "Entfernen",
+      "reset": "Zurücksetzen",
       "save": "Speichern",
       "search": "Suchen...",
       "selectRegion": "-- Region auswählen --",
@@ -534,7 +536,8 @@
       "averageDescription": "Die endgültige Schwierigkeit ist der Durchschnitt aller Meinungen."
     },
     "grades": {
-      "title": "Schwierigkeiten"
+      "title": "Schwierigkeiten",
+      "range": "Schwierigkeitsbereich"
     },
     "rating": {
       "title": "Bewertung",

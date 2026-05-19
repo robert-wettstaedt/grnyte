@@ -2,10 +2,10 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import { Action, ActionBar } from '$lib/components/BottomSheetPanel'
   import { pageState } from '$lib/components/Layout'
   import { getBlockContext } from '$lib/contexts/block'
   import { getI18n } from '$lib/i18n'
+  import { Action, ActionBar } from '../../ActionBar'
 
   const { block } = getBlockContext()
   const { t } = getI18n()
