@@ -56,7 +56,17 @@
     onLoad()
   }
 
-  const ALPHABET_START_INDEX = 'a'.charCodeAt(0)
+  const ALPHABET_START = 'a'.charCodeAt(0)
+  const indexToKey = (index: number): string => {
+    let result = ''
+    let n = index
+    while (true) {
+      result = String.fromCharCode(ALPHABET_START + (n % 26)) + result
+      if (n < 26) break
+      n = Math.floor(n / 26) - 1
+    }
+    return result
+  }
 </script>
 
 <svelte:head>
@@ -162,7 +172,7 @@
     {#each data.area.areas as area}
       <AreaBlockListing
         blocks={area.blocks}
-        getBlockKey={(_, index) => String.fromCharCode(ALPHABET_START_INDEX + index)}
+        getBlockKey={(_, index) => indexToKey(index)}
         itemClass={ITEM_CLASS}
         name={area.name}
         {onLoadTopo}
@@ -172,7 +182,7 @@
   {:else}
     <AreaBlockListing
       blocks={data.area.blocks}
-      getBlockKey={(_, index) => String.fromCharCode(ALPHABET_START_INDEX + index)}
+      getBlockKey={(_, index) => indexToKey(index)}
       itemClass={ITEM_CLASS}
       name="Blöcke"
       {onLoadTopo}
