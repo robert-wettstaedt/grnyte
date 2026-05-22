@@ -9,12 +9,14 @@
   import sa from '$lib/assets/sa.svg'
   import AreaBlockListing from '$lib/components/AreaBlockListing'
   import { selectedRouteStore } from '$lib/components/TopoViewer'
+  import { initI18n } from '$lib/i18n'
   import '@fortawesome/fontawesome-free/css/all.css'
   import { Progress } from '@skeletonlabs/skeleton-svelte'
   import 'github-markdown-css/github-markdown-dark.css'
   import '../../../../../app.css'
 
   let { data } = $props()
+  initI18n()
   let basePath = $derived(`/areas/${page.params.slugs}`)
   const DEBUG = false
   const ITEM_CLASS = 'break-after-page h-[210mm] w-[297mm]'
