@@ -1,45 +1,66 @@
-<script lang="ts">
-  import { getI18n } from '$lib/i18n'
-  import type { TopoDTO } from '$lib/topo'
-  import type { Attachment } from 'svelte/attachments'
-  import Route from './components/Route'
-
-  interface Dimensions {
+<script lang="ts" module>
+  export interface Dimensions {
     height: number
     width: number
     scale: number
   }
+</script>
+
+<script lang="ts">
+  import { getI18n } from '$lib/i18n'
+  import type { TopoDTO } from '$lib/topo'
+  import * as d3 from 'd3'
+  import { onMount } from 'svelte'
+  import type { Attachment } from 'svelte/attachments'
+  import Route from './components/Route'
 
   interface Props {
-    height?: number
+    onload?: (dimensions: Dimensions) => void
     value: TopoDTO
+    zoomable?: boolean
   }
 
-  const { value, ...props }: Props = $props()
+  const { onload, value, zoomable = false }: Props = $props()
   const { t } = getI18n()
 
   let dimensions = $state<Dimensions>()
   let loading = $state(true)
   let error = $state(false)
+
+  let svg = $state<SVGSVGElement>()
   let img = $state<HTMLImageElement>()
+  let wrapper = $state<HTMLDivElement>()
+
+  let zoom: d3.ZoomBehavior<Element, unknown> | null = $state(null)
+  let zoomTransform: d3.ZoomTransform | undefined = $state()
 
   function getDimensions() {
-    if (img == null) {
-      dimensions = undefined
-    } else if (props.height == null) {
-      dimensions = {
-        scale: img.width / img.naturalWidth,
-        height: img.height,
-        width: img.width,
+    if (img == null || wrapper == null || img.naturalWidth === 0 || img.naturalHeight === 0) {
+      return
+    }
+
+    const wrapperBcr = wrapper.getBoundingClientRect()
+
+    if (wrapperBcr.height > img.naturalHeight && wrapperBcr.width > img.naturalWidth) {
+      const widthDiff = wrapperBcr.width - img.naturalWidth
+      const heightDiff = wrapperBcr.height - img.naturalHeight
+
+      if (widthDiff > heightDiff) {
+        img.style.width = ''
+        img.style.height = '100%'
+      } else {
+        img.style.width = '100%'
+        img.style.height = ''
       }
     } else {
-      const scale = props.height / img.naturalHeight
+      img.style.width = ''
+      img.style.height = ''
+    }
 
-      dimensions = {
-        scale,
-        height: props.height,
-        width: Math.floor(img.naturalWidth * scale),
-      }
+    dimensions = {
+      height: img.height,
+      scale: img.width / img.naturalWidth,
+      width: img.width,
     }
   }
 
@@ -50,7 +71,12 @@
 
     function onloadImage() {
       loading = false
+      initZoom()
       getDimensions()
+
+      if (dimensions != null) {
+        onload?.(dimensions)
+      }
     }
 
     element.addEventListener('error', onError)
@@ -61,18 +87,59 @@
       element.removeEventListener('load', onloadImage)
     }
   }
+
+  function initZoom() {
+    if (svg == null || dimensions == null || !zoomable) {
+      return
+    }
+
+    zoom = d3
+      .zoom()
+      .extent([
+        [0, 0],
+        [dimensions.width, dimensions.height],
+      ])
+      .translateExtent([
+        [-dimensions.width / 2, -dimensions.height / 2],
+        [dimensions.width * 1.5, dimensions.height * 1.5],
+      ])
+      .scaleExtent([0.5, 9])
+      .on('zoom', (event: { transform: d3.ZoomTransform }) => {
+        zoomTransform = event.transform
+      })
+
+    d3.select(svg).call(zoom as any)
+  }
+
+  onMount(() => {
+    const observer = new ResizeObserver(() => {
+      if (zoomTransform != null) {
+        zoomTransform = undefined
+      }
+
+      requestAnimationFrame(() => {
+        getDimensions()
+      })
+    })
+    wrapper != null && observer.observe(wrapper)
+
+    return () => {
+      wrapper != null && observer.unobserve(wrapper)
+    }
+  })
 </script>
 
-<div
-  class="relative overflow-hidden rounded-xl"
-  style="height: {dimensions?.height ?? props.height ?? 0}px; width: {dimensions?.width ?? props.height ?? 0}px;"
->
+<div bind:this={wrapper} class="relative z-1 flex h-full w-full items-center justify-center overflow-hidden">
   <img
     alt={value.file.path}
     bind:this={img}
-    height={dimensions?.height ?? 0}
+    class="pointer-events-none relative m-auto max-h-full origin-top-left touch-none"
+    height={dimensions == null ? undefined : dimensions?.height}
     src={`/nextcloud${value.file.path}`}
-    width={dimensions?.width ?? 0}
+    style={zoomTransform == null
+      ? undefined
+      : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
+    width={dimensions == null ? undefined : dimensions?.width}
     {@attach imageAttachment}
   />
 
@@ -80,7 +147,7 @@
     <div class="absolute top-0 right-0 bottom-0 left-0 -z-1">
       {#if loading}
         <div class="placeholder h-full w-full animate-pulse"></div>
-      {:else if value.file.error != null || error || 1}
+      {:else if value.file.error != null || error}
         <p
           class="border-error-500 text-error-500 bg-error-50 flex h-full w-full flex-col items-center justify-center gap-4 rounded-xl border-2 p-2 text-center md:p-4"
         >
@@ -92,9 +159,10 @@
   {:else}
     <div class="absolute top-0 right-0 bottom-0 left-0 z-20">
       <svg
+        bind:this={svg}
         class="h-full w-full"
         role="presentation"
-        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+        viewBox="0 0 {dimensions.width} {dimensions.height}"
         xmlns="http://www.w3.org/2000/svg"
       >
         <rect
@@ -102,17 +170,19 @@
           height={dimensions.height}
           role="presentation"
           style="pointer-events: none; touch-action: none;"
+          transform={zoomTransform?.toString()}
           width={dimensions.width}
           x={0}
           y={0}
         />
 
-        <g role="presentation">
+        <g role="presentation" transform={zoomTransform?.toString()}>
           {#each value.routes as _, index}
             <Route
               {index}
-              bind:routes={value.routes}
               height={dimensions.height}
+              onChange={() => {}}
+              routes={value.routes}
               scale={dimensions.scale}
               width={dimensions.width}
             />

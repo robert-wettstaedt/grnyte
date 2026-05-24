@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import FormAppBar from '$lib/components/FormActionBar/FormAppBar.svelte'
+  import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
   import { getBlockContext } from '$lib/contexts/block'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { getBlockName } from '$lib/helper.svelte'

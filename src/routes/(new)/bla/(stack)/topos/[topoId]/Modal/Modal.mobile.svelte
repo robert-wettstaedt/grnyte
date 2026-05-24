@@ -6,7 +6,7 @@
 
   const HANDLE_HEIGHT = 36
 
-  let { children, onclose, open = $bindable() }: ModalProps = $props()
+  let { base, children, title }: ModalProps = $props()
 
   const { t } = getI18n()
 
@@ -26,8 +26,6 @@
     return Number(Math.min((contentHeight + HANDLE_HEIGHT + titleHeight) / innerHeight, 0.9).toFixed(2))
   }
 
-  const maxHeight = $derived.by(calc)
-
   const titleSnapPoint = $derived.by(() => {
     const titleHeight = titleEl?.clientHeight
 
@@ -37,16 +35,6 @@
 
     return Number(Math.min((titleHeight + HANDLE_HEIGHT) / innerHeight, 0.3).toFixed(2))
   })
-
-  const handleDocumentClick = (event: MouseEvent) => {
-    if (!open || sheetState.requestSnap != null) return
-
-    const target = event.target as HTMLElement
-
-    if (!target.closest('.bottom-sheet')) {
-      sheet?.setSnapPoint(titleSnapPoint)
-    }
-  }
 
   $effect(() => {
     const snap = sheetState.requestSnap
@@ -62,43 +50,21 @@
 </script>
 
 <svelte:window bind:innerHeight />
-<svelte:document onclick={handleDocumentClick} />
+
+{@render base()}
 
 {#snippet content()}
-  <BottomSheet.Sheet class="preset-filled-surface-50-950! block!">
-    <BottomSheet.Handle style="background: var(--color-surface-50-950)" />
+  <BottomSheet.Sheet class="preset-filled-surface-100-900! block!">
+    <BottomSheet.Handle style="background: var(--color-surface-100-900)" />
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-50-950 sticky top-9 z-100 flex items-center justify-between p-2 shadow"
+      class="preset-filled-surface-100-900 sticky top-9 z-100 flex items-center justify-between p-2 shadow"
     >
-      <div class="flex flex-col">
-        {#if sheetState.subtitle}
-          {@render sheetState.subtitle()}
-        {/if}
-
-        {#if sheetState.title}
-          {#if typeof sheetState.title === 'string'}
-            <span class="text-lg">{sheetState.title}</span>
-          {:else if sheetState.title != null}
-            {@render sheetState.title()}
-          {/if}
-        {/if}
-      </div>
-
-      <button
-        class="btn-icon"
-        aria-label={t('common.close')}
-        onclick={(event) => {
-          event.preventDefault()
-          open = false
-        }}
-      >
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      {@render title()}
     </div>
 
-    <BottomSheet.Content class="w-full px-4! pt-0!">
+    <BottomSheet.Content class="mt-2 w-full p-0!">
       <div bind:this={contentEl}>
         {@render children?.()}
       </div>
@@ -107,15 +73,14 @@
 {/snippet}
 
 <BottomSheet
-  {onclose}
   bind:this={sheet}
-  bind:isSheetOpen={open}
+  isSheetOpen
   settings={{
     closeThreshold: 0,
     disableClosing: true,
     maxHeight: 1,
-    snapPoints: [titleSnapPoint, 0.25, 0.5, 0.75],
-    startingSnapPoint: 0.75,
+    snapPoints: [titleSnapPoint, 0.5, 0.4, 0.3, 0.2, 0.75],
+    startingSnapPoint: 0.3,
   }}
 >
   {@render content()}

@@ -22,7 +22,7 @@
       'relative',
       page.data.session?.user == null || pageState.userRegions.length === 0
         ? 'min-h-[calc(100vh-3rem)]'
-        : 'min-h-[calc(100vh-61px)] md:ms-24 md:min-h-screen',
+        : 'min-h-[calc(100vh-61px)] md:ms-25 md:min-h-screen',
     ]}
   >
     <PageStateLoader>

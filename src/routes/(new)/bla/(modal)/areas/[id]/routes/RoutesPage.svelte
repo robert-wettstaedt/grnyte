@@ -23,7 +23,7 @@
   <div class="flex items-center">
     {#if navigation.canGoBack}
       <button class="btn-icon" onclick={() => navigation.back()} title={t('common.back')}>
-        <i class="fa-solid fa-chevron-left"></i>
+        <i class="fa-solid fa-arrow-left"></i>
       </button>
     {/if}
 

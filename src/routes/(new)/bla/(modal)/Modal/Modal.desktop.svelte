@@ -28,7 +28,7 @@
   preventScroll={false}
 >
   <Portal>
-    <Dialog.Positioner class="fixed inset-0 left-25 z-50 flex items-start py-12">
+    <Dialog.Positioner class="fixed inset-0 left-27 z-50 flex items-start py-12">
       <Dialog.Content
         class="card bg-surface-100-900 flex h-full w-full max-w-sm flex-col overflow-hidden shadow-xl lg:max-w-md"
       >

@@ -315,6 +315,22 @@ export const queries = defineQueries({
     }),
   ),
 
+  topo: defineQuery(
+    z.object({
+      topoId: z.number(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      return zql.topos
+        .where('id', args.topoId)
+        .related('block', (q) => r(q).related('area', r).related('topos'))
+        .related('file', r)
+        .related('routes', (q) => r(q).related('route'))
+        .one()
+    }),
+  ),
+
   favorites: defineQuery(
     z.object({
       authUserFk: z.string().optional(),

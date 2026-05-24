@@ -2,7 +2,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_DELETE } from '$lib/auth'
   import DangerZone from '$lib/components/DangerZone'
-  import FormAppBar from '$lib/components/FormActionBar/FormAppBar.svelte'
+  import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
   import FormFieldError from '$lib/components/FormFieldError'
   import { pageState } from '$lib/components/Layout/page.svelte'
   import { getAreaContext } from '$lib/contexts/area'

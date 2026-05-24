@@ -9,10 +9,16 @@ export const fitHeightAction: Action<HTMLElement, Opts | undefined> = (node, opt
   const { heightSubtrahend = 0, paddingBottom = 32 } = opts ?? {}
 
   const calcHeight = () => {
+    const appBarBcr = document.querySelector('[data-scope="app-bar"][data-part="root"]')?.getBoundingClientRect()
+    if (appBarBcr) {
+      node.style.marginTop = `${appBarBcr.height}px`
+    }
+
     const bcr = node.getBoundingClientRect()
     const navBarBcr = document
       .querySelector('[data-scope="navigation"][data-part="root"][data-layout="bar"]')
       ?.getBoundingClientRect()
+
     const h = heightSubtrahend > 0 ? heightSubtrahend : (navBarBcr?.height ?? 0)
 
     node.style.height = `${window.innerHeight - bcr.top - paddingBottom - h}px`

@@ -56,5 +56,5 @@
 {#if area.type === 'sector'}
   <BlocksList areaFk={area.id} basePath={resolve('/bla')} regionFk={area.regionFk} sortable={false} />
 {:else}
-  <AreaList basePath={resolve('/bla')} listProps={{ empty: '' }} parentFk={area.id} />
+  <AreaList basePath={resolve('/bla')} parentFk={area.id} />
 {/if}

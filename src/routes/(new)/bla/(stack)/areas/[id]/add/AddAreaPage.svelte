@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import FormAppBar from '$lib/components/FormActionBar/FormAppBar.svelte'
+  import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
   import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
   import { getI18n } from '$lib/i18n'

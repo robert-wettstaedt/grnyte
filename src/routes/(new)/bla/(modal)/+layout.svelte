@@ -49,11 +49,9 @@
     }
   })
 
-  const searchParams = $derived.by(() => {
-    const search = page.url.pathname === resolve('/bla') ? page.url.searchParams.toString() : ''
-    const searchParamsObj = Object.fromEntries(new URLSearchParams(search).entries())
-    return validateObject(searchParamsSchema, searchParamsObj)
-  })
+  const search = $derived(page.url.searchParams.toString())
+  const searchParamsObj = $derived(Object.fromEntries(new URLSearchParams(search).entries()))
+  const searchParams = $derived(validateObject(searchParamsSchema, searchParamsObj))
 
   const routesResult = $derived(page.data.z.q(queries.listRoutes({ ...searchParams, pageSize: undefined })))
   const blocksResult = $derived(page.data.z.q(queries.listBlocks({})))
@@ -156,7 +154,7 @@
 
 {#if !open || page.route.id?.includes('/search')}
   <div
-    class="fixed top-2 left-0 z-10 flex w-full justify-center gap-2 px-1 md:left-25 md:w-sm md:px-0 lg:w-md"
+    class="fixed top-2 left-0 z-10 flex w-full justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
