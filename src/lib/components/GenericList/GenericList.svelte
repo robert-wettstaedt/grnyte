@@ -26,7 +26,15 @@
 
 <nav class="list-nav {classes}">
   {#if items.length === 0}
-    {empty}
+    <div class="card preset-outlined-warning-500 flex items-center gap-4 p-4">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div>
+        <p class="font-bold">Warning</p>
+        <p class="text-xs opacity-60">
+          {empty}
+        </p>
+      </div>
+    </div>
   {:else}
     <ul
       class="overflow-auto"

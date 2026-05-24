@@ -1,0 +1,67 @@
+<script lang="ts">
+  import { goto } from '$app/navigation'
+  import { page } from '$app/state'
+  import GenericList from '$lib/components/GenericList'
+  import LoadingIndicator from '$lib/components/LoadingIndicator'
+  import RouteListItem from '$lib/components/RouteListItem'
+  import ZeroQueryWrapper, { type ZeroQueryWrapperBaseProps } from '$lib/components/ZeroQueryWrapper'
+  import { routeWithPathname } from '$lib/db/utils.svelte'
+  import type { RowWithRelations } from '$lib/db/zero'
+  import { DEFAULT_PAGE_SIZE, hasReachedEnd } from '$lib/pagination.svelte'
+  import RoutesFilter from './components/RoutesFilter'
+  import { getRoutesFilterQuery } from './lib'
+  import { getI18n } from '$lib/i18n'
+
+  interface Props extends ZeroQueryWrapperBaseProps {
+    areaFk?: number | null
+  }
+  const { areaFk, ...rest }: Props = $props()
+
+  function mapRoutes<T extends RowWithRelations<'routes', { block: true }>>(routes: T[]) {
+    return routes
+      .map((route) => routeWithPathname(route))
+      .filter((route) => route != null)
+      .filter((route) => route.id != null)
+      .map((route) => ({ ...route, id: route.id! }))
+  }
+
+  const { t } = getI18n()
+</script>
+
+<RoutesFilter />
+
+<ZeroQueryWrapper {...rest} loadingIndicator={{ type: 'skeleton' }} query={getRoutesFilterQuery(areaFk)}>
+  {#snippet children(_routes)}
+    {@const routes = mapRoutes(_routes)}
+
+    <GenericList items={routes.flat()}>
+      {#snippet left(route)}
+        <RouteListItem {route} showPath />
+      {/snippet}
+    </GenericList>
+  {/snippet}
+
+  {#snippet after(_routes, details)}
+    {@const routes = mapRoutes(_routes)}
+
+    {#if page.url.searchParams.get('pageSize') != null || !hasReachedEnd(routes.length)}
+      <div class="my-8 flex justify-center">
+        <button
+          class="btn preset-filled-primary-500"
+          disabled={details.type !== 'complete' || hasReachedEnd(routes.length)}
+          onclick={() => {
+            const url = new URL(page.url)
+            url.searchParams.set('pageSize', String(routes.length + DEFAULT_PAGE_SIZE))
+            goto(url, { noScroll: true, replaceState: true })
+          }}
+        >
+          {#if details.type !== 'complete'}
+            <LoadingIndicator />
+          {/if}
+
+          {t('common.showMore')}
+        </button>
+      </div>
+    {/if}
+  {/snippet}
+</ZeroQueryWrapper>

@@ -49,9 +49,11 @@
     }
   })
 
-  const search = $derived(page.url.searchParams.toString())
-  const searchParamsObj = $derived(Object.fromEntries(new URLSearchParams(search).entries()))
-  const searchParams = $derived(validateObject(searchParamsSchema, searchParamsObj))
+  const searchParams = $derived.by(() => {
+    const search = page.url.pathname === resolve('/bla') ? page.url.searchParams.toString() : ''
+    const searchParamsObj = Object.fromEntries(new URLSearchParams(search).entries())
+    return validateObject(searchParamsSchema, searchParamsObj)
+  })
 
   const routesResult = $derived(page.data.z.q(queries.listRoutes({ ...searchParams, pageSize: undefined })))
   const blocksResult = $derived(page.data.z.q(queries.listBlocks({})))

@@ -34,7 +34,7 @@
 
   $effect(() => {
     sheetState.title = `${i18next.format(t('entities.block'), 'capitalize')} · ${getBlockName(block)}`
-    sheetState.subtitle = mySubtitleSnippet
+    sheetState.subtitle = subtitleSnippet
   })
 </script>
 
@@ -42,7 +42,7 @@
   <title>{getBlockName(block)} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#snippet mySubtitleSnippet()}
+{#snippet subtitleSnippet()}
   <div class="flex items-center gap-2">
     {#each parents as parent, index}
       <a class="anchor text-xs" href={resolve('/(new)/bla/(modal)/areas/[id]', { id: parent.id.toString() })}>

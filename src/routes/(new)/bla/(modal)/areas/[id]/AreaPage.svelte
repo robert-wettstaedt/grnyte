@@ -27,7 +27,7 @@
 
   $effect(() => {
     sheetState.title = `${i18n.format(t(`entities.${area.type}`), 'capitalize')} · ${area.name}`
-    sheetState.subtitle = mySubtitleSnippet
+    sheetState.subtitle = subtitleSnippet
   })
 </script>
 
@@ -35,7 +35,7 @@
   <title>{area.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#snippet mySubtitleSnippet()}
+{#snippet subtitleSnippet()}
   <div class="flex items-center gap-2">
     {#each parents as parent, index}
       <a class="anchor text-xs" href={resolve('/(new)/bla/(modal)/areas/[id]', { id: parent.id.toString() })}>
