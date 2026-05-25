@@ -13,6 +13,8 @@
   import { onMount } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import Route from './components/Route'
+  import type { MouseEventHandler } from 'svelte/elements'
+  import { selectedRouteStore } from './stores'
 
   interface Props {
     onload?: (dimensions: Dimensions) => void
@@ -88,8 +90,12 @@
     }
   }
 
+  const svgAttachment: Attachment = (element) => {
+    initZoom()
+  }
+
   function initZoom() {
-    if (svg == null || dimensions == null || !zoomable) {
+    if (svg == null || dimensions == null || !zoomable || zoom != null) {
       return
     }
 
@@ -109,6 +115,12 @@
       })
 
     d3.select(svg).call(zoom as any)
+  }
+
+  const onclickSvg: MouseEventHandler<SVGElement> = (event) => {
+    if ((event.target as HTMLElement).tagName === 'svg') {
+      selectedRouteStore.set(null)
+    }
   }
 
   onMount(() => {
@@ -131,6 +143,7 @@
 
 <div bind:this={wrapper} class="relative z-1 flex h-full w-full items-center justify-center overflow-hidden">
   <img
+    {@attach imageAttachment}
     alt={value.file.path}
     bind:this={img}
     class="pointer-events-none relative m-auto max-h-full origin-top-left touch-none"
@@ -140,7 +153,6 @@
       ? undefined
       : `transform: translate(${zoomTransform.x}px, ${zoomTransform.y}px) scale(${zoomTransform.k})`}
     width={dimensions == null ? undefined : dimensions?.width}
-    {@attach imageAttachment}
   />
 
   {#if dimensions == null}
@@ -159,8 +171,10 @@
   {:else}
     <div class="absolute top-0 right-0 bottom-0 left-0 z-20">
       <svg
+        {@attach svgAttachment}
         bind:this={svg}
         class="h-full w-full"
+        onclick={onclickSvg}
         role="presentation"
         viewBox="0 0 {dimensions.width} {dimensions.height}"
         xmlns="http://www.w3.org/2000/svg"

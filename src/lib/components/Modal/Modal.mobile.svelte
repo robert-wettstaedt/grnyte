@@ -33,7 +33,7 @@
   <BottomSheet.Sheet class="preset-filled-surface-50-950!">
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-50-950 sticky z-100 flex items-center justify-between p-2 shadow"
+      class="preset-filled-surface-50-950 sticky z-100 flex items-center justify-between px-4 py-2 shadow"
     >
       <div class="flex flex-col">
         {#if subtitle}

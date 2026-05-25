@@ -47,7 +47,7 @@
         {#if topoIndex >= 0 && toposLength > 1}
           <a
             aria-label={t('topo.previousTopo')}
-            class={['btn-icon preset-filled-primary-500', prevTopo == null && 'opacity-50']}
+            class={['btn-icon preset-filled-surface-500', prevTopo == null && 'opacity-50']}
             href={prevTopo == null
               ? undefined
               : resolve('/(new)/bla/(stack)/topos/[topoId]', { topoId: prevTopo.id.toString() })}
@@ -63,7 +63,7 @@
         {#if topoIndex >= 0 && toposLength > 1}
           <a
             aria-label={t('topo.nextTopo')}
-            class={['btn-icon preset-filled-primary-500', nextTopo == null && 'opacity-50']}
+            class={['btn-icon preset-filled-surface-500', nextTopo == null && 'opacity-50']}
             href={nextTopo == null
               ? undefined
               : resolve('/(new)/bla/(stack)/topos/[topoId]', { topoId: nextTopo.id.toString() })}

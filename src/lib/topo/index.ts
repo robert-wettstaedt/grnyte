@@ -62,7 +62,7 @@ export const convertPathToPoints = (path: string): PointDTO[] => {
         throw new Error(`Invalid point: ${point}`)
       }
 
-      return [{ id: crypto.randomUUID(), type, x, y }]
+      return [{ id: crypto.randomUUID?.() ?? String(Math.random()), type, x, y }]
     })
 }
 

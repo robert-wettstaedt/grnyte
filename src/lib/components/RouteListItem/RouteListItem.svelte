@@ -25,7 +25,7 @@
   const byUser = $derived(favoritesResult.data.some((fav) => fav.authUserFk === page.data.authUserId))
 </script>
 
-<div class="flex gap-2">
+<div class="flex w-full gap-2">
   <div class="relative">
     {#if showImage}
       {#if route.topo != null}

@@ -25,7 +25,7 @@
       <button
         type="button"
         class="btn-icon"
-        onclick={() => (navigation.canGoBack ? navigation.back() : goto(backRoute ?? resolve('/bla')))}
+        onclick={() => goto(backRoute ?? resolve('/bla'))}
         title={t('common.back')}
       >
         <i class="fa-solid fa-arrow-left"></i>

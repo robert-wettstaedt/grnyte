@@ -43,7 +43,7 @@
         <li bind:this={itemRefs[route.id]} animate:flip={{ duration: 200 }}>
           <button
             class={[
-              'hover:preset-filled-primary-500 flex w-full items-center justify-between px-2 py-3 text-ellipsis whitespace-nowrap',
+              'hover:preset-filled-primary-500 flex w-full items-center justify-between px-2 py-3 text-left text-ellipsis whitespace-nowrap',
               selected ? 'preset-filled-primary-500 rounded-t text-white' : 'rounded',
             ]}
             onclick={() => selectedRouteStore.set(route.id)}

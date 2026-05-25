@@ -13,14 +13,16 @@
   }
   const props: Props = $props()
 
-  const query = $derived(queries.topo({ topoId: Number(page.params.topoId) }))
-
   beforeNavigate(() => {
     selectedRouteStore.set(null)
   })
 </script>
 
-<ZeroQueryWrapper loadingIndicator={{ type: 'skeleton' }} showEmpty {query}>
+<ZeroQueryWrapper
+  loadingIndicator={{ type: 'spinner' }}
+  showEmpty
+  query={queries.topo({ topoId: Number(page.params.topoId) })}
+>
   {#snippet children(topo)}
     {#if topo == null}
       <Error status={404} />

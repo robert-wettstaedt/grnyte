@@ -26,8 +26,6 @@
     return Number(Math.min((contentHeight + HANDLE_HEIGHT + titleHeight) / innerHeight, 0.9).toFixed(2))
   }
 
-  const maxHeight = $derived.by(calc)
-
   const titleSnapPoint = $derived.by(() => {
     const titleHeight = titleEl?.clientHeight
 
@@ -70,7 +68,7 @@
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-50-950 sticky top-9 z-100 flex items-center justify-between p-2 shadow"
+      class="preset-filled-surface-50-950 sticky top-9 z-100 flex items-center justify-between px-4 py-2 shadow"
     >
       <div class="flex flex-col">
         {#if sheetState.subtitle}

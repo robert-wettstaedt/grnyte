@@ -1,30 +1,22 @@
 <script lang="ts">
+  import { selectedRouteStore } from '$lib/components/TopoViewer'
   import { getI18n } from '$lib/i18n'
+  import { onMount } from 'svelte'
   import { BottomSheet, type TypeOfBottomSheet } from 'svelte-bottom-sheet'
   import { sheetState } from './sheetState.svelte'
   import type { ModalProps } from './types'
 
   const HANDLE_HEIGHT = 36
+  const STARTING_SNAP_POINT = 0.3
 
   let { base, children, title }: ModalProps = $props()
 
   const { t } = getI18n()
 
   let titleEl = $state<HTMLElement>()
-  let contentEl = $state<HTMLElement>()
   let innerHeight = $state(window.innerHeight)
   let sheet = $state<ReturnType<TypeOfBottomSheet> | undefined>(undefined)
-
-  function calc() {
-    const titleHeight = titleEl?.clientHeight
-    const contentHeight = contentEl?.parentElement?.parentElement?.clientHeight
-
-    if (typeof window === 'undefined' || contentHeight == null || contentHeight === 0 || titleHeight == null) {
-      return 0.75
-    }
-
-    return Number(Math.min((contentHeight + HANDLE_HEIGHT + titleHeight) / innerHeight, 0.9).toFixed(2))
-  }
+  let snapPoint = $state<number>(STARTING_SNAP_POINT)
 
   const titleSnapPoint = $derived.by(() => {
     const titleHeight = titleEl?.clientHeight
@@ -47,6 +39,24 @@
       }, 50)
     }
   })
+
+  onMount(() => {
+    let updates = 0
+
+    return selectedRouteStore.subscribe((id) => {
+      if (updates === 0) {
+        return updates++
+      }
+
+      if (id == null) {
+        sheet?.setSnapPoint(titleSnapPoint)
+      } else if (snapPoint < STARTING_SNAP_POINT) {
+        sheet?.setSnapPoint(STARTING_SNAP_POINT)
+      }
+
+      updates++
+    })
+  })
 </script>
 
 <svelte:window bind:innerHeight />
@@ -65,9 +75,7 @@
     </div>
 
     <BottomSheet.Content class="mt-2 w-full p-0!">
-      <div bind:this={contentEl}>
-        {@render children?.()}
-      </div>
+      {@render children?.()}
     </BottomSheet.Content>
   </BottomSheet.Sheet>
 {/snippet}
@@ -75,12 +83,13 @@
 <BottomSheet
   bind:this={sheet}
   isSheetOpen
+  onsnap={(snap) => (snapPoint = snap)}
   settings={{
     closeThreshold: 0,
     disableClosing: true,
     maxHeight: 1,
     snapPoints: [titleSnapPoint, 0.5, 0.4, 0.3, 0.2, 0.75],
-    startingSnapPoint: 0.3,
+    startingSnapPoint: STARTING_SNAP_POINT,
   }}
 >
   {@render content()}
