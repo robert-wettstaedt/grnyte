@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { getAreaContext } from '$lib/contexts/area'
@@ -10,8 +11,9 @@
   const { t } = getI18n()
 
   $effect(() => {
-    sheetState.title = titleSnippet
+    sheetState.title = t('nav.routes', { count: 2 })
     sheetState.subtitle = subtitleSnippet
+    sheetState.headerLeft = headerLeftSnippet
   })
 </script>
 
@@ -19,16 +21,14 @@
   <title>{area.name} - {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-{#snippet titleSnippet()}
-  <div class="flex items-center">
-    {#if navigation.canGoBack}
-      <button class="btn-icon" onclick={() => navigation.back()} title={t('common.back')}>
-        <i class="fa-solid fa-arrow-left"></i>
-      </button>
-    {/if}
-
-    {t('nav.routes', { count: 2 })}
-  </div>
+{#snippet headerLeftSnippet()}
+  <button
+    class="btn-icon"
+    onclick={() => goto(resolve('/(new)/bla/(modal)/areas/[id]', { id: area.id.toString() }))}
+    title={t('common.back')}
+  >
+    <i class="fa-solid fa-arrow-left"></i>
+  </button>
 {/snippet}
 
 {#snippet subtitleSnippet()}

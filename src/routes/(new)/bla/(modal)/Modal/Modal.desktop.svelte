@@ -33,19 +33,25 @@
         class="card bg-surface-100-900 flex h-full w-full max-w-sm flex-col overflow-hidden shadow-xl lg:max-w-md"
       >
         <header class="flex shrink-0 items-start justify-between p-4 shadow">
-          <Dialog.Title class="flex flex-col">
-            {#if sheetState.subtitle}
-              {@render sheetState.subtitle()}
+          <div class="flex items-center gap-2">
+            {#if sheetState.headerLeft}
+              {@render sheetState.headerLeft()}
             {/if}
 
-            {#if sheetState.title}
-              {#if typeof sheetState.title === 'string'}
-                <span class="text-lg">{sheetState.title}</span>
-              {:else if sheetState.title != null}
-                {@render sheetState.title()}
+            <Dialog.Title class="flex flex-col">
+              {#if sheetState.subtitle}
+                {@render sheetState.subtitle()}
               {/if}
-            {/if}
-          </Dialog.Title>
+
+              {#if sheetState.title}
+                {#if typeof sheetState.title === 'string'}
+                  <span class="text-lg">{sheetState.title}</span>
+                {:else if sheetState.title != null}
+                  {@render sheetState.title()}
+                {/if}
+              {/if}
+            </Dialog.Title>
+          </div>
 
           <Dialog.CloseTrigger class="btn-icon" aria-label={t('common.close')}>
             <i class="fa-solid fa-xmark"></i>

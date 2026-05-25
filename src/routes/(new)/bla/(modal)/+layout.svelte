@@ -26,6 +26,7 @@
     if (navigation.from?.route.id !== navigation.to?.route.id) {
       sheetState.title = ''
       sheetState.subtitle = null
+      sheetState.headerLeft = null
     }
 
     if (mapViewState != null) {

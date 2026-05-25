@@ -70,18 +70,24 @@
       bind:this={titleEl}
       class="preset-filled-surface-50-950 sticky top-9 z-100 flex items-center justify-between px-4 py-2 shadow"
     >
-      <div class="flex flex-col">
-        {#if sheetState.subtitle}
-          {@render sheetState.subtitle()}
+      <div class="flex items-center gap-2">
+        {#if sheetState.headerLeft}
+          {@render sheetState.headerLeft()}
         {/if}
 
-        {#if sheetState.title}
-          {#if typeof sheetState.title === 'string'}
-            <span class="text-lg">{sheetState.title}</span>
-          {:else if sheetState.title != null}
-            {@render sheetState.title()}
+        <div class="flex flex-col">
+          {#if sheetState.subtitle}
+            {@render sheetState.subtitle()}
           {/if}
-        {/if}
+
+          {#if sheetState.title}
+            {#if typeof sheetState.title === 'string'}
+              <span class="text-lg">{sheetState.title}</span>
+            {:else if sheetState.title != null}
+              {@render sheetState.title()}
+            {/if}
+          {/if}
+        </div>
       </div>
 
       <button
