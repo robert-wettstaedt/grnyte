@@ -1,13 +1,14 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Logo from '$lib/assets/logo.svg'
   import PageStateLoader from '$lib/components/Layout/components/PageStateLoader'
+  import { pageState } from '$lib/components/Layout/page.svelte'
+  import NavTiles from '$lib/components/NavTiles'
   import { initI18n } from '$lib/i18n'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import type { LayoutProps } from './$types'
-  import NavTiles from '$lib/components/NavTiles'
-  import { pageState } from '$lib/components/Layout/page.svelte'
-  import Logo from '$lib/assets/logo.svg'
-  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
   let { children }: LayoutProps = $props()
 
@@ -38,7 +39,7 @@
 
   <Navigation class="fixed top-0 hidden h-screen md:flex" layout="rail">
     <Navigation.Header>
-      <Navigation.TriggerAnchor href="/">
+      <Navigation.TriggerAnchor href={resolve('/(new)/bla')}>
         <img class="min-h-9 min-w-9 rounded" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
       </Navigation.TriggerAnchor>
     </Navigation.Header>
@@ -51,7 +52,7 @@
 
     <Navigation.Footer class="mt-auto">
       <Navigation.TriggerAnchor
-        href="/settings"
+        href={resolve('/settings')}
         class={page.url.pathname.startsWith('/settings') ? 'bg-primary-500' : undefined}
       >
         <i class="fa-solid fa-gear"></i>

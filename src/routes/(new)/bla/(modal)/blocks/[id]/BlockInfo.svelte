@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import GenericList from '$lib/components/GenericList'
   import RouteListItem from '$lib/components/RouteListItem'
   import TopoImage from '$lib/components/TopoViewer/TopoImage.svelte'
@@ -39,7 +40,7 @@
     {#each topos as topo (topo.id)}
       <a
         class="h-50 shrink-0 snap-start *:rounded-xl *:transition hover:*:scale-105 hover:*:opacity-90"
-        href="/bla/topos/{topo.id}"
+        href={resolve('/(new)/bla/(stack)/topos/[id]', { id: topo.id.toString() })}
       >
         <TopoImage value={topo} />
       </a>

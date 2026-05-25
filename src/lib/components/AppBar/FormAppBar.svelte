@@ -7,6 +7,7 @@
   import StackAppBar from './StackAppBar.svelte'
 
   interface Props {
+    backRoute?: string | URL
     disabled?: boolean
     form: HTMLFormElement | undefined
     title: string
@@ -15,12 +16,12 @@
     state?: EnhanceState
   }
 
-  const { form, disabled = false, pending, state, subtitle, title }: Props = $props()
+  const { backRoute, disabled = false, form, pending, state, subtitle, title }: Props = $props()
 
   const { t } = getI18n()
 </script>
 
-<StackAppBar {title} {subtitle}>
+<StackAppBar {backRoute} {title} {subtitle}>
   <AppBar.Trail>
     <button
       disabled={disabled || state?.loading || pending > 0}

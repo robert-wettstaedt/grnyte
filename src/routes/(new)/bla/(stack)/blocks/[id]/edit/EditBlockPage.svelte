@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import DangerZone from '$lib/components/DangerZone'
   import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
+  import DangerZone from '$lib/components/DangerZone'
   import { pageState } from '$lib/components/Layout'
   import { getBlockContext } from '$lib/contexts/block'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
@@ -34,6 +35,7 @@
 
 <FormAppBar
   {form}
+  backRoute={resolve('/(new)/bla/(modal)/blocks/[id]', { id: block.id.toString() })}
   title={t('blocks.editBlock')}
   subtitle={block.area == null ? undefined : `${t('common.in')} ${block.area.name}`}
   pending={updateBlock.pending}

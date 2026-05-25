@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { checkRegionPermission, REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT } from '$lib/auth'
-  import DangerZone from '$lib/components/DangerZone'
   import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
+  import DangerZone from '$lib/components/DangerZone'
   import { pageState } from '$lib/components/Layout'
   import { getAreaContext } from '$lib/contexts/area'
   import { enhanceForm } from '$lib/forms/enhance.svelte'
@@ -32,7 +33,13 @@
   </title>
 </svelte:head>
 
-<FormAppBar {form} title={t('areas.editArea')} subtitle="{t('common.in')} {area.name}" pending={updateArea.pending} />
+<FormAppBar
+  {form}
+  backRoute={resolve('/(new)/bla/(stack)/areas/[id]', { id: area.id.toString() })}
+  title={t('areas.editArea')}
+  subtitle="{t('common.in')} {area.name}"
+  pending={updateArea.pending}
+/>
 
 <div class="m-auto flex flex-col items-center py-16 md:max-w-xl">
   <form bind:this={form} class="w-full" {...updateArea.enhance(enhanceForm())}>

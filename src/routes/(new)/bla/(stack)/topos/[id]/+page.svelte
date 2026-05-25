@@ -28,6 +28,7 @@
   backRoute={topo.block == null
     ? undefined
     : resolve('/(new)/bla/(modal)/blocks/[id]', { id: topo.block.id.toString() })}
+  subtitle={topo.block?.area == null ? undefined : `${t('common.in')} ${topo.block.area.name}`}
   title={getBlockName(topo.block)}
 />
 
@@ -50,7 +51,7 @@
             class={['btn-icon preset-filled-surface-500', prevTopo == null && 'opacity-50']}
             href={prevTopo == null
               ? undefined
-              : resolve('/(new)/bla/(stack)/topos/[topoId]', { topoId: prevTopo.id.toString() })}
+              : resolve('/(new)/bla/(stack)/topos/[id]', { id: prevTopo.id.toString() })}
           >
             <i class="fa-solid fa-chevron-left"></i>
           </a>
@@ -66,7 +67,7 @@
             class={['btn-icon preset-filled-surface-500', nextTopo == null && 'opacity-50']}
             href={nextTopo == null
               ? undefined
-              : resolve('/(new)/bla/(stack)/topos/[topoId]', { topoId: nextTopo.id.toString() })}
+              : resolve('/(new)/bla/(stack)/topos/[id]', { id: nextTopo.id.toString() })}
           >
             <i class="fa-solid fa-chevron-right"></i>
           </a>

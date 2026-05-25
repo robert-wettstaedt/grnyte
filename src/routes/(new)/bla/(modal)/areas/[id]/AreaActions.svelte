@@ -28,13 +28,13 @@
 
 <ActionBar>
   {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_EDIT], area.regionFk)}
-    <Action href="{page.url.pathname}/edit">
+    <Action href={resolve('/(new)/bla/(stack)/areas/[id]/edit', { id: area.id.toString() })}>
       <i class="fa-solid fa-pen-to-square"></i>
       {t('common.edit')}
     </Action>
 
     {#if area.type !== 'sector'}
-      <Action href="{page.url.pathname}/add">
+      <Action href={resolve('/(new)/bla/(stack)/areas/[id]/add', { id: area.id.toString() })}>
         <i class="fa-solid fa-plus"></i>
         {t('areas.addArea')}
       </Action>
@@ -64,7 +64,7 @@
     {/if}
 
     {#if area.type !== 'area'}
-      <Action href="{page.url.pathname}/parking/edit">
+      <Action href={resolve('/(new)/bla/(stack)/areas/[id]/parking/edit', { id: area.id.toString() })}>
         <i class="fa-solid fa-parking"></i>
         {t('areas.addParkingLocation')}
       </Action>
@@ -73,13 +73,13 @@
 
   {#if checkRegionPermission(pageState.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk)}
     {#if area.type === 'sector'}
-      <Action href="{page.url.pathname}/export">
+      <Action href={resolve('/(new)/bla/(stack)/areas/[id]/export', { id: area.id.toString() })}>
         <i class="fa-solid fa-file-pdf"></i>
         {t('export.pdf')}
       </Action>
     {/if}
 
-    <Action href="{page.url.pathname}/sync-external-resources">
+    <Action href={resolve('/(new)/bla/(stack)/areas/[id]/sync-external-resources', { id: area.id.toString() })}>
       <i class="fa-solid fa-sync"></i>
       {t('sync.externalResources')}
     </Action>

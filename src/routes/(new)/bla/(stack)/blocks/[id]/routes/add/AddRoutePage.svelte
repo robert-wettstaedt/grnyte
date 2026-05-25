@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
@@ -27,6 +28,7 @@
 
 <FormAppBar
   {form}
+  backRoute={resolve('/(new)/bla/(modal)/blocks/[id]', { id: block.id.toString() })}
   title={t('routes.createRoute')}
   subtitle="{t('common.in')} {getBlockName(block)}"
   pending={createRoute.pending}

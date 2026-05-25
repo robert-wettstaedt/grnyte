@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import FormAppBar from '$lib/components/AppBar/FormAppBar.svelte'
   import { getAreaContext } from '$lib/contexts/area'
@@ -25,7 +26,13 @@
   </title>
 </svelte:head>
 
-<FormAppBar {form} title={t('areas.createArea')} subtitle="{t('common.in')} {area.name}" pending={createArea.pending} />
+<FormAppBar
+  {form}
+  backRoute={resolve('/(new)/bla/(stack)/areas/[id]', { id: area.id.toString() })}
+  title={t('areas.createArea')}
+  subtitle="{t('common.in')} {area.name}"
+  pending={createArea.pending}
+/>
 
 <div class="m-auto flex flex-col items-center py-16 md:max-w-xl">
   <form bind:this={form} class="w-full" {...createArea.enhance(enhanceForm())}>
