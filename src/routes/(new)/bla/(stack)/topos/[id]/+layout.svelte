@@ -1,12 +1,12 @@
 <script lang="ts">
+  import { beforeNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import Error from '$lib/components/Error'
+  import { selectedRouteStore } from '$lib/components/TopoViewer'
   import ZeroQueryWrapper from '$lib/components/ZeroQueryWrapper/ZeroQueryWrapper.svelte'
   import { queries } from '$lib/db/zero'
   import type { Snippet } from 'svelte'
   import TopoContext from './TopoContext.svelte'
-  import { afterNavigate, beforeNavigate } from '$app/navigation'
-  import { selectedRouteStore } from '$lib/components/TopoViewer'
 
   interface Props {
     children?: Snippet
@@ -21,7 +21,7 @@
 <ZeroQueryWrapper
   loadingIndicator={{ type: 'spinner' }}
   showEmpty
-  query={queries.topo({ topoId: Number(page.params.topoId) })}
+  query={queries.topo({ topoId: Number(page.params.id) })}
 >
   {#snippet children(topo)}
     {#if topo == null}
