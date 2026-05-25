@@ -38,18 +38,6 @@ export function createMapData(props: BlocksMapProps) {
   const geoBlocks = $derived(props.blocks.filter((block) => block.geolocation != null))
   const routeCountByBlock = $derived(props.routeCountByBlock ?? new Map<number, number>())
 
-  const medianCenter = $derived.by(() => {
-    if (geoBlocks.length === 0) {
-      return [49.18, 12.18] as [number, number]
-    }
-
-    const sorted = geoBlocks
-      .map((block) => [block.geolocation!.lat, block.geolocation!.long] as [number, number])
-      .toSorted((a, b) => Math.sqrt(a[0] ** 2 + a[1] ** 2) - Math.sqrt(b[0] ** 2 + b[1] ** 2))
-
-    return sorted[Math.floor(sorted.length / 2)]
-  })
-
   const blocksBySector = $derived.by(() => {
     const grouped = new Map<number, { sector: NestedBlock['area']; blocks: NestedBlock[] }>()
 
@@ -173,9 +161,6 @@ export function createMapData(props: BlocksMapProps) {
   return {
     get geoBlocks() {
       return geoBlocks
-    },
-    get medianCenter() {
-      return medianCenter
     },
     get blocksBySector() {
       return blocksBySector

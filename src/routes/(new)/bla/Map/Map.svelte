@@ -50,11 +50,32 @@
   })
 
   let map = $state<OlMap>()
+  let mapHasSize = $state(false)
   let isTrackingGeolocation = $state(false)
   let isGeolocationError = $state(false)
   let isFullscreen = $state(false)
   let isLayersSheetOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
+  let hasAutoFitted = $state(false)
+
+  $effect(() => {
+    if (map == null || !mapHasSize || hasAutoFitted || props.focus != null) return
+    const blocks = data.geoBlocks
+    if (blocks.length === 0) return
+
+    hasAutoFitted = true
+    const coords = blocks.map((b) => fromLonLat([b.geolocation!.long, b.geolocation!.lat]))
+    const sorted = coords.toSorted((a, b) => Math.sqrt(a[0] ** 2 + a[1] ** 2) - Math.sqrt(b[0] ** 2 + b[1] ** 2))
+    const median = sorted[Math.floor(sorted.length / 2)]
+    const filtered = coords.filter((c) => Math.sqrt((c[0] - median[0]) ** 2 + (c[1] - median[1]) ** 2) < 200_000)
+
+    if (filtered.length > 0) {
+      map.getView().fit(boundingExtent(filtered), { maxZoom: 15 })
+    } else {
+      map.getView().setCenter(median)
+      map.getView().setZoom(13)
+    }
+  })
 
   $effect(() => {
     const focus = props.focus
@@ -154,8 +175,8 @@
       target: node as HTMLElement,
       layers: [new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' } }), ...wmsLayers],
       view: new View({
-        center: fromLonLat([data.medianCenter[1], data.medianCenter[0]]),
-        zoom: 13,
+        center: fromLonLat([2.6117597, 48.4103865]),
+        zoom: 4,
         constrainResolution: true,
       }),
     })
@@ -239,26 +260,6 @@
     }
     mapInstance.on('moveend', handleMoveEnd)
 
-    // Center map on median of block coordinates
-    if (data.geoBlocks.length > 0) {
-      const coords = data.geoBlocks.map((b) => fromLonLat([b.geolocation!.long, b.geolocation!.lat]))
-      const sorted = coords.toSorted((a, b) => Math.sqrt(a[0] ** 2 + a[1] ** 2) - Math.sqrt(b[0] ** 2 + b[1] ** 2))
-      const median = sorted[Math.floor(sorted.length / 2)]
-
-      const filtered = coords.filter((c) => {
-        const d = Math.sqrt((c[0] - median[0]) ** 2 + (c[1] - median[1]) ** 2)
-        return d < 200_000
-      })
-
-      if (filtered.length > 0) {
-        const extent = boundingExtent(filtered)
-        mapInstance.getView().fit(extent, { maxZoom: 15 })
-      } else {
-        mapInstance.getView().setCenter(median)
-        mapInstance.getView().setZoom(13)
-      }
-    }
-
     // Refresh block labels on zoom change
     let lastLabelState = false
     mapInstance.getView().on('change:resolution', () => {
@@ -285,7 +286,13 @@
     document.addEventListener('fullscreenchange', onFullscreenChange)
 
     // Resize
-    const observer = new ResizeObserver(() => mapInstance.updateSize())
+    const observer = new ResizeObserver(() => {
+      mapInstance.updateSize()
+      const size = mapInstance.getSize()
+      if (!mapHasSize && size != null && size[0] > 0 && size[1] > 0) {
+        mapHasSize = true
+      }
+    })
     observer.observe(node as HTMLElement)
 
     return () => {
