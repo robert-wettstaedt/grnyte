@@ -38,7 +38,23 @@ const updateParkingLocationAction: Action<UpdateParkingLocationActionValues> = a
     error(404)
   }
 
-  if (values.lat != null && values.long != null) {
+  if (values.polyline != null && values.polyline.length > 0) {
+    await db
+      .update(areas)
+      .set({ geoPaths: [...(area.geoPaths ?? []), values.polyline] })
+      .where(eq(areas.id, area.id))
+
+    await insertActivity(db, {
+      type: 'updated',
+      userFk: user.id,
+      entityId: String(area.id),
+      entityType: 'area',
+      columnName: 'walking paths',
+      parentEntityId: String(area.parentFk),
+      parentEntityType: 'area',
+      regionFk: area.regionFk,
+    })
+  } else if (values.lat != null && values.long != null) {
     await db.insert(geolocations).values({
       lat: values.lat,
       long: values.long,
@@ -52,22 +68,6 @@ const updateParkingLocationAction: Action<UpdateParkingLocationActionValues> = a
       entityId: String(area.id),
       entityType: 'area',
       columnName: 'parking location',
-      parentEntityId: String(area.parentFk),
-      parentEntityType: 'area',
-      regionFk: area.regionFk,
-    })
-  } else if (values.polyline != null) {
-    await db
-      .update(areas)
-      .set({ geoPaths: [...(area.geoPaths ?? []), values.polyline] })
-      .where(eq(areas.id, area.id))
-
-    await insertActivity(db, {
-      type: 'updated',
-      userFk: user.id,
-      entityId: String(area.id),
-      entityType: 'area',
-      columnName: 'walking paths',
       parentEntityId: String(area.parentFk),
       parentEntityType: 'area',
       regionFk: area.regionFk,

@@ -1,4 +1,5 @@
 import type { Geolocation } from '$lib/db/schema'
+import { getBlockName } from '$lib/helper.svelte'
 import Feature from 'ol/Feature.js'
 import type OlMap from 'ol/Map.js'
 import Polyline from 'ol/format/Polyline'
@@ -12,7 +13,6 @@ import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
 import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM, type NestedBlock } from './types'
-import { getBlockName } from '$lib/helper.svelte'
 
 export function createWmsLayers(userRegions: App.UserRegion[]): TileLayer[] {
   return userRegions.flatMap((region) =>
@@ -248,19 +248,29 @@ export function createParkingLayer(uniqueParkingLocations: Geolocation[]): Vecto
     (p) =>
       new Feature({
         geometry: new Point(fromLonLat([p.long, p.lat])),
+        parkingId: p.id,
       }),
   )
 
   const layer = new VectorLayer({
     source: new VectorSource({ features }),
     minZoom: BLOCK_ZOOM,
-    style: new Style({
-      text: new Text({
-        font: '900 1.75rem "Font Awesome 7 Free"',
-        text: '\uf540',
-        fill: new Fill({ color: '#1e40af' }),
+    // Add a subtle circular hit area so transparent parts of the icon remain clickable.
+    style: [
+      new Style({
+        image: new CircleStyle({
+          radius: 14,
+          fill: new Fill({ color: 'rgba(30, 64, 175, 0.01)' }),
+        }),
       }),
-    }),
+      new Style({
+        text: new Text({
+          font: '900 1.75rem "Font Awesome 7 Free"',
+          text: '\uf540',
+          fill: new Fill({ color: '#1e40af' }),
+        }),
+      }),
+    ],
   })
   layer.set('layerName', 'Markers')
   return layer

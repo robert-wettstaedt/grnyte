@@ -36,7 +36,7 @@
   afterNavigate((event) => {
     open = !(event.to?.route.id?.endsWith('(modal)') ?? false)
     if (open) {
-      sheetState.requestSnap = 0.75
+      sheetState.requestSnap = event.to?.route.id?.includes('parking/') ? 0.25 : 0.75
     }
 
     if (event.type === 'popstate' && page.state?.mapView != null) {
@@ -114,6 +114,18 @@
       if (block?.geolocation) {
         return {
           center: [block.geolocation.lat, block.geolocation.long],
+          zoom: 16,
+          padding: [0, 0, bottomSheetPadding, 0],
+        }
+      }
+    }
+
+    if (routeId.includes('parking/')) {
+      const parkingId = Number(page.params.id)
+      const parking = data.parkingLocations.find((p) => p.id === parkingId)
+      if (parking != null) {
+        return {
+          center: [parking.lat, parking.long],
           zoom: 16,
           padding: [0, 0, bottomSheetPadding, 0],
         }

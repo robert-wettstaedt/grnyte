@@ -206,10 +206,13 @@
       if (feature) {
         const blockId = feature.get('blockId')
         const areaId = feature.get('areaId')
+        const parkingId = feature.get('parkingId')
         if (blockId != null) {
           goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))
         } else if (areaId != null) {
           goto(resolve('/(new)/bla/(modal)/areas/[id]', { id: areaId.toString() }))
+        } else if (parkingId != null) {
+          goto(resolve('/(new)/bla/(modal)/parking/[id]', { id: parkingId.toString() }))
         }
       }
     })
@@ -219,7 +222,8 @@
       const target = mapInstance.getTarget()
       if (target == null || typeof target === 'string') return
       const hit = mapInstance.hasFeatureAtPixel(event.pixel, {
-        layerFilter: (layer) => layer === blockLayer || layer === cragLayer || layer === sectorLayer,
+        layerFilter: (layer) =>
+          layer === blockLayer || layer === cragLayer || layer === sectorLayer || layer === parkingLayer,
       })
       target.style.cursor = hit ? 'pointer' : ''
     })

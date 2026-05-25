@@ -1,22 +1,24 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
+  import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements'
 
-  interface Props {
-    children?: Snippet
-    class?: string
-    href?: string
-    onclick?: () => void
-  }
+  type Props = (HTMLAnchorAttributes & { children?: Snippet }) | (HTMLButtonAttributes & { children?: Snippet })
 
-  const { children, class: className, href, onclick }: Props = $props()
+  const { children, ...props }: Props = $props()
 </script>
 
-{#if href != null}
-  <a class="btn preset-tonal btn-sm md:btn-base shrink-0 snap-start {className}" {href}>
+{#if (props as HTMLAnchorAttributes).href != null}
+  <a
+    {...props as HTMLAnchorAttributes}
+    class={['btn preset-tonal btn-sm md:btn-base shrink-0 snap-start', props.class]}
+  >
     {@render children?.()}
   </a>
-{:else if onclick != null}
-  <button class="btn preset-tonal btn-sm md:btn-base shrink-0 snap-start {className}" {onclick}>
+{:else if (props as HTMLButtonAttributes).onclick != null}
+  <button
+    {...props as HTMLButtonAttributes}
+    class={['btn preset-tonal btn-sm md:btn-base shrink-0 snap-start', props.class]}
+  >
     {@render children?.()}
   </button>
 {/if}

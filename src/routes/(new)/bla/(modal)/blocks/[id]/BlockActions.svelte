@@ -5,6 +5,7 @@
   import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import { pageState } from '$lib/components/Layout'
   import { getBlockContext } from '$lib/contexts/block'
+  import { getNavigationUrl } from '$lib/features'
   import { getI18n } from '$lib/i18n'
   import { Action, ActionBar } from '../../ActionBar'
 
@@ -19,6 +20,10 @@
     title: PUBLIC_APPLICATION_NAME,
     url: page.url.toString(),
   }
+
+  const navigationUrl = $derived(
+    block.geolocation == null ? null : getNavigationUrl(block.geolocation.lat, block.geolocation.long),
+  )
 </script>
 
 <ActionBar>
@@ -26,9 +31,17 @@
     <Action
       class="preset-filled-warning-500!"
       href={resolve('/(new)/bla/(stack)/blocks/[id]/location/edit', { id: block.id.toString() })}
+      target="_blank"
     >
       <i class="fa-solid fa-location-dot"></i>
       {t('location.editLocation')}
+    </Action>
+  {/if}
+
+  {#if navigationUrl != null}
+    <Action href={navigationUrl}>
+      <i class="fa-solid fa-diamond-turn-right"></i>
+      {t('map.directions')}
     </Action>
   {/if}
 

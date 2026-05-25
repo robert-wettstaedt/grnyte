@@ -315,6 +315,17 @@ export const queries = defineQueries({
     }),
   ),
 
+  geolocation: defineQuery(
+    z.object({
+      id: z.number(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      return zql.geolocations.where('id', args.id).related('area', r).one()
+    }),
+  ),
+
   topo: defineQuery(
     z.object({
       topoId: z.number(),

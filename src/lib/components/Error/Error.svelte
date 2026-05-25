@@ -87,7 +87,7 @@
   <div class="card variant-filled-surface w-full max-w-2xl space-y-8 p-8">
     <!-- Error Icon/Illustration -->
     <div class="flex justify-center">
-      <div class="bg-error-500/20 rounded-full p-6">
+      <div class="bg-error-500/20 flex h-28 w-28 items-center justify-center rounded-full">
         <i class="fa-solid fa-triangle-exclamation text-error-500 text-5xl"></i>
       </div>
     </div>
