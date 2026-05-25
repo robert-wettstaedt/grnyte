@@ -59,20 +59,21 @@
 
   const data = $derived.by(() => {
     const areas = $state.snapshot(areasResult.data)
+    const areasById = new globalThis.Map(areas.map((area) => [area.id, area]))
+    const blocksById = new globalThis.Map(blocksResult.data.map((block) => [block.id, block]))
 
-    const blocks = routesResult.data.map((route) => blocksResult.data.find((block) => block.id === route.blockFk))
-
-    const nestedBlocks = blocks
-      .map((block): NestedBlock | null => {
+    const nestedBlocks = routesResult.data
+      .map((route): NestedBlock | null => {
+        const block = route.blockFk != null ? blocksById.get(route.blockFk) : undefined
         if (block?.id == null) {
           return null
         }
 
         const parents: NestedBlock['area'][] = []
-        let current = areas.find((area) => area.id === block.areaFk) as NestedBlock['area'] | undefined
+        let current = areasById.get(block.areaFk) as NestedBlock['area'] | undefined
 
-        while (current != null) {
-          let parent = areas.find((area) => area.id === current?.parentFk) as NestedBlock['area'] | undefined
+        while (current?.parentFk != null) {
+          let parent = areasById.get(current.parentFk) as NestedBlock['area'] | undefined
           current.parent = parent ?? null
           parents.push(current)
           current = parent
