@@ -6,9 +6,11 @@ interface Opts {
 }
 
 export const fitHeightAction: Action<HTMLElement, Opts | undefined> = (node, opts) => {
-  const { heightSubtrahend = 0, paddingBottom = 32 } = opts ?? {}
+  let currentOpts = opts
 
   const calcHeight = () => {
+    const { heightSubtrahend = 0, paddingBottom = 32 } = currentOpts ?? {}
+
     const appBarBcr = document.querySelector('[data-scope="app-bar"][data-part="root"]')?.getBoundingClientRect()
     if (appBarBcr) {
       node.style.marginTop = `${appBarBcr.height}px`
@@ -34,6 +36,10 @@ export const fitHeightAction: Action<HTMLElement, Opts | undefined> = (node, opt
   })
 
   return {
+    update: (newOpts) => {
+      currentOpts = newOpts
+      calcHeight()
+    },
     destroy: () => {
       cleanup()
     },
