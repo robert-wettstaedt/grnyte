@@ -1,3 +1,10 @@
+import {
+  APP_PERMISSION_ADMIN,
+  REGION_PERMISSION_ADMIN,
+  REGION_PERMISSION_DELETE,
+  REGION_PERMISSION_EDIT,
+  REGION_PERMISSION_READ,
+} from '$lib/auth'
 import type { RegionSettings } from '$lib/forms/schemas'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
@@ -24,13 +31,6 @@ import {
 } from 'drizzle-orm/pg-core'
 import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
 import z from 'zod'
-import {
-  APP_PERMISSION_ADMIN,
-  REGION_PERMISSION_ADMIN,
-  REGION_PERMISSION_DELETE,
-  REGION_PERMISSION_EDIT,
-  REGION_PERMISSION_READ,
-} from '../auth'
 import {
   createBasicTablePolicies,
   getAuthorizedInRegionPolicyConfig,

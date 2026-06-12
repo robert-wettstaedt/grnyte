@@ -1,7 +1,7 @@
 import type { AppPermission, RegionPermission } from '$lib/auth'
 import type { Region, RegionMember } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
-import type { Schema } from '$lib/db/zero'
+import type { Schema } from '$lib/zero'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import type { Z } from 'zero-svelte'
 

@@ -1,8 +1,8 @@
+import { REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
 import type { SQL } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { pgPolicy as policy, type PgPolicyConfig } from 'drizzle-orm/pg-core'
 import { authenticatedRole, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
-import { REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '../auth'
 
 export const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
   as: 'permissive',

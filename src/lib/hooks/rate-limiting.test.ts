@@ -1,5 +1,5 @@
 import { config } from '$lib/config'
-import { rateLimit } from '$lib/hooks/rate-limit'
+import { rateLimit } from '$lib/hooks/rate-limit.server'
 import type { RequestEvent } from '@sveltejs/kit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

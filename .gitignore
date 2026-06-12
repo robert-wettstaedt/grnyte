@@ -173,3 +173,7 @@ package
 # End of https://www.toptal.com/developers/gitignore/api/node,svelte,visualstudiocode,vercel
 
 .backup
+
+# Un-ignore the Icon component dir: the global ~/.gitignore has a plain "Icon"
+# rule (intended for the macOS "Icon\r" file) that also matches this folder.
+!src/lib/components/Icon/

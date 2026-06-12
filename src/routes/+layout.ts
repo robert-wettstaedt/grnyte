@@ -1,5 +1,5 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
-import { initZero } from '$lib/db/zero'
+import { initZero } from '$lib/zero/z.svelte'
 import { createBrowserClient } from '@supabase/ssr'
 import type { LayoutLoad } from './$types'
 
