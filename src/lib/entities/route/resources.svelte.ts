@@ -6,10 +6,13 @@ export type AscentStatus = 'done' | 'todo' | 'project'
 
 export interface RouteListFilter {
   content?: string
+  hasBeta?: boolean
+  hasTopo?: boolean
   maxGrade?: number
   minGrade?: number
   minRating?: number
   parentFk?: number
+  tags?: string[]
 }
 
 export function routeList(filter: () => RouteListFilter = () => ({})) {

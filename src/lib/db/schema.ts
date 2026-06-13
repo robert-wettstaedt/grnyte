@@ -605,6 +605,7 @@ export const routesRelations = relations(routes, ({ one, many }) => ({
   ascents: many(ascents),
   files: many(files),
   tags: many(routesToTags),
+  topoRoutes: many(topoRoutes),
 }))
 
 export const routeExternalResources = table(

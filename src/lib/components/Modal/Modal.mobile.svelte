@@ -1,38 +1,19 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { Portal } from '@skeletonlabs/skeleton-svelte'
   import { BottomSheet } from 'svelte-bottom-sheet'
   import type { Props } from './types'
 
-  let { children, open = $bindable(), subtitle, title, trigger }: Props = $props()
-
-  let titleEl = $state<HTMLElement>()
-  let contentEl = $state<HTMLElement>()
-  let innerHeight = $state(window.innerHeight)
-
-  function calc() {
-    const titleHeight = titleEl?.clientHeight
-    const contentHeight = contentEl?.parentElement?.parentElement?.clientHeight
-
-    if (typeof window === 'undefined' || contentHeight == null || contentHeight === 0 || titleHeight == null) {
-      return 0.75
-    }
-
-    return Number(Math.min((contentHeight + titleHeight) / innerHeight, 0.9).toFixed(2))
-  }
-
-  const maxHeight = $derived.by(calc)
+  let { children, open = $bindable(), snapPoints = [0.5], subtitle, title, trigger }: Props = $props()
 </script>
-
-<svelte:window bind:innerHeight />
 
 {@render trigger?.({})}
 
 {#snippet content()}
   <BottomSheet.Sheet class="preset-filled-surface-50-950!">
     <div
-      bind:this={titleEl}
-      class="preset-filled-surface-50-950 sticky z-100 flex items-center justify-between px-4 py-2 shadow"
+      class="preset-filled-surface-50-950 border-surface-100-900 sticky z-100 flex items-center justify-between border-b-2 px-4 py-2"
     >
       <div class="flex flex-col">
         {#if subtitle}
@@ -55,19 +36,13 @@
     </div>
 
     <BottomSheet.Content class="w-full px-4! pt-4!">
-      <div bind:this={contentEl}>
-        {@render children?.()}
-      </div>
+      {@render children?.()}
     </BottomSheet.Content>
   </BottomSheet.Sheet>
 {/snippet}
 
-<BottomSheet
-  settings={{
-    maxHeight,
-    snapPoints: [1],
-  }}
-  bind:isSheetOpen={open}
->
-  {@render content()}
-</BottomSheet>
+<Portal>
+  <BottomSheet settings={{ maxHeight: snapPoints[0], snapPoints }} bind:isSheetOpen={open}>
+    {@render content()}
+  </BottomSheet>
+</Portal>

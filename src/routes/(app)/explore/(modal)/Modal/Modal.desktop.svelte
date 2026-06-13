@@ -28,7 +28,7 @@
   <Portal>
     <Dialog.Positioner class="fixed inset-0 left-27 z-50 flex items-start py-12">
       <Dialog.Content
-        class="card bg-surface-100-900 flex h-full w-full max-w-sm flex-col overflow-hidden shadow-xl lg:max-w-md"
+        class="card bg-surface-100-900 border-surface-200-800 flex h-full w-full max-w-sm flex-col overflow-hidden border-2 lg:max-w-md"
       >
         <header class="flex shrink-0 items-start justify-between p-4 shadow">
           <div class="flex items-center gap-2">

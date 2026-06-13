@@ -62,6 +62,9 @@
     minGrade: searchParams.minGrade == null ? undefined : Number(searchParams.minGrade),
     maxGrade: searchParams.maxGrade == null ? undefined : Number(searchParams.maxGrade),
     minRating: searchParams.minRating == null ? undefined : Number(searchParams.minRating),
+    tags: searchParams.tags ? searchParams.tags.split(',') : undefined,
+    hasTopo: searchParams.hasTopo === '1' ? true : undefined,
+    hasBeta: searchParams.hasBeta === '1' ? true : undefined,
   }))
 
   const routesResult = routeList(() => routeFilter)
@@ -96,6 +99,7 @@
 
   const visibleRoutes = $derived.by(() => {
     const routes = routesResult.data
+
     switch (ascentStatus) {
       case 'done':
         return routes.filter((route) => ascentRouteIds.sent.has(route.id))
@@ -108,12 +112,9 @@
     }
   })
 
-  // Unfiltered-by-grade route set powering the filter's grade histogram, so the
-  // distribution stays stable as the user narrows the range.
-  const histogramRoutes = routeList(() => ({}))
   const routeCountByGrade = $derived.by(() => {
     const counts = new globalThis.Map<number, number>()
-    for (const route of histogramRoutes.data) {
+    for (const route of visibleRoutes) {
       if (route.gradeFk != null) {
         counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)
       }
@@ -217,7 +218,10 @@
       active={searchParams.maxGrade != null ||
         searchParams.minGrade != null ||
         searchParams.minRating != null ||
-        searchParams.ascentStatus != null}
+        searchParams.ascentStatus != null ||
+        searchParams.tags != null ||
+        searchParams.hasTopo != null ||
+        searchParams.hasBeta != null}
       loading={routesResult.status === 'loading'}
       numRoutes={visibleRoutes.length}
       {routeCountByGrade}

@@ -8,6 +8,8 @@ export const routesQueryDefs = {
     z.object({
       areaId: z.number().nullish(),
       content: z.string().optional(),
+      hasBeta: z.boolean().optional(),
+      hasTopo: z.boolean().optional(),
       maxGrade: z.number().optional(),
       minGrade: z.number().optional(),
       minRating: z.number().optional(),
@@ -15,6 +17,7 @@ export const routesQueryDefs = {
       routeId: z.union([z.number(), z.array(z.number())]).optional(),
       sort: z.enum(['rating', 'grade', 'firstAscentYear']).optional(),
       sortOrder: z.enum(['asc', 'desc']).optional(),
+      tags: z.array(z.string()).optional(),
       userId: z.number().optional().nullish(),
       withRelations: z.boolean().optional(),
     }),
@@ -44,6 +47,23 @@ export const routesQueryDefs = {
 
       if (args.minRating != null) {
         q = q.where('rating', '>=', args.minRating)
+      }
+
+      if (args.tags != null && args.tags.length > 0) {
+        q = q.whereExists('tags', (q) => r(q).where('tagFk', 'IN', args.tags!))
+      }
+
+      if (args.hasTopo) {
+        q = q.whereExists('topoRoutes', r)
+      }
+
+      if (args.hasBeta) {
+        q = q.where(({ or, exists }) =>
+          or(
+            exists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null)),
+            exists('ascents', (a) => r(a).whereExists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null))),
+          ),
+        )
       }
 
       if (args.content != null) {

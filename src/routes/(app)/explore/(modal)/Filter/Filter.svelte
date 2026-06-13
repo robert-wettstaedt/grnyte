@@ -4,13 +4,15 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { m } from '$lib/paraglide/messages'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
+  import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SvelteURL } from 'svelte/reactivity'
   import AscentStatusSelect from './AscentStatusSelect.svelte'
   import GradeRange from './GradeRange.svelte'
+  import MediaSelect, { type MediaFilter } from './MediaSelect.svelte'
   import RatingSelect from './RatingSelect.svelte'
+  import TagSelect from './TagSelect.svelte'
 
   interface Props {
     active: boolean
@@ -41,6 +43,8 @@
   let value = $state<number[]>([0, 0])
   let minRating = $state(0)
   let ascentStatus = $state<AscentStatus | ''>('')
+  let selectedTags = $state<string[]>([])
+  let mediaFilters = $state<MediaFilter[]>([])
 
   const isAscentStatus = (value: string | null): value is AscentStatus =>
     value === 'done' || value === 'todo' || value === 'project'
@@ -61,6 +65,14 @@
 
       const ascentParam = page.url.searchParams.get('ascentStatus')
       ascentStatus = isAscentStatus(ascentParam) ? ascentParam : ''
+
+      const tagsParam = page.url.searchParams.get('tags')
+      selectedTags = tagsParam ? tagsParam.split(',') : []
+
+      const media: MediaFilter[] = []
+      if (page.url.searchParams.get('hasTopo') === '1') media.push('hasTopo')
+      if (page.url.searchParams.get('hasBeta') === '1') media.push('hasBeta')
+      mediaFilters = media
     }
     open = !open
   }
@@ -93,6 +105,24 @@
       url.searchParams.set('ascentStatus', ascentStatus)
     }
 
+    if (selectedTags.length === 0) {
+      url.searchParams.delete('tags')
+    } else {
+      url.searchParams.set('tags', selectedTags.join(','))
+    }
+
+    if (mediaFilters.includes('hasTopo')) {
+      url.searchParams.set('hasTopo', '1')
+    } else {
+      url.searchParams.delete('hasTopo')
+    }
+
+    if (mediaFilters.includes('hasBeta')) {
+      url.searchParams.set('hasBeta', '1')
+    } else {
+      url.searchParams.delete('hasBeta')
+    }
+
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(url)
     open = false
@@ -104,6 +134,9 @@
     url.searchParams.delete('maxGrade')
     url.searchParams.delete('minRating')
     url.searchParams.delete('ascentStatus')
+    url.searchParams.delete('tags')
+    url.searchParams.delete('hasTopo')
+    url.searchParams.delete('hasBeta')
 
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(url)
@@ -111,7 +144,12 @@
   }
 </script>
 
-<Modal bind:open title={m.common_filter()} subtitle={m.routes_routesCount({ count: numRoutes })}>
+<Modal
+  bind:open
+  title={m.common_filter()}
+  snapPoints={[0.75, 0.6]}
+  subtitle={m.routes_routesCount({ count: numRoutes })}
+>
   {#snippet trigger(props)}
     <button
       {...props}
@@ -130,7 +168,7 @@
     </button>
   {/snippet}
 
-  <div class="mt-4 flex flex-col gap-8 md:mt-0">
+  <div class="mt-4 flex flex-col gap-8 pb-16 md:mt-0">
     {#if app.grades.length > 0}
       <GradeRange grades={app.grades} gradingScale={app.gradingScale} {routeCountByGrade} bind:value />
     {/if}
@@ -139,14 +177,22 @@
 
     <AscentStatusSelect bind:value={ascentStatus} />
 
-    <div class="flex items-center justify-end gap-2 pt-2">
-      <button class="btn btn-sm preset-tonal" onclick={resetFilter}>
-        {m.common_reset()}
-      </button>
+    {#if app.tags.length > 0}
+      <TagSelect tags={app.tags} bind:value={selectedTags} />
+    {/if}
 
-      <button class="btn btn-sm preset-filled-primary-500" onclick={applyFilter}>
-        {m.common_apply()}
-      </button>
-    </div>
+    <MediaSelect bind:value={mediaFilters} />
+  </div>
+
+  <div
+    class="bg-surface-50-950 md:bg-surface-100-900 border-surface-100-900 md:border-surface-200-800 fixed right-0 bottom-0 left-0 z-10 flex items-center justify-end gap-2 border-t-2 p-4"
+  >
+    <button class="btn btn-sm preset-tonal" onclick={resetFilter}>
+      {m.common_reset()}
+    </button>
+
+    <button class="btn btn-sm preset-filled-primary-500" onclick={applyFilter}>
+      {m.common_apply()}
+    </button>
   </div>
 </Modal>

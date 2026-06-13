@@ -10,7 +10,7 @@
 
   <Portal>
     <Popover.Positioner>
-      <Popover.Content class="card bg-surface-100-900 z-10 w-96 shadow-xl">
+      <Popover.Content class="card bg-surface-100-900 border-surface-200-800 z-10 w-96 border-b-2">
         <div class="space-y-4">
           <header class="flex flex-col px-4 py-2 shadow">
             {#if subtitle}

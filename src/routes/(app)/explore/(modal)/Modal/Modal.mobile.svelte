@@ -67,7 +67,7 @@
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-50-950 sticky top-9 z-100 flex items-center justify-between px-4 py-2 shadow"
+      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-9 z-100 flex items-center justify-between border-b-2 px-4 py-2"
     >
       <div class="flex items-center gap-2">
         {#if sheetState.headerLeft}

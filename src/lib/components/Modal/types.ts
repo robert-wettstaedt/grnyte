@@ -11,6 +11,7 @@ export interface Props {
   children?: Snippet
   open?: boolean
   popoverProps?: PopoverRootProps
+  snapPoints?: number[]
   subtitle?: string
   title: string
   trigger: Snippet<[HTMLAttributes<'button'>]>

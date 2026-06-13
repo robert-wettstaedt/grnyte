@@ -1,7 +1,3 @@
-<script lang="ts" module>
-  export type { BlocksMapProps, MapFocus } from './types'
-</script>
-
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
@@ -346,7 +342,12 @@
       <Icon name={isFullscreen ? 'collapse' : 'expand'} size={16} />
     </button>
 
-    <Modal bind:open={isLayersSheetOpen} popoverProps={{ positioning: { placement: 'left' } }} title={m.map_layers()}>
+    <Modal
+      bind:open={isLayersSheetOpen}
+      popoverProps={{ positioning: { placement: 'left' } }}
+      snapPoints={[0.4]}
+      title={m.map_layers()}
+    >
       {#snippet trigger(props)}
         <button
           {...props}

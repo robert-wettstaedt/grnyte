@@ -43,19 +43,22 @@
   </div>
 
   <div class="px-2">
-    <!-- Histogram: one bar per grade, aligned to the slider thumb positions. -->
-    <div class="flex h-12 items-end justify-between" aria-hidden="true">
-      {#each grades as grade, index (grade.id)}
-        {@const selected = index >= value[0] && index <= value[1]}
-        <div
-          class={['w-1 rounded-t-xs transition-opacity', !selected && 'opacity-30']}
-          style="height: {barHeight(routeCountByGrade.get(grade.id) ?? 0)}%; background-color: {getGradeColor(grade)}"
-        ></div>
-      {/each}
-    </div>
+    {#if maxCount > 0}
+      <!-- Histogram: one bar per grade, aligned to the slider thumb positions. -->
+      <div class="flex h-12 items-end justify-between" aria-hidden="true">
+        {#each grades as grade, index (grade.id)}
+          {@const selected = index >= value[0] && index <= value[1]}
+          <div
+            class={['w-1 rounded-t-xs transition-opacity', !selected && 'opacity-30']}
+            style="height: {barHeight(routeCountByGrade.get(grade.id) ?? 0)}%; background-color: {getGradeColor(grade)}"
+          ></div>
+        {/each}
+      </div>
+    {/if}
 
     <Slider
       aria-label={[`${m.filter_grade()} min`, `${m.filter_grade()} max`]}
+      disabled={maxCount === 0}
       max={Math.max(0, grades.length - 1)}
       min={0}
       onValueChange={(details) => (value = details.value)}
