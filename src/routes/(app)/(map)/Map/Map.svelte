@@ -231,7 +231,7 @@
         const areaId = feature.get('areaId')
         // const parkingId = feature.get('parkingId')
         if (areaId != null) {
-          goto(resolve('/(app)/explore/(modal)/areas/[id]', { id: areaId.toString() }))
+          goto(resolve('/(app)/(map)/areas/[id]', { id: areaId.toString() }))
         }
         // if (blockId != null) {
         //   goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))

@@ -23,7 +23,7 @@
 
   const app = getGlobalState()
 
-  let open = $state(!(page.route.id?.endsWith('(modal)') ?? false))
+  let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
@@ -39,10 +39,10 @@
     }
   })
 
-  // The modal is open on any child route (e.g. areas/[id]) and closed on the
-  // group's index — keep `open` in sync as the user navigates.
+  // The modal is open on detail routes (e.g. areas/[id]) and closed on the
+  // /explore index — keep `open` in sync as the user navigates.
   afterNavigate((navigation) => {
-    open = !(navigation.to?.route.id?.endsWith('(modal)') ?? false)
+    open = !(navigation.to?.route.id?.endsWith('/explore') ?? false)
   })
 
   // afterNavigate((event) => {

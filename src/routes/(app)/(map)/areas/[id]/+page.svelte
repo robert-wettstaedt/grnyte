@@ -37,7 +37,7 @@
           <nav class="flex flex-col gap-2">
             {#each subAreas.data as subArea (subArea.id)}
               <a
-                href={resolve('/(app)/explore/(modal)/areas/[id]', { id: String(subArea.id) })}
+                href={resolve('/(app)/(map)/areas/[id]', { id: String(subArea.id) })}
                 class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-2.5"
               >
                 <span class="min-w-0 flex-1">

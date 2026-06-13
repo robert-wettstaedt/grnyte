@@ -3,7 +3,6 @@ import * as schema from '$lib/db/schema'
 import type { Grade } from '$lib/entities/grade/dto'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import rehypeRaw from 'rehype-raw'
 import rehypeStringify from 'rehype-stringify'
 import remarkGfm from 'remark-gfm'
 import remarkMentions from 'remark-mentions'
@@ -12,6 +11,7 @@ import remarkRehype from 'remark-rehype'
 import { unified, type Plugin } from 'unified'
 import { remarkGrades } from './remark-grades'
 import { referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
+import { resolve } from '$app/paths'
 
 export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
@@ -36,11 +36,10 @@ export const convertMarkdownToHtml = async (
     .use(remarkParse)
     .use(remarkGfm)
     .use(mentions, {
-      usernameLink: (username) => `/users/${username}`,
+      usernameLink: (username) => resolve(`/users/${username}`),
     })
     .use(remarkReferences, { encloseReferences })
-    .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeRaw)
+    .use(remarkRehype)
     .use(rehypeStringify)
     .process(enrichedMarkdown)
 
@@ -64,12 +63,11 @@ export const convertMarkdownToHtmlSync = (
     .use(remarkParse)
     .use(remarkGfm)
     .use(mentions, {
-      usernameLink: (username) => `/users/${username}`,
+      usernameLink: (username) => resolve(`/users/${username}`),
     })
     .use(remarkReferences, { encloseReferences })
     .use(remarkGrades, { grades })
-    .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeRaw)
+    .use(remarkRehype)
     .use(rehypeStringify)
     .processSync(markdown)
 
