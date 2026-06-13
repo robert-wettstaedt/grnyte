@@ -19,8 +19,21 @@ interface BlockDetailRow extends BlockRow {
 }
 
 export function toBlockListItem(row: BlockRow): BlockListItem {
+  // `toAncestors` returns only the ancestors above the block's immediate area, so
+  // append that immediate area to get the full containment chain (e.g. [crag, sector]).
+  const areas = toAncestors(row.area)
+  if (row.area != null) {
+    areas.push({
+      areas: [],
+      id: row.area.id,
+      name: row.area.name,
+      slug: row.area.slug,
+      type: row.area.type ?? 'area',
+    })
+  }
+
   return {
-    areas: toAncestors(row.area),
+    areas,
     id: row.id,
     name: row.name.length === 0 ? `${m.common_block()} ${row.order}` : row.name,
     order: row.order,

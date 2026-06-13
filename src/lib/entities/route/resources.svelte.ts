@@ -6,6 +6,7 @@ export type AscentStatus = 'done' | 'todo' | 'project'
 
 export interface RouteListFilter {
   content?: string
+  firstAscensionists?: number[]
   hasBeta?: boolean
   hasTopo?: boolean
   maxGrade?: number

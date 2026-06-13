@@ -1,10 +1,14 @@
 import { page } from '$app/state'
 import type { Grade } from '$lib/entities/grade/dto'
 import { gradeList } from '$lib/entities/grade/resources.svelte'
+import type { RegionMembership, UserRegion } from '$lib/entities/region/dto'
+import { userRegionList } from '$lib/entities/region/resources.svelte'
+import type { AppRole, Permission, RolePermission } from '$lib/entities/rolePermission/dto'
+import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelte'
 import type { Tag } from '$lib/entities/tag/dto'
 import { tagList } from '$lib/entities/tag/resources.svelte'
 import type { GradingScale, User } from '$lib/entities/user/dto'
-import { currentUser } from '$lib/entities/user/resources.svelte'
+import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getContext, setContext } from 'svelte'
 
@@ -24,6 +28,12 @@ export interface GlobalState {
   readonly user: User | undefined
   /** The user's preferred grading scale; defaults to `FB` until settings load. */
   readonly gradingScale: GradingScale
+  /** The user's app/region role, or `undefined` if they have none. */
+  readonly userRole: AppRole | undefined
+  /** Permissions granted by the user's role, or `undefined` if they have no role. */
+  readonly userPermissions: Permission[] | undefined
+  /** The user's active region memberships, each with the permissions its role grants. */
+  readonly userRegions: UserRegion[]
   /** True while app-shell prerequisites are still loading. */
   readonly isLoading: boolean
 
@@ -31,6 +41,9 @@ export interface GlobalState {
   readonly gradesResource: QueryResource<Grade[]>
   readonly tagsResource: QueryResource<Tag[]>
   readonly userResource: QueryResource<User | undefined>
+  readonly userRoleResource: QueryResource<AppRole | undefined>
+  readonly rolePermissionsResource: QueryResource<RolePermission[]>
+  readonly userRegionsResource: QueryResource<RegionMembership[]>
 }
 
 /**
@@ -46,6 +59,9 @@ export function setGlobalState(): GlobalState | undefined {
   const gradesResource = gradeList()
   const tagsResource = tagList()
   const userResource = currentUser()
+  const userRoleResource = currentUserRole()
+  const rolePermissionsResource = rolePermissionList()
+  const userRegionsResource = userRegionList()
 
   const state: GlobalState = {
     get grades() {
@@ -60,9 +76,37 @@ export function setGlobalState(): GlobalState | undefined {
     get gradingScale() {
       return userResource.data?.userSettings?.gradingScale ?? 'FB'
     },
+    get userRole() {
+      return userRoleResource.data
+    },
+    get userPermissions() {
+      const role = userRoleResource.data
+      if (role == null) {
+        return undefined
+      }
+
+      return rolePermissionsResource.data
+        .filter((rolePermission) => rolePermission.role === role)
+        .map((rolePermission) => rolePermission.permission)
+    },
+    get userRegions() {
+      const rolePermissions = rolePermissionsResource.data
+
+      return userRegionsResource.data.map((membership) => ({
+        ...membership,
+        permissions: rolePermissions
+          .filter((rolePermission) => rolePermission.role === membership.role)
+          .map((rolePermission) => rolePermission.permission),
+      }))
+    },
     get isLoading() {
       return (
-        gradesResource.status === 'loading' || tagsResource.status === 'loading' || userResource.status === 'loading'
+        gradesResource.status === 'loading' ||
+        tagsResource.status === 'loading' ||
+        userResource.status === 'loading' ||
+        userRoleResource.status === 'loading' ||
+        rolePermissionsResource.status === 'loading' ||
+        userRegionsResource.status === 'loading'
       )
     },
     get gradesResource() {
@@ -73,6 +117,15 @@ export function setGlobalState(): GlobalState | undefined {
     },
     get userResource() {
       return userResource
+    },
+    get userRoleResource() {
+      return userRoleResource
+    },
+    get rolePermissionsResource() {
+      return rolePermissionsResource
+    },
+    get userRegionsResource() {
+      return userRegionsResource
     },
   }
 

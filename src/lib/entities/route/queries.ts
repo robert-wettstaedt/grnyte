@@ -8,6 +8,7 @@ export const routesQueryDefs = {
     z.object({
       areaId: z.number().nullish(),
       content: z.string().optional(),
+      firstAscensionists: z.array(z.number()).optional(),
       hasBeta: z.boolean().optional(),
       hasTopo: z.boolean().optional(),
       maxGrade: z.number().optional(),
@@ -51,6 +52,10 @@ export const routesQueryDefs = {
 
       if (args.tags != null && args.tags.length > 0) {
         q = q.whereExists('tags', (q) => r(q).where('tagFk', 'IN', args.tags!))
+      }
+
+      if (args.firstAscensionists != null && args.firstAscensionists.length > 0) {
+        q = q.whereExists('firstAscents', (q) => r(q).where('firstAscensionistFk', 'IN', args.firstAscensionists!))
       }
 
       if (args.hasTopo) {

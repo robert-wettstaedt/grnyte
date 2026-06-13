@@ -1,5 +1,8 @@
 import type { IconProps } from '@lucide/svelte'
 import {
+  Check,
+  ChevronDown,
+  ChevronRight,
   Expand,
   Layers,
   ListFilter,
@@ -22,6 +25,9 @@ import type { Component } from 'svelte'
  * values here, every call site keeps using `<Icon name="..." />`.
  */
 export const icons = {
+  check: Check,
+  'chevron-down': ChevronDown,
+  'chevron-right': ChevronRight,
   close: X,
   collapse: Shrink,
   expand: Expand,

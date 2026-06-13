@@ -2,20 +2,6 @@ import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { BlocksMapProps } from './types'
 
-export const findArea = (
-  area: BlockDetail['areas'][0] | null | undefined,
-  type?: string,
-): BlockDetail['areas'][0][] => {
-  const parents: BlockDetail['areas'][0][] = []
-  let current = area
-  while (current != null) {
-    parents.unshift(current)
-    if (type != null && current.type === type && current.areas.at(-1)?.type !== type) break
-    current = current.areas.at(-1) as BlockDetail['areas'][0] | null
-  }
-  return parents
-}
-
 export const withPadding = (
   bounds: [number, number, number, number],
   blockCount: number,
@@ -46,7 +32,7 @@ export function createMapData(props: BlocksMapProps) {
     const grouped = new Map<number, { sector: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
 
     for (const block of geoBlocks) {
-      const sector = findArea(block.areas[0], 'sector').find((item) => item.type === 'sector')
+      const sector = block.areas.find((area) => area.type === 'sector')
       if (sector == null) continue
 
       const existing = grouped.get(sector.id)
@@ -64,7 +50,7 @@ export function createMapData(props: BlocksMapProps) {
     const grouped = new Map<number, { crag: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
 
     for (const block of geoBlocks) {
-      const crag = findArea(block.areas.at(-1), 'crag').find((item) => item.type === 'crag')
+      const crag = block.areas.find((area) => area.type === 'crag')
       if (crag == null) continue
 
       const existing = grouped.get(crag.id)

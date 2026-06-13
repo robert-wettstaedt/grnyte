@@ -4,19 +4,20 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import { fly } from 'svelte/transition'
-  import type { LayoutProps } from './$types'
-  import { queries } from '$lib/zero/queries'
-  import { sheetState } from './Modal/sheetState.svelte'
-  import Map, { type BlocksMapProps, type MapFocus } from './Map/Map.svelte'
-  import { routeList, type AscentStatus, type RouteListFilter } from '$lib/entities/route/resources.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
-  import { userAscentList } from '$lib/entities/ascent/resources.svelte'
-  import SearchBar from './SearchBar/SearchBar.svelte'
-  import Filter from './Filter/Filter.svelte'
-  import Modal from './Modal/Modal.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { fly } from 'svelte/transition'
+  import type { LayoutProps } from './$types'
+  import Filter from './Filter/Filter.svelte'
+  import { parseRouteFilter } from './Filter/filter'
+  import { filteredRouteList } from './Filter/filteredRoutes.svelte'
+  import Map from './Map/Map.svelte'
+  import type { BlocksMapProps, MapFocus } from './Map/types'
+  import Modal from './Modal/Modal.svelte'
+  import { sheetState } from './Modal/sheetState.svelte'
+  import SearchBar from './SearchBar/SearchBar.svelte'
+  import { SvelteMap } from 'svelte/reactivity'
 
   let { children }: LayoutProps = $props()
 
@@ -38,6 +39,12 @@
     }
   })
 
+  // The modal is open on any child route (e.g. areas/[id]) and closed on the
+  // group's index — keep `open` in sync as the user navigates.
+  afterNavigate((navigation) => {
+    open = !(navigation.to?.route.id?.endsWith('(modal)') ?? false)
+  })
+
   // afterNavigate((event) => {
   //   open = !(event.to?.route.id?.endsWith('(modal)') ?? false)
   //   if (open) {
@@ -54,77 +61,21 @@
   //   }
   // })
 
-  const search = $derived(page.url.searchParams.toString())
-  const searchParams = $derived(Object.fromEntries(new URLSearchParams(search).entries()))
+  // Parsing the URL into typed filter values lives in ./Filter/filter, and
+  // applying it to routes (incl. the client-side ascent/favorites filters) in
+  // ./Filter/filteredRoutes — so this layout only composes the result for the map.
+  const filters = $derived(parseRouteFilter(page.url.searchParams))
 
-  // URL params are strings; the route query expects typed numbers.
-  const routeFilter = $derived.by<RouteListFilter>(() => ({
-    minGrade: searchParams.minGrade == null ? undefined : Number(searchParams.minGrade),
-    maxGrade: searchParams.maxGrade == null ? undefined : Number(searchParams.maxGrade),
-    minRating: searchParams.minRating == null ? undefined : Number(searchParams.minRating),
-    tags: searchParams.tags ? searchParams.tags.split(',') : undefined,
-    hasTopo: searchParams.hasTopo === '1' ? true : undefined,
-    hasBeta: searchParams.hasBeta === '1' ? true : undefined,
-  }))
-
-  const routesResult = routeList(() => routeFilter)
+  const routesResult = filteredRouteList(
+    () => filters,
+    () => app.user?.id,
+  )
   const blocksResult = blockList(() => ({}))
   const areasResult = areaList(() => ({}))
 
-  // Ascent status is filtered client-side from the signed-in user's ascents
-  // (Zero can't do `not(exists())`). The ascents only sync while the filter is
-  // active.
-  const ascentStatus = $derived.by<AscentStatus | undefined>(() => {
-    const value = searchParams.ascentStatus
-    return value === 'done' || value === 'todo' || value === 'project' ? value : undefined
-  })
-
-  const userAscents = userAscentList(
-    () => app.user?.id,
-    () => ascentStatus != null,
-  )
-
-  const ascentRouteIds = $derived.by(() => {
-    const sent = new Set<number>()
-    const attempted = new Set<number>()
-    for (const ascent of userAscents.data) {
-      if (ascent.type === 'attempt') {
-        attempted.add(ascent.routeFk)
-      } else {
-        sent.add(ascent.routeFk)
-      }
-    }
-    return { sent, attempted }
-  })
-
-  const visibleRoutes = $derived.by(() => {
-    const routes = routesResult.data
-
-    switch (ascentStatus) {
-      case 'done':
-        return routes.filter((route) => ascentRouteIds.sent.has(route.id))
-      case 'todo':
-        return routes.filter((route) => !ascentRouteIds.sent.has(route.id))
-      case 'project':
-        return routes.filter((route) => ascentRouteIds.attempted.has(route.id) && !ascentRouteIds.sent.has(route.id))
-      default:
-        return routes
-    }
-  })
-
-  const routeCountByGrade = $derived.by(() => {
-    const counts = new globalThis.Map<number, number>()
-    for (const route of visibleRoutes) {
-      if (route.gradeFk != null) {
-        counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)
-      }
-    }
-    return counts
-  })
-
   const data = $derived.by(() => {
-    const routeCountByBlock = new globalThis.Map<number, number>()
-    for (const route of visibleRoutes) {
+    const routeCountByBlock = new SvelteMap<number, number>()
+    for (const route of routesResult.data) {
       if (route.blockFk != null) {
         routeCountByBlock.set(route.blockFk, (routeCountByBlock.get(route.blockFk) ?? 0) + 1)
       }
@@ -214,18 +165,7 @@
 
     <SearchBar />
 
-    <Filter
-      active={searchParams.maxGrade != null ||
-        searchParams.minGrade != null ||
-        searchParams.minRating != null ||
-        searchParams.ascentStatus != null ||
-        searchParams.tags != null ||
-        searchParams.hasTopo != null ||
-        searchParams.hasBeta != null}
-      loading={routesResult.status === 'loading'}
-      numRoutes={visibleRoutes.length}
-      {routeCountByGrade}
-    />
+    <Filter loading={routesResult.status === 'loading'} routes={routesResult.data} />
   </div>
 {/if}
 

@@ -50,6 +50,9 @@ export function initZero(session: Session | undefined | null): Z<Schema> {
       z.preload(queries.listGrades()).complete,
       z.preload(queries.listTags()).complete,
       z.preload(queries.currentUser()).complete,
+      z.preload(queries.currentUserRole()).complete,
+      z.preload(queries.listRolePermissions()).complete,
+      z.preload(queries.listUserRegions()).complete,
     ]).catch((error: unknown) => {
       console.error('Error preloading global queries:', error)
     })

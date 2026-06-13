@@ -4,27 +4,37 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
+  import type { RouteListItem } from '$lib/entities/route/dto'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { SvelteURL } from 'svelte/reactivity'
-  import AscentStatusSelect from './AscentStatusSelect.svelte'
-  import GradeRange from './GradeRange.svelte'
-  import MediaSelect, { type MediaFilter } from './MediaSelect.svelte'
-  import RatingSelect from './RatingSelect.svelte'
-  import TagSelect from './TagSelect.svelte'
+  import { SvelteMap, SvelteURL } from 'svelte/reactivity'
+  import AscentStatusSelect from './fields/AscentStatusSelect.svelte'
+  import FavoritesSelect from './fields/FavoritesSelect.svelte'
+  import FilterSection from './fields/FilterSection.svelte'
+  import FirstAscensionistSelect from './fields/FirstAscensionistSelect.svelte'
+  import GradeRange from './fields/GradeRange.svelte'
+  import MediaSelect, { type MediaFilter } from './fields/MediaSelect.svelte'
+  import RatingSelect from './fields/RatingSelect.svelte'
+  import TagSelect from './fields/TagSelect.svelte'
+  import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from './filter'
 
   interface Props {
-    active: boolean
     loading: boolean
-    numRoutes: number
-    /** Route counts keyed by grade id (`gradeFk`), for the grade histogram. */
-    routeCountByGrade: Map<number, number>
+    routes: RouteListItem[]
   }
 
-  const { active, loading, numRoutes, routeCountByGrade }: Props = $props()
+  const { loading, routes }: Props = $props()
 
   const app = getGlobalState()
+
+  // Whether any filter is applied lives here rather than the layout — it's pure
+  // filter knowledge, derived from the same params the controls read.
+  const active = $derived(isFilterActive(page.url.searchParams))
+
+  // Reads from the preloaded `firstAscensionists` table, so this is local data.
+  const firstAscensionists = firstAscensionistList()
 
   let open = $state(false)
 
@@ -45,9 +55,57 @@
   let ascentStatus = $state<AscentStatus | ''>('')
   let selectedTags = $state<string[]>([])
   let mediaFilters = $state<MediaFilter[]>([])
+  let favoritesOnly = $state(false)
+  let selectedFirstAscensionists = $state<number[]>([])
 
-  const isAscentStatus = (value: string | null): value is AscentStatus =>
-    value === 'done' || value === 'todo' || value === 'project'
+  const routeCountByGrade = $derived.by(() => {
+    const counts = new SvelteMap<number, number>()
+    for (const route of routes) {
+      if (route.gradeFk != null) {
+        counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)
+      }
+    }
+    return counts
+  })
+
+  // Short, value-aware summaries shown in each collapsed section's header so the
+  // applied filters stay readable at a glance without expanding every section.
+  const ratingSummary = $derived(minRating > 0 ? `${minRating}+` : m.common_any())
+
+  const ascentSummary = $derived.by(() => {
+    switch (ascentStatus) {
+      case 'todo':
+        return m.filter_ascentTodo()
+      case 'project':
+        return m.filter_ascentProject()
+      case 'done':
+        return m.filter_ascentDone()
+      default:
+        return m.common_any()
+    }
+  })
+
+  const favoritesSummary = $derived(favoritesOnly ? m.filter_favoritesOnly() : m.common_any())
+
+  const firstAscensionistSummary = $derived(
+    selectedFirstAscensionists.length > 0
+      ? m.filter_selectedCount({ count: selectedFirstAscensionists.length })
+      : m.common_any(),
+  )
+
+  const tagsSummary = $derived(
+    selectedTags.length > 0 ? m.filter_selectedCount({ count: selectedTags.length }) : m.common_any(),
+  )
+
+  const mediaSummary = $derived.by(() => {
+    if (mediaFilters.length === 0) {
+      return m.common_any()
+    }
+    if (mediaFilters.length === 1) {
+      return mediaFilters[0] === 'hasTopo' ? m.filter_hasTopo() : m.filter_hasBeta()
+    }
+    return m.filter_selectedCount({ count: mediaFilters.length })
+  })
 
   // Seed the controls from the applied filter, then open. Re-runs on every open
   // so they always reflect the URL's current values.
@@ -73,6 +131,11 @@
       if (page.url.searchParams.get('hasTopo') === '1') media.push('hasTopo')
       if (page.url.searchParams.get('hasBeta') === '1') media.push('hasBeta')
       mediaFilters = media
+
+      favoritesOnly = page.url.searchParams.get('favorites') === '1'
+
+      const faParam = page.url.searchParams.get('firstAscensionists')
+      selectedFirstAscensionists = faParam ? faParam.split(',').map(Number) : []
     }
     open = !open
   }
@@ -123,6 +186,18 @@
       url.searchParams.delete('hasBeta')
     }
 
+    if (favoritesOnly) {
+      url.searchParams.set('favorites', '1')
+    } else {
+      url.searchParams.delete('favorites')
+    }
+
+    if (selectedFirstAscensionists.length === 0) {
+      url.searchParams.delete('firstAscensionists')
+    } else {
+      url.searchParams.set('firstAscensionists', selectedFirstAscensionists.join(','))
+    }
+
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(url)
     open = false
@@ -130,13 +205,9 @@
 
   const resetFilter = async () => {
     const url = new SvelteURL(page.url)
-    url.searchParams.delete('minGrade')
-    url.searchParams.delete('maxGrade')
-    url.searchParams.delete('minRating')
-    url.searchParams.delete('ascentStatus')
-    url.searchParams.delete('tags')
-    url.searchParams.delete('hasTopo')
-    url.searchParams.delete('hasBeta')
+    for (const key of FILTER_PARAM_KEYS) {
+      url.searchParams.delete(key)
+    }
 
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(url)
@@ -148,7 +219,7 @@
   bind:open
   title={m.common_filter()}
   snapPoints={[0.75, 0.6]}
-  subtitle={m.routes_routesCount({ count: numRoutes })}
+  subtitle={m.routes_routesCount({ count: routes.length })}
 >
   {#snippet trigger(props)}
     <button
@@ -168,20 +239,49 @@
     </button>
   {/snippet}
 
-  <div class="mt-4 flex flex-col gap-8 pb-16 md:mt-0">
+  <div class="mt-4 pb-16 md:mt-0">
     {#if app.grades.length > 0}
-      <GradeRange grades={app.grades} gradingScale={app.gradingScale} {routeCountByGrade} bind:value />
+      <!-- Grade is the primary filter, so it stays pinned open above the accordion. -->
+      <div class="border-surface-200-800 border-b pb-4">
+        <GradeRange grades={app.grades} gradingScale={app.gradingScale} {routeCountByGrade} bind:value />
+      </div>
     {/if}
 
-    <RatingSelect bind:value={minRating} />
+    <FilterSection label={m.filter_rating()} summary={ratingSummary} active={minRating > 0}>
+      <RatingSelect bind:value={minRating} />
+    </FilterSection>
 
-    <AscentStatusSelect bind:value={ascentStatus} />
+    <FilterSection label={m.filter_ascent()} summary={ascentSummary} active={ascentStatus !== ''}>
+      <AscentStatusSelect bind:value={ascentStatus} />
+    </FilterSection>
+
+    <FilterSection label={m.filter_favorites()} summary={favoritesSummary} active={favoritesOnly}>
+      <FavoritesSelect bind:value={favoritesOnly} />
+    </FilterSection>
+
+    {#if firstAscensionists.data.length > 0}
+      <FilterSection
+        label={m.filter_firstAscensionists()}
+        summary={firstAscensionistSummary}
+        active={selectedFirstAscensionists.length > 0}
+      >
+        <FirstAscensionistSelect
+          firstAscensionists={firstAscensionists.data}
+          currentUserId={app.user?.id}
+          bind:value={selectedFirstAscensionists}
+        />
+      </FilterSection>
+    {/if}
 
     {#if app.tags.length > 0}
-      <TagSelect tags={app.tags} bind:value={selectedTags} />
+      <FilterSection label={m.filter_tags()} summary={tagsSummary} active={selectedTags.length > 0}>
+        <TagSelect tags={app.tags} bind:value={selectedTags} />
+      </FilterSection>
     {/if}
 
-    <MediaSelect bind:value={mediaFilters} />
+    <FilterSection label={m.filter_media()} summary={mediaSummary} active={mediaFilters.length > 0}>
+      <MediaSelect bind:value={mediaFilters} />
+    </FilterSection>
   </div>
 
   <div

@@ -1,5 +1,6 @@
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
+import type { UserRegion } from '$lib/entities/region/dto'
 import Feature from 'ol/Feature.js'
 import type OlMap from 'ol/Map.js'
 import Polyline from 'ol/format/Polyline'
@@ -12,9 +13,10 @@ import { Vector as VectorSource } from 'ol/source.js'
 import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
+import { SvelteSet } from 'svelte/reactivity'
 import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM } from './types'
 
-export function createWmsLayers(userRegions: App.UserRegion[]): TileLayer[] {
+export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   return userRegions.flatMap((region) =>
     (region.settings?.mapLayers ?? []).map(
       (regionLayer) =>
@@ -278,7 +280,7 @@ export function createParkingLayer(uniqueParkingLocations: Geolocation[]): Vecto
 
 export function createPathLayer(uniqueLineStrings: string[]): VectorLayer {
   const features: Feature[] = []
-  const distinctPaths = [...new Set(uniqueLineStrings)]
+  const distinctPaths = [...new SvelteSet(uniqueLineStrings)]
 
   for (const encoded of distinctPaths) {
     try {

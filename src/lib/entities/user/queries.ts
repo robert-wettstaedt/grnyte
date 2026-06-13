@@ -8,4 +8,8 @@ export const usersQueryDefs = {
     z.undefined(),
     authenticatedUserCan(({ ctx }) => zql.users.where('authUserFk', ctx.authUserId).related('userSettings').one()),
   ),
+  currentUserRole: defineQuery(
+    z.undefined(),
+    authenticatedUserCan(({ ctx }) => zql.userRoles.where('authUserFk', ctx.authUserId).one()),
+  ),
 }

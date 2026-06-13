@@ -26,6 +26,8 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { SvelteSet } from 'svelte/reactivity'
+  import { getGlobalState } from '$lib/state/global.svelte'
 
   const props: BlocksMapProps = $props()
 
@@ -52,6 +54,8 @@
   let isLayersSheetOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
   let hasAutoFitted = $state(false)
+
+  const globalState = getGlobalState()
 
   $effect(() => {
     if (map == null || !mapHasSize || hasAutoFitted || props.focus != null) return
@@ -161,7 +165,7 @@
   }
 
   const mapAttachment: Attachment = (node) => {
-    // const wmsLayers = createWmsLayers(pageState.userRegions)
+    const wmsLayers = createWmsLayers(globalState.userRegions)
 
     const mapInstance = new OlMap({
       controls: defaultControls({ attribution: false, zoom: false, rotate: false }).extend([
@@ -169,8 +173,8 @@
       ]),
       target: node as HTMLElement,
       layers: [
-        new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' } }),
-        // ...wmsLayers
+        new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' }, className: 'osm-layer' }),
+        ...wmsLayers,
       ],
       view: new View({
         center: fromLonLat([2.6117597, 48.4103865]),
@@ -200,7 +204,7 @@
     mapInstance.addLayer(pathLayer)
 
     // Populate layer entries for the toggle panel
-    const seenLayers = new Set<string>()
+    const seenLayers = new SvelteSet<string>()
     layerEntries = mapInstance
       .getLayers()
       .getArray()
@@ -223,13 +227,14 @@
     mapInstance.on('click', (event) => {
       const feature = mapInstance.forEachFeatureAtPixel(event.pixel, (f) => f)
       if (feature) {
-        const blockId = feature.get('blockId')
+        // const blockId = feature.get('blockId')
         const areaId = feature.get('areaId')
-        const parkingId = feature.get('parkingId')
+        // const parkingId = feature.get('parkingId')
+        if (areaId != null) {
+          goto(resolve('/(app)/explore/(modal)/areas/[id]', { id: areaId.toString() }))
+        }
         // if (blockId != null) {
         //   goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))
-        // } else if (areaId != null) {
-        //   goto(resolve('/(new)/bla/(modal)/areas/[id]', { id: areaId.toString() }))
         // } else if (parkingId != null) {
         //   goto(resolve('/(new)/bla/(modal)/parking/[id]', { id: parkingId.toString() }))
         // }
@@ -401,8 +406,9 @@
 </div>
 
 <style>
-  /* Quiet dark map: OSM raster tiles inverted and desaturated in dark mode. */
-  :global(.dark) .map :global(.ol-layers) {
+  /* Quiet dark map: only the OSM raster tiles are inverted/desaturated in dark mode,
+     so markers and other custom layers keep their original colors. */
+  :global(.dark) .map :global(.osm-layer) {
     filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.9) contrast(0.95);
   }
 
