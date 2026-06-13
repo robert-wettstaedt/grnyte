@@ -1,5 +1,18 @@
 import type { IconProps } from '@lucide/svelte'
-import { Expand, Layers, ListFilter, LocateFixed, Map, MapPin, Minus, Plus, Search, Shrink, X } from '@lucide/svelte'
+import {
+  Expand,
+  Layers,
+  ListFilter,
+  LocateFixed,
+  Map,
+  MapPin,
+  Minus,
+  Plus,
+  Search,
+  Shrink,
+  Star,
+  X,
+} from '@lucide/svelte'
 import type { Component } from 'svelte'
 
 /**
@@ -20,6 +33,7 @@ export const icons = {
   minus: Minus,
   plus: Plus,
   search: Search,
+  star: Star,
 } satisfies Record<string, Component<IconProps>>
 
 export type IconName = keyof typeof icons

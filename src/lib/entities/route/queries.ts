@@ -10,6 +10,7 @@ export const routesQueryDefs = {
       content: z.string().optional(),
       maxGrade: z.number().optional(),
       minGrade: z.number().optional(),
+      minRating: z.number().optional(),
       pageSize: z.number().optional(),
       routeId: z.union([z.number(), z.array(z.number())]).optional(),
       sort: z.enum(['rating', 'grade', 'firstAscentYear']).optional(),
@@ -39,6 +40,10 @@ export const routesQueryDefs = {
       }
       if (args.maxGrade != null) {
         q = q.where('gradeFk', '<=', args.maxGrade)
+      }
+
+      if (args.minRating != null) {
+        q = q.where('rating', '>=', args.minRating)
       }
 
       if (args.content != null) {

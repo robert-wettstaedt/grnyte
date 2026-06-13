@@ -9,15 +9,18 @@
   import { queries } from '$lib/zero/queries'
   import { sheetState } from './Modal/sheetState.svelte'
   import Map, { type BlocksMapProps, type MapFocus } from './Map/Map.svelte'
-  import { routeList, type RouteListFilter } from '$lib/entities/route/resources.svelte'
+  import { routeList, type AscentStatus, type RouteListFilter } from '$lib/entities/route/resources.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { userAscentList } from '$lib/entities/ascent/resources.svelte'
   import SearchBar from './SearchBar/SearchBar.svelte'
   import Filter from './Filter/Filter.svelte'
   import Modal from './Modal/Modal.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
 
   let { children }: LayoutProps = $props()
+
+  const app = getGlobalState()
 
   let open = $state(!(page.route.id?.endsWith('(modal)') ?? false))
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
@@ -54,15 +57,56 @@
   const search = $derived(page.url.searchParams.toString())
   const searchParams = $derived(Object.fromEntries(new URLSearchParams(search).entries()))
 
-  // URL params are strings; the route query expects typed numbers for the grade bounds.
+  // URL params are strings; the route query expects typed numbers.
   const routeFilter = $derived.by<RouteListFilter>(() => ({
     minGrade: searchParams.minGrade == null ? undefined : Number(searchParams.minGrade),
     maxGrade: searchParams.maxGrade == null ? undefined : Number(searchParams.maxGrade),
+    minRating: searchParams.minRating == null ? undefined : Number(searchParams.minRating),
   }))
 
   const routesResult = routeList(() => routeFilter)
   const blocksResult = blockList(() => ({}))
   const areasResult = areaList(() => ({}))
+
+  // Ascent status is filtered client-side from the signed-in user's ascents
+  // (Zero can't do `not(exists())`). The ascents only sync while the filter is
+  // active.
+  const ascentStatus = $derived.by<AscentStatus | undefined>(() => {
+    const value = searchParams.ascentStatus
+    return value === 'done' || value === 'todo' || value === 'project' ? value : undefined
+  })
+
+  const userAscents = userAscentList(
+    () => app.user?.id,
+    () => ascentStatus != null,
+  )
+
+  const ascentRouteIds = $derived.by(() => {
+    const sent = new Set<number>()
+    const attempted = new Set<number>()
+    for (const ascent of userAscents.data) {
+      if (ascent.type === 'attempt') {
+        attempted.add(ascent.routeFk)
+      } else {
+        sent.add(ascent.routeFk)
+      }
+    }
+    return { sent, attempted }
+  })
+
+  const visibleRoutes = $derived.by(() => {
+    const routes = routesResult.data
+    switch (ascentStatus) {
+      case 'done':
+        return routes.filter((route) => ascentRouteIds.sent.has(route.id))
+      case 'todo':
+        return routes.filter((route) => !ascentRouteIds.sent.has(route.id))
+      case 'project':
+        return routes.filter((route) => ascentRouteIds.attempted.has(route.id) && !ascentRouteIds.sent.has(route.id))
+      default:
+        return routes
+    }
+  })
 
   // Unfiltered-by-grade route set powering the filter's grade histogram, so the
   // distribution stays stable as the user narrows the range.
@@ -79,7 +123,7 @@
 
   const data = $derived.by(() => {
     const routeCountByBlock = new globalThis.Map<number, number>()
-    for (const route of routesResult.data) {
+    for (const route of visibleRoutes) {
       if (route.blockFk != null) {
         routeCountByBlock.set(route.blockFk, (routeCountByBlock.get(route.blockFk) ?? 0) + 1)
       }
@@ -170,9 +214,12 @@
     <SearchBar />
 
     <Filter
-      active={searchParams.maxGrade != null || searchParams.minGrade != null}
+      active={searchParams.maxGrade != null ||
+        searchParams.minGrade != null ||
+        searchParams.minRating != null ||
+        searchParams.ascentStatus != null}
       loading={routesResult.status === 'loading'}
-      numRoutes={routesResult.data.length}
+      numRoutes={visibleRoutes.length}
       {routeCountByGrade}
     />
   </div>

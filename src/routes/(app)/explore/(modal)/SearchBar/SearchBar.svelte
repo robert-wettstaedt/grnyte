@@ -5,21 +5,23 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
   import type { KeyboardEventHandler } from 'svelte/elements'
+  import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity'
 
   let value = $state(page.url.searchParams.get('q') ?? '')
 
   const submitQuery = (query: string, name: string) => {
-    const searchParams = new URLSearchParams(page.url.searchParams)
+    const searchParams = new SvelteURLSearchParams(page.url.searchParams)
     if (query.length === 0) {
       searchParams.delete(name)
     } else {
       searchParams.set(name, query)
     }
 
-    const url = new URL(page.url)
+    const url = new SvelteURL(page.url)
     url.pathname = resolve('/explore/search')
     url.search = searchParams.toString()
 
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
     goto(url, { keepFocus: true, replaceState: true })
   }
 

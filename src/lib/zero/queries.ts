@@ -1,4 +1,5 @@
 import { areasQueryDefs } from '$lib/entities/area/queries'
+import { ascentsQueryDefs } from '$lib/entities/ascent/queries'
 import { blocksQueryDefs } from '$lib/entities/block/queries'
 import { gradesQueryDefs } from '$lib/entities/grade/queries'
 import { routesQueryDefs } from '$lib/entities/route/queries'
@@ -11,6 +12,7 @@ import { zql } from './zero-schema.gen'
 
 export const queries = defineQueries({
   ...areasQueryDefs,
+  ...ascentsQueryDefs,
   ...blocksQueryDefs,
   ...gradesQueryDefs,
   ...routesQueryDefs,

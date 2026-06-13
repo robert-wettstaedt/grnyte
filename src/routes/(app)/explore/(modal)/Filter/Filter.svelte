@@ -5,8 +5,12 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { m } from '$lib/paraglide/messages'
+  import type { AscentStatus } from '$lib/entities/route/resources.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { SvelteURL } from 'svelte/reactivity'
+  import AscentStatusSelect from './AscentStatusSelect.svelte'
   import GradeRange from './GradeRange.svelte'
+  import RatingSelect from './RatingSelect.svelte'
 
   interface Props {
     active: boolean
@@ -35,9 +39,14 @@
   }
 
   let value = $state<number[]>([0, 0])
+  let minRating = $state(0)
+  let ascentStatus = $state<AscentStatus | ''>('')
 
-  // Seed the slider from the applied filter, then open. Re-runs on every open so
-  // the slider always reflects the URL's current min/max grade.
+  const isAscentStatus = (value: string | null): value is AscentStatus =>
+    value === 'done' || value === 'todo' || value === 'project'
+
+  // Seed the controls from the applied filter, then open. Re-runs on every open
+  // so they always reflect the URL's current values.
   const toggleOpen = () => {
     if (!open) {
       const minParam = page.url.searchParams.get('minGrade')
@@ -46,12 +55,18 @@
         indexOfGrade(minParam == null ? undefined : Number(minParam), 0),
         indexOfGrade(maxParam == null ? undefined : Number(maxParam), lastIndex),
       ]
+
+      const ratingParam = page.url.searchParams.get('minRating')
+      minRating = ratingParam == null ? 0 : Number(ratingParam)
+
+      const ascentParam = page.url.searchParams.get('ascentStatus')
+      ascentStatus = isAscentStatus(ascentParam) ? ascentParam : ''
     }
     open = !open
   }
 
   const applyFilter = async () => {
-    const url = new URL(page.url)
+    const url = new SvelteURL(page.url)
     const [minIndex, maxIndex] = value
 
     if (minIndex <= 0) {
@@ -66,15 +81,32 @@
       url.searchParams.set('maxGrade', String(app.grades[maxIndex].id))
     }
 
-    await goto(url, { keepFocus: true, noScroll: true })
+    if (minRating <= 0) {
+      url.searchParams.delete('minRating')
+    } else {
+      url.searchParams.set('minRating', String(minRating))
+    }
+
+    if (ascentStatus === '') {
+      url.searchParams.delete('ascentStatus')
+    } else {
+      url.searchParams.set('ascentStatus', ascentStatus)
+    }
+
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    await goto(url)
     open = false
   }
 
   const resetFilter = async () => {
-    const url = new URL(page.url)
+    const url = new SvelteURL(page.url)
     url.searchParams.delete('minGrade')
     url.searchParams.delete('maxGrade')
-    await goto(url, { keepFocus: true, noScroll: true })
+    url.searchParams.delete('minRating')
+    url.searchParams.delete('ascentStatus')
+
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    await goto(url)
     open = false
   }
 </script>
@@ -83,7 +115,7 @@
   {#snippet trigger(props)}
     <button
       {...props}
-      class={[props.class, 'btn btn-sm', open ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900']}
+      class={[props.class, 'btn btn-sm relative', open ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900']}
       onclick={toggleOpen}
     >
       {#if active}
@@ -98,10 +130,14 @@
     </button>
   {/snippet}
 
-  <div class="mt-4 flex flex-col gap-4 md:mt-0">
+  <div class="mt-4 flex flex-col gap-8 md:mt-0">
     {#if app.grades.length > 0}
       <GradeRange grades={app.grades} gradingScale={app.gradingScale} {routeCountByGrade} bind:value />
     {/if}
+
+    <RatingSelect bind:value={minRating} />
+
+    <AscentStatusSelect bind:value={ascentStatus} />
 
     <div class="flex items-center justify-end gap-2 pt-2">
       <button class="btn btn-sm preset-tonal" onclick={resetFilter}>

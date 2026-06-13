@@ -19,7 +19,7 @@
 
   const gradeLabel = (index: number): string => {
     const grade = grades[index]
-    return grade?.[gradingScale] ?? grade?.FB ?? grade?.V ?? '—'
+    return grade?.[gradingScale] ?? '—'
   }
 
   const maxCount = $derived(grades.reduce((max, grade) => Math.max(max, routeCountByGrade.get(grade.id) ?? 0), 0))
