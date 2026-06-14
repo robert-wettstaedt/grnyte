@@ -7,7 +7,6 @@ import type { AreaDetail, AreaListItem } from './dto'
 export interface AreaAncestor {
   readonly id: number
   readonly name: string
-  readonly slug: string
   // Zero marks this optional (the column carries a DB default), so it can arrive null even
   // though the DB itself is non-null; callers coalesce to 'area'.
   readonly type: 'area' | 'crag' | null
@@ -32,7 +31,6 @@ export function toAncestors(row: AreaAncestor | undefined): AreaListItem[] {
       areas: [],
       id: current.id,
       name: current.name,
-      slug: current.slug,
       type: current.type ?? 'area',
     })
     current = current.parent
@@ -45,7 +43,6 @@ export function toAreaListItem(row: AreaAncestor): AreaListItem {
   return {
     id: row.id,
     name: row.name,
-    slug: row.slug,
     type: row.type ?? 'area',
     areas: toAncestors(row),
   }

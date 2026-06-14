@@ -1,9 +1,8 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { m } from '$lib/paraglide/messages'
 </script>
 
 <svelte:head>
-  <title>{PUBLIC_APPLICATION_NAME}</title>
+  <title>{m.explore_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
-
-Landing page

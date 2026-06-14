@@ -7,7 +7,6 @@ export interface RouteListItem {
   id: number
   name: string
   rating: number
-  slug: string
   tags: string[]
   userRating: number
 }

@@ -8,7 +8,6 @@ interface BlockRow {
   readonly id: number
   readonly name: string
   readonly order: number
-  readonly slug: string
   readonly area?: AreaAncestor | undefined
 }
 
@@ -27,7 +26,6 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
       areas: [],
       id: row.area.id,
       name: row.area.name,
-      slug: row.area.slug,
       type: row.area.type ?? 'area',
     })
   }
@@ -37,7 +35,6 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
     id: row.id,
     name: row.name.length === 0 ? `${m.common_block()} ${row.order}` : row.name,
     order: row.order,
-    slug: row.slug,
   }
 }
 

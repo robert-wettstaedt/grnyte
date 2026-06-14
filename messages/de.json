@@ -15,6 +15,7 @@
   "areas_addParkingLocation": "Parkplatz hinzufügen",
   "areas_createArea": "Gebiet erstellen",
   "areas_createAreaError": "Das Gebiet konnte nicht erstellt werden. Bitte versuche es erneut.",
+  "areas_editArea": "Gebiet bearbeiten",
   "areas_nameHint": "Du kannst es jederzeit umbenennen",
   "areas_namePlaceholder": "Gebietsname",
   "areas_nameQuestion": "Wie sollen wir dieses Gebiet nennen?",

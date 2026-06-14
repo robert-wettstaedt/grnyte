@@ -20,12 +20,12 @@
   }
 
   const { area }: Props = $props()
-  const { userRegions } = getGlobalState()
+  const global = getGlobalState()
 
   let addBlockOpen = $state(false)
 
-  const canEdit = $derived(canEditArea(userRegions, area))
-  const canAdmin = $derived(checkRegionPermission(userRegions, [REGION_PERMISSION_ADMIN], area.regionFk))
+  const canEdit = $derived(canEditArea(global.userRegions, area))
+  const canAdmin = $derived(checkRegionPermission(global.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk))
 
   // `navigator` is undefined during SSR and `navigator.share` only accepts data
   // it can actually share, so guard on both — the button only appears when the
@@ -52,14 +52,14 @@
     </Action>
   {/if}
 
-  {#if canAddArea(userRegions, area)}
+  {#if canAddArea(global.userRegions, area)}
     <Action href={resolve('/(app)/areas/[id]/add', { id: String(area.id) })}>
       <Icon name="plus" size={16} />
       {m.areas_addArea()}
     </Action>
   {/if}
 
-  {#if canAddBlock(userRegions, area)}
+  {#if canAddBlock(global.userRegions, area)}
     <Action onclick={() => (addBlockOpen = true)}>
       <Icon name="plus" size={16} />
       {m.blocks_addBlock()}
@@ -70,7 +70,7 @@
       onOpenChange={(event) => (addBlockOpen = event.open)}
       onsave={async () => {
         const block = await createBlock({ areaId: area.id })
-        await goto(resolve('/(app)/(map)/blocks/[id]', { id: String(block.id) }))
+        await goto(resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(block.id) }))
       }}
       pending={createBlock.pending}
       saveText={m.common_ok()}

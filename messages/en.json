@@ -15,6 +15,7 @@
   "areas_addParkingLocation": "Add parking",
   "areas_createArea": "Create area",
   "areas_createAreaError": "Could not create the area. Please try again.",
+  "areas_editArea": "Edit area",
   "areas_nameHint": "You can rename it anytime",
   "areas_namePlaceholder": "Area name",
   "areas_nameQuestion": "What should we call this area?",

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { m } from '$lib/paraglide/messages'
   import { sheetState } from '../../Modal/sheetState.svelte'
 
@@ -9,5 +10,9 @@
     sheetState.subtitle = null
   })
 </script>
+
+<svelte:head>
+  <title>{m.common_block()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
 
 <p class="text-surface-600-400 py-8 text-center">{m.common_comingSoon()}</p>

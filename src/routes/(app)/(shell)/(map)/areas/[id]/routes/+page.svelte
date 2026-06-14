@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { getGradeColor } from '$lib/entities/grade/color'
@@ -8,7 +9,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
 
-  const app = getGlobalState()
+  const global = getGlobalState()
 
   // Getters keep the resources live across navigation, mirroring the area page.
   const area = areaDetail(() => Number(page.params.id))
@@ -21,12 +22,12 @@
     if (gradeFk == null) {
       return '—'
     }
-    const value = app.grades.find((grade) => grade.id === gradeFk)?.[app.gradingScale]
+    const value = global.grades.find((grade) => grade.id === gradeFk)?.[global.gradingScale]
     if (value == null) {
       return '—'
     }
     // Grade strings carry the scale as a redundant prefix (e.g. `FB 6A+`).
-    return value.startsWith(`${app.gradingScale} `) ? value.slice(app.gradingScale.length + 1) : value
+    return value.startsWith(`${global.gradingScale} `) ? value.slice(global.gradingScale.length + 1) : value
   }
 
   const gradeColor = (gradeFk: number | undefined): string =>
@@ -41,6 +42,12 @@
     sheetState.subtitle = null
   })
 </script>
+
+<svelte:head>
+  <title
+    >{area.data == null ? m.area_allRoutes() : `${m.area_allRoutes()} · ${area.data.name}`} – {PUBLIC_APPLICATION_NAME}</title
+  >
+</svelte:head>
 
 <QueryState resource={routes}>
   {#snippet ready()}

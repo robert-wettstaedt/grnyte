@@ -3,7 +3,6 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 export interface AreaListItem {
   id: number
   name: string
-  slug: string
   type: 'area' | 'crag'
   areas: AreaListItem[]
 }

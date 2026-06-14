@@ -1,6 +1,11 @@
 <script lang="ts">
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { m } from '$lib/paraglide/messages'
 </script>
+
+<svelte:head>
+  <title>{m.areas_addParkingLocation()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
 
 <section class="mx-auto max-w-screen-sm space-y-2 p-4">
   <h1 class="text-xl font-bold">{m.areas_addParkingLocation()}</h1>

@@ -13,6 +13,7 @@ export const areasQueryDefs = {
       const r = relatedRegion(ctx)
 
       let q = zql.areas
+        .where('deletedAt', 'IS', null)
         .orderBy('name', 'asc')
         .related('parent', (q) => r(q).related('parent', r))
         .related('parkingLocations', r)
@@ -37,6 +38,7 @@ export const areasQueryDefs = {
 
       return zql.areas
         .where('id', args.id)
+        .where('deletedAt', 'IS', null)
         .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
         .related('author')
         .related('files', r)

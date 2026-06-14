@@ -9,9 +9,9 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { icon: 'explore', label: m.tab_explore, routeId: resolve('/(app)/(map)/explore') },
-  { icon: 'feed', label: m.tab_feed, routeId: resolve('/(app)/feed') },
-  { icon: 'profile', label: m.tab_profile, routeId: resolve('/(app)/profile') },
+  { icon: 'explore', label: m.tab_explore, routeId: resolve('/(app)/(shell)/(map)/explore') },
+  { icon: 'feed', label: m.tab_feed, routeId: resolve('/(app)/(shell)/feed') },
+  { icon: 'profile', label: m.tab_profile, routeId: resolve('/(app)/(shell)/profile') },
 ]
 
 export function isNavItemActive(item: NavItem, routeId: RouteId | null): boolean {

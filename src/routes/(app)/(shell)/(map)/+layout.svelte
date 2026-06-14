@@ -21,7 +21,7 @@
 
   let { children }: LayoutProps = $props()
 
-  const app = getGlobalState()
+  const global = getGlobalState()
 
   let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
@@ -68,7 +68,7 @@
 
   const routesResult = filteredRouteList(
     () => filters,
-    () => app.user?.id,
+    () => global.user?.id,
   )
   const blocksResult = blockList(() => ({}))
   const areasResult = areaList(() => ({}))

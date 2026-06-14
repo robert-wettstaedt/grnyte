@@ -47,24 +47,6 @@ import {
  *
  */
 
-export const generateSlug = (name: string): string => {
-  const slug = name
-    .toLowerCase()
-    .normalize('NFD') // Normalize the string
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric characters except spaces and hyphens
-    .trim() // Trim whitespace from both ends
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-    .replace(/^-|-$/g, '') // Remove leading and trailing hyphens
-
-  if (String(Number(slug)) === slug) {
-    return `${slug}-${createCuid2()}`
-  }
-
-  return slug
-}
-
 const baseFields = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   id: serial('id').notNull().primaryKey(),
@@ -75,7 +57,11 @@ const baseContentFields = {
     .notNull()
     .references((): AnyColumn => users.id),
   name: text('name').notNull(),
-  slug: text('slug').notNull(),
+}
+
+/** Soft-deletion marker \u2014 when set, the row is considered deleted but kept for recovery. */
+const softDeleteFields = {
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }
 
 const baseRegionFields = {
@@ -460,10 +446,10 @@ export const areas = table(
     ...baseFields,
     ...baseContentFields,
     ...baseRegionFields,
+    ...softDeleteFields,
 
     description: text('description'),
     type: text('type', { enum: areaTypeEnum }).notNull().default('area'),
-    visibility: text('visibility', { enum: areaVisibilityEnum }),
     walkingPaths: text('walking_paths').array(),
     geoPaths: jsonb('geo_paths').$type<string[]>(),
 
@@ -472,7 +458,7 @@ export const areas = table(
   (table) => [
     index('areas_description_idx').on(table.description),
     index('areas_region_fk_idx').on(table.regionFk),
-    index('areas_slug_idx').on(table.slug),
+    index('areas_deleted_at_idx').on(table.deletedAt),
 
     ...createBasicTablePolicies('areas'),
     policy(
@@ -505,6 +491,7 @@ export const blocks = table(
     ...baseFields,
     ...baseContentFields,
     ...baseRegionFields,
+    ...softDeleteFields,
 
     order: integer('order').notNull(),
 
@@ -515,7 +502,7 @@ export const blocks = table(
   },
   (table) => [
     index('blocks_region_fk_idx').on(table.regionFk),
-    index('blocks_slug_idx').on(table.slug),
+    index('blocks_deleted_at_idx').on(table.deletedAt),
     index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
     ...createBasicTablePolicies('blocks'),
@@ -549,6 +536,7 @@ export const routes = table(
     ...baseFields,
     ...baseContentFields,
     ...baseRegionFields,
+    ...softDeleteFields,
 
     description: text('description'),
     rating: integer('rating'),
@@ -568,7 +556,7 @@ export const routes = table(
     index('routes_block_fk_idx').on(table.blockFk),
     index('routes_description_idx').on(table.description),
     index('routes_region_fk_idx').on(table.regionFk),
-    index('routes_slug_idx').on(table.slug),
+    index('routes_deleted_at_idx').on(table.deletedAt),
     index('routes_area_fks_gin_idx').using('gin', table.areaFks),
     index('routes_area_ids_idx').on(table.areaIds),
     index('routes_grade_fk_idx').on(table.gradeFk),

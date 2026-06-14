@@ -25,7 +25,7 @@ export const routesQueryDefs = {
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = zql.routes.related('tags', r).related('firstAscents', r)
+      let q = zql.routes.where('deletedAt', 'IS', null).related('tags', r).related('firstAscents', r)
 
       if (args.routeId != null) {
         if (Array.isArray(args.routeId)) {

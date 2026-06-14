@@ -14,7 +14,6 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     id: row.id,
     name: row.name,
     rating: row.rating ?? 0,
-    slug: row.slug,
     tags: row.tags.map((t) => t.tagFk),
     userRating: row.userRating ?? 0,
   }

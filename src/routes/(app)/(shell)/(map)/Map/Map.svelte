@@ -58,7 +58,7 @@
   let layerEntries = $state<LayerEntry[]>([])
   let hasAutoFitted = $state(false)
 
-  const globalState = getGlobalState()
+  const global = getGlobalState()
 
   $effect(() => {
     if (map == null || !mapHasSize || hasAutoFitted || props.focus != null) return
@@ -168,7 +168,7 @@
   }
 
   const mapAttachment: Attachment = (node) => {
-    const wmsLayers = createWmsLayers(globalState.userRegions)
+    const wmsLayers = createWmsLayers(global.userRegions)
 
     const mapInstance = new OlMap({
       controls: defaultControls({ attribution: false, zoom: false, rotate: false }).extend([
@@ -244,7 +244,7 @@
         const areaId = feature.get('areaId')
         // const parkingId = feature.get('parkingId')
         if (areaId != null) {
-          goto(resolve('/(app)/(map)/areas/[id]', { id: areaId.toString() }))
+          goto(resolve('/(app)/(shell)/(map)/areas/[id]', { id: areaId.toString() }))
         }
         // if (blockId != null) {
         //   goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))

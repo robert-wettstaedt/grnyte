@@ -48,8 +48,6 @@ declare global {
     }
     interface PageData {
       authUserId: string | undefined
-      /** Set by full-screen editor routes (e.g. /areas/*) so the app shell hides its nav chrome. */
-      fullscreen?: boolean
       session?: Session | undefined | null
       supabase?: Locals['supabase']
       z: Z<Schema>

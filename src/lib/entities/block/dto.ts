@@ -6,7 +6,6 @@ export type BlockListItem = {
   id: number
   name: string
   order: number
-  slug: string
 }
 
 export type BlockDetail = BlockListItem & {

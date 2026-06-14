@@ -31,7 +31,7 @@
 
 <a
   class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-2.5 transition-colors"
-  href={resolve('/(app)/(map)/areas/[id]', { id: String(area.id) })}
+  href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) })}
 >
   <GradeDonut {countByGrade} total={routes.data.length} size={52} />
 

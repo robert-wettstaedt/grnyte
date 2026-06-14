@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
@@ -14,9 +15,7 @@
   import AreaList from './AreaList.svelte'
   import GradeHistogram from './GradeHistogram.svelte'
 
-  // Keep a live reference to the global state rather than destructuring its
-  // getters, which would capture the values once and miss later updates.
-  const app = getGlobalState()
+  const global = getGlobalState()
 
   // Getters keep the resources live across navigation between areas (e.g. when
   // tapping a sub-area) — the underlying queries re-target as the param changes.
@@ -50,10 +49,10 @@
   // Only worth naming the region when the user belongs to more than one — with a
   // single region it's implied and would just be noise in the breadcrumb.
   const regionName = $derived.by(() => {
-    if (app.userRegions.length <= 1 || area.data == null) {
+    if (global.userRegions.length <= 1 || area.data == null) {
       return null
     }
-    return app.userRegions.find((region) => region.regionFk === area.data!.regionFk)?.name ?? null
+    return global.userRegions.find((region) => region.regionFk === area.data!.regionFk)?.name ?? null
   })
 
   // The shared Modal renders its header from sheetState, so feed it the title
@@ -64,6 +63,10 @@
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
   })
 </script>
+
+<svelte:head>
+  <title>{area.data?.name ?? m.areas_title()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
 
 <QueryState resource={area}>
   {#snippet ready(detail)}
@@ -83,12 +86,17 @@
             </span>
           </div>
 
-          <GradeHistogram {countByGrade} grades={app.grades} gradingScale={app.gradingScale} ungraded={ungradedCount} />
+          <GradeHistogram
+            {countByGrade}
+            grades={global.grades}
+            gradingScale={global.gradingScale}
+            ungraded={ungradedCount}
+          />
         </section>
 
         <a
           class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-3 transition-colors"
-          href={resolve('/(app)/(map)/areas/[id]/routes', { id: page.params.id! })}
+          href={resolve('/(app)/(shell)/(map)/areas/[id]/routes', { id: page.params.id! })}
         >
           <span
             class="bg-primary-500/15 text-primary-500 flex size-11 flex-none items-center justify-center rounded-xl"
@@ -136,7 +144,10 @@
     {/if}
 
     {#each visible as parent, index (parent.id)}
-      <a class="anchor shrink-0 text-xs" href={resolve('/(app)/(map)/areas/[id]', { id: parent.id.toString() })}>
+      <a
+        class="anchor shrink-0 text-xs"
+        href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: parent.id.toString() })}
+      >
         {parent.name}
       </a>
 

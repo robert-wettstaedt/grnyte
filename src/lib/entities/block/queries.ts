@@ -14,6 +14,7 @@ export const blocksQueryDefs = {
       const r = relatedRegion(ctx)
 
       let q = zql.blocks
+        .where('deletedAt', 'IS', null)
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
         .related('topos', (q) => r(q).orderBy('id', 'asc').related('file', r))
@@ -42,20 +43,15 @@ export const blocksQueryDefs = {
   block: defineQuery(
     z.object({
       areaId: z.number().optional(),
-      blockSlug: z.string().optional(),
       blockId: z.number().optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = zql.blocks
+      let q = zql.blocks.where('deletedAt', 'IS', null)
 
       if (args.areaId != null) {
         q = q.where('areaFk', args.areaId)
-      }
-
-      if (args.blockSlug != null) {
-        q = q.where('slug', args.blockSlug)
       }
 
       if (args.blockId != null) {
@@ -64,7 +60,7 @@ export const blocksQueryDefs = {
 
       return q
         .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
-        .related('routes', r)
+        .related('routes', (q) => r(q).where('deletedAt', 'IS', null))
         .related('topos', (q) => r(q).related('routes', r).related('file', r))
         .related('geolocation', r)
         .one()

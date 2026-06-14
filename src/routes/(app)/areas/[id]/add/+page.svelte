@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { createArea } from '$lib/entities/area/areas.remote'
@@ -10,7 +11,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
-  const app = getGlobalState()
+  const global = getGlobalState()
 
   // Live reference to the parent area: its name anchors the prompt and its
   // region/type decide whether a sub-area may be added beneath it at all.
@@ -32,16 +33,20 @@
     try {
       const area = await createArea({ name: trimmedName, parentFk })
       // Land straight in the freshly-created area, the shared destination.
-      await goto(resolve('/(app)/(map)/areas/[id]', { id: String(area.id) }))
+      await goto(resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) }))
     } catch {
       errored = true
     }
   }
 </script>
 
+<svelte:head>
+  <title>{m.areas_addArea()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
+
 <QueryState resource={parent}>
   {#snippet ready(area)}
-    {#if canAddArea(app.userRegions, area)}
+    {#if canAddArea(global.userRegions, area)}
       <form
         class="mx-auto flex min-h-full w-full max-w-screen-sm flex-col px-6 pt-6 pb-8"
         onsubmit={(event) => {
@@ -52,14 +57,14 @@
         <div>
           <a
             class="text-surface-600-400 hover:text-surface-900-100 text-sm font-semibold transition-colors"
-            href={resolve('/(app)/(map)/areas/[id]', { id: String(area.id) })}
+            href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) })}
           >
             {m.common_cancel()}
           </a>
         </div>
 
         <div class="mt-12 md:mt-20">
-          <p class="text-surface-500 mb-4 text-xs font-bold tracking-[0.09em] uppercase">
+          <p class="text-surface-500 mb-4">
             {m.areas_newArea()} · {area.name}
           </p>
 

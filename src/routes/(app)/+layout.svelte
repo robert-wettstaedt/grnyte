@@ -2,8 +2,6 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import NavRail from '$lib/components/AppNav/NavRail.svelte'
-  import TabBar from '$lib/components/AppNav/TabBar.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { setGlobalState } from '$lib/state/global.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
@@ -14,10 +12,6 @@
   const { children } = $props()
 
   const globalState = setGlobalState()
-
-  // Full-screen editor routes (e.g. /areas/*) opt out of the nav chrome via
-  // their layout data, so a focused task isn't framed by the rail and tab bar.
-  const fullscreen = $derived(page.data.fullscreen === true)
 
   let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
   let markdownCssHref = $state(markdownLightCssUrl)
@@ -48,14 +42,9 @@
 {#if globalState?.isLoading}
   <LoadingIndicator class="fixed flex h-full w-full items-center justify-center" size={20} />
 {:else}
+  <!-- Shared viewport frame. Nested layouts fill it: (shell) adds the nav rail and
+       tab bar around the main scroll area; the /areas editors deliberately omit them. -->
   <div class="fixed inset-0 flex">
-    <main class="relative min-w-0 flex-1 overflow-y-auto">
-      {@render children()}
-    </main>
-
-    {#if !fullscreen}
-      <NavRail />
-      <TabBar />
-    {/if}
+    {@render children()}
   </div>
 {/if}

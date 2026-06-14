@@ -27,7 +27,7 @@
 
   const { loading, routes }: Props = $props()
 
-  const app = getGlobalState()
+  const global = getGlobalState()
 
   // Whether any filter is applied lives here rather than the layout — it's pure
   // filter knowledge, derived from the same params the controls read.
@@ -40,13 +40,13 @@
 
   // The slider works in grade-array index space; the URL stores grade ids
   // (`gradeFk`). These convert between the two.
-  const lastIndex = $derived(Math.max(0, app.grades.length - 1))
+  const lastIndex = $derived(Math.max(0, global.grades.length - 1))
 
   const indexOfGrade = (gradeFk: number | undefined, fallback: number): number => {
     if (gradeFk == null) {
       return fallback
     }
-    const index = app.grades.findIndex((grade) => grade.id === gradeFk)
+    const index = global.grades.findIndex((grade) => grade.id === gradeFk)
     return index === -1 ? fallback : index
   }
 
@@ -147,13 +147,13 @@
     if (minIndex <= 0) {
       url.searchParams.delete('minGrade')
     } else {
-      url.searchParams.set('minGrade', String(app.grades[minIndex].id))
+      url.searchParams.set('minGrade', String(global.grades[minIndex].id))
     }
 
     if (maxIndex >= lastIndex) {
       url.searchParams.delete('maxGrade')
     } else {
-      url.searchParams.set('maxGrade', String(app.grades[maxIndex].id))
+      url.searchParams.set('maxGrade', String(global.grades[maxIndex].id))
     }
 
     if (minRating <= 0) {
@@ -240,10 +240,10 @@
   {/snippet}
 
   <div class="mt-4 pb-16 md:mt-0">
-    {#if app.grades.length > 0}
+    {#if global.grades.length > 0}
       <!-- Grade is the primary filter, so it stays pinned open above the accordion. -->
       <div class="border-surface-200-800 border-b pb-4">
-        <GradeRange grades={app.grades} gradingScale={app.gradingScale} {routeCountByGrade} bind:value />
+        <GradeRange grades={global.grades} gradingScale={global.gradingScale} {routeCountByGrade} bind:value />
       </div>
     {/if}
 
@@ -267,15 +267,15 @@
       >
         <FirstAscensionistSelect
           firstAscensionists={firstAscensionists.data}
-          currentUserId={app.user?.id}
+          currentUserId={global.user?.id}
           bind:value={selectedFirstAscensionists}
         />
       </FilterSection>
     {/if}
 
-    {#if app.tags.length > 0}
+    {#if global.tags.length > 0}
       <FilterSection label={m.filter_tags()} summary={tagsSummary} active={selectedTags.length > 0}>
-        <TagSelect tags={app.tags} bind:value={selectedTags} />
+        <TagSelect tags={global.tags} bind:value={selectedTags} />
       </FilterSection>
     {/if}
 
