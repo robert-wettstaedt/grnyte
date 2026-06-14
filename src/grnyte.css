@@ -1,0 +1,253 @@
+/* ============================================================================
+   grnyte — custom Skeleton theme
+   ----------------------------------------------------------------------------
+   Brand color is the violet from the app-icon square:
+       #8E43B2  ≈  oklch(0.528 0.177 313)   → anchored as --color-primary-500.
+   Neutrals are WARM GRANITE (low chroma, hue ~55–70 on the light end, shifting
+   to a warm boulder-shadow charcoal, hue ~305, on the dark end) — never cold
+   gray and never purple-washed, so the violet reads as an intentional accent.
+
+   Skeleton resolves light/dark from the `.dark` class on <html>:
+     • the single surface ramp runs warm-white (50) → warm-charcoal (950);
+       the `-50-950` paired tokens flip ends per mode automatically.
+     • --body-background-color(-dark) and --base-font-color(-dark) swap the page.
+     • the primary LIFTS in dark and carries DARK text (see the .dark override
+       at the bottom) because the light-mode violet vibrates on a dark canvas.
+   ============================================================================ */
+
+[data-theme='grnyte'] {
+  --text-scaling: 1;
+  --base-font-color: oklch(0.25 0.012 320);
+  --base-font-color-dark: oklch(0.97 0.004 70);
+  --base-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --base-font-size: inherit;
+  --base-line-height: inherit;
+  --base-font-weight: normal;
+  --base-font-style: normal;
+  --base-letter-spacing: 0em;
+  --heading-font-color: inherit;
+  --heading-font-color-dark: inherit;
+  --heading-font-family: 'Space Grotesk', var(--base-font-family);
+  --heading-font-weight: 700;
+  --heading-font-style: normal;
+  --heading-letter-spacing: -0.02em;
+  --anchor-font-color: var(--color-primary-700);
+  --anchor-font-color-dark: var(--color-primary-400);
+  --anchor-font-family: inherit;
+  --anchor-font-size: inherit;
+  --anchor-line-height: inherit;
+  --anchor-font-weight: 500;
+  --anchor-font-style: normal;
+  --anchor-letter-spacing: inherit;
+  --anchor-text-decoration: none;
+  --anchor-text-decoration-hover: underline;
+  --anchor-text-decoration-active: none;
+  --anchor-text-decoration-focus: none;
+  --spacing: 0.25rem;
+  --radius-base: 0.5rem;
+  --radius-container: 0.75rem;
+  --default-border-width: 1px;
+  --default-divide-width: 1px;
+  --default-ring-width: 1px;
+  --body-background-color: oklch(0.985 0.004 70);
+  --body-background-color-dark: oklch(0.165 0.008 305);
+
+  /* ===== Primary — brand violet (500 = the icon square) ===== */
+  --color-primary-50: oklch(0.97 0.012 313);
+  --color-primary-100: oklch(0.94 0.025 313);
+  --color-primary-200: oklch(0.88 0.05 313);
+  --color-primary-300: oklch(0.8 0.09 313);
+  --color-primary-400: oklch(0.72 0.13 313);
+  --color-primary-500: oklch(0.55 0.18 313);
+  --color-primary-600: oklch(0.48 0.18 313);
+  --color-primary-700: oklch(0.41 0.16 313);
+  --color-primary-800: oklch(0.34 0.13 313);
+  --color-primary-900: oklch(0.28 0.1 313);
+  --color-primary-950: oklch(0.2 0.07 313);
+  --color-primary-contrast-dark: var(--color-primary-950);
+  --color-primary-contrast-light: var(--color-primary-50);
+  --color-primary-contrast-50: var(--color-primary-contrast-dark);
+  --color-primary-contrast-100: var(--color-primary-contrast-dark);
+  --color-primary-contrast-200: var(--color-primary-contrast-dark);
+  --color-primary-contrast-300: var(--color-primary-contrast-dark);
+  --color-primary-contrast-400: var(--color-primary-contrast-light);
+  --color-primary-contrast-500: var(--color-primary-contrast-light);
+  --color-primary-contrast-600: var(--color-primary-contrast-light);
+  --color-primary-contrast-700: var(--color-primary-contrast-light);
+  --color-primary-contrast-800: var(--color-primary-contrast-light);
+  --color-primary-contrast-900: var(--color-primary-contrast-light);
+  --color-primary-contrast-950: var(--color-primary-contrast-light);
+
+  /* ===== Secondary — warm sandstone (the boulder's stone tone) ===== */
+  --color-secondary-50: oklch(0.97 0.012 60);
+  --color-secondary-100: oklch(0.94 0.022 58);
+  --color-secondary-200: oklch(0.89 0.035 56);
+  --color-secondary-300: oklch(0.83 0.05 54);
+  --color-secondary-400: oklch(0.76 0.06 52);
+  --color-secondary-500: oklch(0.68 0.066 50);
+  --color-secondary-600: oklch(0.58 0.06 48);
+  --color-secondary-700: oklch(0.48 0.052 46);
+  --color-secondary-800: oklch(0.39 0.042 46);
+  --color-secondary-900: oklch(0.31 0.032 48);
+  --color-secondary-950: oklch(0.24 0.024 50);
+  --color-secondary-contrast-dark: var(--color-secondary-950);
+  --color-secondary-contrast-light: var(--color-secondary-50);
+  --color-secondary-contrast-50: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-100: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-200: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-300: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-400: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-500: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-600: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-700: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-800: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-900: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-950: var(--color-secondary-contrast-light);
+
+  /* ===== Tertiary — cool slate blue (the "project" status accent) ===== */
+  --color-tertiary-50: oklch(0.96 0.02 250);
+  --color-tertiary-100: oklch(0.92 0.04 250);
+  --color-tertiary-200: oklch(0.86 0.07 252);
+  --color-tertiary-300: oklch(0.79 0.1 252);
+  --color-tertiary-400: oklch(0.73 0.13 250);
+  --color-tertiary-500: oklch(0.66 0.14 250);
+  --color-tertiary-600: oklch(0.57 0.14 252);
+  --color-tertiary-700: oklch(0.48 0.12 254);
+  --color-tertiary-800: oklch(0.4 0.1 256);
+  --color-tertiary-900: oklch(0.33 0.08 258);
+  --color-tertiary-950: oklch(0.26 0.06 260);
+  --color-tertiary-contrast-dark: var(--color-tertiary-950);
+  --color-tertiary-contrast-light: var(--color-tertiary-50);
+  --color-tertiary-contrast-50: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-100: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-200: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-300: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-400: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-500: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-600: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-700: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-800: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-900: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-950: var(--color-tertiary-contrast-light);
+
+  /* ===== Success — green (the violet's complement; the "sent" accent) ===== */
+  --color-success-50: oklch(0.95 0.03 150);
+  --color-success-100: oklch(0.91 0.06 150);
+  --color-success-200: oklch(0.85 0.1 150);
+  --color-success-300: oklch(0.79 0.13 150);
+  --color-success-400: oklch(0.74 0.15 150);
+  --color-success-500: oklch(0.68 0.16 150);
+  --color-success-600: oklch(0.59 0.15 150);
+  --color-success-700: oklch(0.5 0.13 151);
+  --color-success-800: oklch(0.42 0.11 152);
+  --color-success-900: oklch(0.35 0.09 153);
+  --color-success-950: oklch(0.27 0.07 154);
+  --color-success-contrast-dark: var(--color-success-950);
+  --color-success-contrast-light: var(--color-success-50);
+  --color-success-contrast-50: var(--color-success-contrast-dark);
+  --color-success-contrast-100: var(--color-success-contrast-dark);
+  --color-success-contrast-200: var(--color-success-contrast-dark);
+  --color-success-contrast-300: var(--color-success-contrast-dark);
+  --color-success-contrast-400: var(--color-success-contrast-dark);
+  --color-success-contrast-500: var(--color-success-contrast-dark);
+  --color-success-contrast-600: var(--color-success-contrast-light);
+  --color-success-contrast-700: var(--color-success-contrast-light);
+  --color-success-contrast-800: var(--color-success-contrast-light);
+  --color-success-contrast-900: var(--color-success-contrast-light);
+  --color-success-contrast-950: var(--color-success-contrast-light);
+
+  /* ===== Warning — amber (the "flash" accent) ===== */
+  --color-warning-50: oklch(0.97 0.03 90);
+  --color-warning-100: oklch(0.94 0.06 88);
+  --color-warning-200: oklch(0.9 0.1 86);
+  --color-warning-300: oklch(0.86 0.13 84);
+  --color-warning-400: oklch(0.83 0.145 82);
+  --color-warning-500: oklch(0.8 0.15 80);
+  --color-warning-600: oklch(0.71 0.14 70);
+  --color-warning-700: oklch(0.61 0.13 62);
+  --color-warning-800: oklch(0.51 0.11 58);
+  --color-warning-900: oklch(0.43 0.09 55);
+  --color-warning-950: oklch(0.35 0.07 52);
+  --color-warning-contrast-dark: var(--color-warning-950);
+  --color-warning-contrast-light: var(--color-warning-50);
+  --color-warning-contrast-50: var(--color-warning-contrast-dark);
+  --color-warning-contrast-100: var(--color-warning-contrast-dark);
+  --color-warning-contrast-200: var(--color-warning-contrast-dark);
+  --color-warning-contrast-300: var(--color-warning-contrast-dark);
+  --color-warning-contrast-400: var(--color-warning-contrast-dark);
+  --color-warning-contrast-500: var(--color-warning-contrast-dark);
+  --color-warning-contrast-600: var(--color-warning-contrast-dark);
+  --color-warning-contrast-700: var(--color-warning-contrast-dark);
+  --color-warning-contrast-800: var(--color-warning-contrast-light);
+  --color-warning-contrast-900: var(--color-warning-contrast-light);
+  --color-warning-contrast-950: var(--color-warning-contrast-light);
+
+  /* ===== Error — crimson (the grade scale's hot end; clears the violet) ===== */
+  --color-error-50: oklch(0.95 0.02 18);
+  --color-error-100: oklch(0.91 0.05 18);
+  --color-error-200: oklch(0.85 0.09 18);
+  --color-error-300: oklch(0.77 0.14 20);
+  --color-error-400: oklch(0.69 0.19 22);
+  --color-error-500: oklch(0.6 0.22 24);
+  --color-error-600: oklch(0.54 0.225 22);
+  --color-error-700: oklch(0.47 0.205 20);
+  --color-error-800: oklch(0.4 0.17 18);
+  --color-error-900: oklch(0.34 0.135 16);
+  --color-error-950: oklch(0.27 0.1 14);
+  --color-error-contrast-dark: var(--color-error-950);
+  --color-error-contrast-light: var(--color-error-50);
+  --color-error-contrast-50: var(--color-error-contrast-dark);
+  --color-error-contrast-100: var(--color-error-contrast-dark);
+  --color-error-contrast-200: var(--color-error-contrast-dark);
+  --color-error-contrast-300: var(--color-error-contrast-dark);
+  --color-error-contrast-400: var(--color-error-contrast-light);
+  --color-error-contrast-500: var(--color-error-contrast-light);
+  --color-error-contrast-600: var(--color-error-contrast-light);
+  --color-error-contrast-700: var(--color-error-contrast-light);
+  --color-error-contrast-800: var(--color-error-contrast-light);
+  --color-error-contrast-900: var(--color-error-contrast-light);
+  --color-error-contrast-950: var(--color-error-contrast-light);
+
+  /* ===== Surface — warm granite (light) → warm boulder-shadow charcoal (dark) ===== */
+  --color-surface-50: oklch(0.99 0.003 70);
+  --color-surface-100: oklch(0.96 0.006 65);
+  --color-surface-200: oklch(0.92 0.008 60);
+  --color-surface-300: oklch(0.86 0.009 58);
+  --color-surface-400: oklch(0.71 0.01 58);
+  --color-surface-500: oklch(0.58 0.01 56);
+  --color-surface-600: oklch(0.46 0.01 60);
+  --color-surface-700: oklch(0.355 0.01 320);
+  --color-surface-800: oklch(0.285 0.011 308);
+  --color-surface-900: oklch(0.215 0.01 305);
+  --color-surface-950: oklch(0.165 0.008 305);
+  --color-surface-contrast-dark: var(--color-surface-950);
+  --color-surface-contrast-light: var(--color-surface-50);
+  --color-surface-contrast-50: var(--color-surface-contrast-dark);
+  --color-surface-contrast-100: var(--color-surface-contrast-dark);
+  --color-surface-contrast-200: var(--color-surface-contrast-dark);
+  --color-surface-contrast-300: var(--color-surface-contrast-dark);
+  --color-surface-contrast-400: var(--color-surface-contrast-dark);
+  --color-surface-contrast-500: var(--color-surface-contrast-dark);
+  --color-surface-contrast-600: var(--color-surface-contrast-dark);
+  --color-surface-contrast-700: var(--color-surface-contrast-light);
+  --color-surface-contrast-800: var(--color-surface-contrast-light);
+  --color-surface-contrast-900: var(--color-surface-contrast-light);
+  --color-surface-contrast-950: var(--color-surface-contrast-light);
+}
+
+/* ----------------------------------------------------------------------------
+   DARK MODE — primary lift
+   On a dark canvas the light-mode violet vibrates and reads too heavy, so the
+   primary lifts a few steps and carries DARK text. Custom properties inherit,
+   so setting them on the themed <html> cascades to the whole tree.
+   ---------------------------------------------------------------------------- */
+[data-theme='grnyte'].dark {
+  --color-primary-400: oklch(0.78 0.13 313);
+  --color-primary-500: oklch(0.66 0.17 313);
+  --color-primary-600: oklch(0.57 0.17 313);
+  --color-primary-700: oklch(0.47 0.15 313);
+  /* lifted violet now carries dark text */
+  --color-primary-contrast-400: var(--color-primary-950);
+  --color-primary-contrast-500: var(--color-primary-950);
+  --color-primary-contrast-600: var(--color-primary-950);
+}

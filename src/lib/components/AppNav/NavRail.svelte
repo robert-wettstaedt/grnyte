@@ -14,7 +14,7 @@
 >
   <Navigation.Header class="flex justify-center">
     <a href={resolve('/(app)')} aria-label={PUBLIC_APPLICATION_NAME}>
-      <img src={Logo} alt={PUBLIC_APPLICATION_NAME} class="size-10 rounded-[13px]" />
+      <img src={Logo} alt={PUBLIC_APPLICATION_NAME} class="size-10" />
     </a>
   </Navigation.Header>
 

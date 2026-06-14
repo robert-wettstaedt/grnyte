@@ -64,10 +64,10 @@ self.addEventListener('push', (event) => {
     const newNotification = NotificationSchema.parse(data)
 
     const options: NotificationOptions = {
-      badge: '/android-chrome-192x192.png',
+      badge: '/pwa-192x192.png',
       body: newNotification.body,
       data: newNotification.data,
-      icon: newNotification.icon ?? '/android-chrome-192x192.png',
+      icon: newNotification.icon ?? '/pwa-192x192.png',
     }
 
     async function mergeNotifications() {

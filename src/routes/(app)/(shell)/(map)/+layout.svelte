@@ -174,7 +174,7 @@
     out:fly={{ y: -200 }}
   >
     <a class="md:hidden" href={resolve('/explore')}>
-      <img class="min-h-9 min-w-9 rounded" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
+      <img class="min-h-9 min-w-9" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
     </a>
 
     <SearchBar />

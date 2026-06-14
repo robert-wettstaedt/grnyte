@@ -39,20 +39,9 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        theme_color: '#8439A4',
-        background_color: '#1E1E2E',
-        icons: [
-          {
-            sizes: '192x192',
-            src: '/android-chrome-192x192.png',
-            type: 'image/png',
-          },
-          {
-            sizes: '512x512',
-            src: '/android-chrome-512x512.png',
-            type: 'image/png',
-          },
-        ],
+        theme_color: '#8E43B2',
+        background_color: '#0F0D11',
+        // Icons are injected from pwa-assets.config.ts via the `pwaAssets` option below.
         screenshots: [
           {
             form_factor: 'narrow',

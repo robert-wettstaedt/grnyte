@@ -26,6 +26,7 @@
     "migrate": "npx tsx src/lib/db/migrate.ts",
     "generate:drizzle": "drizzle-kit generate --config drizzle.config.ts",
     "generate:zero": "drizzle-zero generate --format --output src/lib/zero/zero-schema.gen.ts",
+    "generate:pwa": "pwa-assets-generator",
     "machine-translate": "inlang machine translate --project project.inlang"
   },
   "dependencies": {

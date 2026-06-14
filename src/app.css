@@ -3,7 +3,7 @@
 @plugin '@tailwindcss/typography';
 
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/themes/catppuccin';
+@import './grnyte.css';
 
 @import '@skeletonlabs/skeleton-svelte';
 

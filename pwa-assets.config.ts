@@ -5,5 +5,6 @@ export default defineConfig({
     preset: '2023',
   },
   preset: minimal2023Preset,
-  images: 'src/lib/assets/logo.svg',
+  // Source lives in static/ so SvelteKit serves the generated icons from the web root.
+  images: 'static/logo.svg',
 })
