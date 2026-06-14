@@ -1,4 +1,5 @@
 import type { appRole } from '$lib/db/schema'
+import type { UserRegion } from '$lib/entities/region/dto'
 import { jwtDecode, type JwtPayload } from 'jwt-decode'
 
 export const APP_PERMISSION_ADMIN = 'app.admin'
@@ -24,7 +25,7 @@ export type RegionPermission =
   | typeof REGION_PERMISSION_ADMIN
 
 export function checkRegionPermission(
-  userRegions: App.Locals['userRegions'],
+  userRegions: UserRegion[],
   requiredPermissions: RegionPermission[],
   regionId: number | undefined | null,
 ): boolean {
@@ -48,7 +49,7 @@ export interface SupabaseToken extends JwtPayload {
 export function decodeToken(accessToken: string): SupabaseToken {
   try {
     return jwtDecode<SupabaseToken>(accessToken)
-  } catch (error) {
+  } catch {
     return { role: 'anon' } as SupabaseToken
   }
 }

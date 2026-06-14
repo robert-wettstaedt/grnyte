@@ -120,6 +120,7 @@ export const regionMemberCan =
 
 export const relatedRegion =
   <TContext extends QueryContext | null | undefined>(ctx: TContext) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic pass-through; the region shape is irrelevant here
   <TReturnQuery extends RegionQuery<any>>(q: TReturnQuery): TReturnQuery => {
     return addRegionCheck(ctx, q)
   }

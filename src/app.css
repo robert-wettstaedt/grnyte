@@ -19,3 +19,56 @@ body {
   box-shadow: 0 0px 30px color-mix(in oklab, var(--color-surface-50-950) 30%, transparent) inset;
   backdrop-filter: blur(16px);
 }
+
+.markdown-body {
+  background-color: transparent !important;
+  box-sizing: border-box;
+  margin: 0 auto;
+  min-width: 200px;
+
+  & ul {
+    list-style: initial;
+  }
+
+  & ol {
+    list-style: decimal;
+  }
+
+  & a {
+    @apply anchor;
+  }
+
+  &.short {
+    @apply text-gray-400;
+    @apply text-xs;
+    @apply w-full;
+
+    /* Single-line preview. Let the inline content (text, grade badges, resolved
+       reference names) wrap normally so the clamp can detect overflow, then
+       collapse it to one line and append an ellipsis. A plain
+       `text-overflow: ellipsis` is unreliable on the nested `markdown-body > p`,
+       so clamp the line box instead. */
+    & > * {
+      @apply list-none;
+      @apply m-0;
+      @apply p-0;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+      overflow: hidden;
+    }
+
+    img {
+      display: none;
+    }
+
+    .badge {
+      color: var(--color-white);
+      opacity: 0.8;
+      padding-block: calc(var(--spacing) * 1);
+      padding-inline: calc(var(--spacing) * 3);
+      width: auto;
+    }
+  }
+}

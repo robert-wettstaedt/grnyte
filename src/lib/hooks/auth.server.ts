@@ -53,8 +53,6 @@ export async function getUserPermissions(
 }
 
 export const supabase: Handle = async ({ event, resolve }) => {
-  const start = Date.now()
-
   async function getPageState(authUserId: string): Promise<App.SafeSession> {
     const user = await db.query.users.findFirst({
       where: (table, { eq }) => eq(table.authUserFk, authUserId),
@@ -104,8 +102,6 @@ export const supabase: Handle = async ({ event, resolve }) => {
    * JWT before returning the session.
    */
   event.locals.safeGetSession = async () => {
-    const sessionStart = Date.now()
-
     const {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
@@ -124,9 +120,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
       const pageState = await getPageState(session.user.id)
 
       return { ...pageState, session }
-    } catch (error) {
-      const totalSessionTime = Date.now() - sessionStart
-
+    } catch {
       // Return minimal session data on error
       return {
         session,
@@ -137,8 +131,6 @@ export const supabase: Handle = async ({ event, resolve }) => {
       }
     }
   }
-
-  const duration = Date.now() - start
 
   return resolve(event, {
     filterSerializedResponseHeaders(name) {
@@ -152,8 +144,6 @@ export const supabase: Handle = async ({ event, resolve }) => {
 }
 
 export const authGuard: Handle = async ({ event, resolve }) => {
-  const start = Date.now()
-
   const { session, user, userPermissions, userRole, userRegions } = await event.locals.safeGetSession()
 
   event.locals.session = session
@@ -198,8 +188,6 @@ export const authGuard: Handle = async ({ event, resolve }) => {
       }
     }
   }
-
-  const duration = Date.now() - start
 
   return resolve(event)
 }

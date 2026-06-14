@@ -8,12 +8,15 @@ export interface AreaAncestor {
   readonly id: number
   readonly name: string
   readonly slug: string
-  readonly type: 'area' | 'crag' | 'sector' | null
+  // Zero marks this optional (the column carries a DB default), so it can arrive null even
+  // though the DB itself is non-null; callers coalesce to 'area'.
+  readonly type: 'area' | 'crag' | null
   readonly parent?: AreaAncestor | undefined
 }
 
 /** What `toAreaDetail` reads — satisfied by both the list and the single-area query. */
 export interface AreaDetailRow extends AreaAncestor {
+  readonly regionFk: number
   readonly description: string | null
   readonly createdAt: number | null
   readonly parkingLocations: readonly Row<'geolocations'>[]
@@ -51,6 +54,7 @@ export function toAreaListItem(row: AreaAncestor): AreaListItem {
 export function toAreaDetail(row: AreaDetailRow): AreaDetail {
   return {
     ...toAreaListItem(row),
+    regionFk: row.regionFk,
     description: row.description ?? undefined,
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     parkingLocations: row.parkingLocations.map(toGeolocation),

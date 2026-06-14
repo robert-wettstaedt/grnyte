@@ -5,8 +5,6 @@
   import { sheetState } from './sheetState.svelte'
   import type { ModalProps } from './types'
 
-  const HANDLE_HEIGHT = 36
-
   let { children, onclose, open = $bindable() }: ModalProps = $props()
 
   let titleEl = $state<HTMLElement>()
@@ -22,7 +20,7 @@
       return 0.75
     }
 
-    return Number(Math.min((contentHeight + HANDLE_HEIGHT + titleHeight) / innerHeight, 0.9).toFixed(2))
+    return Number(Math.min((contentHeight + titleHeight) / innerHeight, 0.9).toFixed(2))
   }
 
   const titleSnapPoint = $derived.by(() => {
@@ -32,7 +30,7 @@
       return 0.1
     }
 
-    return Number(Math.min((titleHeight + HANDLE_HEIGHT) / innerHeight, 0.3).toFixed(2))
+    return Number(Math.min(titleHeight / innerHeight, 0.3).toFixed(2))
   })
 
   const handleDocumentClick = (event: MouseEvent) => {
@@ -67,14 +65,14 @@
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-9 z-100 flex items-center justify-between border-b-2 px-4 py-2"
+      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-0 z-100 flex items-center justify-between gap-2 border-b-2 px-4 py-2"
     >
-      <div class="flex items-center gap-2">
+      <div class="flex min-w-0 flex-1 items-center gap-2">
         {#if sheetState.headerLeft}
           {@render sheetState.headerLeft()}
         {/if}
 
-        <div class="flex flex-col">
+        <div class="flex min-w-0 flex-col">
           {#if sheetState.subtitle}
             {@render sheetState.subtitle()}
           {/if}
@@ -90,7 +88,7 @@
       </div>
 
       <button
-        class="btn-icon"
+        class="btn-icon preset-filled-surface-200-800 shrink-0"
         aria-label={m.common_close()}
         onclick={(event) => {
           event.preventDefault()
@@ -101,7 +99,7 @@
       </button>
     </div>
 
-    <BottomSheet.Content class="w-full px-4! pt-0!">
+    <BottomSheet.Content class="w-full px-4!">
       <div bind:this={contentEl}>
         {@render children?.()}
       </div>
@@ -123,3 +121,9 @@
 >
   {@render content()}
 </BottomSheet>
+
+<style>
+  :global(.bottom-sheet-grip) {
+    background: var(--color-surface-950-50) !important;
+  }
+</style>

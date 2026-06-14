@@ -453,7 +453,7 @@ export const tagsRelations = relations(tags, ({ many }) => ({
  */
 
 export const areaVisibilityEnum: ['public', 'private'] = ['public', 'private']
-export const areaTypeEnum: ['area', 'crag', 'sector'] = ['area', 'crag', 'sector']
+export const areaTypeEnum: ['area', 'crag'] = ['area', 'crag']
 export const areas = table(
   'areas',
   {

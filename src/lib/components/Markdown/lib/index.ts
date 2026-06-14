@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
 import type { Grade } from '$lib/entities/grade/dto'
@@ -9,9 +10,9 @@ import remarkMentions from 'remark-mentions'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified, type Plugin } from 'unified'
+import { remarkDisableLinks } from './remark-disable-links'
 import { remarkGrades } from './remark-grades'
 import { referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
-import { resolve } from '$app/paths'
 
 export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
@@ -54,12 +55,13 @@ export const convertMarkdownToHtmlSync = (
   markdown: string | null | undefined,
   grades: Grade[],
   encloseReferences?: EncloseOptions,
+  disableLinks = false,
 ): string => {
   if (markdown == null) {
     return ''
   }
 
-  const result = unified()
+  const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(mentions, {
@@ -67,9 +69,14 @@ export const convertMarkdownToHtmlSync = (
     })
     .use(remarkReferences, { encloseReferences })
     .use(remarkGrades, { grades })
-    .use(remarkRehype)
-    .use(rehypeStringify)
-    .processSync(markdown)
+
+  // Strip the remaining links so the output can live inside an anchor without
+  // nesting `<a>` (see `remarkDisableLinks`).
+  if (disableLinks) {
+    processor.use(remarkDisableLinks)
+  }
+
+  const result = processor.use(remarkRehype).use(rehypeStringify).processSync(markdown)
 
   if (typeof result.value !== 'string') {
     throw new Error('Failed to convert markdown to html')

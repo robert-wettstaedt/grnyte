@@ -75,9 +75,19 @@
 
   const data = $derived.by(() => {
     const routeCountByBlock = new SvelteMap<number, number>()
+    const gradeCountByBlock = new SvelteMap<number, SvelteMap<number, number>>()
     for (const route of routesResult.data) {
       if (route.blockFk != null) {
         routeCountByBlock.set(route.blockFk, (routeCountByBlock.get(route.blockFk) ?? 0) + 1)
+
+        if (route.gradeFk != null) {
+          let byGrade = gradeCountByBlock.get(route.blockFk)
+          if (byGrade == null) {
+            byGrade = new SvelteMap<number, number>()
+            gradeCountByBlock.set(route.blockFk, byGrade)
+          }
+          byGrade.set(route.gradeFk, (byGrade.get(route.gradeFk) ?? 0) + 1)
+        }
       }
     }
 
@@ -90,7 +100,11 @@
       parkingLocations,
       lineStrings,
       routeCountByBlock,
-    } satisfies Pick<BlocksMapProps, 'blocks' | 'parkingLocations' | 'lineStrings' | 'routeCountByBlock'>
+      gradeCountByBlock,
+    } satisfies Pick<
+      BlocksMapProps,
+      'blocks' | 'parkingLocations' | 'lineStrings' | 'routeCountByBlock' | 'gradeCountByBlock'
+    >
   })
 
   const focus: MapFocus | null = $derived.by(() => {

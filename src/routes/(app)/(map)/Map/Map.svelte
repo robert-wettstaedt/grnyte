@@ -14,11 +14,11 @@
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
   import {
+    createAreaLayer,
     createBlockLayer,
     createCragLayer,
     createParkingLayer,
     createPathLayer,
-    createSectorLayer,
     createWmsLayers,
   } from './layers.svelte'
   import { BLOCK_LABEL_ZOOM, type BlocksMapProps, type LayerEntry } from './types'
@@ -43,6 +43,9 @@
     },
     get routeCountByBlock() {
       return props.routeCountByBlock
+    },
+    get gradeCountByBlock() {
+      return props.gradeCountByBlock
     },
   })
 
@@ -184,21 +187,31 @@
     })
     map = mapInstance
 
-    const cragLayer = createCragLayer(data.cragBoundingBoxes, data.blocksByCrag, data.routeCountByCrag)
-    const sectorLayer = createSectorLayer(data.sectorBoundingBoxes, data.blocksBySector, data.routeCountBySector)
+    const areaLayer = createAreaLayer(
+      data.areaBoundingBoxes,
+      data.blocksByArea,
+      data.routeCountByArea,
+      data.gradeCountByArea,
+    )
+    const cragLayer = createCragLayer(
+      data.cragBoundingBoxes,
+      data.blocksByCrag,
+      data.routeCountByCrag,
+      data.gradeCountByCrag,
+    )
     const blockLayer = createBlockLayer(data.geoBlocks, mapInstance, data.routeCountByBlock)
     const parkingLayer = createParkingLayer(data.uniqueParkingLocations)
     const pathLayer = createPathLayer(data.uniqueLineStrings)
 
     const markersLabel = m.map_markers()
+    areaLayer.set('layerName', markersLabel)
     cragLayer.set('layerName', markersLabel)
-    sectorLayer.set('layerName', markersLabel)
     blockLayer.set('layerName', markersLabel)
     parkingLayer.set('layerName', markersLabel)
     pathLayer.set('layerName', markersLabel)
 
+    mapInstance.addLayer(areaLayer)
     mapInstance.addLayer(cragLayer)
-    mapInstance.addLayer(sectorLayer)
     mapInstance.addLayer(blockLayer)
     mapInstance.addLayer(parkingLayer)
     mapInstance.addLayer(pathLayer)
@@ -247,7 +260,7 @@
       if (target == null || typeof target === 'string') return
       const hit = mapInstance.hasFeatureAtPixel(event.pixel, {
         layerFilter: (layer) =>
-          layer === blockLayer || layer === cragLayer || layer === sectorLayer || layer === parkingLayer,
+          layer === blockLayer || layer === cragLayer || layer === areaLayer || layer === parkingLayer,
       })
       target.style.cursor = hit ? 'pointer' : ''
     })

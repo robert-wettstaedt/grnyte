@@ -10,7 +10,7 @@
 
   <Portal>
     <Popover.Positioner>
-      <Popover.Content class="card bg-surface-100-900 border-surface-200-800 z-10 w-96 border-b-2">
+      <Popover.Content class="card bg-surface-50-950 border-surface-100-900 z-10 w-96 border-b-2">
         <div class="space-y-4">
           <header class="flex flex-col px-4 py-2 shadow">
             {#if subtitle}
@@ -25,7 +25,7 @@
           </Popover.Description>
         </div>
 
-        <Popover.Arrow class="[--arrow-background:var(--color-surface-100-900)] [--arrow-size:--spacing(2)]">
+        <Popover.Arrow class="[--arrow-background:var(--color-surface-50-950)] [--arrow-size:--spacing(2)]">
           <Popover.ArrowTip />
         </Popover.Arrow>
       </Popover.Content>

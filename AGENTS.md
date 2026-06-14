@@ -17,11 +17,6 @@ This project uses:
 
 Always prefer clean, maintainable code following best practices.
 
-## Code Conventions
-
-- **Avoid barrel files** (`index.ts` that re-exports a folder's modules) to prevent importing unwanted modules.
-- **Prefer `$lib` absolute imports** over relative paths when importing from the `lib` folder. Exception: use a relative import when the imported file is in the same folder.
-
 ---
 
 You are able to use the Svelte MCP server, where you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:

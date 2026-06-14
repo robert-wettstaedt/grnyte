@@ -13,7 +13,7 @@
 {#snippet content()}
   <BottomSheet.Sheet class="preset-filled-surface-50-950!">
     <div
-      class="preset-filled-surface-50-950 border-surface-100-900 sticky z-100 flex items-center justify-between border-b-2 px-4 py-2"
+      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-0 z-100 flex items-center justify-between border-b-2 px-4 py-2"
     >
       <div class="flex flex-col">
         {#if subtitle}

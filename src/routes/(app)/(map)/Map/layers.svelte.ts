@@ -1,7 +1,8 @@
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
+import { buildGradeDonutSvg } from '$lib/entities/grade/donut'
 import type { UserRegion } from '$lib/entities/region/dto'
-import Feature from 'ol/Feature.js'
+import Feature, { type FeatureLike } from 'ol/Feature.js'
 import type OlMap from 'ol/Map.js'
 import Polyline from 'ol/format/Polyline'
 import { LineString, Polygon } from 'ol/geom'
@@ -13,8 +14,43 @@ import { Vector as VectorSource } from 'ol/source.js'
 import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
-import { SvelteSet } from 'svelte/reactivity'
-import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, SECTOR_ZOOM } from './types'
+import Icon from 'ol/style/Icon'
+import { SvelteMap, SvelteSet } from 'svelte/reactivity'
+import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, CRAG_ZOOM } from './types'
+
+// Read-only fallback for areas/crags with no grade data, so we never allocate per feature.
+const EMPTY_GRADE_COUNTS: Map<number, number> = new SvelteMap<number, number>()
+
+// Marker showing the area/crag's grade histogram as a small donut with the route
+// count in the center. Built once per feature (the data-URI icon is expensive to
+// regenerate) and anchored at the polygon's interior point.
+function createDonutMarkerStyles(
+  name: string,
+  count: number,
+  gradeCounts: Map<number, number>,
+  donutSize: number,
+): Style[] {
+  const interiorPoint = (feature: FeatureLike) => (feature.getGeometry() as Polygon).getInteriorPoint()
+  const svg = buildGradeDonutSvg(gradeCounts, count, donutSize)
+
+  return [
+    new Style({
+      geometry: interiorPoint,
+      image: new Icon({ src: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg) }),
+    }),
+    new Style({
+      geometry: interiorPoint,
+      text: new Text({
+        text: name,
+        font: 'bold 13px sans-serif',
+        fill: new Fill({ color: '#1f2937' }),
+        stroke: new Stroke({ color: 'white', width: 3 }),
+        offsetY: donutSize / 2 + 12,
+        overflow: true,
+      }),
+    }),
+  ]
+}
 
 export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   return userRegions.flatMap((region) =>
@@ -34,136 +70,78 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
   )
 }
 
+// The outermost area grouping, drawn when zoomed out so the far view isn't cluttered with
+// every crag; from CRAG_ZOOM the crag rects take over.
+export function createAreaLayer(
+  areaBoundingBoxes: Map<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
+  _blocksByArea: Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>,
+  routeCountByArea: Map<number, number>,
+  gradeCountByArea: Map<number, Map<number, number>>,
+): VectorLayer {
+  const features: Feature[] = []
+
+  for (const [areaId, { area, bounds }] of areaBoundingBoxes) {
+    const [minLat, minLng, maxLat, maxLng] = bounds
+    const routeCount = routeCountByArea.get(areaId) ?? 0
+    const gradeCounts = gradeCountByArea.get(areaId) ?? EMPTY_GRADE_COUNTS
+    const extent = [...fromLonLat([minLng, minLat]), ...fromLonLat([maxLng, maxLat])]
+    const geometry = fromExtent(extent)
+
+    const feature = new Feature({ geometry, name: `${area.name}` })
+    feature.set('routeCount', routeCount)
+    feature.set('areaId', areaId)
+    feature.setStyle([
+      new Style({
+        stroke: new Stroke({ color: '#1f2937', width: 1 }),
+        fill: new Fill({ color: 'rgba(248, 250, 252, 0.15)' }),
+      }),
+      ...createDonutMarkerStyles(area.name, routeCount, gradeCounts, 36),
+    ])
+    features.push(feature)
+  }
+
+  const layer = new VectorLayer({
+    source: new VectorSource({ features }),
+    maxZoom: CRAG_ZOOM,
+  })
+  layer.set('layerName', 'Markers')
+  return layer
+}
+
+// A crag is the block-holding area: a rect around its blocks, shown at mid zoom until the
+// user zooms in far enough for the individual block markers to take over.
 export function createCragLayer(
   cragBoundingBoxes: Map<number, { crag: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
   _blocksByCrag: Map<number, { crag: BlockDetail['areas'][0]; blocks: BlockDetail[] }>,
   routeCountByCrag: Map<number, number>,
+  gradeCountByCrag: Map<number, Map<number, number>>,
 ): VectorLayer {
   const features: Feature[] = []
 
   for (const [cragId, { crag, bounds }] of cragBoundingBoxes) {
     const [minLat, minLng, maxLat, maxLng] = bounds
     const routeCount = routeCountByCrag.get(cragId) ?? 0
+    const gradeCounts = gradeCountByCrag.get(cragId) ?? EMPTY_GRADE_COUNTS
     const extent = [...fromLonLat([minLng, minLat]), ...fromLonLat([maxLng, maxLat])]
     const geometry = fromExtent(extent)
 
     const feature = new Feature({ geometry, name: `${crag.name}` })
     feature.set('routeCount', routeCount)
     feature.set('areaId', cragId)
+    feature.setStyle([
+      new Style({
+        stroke: new Stroke({ color: '#313944', width: 1 }),
+        fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
+      }),
+      ...createDonutMarkerStyles(crag.name, routeCount, gradeCounts, 32),
+    ])
     features.push(feature)
   }
 
   const layer = new VectorLayer({
     source: new VectorSource({ features }),
-    maxZoom: SECTOR_ZOOM,
-    style: (feature) => {
-      const name = feature.get('name') as string
-      const count = feature.get('routeCount') as number
-      return [
-        new Style({
-          stroke: new Stroke({ color: '#1f2937', width: 1 }),
-          fill: new Fill({ color: 'rgba(248, 250, 252, 0.15)' }),
-        }),
-        new Style({
-          geometry: (feature) => {
-            const geom = feature.getGeometry() as Polygon
-            return geom.getInteriorPoint()
-          },
-          image: new CircleStyle({
-            radius: 16,
-            fill: new Fill({ color: '#ef4444' }),
-            stroke: new Stroke({ color: 'white', width: 2 }),
-          }),
-          text: new Text({
-            text: String(count),
-            font: 'bold 12px sans-serif',
-            fill: new Fill({ color: 'white' }),
-          }),
-        }),
-        new Style({
-          geometry: (feature) => {
-            const geom = feature.getGeometry() as Polygon
-            return geom.getInteriorPoint()
-          },
-          text: new Text({
-            text: name,
-            font: 'bold 13px sans-serif',
-            fill: new Fill({ color: '#1f2937' }),
-            stroke: new Stroke({ color: 'white', width: 3 }),
-            offsetY: 24,
-            overflow: true,
-          }),
-        }),
-      ]
-    },
-  })
-  layer.set('layerName', 'Markers')
-  return layer
-}
-
-export function createSectorLayer(
-  sectorBoundingBoxes: Map<number, { sector: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
-  _blocksBySector: Map<number, { sector: BlockDetail['areas'][0]; blocks: BlockDetail[] }>,
-  routeCountBySector: Map<number, number>,
-): VectorLayer {
-  const features: Feature[] = []
-
-  for (const [sectorId, { sector, bounds }] of sectorBoundingBoxes) {
-    const [minLat, minLng, maxLat, maxLng] = bounds
-    const routeCount = routeCountBySector.get(sectorId) ?? 0
-    const extent = [...fromLonLat([minLng, minLat]), ...fromLonLat([maxLng, maxLat])]
-    const geometry = fromExtent(extent)
-
-    const feature = new Feature({ geometry, name: `${sector.name}` })
-    feature.set('routeCount', routeCount)
-    feature.set('areaId', sectorId)
-    features.push(feature)
-  }
-
-  const layer = new VectorLayer({
-    source: new VectorSource({ features }),
-    minZoom: SECTOR_ZOOM,
+    minZoom: CRAG_ZOOM,
     maxZoom: BLOCK_ZOOM,
-    style: (feature) => {
-      const name = feature.get('name') as string
-      const count = feature.get('routeCount') as number
-      return [
-        new Style({
-          stroke: new Stroke({ color: '#313944', width: 1 }),
-          fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
-        }),
-        new Style({
-          geometry: (feature) => {
-            const geom = feature.getGeometry() as Polygon
-            return geom.getInteriorPoint()
-          },
-          image: new CircleStyle({
-            radius: 16,
-            fill: new Fill({ color: '#ef4444' }),
-            stroke: new Stroke({ color: 'white', width: 2 }),
-          }),
-          text: new Text({
-            text: String(count),
-            font: 'bold 12px sans-serif',
-            fill: new Fill({ color: 'white' }),
-          }),
-        }),
-        new Style({
-          geometry: (feature) => {
-            const geom = feature.getGeometry() as Polygon
-            return geom.getInteriorPoint()
-          },
-          text: new Text({
-            text: name,
-            font: 'bold 13px sans-serif',
-            fill: new Fill({ color: '#1f2937' }),
-            stroke: new Stroke({ color: 'white', width: 3 }),
-            offsetY: 24,
-            overflow: true,
-          }),
-        }),
-      ]
-    },
   })
   layer.set('layerName', 'Markers')
   return layer
@@ -268,7 +246,7 @@ export function createParkingLayer(uniqueParkingLocations: Geolocation[]): Vecto
       new Style({
         text: new Text({
           font: '900 1.75rem "Font Awesome 7 Free"',
-          text: '\uf540',
+          text: '',
           fill: new Fill({ color: '#1e40af' }),
         }),
       }),

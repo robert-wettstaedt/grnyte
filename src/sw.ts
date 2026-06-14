@@ -85,7 +85,9 @@ self.addEventListener('push', (event) => {
       if ('setAppBadge' in self.navigator) {
         try {
           await self.navigator.setAppBadge(notificationCount)
-        } catch (error) {}
+        } catch {
+          console.log('failed to setAppBadge')
+        }
       }
 
       return self.registration.showNotification(newNotification.title ?? 'New activity', options)

@@ -36,8 +36,6 @@ export function createDrizzle<
           `)
           const result = await transaction(tx)
           return result
-        } catch (error) {
-          throw error
         } finally {
           await tx.execute(sql`
             -- reset

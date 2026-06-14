@@ -20,7 +20,7 @@ interface BlockDetailRow extends BlockRow {
 
 export function toBlockListItem(row: BlockRow): BlockListItem {
   // `toAncestors` returns only the ancestors above the block's immediate area, so
-  // append that immediate area to get the full containment chain (e.g. [crag, sector]).
+  // append that immediate area to get the full containment chain (e.g. [area, crag]).
   const areas = toAncestors(row.area)
   if (row.area != null) {
     areas.push({

@@ -5,6 +5,7 @@ import { toRouteListItem } from './mapper'
 export type AscentStatus = 'done' | 'todo' | 'project'
 
 export interface RouteListFilter {
+  areaId?: number
   content?: string
   firstAscensionists?: number[]
   hasBeta?: boolean

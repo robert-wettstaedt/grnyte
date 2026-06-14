@@ -15,6 +15,10 @@
 
   const globalState = setGlobalState()
 
+  // Full-screen editor routes (e.g. /areas/*) opt out of the nav chrome via
+  // their layout data, so a focused task isn't framed by the rail and tab bar.
+  const fullscreen = $derived(page.data.fullscreen === true)
+
   let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
   let markdownCssHref = $state(markdownLightCssUrl)
 </script>
@@ -33,10 +37,11 @@
     <meta name="theme-color" content={pwaAssetsHead.themeColor.content} />
   {/if}
 
-  {#each pwaAssetsHead.links as link}
+  {#each pwaAssetsHead.links as link (link.href)}
     <link {...link} />
   {/each}
 
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted build-time PWA web manifest -->
   {@html webManifest}
 </svelte:head>
 
@@ -48,7 +53,9 @@
       {@render children()}
     </main>
 
-    <NavRail />
-    <TabBar />
+    {#if !fullscreen}
+      <NavRail />
+      <TabBar />
+    {/if}
   </div>
 {/if}

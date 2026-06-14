@@ -14,6 +14,8 @@ export interface BlocksMapProps {
   parkingLocations?: Geolocation[]
   lineStrings?: string[] | null
   routeCountByBlock?: Map<number, number>
+  /** Per-block route counts keyed by grade id (`gradeFk`), feeding the area/crag donut markers. */
+  gradeCountByBlock?: Map<number, Map<number, number>>
   focus?: MapFocus | null
   onviewchange?: (view: { center: [number, number]; zoom: number }) => void
 }
@@ -25,6 +27,8 @@ export interface LayerEntry {
   visible: boolean
 }
 
-export const SECTOR_ZOOM = 11
+// Below CRAG_ZOOM only the (outer) area rects show, so the far view isn't cluttered with
+// every crag; from CRAG_ZOOM the crag rects take over, and from BLOCK_ZOOM the blocks do.
+export const CRAG_ZOOM = 11
 export const BLOCK_ZOOM = 14
 export const BLOCK_LABEL_ZOOM = 15
