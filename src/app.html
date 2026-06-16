@@ -7,15 +7,53 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=resizes-content"
     />
 
+    <!-- Default is dark; the bootstrap below overrides content to match the resolved theme. -->
+    <meta name="theme-color" content="#19171b" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" />
 
     <style>
       html.dark {
-        background-color: oklch(0.165 0.008 305);
+        background-color: oklch(0.21 0.008 305);
+      }
+      html.light {
+        background-color: oklch(0.985 0.004 70);
       }
     </style>
+
+    <!-- Single source of truth for theme application: sets the <html> class and the theme-color
+         meta (iOS status bar / Safari toolbar tint). Inline + blocking so it runs before first
+         paint (no flash); exposed as window.__applyTheme for LightSwitch to call on change.
+         Colors mirror the html.light/html.dark rules above and --body-background-color(-dark). -->
+    <script>
+      ;(() => {
+        const COLORS = { light: '#fcfaf7', dark: '#19171b' }
+        const SYSTEM_DARK = '(prefers-color-scheme: dark)'
+        const stored = () => {
+          try {
+            return localStorage.getItem('mode')
+          } catch {
+            return null
+          }
+        }
+        const apply = () => {
+          const mode = stored()
+          const resolved =
+            mode === 'light' || mode === 'dark' ? mode : matchMedia(SYSTEM_DARK).matches ? 'dark' : 'light'
+          const root = document.documentElement
+          root.classList.remove('light', 'dark')
+          root.classList.add(resolved)
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', COLORS[resolved])
+        }
+        window.__applyTheme = apply
+        apply()
+        matchMedia(SYSTEM_DARK).addEventListener('change', () => {
+          if ((stored() ?? 'system') === 'system') apply()
+        })
+      })()
+    </script>
 
     %sveltekit.head%
   </head>

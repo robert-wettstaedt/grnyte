@@ -57,6 +57,12 @@ declare global {
     }
     // interface Platform {}
   }
+
+  interface Window {
+    // Applies the persisted theme (class + theme-color meta). Defined by the inline
+    // bootstrap in src/app.html so it runs before first paint; called by LightSwitch on change.
+    __applyTheme?: () => void
+  }
 }
 
 export {}

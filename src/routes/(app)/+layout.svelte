@@ -27,10 +27,7 @@
   <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
 
-  {#if pwaAssetsHead.themeColor}
-    <meta name="theme-color" content={pwaAssetsHead.themeColor.content} />
-  {/if}
-
+  <!-- theme-color is managed in app.html so it can track the resolved light/dark theme. -->
   {#each pwaAssetsHead.links as link (link.href)}
     <link {...link} />
   {/each}

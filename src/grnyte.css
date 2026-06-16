@@ -50,7 +50,7 @@
   --default-divide-width: 1px;
   --default-ring-width: 1px;
   --body-background-color: oklch(0.985 0.004 70);
-  --body-background-color-dark: oklch(0.165 0.008 305);
+  --body-background-color-dark: oklch(0.21 0.008 305);
 
   /* ===== Primary — brand violet (500 = the icon square) ===== */
   --color-primary-50: oklch(0.97 0.012 313);
@@ -233,6 +233,43 @@
   --color-surface-contrast-800: var(--color-surface-contrast-light);
   --color-surface-contrast-900: var(--color-surface-contrast-light);
   --color-surface-contrast-950: var(--color-surface-contrast-light);
+
+  /* ==========================================================================
+     Design-system primitives — shared by entity rows, search results and topo
+     cards (ported from the Claude Design handoff). These have no Skeleton
+     equivalent; surfaces/text/borders keep using the ramp above.
+     ========================================================================== */
+
+  /* Difficulty heat scale: easy → hard. Hue-stable across light/dark, each band
+     paired with a readable foreground, and steering clear of the brand violet
+     so a grade never reads as a primary accent. */
+  --grade-1: oklch(0.62 0.16 245);
+  --grade-1-fg: #ffffff;
+  --grade-2: oklch(0.74 0.11 196);
+  --grade-2-fg: #05242c;
+  --grade-3: oklch(0.81 0.14 85);
+  --grade-3-fg: #2a1c00;
+  --grade-4: oklch(0.69 0.18 52);
+  --grade-4-fg: #ffffff;
+  --grade-5: oklch(0.62 0.22 28);
+  --grade-5-fg: #ffffff;
+  --grade-6: oklch(0.54 0.23 16);
+  --grade-6-fg: #ffffff;
+  --grade-7: oklch(0.45 0.2 9);
+  --grade-7-fg: #ffffff;
+
+  /* Ascent status accents. sent/proj reuse the semantic ramp; flash/repeat are
+     bespoke (no semantic equivalent). */
+  --st-sent: var(--color-success-500);
+  --st-flash: oklch(0.81 0.14 85);
+  --st-proj: var(--color-tertiary-500);
+  --st-repeat: oklch(0.74 0.11 195);
+
+  /* Topo thumbnail terrain fill (warm boulder-shadow tone). */
+  --map-terrain: oklch(0.255 0.016 62);
+
+  /* Monospace face for grades / numeric tiles. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* ----------------------------------------------------------------------------
@@ -250,4 +287,14 @@
   --color-primary-contrast-400: var(--color-primary-950);
   --color-primary-contrast-500: var(--color-primary-950);
   --color-primary-contrast-600: var(--color-primary-950);
+
+  /* Surface lift — the dark end was too heavy: the page sat at 0.165 (below
+     Material's ~0.18 floor) and the bottom steps were tight, so the UI read as
+     a flat dark slab. Lifting the bottom of the ramp ~0.045 L (0.165 → 0.21,
+     hue/chroma kept) lightens the canvas and widens card separation. Dark-only
+     override so light mode is untouched; mirrors grnyte-tokens.css surface-root→200. */
+  --color-surface-700: oklch(0.375 0.01 320);
+  --color-surface-800: oklch(0.325 0.011 308);
+  --color-surface-900: oklch(0.265 0.01 305);
+  --color-surface-950: oklch(0.21 0.008 305);
 }
