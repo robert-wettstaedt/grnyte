@@ -148,6 +148,10 @@ dist
 .svelte-kit/
 package
 
+### Storybook ###
+storybook-static
+*.storybook.log
+
 ### Vercel ###
 .vercel
 

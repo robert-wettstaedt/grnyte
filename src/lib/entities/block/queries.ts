@@ -9,6 +9,7 @@ export const blocksQueryDefs = {
       areaId: z.number().optional().nullable(),
       blockId: z.union([z.number(), z.array(z.number())]).optional(),
       content: z.string().optional(),
+      limit: z.number().optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
@@ -35,6 +36,10 @@ export const blocksQueryDefs = {
 
       if (args.content != null) {
         q = q.where('name', 'ILIKE', `%${args.content}%`)
+      }
+
+      if (args.limit != null) {
+        q = q.limit(args.limit)
       }
 
       return q

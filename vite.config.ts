@@ -79,10 +79,6 @@ export default defineConfig({
       },
     }),
   ],
-  ssr: {
-    noExternal: ['codemirror-json-schema'],
-    optimizeDeps: { include: ['codemirror-json-schema'] },
-  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.js'],

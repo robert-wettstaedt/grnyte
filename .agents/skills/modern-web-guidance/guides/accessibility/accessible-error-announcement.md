@@ -29,7 +29,7 @@ Link your input to its error message using `aria-errormessage` (or `aria-describ
   <div class="field">
     <label for="email">Email</label>
     <input type="email" id="email" required aria-errormessage="email-error" />
-    <span id="email-error" class="error-msg"> Please enter a valid email address. </span>
+    <span id="email-error" class="error-msg">Please enter a valid email address.</span>
   </div>
 </form>
 ```

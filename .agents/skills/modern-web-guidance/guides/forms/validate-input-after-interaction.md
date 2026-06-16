@@ -37,7 +37,10 @@ MANDATORY: Rely on standard HTML5 attributes for email fields. The error message
       aria-describedby="email-hint"
       aria-errormessage="email-error"
     />
-    <div id="email-error" class="error-msg"><span aria-hidden="true">❌</span> Please enter a valid email address.</div>
+    <div id="email-error" class="error-msg">
+      <span aria-hidden="true">❌</span>
+      Please enter a valid email address.
+    </div>
   </div>
 </form>
 ```

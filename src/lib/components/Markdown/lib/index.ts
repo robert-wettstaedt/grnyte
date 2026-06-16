@@ -1,26 +1,18 @@
-import { resolve } from '$app/paths'
-import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
 import type { Grade } from '$lib/entities/grade/dto'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import rehypeStringify from 'rehype-stringify'
 import remarkGfm from 'remark-gfm'
-import remarkMentions from 'remark-mentions'
 import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
-import { unified, type Plugin } from 'unified'
+import { unified } from 'unified'
 import { remarkDisableLinks } from './remark-disable-links'
 import { remarkGrades } from './remark-grades'
 import { referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
 
 export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
-
-// `remark-mentions` bundles its own copy of `unified`, whose `Processor` `this`
-// type is structurally incompatible with the one the app resolves. Re-type the
-// plugin against our `unified` so `.use()` accepts it.
-const mentions = remarkMentions as unknown as Plugin<[{ usernameLink: (username: string) => string }]>
 
 export const convertMarkdownToHtml = async (
   markdown: string | null | undefined,
@@ -36,9 +28,6 @@ export const convertMarkdownToHtml = async (
   const result = await unified()
     .use(remarkParse)
     .use(remarkGfm)
-    .use(mentions, {
-      usernameLink: (username) => resolve(`/users/${username}`),
-    })
     .use(remarkReferences, { encloseReferences })
     .use(remarkRehype)
     .use(rehypeStringify)
@@ -64,9 +53,6 @@ export const convertMarkdownToHtmlSync = (
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
-    .use(mentions, {
-      usernameLink: (username) => resolve(`/users/${username}`),
-    })
     .use(remarkReferences, { encloseReferences })
     .use(remarkGrades, { grades })
 
@@ -102,9 +88,18 @@ const enrichMarkdown = async (markdown: string, db?: PostgresJsDatabase<typeof s
 
       const idNumber = Number(id)
 
-      const dbSchema = type === 'areas' ? schema.areas : type === 'blocks' ? schema.blocks : schema.routes
-      const results = await db.select({ name: dbSchema.name }).from(dbSchema).where(eq(dbSchema.id, idNumber))
-      const result = results.at(0)
+      // `users` has no `name` column — its display name is `username`. The
+      // other tables expose `name`, so branch the column selection by type.
+      const result =
+        type === 'users'
+          ? (
+              await db.select({ name: schema.users.username }).from(schema.users).where(eq(schema.users.id, idNumber))
+            ).at(0)
+          : await (async () => {
+              const dbSchema = type === 'areas' ? schema.areas : type === 'blocks' ? schema.blocks : schema.routes
+              const results = await db.select({ name: dbSchema.name }).from(dbSchema).where(eq(dbSchema.id, idNumber))
+              return results.at(0)
+            })()
 
       if (result == null) {
         return null
@@ -115,8 +110,7 @@ const enrichMarkdown = async (markdown: string, db?: PostgresJsDatabase<typeof s
         reference += ' '
       }
 
-      const name = result.name.length === 0 ? config.routes.defaultName : result.name
-      reference += `!${type}:${id}:${btoa(name)}!`
+      reference += `!${type}:${id}:${btoa(result.name)}!`
 
       return { match, reference }
     }),
@@ -132,19 +126,4 @@ const enrichMarkdown = async (markdown: string, db?: PostgresJsDatabase<typeof s
 
     return before + item.reference + after
   }, markdown)
-}
-
-export const replaceMention = (markdown: string | null | undefined, oldUsername: string, newUsername: string) => {
-  const matchesIterator = markdown?.matchAll(new RegExp(usernameRegexWithAt, 'gi'))
-  const matches = Array.from(matchesIterator ?? []).toReversed()
-
-  return matches
-    .reduce((desc, match) => {
-      if (match[0] === `@${oldUsername}`) {
-        return desc?.toSpliced(match.index, oldUsername.length + 1, `@${newUsername}`)
-      }
-
-      return desc
-    }, markdown?.split(''))
-    ?.join('')
 }

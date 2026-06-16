@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
@@ -41,10 +42,6 @@
   const gradedCount = $derived(routes.data.length - ungradedCount)
 
   const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
-
-  // Deep hierarchies make the breadcrumb unreadable, so keep only the two
-  // ancestors nearest the current area; anything above collapses to an ellipsis.
-  const maxBreadcrumbAncestors = 2
 
   // Only worth naming the region when the user belongs to more than one — with a
   // single region it's implied and would just be noise in the breadcrumb.
@@ -125,47 +122,7 @@
 </QueryState>
 
 {#snippet breadcrumb()}
-  {@const parents = area.data?.areas ?? []}
-  {@const visible = parents.slice(-maxBreadcrumbAncestors)}
-  <!-- Keep the trail on a single line and let it scroll instead of wrapping; the
-       scrollbar is hidden so it reads as a clean subtitle. -->
-  <div class="breadcrumb flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-    {#if regionName != null}
-      <span class="text-surface-600-400 shrink-0 text-xs">{regionName}</span>
-
-      {#if visible.length > 0}
-        <span class="shrink-0 text-xs">·</span>
-      {/if}
-    {/if}
-
-    {#if parents.length > visible.length}
-      <span class="text-surface-600-400 shrink-0 text-xs">…</span>
-      <span class="shrink-0 text-xs">·</span>
-    {/if}
-
-    {#each visible as parent, index (parent.id)}
-      <a
-        class="anchor shrink-0 text-xs"
-        href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: parent.id.toString() })}
-      >
-        {parent.name}
-      </a>
-
-      {#if index < visible.length - 1}
-        <span class="shrink-0 text-xs">·</span>
-      {/if}
-    {/each}
-  </div>
+  {#if area.data != null}
+    <Breadcrumb area={area.data} userRegions={global.userRegions} />
+  {/if}
 {/snippet}
-
-<style>
-  /* Hide the horizontal scrollbar so the overflowing breadcrumb still reads as a
-     plain subtitle line. */
-  .breadcrumb {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .breadcrumb::-webkit-scrollbar {
-    display: none;
-  }
-</style>

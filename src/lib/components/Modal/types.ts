@@ -9,6 +9,8 @@ type HTMLAttributes<T extends keyof SvelteHTMLElements, U extends keyof SvelteHT
 
 export interface Props {
   children?: Snippet
+  headerLeft?: Snippet
+  headerRight?: Snippet
   open?: boolean
   popoverProps?: PopoverRootProps
   snapPoints?: number[]

@@ -97,7 +97,10 @@
       typically referenced as a single unit from the main flow of the document.
     </p>
   </blockquote>
-  <figcaption>Definition of the &lt;figure&gt; element from the <cite>HTML Living Standard</cite></figcaption>
+  <figcaption>
+    Definition of the &lt;figure&gt; element from the
+    <cite>HTML Living Standard</cite>
+  </figcaption>
 </figure>
 
 <!-- Image with caption -->
@@ -125,7 +128,11 @@
 </figure>
 
 <!-- Inline code -->
-<p>To initialize the project, run the <code>npm install</code> command.</p>
+<p>
+  To initialize the project, run the
+  <code>npm install</code>
+  command.
+</p>
 ```
 
 ## 3. Resource Prioritization and Performance

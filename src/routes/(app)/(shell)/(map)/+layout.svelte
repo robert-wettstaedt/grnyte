@@ -7,6 +7,7 @@
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import { fly } from 'svelte/transition'
   import type { LayoutProps } from './$types'
   import Filter from './Filter/Filter.svelte'
@@ -22,6 +23,10 @@
   let { children }: LayoutProps = $props()
 
   const global = getGlobalState()
+
+  // Track same-origin history depth so back buttons can fall back to an in-app
+  // route instead of leaving the origin. See $lib/state/navigation.svelte.
+  trackHistoryDepth()
 
   let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)

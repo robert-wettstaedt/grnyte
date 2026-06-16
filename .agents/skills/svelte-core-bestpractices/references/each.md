@@ -33,10 +33,16 @@ You can freely use destructuring and rest patterns in each blocks.
 {/each}
 
 {#each objects as { id, ...rest }}
-  <li><span>{id}</span><MyComponent {...rest} /></li>
+  <li>
+    <span>{id}</span>
+    <MyComponent {...rest} />
+  </li>
 {/each}
 
 {#each items as [id, ...rest]}
-  <li><span>{id}</span><MyComponent values={rest} /></li>
+  <li>
+    <span>{id}</span>
+    <MyComponent values={rest} />
+  </li>
 {/each}
 ```

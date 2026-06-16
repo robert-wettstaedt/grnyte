@@ -10,8 +10,7 @@ The `$inspect` rune is roughly equivalent to `console.log`, with the exception t
   $inspect(count, message) // will console.log when `count` or `message` change
 </script>
 
-<button onclick={() => count++}>Increment</button>
-<input bind:value={message} />
+<button onclick={() => count++}>Increment</button><input bind:value={message} />
 ```
 
 On updates, a stack trace will be printed, making it easy to find the origin of a state change (unless you're in the playground, due to technical limitations).

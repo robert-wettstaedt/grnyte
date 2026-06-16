@@ -8,6 +8,8 @@ export const areasQueryDefs = {
     z.object({
       id: z.union([z.number(), z.array(z.number())]).optional(),
       parentFk: z.number().optional(),
+      content: z.string().optional(),
+      limit: z.number().optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
@@ -24,6 +26,16 @@ export const areasQueryDefs = {
 
       if (args.parentFk != null) {
         q = q.where('parentFk', 'IS', args.parentFk)
+      }
+
+      if (args.content != null) {
+        q = q.where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
+        )
+      }
+
+      if (args.limit != null) {
+        q = q.limit(args.limit)
       }
 
       return q

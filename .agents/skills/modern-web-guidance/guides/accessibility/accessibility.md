@@ -44,9 +44,7 @@ Keep these principles in mind throughout:
   <section>
     <h2>User Statistics</h2>
     <table>
-      <caption>
-        Monthly active users
-      </caption>
+      <caption>Monthly active users</caption>
       <tr>
         <th scope="col">Month</th>
         <th scope="col">Users</th>
@@ -150,7 +148,11 @@ When the hidden content is focusable (skip links, focus-receiving wrappers), the
     <title>Analytics Reports | Guidance Platform</title>
   </head>
   <body>
-    <p>The motto is <span lang="la">"Carpe diem"</span>.</p>
+    <p>
+      The motto is
+      <span lang="la">"Carpe diem"</span>
+      .
+    </p>
     <iframe title="Interactive Sales Chart" src="/chart"></iframe>
   </body>
 </html>

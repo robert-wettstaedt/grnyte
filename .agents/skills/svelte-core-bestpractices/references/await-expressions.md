@@ -161,8 +161,10 @@ The [`fork(...)`](svelte#fork) API, added in 5.42, makes it possible to run `awa
     // in case `pending` didn't exist
     // (if it did, this is a no-op)
     open = true
-  }}>open menu</button
+  }}
 >
+  open menu
+</button>
 
 {#if open}
   <!-- any async work inside this component will start

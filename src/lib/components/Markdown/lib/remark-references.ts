@@ -1,30 +1,32 @@
-import { config } from '$lib/config'
 import type { PhrasingContent, Root } from 'mdast'
 import { findAndReplace, type ReplaceFunction } from 'mdast-util-find-and-replace'
 import { type Plugin } from 'unified'
 
-export const referenceRegex = '!(areas|blocks|routes):\\d+!'
-const referenceRegexWithBase64 = '!(areas|blocks|routes):\\d+:[A-Za-z0-9+/=]+!'
+export const referenceRegex = '!(areas|blocks|routes|users):\\d+!'
+const referenceRegexWithBase64 = '!(areas|blocks|routes|users):\\d+:[A-Za-z0-9+/=]+!'
 
 export type EncloseOptions = 'anchor' | 'strong'
+
+export type ReferenceType = 'areas' | 'blocks' | 'routes' | 'users'
 
 export interface MarkdownReferencesIds {
   areas: number[]
   blocks: number[]
   routes: number[]
+  users: number[]
 }
 
 export const getReferences = (markdown: string): MarkdownReferencesIds => {
   const matchesIterator = markdown.matchAll(new RegExp(referenceRegex, 'gi'))
   const matches = Array.from(matchesIterator ?? []).reverse()
 
-  const references: MarkdownReferencesIds = { areas: [], blocks: [], routes: [] }
+  const references: MarkdownReferencesIds = { areas: [], blocks: [], routes: [], users: [] }
 
   matches.forEach((match) => {
     const [type, id] = match[0]
       .trim()
       .substring(1, match[0].length - 1)
-      .split(':') as ['areas' | 'blocks' | 'routes', string]
+      .split(':') as [ReferenceType, string]
 
     const idNumber = Number(id)
     if (Number.isNaN(idNumber)) {
@@ -38,7 +40,7 @@ export const getReferences = (markdown: string): MarkdownReferencesIds => {
 }
 
 export interface MarkdownReference {
-  type: 'areas' | 'blocks' | 'routes'
+  type: ReferenceType
   id: number
   name: string
 }
@@ -47,12 +49,7 @@ export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownRef
   let enrichedMarkdown = markdown
 
   refs.forEach(({ id, name, type }) => {
-    const formattedName = name.length === 0 ? config.routes.defaultName : name
-
-    enrichedMarkdown = enrichedMarkdown.replace(
-      new RegExp(`!${type}:${id}!`, 'g'),
-      `!${type}:${id}:${btoa(formattedName)}!`,
-    )
+    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${btoa(name)}!`)
   })
 
   return enrichedMarkdown
@@ -74,9 +71,13 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
       .split(':')
     const name = base64 == null ? `${type}:${id}` : atob(base64)
 
+    // Users render as an `@username` mention (replacing the retired
+    // `remark-mentions`); the resolved `name` is the username for this type.
+    const isUser = type === 'users'
+
     const strong: PhrasingContent = {
       type: 'strong',
-      children: [{ type: 'text', value: name }],
+      children: [{ type: 'text', value: isUser ? `@${name}` : name }],
     }
 
     return [
@@ -84,7 +85,7 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
         ? strong
         : {
             type: 'link',
-            url: `/${type}/${id}`,
+            url: isUser ? `/users/${name}` : `/${type}/${id}`,
             children: [strong],
           },
     ]

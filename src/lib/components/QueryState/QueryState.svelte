@@ -9,6 +9,7 @@
     loading,
     error,
     empty,
+    forceState,
   }: {
     resource: QueryResource<TOut>
     /** Rendered once there is data to show; receives the DTO-mapped data. */
@@ -17,10 +18,19 @@
     error?: Snippet
     /** Rendered when the result is `ready` but empty (`[]` or `undefined`). */
     empty?: Snippet
+    /**
+     * Dev/test override: force a branch regardless of the real resource state,
+     * so the loading / error / empty UI can be eyeballed in place anywhere it's
+     * used. Leave unset in real usage.
+     */
+    forceState?: 'loading' | 'error' | 'empty'
   } = $props()
+
+  const status = $derived(forceState ?? resource.status)
+  const isEmpty = $derived(forceState === 'empty' || resource.isEmpty)
 </script>
 
-{#if resource.status === 'error'}
+{#if status === 'error'}
   {#if error}
     {@render error()}
   {:else}
@@ -28,7 +38,7 @@
       {m.queryState_error()}
     </div>
   {/if}
-{:else if resource.status === 'loading'}
+{:else if status === 'loading'}
   {#if loading}
     {@render loading()}
   {:else}
@@ -38,7 +48,7 @@
       <div class="placeholder animate-pulse"></div>
     </div>
   {/if}
-{:else if resource.isEmpty}
+{:else if isEmpty}
   {#if empty}
     {@render empty()}
   {:else}

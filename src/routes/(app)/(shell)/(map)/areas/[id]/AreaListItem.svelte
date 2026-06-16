@@ -1,11 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import Icon from '$lib/components/Icon/Icon.svelte'
-  import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import AreaRow from '$lib/components/EntityRow/AreaRow.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { SvelteMap } from 'svelte/reactivity'
-  import GradeDonut from './GradeDonut.svelte'
 
   interface Props {
     area: AreaDetail
@@ -29,23 +27,10 @@
   })
 </script>
 
-<a
-  class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-2.5 transition-colors"
+<AreaRow
+  {countByGrade}
+  description={area.description}
   href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) })}
->
-  <GradeDonut {countByGrade} total={routes.data.length} size={52} />
-
-  <div class="min-w-0 flex-1">
-    <p class="truncate font-semibold">{area.name}</p>
-
-    {#if area.description}
-      <!-- `disableLinks` strips the anchors the markdown would otherwise emit
-           (mentions, links) so this preview can live inside the card's <a>;
-           `short` resolves references to names, renders grades as badges and
-           collapses the description to a single truncated line. -->
-      <Markdown className="short" disableLinks encloseReferences="strong" markdown={area.description} />
-    {/if}
-  </div>
-
-  <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
-</a>
+  name={area.name}
+  total={routes.data.length}
+/>

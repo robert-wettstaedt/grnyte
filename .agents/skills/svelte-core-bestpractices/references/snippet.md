@@ -180,8 +180,7 @@ Any content inside the component tags that is _not_ a snippet declaration implic
   let { children } = $props()
 </script>
 
-<!-- result will be <button>click me</button> -->
-<button>{@render children()}</button>
+<!-- result will be <button>click me</button> --><button>{@render children()}</button>
 ```
 
 > [!NOTE] Note that you cannot have a prop called `children` if you also have content inside the component — for this reason, you should avoid having props with that name

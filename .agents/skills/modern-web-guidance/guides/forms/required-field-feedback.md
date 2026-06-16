@@ -27,7 +27,10 @@ The `:user-invalid` pseudo-class solves this perfectly. For a required field, it
     <label for="full-name">Full Name</label>
     <input type="text" id="full-name" name="full-name" required aria-errormessage="name-error" />
     <!-- MANDATORY: Include an icon or distinct non-color indicator alongside error text -->
-    <div id="name-error" class="error-msg"><span aria-hidden="true">❌</span> This field is required.</div>
+    <div id="name-error" class="error-msg">
+      <span aria-hidden="true">❌</span>
+      This field is required.
+    </div>
   </div>
 </form>
 ```
