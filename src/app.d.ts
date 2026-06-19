@@ -1,6 +1,6 @@
 import type { AppPermission, RegionPermission } from '$lib/auth'
-import type { Region, RegionMember } from '$lib/db/schema'
 import type { InferResultType } from '$lib/db/types'
+import type { UserRegion } from '$lib/entities/region/dto'
 import type { Schema } from '$lib/zero'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import type { Z } from 'zero-svelte'
@@ -11,13 +11,6 @@ import type { Z } from 'zero-svelte'
 declare global {
   namespace App {
     type Permission = RegionPermission | AppPermission
-    interface UserRegion {
-      name: string
-      permissions: Permission[]
-      regionFk: RegionMember['regionFk']
-      role: RegionMember['role']
-      settings: Region['settings']
-    }
 
     interface SafeSession {
       session: Session | undefined

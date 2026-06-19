@@ -6,28 +6,37 @@
   import StarterKit from '@tiptap/starter-kit'
   import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
   import type { Attachment } from 'svelte/attachments'
+  import type { HTMLAttributes } from 'svelte/elements'
   import LinkModal from './LinkModal.svelte'
   import ReferenceList from './ReferenceList.svelte'
   import { createReferenceExtension, REFERENCE_NODE_NAME, type ReferenceItem } from './lib/reference-node'
   import { referenceSearch, type ReferenceCandidate } from './lib/reference-search.svelte'
 
-  interface Props {
+  // Extends HTMLAttributes so the props from a remote form field
+  // (`{...field.as('text')}` → name/aria-invalid; wrapper → id/aria-describedby/
+  // aria-errormessage) spread straight onto the editable region.
+  interface Props extends HTMLAttributes<HTMLDivElement> {
     /** Markdown string — bindable, the editor's single source of truth. */
-    value?: string
+    value?: string | number
     /** Placeholder shown while empty. */
     placeholder?: string
     /** Region whose members may be `@`-mentioned (enables the People group). */
     regionFk?: number
+    /** Form field name — when set, the markdown is submitted via a hidden input. */
+    name?: string
+    /** Swallowed: `field.as('text')` ships it, but we seed from `value`. */
+    defaultValue?: string | number
   }
 
-  let { value = $bindable(''), placeholder, regionFk }: Props = $props()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let { value = $bindable(''), placeholder, regionFk, name, defaultValue: _d, ...rest }: Props = $props()
 
   // Captured once: the editor initialises from this, then syncs outward. (Fresh
   // mounts with stored markdown rehydrate `!type:id!` tokens into chips here.)
   const initialValue = value
 
   let editorState = $state<{ editor: Editor | null }>({ editor: null })
-  const isEmpty = $derived(value.trim().length === 0)
+  const isEmpty = $derived(String(value).trim().length === 0)
 
   // --- `@` reference picker ---------------------------------------------------
   interface PickerState {
@@ -126,7 +135,7 @@
         Markdown,
         referenceExtension,
       ],
-      content: initialValue,
+      content: String(initialValue),
       contentType: 'markdown',
       onTransaction: ({ editor }) => {
         editorState = { editor }
@@ -231,11 +240,17 @@
 
   <!-- Editable area -->
   <div class="relative">
-    <div class="editor-host" {@attach mountEditor}></div>
+    <div class="editor-host" {...rest} {@attach mountEditor}></div>
     {#if isEmpty && placeholder}
       <span class="text-surface-500 pointer-events-none absolute top-3 left-3 text-sm">{placeholder}</span>
     {/if}
   </div>
+
+  <!-- Submitted value: the form reads FormData from the DOM, so the markdown
+       needs a real named control. -->
+  {#if name}
+    <input type="hidden" {name} value={String(value)} />
+  {/if}
 
   <!-- In-flow reference picker (per design — not a caret-floating popover) -->
   {#if picker.open}
