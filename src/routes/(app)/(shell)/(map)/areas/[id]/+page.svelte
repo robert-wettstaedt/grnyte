@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
@@ -117,7 +118,7 @@
   {/snippet}
 
   {#snippet empty()}
-    <p class="text-surface-600-400 py-8 text-center">{m.area_notFound()}</p>
+    <ErrorState type="notfound" title={m.area_notFound()} />
   {/snippet}
 </QueryState>
 

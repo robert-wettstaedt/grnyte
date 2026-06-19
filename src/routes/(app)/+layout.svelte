@@ -2,7 +2,9 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
+  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import { reportClientError } from '$lib/logging/report'
   import { setGlobalState } from '$lib/state/global.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
@@ -42,6 +44,16 @@
   <!-- Shared viewport frame. Nested layouts fill it: (shell) adds the nav rail and
        tab bar around the main scroll area; the /areas editors deliberately omit them. -->
   <div class="fixed inset-0 flex">
-    {@render children()}
+    <!-- Walls off client render/effect crashes so one broken page doesn't blank the
+         whole app. Does NOT catch event-handler or async errors — see hooks.client. -->
+    <svelte:boundary onerror={(error) => reportClientError(error)}>
+      {@render children()}
+
+      {#snippet failed()}
+        <main class="relative min-w-0 flex-1 overflow-y-auto">
+          <ErrorState type="generic" />
+        </main>
+      {/snippet}
+    </svelte:boundary>
   </div>
 {/if}

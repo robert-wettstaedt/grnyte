@@ -1,5 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { markdownReferences } from '$lib/components/Markdown/lib/references.svelte'
+  import { getReferences } from '$lib/components/Markdown/lib/remark-references'
   import { m } from '$lib/paraglide/messages'
   import { Editor } from '@tiptap/core'
   import { Markdown } from '@tiptap/markdown'
@@ -34,6 +36,11 @@
   // Captured once: the editor initialises from this, then syncs outward. (Fresh
   // mounts with stored markdown rehydrate `!type:id!` tokens into chips here.)
   const initialValue = value
+
+  // Markdown last mirrored between the editor and `value`. The re-seed effect
+  // below compares against this so it fires only on *external* `value` changes
+  // (e.g. navigating to another area) and never on the editor's own edits.
+  let lastSynced = String(initialValue)
 
   let editorState = $state<{ editor: Editor | null }>({ editor: null })
   const isEmpty = $derived(String(value).trim().length === 0)
@@ -141,13 +148,58 @@
         editorState = { editor }
       },
       onUpdate: ({ editor }) => {
-        value = editor.getMarkdown()
+        lastSynced = editor.getMarkdown()
+        value = lastSynced
       },
     })
     editorState = { editor }
 
     return () => editor.destroy()
   }
+
+  // Re-seed the document when `value` changes from outside the editor. This
+  // component is reused across area navigations and the parent seeds the form
+  // field in an effect that runs *after* mount, so `initialValue` is stale —
+  // without this the editor shows the previous area's description (or nothing).
+  $effect(() => {
+    const editor = editorState.editor
+    const incoming = String(value)
+    if (editor != null && incoming !== lastSynced) {
+      lastSynced = incoming
+      editor.commands.setContent(incoming, { contentType: 'markdown', emitUpdate: false })
+    }
+  })
+
+  // Stored markdown is just `!type:id!`, so chips parse with empty labels — the
+  // same id→name resolver the read-only renderer uses fills them in as Zero
+  // syncs the names down. Label changes don't affect the markdown output, so
+  // patching the nodes here neither loops nor dirties the form value.
+  const references = markdownReferences(() => getReferences(String(value)))
+
+  $effect(() => {
+    const editor = editorState.editor
+    const resolved = references.data
+    if (editor == null || resolved.length === 0) {
+      return
+    }
+
+    let tr = editor.state.tr
+    let changed = false
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name !== REFERENCE_NODE_NAME) {
+        return
+      }
+      const name = resolved.find((ref) => ref.type === node.attrs.type && String(ref.id) === node.attrs.id)?.name
+      if (name != null && name !== node.attrs.label) {
+        tr = tr.setNodeAttribute(pos, 'label', name)
+        changed = true
+      }
+    })
+
+    if (changed) {
+      editor.view.dispatch(tr.setMeta('addToHistory', false))
+    }
+  })
 
   const isActive = (name: string, attrs?: Record<string, unknown>) => editorState.editor?.isActive(name, attrs) ?? false
   const chain = () => editorState.editor?.chain().focus()
