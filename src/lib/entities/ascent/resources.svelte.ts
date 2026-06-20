@@ -9,7 +9,7 @@ import { toUserAscent } from './mapper'
  */
 export function userAscentList(userId: () => number | undefined, enabled: () => boolean = () => true) {
   return createResource(
-    () => queries.listUserAscents({ userId: userId() ?? 0 }),
+    () => queries.listUserAscents({ userId: userId() ?? -1 }),
     (rows) => rows.map(toUserAscent),
     { enabled: () => userId() != null && enabled() },
   )

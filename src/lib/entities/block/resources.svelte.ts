@@ -3,8 +3,8 @@ import { createResource } from '$lib/zero/resource.svelte'
 import { toBlockDetail } from './mapper'
 
 export interface AreaListFilter {
+  areaId?: number
   content?: string
-  parentFk?: number
 }
 
 export function blockList(filter: () => AreaListFilter = () => ({})) {

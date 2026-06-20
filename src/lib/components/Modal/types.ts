@@ -8,6 +8,8 @@ type HTMLAttributes<T extends keyof SvelteHTMLElements, U extends keyof SvelteHT
 >
 
 export interface Props {
+  /** Render a tap-to-dismiss scrim behind the mobile sheet (no effect on desktop). */
+  backdrop?: boolean
   children?: Snippet
   headerLeft?: Snippet
   headerRight?: Snippet

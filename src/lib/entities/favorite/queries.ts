@@ -8,4 +8,12 @@ export const favoritesQueryDefs = {
     z.object({ userId: z.number() }),
     regionMemberCan(({ args }) => zql.favorites.where('userFk', args.userId).where('entityType', 'route')),
   ),
+
+  // The current user's favorite for one specific entity — empty when not saved.
+  listUserEntityFavorites: defineQuery(
+    z.object({ userId: z.number(), entityType: z.enum(['block', 'route', 'area']), entityId: z.string() }),
+    regionMemberCan(({ args }) =>
+      zql.favorites.where('userFk', args.userId).where('entityType', args.entityType).where('entityId', args.entityId),
+    ),
+  ),
 }

@@ -34,7 +34,11 @@
       >
         <header class="flex items-center justify-between">
           <Dialog.Title class="text-lg font-bold">{title}</Dialog.Title>
-          <Dialog.CloseTrigger class="btn-icon hover:preset-tonal" aria-label={m.common_close()}>
+
+          <Dialog.CloseTrigger
+            class="btn-icon preset-filled-surface-200-800 hover:preset-tonal"
+            aria-label={m.common_close()}
+          >
             <Icon name="close" />
           </Dialog.CloseTrigger>
         </header>

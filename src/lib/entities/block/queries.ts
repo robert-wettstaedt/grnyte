@@ -30,8 +30,14 @@ export const blocksQueryDefs = {
         }
       }
 
-      if (args.areaId !== undefined) {
-        q = q.where('areaFk', 'IS', args.areaId)
+      if (args.areaId != null) {
+        // Match blocks anywhere beneath the area, not just direct children. Areas
+        // carry no denormalized ancestor path, but routes do (`areaIds`), so test
+        // for a route in the subtree. Blocks with no routes are omitted — they
+        // anchor nothing.
+        q = q.whereExists('routes', (q) =>
+          r(q).where('deletedAt', 'IS', null).where('areaIds', 'ILIKE', `%^${args.areaId}$%`),
+        )
       }
 
       if (args.content != null) {
