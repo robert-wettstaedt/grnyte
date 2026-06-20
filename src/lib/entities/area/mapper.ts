@@ -31,7 +31,7 @@ export function toAncestors(row: AreaAncestor | undefined): AreaListItem[] {
       areas: [],
       id: current.id,
       name: current.name,
-      type: current.type ?? 'area',
+      type: current.type,
     })
     current = current.parent
   }
@@ -43,7 +43,7 @@ export function toAreaListItem(row: AreaAncestor): AreaListItem {
   return {
     id: row.id,
     name: row.name,
-    type: row.type ?? 'area',
+    type: row.type,
     areas: toAncestors(row),
   }
 }

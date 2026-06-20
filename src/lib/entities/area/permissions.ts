@@ -12,7 +12,10 @@ type AreaPermissionTarget = Pick<AreaDetail, 'regionFk' | 'type'>
  * there. Otherwise it needs `region.edit` on the area's region.
  */
 export function canAddArea(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
-  return area.type === 'area' && checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+  return (
+    (area.type == null || area.type === 'area') &&
+    checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+  )
 }
 
 /**
@@ -20,7 +23,10 @@ export function canAddArea(userRegions: UserRegion[], area: AreaPermissionTarget
  * climbing spot); never under an Area (folder). Otherwise it needs `region.edit`.
  */
 export function canAddBlock(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
-  return area.type === 'crag' && checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+  return (
+    (area.type == null || area.type === 'crag') &&
+    checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+  )
 }
 
 /** Whether the user may edit `area`. Needs `region.edit` on the area's region. */

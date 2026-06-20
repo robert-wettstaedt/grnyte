@@ -1,7 +1,6 @@
-import { SvelteMap, SvelteSet } from 'svelte/reactivity'
-
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
+import { SvelteMap, SvelteSet } from 'svelte/reactivity'
 import type { BlocksMapProps } from './types'
 
 export const withPadding = (

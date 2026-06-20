@@ -1,10 +1,32 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "area_allRoutes": "Alle Routen",
-  "area_allRoutesCount": "Alle {count} Routen ansehen",
+  "area_allRoutesCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Alle {count} Route ansehen",
+        "countPlural=other": "Alle {count} Routen ansehen"
+      }
+    }
+  ],
   "area_allRoutesHint": "Durchsuchen, sortieren & filtern",
   "area_createdBy": "Erstellt von {username}",
-  "area_gradedCount": "{count} Routen bewertet",
+  "area_distanceAway": "{distance} entfernt",
+  "area_empty_body": "Fasse Routen in einem Untergebiet zusammen oder lege direkt hier einen Block an, um Routen zu erfassen.",
+  "area_empty_hint": "Unsicher? Mit einem Block erfasst du Routen am schnellsten.",
+  "area_empty_title": "{name} aufbauen",
+  "area_gradedCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Route bewertet",
+        "countPlural=other": "{count} Routen bewertet"
+      }
+    }
+  ],
   "area_grades": "Schwierigkeiten",
   "area_manage": "Verwalten",
   "area_notFound": "Gebiet nicht gefunden.",
@@ -13,10 +35,22 @@
   "area_type": "Typ",
   "area_ungraded": "Unbewertet",
   "area_ungradedCount": "+{count} unbewertet",
+  "area_youAreHere": "Du bist hier",
   "areas_addArea": "Gebiet hinzufügen",
   "areas_addParkingLocation": "Parkplatz hinzufügen",
+  "areas_addSubArea": "Untergebiet hinzufügen",
   "areas_createArea": "Gebiet erstellen",
   "areas_createAreaError": "Das Gebiet konnte nicht erstellt werden. Bitte versuche es erneut.",
+  "areas_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Gebiet",
+        "countPlural=other": "{count} Gebiete"
+      }
+    }
+  ],
   "areas_editArea": "Gebiet bearbeiten",
   "areas_nameExists": "Ein Gebiet mit dem Namen „{name}“ existiert hier bereits",
   "areas_nameHint": "Du kannst es jederzeit umbenennen",
@@ -45,6 +79,16 @@
   "common_reset": "Zurücksetzen",
   "common_save": "Speichern",
   "common_saved": "Gespeichert",
+  "common_savedByOthers": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Speicherung",
+        "countPlural=other": "{count} Speicherungen"
+      }
+    }
+  ],
   "common_search": "Suchen",
   "common_showLess": "Weniger anzeigen",
   "common_showMore": "Mehr anzeigen",
@@ -102,7 +146,16 @@
   "filter_ratingMin": "{count}+ Sterne",
   "filter_selectedCount": "{count} ausgewählt",
   "filter_tags": "Tags",
-  "form_charsMin": "Muss mindestens {count} Zeichen lang sein",
+  "form_charsMin": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Muss mindestens {count} Zeichen lang sein",
+        "countPlural=other": "Muss mindestens {count} Zeichen lang sein"
+      }
+    }
+  ],
   "form_noPermission": "Du hast keine Berechtigung dafür.",
   "form_numInvalid": "Gib eine gültige Zahl ein",
   "form_required": "Dieses Feld ist erforderlich",
@@ -118,7 +171,16 @@
   "queryState_error": "Beim Laden der Daten ist ein Fehler aufgetreten.",
   "region_select": "Region auswählen",
   "region_title": "Region",
-  "routes_routesCount": "{count} Routen",
+  "routes_routesCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Route",
+        "countPlural=other": "{count} Routen"
+      }
+    }
+  ],
   "share_share": "Teilen",
   "sync_externalResources": "Externe Ressourcen synchronisieren",
   "tab_explore": "Entdecken",

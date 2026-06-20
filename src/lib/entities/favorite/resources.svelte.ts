@@ -16,6 +16,18 @@ export function userFavoriteList(userId: () => number | undefined, enabled: () =
   )
 }
 
+/** How many *other* users have saved one entity (excludes the signed-in user). */
+export function otherSaveCount(
+  userId: () => number | undefined,
+  entityType: () => 'block' | 'route' | 'area',
+  entityId: () => string,
+) {
+  return createResource(
+    () => queries.listEntityFavorites({ entityType: entityType(), entityId: entityId() }),
+    (rows) => rows.filter((row) => row.userFk !== userId()).length,
+  )
+}
+
 /** Whether the signed-in user has favorited one specific entity. Reactive, so it
  *  flips on its own once a {@link toggleFavorite} write syncs back through Zero. */
 export function isFavorited(

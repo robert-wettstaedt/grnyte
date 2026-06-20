@@ -1,10 +1,32 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "area_allRoutes": "All routes",
-  "area_allRoutesCount": "View all {count} routes",
+  "area_allRoutesCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "View all {count} route",
+        "countPlural=other": "View all {count} routes"
+      }
+    }
+  ],
   "area_allRoutesHint": "Browse, sort & filter",
   "area_createdBy": "Created by {username}",
-  "area_gradedCount": "{count} routes graded",
+  "area_distanceAway": "{distance} away",
+  "area_empty_body": "Group routes into a sub-area, or drop a block to start logging routes right here.",
+  "area_empty_hint": "Not sure? A block is the quickest way to add routes.",
+  "area_empty_title": "Start building {name}",
+  "area_gradedCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route graded",
+        "countPlural=other": "{count} routes graded"
+      }
+    }
+  ],
   "area_grades": "Grades",
   "area_manage": "Manage",
   "area_notFound": "Area not found.",
@@ -13,10 +35,22 @@
   "area_type": "Type",
   "area_ungraded": "Ungraded",
   "area_ungradedCount": "+{count} ungraded",
+  "area_youAreHere": "You're here",
   "areas_addArea": "Add area",
   "areas_addParkingLocation": "Add parking",
+  "areas_addSubArea": "Add sub-area",
   "areas_createArea": "Create area",
   "areas_createAreaError": "Could not create the area. Please try again.",
+  "areas_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} area",
+        "countPlural=other": "{count} areas"
+      }
+    }
+  ],
   "areas_editArea": "Edit area",
   "areas_nameExists": "An area named \"{name}\" already exists here",
   "areas_nameHint": "You can rename it anytime",
@@ -45,6 +79,16 @@
   "common_reset": "Reset",
   "common_save": "Save",
   "common_saved": "Saved",
+  "common_savedByOthers": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} save",
+        "countPlural=other": "{count} saves"
+      }
+    }
+  ],
   "common_search": "Search",
   "common_showLess": "Show less",
   "common_showMore": "Show more",
@@ -102,7 +146,16 @@
   "filter_ratingMin": "{count}+ stars",
   "filter_selectedCount": "{count} selected",
   "filter_tags": "Tags",
-  "form_charsMin": "Must be at least {count} characters",
+  "form_charsMin": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Must be at least {count} character",
+        "countPlural=other": "Must be at least {count} characters"
+      }
+    }
+  ],
   "form_noPermission": "You don't have permission to do this.",
   "form_numInvalid": "Enter a valid number",
   "form_required": "This field is required",
@@ -118,7 +171,16 @@
   "queryState_error": "Something went wrong while loading this data.",
   "region_select": "Select a region",
   "region_title": "Region",
-  "routes_routesCount": "{count} routes",
+  "routes_routesCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route",
+        "countPlural=other": "{count} routes"
+      }
+    }
+  ],
   "share_share": "Share",
   "sync_externalResources": "Sync external resources",
   "tab_explore": "Explore",

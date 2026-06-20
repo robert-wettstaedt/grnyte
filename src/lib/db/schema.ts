@@ -449,7 +449,7 @@ export const areas = table(
     ...softDeleteFields,
 
     description: text('description'),
-    type: text('type', { enum: areaTypeEnum }).notNull().default('area'),
+    type: text('type', { enum: areaTypeEnum }),
     walkingPaths: text('walking_paths').array(),
     geoPaths: jsonb('geo_paths').$type<string[]>(),
 

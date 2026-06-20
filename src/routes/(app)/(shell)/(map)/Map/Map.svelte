@@ -292,6 +292,7 @@
       getIsTracking: () => isTrackingGeolocation,
       setIsTracking: (v) => (isTrackingGeolocation = v),
       setIsError: (v) => (isGeolocationError = v),
+      getHasFocus: () => props.focus != null,
     })
 
     // Fullscreen

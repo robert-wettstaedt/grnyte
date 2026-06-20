@@ -16,4 +16,10 @@ export const favoritesQueryDefs = {
       zql.favorites.where('userFk', args.userId).where('entityType', args.entityType).where('entityId', args.entityId),
     ),
   ),
+
+  // Everyone's favorites for one entity — used to count how many people saved it.
+  listEntityFavorites: defineQuery(
+    z.object({ entityType: z.enum(['block', 'route', 'area']), entityId: z.string() }),
+    regionMemberCan(({ args }) => zql.favorites.where('entityType', args.entityType).where('entityId', args.entityId)),
+  ),
 }

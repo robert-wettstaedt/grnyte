@@ -1,6 +1,6 @@
 {
-  "id": "6ad71027-1763-4b68-923c-172c87e9b234",
-  "prevId": "8485e0a8-d6a6-4ce3-90bd-35e47641bd74",
+  "id": "af5154f7-e799-4553-9c74-29296c8a4fb8",
+  "prevId": "0517ce64-fe15-4909-90f5-7b1e9321b677",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -107,9 +107,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_entity_id_idx": {
           "name": "activities_entity_id_idx",
@@ -122,9 +122,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_entity_type_idx": {
           "name": "activities_entity_type_idx",
@@ -137,9 +137,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_notified_idx": {
           "name": "activities_notified_idx",
@@ -152,9 +152,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_parent_entity_id_idx": {
           "name": "activities_parent_entity_id_idx",
@@ -167,9 +167,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_type_idx": {
           "name": "activities_type_idx",
@@ -182,9 +182,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_user_fk_idx": {
           "name": "activities_user_fk_idx",
@@ -197,9 +197,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "activities_region_fk_idx": {
           "name": "activities_region_fk_idx",
@@ -212,37 +212,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "activities_region_fk_regions_id_fk": {
           "name": "activities_region_fk_regions_id_fk",
           "tableFrom": "activities",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "activities_user_fk_users_id_fk": {
           "name": "activities_user_fk_users_id_fk",
           "tableFrom": "activities",
+          "tableTo": "users",
           "columnsFrom": [
             "user_fk"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -317,17 +317,17 @@
           "primaryKey": false,
           "notNull": true
         },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "region_fk": {
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "description": {
           "name": "description",
@@ -337,13 +337,6 @@
         },
         "type": {
           "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'area'"
-        },
-        "visibility": {
-          "name": "visibility",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -379,9 +372,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "areas_region_fk_idx": {
           "name": "areas_region_fk_idx",
@@ -394,65 +387,65 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
-        "areas_slug_idx": {
-          "name": "areas_slug_idx",
+        "areas_deleted_at_idx": {
+          "name": "areas_deleted_at_idx",
           "columns": [
             {
-              "expression": "slug",
+              "expression": "deleted_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "areas_created_by_users_id_fk": {
           "name": "areas_created_by_users_id_fk",
           "tableFrom": "areas",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "areas_region_fk_regions_id_fk": {
           "name": "areas_region_fk_regions_id_fk",
           "tableFrom": "areas",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "areas_parent_fk_areas_id_fk": {
           "name": "areas_parent_fk_areas_id_fk",
           "tableFrom": "areas",
+          "tableTo": "areas",
           "columnsFrom": [
             "parent_fk"
           ],
-          "tableTo": "areas",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -609,9 +602,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "ascents_notes_idx": {
           "name": "ascents_notes_idx",
@@ -624,9 +617,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "ascents_region_fk_idx": {
           "name": "ascents_region_fk_idx",
@@ -639,9 +632,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "ascents_route_fk_idx": {
           "name": "ascents_route_fk_idx",
@@ -654,63 +647,63 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "ascents_region_fk_regions_id_fk": {
           "name": "ascents_region_fk_regions_id_fk",
           "tableFrom": "ascents",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "ascents_created_by_users_id_fk": {
           "name": "ascents_created_by_users_id_fk",
           "tableFrom": "ascents",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "ascents_grade_fk_grades_id_fk": {
           "name": "ascents_grade_fk_grades_id_fk",
           "tableFrom": "ascents",
+          "tableTo": "grades",
           "columnsFrom": [
             "grade_fk"
           ],
-          "tableTo": "grades",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "ascents_route_fk_routes_id_fk": {
           "name": "ascents_route_fk_routes_id_fk",
           "tableFrom": "ascents",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_fk"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -796,17 +789,17 @@
           "primaryKey": false,
           "notNull": true
         },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "region_fk": {
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "order": {
           "name": "order",
@@ -839,24 +832,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
-        "blocks_slug_idx": {
-          "name": "blocks_slug_idx",
+        "blocks_deleted_at_idx": {
+          "name": "blocks_deleted_at_idx",
           "columns": [
             {
-              "expression": "slug",
+              "expression": "deleted_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "blocks_geolocation_fk_idx": {
           "name": "blocks_geolocation_fk_idx",
@@ -869,63 +862,63 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "blocks_created_by_users_id_fk": {
           "name": "blocks_created_by_users_id_fk",
           "tableFrom": "blocks",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "blocks_region_fk_regions_id_fk": {
           "name": "blocks_region_fk_regions_id_fk",
           "tableFrom": "blocks",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "blocks_area_fk_areas_id_fk": {
           "name": "blocks_area_fk_areas_id_fk",
           "tableFrom": "blocks",
+          "tableTo": "areas",
           "columnsFrom": [
             "area_fk"
           ],
-          "tableTo": "areas",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "blocks_geolocation_fk_geolocations_id_fk": {
           "name": "blocks_geolocation_fk_geolocations_id_fk",
           "tableFrom": "blocks",
+          "tableTo": "geolocations",
           "columnsFrom": [
             "geolocation_fk"
           ],
-          "tableTo": "geolocations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1026,9 +1019,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "bunny_streams_file_fk_idx": {
           "name": "bunny_streams_file_fk_idx",
@@ -1041,37 +1034,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "bunny_streams_region_fk_regions_id_fk": {
           "name": "bunny_streams_region_fk_regions_id_fk",
           "tableFrom": "bunny_streams",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "bunny_streams_file_fk_files_id_fk": {
           "name": "bunny_streams_file_fk_files_id_fk",
           "tableFrom": "bunny_streams",
+          "tableTo": "files",
           "columnsFrom": [
             "file_fk"
           ],
-          "tableTo": "files",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1175,15 +1168,15 @@
         "client_error_logs_created_by_users_id_fk": {
           "name": "client_error_logs_created_by_users_id_fk",
           "tableFrom": "client_error_logs",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1252,9 +1245,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "favorites_entity_id_idx": {
           "name": "favorites_entity_id_idx",
@@ -1267,9 +1260,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "favorites_entity_type_idx": {
           "name": "favorites_entity_type_idx",
@@ -1282,51 +1275,51 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "favorites_region_fk_regions_id_fk": {
           "name": "favorites_region_fk_regions_id_fk",
           "tableFrom": "favorites",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "favorites_auth_user_fk_users_id_fk": {
           "name": "favorites_auth_user_fk_users_id_fk",
           "tableFrom": "favorites",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "auth_user_fk"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "favorites_user_fk_users_id_fk": {
           "name": "favorites_user_fk_users_id_fk",
           "tableFrom": "favorites",
+          "tableTo": "users",
           "columnsFrom": [
             "user_fk"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1444,9 +1437,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "files_ascent_fk_idx": {
           "name": "files_ascent_fk_idx",
@@ -1459,9 +1452,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "files_block_fk_idx": {
           "name": "files_block_fk_idx",
@@ -1474,9 +1467,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "files_region_fk_idx": {
           "name": "files_region_fk_idx",
@@ -1489,9 +1482,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "files_route_fk_idx": {
           "name": "files_route_fk_idx",
@@ -1504,89 +1497,89 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "files_region_fk_regions_id_fk": {
           "name": "files_region_fk_regions_id_fk",
           "tableFrom": "files",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "files_area_fk_areas_id_fk": {
           "name": "files_area_fk_areas_id_fk",
           "tableFrom": "files",
+          "tableTo": "areas",
           "columnsFrom": [
             "area_fk"
           ],
-          "tableTo": "areas",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "files_ascent_fk_ascents_id_fk": {
           "name": "files_ascent_fk_ascents_id_fk",
           "tableFrom": "files",
+          "tableTo": "ascents",
           "columnsFrom": [
             "ascent_fk"
           ],
-          "tableTo": "ascents",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "files_block_fk_blocks_id_fk": {
           "name": "files_block_fk_blocks_id_fk",
           "tableFrom": "files",
+          "tableTo": "blocks",
           "columnsFrom": [
             "block_fk"
           ],
-          "tableTo": "blocks",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "files_bunny_stream_fk_bunny_streams_id_fk": {
           "name": "files_bunny_stream_fk_bunny_streams_id_fk",
           "tableFrom": "files",
+          "tableTo": "bunny_streams",
           "columnsFrom": [
             "bunny_stream_fk"
           ],
-          "tableTo": "bunny_streams",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "files_route_fk_routes_id_fk": {
           "name": "files_route_fk_routes_id_fk",
           "tableFrom": "files",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_fk"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1693,9 +1686,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "first_ascensionists_region_fk_idx": {
           "name": "first_ascensionists_region_fk_idx",
@@ -1708,9 +1701,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "first_ascensionists_user_fk_idx": {
           "name": "first_ascensionists_user_fk_idx",
@@ -1723,37 +1716,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "first_ascensionists_region_fk_regions_id_fk": {
           "name": "first_ascensionists_region_fk_regions_id_fk",
           "tableFrom": "first_ascensionists",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "first_ascensionists_user_fk_users_id_fk": {
           "name": "first_ascensionists_user_fk_users_id_fk",
           "tableFrom": "first_ascensionists",
+          "tableTo": "users",
           "columnsFrom": [
             "user_fk"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1826,9 +1819,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "geolocations_block_fk_idx": {
           "name": "geolocations_block_fk_idx",
@@ -1841,9 +1834,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "geolocations_region_fk_idx": {
           "name": "geolocations_region_fk_idx",
@@ -1856,50 +1849,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "geolocations_region_fk_regions_id_fk": {
           "name": "geolocations_region_fk_regions_id_fk",
           "tableFrom": "geolocations",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "geolocations_area_fk_areas_id_fk": {
           "name": "geolocations_area_fk_areas_id_fk",
           "tableFrom": "geolocations",
+          "tableTo": "areas",
           "columnsFrom": [
             "area_fk"
           ],
-          "tableTo": "areas",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "geolocations_block_fk_blocks_id_fk": {
           "name": "geolocations_block_fk_blocks_id_fk",
           "tableFrom": "geolocations",
+          "tableTo": "blocks",
           "columnsFrom": [
             "block_fk"
           ],
-          "tableTo": "blocks",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2070,9 +2063,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "push_subscriptions_user_fk_idx": {
           "name": "push_subscriptions_user_fk_idx",
@@ -2085,38 +2078,38 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "push_subscriptions_auth_user_fk_users_id_fk": {
           "name": "push_subscriptions_auth_user_fk_users_id_fk",
           "tableFrom": "push_subscriptions",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "auth_user_fk"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "push_subscriptions_user_fk_users_id_fk": {
           "name": "push_subscriptions_user_fk_users_id_fk",
           "tableFrom": "push_subscriptions",
+          "tableTo": "users",
           "columnsFrom": [
             "user_fk"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2243,9 +2236,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "region_invitations_region_fk_idx": {
           "name": "region_invitations_region_fk_idx",
@@ -2258,9 +2251,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "region_invitations_email_idx": {
           "name": "region_invitations_email_idx",
@@ -2273,9 +2266,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "region_invitations_status_idx": {
           "name": "region_invitations_status_idx",
@@ -2288,60 +2281,60 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "region_invitations_region_fk_regions_id_fk": {
           "name": "region_invitations_region_fk_regions_id_fk",
           "tableFrom": "region_invitations",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "region_invitations_invited_by_users_id_fk": {
           "name": "region_invitations_invited_by_users_id_fk",
           "tableFrom": "region_invitations",
+          "tableTo": "users",
           "columnsFrom": [
             "invited_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "region_invitations_accepted_by_users_id_fk": {
           "name": "region_invitations_accepted_by_users_id_fk",
           "tableFrom": "region_invitations",
+          "tableTo": "users",
           "columnsFrom": [
             "accepted_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "region_invitations_token_unique": {
           "name": "region_invitations_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2445,9 +2438,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "region_members_region_fk_idx": {
           "name": "region_members_region_fk_idx",
@@ -2460,9 +2453,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "region_members_user_fk_idx": {
           "name": "region_members_user_fk_idx",
@@ -2475,9 +2468,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "region_members_region_auth_user_idx": {
           "name": "region_members_region_auth_user_idx",
@@ -2496,64 +2489,64 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "region_members_region_fk_regions_id_fk": {
           "name": "region_members_region_fk_regions_id_fk",
           "tableFrom": "region_members",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "region_members_auth_user_fk_users_id_fk": {
           "name": "region_members_auth_user_fk_users_id_fk",
           "tableFrom": "region_members",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "auth_user_fk"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "region_members_invited_by_users_id_fk": {
           "name": "region_members_invited_by_users_id_fk",
           "tableFrom": "region_members",
+          "tableTo": "users",
           "columnsFrom": [
             "invited_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "region_members_user_fk_users_id_fk": {
           "name": "region_members_user_fk_users_id_fk",
           "tableFrom": "region_members",
+          "tableTo": "users",
           "columnsFrom": [
             "user_fk"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2665,24 +2658,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "regions_created_by_users_id_fk": {
           "name": "regions_created_by_users_id_fk",
           "tableFrom": "regions",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2866,28 +2859,28 @@
         "route_external_resource_27crags_region_fk_regions_id_fk": {
           "name": "route_external_resource_27crags_region_fk_regions_id_fk",
           "tableFrom": "route_external_resource_27crags",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resource_27crags_external_resources_fk_route_external_resources_id_fk": {
           "name": "route_external_resource_27crags_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "route_external_resource_27crags",
+          "tableTo": "route_external_resources",
           "columnsFrom": [
             "external_resources_fk"
           ],
-          "tableTo": "route_external_resources",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3064,28 +3057,28 @@
         "route_external_resource_8a_region_fk_regions_id_fk": {
           "name": "route_external_resource_8a_region_fk_regions_id_fk",
           "tableFrom": "route_external_resource_8a",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resource_8a_external_resources_fk_route_external_resources_id_fk": {
           "name": "route_external_resource_8a_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "route_external_resource_8a",
+          "tableTo": "route_external_resources",
           "columnsFrom": [
             "external_resources_fk"
           ],
-          "tableTo": "route_external_resources",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3202,28 +3195,28 @@
         "route_external_resource_the_crag_region_fk_regions_id_fk": {
           "name": "route_external_resource_the_crag_region_fk_regions_id_fk",
           "tableFrom": "route_external_resource_the_crag",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resource_the_crag_external_resources_fk_route_external_resources_id_fk": {
           "name": "route_external_resource_the_crag_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "route_external_resource_the_crag",
+          "tableTo": "route_external_resources",
           "columnsFrom": [
             "external_resources_fk"
           ],
-          "tableTo": "route_external_resources",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3323,9 +3316,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "route_external_resources_region_fk_idx": {
           "name": "route_external_resources_region_fk_idx",
@@ -3338,76 +3331,76 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "route_external_resources_region_fk_regions_id_fk": {
           "name": "route_external_resources_region_fk_regions_id_fk",
           "tableFrom": "route_external_resources",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resources_route_fk_routes_id_fk": {
           "name": "route_external_resources_route_fk_routes_id_fk",
           "tableFrom": "route_external_resources",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_fk"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resources_external_resource_8a_fk_route_external_resource_8a_id_fk": {
           "name": "route_external_resources_external_resource_8a_fk_route_external_resource_8a_id_fk",
           "tableFrom": "route_external_resources",
+          "tableTo": "route_external_resource_8a",
           "columnsFrom": [
             "external_resource_8a_fk"
           ],
-          "tableTo": "route_external_resource_8a",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resources_external_resource_27crags_fk_route_external_resource_27crags_id_fk": {
           "name": "route_external_resources_external_resource_27crags_fk_route_external_resource_27crags_id_fk",
           "tableFrom": "route_external_resources",
+          "tableTo": "route_external_resource_27crags",
           "columnsFrom": [
             "external_resource_27crags_fk"
           ],
-          "tableTo": "route_external_resource_27crags",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "route_external_resources_external_resource_the_crag_fk_route_external_resource_the_crag_id_fk": {
           "name": "route_external_resources_external_resource_the_crag_fk_route_external_resource_the_crag_id_fk",
           "tableFrom": "route_external_resources",
+          "tableTo": "route_external_resource_the_crag",
           "columnsFrom": [
             "external_resource_the_crag_fk"
           ],
-          "tableTo": "route_external_resource_the_crag",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3483,17 +3476,17 @@
           "primaryKey": false,
           "notNull": true
         },
-        "slug": {
-          "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "region_fk": {
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "description": {
           "name": "description",
@@ -3568,9 +3561,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_description_idx": {
           "name": "routes_description_idx",
@@ -3583,9 +3576,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_region_fk_idx": {
           "name": "routes_region_fk_idx",
@@ -3598,24 +3591,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
-        "routes_slug_idx": {
-          "name": "routes_slug_idx",
+        "routes_deleted_at_idx": {
+          "name": "routes_deleted_at_idx",
           "columns": [
             {
-              "expression": "slug",
+              "expression": "deleted_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_area_fks_gin_idx": {
           "name": "routes_area_fks_gin_idx",
@@ -3628,9 +3621,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "gin",
-          "concurrently": false
+          "with": {}
         },
         "routes_area_ids_idx": {
           "name": "routes_area_ids_idx",
@@ -3643,9 +3636,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_grade_fk_idx": {
           "name": "routes_grade_fk_idx",
@@ -3658,9 +3651,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_user_grade_fk_idx": {
           "name": "routes_user_grade_fk_idx",
@@ -3673,9 +3666,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_rating_idx": {
           "name": "routes_rating_idx",
@@ -3688,9 +3681,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_first_ascent_year_idx": {
           "name": "routes_first_ascent_year_idx",
@@ -3703,9 +3696,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_created_by_idx": {
           "name": "routes_created_by_idx",
@@ -3718,89 +3711,89 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routes_created_by_users_id_fk": {
           "name": "routes_created_by_users_id_fk",
           "tableFrom": "routes",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_region_fk_regions_id_fk": {
           "name": "routes_region_fk_regions_id_fk",
           "tableFrom": "routes",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_block_fk_blocks_id_fk": {
           "name": "routes_block_fk_blocks_id_fk",
           "tableFrom": "routes",
+          "tableTo": "blocks",
           "columnsFrom": [
             "block_fk"
           ],
-          "tableTo": "blocks",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_external_resources_fk_route_external_resources_id_fk": {
           "name": "routes_external_resources_fk_route_external_resources_id_fk",
           "tableFrom": "routes",
+          "tableTo": "route_external_resources",
           "columnsFrom": [
             "external_resources_fk"
           ],
-          "tableTo": "route_external_resources",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_grade_fk_grades_id_fk": {
           "name": "routes_grade_fk_grades_id_fk",
           "tableFrom": "routes",
+          "tableTo": "grades",
           "columnsFrom": [
             "grade_fk"
           ],
-          "tableTo": "grades",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_user_grade_fk_grades_id_fk": {
           "name": "routes_user_grade_fk_grades_id_fk",
           "tableFrom": "routes",
+          "tableTo": "grades",
           "columnsFrom": [
             "user_grade_fk"
           ],
-          "tableTo": "grades",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3907,9 +3900,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_to_first_ascensionists_route_fk_idx": {
           "name": "routes_to_first_ascensionists_route_fk_idx",
@@ -3922,50 +3915,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routes_to_first_ascensionists_region_fk_regions_id_fk": {
           "name": "routes_to_first_ascensionists_region_fk_regions_id_fk",
           "tableFrom": "routes_to_first_ascensionists",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_to_first_ascensionists_first_ascensionist_fk_first_ascensionists_id_fk": {
           "name": "routes_to_first_ascensionists_first_ascensionist_fk_first_ascensionists_id_fk",
           "tableFrom": "routes_to_first_ascensionists",
+          "tableTo": "first_ascensionists",
           "columnsFrom": [
             "first_ascensionist_fk"
           ],
-          "tableTo": "first_ascensionists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_to_first_ascensionists_route_fk_routes_id_fk": {
           "name": "routes_to_first_ascensionists_route_fk_routes_id_fk",
           "tableFrom": "routes_to_first_ascensionists",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_fk"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4020,9 +4013,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_to_tags_route_fk_idx": {
           "name": "routes_to_tags_route_fk_idx",
@@ -4035,9 +4028,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "routes_to_tags_tag_fk_idx": {
           "name": "routes_to_tags_tag_fk_idx",
@@ -4050,50 +4043,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "routes_to_tags_region_fk_regions_id_fk": {
           "name": "routes_to_tags_region_fk_regions_id_fk",
           "tableFrom": "routes_to_tags",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_to_tags_route_fk_routes_id_fk": {
           "name": "routes_to_tags_route_fk_routes_id_fk",
           "tableFrom": "routes_to_tags",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_fk"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "routes_to_tags_tag_fk_tags_id_fk": {
           "name": "routes_to_tags_tag_fk_tags_id_fk",
           "tableFrom": "routes_to_tags",
+          "tableTo": "tags",
           "columnsFrom": [
             "tag_fk"
           ],
-          "tableTo": "tags",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -4249,9 +4242,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "topo_routes_route_fk_idx": {
           "name": "topo_routes_route_fk_idx",
@@ -4264,9 +4257,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "topo_routes_topo_fk_idx": {
           "name": "topo_routes_topo_fk_idx",
@@ -4279,50 +4272,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "topo_routes_region_fk_regions_id_fk": {
           "name": "topo_routes_region_fk_regions_id_fk",
           "tableFrom": "topo_routes",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "topo_routes_route_fk_routes_id_fk": {
           "name": "topo_routes_route_fk_routes_id_fk",
           "tableFrom": "topo_routes",
+          "tableTo": "routes",
           "columnsFrom": [
             "route_fk"
           ],
-          "tableTo": "routes",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "topo_routes_topo_fk_topos_id_fk": {
           "name": "topo_routes_topo_fk_topos_id_fk",
           "tableFrom": "topo_routes",
+          "tableTo": "topos",
           "columnsFrom": [
             "topo_fk"
           ],
-          "tableTo": "topos",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4419,9 +4412,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "topos_region_fk_idx": {
           "name": "topos_region_fk_idx",
@@ -4434,9 +4427,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "topos_file_fk_idx": {
           "name": "topos_file_fk_idx",
@@ -4449,50 +4442,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "topos_region_fk_regions_id_fk": {
           "name": "topos_region_fk_regions_id_fk",
           "tableFrom": "topos",
+          "tableTo": "regions",
           "columnsFrom": [
             "region_fk"
           ],
-          "tableTo": "regions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "topos_block_fk_blocks_id_fk": {
           "name": "topos_block_fk_blocks_id_fk",
           "tableFrom": "topos",
+          "tableTo": "blocks",
           "columnsFrom": [
             "block_fk"
           ],
-          "tableTo": "blocks",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "topos_file_fk_files_id_fk": {
           "name": "topos_file_fk_files_id_fk",
           "tableFrom": "topos",
+          "tableTo": "files",
           "columnsFrom": [
             "file_fk"
           ],
-          "tableTo": "files",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4577,16 +4570,16 @@
         "user_roles_auth_user_fk_users_id_fk": {
           "name": "user_roles_auth_user_fk_users_id_fk",
           "tableFrom": "user_roles",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "auth_user_fk"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4695,9 +4688,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "user_settings_user_fk_idx": {
           "name": "user_settings_user_fk_idx",
@@ -4710,38 +4703,38 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "user_settings_auth_user_fk_users_id_fk": {
           "name": "user_settings_auth_user_fk_users_id_fk",
           "tableFrom": "user_settings",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "auth_user_fk"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "user_settings_user_fk_users_id_fk": {
           "name": "user_settings_user_fk_users_id_fk",
           "tableFrom": "user_settings",
+          "tableTo": "users",
           "columnsFrom": [
             "user_fk"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4833,9 +4826,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "users_first_ascentionist_fk_idx": {
           "name": "users_first_ascentionist_fk_idx",
@@ -4848,9 +4841,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "users_username_idx": {
           "name": "users_username_idx",
@@ -4863,51 +4856,51 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "users_auth_user_fk_users_id_fk": {
           "name": "users_auth_user_fk_users_id_fk",
           "tableFrom": "users",
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsFrom": [
             "auth_user_fk"
           ],
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "users_first_ascentionist_fk_first_ascensionists_id_fk": {
           "name": "users_first_ascentionist_fk_first_ascensionists_id_fk",
           "tableFrom": "users",
+          "tableTo": "first_ascensionists",
           "columnsFrom": [
             "first_ascentionist_fk"
           ],
-          "tableTo": "first_ascensionists",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "users_user_settings_fk_user_settings_id_fk": {
           "name": "users_user_settings_fk_user_settings_id_fk",
           "tableFrom": "users",
+          "tableTo": "user_settings",
           "columnsFrom": [
             "user_settings_fk"
           ],
-          "tableTo": "user_settings",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4970,10 +4963,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -6,6 +6,7 @@ interface GeolocationCallbacks {
   getIsTracking: () => boolean
   setIsTracking: (value: boolean) => void
   setIsError: (value: boolean) => void
+  getHasFocus: () => boolean
 }
 
 export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallbacks): () => void {
@@ -49,6 +50,18 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
   mapInstance.on('pointerdrag', () => {
     callbacks.setIsTracking(false)
   })
+
+  // Reuse an already-granted permission: resume tracking on (re)mount without re-prompting.
+  // Querying the Permissions API never shows a prompt.
+  void navigator.permissions
+    ?.query({ name: 'geolocation' })
+    .then((status) => {
+      if (status.state !== 'granted') return
+      geolocation.setTracking(true)
+      // Show the marker, but don't hijack the view when the map is focused on a target.
+      if (!callbacks.getHasFocus()) callbacks.setIsTracking(true)
+    })
+    .catch(() => {})
 
   return () => {
     geolocation.setTracking(false)

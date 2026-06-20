@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from '$app/environment'
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
@@ -8,16 +7,14 @@
   import Dialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canEditArea } from '$lib/entities/area/permissions'
   import { createBlock } from '$lib/entities/block/blocks.remote'
-  import { toggleFavorite } from '$lib/entities/favorite/favorites.remote'
-  import { isFavorited } from '$lib/entities/favorite/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import DirectionsButton from './DirectionsButton.svelte'
+  import SaveButton from './SaveButton.svelte'
 
   interface Props {
     area: AreaDetail
@@ -39,28 +36,6 @@
   const showAdd = $derived(canAddAreaHere || canAddBlockHere || canEdit)
   const showManage = $derived(canEdit || canExport || canAdmin)
 
-  // Saved state is read reactively from Zero, but the write goes through a
-  // remote command (not a Zero mutator) so it won't reflect optimistically. We
-  // pin the user's intent in `savedOverride` for an instant toggle; it always
-  // converges with the synced value (and reverts on failure).
-  const favorited = isFavorited(
-    () => global.user?.id,
-    () => 'area',
-    () => String(area.id),
-  )
-  let savedOverride = $state<boolean | undefined>(undefined)
-  const saved = $derived(savedOverride ?? favorited.data)
-
-  const toggleSave = async () => {
-    const next = !saved
-    savedOverride = next
-    try {
-      await toggleFavorite({ entityId: String(area.id), entityType: 'area', regionFk: area.regionFk })
-    } catch {
-      savedOverride = !next
-    }
-  }
-
   // `navigator` is undefined during SSR and `navigator.share` only accepts data
   // it can actually share, so guard on both — the button only appears when the
   // platform supports the Web Share API.
@@ -81,24 +56,10 @@
 <div class="flex gap-2">
   <DirectionsButton {area} />
 
-  <button
-    aria-pressed={saved}
-    class={['btn btn-lg text-base', saved ? 'preset-tonal-primary' : 'preset-tonal']}
-    disabled={favorited.isSyncing}
-    onclick={toggleSave}
-    type="button"
-  >
-    {#if favorited.isSyncing}
-      <LoadingIndicator size="19px" />
-    {:else}
-      <Icon name="bookmark" fill={saved ? 'currentColor' : 'none'} size={19} />
-    {/if}
-
-    {saved ? m.common_saved() : m.common_save()}
-  </button>
+  <SaveButton entityId={String(area.id)} entityType="area" regionFk={area.regionFk} />
 
   {#if canShare}
-    <button type="button" class="btn preset-tonal btn-lg text-base" aria-label={m.share_share()} onclick={share}>
+    <button type="button" class="btn preset-tonal btn-lg h-12 w-12 px-0" aria-label={m.share_share()} onclick={share}>
       <Icon name="share" size={19} />
     </button>
   {/if}
@@ -185,8 +146,7 @@
     open={addBlockOpen}
     onOpenChange={(event) => (addBlockOpen = event.open)}
     onsave={async () => {
-      const block = await createBlock({ areaId: area.id })
-      await goto(resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(block.id) }))
+      await createBlock({ areaId: area.id })
     }}
     pending={createBlock.pending}
     saveText={m.common_ok()}

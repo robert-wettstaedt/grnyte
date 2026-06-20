@@ -14,6 +14,7 @@
   import { sheetState } from '../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
   import AreaDescription from './AreaDescription.svelte'
+  import AreaEmpty from './AreaEmpty.svelte'
   import AreaList from './AreaList.svelte'
   import GradeHistogram from './GradeHistogram.svelte'
 
@@ -57,7 +58,7 @@
   // (type · name) and a breadcrumb subtitle built from the region and ancestors.
   $effect(() => {
     const data = area.data
-    sheetState.title = data == null ? '' : `${capitalize(data.type)} · ${data.name}`
+    sheetState.title = [data?.type == null ? null : capitalize(data.type), data?.name].filter(Boolean).join(' · ')
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
   })
 </script>
@@ -111,8 +112,10 @@
 
       {#if detail.type === 'crag'}
         <!-- <BlocksList areaFk={area.id} basePath={resolve('/bla')} regionFk={area.regionFk} sortable={false} /> -->
-      {:else}
+      {:else if detail.type === 'area'}
         <AreaList areas={subAreas.data} />
+      {:else}
+        <AreaEmpty area={detail} />
       {/if}
     </div>
   {/snippet}

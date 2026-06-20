@@ -23,7 +23,12 @@ export const stringToInt = z.codec(
 )
 
 export const stringToIntOptional = z.codec(
-  z.union([z.literal(''), z.string({ error: formError('form_required') }).regex(z.regexes.integer, formError('form_numInvalid'))]).optional(),
+  z
+    .union([
+      z.literal(''),
+      z.string({ error: formError('form_required') }).regex(z.regexes.integer, formError('form_numInvalid')),
+    ])
+    .optional(),
   z.int().optional(),
   {
     decode: (str) => (str == null || str === '' ? undefined : Number.parseInt(str, 10)),
@@ -41,7 +46,12 @@ export const stringToNumber = z.codec(
 )
 
 export const stringToNumberOptional = z.codec(
-  z.union([z.literal(''), z.string({ error: formError('form_required') }).regex(z.regexes.number, formError('form_numInvalid'))]).optional(),
+  z
+    .union([
+      z.literal(''),
+      z.string({ error: formError('form_required') }).regex(z.regexes.number, formError('form_numInvalid')),
+    ])
+    .optional(),
   z.number().optional(),
   {
     decode: (str) => (str == null || str === '' ? undefined : Number.parseFloat(str)),

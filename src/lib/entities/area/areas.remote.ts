@@ -1,5 +1,5 @@
 import { resolve } from '$app/paths'
-import { areas, areaTypeEnum } from '$lib/db/schema'
+import { areas } from '$lib/db/schema'
 import { formError, stringToInt } from '$lib/forms/schemas'
 import { authedForm } from '$lib/server/remote'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -17,7 +17,6 @@ const areaActionSchema = z.object({
     .min(3, { error: formError('form_charsMin', { count: 3 }) }),
   parentFk: stringToInt.optional(),
   regionFk: stringToInt,
-  type: z.enum(areaTypeEnum).default('area'),
 })
 
 /** Field shape the shared area form (`AreaFormFields`) binds to — same for create and edit. */
@@ -31,7 +30,10 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
     invalid(formError('area_parentNotFound'))
   }
 
-  if (!canAddArea(userRegions, value) || (parentArea != null && !canAddArea(userRegions, parentArea))) {
+  if (
+    !canAddArea(userRegions, { ...value, type: null }) ||
+    (parentArea != null && !canAddArea(userRegions, parentArea))
+  ) {
     invalid(formError('form_noPermission'))
   }
 
@@ -48,8 +50,12 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
 
   const [createdArea] = await db
     .insert(areas)
-    .values({ ...value, createdBy: user.id, id: undefined })
+    .values({ ...value, createdBy: user.id, id: undefined, type: null })
     .returning()
+
+  if (value.parentFk != null) {
+    await db.update(areas).set({ type: 'area' }).where(eq(areas.id, value.parentFk))
+  }
 
   // TODO: add later when activities are implemented
   // await insertActivity(db, {
@@ -73,7 +79,7 @@ export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, 
     invalid(formError('area_parentNotFound'))
   }
 
-  if (!canEditArea(userRegions, value)) {
+  if (!canEditArea(userRegions, { ...value, type: null })) {
     invalid(formError('form_noPermission'))
   }
 
