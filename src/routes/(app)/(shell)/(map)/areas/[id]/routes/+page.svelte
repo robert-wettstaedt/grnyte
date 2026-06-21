@@ -36,8 +36,8 @@
 
   // The shared Modal renders its header from sheetState; label it with the area.
   $effect(() => {
-    sheetState.title = area.data == null ? m.area_allRoutes() : `${m.area_allRoutes()} · ${area.data.name}`
-    sheetState.subtitle = null
+    sheetState.title = m.area_allRoutes()
+    sheetState.subtitle = area.data?.name ?? null
     sheetState.headerLeft = headerLeft
   })
 </script>

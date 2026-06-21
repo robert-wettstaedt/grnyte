@@ -47,7 +47,7 @@
   <div class="preset-filled-surface-100-900 relative flex w-full max-w-64 md:max-w-none">
     <input
       bind:value
-      class="ig-input w-full pr-10!"
+      class="ig-input w-full rounded-l-lg pr-10!"
       name="q"
       onkeyup={onchange}
       placeholder={m.common_search()}

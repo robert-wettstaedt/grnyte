@@ -58,7 +58,7 @@
   // (type · name) and a breadcrumb subtitle built from the region and ancestors.
   $effect(() => {
     const data = area.data
-    sheetState.title = [data?.type == null ? null : capitalize(data.type), data?.name].filter(Boolean).join(' · ')
+    sheetState.title = title
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
   })
 </script>
@@ -128,5 +128,21 @@
 {#snippet breadcrumb()}
   {#if area.data != null}
     <Breadcrumb area={area.data} userRegions={global.userRegions} />
+  {/if}
+{/snippet}
+
+{#snippet title()}
+  {#if area.data != null}
+    <div class="flex items-center gap-2">
+      {area.data.name}
+
+      {#if area.data.type != null}
+        <span
+          class="bg-primary-500/20 text-primary-400 inline-flex h-5.25 items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
+        >
+          {capitalize(area.data.type)}
+        </span>
+      {/if}
+    </div>
   {/if}
 {/snippet}

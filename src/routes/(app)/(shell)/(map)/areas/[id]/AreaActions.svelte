@@ -9,7 +9,7 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
-  import { canAddArea, canAddBlock, canEditArea } from '$lib/entities/area/permissions'
+  import { canAddArea, canAddBlock, canAddParking, canEditArea } from '$lib/entities/area/permissions'
   import { createBlock } from '$lib/entities/block/blocks.remote'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -30,11 +30,11 @@
   const canAdmin = $derived(checkRegionPermission(global.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk))
   const canAddAreaHere = $derived(canAddArea(global.userRegions, area))
   const canAddBlockHere = $derived(canAddBlock(global.userRegions, area))
-  const canExport = $derived(canAdmin && area.type === 'crag')
+  const canAddParkingHere = $derived(canAddParking(global.userRegions, area))
 
   // Which sheet sections have at least one available action.
-  const showAdd = $derived(canAddAreaHere || canAddBlockHere || canEdit)
-  const showManage = $derived(canEdit || canExport || canAdmin)
+  const showAdd = $derived(canAddAreaHere || canAddBlockHere || canAddParkingHere)
+  const showManage = $derived(canEdit || canAdmin)
 
   // `navigator` is undefined during SSR and `navigator.share` only accepts data
   // it can actually share, so guard on both — the button only appears when the
@@ -100,7 +100,7 @@
           {@render row({ icon: 'block', label: m.blocks_addBlock(), accent: true, onclick: addBlock })}
         {/if}
 
-        {#if canEdit}
+        {#if canAddParkingHere}
           {@render row({
             icon: 'parking',
             label: m.areas_addParkingLocation(),
@@ -121,7 +121,7 @@
           })}
         {/if}
 
-        {#if canExport}
+        {#if canAdmin}
           {@render row({
             icon: 'file-text',
             label: m.export_pdf(),

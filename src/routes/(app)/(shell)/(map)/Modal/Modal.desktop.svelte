@@ -38,16 +38,16 @@
             {/if}
 
             <Dialog.Title class="flex min-w-0 flex-col">
-              {#if sheetState.subtitle}
+              {#if typeof sheetState.subtitle === 'string'}
+                <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
+              {:else if sheetState.subtitle != null}
                 {@render sheetState.subtitle()}
               {/if}
 
-              {#if sheetState.title}
-                {#if typeof sheetState.title === 'string'}
-                  <span class="text-lg">{sheetState.title}</span>
-                {:else if sheetState.title != null}
-                  {@render sheetState.title()}
-                {/if}
+              {#if typeof sheetState.title === 'string'}
+                <span class="text-lg">{sheetState.title}</span>
+              {:else if sheetState.title != null}
+                {@render sheetState.title()}
               {/if}
             </Dialog.Title>
           </div>
