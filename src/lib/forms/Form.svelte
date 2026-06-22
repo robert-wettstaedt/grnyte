@@ -3,7 +3,7 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
-  import type { Snippet } from 'svelte'
+  import { tick, type Snippet } from 'svelte'
   import FormError from './FormError.svelte'
 
   // Generic chrome for a full-screen remote form: sticky Cancel · title · Submit header,
@@ -23,6 +23,7 @@
   // only when false (false positives are common, false negatives are not) and
   // rethrow anything else so real server errors surface as form issues.
   let offline = $state(false)
+  let formEl = $state<HTMLFormElement>()
 </script>
 
 <!-- Back online → restore the form; the remote form keeps the entered values. -->
@@ -32,9 +33,12 @@
   <ErrorState type="offline" />
 {:else}
   <form
+    bind:this={formEl}
     {...form.enhance(async ({ submit }) => {
       try {
         await submit()
+        await tick()
+        formEl?.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
       } catch (error) {
         if (!navigator.onLine) {
           offline = true
