@@ -59,21 +59,25 @@ export const remarkGrades: Plugin<[RemarkGradesOptions?], Root> = ({ grades } = 
     const replacements = (grades ?? []).toReversed().flatMap((grade) => {
       const arr: FindAndReplaceList = []
 
-      if (grade.FB != null) {
-        const fb = grade.FB
-        const fbNoSpaces = fb.replaceAll(/\s/g, '')
-        const fbSecondToken = fb.split(/\s+/).at(1)
-
-        const replaceFB = replaceWithGrade(fb, grade)
-        arr.push([createGradeTokenRegex(fb), replaceFB], [createGradeTokenRegex(fbNoSpaces), replaceFB])
-
-        if (fbSecondToken != null && fbSecondToken.length > 0) {
-          arr.push([createGradeTokenRegex(fbSecondToken), replaceFB])
+      // Skip blank tokens: an empty grade label (e.g. a V-only grade row where
+      // `FB` is '') would build a zero-width regex that matches everywhere and
+      // sends `findAndReplace` into an infinite loop once a badge is inserted.
+      const pushToken = (token: string, replace: ReplaceFunction) => {
+        if (token.trim().length > 0) {
+          arr.push([createGradeTokenRegex(token), replace])
         }
       }
 
+      if (grade.FB != null) {
+        const fb = grade.FB
+        const replaceFB = replaceWithGrade(fb, grade)
+        pushToken(fb, replaceFB)
+        pushToken(fb.replaceAll(/\s/g, ''), replaceFB)
+        pushToken(fb.split(/\s+/).at(1) ?? '', replaceFB)
+      }
+
       if (grade.V != null) {
-        arr.push([createGradeTokenRegex(grade.V), replaceWithGrade(grade.V, grade)])
+        pushToken(grade.V, replaceWithGrade(grade.V, grade))
       }
 
       return arr
