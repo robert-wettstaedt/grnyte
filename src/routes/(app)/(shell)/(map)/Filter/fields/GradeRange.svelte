@@ -36,7 +36,7 @@
 
 <div class="flex flex-col gap-3">
   <div class="flex items-baseline justify-between">
-    <span class="text-sm font-medium">{m.filter_grade()}</span>
+    <span class="text-surface-600-400 text-xs font-bold tracking-wide uppercase">{m.filter_grade()}</span>
     <span class="text-surface-600-400 text-sm tabular-nums">
       {gradeLabel(value[0])} – {gradeLabel(value[1])}
     </span>

@@ -3,6 +3,7 @@ import type { Snippet } from 'svelte'
 let _title = $state<Snippet | string | null>(null)
 let _subtitle = $state<Snippet | string | null>(null)
 let _headerLeft = $state<Snippet | null>(null)
+let _toolbar = $state<Snippet | null>(null)
 let _requestSnap = $state<0.25 | 0.5 | 0.75 | null>(null)
 
 export const sheetState = {
@@ -23,6 +24,13 @@ export const sheetState = {
   },
   set headerLeft(value: Snippet | null) {
     _headerLeft = value
+  },
+  /** Optional second header row (e.g. filter/sort controls), pinned above the scroll area. */
+  get toolbar() {
+    return _toolbar
+  },
+  set toolbar(value: Snippet | null) {
+    _toolbar = value
   },
   get requestSnap() {
     return _requestSnap

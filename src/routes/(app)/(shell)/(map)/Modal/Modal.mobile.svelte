@@ -65,38 +65,44 @@
 
     <div
       bind:this={titleEl}
-      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-0 z-100 flex items-center justify-between gap-2 border-b-2 px-4 py-2"
+      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-0 z-100 flex flex-col gap-2 border-b-2 px-4 py-2"
     >
-      <div class="flex min-w-0 flex-1 items-center gap-2">
-        {#if sheetState.headerLeft}
-          {@render sheetState.headerLeft()}
-        {/if}
-
-        <div class="flex min-w-0 flex-col">
-          {#if typeof sheetState.subtitle === 'string'}
-            <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
-          {:else if sheetState.subtitle != null}
-            {@render sheetState.subtitle()}
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex min-w-0 flex-1 items-center gap-2">
+          {#if sheetState.headerLeft}
+            {@render sheetState.headerLeft()}
           {/if}
 
-          {#if typeof sheetState.title === 'string'}
-            <span class="text-lg">{sheetState.title}</span>
-          {:else if sheetState.title != null}
-            {@render sheetState.title()}
-          {/if}
+          <div class="flex min-w-0 flex-col">
+            {#if typeof sheetState.subtitle === 'string'}
+              <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
+            {:else if sheetState.subtitle != null}
+              {@render sheetState.subtitle()}
+            {/if}
+
+            {#if typeof sheetState.title === 'string'}
+              <span class="text-lg">{sheetState.title}</span>
+            {:else if sheetState.title != null}
+              {@render sheetState.title()}
+            {/if}
+          </div>
         </div>
+
+        <button
+          class="btn-icon preset-filled-surface-200-800 shrink-0"
+          aria-label={m.common_close()}
+          onclick={(event) => {
+            event.preventDefault()
+            open = false
+          }}
+        >
+          <Icon name="close" />
+        </button>
       </div>
 
-      <button
-        class="btn-icon preset-filled-surface-200-800 shrink-0"
-        aria-label={m.common_close()}
-        onclick={(event) => {
-          event.preventDefault()
-          open = false
-        }}
-      >
-        <Icon name="close" />
-      </button>
+      {#if sheetState.toolbar}
+        {@render sheetState.toolbar()}
+      {/if}
     </div>
 
     <BottomSheet.Content class="w-full px-4!">

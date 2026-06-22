@@ -20,18 +20,48 @@
   import TagSelect from './fields/TagSelect.svelte'
   import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from './filter'
 
+  interface SortOption {
+    value: string
+    label: string
+  }
+
   interface Props {
     loading: boolean
     routes: RouteListItem[]
+    /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
+    sortOptions?: SortOption[]
+    /** Default direction per sort field, used to seed Order and detect defaults. */
+    sortDefaults?: Record<string, 'asc' | 'desc'>
+    /**
+     * Desktop panel placement: `search` drops it under the search bar (explore),
+     * `sheet` docks a slim column beside the routes sheet (area routes). No effect on mobile.
+     */
+    placement?: 'search' | 'sheet'
   }
 
-  const { loading, routes }: Props = $props()
+  const { loading, routes, sortOptions, sortDefaults, placement = 'search' }: Props = $props()
+
+  // Desktop panel geometry. `search`: under the search bar, sharing its x + width.
+  // `sheet`: a slim column docked right of the routes sheet, sharing its y + height.
+  // Offsets mirror the search bar (top-2 + h-12) and the area sheet (left-27, w-sm/md, py-12).
+  const panelClass = $derived(
+    placement === 'sheet'
+      ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-12 lg:left-[35.25rem]'
+      : 'fixed inset-0 left-27 z-60 flex items-start pt-16',
+  )
+  const contentClass = $derived(
+    placement === 'sheet' ? 'h-[calc(100dvh-6rem)] w-80' : 'max-h-[calc(100dvh-4.5rem)] w-sm lg:w-md',
+  )
 
   const global = getGlobalState()
 
   // Whether any filter is applied lives here rather than the layout — it's pure
   // filter knowledge, derived from the same params the controls read.
   const active = $derived(isFilterActive(page.url.searchParams))
+
+  const showSort = $derived(sortOptions != null && sortOptions.length > 0)
+  const defaultSortField = $derived(sortOptions?.[0]?.value ?? '')
+  const dirFor = (field: string): 'asc' | 'desc' => sortDefaults?.[field] ?? 'desc'
 
   // Reads from the preloaded `firstAscensionists` table, so this is local data.
   const firstAscensionists = firstAscensionistList()
@@ -57,6 +87,13 @@
   let mediaFilters = $state<MediaFilter[]>([])
   let favoritesOnly = $state(false)
   let selectedFirstAscensionists = $state<number[]>([])
+  let sortField = $state('')
+  let sortDir = $state<'asc' | 'desc'>('desc')
+
+  const changeSortField = (field: string) => {
+    sortField = field
+    sortDir = dirFor(field)
+  }
 
   const routeCountByGrade = $derived.by(() => {
     const counts = new SvelteMap<number, number>()
@@ -136,6 +173,13 @@
 
       const faParam = page.url.searchParams.get('firstAscensionists')
       selectedFirstAscensionists = faParam ? faParam.split(',').map(Number) : []
+
+      if (showSort) {
+        const sortParam = page.url.searchParams.get('sort')
+        sortField = sortOptions!.some((option) => option.value === sortParam) ? sortParam! : defaultSortField
+        const dirParam = page.url.searchParams.get('dir')
+        sortDir = dirParam === 'asc' || dirParam === 'desc' ? dirParam : dirFor(sortField)
+      }
     }
     open = !open
   }
@@ -198,6 +242,20 @@
       url.searchParams.set('firstAscensionists', selectedFirstAscensionists.join(','))
     }
 
+    if (showSort) {
+      // Omit params that match the page's defaults (first field, its default dir).
+      if (sortField === defaultSortField) {
+        url.searchParams.delete('sort')
+      } else {
+        url.searchParams.set('sort', sortField)
+      }
+      if (sortDir === dirFor(sortField)) {
+        url.searchParams.delete('dir')
+      } else {
+        url.searchParams.set('dir', sortDir)
+      }
+    }
+
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(url)
     open = false
@@ -208,6 +266,12 @@
     for (const key of FILTER_PARAM_KEYS) {
       url.searchParams.delete(key)
     }
+    // Sort isn't a filter param (it shouldn't light the count badge), but the
+    // shared sheet's Reset clears it too.
+    if (showSort) {
+      url.searchParams.delete('sort')
+      url.searchParams.delete('dir')
+    }
 
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(url)
@@ -217,18 +281,26 @@
 
 <Modal
   bind:open
-  title={m.common_filter()}
+  panel
+  {panelClass}
+  {contentClass}
+  title={showSort ? m.filter_filterAndSort() : m.common_filter()}
   snapPoints={[0.75, 0.6]}
   subtitle={m.routes_routesCount({ count: routes.length })}
+  footer={modalFooter}
 >
   {#snippet trigger(props)}
     <button
       {...props}
-      class={[props.class, 'btn btn-sm relative', open ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900']}
+      class={[
+        props.class,
+        'btn-icon relative shrink-0 gap-1.5',
+        open ? 'preset-filled-primary-500' : 'preset-filled-surface-200-800',
+      ]}
       onclick={toggleOpen}
     >
       {#if active}
-        <span class="absolute top-0 right-0 z-10 h-2 w-2 rounded-full bg-red-500"></span>
+        <span class="absolute -top-0.5 -right-0.5 z-10 h-2 w-2 rounded-full bg-red-500"></span>
       {/if}
 
       {#if loading}
@@ -239,7 +311,42 @@
     </button>
   {/snippet}
 
-  <div class="mt-4 pb-16 md:mt-0">
+  <div class="mt-4 md:mt-0">
+    {#if showSort}
+      <div class="border-surface-200-800 mb-4 border-b pb-4">
+        <span class="text-surface-600-400 text-xs font-bold tracking-wide uppercase">{m.sort_sortBy()}</span>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          {#each sortOptions! as option (option.value)}
+            <button
+              type="button"
+              class={['btn', sortField === option.value ? 'preset-filled-primary-500' : 'preset-tonal']}
+              onclick={() => changeSortField(option.value)}
+            >
+              {option.label}
+            </button>
+          {/each}
+        </div>
+
+        <span class="text-surface-600-400 mt-4 block text-xs font-bold tracking-wide uppercase">{m.sort_order()}</span>
+        <div class="mt-2 flex gap-2">
+          <button
+            type="button"
+            class={['btn flex-1', sortDir === 'asc' ? 'preset-filled-primary-500' : 'preset-tonal']}
+            onclick={() => (sortDir = 'asc')}
+          >
+            {m.sort_ascending()}
+          </button>
+          <button
+            type="button"
+            class={['btn flex-1', sortDir === 'desc' ? 'preset-filled-primary-500' : 'preset-tonal']}
+            onclick={() => (sortDir = 'desc')}
+          >
+            {m.sort_descending()}
+          </button>
+        </div>
+      </div>
+    {/if}
+
     {#if global.grades.length > 0}
       <!-- Grade is the primary filter, so it stays pinned open above the accordion. -->
       <div class="border-surface-200-800 border-b pb-4">
@@ -283,16 +390,14 @@
       <MediaSelect bind:value={mediaFilters} />
     </FilterSection>
   </div>
-
-  <div
-    class="bg-surface-50-950 md:bg-surface-100-900 border-surface-100-900 md:border-surface-200-800 fixed right-0 bottom-0 left-0 z-10 flex items-center justify-end gap-2 border-t-2 p-4"
-  >
-    <button class="btn btn-sm preset-tonal" onclick={resetFilter}>
-      {m.common_reset()}
-    </button>
-
-    <button class="btn btn-sm preset-filled-primary-500" onclick={applyFilter}>
-      {m.common_apply()}
-    </button>
-  </div>
 </Modal>
+
+{#snippet modalFooter()}
+  <button class="btn btn-sm preset-tonal" onclick={resetFilter}>
+    {m.common_reset()}
+  </button>
+
+  <button class="btn btn-sm preset-filled-primary-500" onclick={applyFilter}>
+    {m.common_apply()}
+  </button>
+{/snippet}

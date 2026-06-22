@@ -37,6 +37,7 @@
       sheetState.title = ''
       sheetState.subtitle = null
       sheetState.headerLeft = null
+      sheetState.toolbar = null
     }
 
     if (mapViewState != null) {
@@ -174,17 +175,20 @@
 
 {#if !open || page.route.id?.includes('/search')}
   <div
-    class="fixed top-2 left-0 z-10 flex w-full justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
+    class="fixed top-2 left-0 z-10 flex w-full items-center justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
-    <a class="md:hidden" href={resolve('/explore')}>
-      <img class="min-h-9 min-w-9" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={36} height={36} />
+    <a class="shrink-0 md:hidden" href={resolve('/explore')}>
+      <!-- 44px reads as optically equal to the 48px bar (a solid square looks heavier than the padded pill). -->
+      <img class="h-11 w-11" src={Logo} alt={PUBLIC_APPLICATION_NAME} width={44} height={44} />
     </a>
 
-    <SearchBar />
-
-    <Filter loading={routesResult.status === 'loading'} routes={routesResult.data} />
+    <SearchBar>
+      {#snippet trailing()}
+        <Filter loading={routesResult.status === 'loading'} routes={routesResult.data} />
+      {/snippet}
+    </SearchBar>
   </div>
 {/if}
 

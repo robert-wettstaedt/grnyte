@@ -1,7 +1,8 @@
 import { userAscentList } from '$lib/entities/ascent/resources.svelte'
 import { userFavoriteList } from '$lib/entities/favorite/resources.svelte'
+import type { RouteListItem } from '$lib/entities/route/dto'
 import { routeList } from '$lib/entities/route/resources.svelte'
-import type { ResourceStatus } from '$lib/zero/resource.svelte'
+import type { QueryResource } from '$lib/zero/resource.svelte'
 import { SvelteSet } from 'svelte/reactivity'
 import type { ParsedRouteFilter } from './filter'
 
@@ -14,7 +15,10 @@ import type { ParsedRouteFilter } from './filter'
  * @param filter reactive getter for the parsed URL filter.
  * @param userId reactive getter for the signed-in user's id.
  */
-export function filteredRouteList(filter: () => ParsedRouteFilter, userId: () => number | undefined) {
+export function filteredRouteList(
+  filter: () => ParsedRouteFilter,
+  userId: () => number | undefined,
+): QueryResource<RouteListItem[]> {
   const routes = routeList(() => filter().filter)
 
   // The user's ascents/favorites only sync while their respective filter is on.
@@ -62,8 +66,19 @@ export function filteredRouteList(filter: () => ParsedRouteFilter, userId: () =>
     get data() {
       return data
     },
-    get status(): ResourceStatus {
+    get status() {
       return routes.status
+    },
+    // Empty reflects the *filtered* result, so client-side filters that remove
+    // every route still trigger the empty state.
+    get isEmpty() {
+      return routes.status === 'ready' && data.length === 0
+    },
+    get isSyncing() {
+      return routes.isSyncing
+    },
+    get isComplete() {
+      return routes.isComplete
     },
   }
 }

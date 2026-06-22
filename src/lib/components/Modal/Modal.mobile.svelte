@@ -8,6 +8,7 @@
   let {
     backdrop = false,
     children,
+    footer,
     headerLeft,
     headerRight,
     open = $bindable(),
@@ -101,9 +102,19 @@
       {/if}
     </div>
 
-    <BottomSheet.Content class="w-full px-4! pt-4!">
+    <BottomSheet.Content class={['w-full px-4! pt-4!', footer ? 'pb-20!' : '']}>
       {@render children?.()}
     </BottomSheet.Content>
+
+    {#if footer}
+      <!-- Inside the sheet so it only renders while open; pinned to the bottom (the
+           sheet's scroll wrapper breaks `position: sticky`, so `fixed` is used). -->
+      <div
+        class="bg-surface-50-950 border-surface-100-900 fixed right-0 bottom-0 left-0 z-100 flex items-center justify-end gap-2 border-t-2 p-4"
+      >
+        {@render footer()}
+      </div>
+    {/if}
   </BottomSheet.Sheet>
 {/snippet}
 

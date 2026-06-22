@@ -23,7 +23,7 @@
     aria-expanded={open}
     onclick={() => (open = !open)}
   >
-    <span class="text-sm font-medium">{label}</span>
+    <span class="text-surface-600-400 text-xs font-bold tracking-wide uppercase">{label}</span>
 
     <span class="flex min-w-0 items-center gap-2">
       <span class={['truncate text-sm tabular-nums', active ? 'text-primary-500' : 'text-surface-600-400']}>

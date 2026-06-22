@@ -134,6 +134,7 @@
   "filter_ascentTodo": "To do",
   "filter_favorites": "Favorites",
   "filter_favoritesOnly": "Favorites only",
+  "filter_filterAndSort": "Filter & sort",
   "filter_firstAscensionists": "First ascensionists",
   "filter_firstAscensionistsMore": "{count} more — refine your search",
   "filter_firstAscentByMe": "First ascent by me",
@@ -181,7 +182,14 @@
       }
     }
   ],
+  "routes_searchPlaceholder": "Search routes",
   "share_share": "Share",
+  "sort_ascending": "Ascending",
+  "sort_descending": "Descending",
+  "sort_distance": "Distance",
+  "sort_name": "Name",
+  "sort_order": "Order",
+  "sort_sortBy": "Sort by",
   "sync_externalResources": "Sync external resources",
   "tab_explore": "Explore",
   "tab_feed": "Feed",

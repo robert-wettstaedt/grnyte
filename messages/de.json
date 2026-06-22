@@ -134,6 +134,7 @@
   "filter_ascentTodo": "Offen",
   "filter_favorites": "Favoriten",
   "filter_favoritesOnly": "Nur Favoriten",
+  "filter_filterAndSort": "Filter & Sortierung",
   "filter_firstAscensionists": "Erstbegeher",
   "filter_firstAscensionistsMore": "{count} weitere – Suche verfeinern",
   "filter_firstAscentByMe": "Erstbegehung von mir",
@@ -181,7 +182,14 @@
       }
     }
   ],
+  "routes_searchPlaceholder": "Routen suchen",
   "share_share": "Teilen",
+  "sort_ascending": "Aufsteigend",
+  "sort_descending": "Absteigend",
+  "sort_distance": "Entfernung",
+  "sort_name": "Name",
+  "sort_order": "Reihenfolge",
+  "sort_sortBy": "Sortieren nach",
   "sync_externalResources": "Externe Ressourcen synchronisieren",
   "tab_explore": "Entdecken",
   "tab_feed": "Feed",
