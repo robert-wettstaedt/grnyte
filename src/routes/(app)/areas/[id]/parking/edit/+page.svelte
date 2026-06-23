@@ -109,9 +109,9 @@
 </QueryState>
 
 {#snippet placeStep()}
-  <StepPlace mapData={explore.data} {areaExtent} {placedCenter} bind:mode bind:latText bind:lngText bind:picked />
+  <StepPlace mapData={explore} {areaExtent} {placedCenter} bind:mode bind:latText bind:lngText bind:picked />
 {/snippet}
 
 {#snippet pathStep()}
-  <StepPath mapData={explore.data} {pathFocus} bind:pathPoints />
+  <StepPath mapData={explore} {pathFocus} bind:pathPoints />
 {/snippet}

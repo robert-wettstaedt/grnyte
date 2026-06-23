@@ -133,7 +133,16 @@
       <!-- Preview of the entered spot: a static map centred on the typed coordinates. -->
       <div class="border-surface-300-700 relative mt-5 h-46 overflow-hidden rounded-2xl border">
         {#if picked != null}
-          <Map {...mapData} static focus={{ center: [picked.lat, picked.long], zoom: 15 }} pickMode />
+          <Map
+            blocks={mapData.blocks}
+            parkingLocations={mapData.parkingLocations}
+            lineStrings={mapData.lineStrings}
+            routeCountByBlock={mapData.routeCountByBlock}
+            gradeCountByBlock={mapData.gradeCountByBlock}
+            static
+            focus={{ center: [picked.lat, picked.long], zoom: 15 }}
+            pickMode
+          />
 
           <div
             class="text-primary-500 pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-full drop-shadow"
@@ -153,7 +162,16 @@
   {:else}
     <!-- The picked location is the map centre; a fixed pin marks it. -->
     <div class="relative min-h-0 flex-1">
-      <Map {...mapData} focus={placeFocus} onviewchange={(view) => (pannedCenter = view.center)} pickMode />
+      <Map
+        blocks={mapData.blocks}
+        parkingLocations={mapData.parkingLocations}
+        lineStrings={mapData.lineStrings}
+        routeCountByBlock={mapData.routeCountByBlock}
+        gradeCountByBlock={mapData.gradeCountByBlock}
+        focus={placeFocus}
+        onviewchange={(view) => (pannedCenter = view.center)}
+        pickMode
+      />
 
       <div
         class="bg-surface-100-900/90 border-surface-300-700 text-surface-700-300 pointer-events-none absolute top-3 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur"

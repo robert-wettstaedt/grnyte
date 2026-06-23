@@ -28,7 +28,6 @@
         name: data.name,
         parentFk: data.areas.at(-1)?.id.toString(),
         regionFk: data.regionFk.toString(),
-        type: data.type,
       })
     }
   })

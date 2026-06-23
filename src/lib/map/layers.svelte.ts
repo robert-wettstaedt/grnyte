@@ -21,6 +21,11 @@ import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, CRAG_ZOOM } from './types'
 // Read-only fallback for areas/crags with no grade data, so we never allocate per feature.
 const EMPTY_GRADE_COUNTS: Map<number, number> = new SvelteMap<number, number>()
 
+// The data layers are created once (empty) and kept stable; only their features are
+// rebuilt when the corresponding data changes (see Map.svelte). Recreating a layer
+// reloads its styles — including the expensive donut data-URI icons below — which
+// flashes the map, so we never do that on a data update.
+
 // Marker showing the area/crag's grade histogram as a small donut with the route
 // count in the center. Built once per feature (the data-URI icon is expensive to
 // regenerate) and anchored at the polygon's interior point.
@@ -72,12 +77,11 @@ export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
 
 // The outermost area grouping, drawn when zoomed out so the far view isn't cluttered with
 // every crag; from CRAG_ZOOM the crag rects take over.
-export function createAreaLayer(
+export function buildAreaFeatures(
   areaBoundingBoxes: Map<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
-  _blocksByArea: Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>,
   routeCountByArea: Map<number, number>,
   gradeCountByArea: Map<number, Map<number, number>>,
-): VectorLayer {
+): Feature[] {
   const features: Feature[] = []
 
   for (const [areaId, { area, bounds }] of areaBoundingBoxes) {
@@ -100,22 +104,22 @@ export function createAreaLayer(
     features.push(feature)
   }
 
-  const layer = new VectorLayer({
-    source: new VectorSource({ features }),
-    maxZoom: CRAG_ZOOM,
-  })
+  return features
+}
+
+export function createAreaLayer(): VectorLayer {
+  const layer = new VectorLayer({ source: new VectorSource(), maxZoom: CRAG_ZOOM })
   layer.set('layerName', 'Markers')
   return layer
 }
 
 // A crag is the block-holding area: a rect around its blocks, shown at mid zoom until the
 // user zooms in far enough for the individual block markers to take over.
-export function createCragLayer(
+export function buildCragFeatures(
   cragBoundingBoxes: Map<number, { crag: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
-  _blocksByCrag: Map<number, { crag: BlockDetail['areas'][0]; blocks: BlockDetail[] }>,
   routeCountByCrag: Map<number, number>,
   gradeCountByCrag: Map<number, Map<number, number>>,
-): VectorLayer {
+): Feature[] {
   const features: Feature[] = []
 
   for (const [cragId, { crag, bounds }] of cragBoundingBoxes) {
@@ -138,20 +142,16 @@ export function createCragLayer(
     features.push(feature)
   }
 
-  const layer = new VectorLayer({
-    source: new VectorSource({ features }),
-    minZoom: CRAG_ZOOM,
-    maxZoom: BLOCK_ZOOM,
-  })
+  return features
+}
+
+export function createCragLayer(): VectorLayer {
+  const layer = new VectorLayer({ source: new VectorSource(), minZoom: CRAG_ZOOM, maxZoom: BLOCK_ZOOM })
   layer.set('layerName', 'Markers')
   return layer
 }
 
-export function createBlockLayer(
-  geoBlocks: BlockDetail[],
-  mapInstance: OlMap,
-  routeCountByBlock: Map<number, number>,
-): VectorLayer {
+export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: Map<number, number>): Feature[] {
   const features: Feature[] = []
 
   for (const block of geoBlocks) {
@@ -165,8 +165,12 @@ export function createBlockLayer(
     features.push(feature)
   }
 
+  return features
+}
+
+export function createBlockLayer(mapInstance: OlMap): VectorLayer {
   const layer = new VectorLayer({
-    source: new VectorSource({ features }),
+    source: new VectorSource(),
     minZoom: BLOCK_ZOOM,
     style: (feature) => {
       const zoom = mapInstance.getView().getZoom() ?? 0
@@ -223,17 +227,19 @@ export function createBlockLayer(
   return layer
 }
 
-export function createParkingLayer(uniqueParkingLocations: Geolocation[]): VectorLayer {
-  const features: Feature[] = uniqueParkingLocations.map(
+export function buildParkingFeatures(uniqueParkingLocations: Geolocation[]): Feature[] {
+  return uniqueParkingLocations.map(
     (p) =>
       new Feature({
         geometry: new Point(fromLonLat([p.long, p.lat])),
         parkingId: p.id,
       }),
   )
+}
 
+export function createParkingLayer(): VectorLayer {
   const layer = new VectorLayer({
-    source: new VectorSource({ features }),
+    source: new VectorSource(),
     minZoom: BLOCK_ZOOM,
     // Add a subtle circular hit area so transparent parts of the icon remain clickable.
     style: [
@@ -246,7 +252,8 @@ export function createParkingLayer(uniqueParkingLocations: Geolocation[]): Vecto
       new Style({
         text: new Text({
           font: '900 1.75rem "Font Awesome 7 Free"',
-          text: '',
+          // Font Awesome "square-parking" glyph (escaped so the marker can't silently vanish).
+          text: '\uF540',
           fill: new Fill({ color: '#1e40af' }),
         }),
       }),
@@ -256,7 +263,7 @@ export function createParkingLayer(uniqueParkingLocations: Geolocation[]): Vecto
   return layer
 }
 
-export function createPathLayer(uniqueLineStrings: string[]): VectorLayer {
+export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
   const features: Feature[] = []
   const distinctPaths = [...new SvelteSet(uniqueLineStrings)]
 
@@ -272,8 +279,12 @@ export function createPathLayer(uniqueLineStrings: string[]): VectorLayer {
     }
   }
 
+  return features
+}
+
+export function createPathLayer(): VectorLayer {
   const layer = new VectorLayer({
-    source: new VectorSource({ features }),
+    source: new VectorSource(),
     minZoom: BLOCK_ZOOM,
     style: new Style({
       stroke: new Stroke({ color: 'rgba(30, 64, 175, 0.7)', width: 2 }),

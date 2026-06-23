@@ -16,6 +16,11 @@
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
   import {
+    buildAreaFeatures,
+    buildBlockFeatures,
+    buildCragFeatures,
+    buildParkingFeatures,
+    buildPathFeatures,
     createAreaLayer,
     createBlockLayer,
     createCragLayer,
@@ -24,6 +29,8 @@
     createPathLayer,
     createWmsLayers,
   } from './layers.svelte'
+  import type Feature from 'ol/Feature.js'
+  import type VectorLayer from 'ol/layer/Vector.js'
   import { BLOCK_LABEL_ZOOM, type BlocksMapProps, type LayerEntry } from './types'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
@@ -59,14 +66,13 @@
   let isLayersSheetOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
   let hasAutoFitted = $state(false)
-  // Visibility of the "Markers" group, tracked separately so it survives the data
-  // layers being rebuilt (see the data effect below).
+  // Visibility of the "Markers" group, tracked separately so the toggle state is
+  // re-applied if the layers are ever recreated (e.g. the map remounts).
   let markersVisible = $state(true)
 
-  // Plain (non-reactive) on purpose: the map-building attachment re-runs and
-  // rebuilds the OpenLayers map whenever the reactive map data changes (e.g. the
-  // route filter recomputes on navigation). Seeding the fresh View from the last
-  // view stops it snapping back to the initial world view. Captured on moveend.
+  // Plain (non-reactive) on purpose: captured on moveend so that if the map is ever
+  // rebuilt (a genuine remount), its View can be reseeded from the last position
+  // instead of snapping back to the initial world view.
   let savedView: { center: number[]; zoom: number } | undefined
 
   const global = getGlobalState()
@@ -90,9 +96,18 @@
     }
   })
 
+  // The last focus actually applied to the view, so equal-valued recomputations are skipped.
+  let lastFocusKey: string | undefined
   $effect(() => {
     const focus = props.focus
     if (map == null || focus == null) return
+
+    // The parent recomputes `focus` (a fresh object) on every map-data change; re-fitting
+    // the view each time would re-frame the map and undo any manual pan. Only move when the
+    // target actually changed.
+    const focusKey = JSON.stringify(focus)
+    if (focusKey === lastFocusKey) return
+    lastFocusKey = focusKey
 
     if (focus.extent) {
       // Fit to geographic extent [minLat, minLng, maxLat, maxLng]
@@ -119,47 +134,49 @@
     }
   })
 
-  // Build the data layers (areas/crags/blocks/parking/paths) and the layer-toggle
-  // entries reactively. Keeping this out of the map-creation attachment means the
-  // OpenLayers map (and its tiles/view) is built once and never torn down when the
-  // data changes — only these vector layers swap, so navigation no longer flickers.
+  // The data layers are created once and added to the map, then each is kept in sync
+  // with its slice of `data` by its own effect below. A data change re-renders only the
+  // one layer whose features changed — layers are never torn down and rebuilt — so a Zero
+  // sync from another client no longer flashes the whole map (and the donut icons, which
+  // are expensive to regenerate, aren't reloaded unless their own area/crag changed).
+  let areaLayer = $state<VectorLayer>()
+  let cragLayer = $state<VectorLayer>()
+  let blockLayer = $state<VectorLayer>()
+  let parkingLayer = $state<VectorLayer>()
+  let pathLayer = $state<VectorLayer>()
+
   $effect(() => {
     const mapInstance = map
     if (mapInstance == null) return
 
-    const areaLayer = createAreaLayer(
-      data.areaBoundingBoxes,
-      data.blocksByArea,
-      data.routeCountByArea,
-      data.gradeCountByArea,
-    )
-    const cragLayer = createCragLayer(
-      data.cragBoundingBoxes,
-      data.blocksByCrag,
-      data.routeCountByCrag,
-      data.gradeCountByCrag,
-    )
-    const blockLayer = createBlockLayer(data.geoBlocks, mapInstance, data.routeCountByBlock)
-    const parkingLayer = createParkingLayer(data.uniqueParkingLocations)
-    const pathLayer = createPathLayer(data.uniqueLineStrings)
+    const area = createAreaLayer()
+    const crag = createCragLayer()
+    const block = createBlockLayer(mapInstance)
+    const parking = createParkingLayer()
+    const path = createPathLayer()
 
     const markersLabel = m.map_markers()
-    const dataLayers = [areaLayer, cragLayer, blockLayer, parkingLayer, pathLayer]
+    const dataLayers = [area, crag, block, parking, path]
     for (const layer of dataLayers) {
       layer.set('layerName', markersLabel)
       // Apply the current toggle state without depending on it (toggling handles the
-      // live layers directly), so flipping markers doesn't rebuild them here.
+      // live layers directly).
       layer.setVisible(untrack(() => markersVisible))
     }
     // Navigable markers (everything except the path lines) drive the pointer cursor.
-    for (const layer of [areaLayer, cragLayer, blockLayer, parkingLayer]) {
+    for (const layer of [area, crag, block, parking]) {
       layer.set('clickable', true)
     }
-    blockLayer.set('isBlockLayer', true)
+    block.set('isBlockLayer', true)
 
     for (const layer of dataLayers) {
       mapInstance.addLayer(layer)
     }
+    areaLayer = area
+    cragLayer = crag
+    blockLayer = block
+    parkingLayer = parking
+    pathLayer = path
 
     // Toggle panel: the base layers (OSM + WMS) plus the single "Markers" group.
     const seenLayers = new SvelteSet<string>()
@@ -185,8 +202,32 @@
       for (const layer of dataLayers) {
         mapInstance.removeLayer(layer)
       }
+      areaLayer = undefined
+      cragLayer = undefined
+      blockLayer = undefined
+      parkingLayer = undefined
+      pathLayer = undefined
     }
   })
+
+  // Replace a stable layer's features in place — one re-render of just that layer, no
+  // teardown — so unrelated layers never flicker when this slice of data changes.
+  const syncFeatures = (layer: VectorLayer | undefined, features: Feature[]) => {
+    const source = layer?.getSource()
+    if (source == null) return
+    source.clear()
+    source.addFeatures(features)
+  }
+
+  $effect(() =>
+    syncFeatures(areaLayer, buildAreaFeatures(data.areaBoundingBoxes, data.routeCountByArea, data.gradeCountByArea)),
+  )
+  $effect(() =>
+    syncFeatures(cragLayer, buildCragFeatures(data.cragBoundingBoxes, data.routeCountByCrag, data.gradeCountByCrag)),
+  )
+  $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
+  $effect(() => syncFeatures(parkingLayer, buildParkingFeatures(data.uniqueParkingLocations)))
+  $effect(() => syncFeatures(pathLayer, buildPathFeatures(data.uniqueLineStrings)))
 
   // Render the in-progress drawn path (parking → area) as a dashed line, swapped in
   // place like the data layers so it updates on each waypoint without rebuilding the map.
@@ -232,7 +273,7 @@
 
     const newVisible = !layers[0].getVisible()
     layers.forEach((layer) => layer.setVisible(newVisible))
-    // Remember the markers toggle so a later data-driven rebuild keeps it.
+    // Remember the markers toggle so it's re-applied if the layers are recreated.
     if (name === m.map_markers()) {
       markersVisible = newVisible
     }
@@ -251,15 +292,19 @@
   }
 
   const mapAttachment: Attachment = (node) => {
-    // Untracked: the map is built once. Region-defined WMS layers are stable for the
-    // session, and the data layers are owned by the reactive effect above.
+    // Everything here is read untracked so the attachment has NO reactive dependencies and
+    // runs exactly once. Reading a reactive prop (e.g. `props.static`) tracked would re-run
+    // this whole attachment whenever that prop changes — rebuilding the entire OL map and
+    // flashing it. WMS layers and `static` are fixed for a map instance, so reading them once
+    // is correct; live map data flows through the per-layer sync effects, not here.
     const wmsLayers = untrack(() => createWmsLayers(global.userRegions))
+    const isStatic = untrack(() => props.static)
 
     const mapInstance = new OlMap({
       controls: defaultControls({ attribution: false, zoom: false, rotate: false }).extend([
         new Attribution({ collapsible: true }),
       ]),
-      interactions: props.static ? [] : defaultInteractions(),
+      interactions: isStatic ? [] : defaultInteractions(),
       target: node as HTMLElement,
       layers: [
         new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' }, className: 'osm-layer' }),

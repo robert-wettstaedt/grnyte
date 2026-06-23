@@ -38,7 +38,17 @@
 
 <!-- Tap the map to trace a walking path from the parking to the area. -->
 <div class="relative min-h-0 flex-1">
-  <Map {...mapData} drawPath focus={pathFocus} onpathpoint={addWaypoint} pathLine={pathPoints} />
+  <Map
+    blocks={mapData.blocks}
+    parkingLocations={mapData.parkingLocations}
+    lineStrings={mapData.lineStrings}
+    routeCountByBlock={mapData.routeCountByBlock}
+    gradeCountByBlock={mapData.gradeCountByBlock}
+    drawPath
+    focus={pathFocus}
+    onpathpoint={addWaypoint}
+    pathLine={pathPoints}
+  />
 
   <div
     class="bg-surface-100-900/90 border-surface-300-700 text-surface-700-300 pointer-events-none absolute top-3 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur"

@@ -98,12 +98,12 @@
       window.innerWidth >= 768 ? [60, 60, 60, 580] : [60, 60, Math.round(window.innerHeight * 0.75), 60]
 
     if (routeId.includes('parking/')) {
-      const parking = explore.data.parkingLocations.find((location) => location.id === id)
+      const parking = explore.parkingLocations.find((location) => location.id === id)
       return parking == null ? null : { center: [parking.lat, parking.long], zoom: 16, padding }
     }
 
     if (routeId.includes('blocks/')) {
-      const block = explore.data.blocks.find((candidate) => candidate.id === id)
+      const block = explore.blocks.find((candidate) => candidate.id === id)
       return block?.geolocation == null
         ? null
         : { center: [block.geolocation.lat, block.geolocation.long], zoom: 16, padding }
@@ -111,7 +111,7 @@
 
     if (routeId.includes('areas/')) {
       // Every block anywhere beneath the area (its id appears in the block's ancestor trail).
-      const geoBlocks = explore.data.blocks.filter(
+      const geoBlocks = explore.blocks.filter(
         (block) => block.geolocation != null && block.areas.some((area) => area.id === id),
       )
       if (geoBlocks.length === 0) return null
@@ -127,7 +127,15 @@
 </script>
 
 <div class="absolute inset-0">
-  <Map {...explore.data} focus={effectiveFocus} onviewchange={(view) => (mapViewState = view)} />
+  <Map
+    blocks={explore.blocks}
+    parkingLocations={explore.parkingLocations}
+    lineStrings={explore.lineStrings}
+    routeCountByBlock={explore.routeCountByBlock}
+    gradeCountByBlock={explore.gradeCountByBlock}
+    focus={effectiveFocus}
+    onviewchange={(view) => (mapViewState = view)}
+  />
 </div>
 
 {#if !open || page.route.id?.includes('/search')}
