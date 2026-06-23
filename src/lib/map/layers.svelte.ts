@@ -282,3 +282,44 @@ export function createPathLayer(uniqueLineStrings: string[]): VectorLayer {
   layer.set('layerName', 'Markers')
   return layer
 }
+
+// OpenLayers' colour parser doesn't understand `oklch`, so resolve the theme's
+// primary to an `rgb(...)` string once (the browser serialises it that way).
+let cachedPrimaryColor: string | undefined
+function primaryColor(): string {
+  if (cachedPrimaryColor != null) return cachedPrimaryColor
+  if (typeof document === 'undefined') return '#7c3aed'
+  const probe = document.createElement('span')
+  probe.style.color = 'var(--color-primary-500)'
+  document.body.appendChild(probe)
+  cachedPrimaryColor = getComputedStyle(probe).color || '#7c3aed'
+  probe.remove()
+  return cachedPrimaryColor
+}
+
+/** A path being drawn (parking → area), from `[lat, lng]` points: a marker at the
+ *  start (the parking) plus a dashed primary line once there's a waypoint. */
+export function createDrawnPathLayer(latLngs: [number, number][]): VectorLayer {
+  const coords = latLngs.map(([lat, lng]) => fromLonLat([lng, lat]))
+
+  const features: Feature[] = [new Feature(new Point(coords[0]))]
+  if (coords.length >= 2) {
+    features.push(new Feature(new LineString(coords)))
+  }
+
+  const strokeStyle = new Style({
+    stroke: new Stroke({ color: primaryColor(), width: 4, lineDash: [2, 9], lineCap: 'round', lineJoin: 'round' }),
+  })
+  const markerStyle = new Style({
+    image: new CircleStyle({
+      radius: 7,
+      fill: new Fill({ color: primaryColor() }),
+      stroke: new Stroke({ color: 'white', width: 2.5 }),
+    }),
+  })
+
+  return new VectorLayer({
+    source: new VectorSource({ features }),
+    style: (feature) => (feature.getGeometry() instanceof Point ? markerStyle : strokeStyle),
+  })
+}

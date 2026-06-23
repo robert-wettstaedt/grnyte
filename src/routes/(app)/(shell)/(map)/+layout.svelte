@@ -4,21 +4,18 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
-  import { areaList } from '$lib/entities/area/resources.svelte'
-  import { blockList } from '$lib/entities/block/resources.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import { fly } from 'svelte/transition'
   import type { LayoutProps } from './$types'
+  import { createExploreMapData } from '$lib/map/exploreData.svelte'
+  import { parseRouteFilter } from '$lib/map/filter'
+  import Map from '$lib/map/Map.svelte'
+  import type { MapFocus } from '$lib/map/types'
   import Filter from './Filter/Filter.svelte'
-  import { parseRouteFilter } from './Filter/filter'
-  import { filteredRouteList } from './Filter/filteredRoutes.svelte'
-  import Map from './Map/Map.svelte'
-  import type { BlocksMapProps, MapFocus } from './Map/types'
   import Modal from './Modal/Modal.svelte'
   import { sheetState } from './Modal/sheetState.svelte'
   import SearchBar from './SearchBar/SearchBar.svelte'
-  import { SvelteMap } from 'svelte/reactivity'
 
   let { children }: LayoutProps = $props()
 
@@ -70,98 +67,58 @@
   // Parsing the URL into typed filter values lives in ./Filter/filter, and
   // applying it to routes (incl. the client-side ascent/favorites filters) in
   // ./Filter/filteredRoutes — so this layout only composes the result for the map.
-  const filters = $derived(parseRouteFilter(page.url.searchParams))
+  //
+  // `page.url` changes on every navigation, so re-parsing would hand the route
+  // query a new (value-identical) filter object each time a detail sheet opens —
+  // re-running the whole map-data chain and flickering the markers. Keep the same
+  // reference until the filter actually changes so navigation leaves the map still.
+  let cachedFilters = parseRouteFilter(page.url.searchParams)
+  const filters = $derived.by(() => {
+    const next = parseRouteFilter(page.url.searchParams)
+    if (JSON.stringify(next) !== JSON.stringify(cachedFilters)) {
+      cachedFilters = next
+    }
+    return cachedFilters
+  })
 
-  const routesResult = filteredRouteList(
+  const explore = createExploreMapData(
     () => filters,
     () => global.user?.id,
   )
-  const blocksResult = blockList(() => ({}))
-  const areasResult = areaList(() => ({}))
 
-  const data = $derived.by(() => {
-    const routeCountByBlock = new SvelteMap<number, number>()
-    const gradeCountByBlock = new SvelteMap<number, SvelteMap<number, number>>()
-    for (const route of routesResult.data) {
-      if (route.blockFk != null) {
-        routeCountByBlock.set(route.blockFk, (routeCountByBlock.get(route.blockFk) ?? 0) + 1)
-
-        if (route.gradeFk != null) {
-          let byGrade = gradeCountByBlock.get(route.blockFk)
-          if (byGrade == null) {
-            byGrade = new SvelteMap<number, number>()
-            gradeCountByBlock.set(route.blockFk, byGrade)
-          }
-          byGrade.set(route.gradeFk, (byGrade.get(route.gradeFk) ?? 0) + 1)
-        }
-      }
-    }
-
-    const blocks = blocksResult.data.filter((block) => routeCountByBlock.has(block.id))
-    const parkingLocations = areasResult.data.flatMap((area) => area.parkingLocations)
-    const lineStrings = areasResult.data.flatMap((area) => area.geoPaths)
-
-    return {
-      blocks,
-      parkingLocations,
-      lineStrings,
-      routeCountByBlock,
-      gradeCountByBlock,
-    } satisfies Pick<
-      BlocksMapProps,
-      'blocks' | 'parkingLocations' | 'lineStrings' | 'routeCountByBlock' | 'gradeCountByBlock'
-    >
-  })
-
+  // Frame the open detail item on the map. Padding keeps it clear of the detail
+  // sheet — a wide left inset for the desktop side panel, a tall bottom inset for
+  // the mobile bottom sheet — so the marker lands in the visible area, not behind it.
   const focus: MapFocus | null = $derived.by(() => {
     const routeId = page.route.id ?? ''
-    const bottomSheetPadding = typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.75) : 0
+    const id = Number(page.params.id)
+    if (!Number.isFinite(id) || typeof window === 'undefined') return null
 
-    // if (routeId.includes('blocks/')) {
-    //   const blockId = Number(page.params.id)
-    //   const block = data.blocks.find((b) => b.id === blockId)
-    //   if (block?.geolocation) {
-    //     return {
-    //       center: [block.geolocation.lat, block.geolocation.long],
-    //       zoom: 16,
-    //       padding: [0, 0, bottomSheetPadding, 0],
-    //     }
-    //   }
-    // }
+    const padding: [number, number, number, number] =
+      window.innerWidth >= 768 ? [60, 60, 60, 580] : [60, 60, Math.round(window.innerHeight * 0.75), 60]
 
-    // if (routeId.includes('parking/')) {
-    //   const parkingId = Number(page.params.id)
-    //   const parking = data.parkingLocations.find((p) => p.id === parkingId)
-    //   if (parking != null) {
-    //     return {
-    //       center: [parking.lat, parking.long],
-    //       zoom: 16,
-    //       padding: [0, 0, bottomSheetPadding, 0],
-    //     }
-    //   }
-    // }
+    if (routeId.includes('parking/')) {
+      const parking = explore.data.parkingLocations.find((location) => location.id === id)
+      return parking == null ? null : { center: [parking.lat, parking.long], zoom: 16, padding }
+    }
 
-    // if (routeId.includes('areas/')) {
-    //   const areaId = Number(page.params.id)
-    //   const areaBlocks = data.blocks.filter((b) => {
-    //     let current: (NestedBlock['area'] & { parent: NestedBlock['area'] | null }) | null =
-    //       b.area as NestedBlock['area'] & { parent: NestedBlock['area'] | null }
-    //     while (current != null) {
-    //       if (current.id === areaId) return true
-    //       current = current.parent as (NestedBlock['area'] & { parent: NestedBlock['area'] | null }) | null
-    //     }
-    //     return false
-    //   })
-    //   const geoBlocks = areaBlocks.filter((b) => b.geolocation != null)
-    //   if (geoBlocks.length > 0) {
-    //     const lats = geoBlocks.map((b) => b.geolocation!.lat)
-    //     const lngs = geoBlocks.map((b) => b.geolocation!.long)
-    //     return {
-    //       extent: [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)],
-    //       padding: [0, 0, bottomSheetPadding, 0],
-    //     }
-    //   }
-    // }
+    if (routeId.includes('blocks/')) {
+      const block = explore.data.blocks.find((candidate) => candidate.id === id)
+      return block?.geolocation == null
+        ? null
+        : { center: [block.geolocation.lat, block.geolocation.long], zoom: 16, padding }
+    }
+
+    if (routeId.includes('areas/')) {
+      // Every block anywhere beneath the area (its id appears in the block's ancestor trail).
+      const geoBlocks = explore.data.blocks.filter(
+        (block) => block.geolocation != null && block.areas.some((area) => area.id === id),
+      )
+      if (geoBlocks.length === 0) return null
+      const lats = geoBlocks.map((block) => block.geolocation!.lat)
+      const lngs = geoBlocks.map((block) => block.geolocation!.long)
+      return { extent: [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)], padding }
+    }
 
     return null
   })
@@ -170,7 +127,7 @@
 </script>
 
 <div class="absolute inset-0">
-  <Map {...data} focus={effectiveFocus} onviewchange={(view) => (mapViewState = view)} />
+  <Map {...explore.data} focus={effectiveFocus} onviewchange={(view) => (mapViewState = view)} />
 </div>
 
 {#if !open || page.route.id?.includes('/search')}
@@ -186,7 +143,7 @@
 
     <SearchBar>
       {#snippet trailing()}
-        <Filter loading={routesResult.status === 'loading'} routes={routesResult.data} />
+        <Filter loading={explore.routes.status === 'loading'} routes={explore.routes.data} />
       {/snippet}
     </SearchBar>
   </div>

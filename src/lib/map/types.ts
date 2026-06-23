@@ -18,7 +18,24 @@ export interface BlocksMapProps {
   gradeCountByBlock?: Map<number, Map<number, number>>
   focus?: MapFocus | null
   onviewchange?: (view: { center: [number, number]; zoom: number }) => void
+  /** When true, map features stop being clickable (used by the parking picker,
+   *  which reads the map *center* rather than navigating to tapped features). */
+  pickMode?: boolean
+  /** A static thumbnail: hides control chrome and disables pan/zoom, so only `focus` drives the view. */
+  static?: boolean
+  /** Tap-to-add-waypoint mode (parking path drawing): a tap emits `onpathpoint` instead of navigating. */
+  drawPath?: boolean
+  /** Path to draw as a dashed line, as `[lat, lng]` points. */
+  pathLine?: [number, number][]
+  /** Emits the tapped `[lat, lng]` while in `drawPath` mode. */
+  onpathpoint?: (point: [number, number]) => void
 }
+
+/** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */
+export type MapData = Pick<
+  BlocksMapProps,
+  'blocks' | 'parkingLocations' | 'lineStrings' | 'routeCountByBlock' | 'gradeCountByBlock'
+>
 
 export interface LayerEntry {
   name: string

@@ -1,6 +1,7 @@
 import { command, form, getRequestEvent, query } from '$app/server'
 import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
+import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, redirect, type InvalidField, type RemoteFormInput } from '@sveltejs/kit'
 
@@ -37,7 +38,7 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
 /** `command`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
 export function authedCommand<S extends StandardSchemaV1, O>(
   schema: S,
-  handler: (input: StandardSchemaV1.InferOutput<S>, ctx: Context) => O | Promise<O>,
+  handler: (input: StandardSchemaV1.InferOutput<S>, ctx: Context) => Promise<MutationResult<O> | void>,
 ) {
   return command(schema, (input) => run((ctx) => handler(input, ctx)))
 }
@@ -57,13 +58,13 @@ export function authedForm<S extends StandardSchemaV1<RemoteFormInput, Record<st
     data: StandardSchemaV1.InferOutput<S>,
     ctx: Context,
     issue: InvalidField<StandardSchemaV1.InferInput<S>>,
-  ) => O | Promise<O>,
+  ) => Promise<MutationResult<O> | void>,
 ) {
   return form(schema, async (data, issue) => {
     const value = await run(async (ctx) => handler(data, ctx, issue))
 
-    if (typeof value === 'string') {
-      redirect(303, value)
+    if (value?.redirectTo != null) {
+      redirect(303, value.redirectTo)
     }
 
     return value

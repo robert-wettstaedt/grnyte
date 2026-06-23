@@ -18,7 +18,7 @@
   import MediaSelect, { type MediaFilter } from './fields/MediaSelect.svelte'
   import RatingSelect from './fields/RatingSelect.svelte'
   import TagSelect from './fields/TagSelect.svelte'
-  import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from './filter'
+  import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from '$lib/map/filter'
 
   interface SortOption {
     value: string

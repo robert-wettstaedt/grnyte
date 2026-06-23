@@ -11,6 +11,14 @@ export function canAddArea(userRegions: UserRegion[], area: AreaPermissionTarget
   )
 }
 
+export function canEditArea(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
+  return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
+}
+
+export function canDeleteArea(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
+  return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], area.regionFk)
+}
+
 export function canAddBlock(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
   return (
     (area.type == null || area.type === 'crag') &&
@@ -25,10 +33,8 @@ export function canAddParking(userRegions: UserRegion[], area: AreaPermissionTar
   )
 }
 
-export function canEditArea(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
-  return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
-}
+type ParkingPermissionTarget = Pick<AreaDetail, 'regionFk'>
 
-export function canDeleteArea(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
+export function canDeleteParking(userRegions: UserRegion[], area: ParkingPermissionTarget): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], area.regionFk)
 }

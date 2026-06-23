@@ -61,7 +61,7 @@
        height, so the count fills that line rather than growing the row (no shift), while
        the label still centres on its own when nobody else has saved yet. -->
   <span class="flex flex-col items-start leading-none">
-    <span class="text-sm leading-none">{saved ? m.common_saved() : m.common_save()}</span>
+    <span class="text-sm leading-none font-bold">{saved ? m.common_saved() : m.common_save()}</span>
     {#if others.data > 0}
       <span class="text-[10px] leading-none font-normal opacity-80">
         {m.common_savedByOthers({ count: others.data })}

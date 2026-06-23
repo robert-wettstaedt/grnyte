@@ -6,10 +6,12 @@
   import View from 'ol/View.js'
   import { Attribution, defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
+  import { defaults as defaultInteractions } from 'ol/interaction.js'
   import { Tile as TileLayer } from 'ol/layer.js'
   import 'ol/ol.css'
   import { fromLonLat, toLonLat } from 'ol/proj.js'
   import OSM from 'ol/source/OSM'
+  import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import { createMapData } from './data.svelte'
   import { setupGeolocation } from './geolocation'
@@ -17,6 +19,7 @@
     createAreaLayer,
     createBlockLayer,
     createCragLayer,
+    createDrawnPathLayer,
     createParkingLayer,
     createPathLayer,
     createWmsLayers,
@@ -53,10 +56,18 @@
   let mapHasSize = $state(false)
   let isTrackingGeolocation = $state(false)
   let isGeolocationError = $state(false)
-  let isFullscreen = $state(false)
   let isLayersSheetOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
   let hasAutoFitted = $state(false)
+  // Visibility of the "Markers" group, tracked separately so it survives the data
+  // layers being rebuilt (see the data effect below).
+  let markersVisible = $state(true)
+
+  // Plain (non-reactive) on purpose: the map-building attachment re-runs and
+  // rebuilds the OpenLayers map whenever the reactive map data changes (e.g. the
+  // route filter recomputes on navigation). Seeding the fresh View from the last
+  // view stops it snapping back to the initial world view. Captured on moveend.
+  let savedView: { center: number[]; zoom: number } | undefined
 
   const global = getGlobalState()
 
@@ -108,6 +119,87 @@
     }
   })
 
+  // Build the data layers (areas/crags/blocks/parking/paths) and the layer-toggle
+  // entries reactively. Keeping this out of the map-creation attachment means the
+  // OpenLayers map (and its tiles/view) is built once and never torn down when the
+  // data changes — only these vector layers swap, so navigation no longer flickers.
+  $effect(() => {
+    const mapInstance = map
+    if (mapInstance == null) return
+
+    const areaLayer = createAreaLayer(
+      data.areaBoundingBoxes,
+      data.blocksByArea,
+      data.routeCountByArea,
+      data.gradeCountByArea,
+    )
+    const cragLayer = createCragLayer(
+      data.cragBoundingBoxes,
+      data.blocksByCrag,
+      data.routeCountByCrag,
+      data.gradeCountByCrag,
+    )
+    const blockLayer = createBlockLayer(data.geoBlocks, mapInstance, data.routeCountByBlock)
+    const parkingLayer = createParkingLayer(data.uniqueParkingLocations)
+    const pathLayer = createPathLayer(data.uniqueLineStrings)
+
+    const markersLabel = m.map_markers()
+    const dataLayers = [areaLayer, cragLayer, blockLayer, parkingLayer, pathLayer]
+    for (const layer of dataLayers) {
+      layer.set('layerName', markersLabel)
+      // Apply the current toggle state without depending on it (toggling handles the
+      // live layers directly), so flipping markers doesn't rebuild them here.
+      layer.setVisible(untrack(() => markersVisible))
+    }
+    // Navigable markers (everything except the path lines) drive the pointer cursor.
+    for (const layer of [areaLayer, cragLayer, blockLayer, parkingLayer]) {
+      layer.set('clickable', true)
+    }
+    blockLayer.set('isBlockLayer', true)
+
+    for (const layer of dataLayers) {
+      mapInstance.addLayer(layer)
+    }
+
+    // Toggle panel: the base layers (OSM + WMS) plus the single "Markers" group.
+    const seenLayers = new SvelteSet<string>()
+    layerEntries = mapInstance
+      .getLayers()
+      .getArray()
+      .map((layer) => {
+        const layerName = layer.get('layerName') as string
+        return {
+          name: layerName,
+          icon: getLayerIcon(layerName, markersLabel),
+          label: layerName,
+          visible: layer.getVisible(),
+        }
+      })
+      .filter((entry) => {
+        if (entry.name == null || seenLayers.has(entry.name)) return false
+        seenLayers.add(entry.name)
+        return true
+      })
+
+    return () => {
+      for (const layer of dataLayers) {
+        mapInstance.removeLayer(layer)
+      }
+    }
+  })
+
+  // Render the in-progress drawn path (parking → area) as a dashed line, swapped in
+  // place like the data layers so it updates on each waypoint without rebuilding the map.
+  $effect(() => {
+    const mapInstance = map
+    const line = props.pathLine
+    if (mapInstance == null || line == null || line.length < 1) return
+
+    const layer = createDrawnPathLayer(line)
+    mapInstance.addLayer(layer)
+    return () => mapInstance.removeLayer(layer)
+  })
+
   const handleGeolocate = () => {
     if (map == null) return
     const geolocation = map.get('geolocation') as OlGeolocation | undefined
@@ -130,19 +222,6 @@
     if (zoom != null) view.animate({ zoom: zoom - 1, duration: 200 })
   }
 
-  const handleFullscreen = () => {
-    const el = document.querySelector('.map-container') as HTMLElement | null
-    if (el == null) return
-
-    if (!document.fullscreenElement) {
-      void el.requestFullscreen()
-      isFullscreen = true
-    } else {
-      void document.exitFullscreen()
-      isFullscreen = false
-    }
-  }
-
   const handleToggleLayer = (name: string) => {
     if (map == null) return
     const layers = map
@@ -153,6 +232,10 @@
 
     const newVisible = !layers[0].getVisible()
     layers.forEach((layer) => layer.setVisible(newVisible))
+    // Remember the markers toggle so a later data-driven rebuild keeps it.
+    if (name === m.map_markers()) {
+      markersVisible = newVisible
+    }
     layerEntries = layerEntries.map((entry) => (entry.name === name ? { ...entry, visible: newVisible } : entry))
   }
 
@@ -168,99 +251,59 @@
   }
 
   const mapAttachment: Attachment = (node) => {
-    const wmsLayers = createWmsLayers(global.userRegions)
+    // Untracked: the map is built once. Region-defined WMS layers are stable for the
+    // session, and the data layers are owned by the reactive effect above.
+    const wmsLayers = untrack(() => createWmsLayers(global.userRegions))
 
     const mapInstance = new OlMap({
       controls: defaultControls({ attribution: false, zoom: false, rotate: false }).extend([
         new Attribution({ collapsible: true }),
       ]),
+      interactions: props.static ? [] : defaultInteractions(),
       target: node as HTMLElement,
       layers: [
         new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' }, className: 'osm-layer' }),
         ...wmsLayers,
       ],
       view: new View({
-        center: fromLonLat([2.6117597, 48.4103865]),
-        zoom: 4,
+        center: savedView?.center ?? fromLonLat([2.6117597, 48.4103865]),
+        zoom: savedView?.zoom ?? 4,
         constrainResolution: true,
       }),
     })
     map = mapInstance
 
-    const areaLayer = createAreaLayer(
-      data.areaBoundingBoxes,
-      data.blocksByArea,
-      data.routeCountByArea,
-      data.gradeCountByArea,
-    )
-    const cragLayer = createCragLayer(
-      data.cragBoundingBoxes,
-      data.blocksByCrag,
-      data.routeCountByCrag,
-      data.gradeCountByCrag,
-    )
-    const blockLayer = createBlockLayer(data.geoBlocks, mapInstance, data.routeCountByBlock)
-    const parkingLayer = createParkingLayer(data.uniqueParkingLocations)
-    const pathLayer = createPathLayer(data.uniqueLineStrings)
-
-    const markersLabel = m.map_markers()
-    areaLayer.set('layerName', markersLabel)
-    cragLayer.set('layerName', markersLabel)
-    blockLayer.set('layerName', markersLabel)
-    parkingLayer.set('layerName', markersLabel)
-    pathLayer.set('layerName', markersLabel)
-
-    mapInstance.addLayer(areaLayer)
-    mapInstance.addLayer(cragLayer)
-    mapInstance.addLayer(blockLayer)
-    mapInstance.addLayer(parkingLayer)
-    mapInstance.addLayer(pathLayer)
-
-    // Populate layer entries for the toggle panel
-    const seenLayers = new SvelteSet<string>()
-    layerEntries = mapInstance
-      .getLayers()
-      .getArray()
-      .map((layer) => {
-        const layerName = layer.get('layerName') as string
-        return {
-          name: layerName,
-          icon: getLayerIcon(layerName, markersLabel),
-          label: layerName,
-          visible: layer.getVisible(),
-        }
-      })
-      .filter((entry) => {
-        if (entry.name == null || seenLayers.has(entry.name)) return false
-        seenLayers.add(entry.name)
-        return true
-      })
-
     // Click navigation
     mapInstance.on('click', (event) => {
+      if (props.drawPath) {
+        const [lng, lat] = toLonLat(event.coordinate)
+        props.onpathpoint?.([lat, lng])
+        return
+      }
+      if (props.pickMode) return
       const feature = mapInstance.forEachFeatureAtPixel(event.pixel, (f) => f)
       if (feature) {
         // const blockId = feature.get('blockId')
         const areaId = feature.get('areaId')
-        // const parkingId = feature.get('parkingId')
-        if (areaId != null) {
+        const parkingId = feature.get('parkingId')
+        if (parkingId != null) {
+          goto(resolve('/(app)/(shell)/(map)/parking/[id]', { id: parkingId.toString() }))
+        } else if (areaId != null) {
           goto(resolve('/(app)/(shell)/(map)/areas/[id]', { id: areaId.toString() }))
         }
         // if (blockId != null) {
         //   goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))
-        // } else if (parkingId != null) {
-        //   goto(resolve('/(new)/bla/(modal)/parking/[id]', { id: parkingId.toString() }))
         // }
       }
     })
 
     // Pointer cursor for blocks
     mapInstance.on('pointermove', (event) => {
+      if (props.pickMode) return
       const target = mapInstance.getTarget()
       if (target == null || typeof target === 'string') return
       const hit = mapInstance.hasFeatureAtPixel(event.pixel, {
-        layerFilter: (layer) =>
-          layer === blockLayer || layer === cragLayer || layer === areaLayer || layer === parkingLayer,
+        layerFilter: (layer) => layer.get('clickable') === true,
       })
       target.style.cursor = hit ? 'pointer' : ''
     })
@@ -272,6 +315,7 @@
 
       const [lng, lat] = toLonLat(center)
       const zoom = view.getZoom() ?? BLOCK_LABEL_ZOOM
+      savedView = { center, zoom }
       props.onviewchange?.({ center: [lat, lng], zoom })
     }
     mapInstance.on('moveend', handleMoveEnd)
@@ -283,7 +327,11 @@
       const showLabels = zoom >= BLOCK_LABEL_ZOOM
       if (showLabels !== lastLabelState) {
         lastLabelState = showLabels
-        blockLayer.changed()
+        mapInstance
+          .getLayers()
+          .getArray()
+          .find((layer) => layer.get('isBlockLayer'))
+          ?.changed()
       }
     })
 
@@ -294,13 +342,6 @@
       setIsError: (v) => (isGeolocationError = v),
       getHasFocus: () => props.focus != null,
     })
-
-    // Fullscreen
-    const onFullscreenChange = () => {
-      isFullscreen = !!document.fullscreenElement
-      mapInstance.updateSize()
-    }
-    document.addEventListener('fullscreenchange', onFullscreenChange)
 
     // Resize
     const observer = new ResizeObserver(() => {
@@ -313,7 +354,6 @@
     observer.observe(node as HTMLElement)
 
     return () => {
-      document.removeEventListener('fullscreenchange', onFullscreenChange)
       observer.disconnect()
       mapInstance.un('moveend', handleMoveEnd)
       cleanupGeolocation()
@@ -327,96 +367,90 @@
 <div class="map-container relative z-10 h-full">
   <div class="map h-full" {@attach mapAttachment}></div>
 
-  <div class="absolute right-2 bottom-20.5 z-20 mb-10 flex flex-col gap-1 md:bottom-2">
-    <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomIn} aria-label={m.map_zoomIn()}>
-      <Icon name="plus" size={16} />
-    </button>
+  {#if !props.static}
+    <div class="absolute right-2 bottom-20.5 z-20 mb-10 flex flex-col gap-1 md:bottom-2">
+      <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomIn} aria-label={m.map_zoomIn()}>
+        <Icon name="plus" size={16} />
+      </button>
 
-    <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomOut} aria-label={m.map_zoomOut()}>
-      <Icon name="minus" size={16} />
-    </button>
+      <button class="btn-icon preset-filled-surface-100-900" onclick={handleZoomOut} aria-label={m.map_zoomOut()}>
+        <Icon name="minus" size={16} />
+      </button>
 
-    <div class="h-8"></div>
+      <div class="h-8"></div>
 
-    <button
-      aria-label={m.map_showMyLocation()}
-      class={[
-        'btn-icon',
-        isTrackingGeolocation
-          ? 'preset-filled-primary-500'
-          : isGeolocationError
-            ? 'preset-filled-error-500'
-            : 'preset-filled-surface-100-900',
-      ]}
-      onclick={handleGeolocate}
-    >
-      <Icon name="locate" size={16} />
-    </button>
+      <button
+        aria-label={m.map_showMyLocation()}
+        class={[
+          'btn-icon',
+          isTrackingGeolocation
+            ? 'preset-filled-primary-500'
+            : isGeolocationError
+              ? 'preset-filled-error-500'
+              : 'preset-filled-surface-100-900',
+        ]}
+        onclick={handleGeolocate}
+      >
+        <Icon name="locate" size={16} />
+      </button>
 
-    <button
-      aria-label={m.map_toggleFullscreen()}
-      class={['btn-icon', isFullscreen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900']}
-      onclick={handleFullscreen}
-    >
-      <Icon name={isFullscreen ? 'collapse' : 'expand'} size={16} />
-    </button>
-
-    <Modal
-      bind:open={isLayersSheetOpen}
-      popoverProps={{ positioning: { placement: 'left' } }}
-      snapPoints={[0.4]}
-      title={m.map_layers()}
-    >
-      {#snippet trigger(props)}
-        <button
-          {...props}
-          aria-label={m.map_toggleLayers()}
-          class={[
-            props.class,
-            'btn-icon',
-            isLayersSheetOpen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900',
-          ]}
-          onclick={() => (isLayersSheetOpen = !isLayersSheetOpen)}
-        >
-          <Icon name="layers" size={16} />
-        </button>
-      {/snippet}
-
-      <div class="mt-4 flex flex-wrap justify-around gap-2">
-        {#each layerEntries as entry (entry.name)}
+      <Modal
+        bind:open={isLayersSheetOpen}
+        popoverProps={{ positioning: { placement: 'left' } }}
+        snapPoints={[0.4]}
+        title={m.map_layers()}
+      >
+        {#snippet trigger(props)}
           <button
-            aria-label={entry.label}
-            aria-pressed={entry.visible}
-            class="flex w-25 flex-col items-center justify-center gap-1"
-            onclick={() => handleToggleLayer(entry.name)}
+            {...props}
+            aria-label={m.map_toggleLayers()}
+            class={[
+              props.class,
+              'btn-icon',
+              isLayersSheetOpen ? 'preset-filled-primary-500' : 'preset-filled-surface-100-900',
+            ]}
+            onclick={() => (isLayersSheetOpen = !isLayersSheetOpen)}
           >
-            <div
-              class={[
-                'color-primary-500 flex h-25 w-25 items-center justify-center rounded-lg transition-colors',
-                entry.visible ? 'preset-filled-primary-500' : 'border-surface-500/30 border',
-              ]}
-            >
-              <Icon
-                name={entry.icon}
-                size={60}
-                class={['transition-colors', !entry.visible && 'text-surface-500/30']}
-              />
-            </div>
-            <span
-              class={[
-                'w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors',
-                entry.visible ? 'text-primary-500' : 'text-surface-500',
-              ]}
-            >
-              {entry.label}
-            </span>
+            <Icon name="layers" size={16} />
           </button>
-        {/each}
-      </div>
-    </Modal>
+        {/snippet}
 
-    <div class="h-8"></div>
-  </div>
+        <div class="mt-4 flex flex-wrap justify-around gap-2">
+          {#each layerEntries as entry (entry.name)}
+            <button
+              aria-label={entry.label}
+              aria-pressed={entry.visible}
+              class="flex w-25 flex-col items-center justify-center gap-1"
+              onclick={() => handleToggleLayer(entry.name)}
+            >
+              <div
+                class={[
+                  'color-primary-500 flex h-25 w-25 items-center justify-center rounded-lg transition-colors',
+                  entry.visible ? 'preset-filled-primary-500' : 'border-surface-500/30 border',
+                ]}
+              >
+                <Icon
+                  name={entry.icon}
+                  size={60}
+                  class={['transition-colors', !entry.visible && 'text-surface-500/30']}
+                />
+              </div>
+              <span
+                class={[
+                  'w-25 truncate overflow-hidden text-xs text-ellipsis transition-colors',
+                  entry.visible ? 'text-primary-500' : 'text-surface-500',
+                ]}
+              >
+                {entry.label}
+              </span>
+            </button>
+          {/each}
+        </div>
+      </Modal>
+
+      <div class="h-8"></div>
+    </div>
+  {/if}
 </div>
 
 <style>

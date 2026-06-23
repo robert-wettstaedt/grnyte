@@ -4,6 +4,7 @@
   import Logo from '$lib/assets/logo.svg'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import Toaster from '$lib/components/Toaster/Toaster.svelte'
   import { reportClientError } from '$lib/logging/report'
   import { setGlobalState } from '$lib/state/global.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
@@ -57,3 +58,5 @@
     </svelte:boundary>
   </div>
 {/if}
+
+<Toaster />

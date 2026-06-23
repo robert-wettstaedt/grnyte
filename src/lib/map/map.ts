@@ -48,13 +48,16 @@ export const pickDistanceUnit = (metres: number, imperial: boolean): { value: nu
     : { value: metres / 1000, unit: 'kilometer' }
 }
 
-/** Localized "18 km" / "300 m" / "0.5 mi" between two coords; unit inferred from the runtime locale. */
-export const formatDistance = (from: Coords, to: Coords): string => {
+/** Localized "18 km" / "300 m" / "0.5 mi" for a raw metre value; unit inferred from the runtime locale. */
+export const formatMetres = (metres: number): string => {
   const region = new Intl.Locale(navigator.language).maximize().region ?? ''
-  const { value, unit } = pickDistanceUnit(haversineMetres(from, to), IMPERIAL_REGIONS.includes(region))
+  const { value, unit } = pickDistanceUnit(metres, IMPERIAL_REGIONS.includes(region))
   return new Intl.NumberFormat(navigator.language, {
     style: 'unit',
     unit,
     maximumFractionDigits: value < 10 ? 1 : 0,
   }).format(value)
 }
+
+/** Localized distance between two coords. */
+export const formatDistance = (from: Coords, to: Coords): string => formatMetres(haversineMetres(from, to))
