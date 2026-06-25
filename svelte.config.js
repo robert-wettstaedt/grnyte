@@ -1,6 +1,17 @@
 import adapterAuto from '@sveltejs/adapter-auto'
 import adapterNode from '@sveltejs/adapter-node'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
+import { execSync } from 'node:child_process'
+
+const versionName = (() => {
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA
+  if (sha) return sha
+  try {
+    return execSync('git rev-parse HEAD').toString().trim()
+  } catch {
+    return process.env.npm_package_version ?? 'dev'
+  }
+})()
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -24,7 +35,7 @@ const config = {
       serviceWorker: 'src/sw.ts',
     },
     version: {
-      name: Date.now().toString(),
+      name: versionName,
     },
     experimental: {
       remoteFunctions: true,
