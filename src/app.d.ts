@@ -1,9 +1,7 @@
 import type { AppPermission, RegionPermission } from '$lib/auth'
 import type { InferResultType } from '$lib/db/types'
 import type { UserRegion } from '$lib/entities/region/dto'
-import type { Schema } from '$lib/zero'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import type { Z } from 'zero-svelte'
 
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
@@ -40,10 +38,11 @@ declare global {
       supabase: SupabaseClient
     }
     interface PageData {
-      authUserId: string | undefined
+      // All optional: these come from the root layout load, so page-level loads
+      // (which contribute their own keys) needn't provide them.
+      authUserId?: string | undefined
       session?: Session | undefined | null
       supabase?: Locals['supabase']
-      z: Z<Schema>
     }
     interface PageState {
       blocksViewMode?: 'list' | 'grid'

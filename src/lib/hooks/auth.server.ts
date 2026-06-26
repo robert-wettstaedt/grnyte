@@ -40,7 +40,7 @@ export async function getUserPermissions(
     ...member,
     permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
     name: member.region.name,
-    settings: member.region.settings,
+    settings: member.region.settings ?? undefined,
   }))
 
   return {
@@ -156,7 +156,9 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
-    !['/legal', '/auth', '/f/', '/api/notifications', '/api/zero'].some((path) => event.url.pathname.startsWith(path))
+    !['/legal', '/auth', '/f/', '/api/notifications', '/api/zero', '/offline'].some((path) =>
+      event.url.pathname.startsWith(path),
+    )
   ) {
     redirect(303, '/auth')
   }

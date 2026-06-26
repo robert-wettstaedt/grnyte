@@ -10,7 +10,6 @@
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
-  import '../../app.css'
 
   const { children } = $props()
 

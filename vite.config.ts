@@ -20,7 +20,11 @@ export default defineConfig({
     __APP_REPO__: JSON.stringify(pkg.repository.url),
   },
   plugins: [
-    paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' }),
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/lib/paraglide',
+      strategy: ['cookie', 'globalVariable', 'preferredLanguage', 'baseLocale'],
+    }),
     tailwindcss(),
     sveltekit(),
     svelteTesting(),
@@ -36,7 +40,7 @@ export default defineConfig({
         name: 'grnyte',
         short_name: 'grnyte',
         description: 'Secure boulder topo and session tracker.',
-        start_url: '/',
+        start_url: '/explore',
         scope: '/',
         display: 'standalone',
         theme_color: '#8E43B2',

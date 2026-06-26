@@ -21,36 +21,39 @@ precacheAndRoute(self.__WB_MANIFEST)
 // clean old assets
 cleanupOutdatedCaches()
 
-let allowlist: undefined | RegExp[]
-if (import.meta.env.DEV) {
-  allowlist = [/^\/$/]
-}
+// Prerendered static shell (see src/routes/offline) cached at install so a cold
+// offline start has an HTML document to boot the client app from.
+const OFFLINE_SHELL = '/offline'
+const OFFLINE_CACHE = 'offline-shell'
 
-// to allow work offline
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(OFFLINE_CACHE).then((cache) => cache.add(OFFLINE_SHELL)))
+})
+
+// Navigations are network-first (so online visitors get fresh SSR), falling back
+// to the cached shell when offline.
 self.addEventListener('fetch', (event) => {
   if (event.request.mode !== 'navigate') {
     return
   }
 
-  const promise = new Promise<Response>((resolve) =>
-    fetch(event.request.url)
-      .then(resolve)
-      .catch(() => {
-        // When Network is offline
+  event.respondWith(
+    fetch(event.request).catch(async () => {
+      const url = new URL(event.request.url)
 
-        const url = new URL(event.request.url)
-        if (url.pathname !== '/') {
-          // Redirect because just returning a cached version of pages just does not work
-          // Maybe because it is not a SPA?
-          return resolve(Response.redirect('/'))
+      // Already loading the shell itself → return the cached copy.
+      if (url.pathname === OFFLINE_SHELL) {
+        const cached = await caches.match(OFFLINE_SHELL, { ignoreSearch: true })
+        if (cached != null) {
+          return cached
         }
+      }
 
-        // For some reason this is never reached
-        resolve(new Response())
-      }),
+      // Bounce other offline navigations to the shell, carrying the original
+      // path so it can route there client-side from Zero's local store.
+      return Response.redirect(`${OFFLINE_SHELL}?redirect=${encodeURIComponent(url.pathname + url.search)}`, 302)
+    }),
   )
-
-  event.respondWith(promise)
 })
 
 imageCache({ matchCallback: ({ url }) => url.pathname.startsWith('/nextcloud/topos/') })
