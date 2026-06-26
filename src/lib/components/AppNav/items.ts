@@ -9,7 +9,7 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { icon: 'explore', label: m.tab_explore, routeId: resolve('/(app)/(shell)/(map)/explore') },
+  { icon: 'explore', label: m.tab_explore, routeId: resolve('/explore') },
   { icon: 'feed', label: m.tab_feed, routeId: resolve('/(app)/(shell)/feed') },
   { icon: 'profile', label: m.tab_profile, routeId: resolve('/(app)/(shell)/profile') },
 ]

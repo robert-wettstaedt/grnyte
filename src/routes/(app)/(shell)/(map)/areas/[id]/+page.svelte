@@ -43,6 +43,8 @@
   const ungradedCount = $derived(routes.data.filter((route) => route.gradeFk == null).length)
   const gradedCount = $derived(routes.data.length - ungradedCount)
 
+  let selected = $state<{ label: string; count: number } | null>(null)
+
   const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 
   // Only worth naming the region when the user belongs to more than one — with a
@@ -81,7 +83,11 @@
           <div class="flex items-baseline justify-between">
             <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.area_grades()}</h2>
             <span class="text-surface-600-400 text-xs tabular-nums">
-              {m.area_gradedCount({ count: gradedCount })}
+              {#if selected != null}
+                {selected.label} · {m.routes_routesCount({ count: selected.count })}
+              {:else}
+                {m.area_gradedCount({ count: gradedCount })}
+              {/if}
             </span>
           </div>
 
@@ -90,6 +96,7 @@
             grades={global.grades}
             gradingScale={global.gradingScale}
             ungraded={ungradedCount}
+            onselect={(bar) => (selected = bar)}
           />
         </section>
 

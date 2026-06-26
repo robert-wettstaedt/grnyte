@@ -2,12 +2,15 @@
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
   import Dialog from '$lib/components/Dialog/Dialog.svelte'
+  import { deleteArea, restoreArea } from '$lib/entities/area/areas.remote'
+  import { waitForArea } from '$lib/entities/area/resources.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
-  import { canAddArea, canAddBlock, canAddParking, canEditArea } from '$lib/entities/area/permissions'
+  import { canAddArea, canAddBlock, canAddParking, canDeleteArea, canEditArea } from '$lib/entities/area/permissions'
   import { createBlock } from '$lib/entities/block/blocks.remote'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { withUndo } from '$lib/state/toast'
   import DirectionsButton from '../../Sheet/DirectionsButton.svelte'
   import MenuRow from '../../Sheet/MenuRow.svelte'
   import MoreMenu from '../../Sheet/MoreMenu.svelte'
@@ -24,6 +27,7 @@
   let addBlockOpen = $state(false)
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
+  const canDelete = $derived(canDeleteArea(global.userRegions, area))
   const canAdmin = $derived(checkRegionPermission(global.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk))
   const canAddAreaHere = $derived(canAddArea(global.userRegions, area))
   const canAddBlockHere = $derived(canAddBlock(global.userRegions, area))
@@ -47,6 +51,13 @@
       long: coords.reduce((sum, geo) => sum + geo.long, 0) / coords.length,
     }
   })
+
+  const onDelete = () =>
+    withUndo(deleteArea({ id: area.id }), {
+      message: m.area_deleted(),
+      onUndo: restoreArea,
+      waitFor: (data) => waitForArea(data.areaId),
+    })
 </script>
 
 <div class="flex gap-2">
@@ -121,6 +132,18 @@
             icon="sync"
             label={m.sync_externalResources()}
             onclick={close}
+          />
+        {/if}
+
+        {#if canDelete}
+          <MenuRow
+            destructive
+            icon="map-pin-x"
+            label={m.area_delete()}
+            onclick={() => {
+              close()
+              onDelete()
+            }}
           />
         {/if}
       {/if}

@@ -34,7 +34,7 @@
     {placeholder}
     {onkeyup}
     aria-label={placeholder}
-    class="min-w-0 flex-1 border-none bg-transparent text-sm outline-none"
+    class="min-w-0 flex-1 border-none bg-transparent outline-none"
     type="search"
   />
 

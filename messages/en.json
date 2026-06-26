@@ -13,6 +13,8 @@
   ],
   "area_allRoutesHint": "Browse, sort & filter",
   "area_createdBy": "Created by {username}",
+  "area_delete": "Delete area",
+  "area_deleted": "Area deleted",
   "area_distanceAway": "{distance} away",
   "area_empty_body": "Group routes into a sub-area, or drop a block to start logging routes right here.",
   "area_empty_hint": "Not sure? A block is the quickest way to add routes.",

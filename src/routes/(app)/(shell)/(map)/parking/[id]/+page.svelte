@@ -1,15 +1,18 @@
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { parkingDetail } from '$lib/entities/geolocation/resources.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { sheetState } from '../../Modal/sheetState.svelte'
+  import { getGlobalState } from '$lib/state/global.svelte'
   import { onDestroy } from 'svelte'
+  import { sheetState } from '../../Modal/sheetState.svelte'
   import ParkingActions from './ParkingActions.svelte'
 
+  const global = getGlobalState()
   const parking = parkingDetail(() => Number(page.params.id))
 
   const formatCoord = (lat: number, long: number): string =>
@@ -35,7 +38,7 @@
   // parking and, as a subtitle, the crag it belongs to.
   $effect(() => {
     sheetState.title = m.parking_title()
-    sheetState.subtitle = parking.data?.area?.name ?? null
+    sheetState.subtitle = breadcrumb
   })
 </script>
 
@@ -72,3 +75,9 @@
     <ErrorState type="notfound" title={m.parking_notFound()} />
   {/snippet}
 </QueryState>
+
+{#snippet breadcrumb()}
+  {#if parking.data?.area != null}
+    <Breadcrumb area={parking.data.area} userRegions={global.userRegions} />
+  {/if}
+{/snippet}

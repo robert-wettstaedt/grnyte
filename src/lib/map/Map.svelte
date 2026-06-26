@@ -332,8 +332,10 @@
         const areaId = feature.get('areaId')
         const parkingId = feature.get('parkingId')
         if (parkingId != null) {
+          props.onfeatureopen?.()
           goto(resolve('/(app)/(shell)/(map)/parking/[id]', { id: parkingId.toString() }))
         } else if (areaId != null) {
+          props.onfeatureopen?.()
           goto(resolve('/(app)/(shell)/(map)/areas/[id]', { id: areaId.toString() }))
         }
         // if (blockId != null) {

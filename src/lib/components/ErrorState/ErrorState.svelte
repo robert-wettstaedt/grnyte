@@ -46,7 +46,7 @@
   }
 
   const variant = $derived(variants[type])
-  const exploreHref = resolve('/(app)/(shell)/(map)/explore')
+  const exploreHref = resolve('/explore')
 </script>
 
 <div class="flex min-h-full flex-col items-center justify-center px-8 py-16 text-center">

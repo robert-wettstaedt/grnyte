@@ -8,29 +8,16 @@
   let { children, onclose, open = $bindable() }: ModalProps = $props()
 
   let titleEl = $state<HTMLElement>()
-  let contentEl = $state<HTMLElement>()
   let innerHeight = $state(window.innerHeight)
   let sheet = $state<ReturnType<TypeOfBottomSheet> | undefined>(undefined)
 
-  function calc() {
-    const titleHeight = titleEl?.clientHeight
-    const contentHeight = contentEl?.parentElement?.parentElement?.clientHeight
-
-    if (typeof window === 'undefined' || contentHeight == null || contentHeight === 0 || titleHeight == null) {
-      return 0.75
-    }
-
-    return Number(Math.min((contentHeight + titleHeight) / innerHeight, 0.9).toFixed(2))
-  }
-
   const titleSnapPoint = $derived.by(() => {
-    const titleHeight = titleEl?.clientHeight
-
-    if (!titleHeight) {
+    if (!titleEl?.clientHeight) {
       return 0.1
     }
 
-    return Number(Math.min(titleHeight / innerHeight, 0.3).toFixed(2))
+    const totalHeight = titleEl.offsetTop + titleEl.clientHeight
+    return Number(Math.min(totalHeight / innerHeight, 0.3).toFixed(2))
   })
 
   const handleDocumentClick = (event: MouseEvent) => {
@@ -106,9 +93,7 @@
     </div>
 
     <BottomSheet.Content class="w-full px-4!">
-      <div bind:this={contentEl}>
-        {@render children?.()}
-      </div>
+      {@render children?.()}
     </BottomSheet.Content>
   </BottomSheet.Sheet>
 {/snippet}

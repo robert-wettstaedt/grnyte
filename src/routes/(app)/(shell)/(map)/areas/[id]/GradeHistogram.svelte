@@ -12,9 +12,10 @@
     countByGrade: Map<number, number>
     /** Routes with no grade, surfaced as a trailing count below the chart. */
     ungraded?: number
+    onselect?: (bar: { label: string; count: number } | null) => void
   }
 
-  const { grades, gradingScale, countByGrade, ungraded = 0 }: Props = $props()
+  const { grades, gradingScale, countByGrade, ungraded = 0, onselect }: Props = $props()
 
   interface Bar {
     id: number
@@ -108,18 +109,40 @@
     }
     return Math.max(8, (count / maxCount) * 100)
   }
+
+  let selectedId = $state<number | null>(null)
+
+  const select = (bar: Bar | null): void => {
+    const active = bar != null && bar.count > 0 ? bar : null
+    selectedId = active?.id ?? null
+    onselect?.(active != null ? { label: active.label, count: active.count } : null)
+  }
+
+  const pick = (event: PointerEvent): void => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    const index = Math.floor(((event.clientX - rect.left) / rect.width) * bars.length)
+    select(bars[Math.max(0, Math.min(bars.length - 1, index))])
+  }
 </script>
 
 {#if useHistogram}
   <div role="img" aria-label={m.area_grades()}>
     <!-- Bars rise from a shared baseline; each grade gets an equal-width column
-         scaled against the busiest grade in the range. -->
-    <div class="flex h-26 items-end gap-1">
+         scaled against the busiest grade in the range. The pointer's x picks the
+         bar underneath (touch-pan-y keeps vertical page scroll). -->
+    <div
+      class="flex h-26 touch-pan-y items-end gap-1"
+      onpointermove={pick}
+      onpointerdown={pick}
+      onpointerleave={() => select(null)}
+      onpointerup={(event) => event.pointerType !== 'mouse' && select(null)}
+      role="presentation"
+    >
       {#each bars as bar (bar.id)}
         <div
-          class="flex-1 rounded-t-sm transition-[height]"
+          class="flex-1 rounded-t-sm transition-[height,opacity]"
+          class:opacity-40={selectedId != null && selectedId !== bar.id}
           style="height: {barHeight(bar.count)}%; background-color: {bar.color}"
-          title="{bar.label} · {m.routes_routesCount({ count: bar.count })}"
         ></div>
       {/each}
     </div>

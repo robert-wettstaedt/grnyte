@@ -1,11 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import type { AreaDetail } from '$lib/entities/area/dto'
+  import type { AreaDetail, AreaListItem } from '$lib/entities/area/dto'
   import type { UserRegion } from '$lib/entities/region/dto'
 
   interface Props {
     /** The area whose location trail is shown. */
-    area: AreaDetail
+    area: AreaDetail | AreaListItem
     /** The signed-in user's memberships — names the region only when there's more than one. */
     userRegions: UserRegion[]
     /** Append `area` itself as the final crumb (e.g. when it's the parent of a new child). */
@@ -24,7 +24,7 @@
     if (userRegions.length <= 1) {
       return null
     }
-    return userRegions.find((region) => region.regionFk === area.regionFk)?.name ?? null
+    return userRegions.find((region) => 'regionFk' in area && region.regionFk === area.regionFk)?.name ?? null
   })
 
   // When `includeSelf`, the area joins its own ancestors as the final crumb so the

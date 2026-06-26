@@ -20,9 +20,6 @@
   const destination = $derived({ lat: parking.lat, long: parking.long })
   const canDelete = $derived(canDeleteParking(global.userRegions, parking))
 
-  // Delete straight away (no confirm dialog) and offer Undo — the right pattern for a
-  // cheap, reversible action. `withUndo` navigates back to the area (envelope's
-  // `redirectTo`) and wires the snapshot into `restoreParking`.
   const onDelete = () =>
     withUndo(deleteParking({ id: parking.id }), { message: m.parking_deleted(), onUndo: restoreParking })
 </script>

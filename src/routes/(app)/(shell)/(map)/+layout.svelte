@@ -135,6 +135,7 @@
     gradeCountByBlock={explore.gradeCountByBlock}
     focus={effectiveFocus}
     onviewchange={(view) => (mapViewState = view)}
+    onfeatureopen={() => (sheetState.requestSnap = 0.75)}
   />
 </div>
 

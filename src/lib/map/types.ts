@@ -29,6 +29,9 @@ export interface BlocksMapProps {
   pathLine?: [number, number][]
   /** Emits the tapped `[lat, lng]` while in `drawPath` mode. */
   onpathpoint?: (point: [number, number]) => void
+  /** Fired synchronously when a tapped feature is about to navigate to its detail sheet —
+   *  before the click bubbles to document, so the sheet can suppress its outside-click collapse. */
+  onfeatureopen?: () => void
 }
 
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */

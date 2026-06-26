@@ -14,6 +14,7 @@ export const geolocationsQueryDefs = {
       return zql.geolocations
         .where('id', args.id)
         .where('areaFk', 'IS NOT', null)
+        .whereExists('area', (q) => r(q).where('deletedAt', 'IS', null))
         .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
         .one()
     }),

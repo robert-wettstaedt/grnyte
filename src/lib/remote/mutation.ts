@@ -19,9 +19,18 @@ export interface MutationResult<T = void> {
 /**
  * Invoke a command, apply its {@link MutationResult} envelope (navigate on `redirectTo`),
  * and return its `data` for the caller to act on (e.g. `withUndo` for an undo toast).
+ *
+ * `beforeRedirect` runs after the command resolves but before navigating — use it to wait
+ * for the client store to reflect the write (Zero syncs server writes asynchronously), so
+ * the destination renders the row instead of flashing a stale "not found".
  */
-export async function runCommand<T>(pending: Promise<MutationResult<T> | void>): Promise<T | undefined> {
+export async function runCommand<T>(
+  pending: Promise<MutationResult<T> | void>,
+  opts?: { beforeRedirect?: (data: T | undefined) => unknown },
+): Promise<T | undefined> {
   const result = await pending
+
+  await opts?.beforeRedirect?.(result?.data)
 
   if (result?.redirectTo != null) {
     // eslint-disable-next-line svelte/no-navigation-without-resolve

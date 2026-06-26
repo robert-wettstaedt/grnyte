@@ -13,6 +13,8 @@
   ],
   "area_allRoutesHint": "Durchsuchen, sortieren & filtern",
   "area_createdBy": "Erstellt von {username}",
+  "area_delete": "Gebiet löschen",
+  "area_deleted": "Gebiet gelöscht",
   "area_distanceAway": "{distance} entfernt",
   "area_empty_body": "Fasse Routen in einem Untergebiet zusammen oder lege direkt hier einen Block an, um Routen zu erfassen.",
   "area_empty_hint": "Unsicher? Mit einem Block erfasst du Routen am schnellsten.",

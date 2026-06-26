@@ -30,7 +30,7 @@ export function notifyUndo(opts: UndoToastData): void {
   toaster.create({
     type: 'info',
     title: opts.message,
-    duration: opts.duration ?? 8000,
+    duration: opts.duration ?? Number.POSITIVE_INFINITY,
     action: { label: m.common_undo(), onClick: () => void opts.onUndo() },
   })
 }
@@ -44,15 +44,32 @@ export function notifyUndo(opts: UndoToastData): void {
  * Reusable precedent for other entities:
  *   1. `delete<Entity>()` deletes and returns the snapshot to recreate from (the envelope's `data`).
  *   2. `withUndo(delete<Entity>(…), { message, onUndo: restore<Entity> })`.
- *   3. `restore<Entity>()` recreates the row (and, once activities land, removes the
- *      activity the delete logged — see the seam in `restoreParking`).
+ *   3. `restore<Entity>()` recreates the row and removes the activity the delete logged.
+ *
+ * `waitFor` defers the restore's redirect until the recreated row has synced into the
+ * local store (Zero lags server writes) — pass the entity's `waitFor*` helper so the
+ * destination renders the row instead of flashing "not found". Omit it when the restore
+ * doesn't navigate (e.g. `restoreParking`).
  */
-export async function withUndo<T>(
+export async function withUndo<T, U>(
   pending: Promise<MutationResult<T> | void>,
-  opts: { message: string; onUndo: (snapshot: T) => unknown; duration?: number },
+  opts: {
+    message: string
+    onUndo: (snapshot: T) => Promise<MutationResult<U> | void>
+    waitFor?: (data: U) => unknown
+    duration?: number
+  },
 ): Promise<void> {
   const snapshot = await runCommand(pending)
   if (snapshot != null) {
-    notifyUndo({ message: opts.message, duration: opts.duration, onUndo: () => opts.onUndo(snapshot) })
+    // Run the undo through `runCommand` too, so a restore that returns `redirectTo` navigates.
+    notifyUndo({
+      message: opts.message,
+      duration: opts.duration,
+      onUndo: () =>
+        runCommand(opts.onUndo(snapshot), {
+          beforeRedirect: (data) => (data == null ? undefined : opts.waitFor?.(data)),
+        }),
+    })
   }
 }
