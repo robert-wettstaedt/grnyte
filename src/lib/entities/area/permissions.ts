@@ -27,10 +27,7 @@ export function canAddBlock(userRegions: UserRegion[], area: AreaPermissionTarge
 }
 
 export function canAddParking(userRegions: UserRegion[], area: AreaPermissionTarget): boolean {
-  return (
-    (area.type == null || area.type === 'crag') &&
-    checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
-  )
+  return area.type === 'crag' && checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], area.regionFk)
 }
 
 type ParkingPermissionTarget = Pick<AreaDetail, 'regionFk'>

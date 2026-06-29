@@ -1,10 +1,8 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock } from '$lib/entities/area/permissions'
-  import { createBlock } from '$lib/entities/block/blocks.remote'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -21,10 +19,6 @@
   // Per the design a block is the primary path (quickest way to actual routes).
   const canAddAreaHere = $derived(canAddArea(global.userRegions, area))
   const canAddBlockHere = $derived(canAddBlock(global.userRegions, area))
-
-  const addBlock = async () => {
-    await createBlock({ areaId: area.id })
-  }
 </script>
 
 <div class="ge-fade flex flex-col items-center px-6 py-10 text-center">
@@ -86,19 +80,13 @@
     <div class="flex w-full max-w-xs flex-col gap-3">
       <!-- Block is the primary CTA (filled); sub-area the secondary (outline). -->
       {#if canAddBlockHere}
-        <button
+        <a
           class="btn preset-filled-primary-500 h-13.5 rounded-2xl text-base font-bold shadow-[0_10px_24px_-10px_var(--color-primary-500)]"
-          disabled={createBlock.pending > 0}
-          onclick={addBlock}
-          type="button"
+          href={resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) })}
         >
-          {#if createBlock.pending > 0}
-            <LoadingIndicator size="20px" />
-          {:else}
-            <Icon name="block" size={20} />
-          {/if}
+          <Icon name="block" size={20} />
           {m.blocks_addBlock()}
-        </button>
+        </a>
       {/if}
 
       {#if canAddAreaHere}

@@ -59,6 +59,19 @@ export const stringToNumberOptional = z.codec(
   },
 )
 
+/** Decimal degrees bounded to ±`limit` (90 for latitude, 180 for longitude). */
+const boundedDegrees = (limit: number) =>
+  z
+    .number()
+    .min(-limit, { error: formError('form_numInvalid') })
+    .max(limit, { error: formError('form_numInvalid') })
+
+/** A required decimal-degree coordinate field. */
+export const coordinate = (limit: number) => stringToNumber.pipe(boundedDegrees(limit))
+
+/** Like `coordinate`, but the field may be omitted (empty string → undefined). */
+export const optionalCoordinate = (limit: number) => stringToNumberOptional.pipe(boundedDegrees(limit).optional())
+
 export const regionSettingsSchema = z.object({
   mapLayers: z
     .array(

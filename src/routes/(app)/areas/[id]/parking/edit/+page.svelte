@@ -11,13 +11,13 @@
   import Form from '$lib/forms/Form.svelte'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
+  import LocationPicker from '$lib/map/LocationPicker.svelte'
   import { encodePath } from '$lib/map/polyline'
   import type { MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import StepPath from './StepPath.svelte'
-  import StepPlace from './StepPlace.svelte'
 
   const global = getGlobalState()
   const areaId = $derived(Number(page.params.id))
@@ -109,7 +109,7 @@
 </QueryState>
 
 {#snippet placeStep()}
-  <StepPlace mapData={explore} {areaExtent} {placedCenter} bind:mode bind:latText bind:lngText bind:picked />
+  <LocationPicker mapData={explore} {areaExtent} {placedCenter} bind:mode bind:latText bind:lngText bind:picked />
 {/snippet}
 
 {#snippet pathStep()}

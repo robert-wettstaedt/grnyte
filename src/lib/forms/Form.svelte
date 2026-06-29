@@ -36,6 +36,9 @@
     fill?: boolean
     /** Gate submit on a caller precondition, on top of the built-in pending state. */
     submitDisabled?: boolean
+    /** Run just before the form submits; return `false` to cancel it (e.g. to surface a
+     *  confirmation first, then resubmit). Not called when advancing through wizard steps. */
+    onBeforeSubmit?: () => boolean | Promise<boolean>
     /** Provide to render a multi-step form. The default `children` snippet is then used for
      *  form-wide content (e.g. hidden inputs), rendered on every step. */
     steps?: FormStep[]
@@ -53,6 +56,7 @@
     title,
     fill = false,
     submitDisabled = false,
+    onBeforeSubmit,
     steps,
     step = $bindable(0),
     nextLabel = m.common_next(),
@@ -84,6 +88,9 @@
 {:else}
   <form
     {...form.enhance(async ({ submit, element }) => {
+      if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
+        return
+      }
       try {
         await submit()
         await tick()

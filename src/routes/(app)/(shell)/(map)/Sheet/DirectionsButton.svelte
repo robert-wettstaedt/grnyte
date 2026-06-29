@@ -1,8 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { userLocation } from '$lib/map/geolocation.svelte'
   import { formatDistance, haversineMetres, mapsUrl, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
-  import { onMount } from 'svelte'
 
   interface Props {
     /** Where to drive — a parking pin, or a crag's parking/block centroid. */
@@ -11,25 +11,17 @@
 
   const { destination }: Props = $props()
 
-  // Live-update the distance as the user walks toward the destination. High accuracy
-  // so the metres reading is meaningful; the watch is cleared on unmount, so the
-  // battery cost is bounded to this view.
-  let position = $state<Coords>()
-  onMount(() => {
-    const id = navigator.geolocation?.watchPosition(
-      (pos) => (position = { lat: pos.coords.latitude, long: pos.coords.longitude }),
-      () => {},
-      { enableHighAccuracy: true },
-    )
-    return () => {
-      if (id != null) navigator.geolocation.clearWatch(id)
-    }
-  })
+  // Shared live location, updated as the user walks toward the destination.
+  const location = userLocation()
 
   const directionsUrl = $derived(destination == null ? undefined : mapsUrl(destination))
-  const distance = $derived(position == null || destination == null ? undefined : formatDistance(position, destination))
+  const distance = $derived(
+    location.current == null || destination == null ? undefined : formatDistance(location.current, destination),
+  )
   // ponytail: 50 m "you're here" radius; tune for GPS accuracy / crag size.
-  const isHere = $derived(position != null && destination != null && haversineMetres(position, destination) < 50)
+  const isHere = $derived(
+    location.current != null && destination != null && haversineMetres(location.current, destination) < 50,
+  )
 </script>
 
 {#if directionsUrl != null}

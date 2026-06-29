@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { areaTypeEnum, areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
-import { formError, stringToInt, stringToNumber } from '$lib/forms/schemas'
+import { coordinate, formError, stringToInt } from '$lib/forms/schemas'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -305,15 +305,6 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     data: { areaId: snapshot.areaId },
   }
 })
-
-/** A decimal-degree coordinate field bounded to ±`limit` (90 for lat, 180 for long). */
-const coordinate = (limit: number) =>
-  stringToNumber.pipe(
-    z
-      .number()
-      .min(-limit, { error: formError('form_numInvalid') })
-      .max(limit, { error: formError('form_numInvalid') }),
-  )
 
 /** Insert a parking geolocation on `area`, appending its optional approach path to the
  *  area's `geoPaths`. Shared by `addParking` and the undo path (`restoreParking`). */

@@ -33,6 +33,7 @@
   hint={m.areas_nameHint()}
   id="area-name"
   label={m.areas_namePlaceholder()}
+  required
 >
   {#snippet children(props)}
     <input

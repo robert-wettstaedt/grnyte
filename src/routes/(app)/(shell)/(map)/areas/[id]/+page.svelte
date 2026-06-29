@@ -7,6 +7,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
+  import { blockList } from '$lib/entities/block/resources.svelte'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -16,6 +17,7 @@
   import AreaDescription from './AreaDescription.svelte'
   import AreaEmpty from './AreaEmpty.svelte'
   import AreaList from './AreaList.svelte'
+  import BlocksList from './BlocksList.svelte'
   import GradeHistogram from './GradeHistogram.svelte'
 
   const global = getGlobalState()
@@ -24,6 +26,10 @@
   // tapping a sub-area) — the underlying queries re-target as the param changes.
   const area = areaDetail(() => Number(page.params.id))
   const subAreas = areaList(() => ({ parentFk: Number(page.params.id) }))
+
+  // Blocks beneath this crag, ordered by the query; routes (above) are grouped
+  // under them by the BlocksList.
+  const blocks = blockList(() => ({ areaId: Number(page.params.id) }))
 
   // Every route beneath this area (the `areaId` filter matches descendants), so
   // the histogram reflects the whole sub-tree rather than only directly attached
@@ -118,7 +124,7 @@
       {/if}
 
       {#if detail.type === 'crag'}
-        <!-- <BlocksList areaFk={area.id} basePath={resolve('/bla')} regionFk={area.regionFk} sortable={false} /> -->
+        <BlocksList blocks={blocks.data} routes={routes.data} />
       {:else if detail.type === 'area'}
         <AreaList areas={subAreas.data} />
       {:else}

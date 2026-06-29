@@ -1,12 +1,10 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
-  import Dialog from '$lib/components/Dialog/Dialog.svelte'
   import { deleteArea, restoreArea } from '$lib/entities/area/areas.remote'
   import { waitForArea } from '$lib/entities/area/resources.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canAddParking, canDeleteArea, canEditArea } from '$lib/entities/area/permissions'
-  import { createBlock } from '$lib/entities/block/blocks.remote'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -23,8 +21,6 @@
 
   const { area }: Props = $props()
   const global = getGlobalState()
-
-  let addBlockOpen = $state(false)
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
   const canDelete = $derived(canDeleteArea(global.userRegions, area))
@@ -85,12 +81,10 @@
         {#if canAddBlockHere}
           <MenuRow
             accent
+            href={resolve('/(app)/areas/[id]/blocks/add', { id: String(area.id) })}
             icon="block"
             label={m.blocks_addBlock()}
-            onclick={() => {
-              close()
-              addBlockOpen = true
-            }}
+            onclick={close}
           />
         {/if}
 
@@ -150,20 +144,3 @@
     {/snippet}
   </MoreMenu>
 </div>
-
-{#if canAddBlockHere}
-  <Dialog
-    open={addBlockOpen}
-    onOpenChange={(event) => (addBlockOpen = event.open)}
-    onsave={async () => {
-      await createBlock({ areaId: area.id })
-    }}
-    pending={createBlock.pending}
-    saveText={m.common_ok()}
-    title={m.blocks_createBlockInTitle({ name: area.name })}
-  >
-    {#snippet content()}
-      {m.blocks_createBlockConfirmation()}
-    {/snippet}
-  </Dialog>
-{/if}

@@ -9,6 +9,7 @@
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import type { RouteListItem } from '$lib/entities/route/dto'
+  import { userLocation } from '$lib/map/geolocation.svelte'
   import { haversineMetres, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -66,26 +67,15 @@
     ...(blockGeo.size > 0 ? [{ value: 'distance', label: m.sort_distance() }] : []),
   ])
 
-  // undefined = not requested, null = unavailable/denied.
-  let userLocation = $state<Coords | null | undefined>(undefined)
-
-  // Fetch the user's location once distance sort is actually chosen.
-  $effect(() => {
-    if (sort.field === 'distance' && userLocation === undefined && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => (userLocation = { lat: pos.coords.latitude, long: pos.coords.longitude }),
-        () => (userLocation = null),
-        { timeout: 10_000, maximumAge: 300_000 },
-      )
-    }
-  })
+  // Request the user's location only once distance sort is actually chosen.
+  const location = userLocation(() => sort.field === 'distance')
 
   const distanceOf = (route: RouteListItem): number => {
     const geo = blockGeo.get(route.blockFk)
-    if (geo == null || userLocation == null) {
+    if (geo == null || location.current == null) {
       return Infinity
     }
-    return haversineMetres(userLocation, geo)
+    return haversineMetres(location.current, geo)
   }
 
   const sorted = $derived(sortRoutes(routes.data, sort.field, sort.dir, distanceOf))
