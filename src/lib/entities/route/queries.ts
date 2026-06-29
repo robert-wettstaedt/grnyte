@@ -15,6 +15,7 @@ export const routesQueryDefs = {
       minGrade: z.number().optional(),
       minRating: z.number().optional(),
       pageSize: z.number().optional(),
+      references: z.string().optional(),
       routeId: z.union([z.number(), z.array(z.number())]).optional(),
       sort: z.enum(['rating', 'grade', 'firstAscentYear']).optional(),
       sortOrder: z.enum(['asc', 'desc']).optional(),
@@ -79,6 +80,12 @@ export const routesQueryDefs = {
         q = q.where((q) =>
           q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
         )
+      }
+
+      // Find routes whose description references the given entity (e.g. `!areas:7!`) — its
+      // backlinks. The token's delimiters keep it exact (`!areas:7!` ≠ `!areas:71!`).
+      if (args.references != null) {
+        q = q.where('description', 'ILIKE', `%${args.references}%`)
       }
 
       if (args.sortOrder != null && args.sort != null) {

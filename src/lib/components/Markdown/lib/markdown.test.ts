@@ -95,7 +95,7 @@ describe('Markdown Conversion', () => {
     expect(html).toContain('<a href="/routes/123"><strong>foo</strong></a>')
   })
 
-  it('should handle missing references', async () => {
+  it('renders a deleted reference as a "not found" tombstone', async () => {
     const mockDb = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({ where: vi.fn(() => []) })),
@@ -104,7 +104,8 @@ describe('Markdown Conversion', () => {
 
     const markdown = '!routes:123!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
-    expect(html).toContain('!routes:123!')
+    expect(html).toContain('<span class="reference-missing">Route not found</span>')
+    expect(html).not.toContain('/routes/123')
   })
 
   it('should handle malformed references', async () => {

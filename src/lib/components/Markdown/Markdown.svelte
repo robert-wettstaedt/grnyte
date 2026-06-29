@@ -62,3 +62,13 @@
   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html html}
 </div>
+
+<style>
+  /* Tombstone for a reference whose target was deleted (see remark-references):
+     muted, non-interactive text in place of the dead link. `:global` because the
+     markdown HTML is injected via {@html}. */
+  :global(.markdown-body .reference-missing) {
+    font-style: italic;
+    opacity: 0.6;
+  }
+</style>

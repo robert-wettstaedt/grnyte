@@ -39,9 +39,10 @@
   <header
     class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur"
   >
-    <button class="btn preset-tonal-surface" onclick={onBack} type="button">
+    <button class="btn preset-tonal-surface" onclick={onBack} type="button" aria-label={backLabel}>
       <Icon name="arrow-left" size={16} />
-      {backLabel}
+      <!-- Hidden on mobile so the long back label can't overlap the centred title. -->
+      <span class="hidden sm:inline">{backLabel}</span>
     </button>
     <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm font-bold whitespace-nowrap">
       {title}

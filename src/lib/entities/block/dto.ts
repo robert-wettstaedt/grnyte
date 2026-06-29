@@ -6,9 +6,13 @@ export type BlockListItem = {
   id: number
   name: string
   order: number
+  regionFk: number
 }
 
 export type BlockDetail = BlockListItem & {
   createdAt: Date | undefined
   geolocation: Geolocation | undefined
+  /** The stored name as typed — empty for auto-numbered blocks. `name` is the display
+   *  fallback ("Block 2"); editing must prefill from this so a blank block stays blank. */
+  rawName: string
 }

@@ -1,12 +1,16 @@
 import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
-import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
+import { createResource, type QueryResource } from '$lib/zero/resource.svelte'
+import type { MarkdownReference, MarkdownReferencesIds, ReferenceType } from './remark-references'
 
 /**
  * Resolves the area/block/route/user ids referenced in a markdown string to
  * `{ type, id, name }` tuples, read reactively from Zero. Each kind is gated so
  * no query runs for a reference type that isn't present. Wraps `createResource`
  * the same way the entity resource factories do, but spans all four tables.
+ *
+ * Once a kind's query is complete, any requested id missing from the result is a
+ * deleted reference — surfaced as a `missing` tombstone so it renders "… not found"
+ * instead of a dead link. Gated on `isComplete` so still-loading refs don't flash.
  */
 export function markdownReferences(ids: () => MarkdownReferencesIds) {
   const areas = createResource(
@@ -35,9 +39,30 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
     { enabled: () => ids().users.length > 0 },
   )
 
+  // Requested ids absent from a completed result are deleted targets → tombstones.
+  const tombstones = (
+    type: ReferenceType,
+    requested: number[],
+    resource: QueryResource<MarkdownReference[]>,
+  ): MarkdownReference[] => {
+    if (!resource.isComplete) return []
+    return requested
+      .filter((id) => !resource.data.some((ref) => ref.id === id))
+      .map((id) => ({ type, id, name: '', missing: true }))
+  }
+
   return {
     get data(): MarkdownReference[] {
-      return [...areas.data, ...blocks.data, ...routes.data, ...users.data]
+      return [
+        ...areas.data,
+        ...blocks.data,
+        ...routes.data,
+        ...users.data,
+        ...tombstones('areas', ids().areas, areas),
+        ...tombstones('blocks', ids().blocks, blocks),
+        ...tombstones('routes', ids().routes, routes),
+        ...tombstones('users', ids().users, users),
+      ]
     },
   }
 }

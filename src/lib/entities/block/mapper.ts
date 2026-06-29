@@ -8,6 +8,7 @@ interface BlockRow {
   readonly id: number
   readonly name: string
   readonly order: number
+  readonly regionFk: number
   readonly area?: AreaAncestor | undefined
 }
 
@@ -35,6 +36,7 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
     id: row.id,
     name: row.name.length === 0 ? `${m.common_block()} ${row.order}` : row.name,
     order: row.order,
+    regionFk: row.regionFk,
   }
 }
 
@@ -43,5 +45,6 @@ export function toBlockDetail(row: BlockDetailRow): BlockDetail {
     ...toBlockListItem(row),
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
+    rawName: row.name,
   }
 }

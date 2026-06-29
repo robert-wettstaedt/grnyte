@@ -6,6 +6,8 @@ import { toAreaDetail } from './mapper'
 export interface AreaListFilter {
   content?: string
   parentFk?: number
+  /** Find areas whose description references the given `!type:id!` token (backlinks). */
+  references?: string
 }
 
 export function areaList(filter: () => AreaListFilter = () => ({})) {

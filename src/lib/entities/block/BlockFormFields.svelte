@@ -7,7 +7,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import type { RemoteForm } from '@sveltejs/kit'
   import BlockLocationField from './BlockLocationField.svelte'
-  import type { CreateBlockInput } from './blocks.remote'
+  import type { BlockFormInput } from './blocks.remote'
 
   type Coords = { lat: number; long: number }
 
@@ -15,7 +15,7 @@
   // recommended location field. The surrounding chrome (header, submit) lives in `Form`;
   // location state + actions are owned by the parent (`BlockForm`). Mirrors AreaFormFields.
   interface Props {
-    form: RemoteForm<CreateBlockInput, unknown>
+    form: RemoteForm<BlockFormInput, unknown>
     /** The crag the block belongs to. */
     area: AreaDetail
     location: Coords | null
@@ -35,6 +35,11 @@
 <input name="areaId" type="hidden" value={area.id} />
 <input name="lat" type="hidden" value={location?.lat ?? ''} />
 <input name="long" type="hidden" value={location?.long ?? ''} />
+
+<!-- Present only when editing — the create form leaves `id` unset. -->
+{#if form.fields.id.value() != null}
+  <input type="hidden" {...form.fields.id.as('text')} />
+{/if}
 
 <Breadcrumb {area} includeSelf userRegions={global.userRegions} />
 

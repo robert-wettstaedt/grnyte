@@ -14,6 +14,8 @@ export interface RouteListFilter {
   minGrade?: number
   minRating?: number
   parentFk?: number
+  /** Find routes whose description references the given `!type:id!` token (backlinks). */
+  references?: string
   tags?: string[]
 }
 

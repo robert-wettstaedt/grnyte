@@ -11,7 +11,7 @@
   import type { RemoteForm } from '@sveltejs/kit'
   import BlockFormFields from './BlockFormFields.svelte'
   import BlockLocationConfirm from './BlockLocationConfirm.svelte'
-  import type { CreateBlockInput } from './blocks.remote'
+  import type { BlockFormInput } from './blocks.remote'
   import { blockList } from './resources.svelte'
 
   type Coords = { lat: number; long: number }
@@ -21,7 +21,7 @@
   // submit with a confirm when no location is set. Edit reuses this verbatim — pass
   // `updateBlock`, an `initialLocation`, and an "Edit block"/"Save" title and label.
   interface Props {
-    form: RemoteForm<CreateBlockInput, unknown>
+    form: RemoteForm<BlockFormInput, unknown>
     /** The crag the block belongs to — drives the breadcrumb and the picker's framing. */
     area: AreaDetail
     title: string
@@ -29,9 +29,26 @@
     onCancel: () => void
     /** Pre-fill the location, e.g. the block's existing pin when editing. */
     initialLocation?: Coords | null
+    /** Open straight on the map picker (the "Move on the map" shortcut) instead of the form. */
+    initialStep?: 'form' | 'pin'
+    /** Move mode: when set, the picker's "Done" commits the pin directly through this callback
+     *  (typically a save + navigate) instead of returning to the form to be submitted. */
+    onLocationCommit?: (coords: Coords) => void
+    /** Editing an existing block — switches the no-location confirm to "Save …" wording. */
+    editing?: boolean
   }
 
-  const { form, area, title, submitLabel, onCancel, initialLocation = null }: Props = $props()
+  const {
+    form,
+    area,
+    title,
+    submitLabel,
+    onCancel,
+    initialLocation = null,
+    initialStep = 'form',
+    onLocationCommit,
+    editing = false,
+  }: Props = $props()
 
   const global = getGlobalState()
   const blocks = blockList(() => ({ areaId: area.id }))
@@ -51,7 +68,8 @@
     return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
   })
 
-  let step = $state<'form' | 'pin'>('form')
+  // svelte-ignore state_referenced_locally
+  let step = $state<'form' | 'pin'>(initialStep)
   // svelte-ignore state_referenced_locally
   let committed = $state<Coords | null>(initialLocation)
   let confirmOpen = $state(false)
@@ -98,10 +116,15 @@
     initial={committed}
     title={m.blocks_add_setLocationTitle()}
     backLabel={title}
-    onBack={() => (step = 'form')}
+    onBack={() => (onLocationCommit != null ? onCancel() : (step = 'form'))}
     onDone={(coords) => {
-      committed = coords
-      step = 'form'
+      // Move mode commits straight away; otherwise carry the pin back to the form to be saved.
+      if (onLocationCommit != null) {
+        onLocationCommit(coords)
+      } else {
+        committed = coords
+        step = 'form'
+      }
     }}
   />
 {:else}
@@ -120,6 +143,8 @@
 
   <BlockLocationConfirm
     open={confirmOpen}
+    title={editing ? m.blocks_edit_confirmTitle() : undefined}
+    confirmLabel={editing ? m.blocks_edit_saveWithoutLocation() : undefined}
     onCancel={() => closeConfirm(false)}
     onConfirm={() => closeConfirm(true)}
     onPinNow={() => {

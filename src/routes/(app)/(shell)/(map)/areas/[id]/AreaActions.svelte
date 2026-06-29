@@ -1,10 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import { deleteArea, restoreArea } from '$lib/entities/area/areas.remote'
-  import { waitForArea } from '$lib/entities/area/resources.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import { canAddArea, canAddBlock, canAddParking, canDeleteArea, canEditArea } from '$lib/entities/area/permissions'
+  import { waitForArea } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -12,8 +13,8 @@
   import DirectionsButton from '../../Sheet/DirectionsButton.svelte'
   import MenuRow from '../../Sheet/MenuRow.svelte'
   import MoreMenu from '../../Sheet/MoreMenu.svelte'
+  import SaveButton from '../../Sheet/SaveButton.svelte'
   import ShareButton from '../../Sheet/ShareButton.svelte'
-  import SaveButton from './SaveButton.svelte'
 
   interface Props {
     area: AreaDetail
@@ -57,7 +58,14 @@
 </script>
 
 <div class="flex gap-2">
-  <DirectionsButton {destination} />
+  {#if destination == null}
+    <div class="btn preset-tonal-warning btn-lg flex-1 cursor-default text-sm">
+      <Icon name="alert-triangle" size={16} />
+      {m.blocks_noLocation()}
+    </div>
+  {:else}
+    <DirectionsButton {destination} />
+  {/if}
 
   <SaveButton entityId={String(area.id)} entityType="area" regionFk={area.regionFk} />
 

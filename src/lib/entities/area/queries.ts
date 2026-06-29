@@ -9,6 +9,7 @@ export const areasQueryDefs = {
       id: z.union([z.number(), z.array(z.number())]).optional(),
       parentFk: z.number().optional(),
       content: z.string().optional(),
+      references: z.string().optional(),
       limit: z.number().optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
@@ -32,6 +33,12 @@ export const areasQueryDefs = {
         q = q.where((q) =>
           q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
         )
+      }
+
+      // Find areas whose description contains a reference token (e.g. `!blocks:42!`) — the
+      // backlinks for the referenced entity. The token's delimiters keep it exact.
+      if (args.references != null) {
+        q = q.where('description', 'ILIKE', `%${args.references}%`)
       }
 
       if (args.limit != null) {

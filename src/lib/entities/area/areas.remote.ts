@@ -9,6 +9,7 @@ import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
+import { refreshAreaType } from './area.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking, canEditArea } from './permissions'
 
 const areaActionSchema = z.object({
@@ -57,7 +58,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
     .returning()
 
   if (value.parentFk != null) {
-    await db.update(areas).set({ type: 'area' }).where(eq(areas.id, value.parentFk))
+    await refreshAreaType(db, value.parentFk)
   }
 
   await insertActivity(db, {
@@ -105,8 +106,8 @@ export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, 
     db,
     entityId: String(area.id),
     entityType: 'area',
-    newEntity: value,
-    oldEntity: area,
+    newEntity: { description: value.description, name: value.name },
+    oldEntity: { description: area.description, name: area.name },
     userFk: user.id,
     parentEntityId: String(area.parentFk),
     parentEntityType: 'area',
@@ -141,6 +142,58 @@ async function collectAreaSubtreeIds(db: Context['db'], rootId: number): Promise
   return ids
 }
 
+/** Hard-delete a leaf area. Its parking geolocations FK-block the row delete, so remove them
+ *  first and snapshot them for undo; the area's own fields recreate it. */
+async function hardDeleteArea(db: Context['db'], area: Area): Promise<DeleteAreaSnapshot> {
+  const parking = await db.query.geolocations.findMany({ where: eq(geolocations.areaFk, area.id) })
+  await db.delete(geolocations).where(eq(geolocations.areaFk, area.id))
+  await db.delete(areas).where(eq(areas.id, area.id))
+
+  return {
+    mode: 'hard',
+    areaId: area.id,
+    area: {
+      name: area.name,
+      description: area.description,
+      type: area.type,
+      regionFk: area.regionFk,
+      parentFk: area.parentFk,
+      walkingPaths: area.walkingPaths,
+      geoPaths: area.geoPaths,
+    },
+    parking: parking.map(({ lat, long }) => ({ lat, long })),
+  }
+}
+
+/** Soft-delete an area with descendants: stamp one `deletedAt` across the subtree (area +
+ *  descendant areas, their blocks, those blocks' routes). The shared timestamp is the restore
+ *  key. Only touch rows not already deleted, so restore won't resurrect independently-deleted
+ *  ones. ponytail: timestamp as restore key; sub-ms collision with a concurrent delete is the
+ *  ceiling. Upgrade = a dedicated deletion-batch id column. */
+async function softDeleteArea(db: Context['db'], area: Area): Promise<DeleteAreaSnapshot> {
+  const areaIds = await collectAreaSubtreeIds(db, area.id)
+  const blockRows = await db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) })
+  const blockIds = blockRows.map((row) => row.id)
+  const deletedAt = new Date()
+
+  await db
+    .update(areas)
+    .set({ deletedAt })
+    .where(and(inArray(areas.id, areaIds), isNull(areas.deletedAt)))
+  if (blockIds.length > 0) {
+    await db
+      .update(blocks)
+      .set({ deletedAt })
+      .where(and(inArray(blocks.id, blockIds), isNull(blocks.deletedAt)))
+    await db
+      .update(routes)
+      .set({ deletedAt })
+      .where(and(inArray(routes.blockFk, blockIds), isNull(routes.deletedAt)))
+  }
+
+  return { mode: 'soft', areaId: area.id, deletedAt }
+}
+
 /** Delete an area. A leaf area (no sub-areas, blocks or files) is hard-deleted; anything
  *  with descendants is soft-deleted across the whole subtree. Returns the snapshot
  *  {@link restoreArea} needs to undo either path. */
@@ -166,75 +219,24 @@ export const deleteArea = authedCommand(
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.areaFk, id) }),
     ])
 
-    const logDeleted = () =>
-      insertActivity(db, {
-        type: 'deleted',
-        userFk: user.id,
-        entityId: String(area.id),
-        entityType: 'area',
-        parentEntityId: area.parentFk == null ? null : String(area.parentFk),
-        parentEntityType: 'area',
-        regionFk: area.regionFk,
-      })
+    const data =
+      subArea == null && block == null && file == null ? await hardDeleteArea(db, area) : await softDeleteArea(db, area)
+
+    await insertActivity(db, {
+      type: 'deleted',
+      userFk: user.id,
+      entityId: String(area.id),
+      entityType: 'area',
+      parentEntityId: area.parentFk == null ? null : String(area.parentFk),
+      parentEntityType: 'area',
+      regionFk: area.regionFk,
+    })
+    if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
 
     const redirectTo =
       area.parentFk == null
         ? resolve('/explore')
         : resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.parentFk) })
-
-    if (subArea == null && block == null && file == null) {
-      // Hard delete a leaf area. Its parking geolocations FK-block the row delete, so remove
-      // them first and snapshot them for undo; the area's own fields recreate it.
-      const parking = await db.query.geolocations.findMany({ where: eq(geolocations.areaFk, id) })
-      await db.delete(geolocations).where(eq(geolocations.areaFk, id))
-      await db.delete(areas).where(eq(areas.id, id))
-      await logDeleted()
-
-      const data: DeleteAreaSnapshot = {
-        mode: 'hard',
-        areaId: id,
-        area: {
-          name: area.name,
-          description: area.description,
-          type: area.type,
-          regionFk: area.regionFk,
-          parentFk: area.parentFk,
-          walkingPaths: area.walkingPaths,
-          geoPaths: area.geoPaths,
-        },
-        parking: parking.map(({ lat, long }) => ({ lat, long })),
-      }
-
-      return { redirectTo, data }
-    }
-
-    // Soft delete: stamp one `deletedAt` across the subtree (area + descendant areas, their
-    // blocks, those blocks' routes). The shared timestamp is the restore key. Only touch
-    // rows not already deleted, so restore won't resurrect independently-deleted ones.
-    // ponytail: timestamp as restore key; sub-ms collision with a concurrent delete is the
-    // ceiling. Upgrade = a dedicated deletion-batch id column.
-    const areaIds = await collectAreaSubtreeIds(db, id)
-    const blockRows = await db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) })
-    const blockIds = blockRows.map((row) => row.id)
-    const deletedAt = new Date()
-
-    await db
-      .update(areas)
-      .set({ deletedAt })
-      .where(and(inArray(areas.id, areaIds), isNull(areas.deletedAt)))
-    if (blockIds.length > 0) {
-      await db
-        .update(blocks)
-        .set({ deletedAt })
-        .where(and(inArray(blocks.id, blockIds), isNull(blocks.deletedAt)))
-      await db
-        .update(routes)
-        .set({ deletedAt })
-        .where(and(inArray(routes.blockFk, blockIds), isNull(routes.deletedAt)))
-    }
-    await logDeleted()
-
-    const data: DeleteAreaSnapshot = { mode: 'soft', areaId: id, deletedAt }
 
     return { redirectTo, data }
   },
@@ -258,28 +260,54 @@ const restoreAreaSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('soft'), areaId: z.number(), deletedAt: z.coerce.date() }),
 ])
 
+/** What {@link restoreArea} receives — the parsed snapshot, whose optional/nullable area fields
+ *  differ from {@link DeleteAreaSnapshot}, so the restore helpers key off this. */
+type RestoreAreaSnapshot = z.infer<typeof restoreAreaSchema>
+
+/** Recreate a hard-deleted area with its parking. Returns the new row (its `parentFk` drives
+ *  the parent's type refresh). */
+async function hardRestoreArea(
+  db: Context['db'],
+  snapshot: Extract<RestoreAreaSnapshot, { mode: 'hard' }>,
+  createdBy: number,
+): Promise<Area> {
+  const [created] = await db
+    .insert(areas)
+    .values({ ...snapshot.area, createdBy })
+    .returning()
+
+  if (snapshot.parking.length > 0) {
+    await db
+      .insert(geolocations)
+      .values(snapshot.parking.map(({ lat, long }) => ({ lat, long, areaFk: created.id, regionFk: created.regionFk })))
+  }
+
+  return created
+}
+
+/** Clear the `deletedAt` the soft delete stamped across the subtree (matched by the shared
+ *  timestamp), un-hiding the area, its descendant areas, blocks and routes together. */
+async function softRestoreArea(
+  db: Context['db'],
+  snapshot: Extract<RestoreAreaSnapshot, { mode: 'soft' }>,
+): Promise<void> {
+  await db.update(areas).set({ deletedAt: null }).where(eq(areas.deletedAt, snapshot.deletedAt))
+  await db.update(blocks).set({ deletedAt: null }).where(eq(blocks.deletedAt, snapshot.deletedAt))
+  await db.update(routes).set({ deletedAt: null }).where(eq(routes.deletedAt, snapshot.deletedAt))
+}
+
 /** Undo a {@link deleteArea}: recreate the hard-deleted area (with its parking), or clear
  *  the `deletedAt` the soft delete stamped across the subtree. Either way, remove the
  *  'deleted' activity the delete logged so the timeline reads as if it never happened. */
 export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
-    const { area, parking } = snapshot
-
-    if (!canDeleteArea(userRegions, { regionFk: area.regionFk, type: area.type ?? null })) {
+    if (!canDeleteArea(userRegions, { regionFk: snapshot.area.regionFk, type: snapshot.area.type ?? null })) {
       error(403, formError('form_noPermission'))
     }
 
-    const [created] = await db
-      .insert(areas)
-      .values({ ...area, createdBy: user.id })
-      .returning()
+    const created = await hardRestoreArea(db, snapshot, user.id)
 
-    if (parking.length > 0) {
-      await db
-        .insert(geolocations)
-        .values(parking.map(({ lat, long }) => ({ lat, long, areaFk: created.id, regionFk: created.regionFk })))
-    }
-
+    if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
     await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
 
     return {
@@ -294,10 +322,9 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     error(403, formError('form_noPermission'))
   }
 
-  await db.update(areas).set({ deletedAt: null }).where(eq(areas.deletedAt, snapshot.deletedAt))
-  await db.update(blocks).set({ deletedAt: null }).where(eq(blocks.deletedAt, snapshot.deletedAt))
-  await db.update(routes).set({ deletedAt: null }).where(eq(routes.deletedAt, snapshot.deletedAt))
+  await softRestoreArea(db, snapshot)
 
+  if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
   await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
 
   return {

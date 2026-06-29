@@ -9,7 +9,7 @@ import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 import { remarkDisableLinks } from './remark-disable-links'
 import { remarkGrades } from './remark-grades'
-import { referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
+import { REFERENCE_TOMBSTONE, referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
 
 export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
@@ -101,26 +101,21 @@ const enrichMarkdown = async (markdown: string, db?: PostgresJsDatabase<typeof s
               return results.at(0)
             })()
 
-      if (result == null) {
-        return null
-      }
+      // A deleted target renders as a tombstone ("… not found") rather than the raw token.
+      const payload = result == null ? REFERENCE_TOMBSTONE : result.name
 
       let reference = ''
       if (match[0].indexOf('!') > 0) {
         reference += ' '
       }
 
-      reference += `!${type}:${id}:${btoa(result.name)}!`
+      reference += `!${type}:${id}:${btoa(payload)}!`
 
       return { match, reference }
     }),
   )
 
   return refs.reduce((str, item) => {
-    if (item == null) {
-      return str
-    }
-
     const before = str.substring(0, item.match.index)
     const after = str.substring(item.match.index + item.match[0].length)
 

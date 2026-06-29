@@ -1,9 +1,17 @@
+import { m } from '$lib/paraglide/messages'
 import type { PhrasingContent, Root } from 'mdast'
 import { findAndReplace, type ReplaceFunction } from 'mdast-util-find-and-replace'
 import { type Plugin } from 'unified'
 
 export const referenceRegex = '!(areas|blocks|routes|users):\\d+!'
 const referenceRegexWithBase64 = '!(areas|blocks|routes|users):\\d+:[A-Za-z0-9+/=]+!'
+
+/**
+ * Token payload (base64-encoded into a reference) marking a target that no longer exists,
+ * so it renders as an inert "… not found" tombstone instead of a link. A null byte can't
+ * occur in a real entity name, so it never collides with a resolved reference.
+ */
+export const REFERENCE_TOMBSTONE = String.fromCharCode(0)
 
 export type EncloseOptions = 'anchor' | 'strong'
 
@@ -43,17 +51,30 @@ export interface MarkdownReference {
   type: ReferenceType
   id: number
   name: string
+  /** The target no longer exists — render a tombstone rather than resolving `name`. */
+  missing?: boolean
 }
 
 export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownReference[]): string => {
   let enrichedMarkdown = markdown
 
-  refs.forEach(({ id, name, type }) => {
-    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${btoa(name)}!`)
+  refs.forEach(({ id, name, type, missing }) => {
+    const payload = btoa(missing ? REFERENCE_TOMBSTONE : name)
+    enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${payload}!`)
   })
 
   return enrichedMarkdown
 }
+
+/** Localized tombstone label for a reference whose target was deleted. */
+const notFoundLabel = (type: string): string =>
+  type === 'areas'
+    ? m.reference_areaNotFound()
+    : type === 'blocks'
+      ? m.reference_blockNotFound()
+      : type === 'routes'
+        ? m.reference_routeNotFound()
+        : m.reference_userNotFound()
 
 interface RemarkReferencesOptions {
   encloseReferences?: EncloseOptions
@@ -69,7 +90,19 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
       .trim()
       .substring(1, value.length - 1)
       .split(':')
-    const name = base64 == null ? `${type}:${id}` : atob(base64)
+    const decoded = base64 == null ? null : atob(base64)
+
+    // Deleted target: inert, muted "… not found" text — never a link to a dead page.
+    if (decoded === REFERENCE_TOMBSTONE) {
+      const tombstone: PhrasingContent = {
+        type: 'strong',
+        data: { hName: 'span', hProperties: { class: 'reference-missing' } },
+        children: [{ type: 'text', value: notFoundLabel(type) }],
+      }
+      return [tombstone]
+    }
+
+    const name = decoded ?? `${type}:${id}`
 
     // Users render as an `@username` mention (replacing the retired
     // `remark-mentions`); the resolved `name` is the username for this type.

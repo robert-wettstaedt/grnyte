@@ -6,6 +6,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { routeList } from '$lib/entities/route/resources.svelte'
@@ -130,6 +131,8 @@
       {:else}
         <AreaEmpty area={detail} />
       {/if}
+
+      <ReferencedBy type="areas" id={detail.id} />
     </div>
   {/snippet}
 
