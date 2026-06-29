@@ -1,6 +1,7 @@
 services:
   zero-prod:
-    image: rocicorp/zero
+    # Pinned to v0 (0.25.12) — DO NOT use :latest, it now resolves to Zero v1 which zero-svelte does not support yet.
+    image: rocicorp/zero@sha256:47783c3a974448e32ffc45e0fef8c36228b8649d089f718ba10164e64f6c1b57
     container_name: zero-server-prod
     expose:
       - "4848"
@@ -26,7 +27,8 @@ services:
       - zero_network
 
   zero-demo:
-    image: rocicorp/zero
+    # Pinned to v0 (0.25.12) — DO NOT use :latest, it now resolves to Zero v1 which zero-svelte does not support yet.
+    image: rocicorp/zero@sha256:47783c3a974448e32ffc45e0fef8c36228b8649d089f718ba10164e64f6c1b57
     container_name: zero-server-demo
     expose:
       - "4848"
