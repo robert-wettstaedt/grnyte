@@ -46,6 +46,12 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 
+  // True only while nothing is renderable yet — local-first preloads flip the
+  // source queries to `ready` fast, so this is the cold-load case (no markers).
+  const isLoading = $derived(
+    routes.status === 'loading' || blocksResult.status === 'loading' || areasResult.status === 'loading',
+  )
+
   // A stable object with per-field reactive getters. Callers bind each field to `<Map>`
   // individually (never spread), so a field whose source query didn't change keeps a
   // stable reference and its map layer's effect doesn't re-run — only the changed layer does.
@@ -64,6 +70,10 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
     },
     get gradeCountByBlock() {
       return gradeCountByBlock
+    },
+    /** True on cold load while no markers are renderable yet. */
+    get isLoading() {
+      return isLoading
     },
     /** The underlying route resource, exposed so callers can show filter/loading state. */
     routes,

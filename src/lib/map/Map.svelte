@@ -151,7 +151,7 @@
 
     const area = createAreaLayer()
     const crag = createCragLayer()
-    const block = createBlockLayer(mapInstance)
+    const block = createBlockLayer(mapInstance, () => props.selectedBlockId)
     const parking = createParkingLayer()
     const path = createPathLayer()
 
@@ -226,6 +226,12 @@
     syncFeatures(cragLayer, buildCragFeatures(data.cragBoundingBoxes, data.routeCountByCrag, data.gradeCountByCrag)),
   )
   $effect(() => syncFeatures(blockLayer, buildBlockFeatures(data.geoBlocks, data.routeCountByBlock)))
+
+  // Re-style the block layer when the selected block changes so the highlight + z-index follow.
+  $effect(() => {
+    void props.selectedBlockId
+    blockLayer?.changed()
+  })
   $effect(() => syncFeatures(parkingLayer, buildParkingFeatures(data.uniqueParkingLocations)))
   $effect(() => syncFeatures(pathLayer, buildPathFeatures(data.uniqueLineStrings)))
 
@@ -328,19 +334,19 @@
       if (props.pickMode) return
       const feature = mapInstance.forEachFeatureAtPixel(event.pixel, (f) => f)
       if (feature) {
-        // const blockId = feature.get('blockId')
+        const blockId = feature.get('blockId')
         const areaId = feature.get('areaId')
         const parkingId = feature.get('parkingId')
         if (parkingId != null) {
           props.onfeatureopen?.()
           goto(resolve('/(app)/(shell)/(map)/parking/[id]', { id: parkingId.toString() }))
+        } else if (blockId != null) {
+          props.onfeatureopen?.()
+          goto(resolve('/(app)/(shell)/(map)/blocks/[id]', { id: blockId.toString() }))
         } else if (areaId != null) {
           props.onfeatureopen?.()
           goto(resolve('/(app)/(shell)/(map)/areas/[id]', { id: areaId.toString() }))
         }
-        // if (blockId != null) {
-        //   goto(resolve('/(new)/bla/(modal)/blocks/[id]', { id: blockId.toString() }))
-        // }
       }
     })
 

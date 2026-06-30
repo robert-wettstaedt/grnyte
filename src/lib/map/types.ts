@@ -17,6 +17,8 @@ export interface BlocksMapProps {
   /** Per-block route counts keyed by grade id (`gradeFk`), feeding the area/crag donut markers. */
   gradeCountByBlock?: Map<number, Map<number, number>>
   focus?: MapFocus | null
+  /** Block to highlight and lift above overlapping markers (the open block detail page). */
+  selectedBlockId?: number
   onviewchange?: (view: { center: [number, number]; zoom: number }) => void
   /** When true, map features stop being clickable (used by the parking picker,
    *  which reads the map *center* rather than navigating to tapped features). */

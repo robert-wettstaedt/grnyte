@@ -14,6 +14,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { sheetState } from '../../Modal/sheetState.svelte'
+  import { toSheetNav } from '../../Modal/siblingNav'
   import AreaActions from './AreaActions.svelte'
   import AreaDescription from './AreaDescription.svelte'
   import AreaEmpty from './AreaEmpty.svelte'
@@ -27,6 +28,18 @@
   // tapping a sub-area) — the underlying queries re-target as the param changes.
   const area = areaDetail(() => Number(page.params.id))
   const subAreas = areaList(() => ({ parentFk: Number(page.params.id) }))
+
+  // Siblings for prev/next nav: areas sharing this area's parent, ordered by name.
+  // Root areas (no parent) navigate the other roots via parentFk IS NULL. -1 while
+  // the area loads keeps the result empty (no all-areas scan).
+  const parentFk = $derived.by(() => {
+    const data = area.data
+    if (data == null) return -1
+    return data.areas.at(-1)?.id ?? null
+  })
+  const siblings = areaList(() => ({ parentFk }))
+
+  const areaHref = (id: number) => resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(id) })
 
   // Blocks beneath this crag, ordered by the query; routes (above) are grouped
   // under them by the BlocksList.
@@ -69,6 +82,8 @@
     const data = area.data
     sheetState.title = title
     sheetState.subtitle = data != null && (regionName != null || data.areas.length > 0) ? breadcrumb : null
+    sheetState.nav = toSheetNav(siblings.data, data?.id, areaHref)
+    return () => (sheetState.nav = null)
   })
 </script>
 

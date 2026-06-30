@@ -34,9 +34,9 @@
   const showAdd = $derived(canAddAreaHere || canAddBlockHere || canAddParkingHere)
   const showManage = $derived(canEdit || canAdmin)
 
-  // Drive to the parking lot — the address you actually drive to — or fall back to
-  // the mean of the blocks anywhere beneath this area (a name search would just send
-  // people to the wrong place).
+  // Drive to the parking lot — the address you actually drive to — or, for a crag, fall back
+  // to the mean of its blocks (a name search would just send people to the wrong place).
+  // `area`-type areas (nested sub-areas, no direct blocks) hide the button entirely.
   const blocks = blockList(() => ({ areaId: area.id }))
   const destination = $derived.by(() => {
     const parking = area.parkingLocations.at(0)
@@ -58,16 +58,23 @@
 </script>
 
 <div class="flex gap-2">
-  {#if destination == null}
-    <div class="btn preset-tonal-warning btn-lg flex-1 cursor-default text-sm">
-      <Icon name="alert-triangle" size={16} />
-      {m.blocks_noLocation()}
-    </div>
-  {:else}
-    <DirectionsButton {destination} />
+  {#if area.type !== 'area'}
+    {#if destination == null}
+      <div class="btn preset-tonal-warning btn-lg flex-1 cursor-default text-sm">
+        <Icon name="alert-triangle" size={16} />
+        {m.blocks_noLocation()}
+      </div>
+    {:else}
+      <DirectionsButton {destination} />
+    {/if}
   {/if}
 
-  <SaveButton entityId={String(area.id)} entityType="area" regionFk={area.regionFk} />
+  <SaveButton
+    class={area.type === 'area' ? 'flex-1' : undefined}
+    entityId={String(area.id)}
+    entityType="area"
+    regionFk={area.regionFk}
+  />
 
   <ShareButton text={area.name} />
 

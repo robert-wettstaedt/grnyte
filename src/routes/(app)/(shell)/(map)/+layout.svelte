@@ -4,9 +4,11 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
+  import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
-  import { fly } from 'svelte/transition'
+  import { fade, fly } from 'svelte/transition'
   import type { LayoutProps } from './$types'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
@@ -46,23 +48,18 @@
   // /explore index — keep `open` in sync as the user navigates.
   afterNavigate((navigation) => {
     open = !(navigation.to?.route.id?.endsWith('/explore') ?? false)
+
+    // On back/forward, restore the map view we saved into history state
+    // (see beforeNavigate). `focus` wins when a detail item is open.
+    if (navigation.type === 'popstate' && page.state?.mapView != null) {
+      restoredFocus = {
+        center: page.state.mapView.center,
+        zoom: page.state.mapView.zoom,
+      }
+    } else {
+      restoredFocus = null
+    }
   })
-
-  // afterNavigate((event) => {
-  //   open = !(event.to?.route.id?.endsWith('(modal)') ?? false)
-  //   if (open) {
-  //     sheetState.requestSnap = event.to?.route.id?.includes('parking/') ? 0.25 : 0.75
-  //   }
-
-  //   if (event.type === 'popstate' && page.state?.mapView != null) {
-  //     restoredFocus = {
-  //       center: page.state.mapView.center,
-  //       zoom: page.state.mapView.zoom,
-  //     }
-  //   } else {
-  //     restoredFocus = null
-  //   }
-  // })
 
   // Parsing the URL into typed filter values lives in ./Filter/filter, and
   // applying it to routes (incl. the client-side ascent/favorites filters) in
@@ -110,7 +107,6 @@
     }
 
     if (routeId.includes('areas/')) {
-      // Every block anywhere beneath the area (its id appears in the block's ancestor trail).
       const geoBlocks = explore.blocks.filter(
         (block) => block.geolocation != null && block.areas.some((area) => area.id === id),
       )
@@ -124,7 +120,37 @@
   })
 
   const effectiveFocus: MapFocus | null = $derived(focus ?? restoredFocus)
+
+  // Highlight the open block's marker on the map.
+  const selectedBlockId = $derived.by(() => {
+    if (!(page.route.id ?? '').includes('blocks/')) return undefined
+    const id = Number(page.params.id)
+    return Number.isFinite(id) ? id : undefined
+  })
+
+  // Keyboard prev/next, mirroring the sheet's nav arrows: j = prev, l = next.
+  // Only active when a sheet exposes nav, and never while typing or with modifiers.
+  function handleNavKey(event: KeyboardEvent) {
+    const nav = sheetState.nav
+    if (nav == null || event.metaKey || event.ctrlKey || event.altKey) return
+
+    const target = event.target
+    if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable]')) return
+
+    const key = event.key.toLowerCase()
+    if (key === 'j') {
+      event.preventDefault()
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      goto(nav.prev.href)
+    } else if (key === 'l') {
+      event.preventDefault()
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      goto(nav.next.href)
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleNavKey} />
 
 <div class="absolute inset-0">
   <Map
@@ -133,6 +159,7 @@
     lineStrings={explore.lineStrings}
     routeCountByBlock={explore.routeCountByBlock}
     gradeCountByBlock={explore.gradeCountByBlock}
+    {selectedBlockId}
     focus={effectiveFocus}
     onviewchange={(view) => (mapViewState = view)}
     onfeatureopen={() => (sheetState.requestSnap = 0.75)}
@@ -155,6 +182,17 @@
         <Filter loading={explore.routes.status === 'loading'} routes={explore.routes.data} />
       {/snippet}
     </SearchBar>
+  </div>
+{/if}
+
+{#if explore.isLoading}
+  <div class="pointer-events-none fixed top-16 left-0 z-10 flex w-full justify-center" in:fly={{ y: -20 }} out:fade>
+    <div
+      class="bg-surface-100-900 border-surface-200-800 flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap shadow-lg"
+    >
+      <LoadingIndicator class="w-fit shrink-0" size={4} />
+      {m.map_loading()}
+    </div>
   </div>
 {/if}
 

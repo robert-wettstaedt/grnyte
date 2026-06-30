@@ -7,12 +7,13 @@
   import { getGlobalState } from '$lib/state/global.svelte'
 
   interface Props {
+    class?: string
     entityId: string
     entityType: 'block' | 'route' | 'area'
     regionFk: number
   }
 
-  const { entityId, entityType, regionFk }: Props = $props()
+  const { class: className, entityId, entityType, regionFk }: Props = $props()
   const global = getGlobalState()
 
   // Saved state is read reactively from Zero, but the write goes through a
@@ -46,7 +47,7 @@
 
 <button
   aria-pressed={saved}
-  class={['btn btn-lg text-base', saved ? 'preset-tonal-primary' : 'preset-tonal']}
+  class={['btn btn-lg text-base', saved ? 'preset-tonal-primary' : 'preset-tonal', className]}
   disabled={favorited.isSyncing}
   onclick={toggleSave}
   type="button"

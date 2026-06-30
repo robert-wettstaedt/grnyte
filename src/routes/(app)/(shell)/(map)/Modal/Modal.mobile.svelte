@@ -11,6 +11,23 @@
   let innerHeight = $state(window.innerHeight)
   let sheet = $state<ReturnType<TypeOfBottomSheet> | undefined>(undefined)
 
+  // Viewport offset of the sheet's top edge, so `floating` controls can sit just
+  // above it and follow as it's dragged. The sheet grows from the bottom via
+  // `max-height`, so a ResizeObserver fires on every drag/snap frame.
+  // ponytail: at a near-full drag the buttons translate off the top — acceptable.
+  let sheetTop = $state(0)
+
+  $effect(() => {
+    const sheetEl = titleEl?.closest('.bottom-sheet')
+    if (sheetEl == null) return
+
+    const measure = () => (sheetTop = sheetEl.getBoundingClientRect().top)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(sheetEl)
+    return () => observer.disconnect()
+  })
+
   const titleSnapPoint = $derived.by(() => {
     if (!titleEl?.clientHeight) {
       return 0.1
@@ -25,7 +42,7 @@
 
     const target = event.target as HTMLElement
 
-    if (!target.closest('.bottom-sheet')) {
+    if (!target.closest('.bottom-sheet') && !target.closest('[data-sheet-floating]')) {
       sheet?.setSnapPoint(titleSnapPoint)
     }
   }
@@ -112,6 +129,31 @@
 >
   {@render content()}
 </BottomSheet>
+
+{#if open && sheetState.nav}
+  {@const nav = sheetState.nav}
+  <!-- Sibling of the sheet (not a child) so the sheet's `overflow` doesn't clip it.
+       Sits just above the sheet's top edge and tracks it via `sheetTop`. -->
+  <div
+    class="pointer-events-none fixed inset-x-0 z-60 flex -translate-y-full justify-start px-3 pb-2"
+    style="top: {sheetTop}px"
+    data-sheet-floating
+  >
+    <div
+      class="border-surface-200-800 preset-filled-surface-100-900 pointer-events-auto flex items-center gap-1.5 rounded-2xl border p-1.5 shadow-lg"
+    >
+      <a class="btn-icon btn-icon-lg preset-filled-surface-200-800" href={nav.prev.href} title={nav.prev.label}>
+        <Icon name="chevron-left" size={18} />
+      </a>
+
+      <span class="min-w-8 px-1 text-center text-sm font-bold tabular-nums">{nav.position}/{nav.total}</span>
+
+      <a class="btn-icon btn-icon-lg preset-filled-surface-200-800" href={nav.next.href} title={nav.next.label}>
+        <Icon name="chevron-right" size={18} />
+      </a>
+    </div>
+  </div>
+{/if}
 
 <style>
   :global(.bottom-sheet-grip) {

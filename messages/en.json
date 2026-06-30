@@ -313,6 +313,7 @@
   "legal_terms_metaDescription": "Terms of Service for {name} - Rules and guidelines for using our climbing tracker application.",
   "legal_terms_title": "Terms of Service",
   "map_layers": "Layers",
+  "map_loading": "Loading map…",
   "map_markers": "Markers",
   "map_showMyLocation": "Show my location",
   "map_toggleLayers": "Toggle layers",

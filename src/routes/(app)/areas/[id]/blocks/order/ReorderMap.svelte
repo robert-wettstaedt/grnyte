@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { BlockDetail } from '$lib/entities/block/dto'
+  import { buildParkingFeatures, buildPathFeatures, createParkingLayer, createPathLayer } from '$lib/map/layers.svelte'
   import type { Coords } from '$lib/map/map'
   import { defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
@@ -15,14 +16,16 @@
   interface Props {
     /** Blocks in their staged order — a pin's number is the block's 1-based list position. */
     blocks: BlockDetail[]
-    /** Reference point for "sort by distance" (parking or centroid), shown as a `P` pin. */
+    /** Reference point for "sort by distance" (parking or centroid), shown as a parking pin. */
     parking: Coords | null
+    /** Encoded approach polylines (the area's walking paths), drawn like the main map. */
+    geoPaths?: string[]
     /** Highlighted block (two-way with the list). */
     selectedId?: number
     onselect?: (id: number) => void
   }
 
-  const { blocks, parking, selectedId, onselect }: Props = $props()
+  const { blocks, parking, geoPaths, selectedId, onselect }: Props = $props()
 
   let map = $state<OlMap>()
   let hasSize = $state(false)
@@ -31,7 +34,6 @@
   // `selectedId` reads in the effects below, not from these registries.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- OL overlay element registry, not UI state
   const pinEls = new Map<number, HTMLButtonElement>()
-  let parkingOverlay: Overlay | undefined
   let fitted = false
 
   const mapAttachment: Attachment = (node) => {
@@ -94,20 +96,23 @@
     })
   })
 
-  // Parking reference pin.
+  // Parking + approach paths, drawn through the main map's own layer/feature helpers so the two
+  // maps stay identical. `minZoom: 0` keeps them visible on this single-area view at any zoom.
   $effect(() => {
     const instance = map
-    if (instance == null || parking == null) return
+    if (instance == null) return
 
-    const position = fromLonLat([parking.long, parking.lat])
-    if (parkingOverlay == null) {
-      const el = document.createElement('div')
-      el.className = 'reorder-parking'
-      el.textContent = 'P'
-      parkingOverlay = new Overlay({ element: el, positioning: 'center-center', position })
-      instance.addOverlay(parkingOverlay)
-    } else {
-      parkingOverlay.setPosition(position)
+    const parkingLayer = createParkingLayer(0)
+    if (parking != null) parkingLayer.getSource()?.addFeatures(buildParkingFeatures([parking]))
+
+    const pathLayer = createPathLayer(0)
+    pathLayer.getSource()?.addFeatures(buildPathFeatures(geoPaths ?? []))
+
+    instance.addLayer(parkingLayer)
+    instance.addLayer(pathLayer)
+    return () => {
+      instance.removeLayer(parkingLayer)
+      instance.removeLayer(pathLayer)
     }
   })
 
@@ -141,8 +146,8 @@
     filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.9) contrast(0.95);
   }
 
-  /* Numbered block pins + parking marker live in OL's overlay container (outside this
-     component's DOM), so they have to be styled globally. */
+  /* Numbered block pins live in OL's overlay container (outside this component's DOM),
+     so they have to be styled globally. */
   :global(.reorder-pin) {
     display: flex;
     align-items: center;
@@ -151,7 +156,8 @@
     height: 26px;
     border-radius: 9999px;
     border: 2px solid white;
-    background: var(--color-primary-500);
+    /* #ef4444 = the main map's block red; selected goes primary, also like the main map. */
+    background: #ef4444;
     color: white;
     font-size: 13px;
     font-weight: 700;
@@ -164,23 +170,7 @@
   }
 
   :global(.reorder-pin.selected) {
-    background: var(--color-secondary-500);
+    background: var(--color-primary-500);
     transform: scale(1.25);
-  }
-
-  :global(.reorder-parking) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
-    border: 2px solid white;
-    background: var(--color-surface-700);
-    color: white;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
   }
 </style>

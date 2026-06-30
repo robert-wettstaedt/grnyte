@@ -313,6 +313,7 @@
   "legal_terms_metaDescription": "Nutzungsbedingungen für {name} – Regeln und Richtlinien für die Nutzung unserer Kletter-Tracker-Anwendung.",
   "legal_terms_title": "Nutzungsbedingungen",
   "map_layers": "Ebenen",
+  "map_loading": "Karte wird geladen…",
   "map_markers": "Markierungen",
   "map_showMyLocation": "Meinen Standort anzeigen",
   "map_toggleLayers": "Ebenen umschalten",

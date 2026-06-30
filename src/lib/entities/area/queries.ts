@@ -7,7 +7,7 @@ export const areasQueryDefs = {
   listAreas: defineQuery(
     z.object({
       id: z.union([z.number(), z.array(z.number())]).optional(),
-      parentFk: z.number().optional(),
+      parentFk: z.number().nullable().optional(),
       content: z.string().optional(),
       references: z.string().optional(),
       limit: z.number().optional(),
@@ -25,7 +25,9 @@ export const areasQueryDefs = {
         q = Array.isArray(args.id) ? q.where('id', 'IN', args.id) : q.where('id', args.id)
       }
 
-      if (args.parentFk != null) {
+      // Explicit `null` filters to top-level areas (parentFk IS NULL); omitting it
+      // means no parent filter at all.
+      if (args.parentFk !== undefined) {
         q = q.where('parentFk', 'IS', args.parentFk)
       }
 

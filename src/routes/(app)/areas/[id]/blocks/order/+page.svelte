@@ -127,7 +127,7 @@
         <!-- Stacked on mobile (map over list); side-by-side on desktop (map left, list right). -->
         <div class="flex min-h-0 flex-1 flex-col md:flex-row-reverse">
           <div class="h-[42dvh] flex-none md:h-full md:flex-1">
-            <ReorderMap blocks={staged} parking={parkingPoint} {selectedId} onselect={select} />
+            <ReorderMap blocks={staged} parking={parkingPoint} geoPaths={detail.geoPaths} {selectedId} onselect={select} />
           </div>
 
           <div class="border-surface-200-800 flex min-h-0 flex-1 flex-col md:w-104 md:flex-none md:border-l">

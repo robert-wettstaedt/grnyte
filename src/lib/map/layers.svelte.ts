@@ -168,38 +168,47 @@ export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: 
   return features
 }
 
-export function createBlockLayer(mapInstance: OlMap): VectorLayer {
+export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number | undefined): VectorLayer {
   const layer = new VectorLayer({
     source: new VectorSource(),
     minZoom: BLOCK_ZOOM,
+    // Above the parking (zIndex 1) and path (0): the blocks are the content, so they win overlaps.
+    zIndex: 2,
     style: (feature) => {
       const zoom = mapInstance.getView().getZoom() ?? 0
       const showLabel = zoom >= BLOCK_LABEL_ZOOM
       const routeCount = feature.get('routeCount') as number
+      const selected = feature.get('blockId') === getSelectedId()
+      // Lift the selected block's styles above every other feature in the layer.
+      const zIndex = selected ? 1000 : undefined
+      const fill = new Fill({ color: selected ? primaryColor() : '#ef4444' })
       const styles: Style[] = []
 
       if (routeCount > 0) {
         styles.push(
           new Style({
             image: new CircleStyle({
-              radius: 12,
-              fill: new Fill({ color: '#ef4444' }),
-              stroke: new Stroke({ color: 'white', width: 1.5 }),
+              radius: selected ? 14 : 12,
+              fill,
+              stroke: new Stroke({ color: 'white', width: selected ? 2.5 : 1.5 }),
             }),
             text: new Text({
               text: String(routeCount),
               font: 'bold 10px sans-serif',
               fill: new Fill({ color: 'white' }),
             }),
+            zIndex,
           }),
         )
       } else {
         styles.push(
           new Style({
             image: new CircleStyle({
-              radius: 5,
-              fill: new Fill({ color: '#ef4444' }),
+              radius: selected ? 8 : 5,
+              fill,
+              stroke: selected ? new Stroke({ color: 'white', width: 2 }) : undefined,
             }),
+            zIndex,
           }),
         )
       }
@@ -216,6 +225,7 @@ export function createBlockLayer(mapInstance: OlMap): VectorLayer {
               offsetY: 18,
               overflow: true,
             }),
+            zIndex,
           }),
         )
       }
@@ -227,7 +237,9 @@ export function createBlockLayer(mapInstance: OlMap): VectorLayer {
   return layer
 }
 
-export function buildParkingFeatures(uniqueParkingLocations: Geolocation[]): Feature[] {
+// `id` is optional so the reorder map can pass a bare reference point (no navigation),
+// while the main map passes full `Geolocation`s whose `parkingId` drives click-to-open.
+export function buildParkingFeatures(uniqueParkingLocations: (Pick<Geolocation, 'lat' | 'long'> & { id?: number })[]): Feature[] {
   return uniqueParkingLocations.map(
     (p) =>
       new Feature({
@@ -237,10 +249,20 @@ export function buildParkingFeatures(uniqueParkingLocations: Geolocation[]): Fea
   )
 }
 
-export function createParkingLayer(): VectorLayer {
+/** Parking marker: a filled blue square-parking badge (lucide geometry). Built from an inline
+ *  SVG, not a webfont \u2014 the app dropped Font Awesome. */
+function parkingMarkerSvg(size = 28): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}"><rect x="1" y="1" width="22" height="22" rx="5" fill="#1e40af" stroke="white" stroke-width="1.5"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+}
+
+// `minZoom` defaults to BLOCK_ZOOM (the main map's zoom tiers); the reorder map passes 0 so the
+// parking always shows on its single-area view.
+export function createParkingLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   const layer = new VectorLayer({
     source: new VectorSource(),
-    minZoom: BLOCK_ZOOM,
+    minZoom,
+    // Above the path layer (default zIndex 0) so the approach line never crosses over the marker.
+    zIndex: 1,
     // Add a subtle circular hit area so transparent parts of the icon remain clickable.
     style: [
       new Style({
@@ -250,12 +272,7 @@ export function createParkingLayer(): VectorLayer {
         }),
       }),
       new Style({
-        text: new Text({
-          font: '900 1.75rem "Font Awesome 7 Free"',
-          // Font Awesome "square-parking" glyph (escaped so the marker can't silently vanish).
-          text: '\uF540',
-          fill: new Fill({ color: '#1e40af' }),
-        }),
+        image: new Icon({ src: 'data:image/svg+xml;utf8,' + encodeURIComponent(parkingMarkerSvg(28)) }),
       }),
     ],
   })
@@ -282,10 +299,10 @@ export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
   return features
 }
 
-export function createPathLayer(): VectorLayer {
+export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   const layer = new VectorLayer({
     source: new VectorSource(),
-    minZoom: BLOCK_ZOOM,
+    minZoom,
     style: new Style({
       stroke: new Stroke({ color: 'rgba(30, 64, 175, 0.7)', width: 2 }),
     }),

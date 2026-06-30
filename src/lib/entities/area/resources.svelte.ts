@@ -5,7 +5,8 @@ import { toAreaDetail } from './mapper'
 
 export interface AreaListFilter {
   content?: string
-  parentFk?: number
+  /** Parent area id; `null` filters to top-level areas (no parent), omitted means no filter. */
+  parentFk?: number | null
   /** Find areas whose description references the given `!type:id!` token (backlinks). */
   references?: string
 }
