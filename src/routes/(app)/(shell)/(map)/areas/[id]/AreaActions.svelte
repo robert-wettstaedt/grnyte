@@ -119,6 +119,15 @@
           />
         {/if}
 
+        {#if canEdit && blocks.data.length > 1}
+          <MenuRow
+            href={resolve('/(app)/areas/[id]/blocks/order', { id: String(area.id) })}
+            icon="grip-vertical"
+            label={m.blocks_order_title()}
+            onclick={close}
+          />
+        {/if}
+
         {#if canAdmin}
           <MenuRow
             href={resolve('/(app)/areas/[id]/export', { id: String(area.id) })}

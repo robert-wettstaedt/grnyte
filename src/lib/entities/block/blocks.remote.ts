@@ -48,6 +48,7 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
     invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
   }
 
+  // `order` is 0-based, so the next slot is the count of existing (non-deleted) blocks.
   const [blocksCount] = await db
     .select({ count: count() })
     .from(blocks)
@@ -70,7 +71,7 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
       createdBy: user.id,
       geolocationFk,
       name: value.name,
-      order: blocksCount.count + 1,
+      order: blocksCount.count,
       regionFk: area.regionFk,
     })
     .returning()
@@ -429,3 +430,39 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     data: { blockId: snapshot.blockId },
   }
 })
+
+/** Persist a new block order for an area — `orderedIds` is the full sequence of its (visible)
+ *  blocks, top to bottom. Used by the reorder page (drag + "sort by distance"). Foreign/stale
+ *  ids are ignored so a client can't renumber blocks outside the area. */
+export const reorderBlocks = authedCommand(
+  z.object({ areaId: z.number(), orderedIds: z.array(z.number()) }),
+  async ({ areaId, orderedIds }, { db, userRegions }) => {
+    const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
+
+    if (area == null) {
+      error(404, 'Area not found')
+    }
+
+    if (!canEditBlock(userRegions, area)) {
+      error(403, formError('form_noPermission'))
+    }
+
+    const areaBlocks = await db.query.blocks.findMany({
+      columns: { id: true },
+      where: and(eq(blocks.areaFk, areaId), isNull(blocks.deletedAt)),
+    })
+    const belongsToArea = new Set(areaBlocks.map((row) => row.id))
+
+    // `order` is 0-based and not uniquely constrained, so each block can be set to its slot
+    // directly. ponytail: one UPDATE per block — fine for the handful of blocks an area has; a
+    // single CASE update is the upgrade if an area ever holds hundreds.
+    let order = 0
+    for (const id of orderedIds) {
+      if (!belongsToArea.has(id)) continue
+      await db.update(blocks).set({ order }).where(eq(blocks.id, id))
+      order += 1
+    }
+
+    return { redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(areaId) }) }
+  },
+)

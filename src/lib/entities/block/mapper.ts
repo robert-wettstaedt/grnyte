@@ -34,7 +34,7 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
   return {
     areas,
     id: row.id,
-    name: row.name.length === 0 ? `${m.common_block()} ${row.order}` : row.name,
+    name: row.name.length === 0 ? `${m.common_block()} ${row.order + 1}` : row.name,
     order: row.order,
     regionFk: row.regionFk,
   }
