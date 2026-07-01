@@ -1,7 +1,4 @@
-import { getGradeColor } from './color'
-
-// Neutral grey for the slice of routes that have no grade.
-export const UNGRADED_COLOR = '#a1a1aa'
+import { getGradeColor, UNGRADED_COLOR } from './color'
 
 // Radius chosen so the circumference is exactly 100, letting each arc's length
 // be expressed directly as a percentage of the ring.
@@ -91,12 +88,13 @@ export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: num
     )
     .join('')
 
-  // Grey backing ring (visible through the gaps between arcs) plus a white disc just big
-  // enough to fill the hole behind the count, so it reads on top of the map.
+  // Dark backing ring (visible through the gaps between arcs) plus a white disc just big
+  // enough to fill the hole behind the count, so it reads on top of the map. The ring is
+  // dark so the light end of the grade scale (very-easy peach) still contrasts against it.
   const hole = r - sw / 2
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${c * 2} ${c * 2}">` +
-    `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#d4d4d8" stroke-width="${sw}"/>` +
+    `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#52525b" stroke-width="${sw}"/>` +
     `<circle cx="${c}" cy="${c}" r="${hole}" fill="#ffffff" fill-opacity="0.8"/>` +
     ring +
     `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +

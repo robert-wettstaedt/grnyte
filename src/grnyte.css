@@ -240,23 +240,23 @@
      equivalent; surfaces/text/borders keep using the ramp above.
      ========================================================================== */
 
-  /* Difficulty heat scale: easy → hard. Hue-stable across light/dark, each band
-     paired with a readable foreground, and steering clear of the brand violet
-     so a grade never reads as a primary accent. */
-  --grade-1: oklch(0.62 0.16 245);
-  --grade-1-fg: #ffffff;
-  --grade-2: oklch(0.74 0.11 196);
-  --grade-2-fg: #05242c;
-  --grade-3: oklch(0.81 0.14 85);
-  --grade-3-fg: #2a1c00;
-  --grade-4: oklch(0.69 0.18 52);
+  /* Difficulty heat scale, very easy → hard (4 tiers). Sampled across the magma
+     colormap (t ≈ 0.33–0.94): luminance drops monotonically so the order reads in
+     grayscale and under any colour-vision deficiency. Bands 1–3 clear 3:1 on the
+     dark surface; band 4 is a deep purple (~1.9:1), the rarest tier. The colour
+     ramp mirrors GRADE_COLORS in entities/grade/color.ts — keep the two in sync. */
+  --grade-1: #fde2a3;
+  --grade-1-fg: #18181b;
+  --grade-2: #fa815f;
+  --grade-2-fg: #18181b;
+  --grade-3: #c43c75;
+  --grade-3-fg: #ffffff;
+  --grade-4: #701f81;
   --grade-4-fg: #ffffff;
-  --grade-5: oklch(0.62 0.22 28);
-  --grade-5-fg: #ffffff;
-  --grade-6: oklch(0.54 0.23 16);
-  --grade-6-fg: #ffffff;
-  --grade-7: oklch(0.45 0.2 9);
-  --grade-7-fg: #ffffff;
+  /* Ungraded routes: a desaturated neutral. Its lightness sits between the very-easy
+     and easy tiers so it stays distinct from every tier even in grayscale. */
+  --grade-ungraded: #c4c4c8;
+  --grade-ungraded-fg: #18181b;
 
   /* Ascent status accents. sent/proj reuse the semantic ramp; flash/repeat are
      bespoke (no semantic equivalent). */

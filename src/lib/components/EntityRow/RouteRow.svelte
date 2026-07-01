@@ -1,15 +1,16 @@
 <script lang="ts">
+  import { gradeFgVar, gradeVar, type GradeBand } from '$lib/entities/grade/color'
   import { starString, statusInfo, type StatusInfo } from './helpers'
   import Row from './Row.svelte'
-  import type { AscentStatus, GradeBand } from './types'
+  import type { AscentStatus } from './types'
 
   interface Props {
     /** Route name. */
     name: string
     /** Display grade, e.g. "7a+". */
     grade: string
-    /** Heat-scale band that colours the grade. */
-    band: GradeBand
+    /** Heat-scale band that colours the grade, or `undefined` for an ungraded route. */
+    band: GradeBand | undefined
     /** Breadcrumb path, e.g. "Roadside · The Arch". */
     crumbs?: string | string[]
     /** Quality rating, 0–3 stars. */
@@ -46,8 +47,8 @@
   }: Props = $props()
 
   const info = $derived(statusInfo(status))
-  const bandColor = $derived(`var(--grade-${band})`)
-  const bandFg = $derived(`var(--grade-${band}-fg)`)
+  const bandColor = $derived(gradeVar(band))
+  const bandFg = $derived(gradeFgVar(band))
 
   // Decorative default topo geometry for the "photo" thumbnail.
   const TOPO = {

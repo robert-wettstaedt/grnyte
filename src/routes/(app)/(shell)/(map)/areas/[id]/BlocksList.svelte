@@ -100,7 +100,7 @@
       <nav class="flex flex-col gap-1.5">
         {#each blockRoutes as route (route.id)}
           <RouteRow
-            band={getGradeBand(route.gradeFk, global.grades)}
+            band={getGradeBand(route.gradeFk)}
             grade={gradeLabel(route.gradeFk)}
             name={route.name}
             stars={route.rating}

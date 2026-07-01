@@ -17,9 +17,22 @@
     imgClass?: ClassValue
     /** Replaces the default broken-image placeholder. */
     error?: Snippet
+    /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
+    naturalWidth?: number
+    /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
+    naturalHeight?: number
   }
 
-  let { path, alt, class: className, imgClass, error, ...rest }: Props = $props()
+  let {
+    path,
+    alt,
+    class: className,
+    imgClass,
+    error,
+    naturalWidth = $bindable(),
+    naturalHeight = $bindable(),
+    ...rest
+  }: Props = $props()
 
   type Status = 'loading' | 'loaded' | 'error'
 
@@ -39,6 +52,8 @@
     {...rest}
     {src}
     {alt}
+    bind:naturalWidth
+    bind:naturalHeight
     class={['h-full w-full object-cover transition-opacity duration-200', status !== 'loaded' && 'opacity-0', imgClass]}
     onload={() => (status = 'loaded')}
     onerror={() => (status = 'error')}
