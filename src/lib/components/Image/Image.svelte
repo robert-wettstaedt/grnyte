@@ -40,7 +40,7 @@
   let status = $state<Status>('loading')
 </script>
 
-<div class={['bg-surface-200-800 relative overflow-hidden', className]}>
+<div class={['bg-surface-200-800 relative overflow-hidden', status === 'loading' && 'animate-pulse', className]}>
   <!--
     The image stays mounted in every state: it loads behind the skeleton, and
     when `src` changes it keeps showing the previous image until the new one
@@ -59,14 +59,12 @@
     onerror={() => (status = 'error')}
   />
 
-  {#if status === 'loading'}
-    <div class="placeholder absolute inset-0 animate-pulse" aria-hidden="true"></div>
-  {:else if status === 'error'}
+  {#if status === 'error'}
     {#if error}
       {@render error()}
     {:else}
       <div class="text-surface-500 absolute inset-0 grid place-items-center" role="img" aria-label={alt}>
-        <Icon name="image-off" size={24} />
+        <Icon name="image-off" size="50%" />
       </div>
     {/if}
   {/if}

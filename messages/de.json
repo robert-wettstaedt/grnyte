@@ -374,5 +374,7 @@
   "theme_dark": "Dunkel",
   "theme_label": "Design",
   "theme_light": "Hell",
-  "theme_system": "System"
+  "theme_system": "System",
+  "topo_alt": "Kletter-Topo",
+  "topo_none": "Noch kein Topo für diesen Block."
 }

@@ -374,5 +374,7 @@
   "theme_dark": "Dark",
   "theme_label": "Theme",
   "theme_light": "Light",
-  "theme_system": "System"
+  "theme_system": "System",
+  "topo_alt": "Climbing topo",
+  "topo_none": "No topo for this block yet."
 }

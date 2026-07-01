@@ -129,7 +129,7 @@
       <Image
         path={imagePath}
         {alt}
-        class="h-full w-full"
+        class="pointer-events-none h-full w-full touch-none select-none"
         imgClass="object-contain"
         bind:naturalWidth
         bind:naturalHeight

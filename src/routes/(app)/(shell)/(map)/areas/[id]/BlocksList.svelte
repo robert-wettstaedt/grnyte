@@ -4,6 +4,7 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { getGradeBand } from '$lib/entities/grade/color'
+  import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import { formatDistance } from '$lib/map/map'
@@ -40,18 +41,6 @@
   // user moves through the area.
   const hasGeo = $derived(blocks.some((block) => block.geolocation != null))
   const location = userLocation(() => hasGeo)
-
-  // Mirrors the routes page: strip the redundant scale prefix (e.g. `FB 6A+`).
-  const gradeLabel = (gradeFk: number | undefined): string => {
-    if (gradeFk == null) {
-      return '—'
-    }
-    const value = global.grades.find((grade) => grade.id === gradeFk)?.[global.gradingScale]
-    if (value == null) {
-      return '—'
-    }
-    return value.startsWith(`${global.gradingScale} `) ? value.slice(global.gradingScale.length + 1) : value
-  }
 </script>
 
 {#each blocks as block (block.id)}
@@ -101,7 +90,7 @@
         {#each blockRoutes as route (route.id)}
           <RouteRow
             band={getGradeBand(route.gradeFk)}
-            grade={gradeLabel(route.gradeFk)}
+            grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
             name={route.name}
             stars={route.rating}
           />

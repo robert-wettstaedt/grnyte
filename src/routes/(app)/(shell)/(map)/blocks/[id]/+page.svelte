@@ -3,10 +3,16 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
-  import { blockDetail, blockList } from '$lib/entities/block/resources.svelte'
+  import Topo from '$lib/components/Topo/Topo.svelte'
+  import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
+  import { getGradeBand } from '$lib/entities/grade/color'
+  import { gradeLabel } from '$lib/entities/grade/label'
+  import { blockTopoList } from '$lib/entities/topo/resources.svelte'
+  import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { sheetState } from '../../Modal/sheetState.svelte'
@@ -15,9 +21,18 @@
 
   const global = getGlobalState()
 
+  const blockId = $derived(Number(page.params.id))
+
   // Getter keeps the resource live across navigation between blocks — the query
   // re-targets as the param changes.
-  const block = blockDetail(() => Number(page.params.id))
+  const block = blockDetail(() => blockId)
+
+  // Topos (with their drawn route lines) and the block's routes, both off the same
+  // `queries.block` instance Zero dedupes. Routes are ordered the way they read
+  // left-to-right across the topos.
+  const topos = blockTopoList(() => blockId)
+  const routes = blockRouteList(() => blockId)
+  const orderedRoutes = $derived(orderRoutesByTopo(routes.data, topos.data))
 
   // Siblings for prev/next nav (ordered by `order`). The immediate area is the last
   // entry of the containment chain. -1 while the block loads → empty result, no
@@ -62,7 +77,41 @@
     <div class="space-y-5">
       <BlockActions block={detail} />
 
-      <p class="text-surface-600-400 py-8 text-center">{m.common_comingSoon()}</p>
+      {#if topos.data.length > 0}
+        <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1">
+          {#each topos.data as topo (topo.id)}
+            <Topo
+              class="h-60 w-auto shrink-0 snap-start"
+              imagePath={topo.imagePath}
+              alt={m.topo_alt()}
+              lines={topo.lines.map((line) => ({
+                id: line.id,
+                points: line.points,
+                band: getGradeBand(line.gradeFk),
+                topType: line.topType,
+              }))}
+            />
+          {/each}
+        </div>
+      {/if}
+
+      {#if orderedRoutes.length > 0}
+        <section class="space-y-2">
+          <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">
+            {m.routes_routesCount({ count: orderedRoutes.length })}
+          </h2>
+          <nav class="flex flex-col gap-1.5">
+            {#each orderedRoutes as route (route.id)}
+              <RouteRow
+                band={getGradeBand(route.gradeFk)}
+                grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
+                name={route.name}
+                stars={route.rating}
+              />
+            {/each}
+          </nav>
+        </section>
+      {/if}
 
       <ReferencedBy type="blocks" id={detail.id} />
     </div>

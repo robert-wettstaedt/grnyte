@@ -1,3 +1,4 @@
+import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
@@ -19,6 +20,24 @@ export function blockDetail(id: () => number) {
   return createResource(
     () => queries.block({ blockId: id() }),
     (row) => (row == null ? undefined : toBlockDetail(row)),
+  )
+}
+
+/**
+ * The block's routes, just the fields a route row needs. Reuses `queries.block`
+ * (Zero dedupes it with the detail page's own instance), so the topos and this
+ * list stay in sync. Order them with `orderRoutesByTopo` at the call site.
+ */
+export function blockRouteList(id: () => number) {
+  return createResource(
+    () => queries.block({ blockId: id() }),
+    (row) =>
+      (row?.routes ?? []).map((route) => ({
+        id: route.id,
+        name: route.name.length === 0 ? m.common_unnamed() : route.name,
+        gradeFk: route.gradeFk ?? undefined,
+        rating: route.rating ?? 0,
+      })),
   )
 }
 

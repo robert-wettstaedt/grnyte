@@ -8,6 +8,7 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
+  import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import { haversineMetres, type Coords } from '$lib/map/map'
@@ -113,18 +114,6 @@
     return () => observer.disconnect()
   })
 
-  const gradeLabel = (gradeFk: number | undefined): string => {
-    if (gradeFk == null) {
-      return '—'
-    }
-    const value = global.grades.find((grade) => grade.id === gradeFk)?.[global.gradingScale]
-    if (value == null) {
-      return '—'
-    }
-    // Grade strings carry the scale as a redundant prefix (e.g. `FB 6A+`).
-    return value.startsWith(`${global.gradingScale} `) ? value.slice(global.gradingScale.length + 1) : value
-  }
-
   // The shared Modal renders its header from sheetState; label it with the area
   // and pin the filter/sort controls there (the sheet's scroll wrapper breaks
   // `position: sticky`, so an in-list toolbar would scroll away).
@@ -172,7 +161,7 @@
       {#each visible as route (route.id)}
         <RouteRow
           band={getGradeBand(route.gradeFk)}
-          grade={gradeLabel(route.gradeFk)}
+          grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
           name={route.name}
           stars={route.rating}
         />
