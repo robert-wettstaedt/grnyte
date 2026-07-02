@@ -8,8 +8,14 @@ import { and, count, eq, isNull } from 'drizzle-orm'
  *  ponytail: blocks win when an area has both kinds of child — areas don't mix them in practice. */
 export async function refreshAreaType(db: Context['db'], areaId: number): Promise<void> {
   const [[blockRow], [subAreaRow]] = await Promise.all([
-    db.select({ count: count() }).from(blocks).where(and(eq(blocks.areaFk, areaId), isNull(blocks.deletedAt))),
-    db.select({ count: count() }).from(areas).where(and(eq(areas.parentFk, areaId), isNull(areas.deletedAt))),
+    db
+      .select({ count: count() })
+      .from(blocks)
+      .where(and(eq(blocks.areaFk, areaId), isNull(blocks.deletedAt))),
+    db
+      .select({ count: count() })
+      .from(areas)
+      .where(and(eq(areas.parentFk, areaId), isNull(areas.deletedAt))),
   ])
 
   const type = blockRow.count > 0 ? 'crag' : subAreaRow.count > 0 ? 'area' : null

@@ -1,5 +1,3 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from 'eslint-plugin-storybook'
 import js from '@eslint/js'
 import prettier from 'eslint-config-prettier'
 import drizzle from 'eslint-plugin-drizzle'
@@ -25,6 +23,8 @@ export default defineConfig(
       // typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
       // see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
       'no-undef': 'off',
+      // Allow underscore-prefixed args to mark deliberately unused parameters.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       // Prefer the '$lib' alias over relative paths that climb into the lib folder.
       'no-restricted-imports': [
         'error',

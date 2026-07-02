@@ -77,5 +77,5 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
     },
     /** The underlying route resource, exposed so callers can show filter/loading state. */
     routes,
-  } satisfies MapData & { routes: typeof routes }
+  } satisfies MapData & { routes: typeof routes; isLoading: boolean }
 }

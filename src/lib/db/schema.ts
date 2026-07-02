@@ -1318,12 +1318,11 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
   region: one(regions, { fields: [favorites.regionFk], references: [regions.id] }),
 }))
 
-const jsonSchema = z.json()
 export const clientErrorLogs = table('client_error_logs', {
   ...baseFields,
   createdBy: integer('created_by').references((): AnyColumn => users.id),
   error: text(),
-  navigator: jsonb().$type<z.infer<typeof jsonSchema>>(),
+  navigator: jsonb().$type<z.infer<ReturnType<typeof z.json>>>(),
   pathname: text(),
 }).enableRLS()
 

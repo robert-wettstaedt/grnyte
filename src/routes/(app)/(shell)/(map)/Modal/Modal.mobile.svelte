@@ -142,6 +142,7 @@
     <div
       class="border-surface-200-800 preset-filled-surface-100-900 pointer-events-auto flex items-center gap-1.5 rounded-2xl border p-1.5 shadow-lg"
     >
+      <!-- eslint-disable svelte/no-navigation-without-resolve -- nav hrefs are pre-resolved in the page (toSheetNav). -->
       <a class="btn-icon btn-icon-lg preset-filled-surface-200-800" href={nav.prev.href} title={nav.prev.label}>
         <Icon name="chevron-left" size={18} />
       </a>
@@ -151,6 +152,7 @@
       <a class="btn-icon btn-icon-lg preset-filled-surface-200-800" href={nav.next.href} title={nav.next.label}>
         <Icon name="chevron-right" size={18} />
       </a>
+      <!-- eslint-enable svelte/no-navigation-without-resolve -->
     </div>
   </div>
 {/if}

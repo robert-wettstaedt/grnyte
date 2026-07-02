@@ -239,7 +239,9 @@ export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number
 
 // `id` is optional so the reorder map can pass a bare reference point (no navigation),
 // while the main map passes full `Geolocation`s whose `parkingId` drives click-to-open.
-export function buildParkingFeatures(uniqueParkingLocations: (Pick<Geolocation, 'lat' | 'long'> & { id?: number })[]): Feature[] {
+export function buildParkingFeatures(
+  uniqueParkingLocations: (Pick<Geolocation, 'lat' | 'long'> & { id?: number })[],
+): Feature[] {
   return uniqueParkingLocations.map(
     (p) =>
       new Feature({

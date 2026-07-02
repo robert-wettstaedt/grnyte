@@ -17,9 +17,20 @@
   const sum = (map: Map<number, number>) => [...map.values()].reduce((a, b) => a + b, 0)
 
   // One arc per tier: very easy (id 1), easy (5), medium (12), hard (17).
-  const allTiers = counts([[1, 6], [5, 14], [12, 5], [17, 2]])
+  const allTiers = counts([
+    [1, 6],
+    [5, 14],
+    [12, 5],
+    [17, 2],
+  ])
   // Skewed to the easy end, as a typical crag looks.
-  const mostlyEasy = counts([[2, 3], [4, 12], [6, 9], [9, 4], [11, 1]])
+  const mostlyEasy = counts([
+    [2, 3],
+    [4, 12],
+    [6, 9],
+    [9, 4],
+    [11, 1],
+  ])
 </script>
 
 {#snippet template(args: ComponentProps<typeof GradeDonut>)}

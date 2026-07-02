@@ -1,4 +1,4 @@
-import { select, zoom as d3Zoom, zoomIdentity, type D3ZoomEvent } from 'd3'
+import { zoom as d3Zoom, select, zoomIdentity, type D3ZoomEvent } from 'd3'
 import type { Action } from 'svelte/action'
 
 interface PanzoomParams {

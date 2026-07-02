@@ -33,10 +33,12 @@ export async function GET({ locals, request, params, url }) {
 
     const provider = getImageProvider()
     const loadOriginal = () =>
-      provider.fetchOriginal(resourcePath, { requestHeaders: forwardedHeaders(request), signal: request.signal }).catch((err) => {
-        console.error(`Failed to load "${resourcePath}":`, err)
-        error(502, 'Failed to load file')
-      })
+      provider
+        .fetchOriginal(resourcePath, { requestHeaders: forwardedHeaders(request), signal: request.signal })
+        .catch((err) => {
+          console.error(`Failed to load "${resourcePath}":`, err)
+          error(502, 'Failed to load file')
+        })
 
     let payload: ImagePayload
     let immutable = false

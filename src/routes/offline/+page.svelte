@@ -10,6 +10,7 @@
     // side — the (app) routes are CSR-only and read their data from Zero's local
     // store, so they render without a network round-trip.
     const target = page.url.searchParams.get('redirect') ?? '/explore'
+    // eslint-disable-next-line svelte/no-navigation-without-resolve -- runtime path from the service worker, not a static route; goto rejects external URLs.
     goto(target, { replaceState: true })
   })
 </script>
