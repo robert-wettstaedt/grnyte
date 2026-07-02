@@ -11,6 +11,7 @@
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { m } from '$lib/paraglide/messages.js'
@@ -102,11 +103,14 @@
           </h2>
           <nav class="flex flex-col gap-1.5">
             {#each orderedRoutes as route (route.id)}
+              {@const topo = selectTopoForRoute(topos.data, route.id)}
               <RouteRow
                 band={getGradeBand(route.gradeFk)}
                 grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
                 name={route.name}
                 stars={route.rating}
+                topoImagePath={topo?.view.imagePath}
+                topoPoints={topo?.line.points}
               />
             {/each}
           </nav>

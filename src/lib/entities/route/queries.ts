@@ -31,6 +31,7 @@ export const routesQueryDefs = {
         .related('tags', r)
         .related('firstAscents', r)
         .related('block', (q) => r(q).related('area', r))
+        .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r)))
 
       if (args.routeId != null) {
         if (Array.isArray(args.routeId)) {

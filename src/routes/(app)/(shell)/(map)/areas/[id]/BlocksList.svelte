@@ -2,6 +2,9 @@
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import Image from '$lib/components/Image/Image.svelte'
+  import Topo from '$lib/components/Topo/Topo.svelte'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -41,7 +44,36 @@
   // user moves through the area.
   const hasGeo = $derived(blocks.some((block) => block.geolocation != null))
   const location = userLocation(() => hasGeo)
+
+  // Routes list vs. full-width topo images per block.
+  let view = $state<'routes' | 'topos'>('routes')
 </script>
+
+{#if blocks.length > 0}
+  <SegmentedControl value={view} onValueChange={(details) => (view = details.value as typeof view)}>
+    <SegmentedControl.Control class="w-full">
+      <SegmentedControl.Indicator class="preset-filled-primary-500" />
+      <SegmentedControl.Item value="routes">
+        <SegmentedControl.ItemText
+          class="data-[state=checked]:text-primary-contrast-500 inline-flex items-center gap-2"
+        >
+          <Icon name="list" size={17} />
+          {m.blocks_viewRoutes()}
+        </SegmentedControl.ItemText>
+        <SegmentedControl.ItemHiddenInput />
+      </SegmentedControl.Item>
+      <SegmentedControl.Item value="topos">
+        <SegmentedControl.ItemText
+          class="data-[state=checked]:text-primary-contrast-500 inline-flex items-center gap-2"
+        >
+          <Icon name="image" size={17} />
+          {m.blocks_viewTopos()}
+        </SegmentedControl.ItemText>
+        <SegmentedControl.ItemHiddenInput />
+      </SegmentedControl.Item>
+    </SegmentedControl.Control>
+  </SegmentedControl>
+{/if}
 
 {#each blocks as block (block.id)}
   {@const blockRoutes = routesByBlock.get(block.id) ?? []}
@@ -85,7 +117,28 @@
       </span>
     </a>
 
-    {#if blockRoutes.length > 0}
+    {#if view === 'topos'}
+      {#if block.topoImagePaths.length > 0}
+        <div class="flex flex-col gap-3">
+          {#each block.topoImagePaths as imagePath (imagePath)}
+            <Topo
+              class="w-full"
+              {imagePath}
+              alt={m.topo_alt()}
+              lines={blockRoutes
+                .filter((route) => route.topoImagePath === imagePath && route.topoPoints != null)
+                .map((route) => ({
+                  id: route.id,
+                  points: route.topoPoints ?? [],
+                  band: getGradeBand(route.gradeFk),
+                }))}
+            />
+          {/each}
+        </div>
+      {:else}
+        <p class="text-surface-500 text-sm">{m.topo_none()}</p>
+      {/if}
+    {:else if blockRoutes.length > 0}
       <nav class="flex flex-col gap-1.5">
         {#each blockRoutes as route (route.id)}
           <RouteRow
@@ -93,11 +146,27 @@
             grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
             name={route.name}
             stars={route.rating}
+            topoImagePath={route.topoImagePath}
+            topoPoints={route.topoPoints}
           />
         {/each}
       </nav>
     {:else}
-      <p class="text-surface-500 text-sm">{m.blocks_noRoutes()}</p>
+      <div class="flex items-center gap-2">
+        {#each block.topoImagePaths as imagePath (imagePath)}
+          <span class="size-13 flex-none overflow-hidden rounded-xl">
+            <Image
+              path={imagePath}
+              alt={m.topo_alt()}
+              class="h-full w-full"
+              imgClass="object-cover"
+              previewWidth={160}
+            />
+          </span>
+        {/each}
+
+        <p class="text-surface-500 text-sm">{m.blocks_noRoutes()}</p>
+      </div>
     {/if}
   </section>
 {/each}

@@ -12,6 +12,8 @@ export type BlockListItem = {
 export type BlockDetail = BlockListItem & {
   createdAt: Date | undefined
   geolocation: Geolocation | undefined
+  /** `files.path` of each topo image, in topo order. */
+  topoImagePaths: string[]
   /** The stored name as typed — empty for auto-numbered blocks. `name` is the display
    *  fallback ("Block 2"); editing must prefill from this so a blank block stays blank. */
   rawName: string

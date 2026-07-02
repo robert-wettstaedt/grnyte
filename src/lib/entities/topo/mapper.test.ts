@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TopoView } from './dto'
-import { convertPathToPoints, selectTopoForRoute } from './mapper'
+import { convertPathToPoints, routeTopoThumb, selectTopoForRoute } from './mapper'
 
 describe('convertPathToPoints', () => {
   it('parses start + top and drops the Z marker', () => {
@@ -36,5 +36,22 @@ describe('selectTopoForRoute', () => {
   it('returns undefined when no topo has the route', () => {
     const views: TopoView[] = [{ id: 1, imagePath: 'a', lines: [line(10, 5, 'M0,0 L1,1')] }]
     expect(selectTopoForRoute(views, 99)).toBeUndefined()
+  })
+})
+
+describe('routeTopoThumb', () => {
+  it('picks the most complete line and its image, skipping undrawn/imageless rows', () => {
+    const thumb = routeTopoThumb([
+      { path: '', topo: { file: { path: 'blank' } } },
+      { path: 'M0,0 L1,1', topo: { file: { path: 'short' } } },
+      { path: 'M0,0 L1,1 L2,2', topo: { file: { path: 'long' } } },
+      { path: 'M0,0 L1,1 L2,2 L3,3', topo: { file: { path: null } } },
+    ])
+    expect(thumb).toMatchObject({ imagePath: 'long' })
+    expect(thumb?.points).toHaveLength(3)
+  })
+
+  it('returns undefined when the route is on no topo', () => {
+    expect(routeTopoThumb([])).toBeUndefined()
   })
 })

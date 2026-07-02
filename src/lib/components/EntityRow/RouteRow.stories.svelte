@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { convertPathToPoints } from '$lib/entities/topo/mapper'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import RouteRow from './RouteRow.svelte'
@@ -57,3 +58,15 @@
 <Story name="Picker option" args={{ ...base, option: true }} {template} />
 
 <Story name="Picker option (active)" args={{ ...base, option: true, active: true }} {template} />
+
+<!-- Real topo thumbnail with the route's line, in the normalized 0–1 format (legacy
+     pixel paths are skipped in the tile — their original photo size isn't known). -->
+<Story
+  name="With topo"
+  args={{
+    ...base,
+    topoImagePath: 'topo-sample.svg',
+    topoPoints: convertPathToPoints('M0.375,0.915 L0.35625,0.77 L0.4125,0.65 L0.3625,0.52 L0.41875,0.38 L0.39375,0.21 Z'),
+  }}
+  {template}
+/>

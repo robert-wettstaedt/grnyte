@@ -1,3 +1,5 @@
+import type { TopoPoint } from '$lib/entities/topo/dto'
+
 export interface RouteListItem {
   createdAt: Date | undefined
   blockFk: number
@@ -9,4 +11,8 @@ export interface RouteListItem {
   rating: number
   tags: string[]
   userRating: number
+  /** `files.path` of the route's best topo image, if it's drawn on one. */
+  topoImagePath?: string
+  /** The route's line points on that topo. */
+  topoPoints?: TopoPoint[]
 }

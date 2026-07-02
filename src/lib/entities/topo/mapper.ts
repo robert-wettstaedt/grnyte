@@ -94,6 +94,28 @@ export function toTopoViews(block: BlockRow): TopoView[] {
  * topos; pick the one where its line has the most points (the most complete
  * drawing), falling back to the first match.
  */
+/**
+ * From a route's own `topoRoutes` rows, pick the most complete drawn line and its
+ * image — the thumbnail a route row shows. Mirrors {@link selectTopoForRoute}'s
+ * "most points wins", but reads straight off the route (no block context needed).
+ */
+export function routeTopoThumb(
+  topoRoutes: readonly { path: string | null; topo?: { file?: { path: string | null } | null } | null }[],
+): { imagePath: string; points: TopoPoint[] } | undefined {
+  let best: { imagePath: string; points: TopoPoint[] } | undefined
+  for (const tr of topoRoutes) {
+    const imagePath = tr.topo?.file?.path
+    if (tr.path == null || tr.path.trim() === '' || imagePath == null) {
+      continue
+    }
+    const points = convertPathToPoints(tr.path)
+    if (points.length > 0 && (best == null || points.length > best.points.length)) {
+      best = { imagePath, points }
+    }
+  }
+  return best
+}
+
 export function selectTopoForRoute(views: TopoView[], routeId: number): { view: TopoView; line: TopoLine } | undefined {
   let best: { view: TopoView; line: TopoLine } | undefined
 

@@ -1,3 +1,4 @@
+import { routeTopoThumb } from '$lib/entities/topo/mapper'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
@@ -6,6 +7,7 @@ import type { RouteListItem } from './dto'
 export type RouteListRow = QueryRow<typeof queries.listRoutes>
 
 export function toRouteListItem(row: RouteListRow): RouteListItem {
+  const thumb = routeTopoThumb(row.topoRoutes ?? [])
   return {
     blockFk: row.blockFk,
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
@@ -17,5 +19,7 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     rating: row.rating ?? 0,
     tags: row.tags.map((t) => t.tagFk),
     userRating: row.userRating ?? 0,
+    topoImagePath: thumb?.imagePath,
+    topoPoints: thumb?.points,
   }
 }

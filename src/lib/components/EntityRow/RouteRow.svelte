@@ -1,5 +1,9 @@
 <script lang="ts">
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import Image from '$lib/components/Image/Image.svelte'
   import { gradeFgVar, gradeVar, type GradeBand } from '$lib/entities/grade/color'
+  import type { TopoPoint } from '$lib/entities/topo/dto'
+  import { buildLine, isNormalized } from '$lib/entities/topo/path'
   import { starString, statusInfo, type StatusInfo } from './helpers'
   import Row from './Row.svelte'
   import type { AscentStatus } from './types'
@@ -30,6 +34,10 @@
     option?: boolean
     /** Keyboard-highlight state — only for the `option` layout. */
     active?: boolean
+    /** `files.path` of the route's topo image — renders the real thumbnail when set. */
+    topoImagePath?: string
+    /** The route's line points on that topo (0–1 fractions or legacy pixels). */
+    topoPoints?: TopoPoint[]
   }
 
   let {
@@ -44,19 +52,31 @@
     stars,
     status,
     subline,
+    topoImagePath,
+    topoPoints,
   }: Props = $props()
 
   const info = $derived(statusInfo(status))
   const bandColor = $derived(gradeVar(band))
   const bandFg = $derived(gradeFgVar(band))
 
-  // Decorative default topo geometry for the "photo" thumbnail.
-  const TOPO = {
-    fill: 'M0 58 L0 31 C 14 23 24 31 34 24 C 44 18 52 26 58 21 L58 58 Z',
-    faint1: 'M15 54 C 13 40 20 32 17 18',
-    faint2: 'M45 54 C 47 40 38 30 43 16',
-    line: 'M29 52 C 26 38 35 30 30 13',
-  }
+  const hasTopo = $derived(topoImagePath != null && topoPoints != null && topoPoints.length > 0)
+
+  // Bound to the loaded image's intrinsic size: the topo line points resolve
+  // against it (fractions scale to it, legacy pixels use it as the viewBox), and
+  // `xMidYMid slice` on the SVG matches the image's `object-cover` centre-crop so
+  // the overlay stays aligned. 0 until the image loads → overlay hidden.
+  let naturalWidth = $state(0)
+  let naturalHeight = $state(0)
+
+  // Only normalized (0–1) paths can be drawn here: the tile loads a resized
+  // preview, and legacy pixel paths are in the original photo's coordinate
+  // space, whose dimensions aren't stored — there's no way to scale them to the
+  // preview. Those rows show the plain photo without a line.
+  // ponytail: fixes itself once legacy paths are migrated to 0–1 fractions.
+  const line = $derived(
+    topoPoints != null && isNormalized(topoPoints) ? buildLine(topoPoints, true, naturalWidth, naturalHeight) : null,
+  )
 </script>
 
 {#snippet statusTile(tile: StatusInfo)}
@@ -103,20 +123,48 @@
   description={subline}
   variant={option ? 'option' : 'card'}
 >
-  <span class="thumb">
-    <svg viewBox="0 0 58 58" width="52" height="52" class="block">
-      <path d={TOPO.fill} fill="oklch(0 0 0 / 0.30)" />
-      <path d={TOPO.faint1} fill="none" stroke="oklch(1 0 0 / 0.16)" stroke-width="1.5" stroke-linecap="round" />
-      <path d={TOPO.faint2} fill="none" stroke="oklch(1 0 0 / 0.16)" stroke-width="1.5" stroke-linecap="round" />
-      <path
-        d={TOPO.line}
-        fill="none"
-        stroke={bandColor}
-        stroke-width="2.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+  <span class="thumb bg-surface-200-800">
+    {#if hasTopo && topoImagePath != null}
+      <!-- 52px tile at up to ~3x DPR → request a small thumbnail, not the full-res photo. -->
+      <Image
+        path={topoImagePath}
+        alt=""
+        class="h-full w-full"
+        imgClass="object-cover"
+        previewWidth={160}
+        bind:naturalWidth
+        bind:naturalHeight
       />
-    </svg>
+      {#if naturalWidth > 0 && naturalHeight > 0 && line != null}
+        <svg
+          class="absolute inset-0 h-full w-full"
+          viewBox="0 0 {naturalWidth} {naturalHeight}"
+          preserveAspectRatio="xMidYMid slice"
+          fill="none"
+        >
+          <path
+            d={line.d}
+            stroke="oklch(0 0 0 / 0.55)"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          />
+          <path
+            d={line.d}
+            stroke={bandColor}
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          />
+        </svg>
+      {/if}
+    {:else}
+      <span class="text-surface-500 absolute inset-0 grid place-items-center" aria-hidden="true">
+        <Icon name="mountain" size={24} />
+      </span>
+    {/if}
   </span>
 </Row>
 
@@ -177,10 +225,5 @@
     border-radius: 12px;
     overflow: hidden;
     position: relative;
-    background: linear-gradient(165deg, oklch(0.34 0.02 220), oklch(0.2 0.015 60));
-  }
-
-  .thumb .block {
-    display: block;
   }
 </style>

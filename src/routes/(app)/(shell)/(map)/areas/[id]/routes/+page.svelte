@@ -164,6 +164,8 @@
           grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
           name={route.name}
           stars={route.rating}
+          topoImagePath={route.topoImagePath}
+          topoPoints={route.topoPoints}
         />
       {/each}
 
