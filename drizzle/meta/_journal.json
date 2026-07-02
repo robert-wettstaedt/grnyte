@@ -505,6 +505,13 @@
       "when": 1781943209673,
       "tag": "0073_superb_dark_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1783010889396,
+      "tag": "0074_grey_klaw",
+      "breakpoints": true
     }
   ]
 }

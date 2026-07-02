@@ -70,6 +70,8 @@ export function toTopoViews(block: BlockRow): TopoView[] {
       {
         id: topo.id,
         imagePath,
+        imageWidth: topo.file?.width ?? undefined,
+        imageHeight: topo.file?.height ?? undefined,
         lines: (topo.routes ?? [])
           .filter((tr) => tr.routeFk != null && tr.path != null && tr.path.trim() !== '')
           .map((tr): TopoLine => {

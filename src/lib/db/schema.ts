@@ -911,6 +911,12 @@ export const files = table(
     path: text('path').notNull(),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
 
+    // EXIF-oriented pixel size of the image at `path` (what browsers display).
+    // Consumers treat it as aspect ratio + coordinate space — the actually loaded
+    // image may be a smaller derivative. Null for non-images or unread files.
+    width: integer('width'),
+    height: integer('height'),
+
     areaFk: integer('area_fk').references((): AnyColumn => areas.id),
     ascentFk: integer('ascent_fk').references((): AnyColumn => ascents.id),
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),

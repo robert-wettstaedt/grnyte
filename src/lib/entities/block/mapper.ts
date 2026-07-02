@@ -16,7 +16,16 @@ interface BlockRow {
 interface BlockDetailRow extends BlockRow {
   readonly createdAt: number | null
   readonly geolocation?: Row<'geolocations'> | undefined
-  readonly topos?: readonly { readonly file?: { readonly path: string | null } | null | undefined }[]
+  readonly topos?: readonly {
+    readonly file?:
+      | {
+          readonly path: string | null
+          readonly width?: number | null | undefined
+          readonly height?: number | null | undefined
+        }
+      | null
+      | undefined
+  }[]
 }
 
 export function toBlockListItem(row: BlockRow): BlockListItem {
@@ -46,7 +55,11 @@ export function toBlockDetail(row: BlockDetailRow): BlockDetail {
     ...toBlockListItem(row),
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
-    topoImagePaths: (row.topos ?? []).flatMap((topo) => (topo.file?.path == null ? [] : [topo.file.path])),
+    topoImages: (row.topos ?? []).flatMap((topo) =>
+      topo.file?.path == null
+        ? []
+        : [{ path: topo.file.path, width: topo.file.width ?? undefined, height: topo.file.height ?? undefined }],
+    ),
     rawName: row.name,
   }
 }

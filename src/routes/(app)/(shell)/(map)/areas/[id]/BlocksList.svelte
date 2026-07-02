@@ -118,15 +118,17 @@
     </a>
 
     {#if view === 'topos'}
-      {#if block.topoImagePaths.length > 0}
+      {#if block.topoImages.length > 0}
         <div class="flex flex-col gap-3">
-          {#each block.topoImagePaths as imagePath (imagePath)}
+          {#each block.topoImages as image (image.path)}
             <Topo
               class="w-full"
-              {imagePath}
+              imagePath={image.path}
+              width={image.width}
+              height={image.height}
               alt={m.topo_alt()}
               lines={blockRoutes
-                .filter((route) => route.topoImagePath === imagePath && route.topoPoints != null)
+                .filter((route) => route.topoImagePath === image.path && route.topoPoints != null)
                 .map((route) => ({
                   id: route.id,
                   points: route.topoPoints ?? [],
@@ -153,10 +155,10 @@
       </nav>
     {:else}
       <div class="flex items-center gap-2">
-        {#each block.topoImagePaths as imagePath (imagePath)}
+        {#each block.topoImages as image (image.path)}
           <span class="size-13 flex-none overflow-hidden rounded-xl">
             <Image
-              path={imagePath}
+              path={image.path}
               alt={m.topo_alt()}
               class="h-full w-full"
               imgClass="object-cover"

@@ -18,6 +18,11 @@
   interface Props {
     /** `files.path` of the topo image. */
     imagePath: string
+    /** Stored pixel width of the topo image (`files.width`) — gives the box its
+     *  aspect ratio and the overlay its coordinate space before the photo loads. */
+    width?: number
+    /** Stored pixel height; see `width`. */
+    height?: number
     alt: string
     /** Route lines to draw, each coloured by its grade band. */
     lines: LineInput[]
@@ -34,6 +39,8 @@
 
   let {
     imagePath,
+    width,
+    height,
     alt,
     lines,
     highlightId = $bindable(),
@@ -43,23 +50,30 @@
     class: className,
   }: Props = $props()
 
-  // Bound to the loaded image: the photo's pixel space is the SVG viewBox. It's
-  // the only reliable source — dimensions aren't stored and paths come as 0–1
-  // fractions (current, resolution-independent) or legacy absolute pixels, both
-  // resolved against this size. The Image is keyed on `imagePath` so a topo switch
-  // remounts it and resets these to 0, hiding the overlay until the new image loads.
+  // The stored dims are the authoritative viewBox: they are the ORIGINAL's pixel
+  // space, which legacy pixel paths (any the migration couldn't convert) were
+  // drawn against — the loaded image is a smaller derivative, so its natural size
+  // is the wrong space for them. 0–1 fraction paths are scale-invariant and the
+  // aspect ratio is identical either way, so stored-dims-first is also free for
+  // the normal case, and box + overlay render before the image arrives. Natural
+  // size (bound to the loaded image) is only the fallback for files without
+  // backfilled dims — there the overlay waits for the load, as before. The Image
+  // is keyed on `imagePath` so a topo switch remounts it and resets these to 0.
   let naturalWidth = $state(0)
   let naturalHeight = $state(0)
 
-  const ready = $derived(naturalWidth > 0 && naturalHeight > 0)
+  const boxWidth = $derived(width || naturalWidth || 0)
+  const boxHeight = $derived(height || naturalHeight || 0)
+
+  const ready = $derived(boxWidth > 0 && boxHeight > 0)
 
   // Marker size as a fraction of the image, so dots/arrows stay sized relative to
   // the rock at any zoom.
-  const unit = $derived(Math.min(naturalWidth, naturalHeight) * 0.016)
+  const unit = $derived(Math.min(boxWidth, boxHeight) * 0.016)
 
   const rendered = $derived(
     lines.map((line) => {
-      const { d, bracket, starts, top } = buildLine(line.points, curved, naturalWidth, naturalHeight)
+      const { d, bracket, starts, top } = buildLine(line.points, curved, boxWidth, boxHeight)
       return { id: line.id, band: line.band, topType: line.topType, d, bracket, starts, top }
     }),
   )
@@ -121,16 +135,18 @@
 
 <div
   class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
-  style:aspect-ratio={ready ? `${naturalWidth} / ${naturalHeight}` : '4 / 5'}
+  style:aspect-ratio={ready ? `${boxWidth} / ${boxHeight}` : undefined}
   use:panzoom={{ enabled: zoomable }}
 >
   <div class="absolute inset-0">
     {#key imagePath}
+      <!-- The viewer works fine off the 1024 derivative; the multi-MB original stays on the server. -->
       <Image
         path={imagePath}
         {alt}
         class="pointer-events-none h-full w-full touch-none select-none"
         imgClass="object-contain"
+        previewWidth={1024}
         bind:naturalWidth
         bind:naturalHeight
       />
@@ -139,7 +155,7 @@
     {#if ready}
       <svg
         class={['absolute inset-0 h-full w-full', !interactive && 'pointer-events-none']}
-        viewBox="0 0 {naturalWidth} {naturalHeight}"
+        viewBox="0 0 {boxWidth} {boxHeight}"
         fill="none"
       >
         {#each ordered as line (line.id)}

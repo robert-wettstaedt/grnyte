@@ -84,6 +84,8 @@
             <Topo
               class="h-60 w-auto shrink-0 snap-start"
               imagePath={topo.imagePath}
+              width={topo.imageWidth}
+              height={topo.imageHeight}
               alt={m.topo_alt()}
               lines={topo.lines.map((line) => ({
                 id: line.id,
