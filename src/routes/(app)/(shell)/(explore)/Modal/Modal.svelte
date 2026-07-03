@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import { MediaQuery } from 'svelte/reactivity'
+  import { sheetNavKeydown } from './keyboardNav'
   import Desktop from './Modal.desktop.svelte'
   import Mobile from './Modal.mobile.svelte'
   import { type ModalProps } from './types'
@@ -9,6 +10,8 @@
 
   const desktop = new MediaQuery('(min-width: 48rem)')
 </script>
+
+<svelte:window onkeydown={sheetNavKeydown()} />
 
 {#if desktop.current}
   <Desktop bind:open {...props} />

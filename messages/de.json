@@ -162,6 +162,7 @@
   "common_ok": "OK",
   "common_recommended": "Empfohlen",
   "common_reset": "Zurücksetzen",
+  "common_route": "Route",
   "common_save": "Speichern",
   "common_saved": "Gespeichert",
   "common_savedByOthers": [
@@ -362,6 +363,8 @@
     }
   ],
   "routes_searchPlaceholder": "Routen suchen",
+  "routes_showDetails": "Details",
+  "routes_showOnMap": "Auf Karte zeigen",
   "share_share": "Teilen",
   "sort_ascending": "Aufsteigend",
   "sort_descending": "Absteigend",
@@ -378,5 +381,8 @@
   "theme_light": "Hell",
   "theme_system": "System",
   "topo_alt": "Kletter-Topo",
-  "topo_none": "Noch kein Topo für diesen Block."
+  "topo_next": "Nächstes Topo",
+  "topo_none": "Noch kein Topo für diesen Block.",
+  "topo_position": "Topo {position} / {total}",
+  "topo_previous": "Vorheriges Topo"
 }

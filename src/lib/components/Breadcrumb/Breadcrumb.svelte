@@ -51,7 +51,7 @@
     {/if}
 
     {#each visible as crumb, index (crumb.id)}
-      <a class="anchor shrink-0 text-xs" href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: crumb.id.toString() })}>
+      <a class="anchor shrink-0 text-xs" href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: crumb.id.toString() })}>
         {crumb.name}
       </a>
 

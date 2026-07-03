@@ -17,8 +17,12 @@
      * and error states have somewhere to render and to avoid layout shift.
      */
     class?: ClassValue
-    /** Classes for the inner `<img>` (e.g. to swap `object-cover` for `object-contain`). */
+    /** Classes for the inner `<img>`. */
     imgClass?: ClassValue
+    /** How the photo fills the box (`object-fit`). A prop rather than an `imgClass`
+     *  override because two object-* utilities on one element resolve by stylesheet
+     *  order, not class order — cover silently won over a passed object-contain. */
+    fit?: 'cover' | 'contain'
     /** Replaces the default failure placeholder (both error and offline). */
     error?: Snippet
     /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
@@ -38,6 +42,7 @@
     class: className,
     imgClass,
     error,
+    fit = 'cover',
     naturalWidth = $bindable(),
     naturalHeight = $bindable(),
     previewWidth,
@@ -85,7 +90,8 @@
       bind:naturalWidth
       bind:naturalHeight
       class={[
-        'h-full w-full object-cover transition-opacity duration-200',
+        'h-full w-full transition-opacity duration-200',
+        fit === 'contain' ? 'object-contain' : 'object-cover',
         status !== 'loaded' && 'opacity-0',
         imgClass,
       ]}

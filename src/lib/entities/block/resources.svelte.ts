@@ -37,6 +37,8 @@ export function blockRouteList(id: () => number) {
         name: route.name.length === 0 ? m.common_unnamed() : route.name,
         gradeFk: route.gradeFk ?? undefined,
         rating: route.rating ?? 0,
+        description: route.description ?? '',
+        tags: route.tags.map((tag) => tag.tagFk),
       })),
   )
 }

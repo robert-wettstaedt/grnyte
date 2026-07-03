@@ -162,6 +162,7 @@
   "common_ok": "OK",
   "common_recommended": "Recommended",
   "common_reset": "Reset",
+  "common_route": "Route",
   "common_save": "Save",
   "common_saved": "Saved",
   "common_savedByOthers": [
@@ -362,6 +363,8 @@
     }
   ],
   "routes_searchPlaceholder": "Search routes",
+  "routes_showDetails": "Details",
+  "routes_showOnMap": "Show on map",
   "share_share": "Share",
   "sort_ascending": "Ascending",
   "sort_descending": "Descending",
@@ -378,5 +381,8 @@
   "theme_light": "Light",
   "theme_system": "System",
   "topo_alt": "Climbing topo",
-  "topo_none": "No topo for this block yet."
+  "topo_next": "Next topo",
+  "topo_none": "No topo for this block yet.",
+  "topo_position": "Topo {position} / {total}",
+  "topo_previous": "Previous topo"
 }

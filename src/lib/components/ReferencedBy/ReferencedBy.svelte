@@ -35,7 +35,7 @@
       {#each areas.data as area (area.id)}
         <Row
           title={area.name}
-          href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) })}
+          href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
           {rightContent}
         >
           {@render iconTile('area')}
@@ -46,7 +46,7 @@
         <Row
           title={route.name}
           // TODO: route detail page
-          href={resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(route.blockFk) })}
+          href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) })}
           {rightContent}
         >
           {@render iconTile('route')}

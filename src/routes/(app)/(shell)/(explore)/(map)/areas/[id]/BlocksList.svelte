@@ -5,6 +5,7 @@
   import Image from '$lib/components/Image/Image.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
+  import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -25,6 +26,9 @@
   const { blocks, routes }: Props = $props()
 
   const global = getGlobalState()
+
+  // The user's tick per route, shown on every row.
+  const ascentStatus = userAscentStatus(() => global.user?.id)
 
   const routesByBlock = $derived.by(() => {
     const map = new SvelteMap<number, RouteListItem[]>()
@@ -84,7 +88,7 @@
   <section class="space-y-2">
     <a
       class="group flex items-center justify-between gap-2"
-      href={resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(block.id) })}
+      href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
     >
       <span class="flex min-w-0 items-center gap-1">
         <h2
@@ -120,21 +124,30 @@
     {#if view === 'topos'}
       {#if block.topoImages.length > 0}
         <div class="flex flex-col gap-3">
-          {#each block.topoImages as image (image.path)}
-            <Topo
-              class="w-full"
-              imagePath={image.path}
-              width={image.width}
-              height={image.height}
-              alt={m.topo_alt()}
-              lines={blockRoutes
-                .filter((route) => route.topoImagePath === image.path && route.topoPoints != null)
-                .map((route) => ({
-                  id: route.id,
-                  points: route.topoPoints ?? [],
-                  band: getGradeBand(route.gradeFk),
-                }))}
-            />
+          {#each block.topoImages as image (image.id)}
+            <a
+              class="block"
+              href={resolve('/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]', {
+                id: String(block.id),
+                topoId: String(image.id),
+              })}
+              aria-label={m.topo_alt()}
+            >
+              <Topo
+                class="w-full"
+                imagePath={image.path}
+                width={image.width}
+                height={image.height}
+                alt={m.topo_alt()}
+                lines={blockRoutes
+                  .filter((route) => route.topoImagePath === image.path && route.topoPoints != null)
+                  .map((route) => ({
+                    id: route.id,
+                    points: route.topoPoints ?? [],
+                    band: getGradeBand(route.gradeFk),
+                  }))}
+              />
+            </a>
           {/each}
         </div>
       {:else}
@@ -144,26 +157,18 @@
       <nav class="flex flex-col gap-1.5">
         {#each blockRoutes as route (route.id)}
           <RouteRow
-            band={getGradeBand(route.gradeFk)}
+            {route}
             grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-            name={route.name}
-            stars={route.rating}
-            topoImagePath={route.topoImagePath}
-            topoPoints={route.topoPoints}
+            status={ascentStatus.get(route.id)}
+            href={resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(route.id) })}
           />
         {/each}
       </nav>
     {:else}
       <div class="flex items-center gap-2">
-        {#each block.topoImages as image (image.path)}
+        {#each block.topoImages as image (image.id)}
           <span class="size-13 flex-none overflow-hidden rounded-xl">
-            <Image
-              path={image.path}
-              alt={m.topo_alt()}
-              class="h-full w-full"
-              imgClass="object-cover"
-              previewWidth={160}
-            />
+            <Image path={image.path} alt={m.topo_alt()} class="h-full w-full" previewWidth={160} />
           </span>
         {/each}
 

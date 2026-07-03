@@ -236,7 +236,7 @@ export const deleteArea = authedCommand(
     const redirectTo =
       area.parentFk == null
         ? resolve('/explore')
-        : resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.parentFk) })
+        : resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.parentFk) })
 
     return { redirectTo, data }
   },
@@ -311,7 +311,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
 
     return {
-      redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(created.id) }),
+      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(created.id) }),
       data: { areaId: created.id },
     }
   }
@@ -328,7 +328,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
   await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
 
   return {
-    redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
+    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
     data: { areaId: snapshot.areaId },
   }
 })
@@ -374,7 +374,7 @@ export const addParking = authedForm(
       regionFk: area.regionFk,
     })
 
-    return { redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: areaId.toString() }) }
+    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }) }
   },
 )
 
@@ -432,7 +432,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
 
   // Back to the area, plus a snapshot (the envelope's `data`) to recreate the parking on Undo.
   return {
-    redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(parking.areaFk) }),
+    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(parking.areaFk) }),
     data: {
       areaId: parking.areaFk,
       lat: parking.lat,

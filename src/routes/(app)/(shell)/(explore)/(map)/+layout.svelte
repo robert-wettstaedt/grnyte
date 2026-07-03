@@ -15,8 +15,8 @@
   import Map from '$lib/map/Map.svelte'
   import type { MapFocus } from '$lib/map/types'
   import Filter from './Filter/Filter.svelte'
-  import Modal from './Modal/Modal.svelte'
-  import { sheetState } from './Modal/sheetState.svelte'
+  import Modal from '../Modal/Modal.svelte'
+  import { sheetState } from '../Modal/sheetState.svelte'
   import SearchBar from './SearchBar/SearchBar.svelte'
 
   let { children }: LayoutProps = $props()
@@ -128,29 +128,8 @@
     return Number.isFinite(id) ? id : undefined
   })
 
-  // Keyboard prev/next, mirroring the sheet's nav arrows: j = prev, l = next.
-  // Only active when a sheet exposes nav, and never while typing or with modifiers.
-  function handleNavKey(event: KeyboardEvent) {
-    const nav = sheetState.nav
-    if (nav == null || event.metaKey || event.ctrlKey || event.altKey) return
-
-    const target = event.target
-    if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable]')) return
-
-    const key = event.key.toLowerCase()
-    if (key === 'j') {
-      event.preventDefault()
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
-      goto(nav.prev.href)
-    } else if (key === 'l') {
-      event.preventDefault()
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
-      goto(nav.next.href)
-    }
-  }
+  // Keyboard prev/next (j/l) is attached by the Modal itself — see Modal/keyboardNav.
 </script>
-
-<svelte:window onkeydown={handleNavKey} />
 
 <div class="absolute inset-0">
   <Map

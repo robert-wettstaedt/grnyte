@@ -57,7 +57,7 @@
             initialLocation={detail.geolocation == null
               ? null
               : { lat: detail.geolocation.lat, long: detail.geolocation.long }}
-            onCancel={() => back(resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(detail.id) }))}
+            onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(detail.id) }))}
             onLocationCommit={initialStep === 'pin'
               ? (coords) => void runCommand(setBlockLocation({ id: detail.id, lat: coords.lat, long: coords.long }))
               : undefined}

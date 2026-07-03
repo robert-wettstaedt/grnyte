@@ -42,7 +42,7 @@
     {#if canEditArea(global.userRegions, data)}
       <Form
         form={updateArea}
-        onCancel={() => back(resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(data.id) }))}
+        onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }))}
         submitLabel={m.common_save()}
         title={m.areas_editArea()}
       >

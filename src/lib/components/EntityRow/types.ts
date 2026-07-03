@@ -4,5 +4,8 @@
  * its own `Props`; these are the leaf types those props reference.
  */
 
-/** Logged ascent state, mapped to the `--st-*` status accents. */
-export type AscentStatus = 'flash' | 'redpoint' | 'attempt' | 'repeat'
+/**
+ * Logged ascent state, mapped to the `--st-*` status accents. An alias of the
+ * ascent entity's own type, so rows accept a `UserAscent.type` directly.
+ */
+export type { AscentType as AscentStatus } from '$lib/entities/ascent/dto'

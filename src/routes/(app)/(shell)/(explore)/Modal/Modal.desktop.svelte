@@ -1,0 +1,80 @@
+<script lang="ts">
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
+  import NavFooter from './NavFooter.svelte'
+  import { sheetState } from './sheetState.svelte'
+  import type { ModalProps } from './types'
+
+  let { children, onclose, open = $bindable() }: ModalProps = $props()
+
+  // Keep compatibility with callers that may still set this value.
+  $effect(() => {
+    if (sheetState.requestSnap != null) {
+      sheetState.requestSnap = null
+    }
+  })
+</script>
+
+<Dialog
+  {open}
+  onOpenChange={(event) => {
+    open = event.open
+    if (!open) {
+      onclose?.()
+    }
+  }}
+  modal={false}
+  preventScroll={false}
+>
+  <Portal>
+    <Dialog.Positioner class="fixed inset-0 left-27 z-50 flex items-start py-12">
+      <div class="relative flex h-full w-full max-w-sm lg:max-w-md">
+        <Dialog.Content
+          class="card bg-surface-50-950 border-surface-100-900 relative z-10 flex h-full w-full flex-col overflow-hidden border-2"
+        >
+          <header class="flex shrink-0 flex-col gap-2 px-4 py-2 shadow">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex min-w-0 flex-1 items-center gap-2">
+                {#if sheetState.headerLeft}
+                  {@render sheetState.headerLeft()}
+                {/if}
+
+                <Dialog.Title class="flex min-w-0 flex-col">
+                  {#if typeof sheetState.subtitle === 'string'}
+                    <span class="text-surface-600-400 shrink-0 text-xs">{sheetState.subtitle}</span>
+                  {:else if sheetState.subtitle != null}
+                    {@render sheetState.subtitle()}
+                  {/if}
+
+                  {#if typeof sheetState.title === 'string'}
+                    <span class="text-lg">{sheetState.title}</span>
+                  {:else if sheetState.title != null}
+                    {@render sheetState.title()}
+                  {/if}
+                </Dialog.Title>
+              </div>
+
+              <Dialog.CloseTrigger
+                class="btn-icon preset-filled-surface-200-800 shrink-0"
+                aria-label={m.common_close()}
+              >
+                <Icon name="close" />
+              </Dialog.CloseTrigger>
+            </div>
+
+            {#if sheetState.toolbar}
+              {@render sheetState.toolbar()}
+            {/if}
+          </header>
+
+          <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
+            {@render children?.()}
+          </Dialog.Description>
+
+          <NavFooter />
+        </Dialog.Content>
+      </div>
+    </Dialog.Positioner>
+  </Portal>
+</Dialog>

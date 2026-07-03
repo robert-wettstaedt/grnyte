@@ -71,7 +71,7 @@
     return { extent: [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)] }
   })
 
-  const exit = () => back(resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(areaId) }))
+  const exit = () => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }))
 </script>
 
 <svelte:head>

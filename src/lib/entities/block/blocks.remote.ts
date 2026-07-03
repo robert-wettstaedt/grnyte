@@ -93,7 +93,7 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
     regionFk: block.regionFk,
   })
 
-  return { redirectTo: resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(block.id) }) }
+  return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
 })
 
 /** Edit a block's name and/or location. Reuses the create form (with `id` set). The location
@@ -180,7 +180,7 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
     })
   }
 
-  return { redirectTo: resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(block.id) }) }
+  return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
 })
 
 /** Move-on-the-map shortcut: set the block's pin straight from the picker, skipping the
@@ -222,7 +222,7 @@ export const setBlockLocation = authedCommand(
       regionFk: block.regionFk,
     })
 
-    return { redirectTo: resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(block.id) }) }
+    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
   },
 )
 
@@ -342,7 +342,7 @@ export const deleteBlock = authedCommand(
     })
     await refreshAreaType(db, block.areaFk)
 
-    return { redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(block.areaFk) }), data }
+    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(block.areaFk) }), data }
   },
 )
 
@@ -409,7 +409,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     await deleteActivity(db, { entityId: String(snapshot.blockId), entityType: 'block', type: 'deleted' })
 
     return {
-      redirectTo: resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(blockId) }),
+      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(blockId) }),
       data: { blockId },
     }
   }
@@ -426,7 +426,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   await deleteActivity(db, { entityId: String(snapshot.blockId), entityType: 'block', type: 'deleted' })
 
   return {
-    redirectTo: resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(snapshot.blockId) }),
+    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(snapshot.blockId) }),
     data: { blockId: snapshot.blockId },
   }
 })
@@ -463,6 +463,6 @@ export const reorderBlocks = authedCommand(
       order += 1
     }
 
-    return { redirectTo: resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(areaId) }) }
+    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }) }
   },
 )

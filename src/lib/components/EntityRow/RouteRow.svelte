@@ -1,66 +1,58 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
-  import { gradeFgVar, gradeVar, type GradeBand } from '$lib/entities/grade/color'
-  import type { TopoPoint } from '$lib/entities/topo/dto'
+  import AscentType from '$lib/entities/ascent/AscentType.svelte'
+  import { getGradeBand, gradeFgVar, gradeVar } from '$lib/entities/grade/color'
+  import type { RouteListItem } from '$lib/entities/route/dto'
+  import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
+  import RouteRating from '$lib/entities/route/RouteRating.svelte'
+  import RouteTags from '$lib/entities/route/RouteTags.svelte'
   import { buildLine, isNormalized } from '$lib/entities/topo/path'
-  import { starString, statusInfo, type StatusInfo } from './helpers'
+  import { m } from '$lib/paraglide/messages.js'
+  import Markdown from '../Markdown/Markdown.svelte'
   import Row from './Row.svelte'
   import type { AscentStatus } from './types'
 
+  /** The slice of a route the row renders — a `RouteListItem` satisfies it. */
+  type RouteRowData = Pick<
+    RouteListItem,
+    'name' | 'gradeFk' | 'rating' | 'description' | 'tags' | 'topoImagePath' | 'topoPoints'
+  >
+
   interface Props {
-    /** Route name. */
-    name: string
-    /** Display grade, e.g. "7a+". */
+    /** The route: name, grade band (via `gradeFk`), stars, description and topo thumbnail. */
+    route: RouteRowData
+    /** Display grade in the user's scale, e.g. "7a+". */
     grade: string
-    /** Heat-scale band that colours the grade, or `undefined` for an ungraded route. */
-    band: GradeBand | undefined
     /** Breadcrumb path, e.g. "Roadside · The Arch". */
     crumbs?: string | string[]
-    /** Quality rating, 0–3 stars. */
-    stars?: number
-    /** Logged ascent state, if any. */
+    /** The user's logged ascent state, if any. */
     status?: AscentStatus
-    /** Secondary line (variant "numbered"). */
-    subline?: string
     /** Render as a link. */
     href?: string
     /** Tap handler when rendered as a button. */
     onclick?: (event: MouseEvent) => void
-    /**
-     * Render as a compact `@`-picker option (flat row, shrunk grade tile). The
-     * route's own layout `variant` is independent of this picker-layout flag.
-     */
-    option?: boolean
-    /** Keyboard-highlight state — only for the `option` layout. */
+    /** Selected state — highlights the card and expands the tags/actions line. */
     active?: boolean
-    /** `files.path` of the route's topo image — renders the real thumbnail when set. */
-    topoImagePath?: string
-    /** The route's line points on that topo (0–1 fractions or legacy pixels). */
-    topoPoints?: TopoPoint[]
+    /** Guidebook line number — shown in the thumb instead of a topo preview. */
+    number?: number
+    /** Pre-resolved block detail href — the "Show on map" action of the expanded row. */
+    mapHref?: string
+    /** Pre-resolved route detail href — the "Details" action of the expanded row. */
+    detailsHref?: string
   }
 
-  let {
-    active = false,
-    band,
-    crumbs,
-    grade,
-    href,
-    name,
-    onclick,
-    option = false,
-    stars,
-    status,
-    subline,
-    topoImagePath,
-    topoPoints,
-  }: Props = $props()
+  let { active = false, crumbs, detailsHref, grade, href, mapHref, number, onclick, route, status }: Props = $props()
 
-  const info = $derived(statusInfo(status))
+  // The selected card grows an extra line (tags + actions) — only when there's
+  // something to put in it.
+  const expanded = $derived(active && (route.tags.length > 0 || mapHref != null || detailsHref != null))
+
+  const band = $derived(getGradeBand(route.gradeFk))
   const bandColor = $derived(gradeVar(band))
   const bandFg = $derived(gradeFgVar(band))
 
-  const hasTopo = $derived(topoImagePath != null && topoPoints != null && topoPoints.length > 0)
+  const hasTopo = $derived(route.topoImagePath != null && route.topoPoints != null && route.topoPoints.length > 0)
 
   // Bound to the loaded image's intrinsic size: the topo line points resolve
   // against it (fractions scale to it, legacy pixels use it as the viewBox), and
@@ -75,42 +67,59 @@
   // preview. Those rows show the plain photo without a line.
   // ponytail: fixes itself once legacy paths are migrated to 0–1 fractions.
   const line = $derived(
-    topoPoints != null && isNormalized(topoPoints) ? buildLine(topoPoints, true, naturalWidth, naturalHeight) : null,
+    route.topoPoints != null && isNormalized(route.topoPoints)
+      ? buildLine(route.topoPoints, true, naturalWidth, naturalHeight)
+      : null,
   )
 </script>
 
-{#snippet statusTile(tile: StatusInfo)}
-  <span
-    class="status-tile"
-    style:background="color-mix(in oklab, {tile.color} 20%, transparent)"
-    aria-label={tile.label}
-  >
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill={tile.filled ? tile.color : 'none'}
-      stroke={tile.color}
-      stroke-width="2.4"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-dasharray={tile.dash}
-    >
-      <path d={tile.path} />
-    </svg>
+{#snippet title()}
+  <span class="name-row">
+    <span class="title-md ellipsis">{route.name}</span>
   </span>
 {/snippet}
 
-{#snippet title()}
-  <span class="name-row">
-    <span class="title-md ellipsis">{name}</span>
-    {#if stars}<span class="stars">{starString(stars)}</span>{/if}
-  </span>
+{#snippet body()}
+  {#if route.description}
+    <Markdown className="short" disableLinks encloseReferences="strong" markdown={route.description} />
+  {/if}
+{/snippet}
+
+{#snippet footer()}
+  <!-- Wrapping container: when tags + buttons don't fit one line, the buttons
+       group drops below the tags (ms-auto keeps it right-aligned) instead of
+       squeezing the tags into a one-per-line column. -->
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <RouteTags tags={route.tags} />
+
+    <div class="ms-auto flex flex-none items-center gap-1.5">
+      {#if mapHref}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers resolve() the href -->
+        <a class="btn btn-sm preset-tonal" href={mapHref}>
+          <Icon name="map-pin" size={13} />
+          {m.routes_showOnMap()}
+        </a>
+      {/if}
+      {#if detailsHref}
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers resolve() the href -->
+        <a class="btn btn-sm preset-filled-primary-500" href={detailsHref}>
+          {m.routes_showDetails()}
+          <Icon name="chevron-right" size={13} />
+        </a>
+      {/if}
+    </div>
+  </div>
 {/snippet}
 
 {#snippet rightContent()}
-  {#if info}{@render statusTile(info)}{/if}
-  <span class="grade-chip" style:background={bandColor} style:color={bandFg}>{grade}</span>
+  <div class="flex flex-col items-end justify-center gap-2">
+    <div class="flex">
+      <AscentType {status} />
+      <RouteGrade {band} {grade} />
+    </div>
+
+    <RouteRating rating={route.rating} />
+  </div>
 {/snippet}
 
 <Row
@@ -120,17 +129,25 @@
   {onclick}
   {rightContent}
   {title}
-  description={subline}
-  variant={option ? 'option' : 'card'}
+  description={body}
+  footer={expanded ? footer : undefined}
+  variant="card"
 >
   <span class="thumb bg-surface-200-800">
-    {#if hasTopo && topoImagePath != null}
+    {#if number != null}
+      <span
+        class="absolute inset-0 grid place-items-center font-mono text-lg font-bold"
+        style:background-color={bandColor}
+        style:color={bandFg}
+      >
+        {number}
+      </span>
+    {:else if hasTopo && route.topoImagePath != null}
       <!-- 52px tile at up to ~3x DPR → request a small thumbnail, not the full-res photo. -->
       <Image
-        path={topoImagePath}
+        path={route.topoImagePath}
         alt=""
         class="h-full w-full"
-        imgClass="object-cover"
         previewWidth={160}
         bind:naturalWidth
         bind:naturalHeight
@@ -184,38 +201,6 @@
     display: flex;
     align-items: center;
     gap: 7px;
-  }
-
-  .stars {
-    flex: none;
-    font-size: 12px;
-    letter-spacing: 1px;
-    color: var(--st-flash);
-  }
-
-  .grade-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    height: 25px;
-    padding: 0 9px;
-    border-radius: 8px;
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 12.5px;
-    line-height: 1;
-    letter-spacing: 0.01em;
-  }
-
-  .status-tile {
-    width: 30px;
-    height: 30px;
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9px;
   }
 
   .thumb {

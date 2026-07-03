@@ -181,3 +181,5 @@ storybook-static
 # Un-ignore the Icon component dir: the global ~/.gitignore has a plain "Icon"
 # rule (intended for the macOS "Icon\r" file) that also matches this folder.
 !src/lib/components/Icon/
+
+dev-dist

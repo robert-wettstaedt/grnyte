@@ -17,6 +17,7 @@ interface BlockDetailRow extends BlockRow {
   readonly createdAt: number | null
   readonly geolocation?: Row<'geolocations'> | undefined
   readonly topos?: readonly {
+    readonly id: number
     readonly file?:
       | {
           readonly path: string | null
@@ -58,7 +59,14 @@ export function toBlockDetail(row: BlockDetailRow): BlockDetail {
     topoImages: (row.topos ?? []).flatMap((topo) =>
       topo.file?.path == null
         ? []
-        : [{ path: topo.file.path, width: topo.file.width ?? undefined, height: topo.file.height ?? undefined }],
+        : [
+            {
+              id: topo.id,
+              path: topo.file.path,
+              width: topo.file.width ?? undefined,
+              height: topo.file.height ?? undefined,
+            },
+          ],
     ),
     rawName: row.name,
   }

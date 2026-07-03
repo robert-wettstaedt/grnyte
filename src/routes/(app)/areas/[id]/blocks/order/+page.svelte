@@ -98,7 +98,7 @@
     }
   }
 
-  const cancel = () => back(resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(areaId) }))
+  const cancel = () => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(areaId) }))
 </script>
 
 <svelte:head>

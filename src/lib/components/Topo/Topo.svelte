@@ -1,6 +1,6 @@
 <script lang="ts">
   import Image from '$lib/components/Image/Image.svelte'
-  import { gradeVar, type GradeBand } from '$lib/entities/grade/color'
+  import { gradeFgVar, gradeVar, type GradeBand } from '$lib/entities/grade/color'
   import type { TopoPoint } from '$lib/entities/topo/dto'
   import { buildLine } from '$lib/entities/topo/path'
   import type { ClassValue } from 'svelte/elements'
@@ -13,6 +13,8 @@
     band: GradeBand | undefined
     /** How the route finishes — drives the end marker. */
     topType?: 'top' | 'topout'
+    /** Guidebook-style number badged at the base of the line. */
+    number?: number
   }
 
   interface Props {
@@ -74,7 +76,7 @@
   const rendered = $derived(
     lines.map((line) => {
       const { d, bracket, starts, top } = buildLine(line.points, curved, boxWidth, boxHeight)
-      return { id: line.id, band: line.band, topType: line.topType, d, bracket, starts, top }
+      return { id: line.id, band: line.band, topType: line.topType, number: line.number, d, bracket, starts, top }
     }),
   )
 
@@ -100,6 +102,30 @@
   function toggle(id: number) {
     highlightId = highlightId === id ? undefined : id
   }
+
+  // A shared hold steps through its lines on each tap, then clears after the
+  // last — for a single-line hold that reduces to a plain toggle.
+  function cycleHold(ids: number[]) {
+    const index = highlightId == null ? -1 : ids.indexOf(highlightId)
+    highlightId = ids[index + 1]
+  }
+
+  // Button behaviour for an SVG overlay element: tap or Enter/Space runs the action.
+  const press = (action: () => void) => ({
+    role: 'button' as const,
+    tabindex: 0,
+    style: 'cursor: pointer',
+    onclick: (event: MouseEvent) => {
+      event.stopPropagation()
+      action()
+    },
+    onkeydown: (event: KeyboardEvent) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        action()
+      }
+    },
+  })
 
   // End marker geometry: an up-arrow for a mantle over the top, a cap bar for a finish hold.
   function topMarkerD(point: { x: number; y: number }, topType: LineInput['topType']): string {
@@ -136,16 +162,19 @@
 <div
   class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
   style:aspect-ratio={ready ? `${boxWidth} / ${boxHeight}` : undefined}
-  use:panzoom={{ enabled: zoomable }}
+  use:panzoom={{ enabled: zoomable, aspect: ready ? boxWidth / boxHeight : undefined }}
 >
   <div class="absolute inset-0">
     {#key imagePath}
-      <!-- The viewer works fine off the 1024 derivative; the multi-MB original stays on the server. -->
+      <!-- The viewer works fine off the 1024 derivative; the multi-MB original stays on the server.
+           Eager: the topo IS the content wherever it renders, and the default lazy load never fires
+           if the box is measured while a bottom sheet still sizes it to zero height. -->
       <Image
         path={imagePath}
         {alt}
+        loading="eager"
         class="pointer-events-none h-full w-full touch-none select-none"
-        imgClass="object-contain"
+        fit="contain"
         previewWidth={1024}
         bind:naturalWidth
         bind:naturalHeight
@@ -160,28 +189,17 @@
       >
         {#each ordered as line (line.id)}
           {@const dimmed = highlightId != null && line.id !== highlightId}
-          <g opacity={dimmed ? 0.25 : 1}>
+          <g opacity={dimmed ? 0.33 : 1}>
             {#if interactive}
               <path
                 d={line.d}
                 stroke="transparent"
                 stroke-width="24"
                 vector-effect="non-scaling-stroke"
+                {...press(() => toggle(line.id))}
                 style="pointer-events: stroke; cursor: pointer"
-                role="button"
-                tabindex="0"
                 aria-pressed={line.id === highlightId}
                 aria-label="Toggle route line"
-                onclick={(event) => {
-                  event.stopPropagation()
-                  toggle(line.id)
-                }}
-                onkeydown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    toggle(line.id)
-                  }
-                }}
               />
             {/if}
 
@@ -193,13 +211,52 @@
             {#if line.top}
               {@render stroke(topMarkerD(line.top, line.topType), line.band)}
             {/if}
+
+            <!-- Guidebook number: grade-coloured disc below the start holds, dimming with its line. -->
+            {#if line.number != null && line.starts.length > 0}
+              {@const x = line.starts.reduce((sum, point) => sum + point.x, 0) / line.starts.length}
+              {@const y = Math.min(Math.max(...line.starts.map((point) => point.y)) + unit * 3, boxHeight - unit * 1.6)}
+              <g
+                class={['select-none', !interactive && 'pointer-events-none']}
+                {...interactive ? press(() => toggle(line.id)) : {}}
+                aria-pressed={interactive ? line.id === highlightId : undefined}
+                aria-label={interactive ? 'Toggle route line' : undefined}
+              >
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={unit * 1.5}
+                  fill={gradeVar(line.band)}
+                  stroke="oklch(0 0 0 / 0.55)"
+                  stroke-width="3"
+                  vector-effect="non-scaling-stroke"
+                />
+                <text
+                  {x}
+                  {y}
+                  fill={gradeFgVar(line.band)}
+                  font-size={unit * 2}
+                  font-weight="700"
+                  text-anchor="middle"
+                  dominant-baseline="central"
+                >
+                  {line.number}
+                </text>
+              </g>
+            {/if}
           </g>
         {/each}
 
         <!-- Start holds: drawn once on top. Dimmed with their lines when one is highlighted. -->
         {#each holds as hold (hold.key)}
           {@const dimmed = highlightId != null && !hold.ids.includes(highlightId)}
-          <g class="pointer-events-none" opacity={dimmed ? 0.25 : 1}>
+          <g
+            class={[!interactive && 'pointer-events-none']}
+            opacity={dimmed ? 0.25 : 1}
+            {...interactive ? press(() => cycleHold(hold.ids)) : {}}
+            aria-pressed={interactive ? !dimmed && highlightId != null : undefined}
+            aria-label={interactive ? 'Toggle route line' : undefined}
+          >
             <circle
               cx={hold.x}
               cy={hold.y}

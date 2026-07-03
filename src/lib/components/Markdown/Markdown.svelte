@@ -40,13 +40,17 @@
 
   const markdownRefIds = $derived(getReferences(markdown))
   const references = markdownReferences(() => markdownRefIds)
+  const hasReferences = $derived(Object.values(markdownRefIds).some((ids) => ids.length > 0))
 
   const html = $derived.by(() => {
     const value = className?.split(' ').some((c) => c === 'short')
       ? markdown.replaceAll('\n', ' ').replaceAll('\r', '')
       : markdown
 
-    const enrichedMarkdown = enrichMarkdownWithReferences(value, references.data)
+    // Reference-free markdown (the common case) skips the enrich pass — and
+    // with it the lazily-evaluated Zero resources behind `references.data`, so
+    // it renders without a Zero client (Storybook).
+    const enrichedMarkdown = hasReferences ? enrichMarkdownWithReferences(value, references.data) : value
     return convertMarkdownToHtmlSync(enrichedMarkdown, global.grades, encloseReferences, disableLinks)
   })
 </script>

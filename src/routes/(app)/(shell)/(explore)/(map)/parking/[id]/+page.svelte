@@ -9,7 +9,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { onDestroy } from 'svelte'
-  import { sheetState } from '../../Modal/sheetState.svelte'
+  import { sheetState } from '../../../Modal/sheetState.svelte'
   import ParkingActions from './ParkingActions.svelte'
 
   const global = getGlobalState()

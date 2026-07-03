@@ -30,7 +30,7 @@
 <AreaRow
   {countByGrade}
   description={area.description}
-  href={resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) })}
+  href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) })}
   name={area.name}
   total={routes.data.length}
 />

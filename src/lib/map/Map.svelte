@@ -339,13 +339,13 @@
         const parkingId = feature.get('parkingId')
         if (parkingId != null) {
           props.onfeatureopen?.()
-          goto(resolve('/(app)/(shell)/(map)/parking/[id]', { id: parkingId.toString() }))
+          goto(resolve('/(app)/(shell)/(explore)/(map)/parking/[id]', { id: parkingId.toString() }))
         } else if (blockId != null) {
           props.onfeatureopen?.()
-          goto(resolve('/(app)/(shell)/(map)/blocks/[id]', { id: blockId.toString() }))
+          goto(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: blockId.toString() }))
         } else if (areaId != null) {
           props.onfeatureopen?.()
-          goto(resolve('/(app)/(shell)/(map)/areas/[id]', { id: areaId.toString() }))
+          goto(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }))
         }
       }
     })

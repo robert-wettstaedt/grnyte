@@ -5,7 +5,17 @@
   import { sheetState } from './sheetState.svelte'
   import type { ModalProps } from './types'
 
-  let { children, onclose, open = $bindable() }: ModalProps = $props()
+  // `back` (set by Panel for viewer routes) swaps the close X on the right for a
+  // back arrow on the left, matching the desktop panel's header. `collapseOnOutsideClick`
+  // is the map behaviour — a tap on the map drops the sheet to its title; viewer
+  // routes turn it off so interacting with the stage leaves the sheet alone.
+  let {
+    back = false,
+    collapseOnOutsideClick = true,
+    children,
+    onclose,
+    open = $bindable(),
+  }: ModalProps & { back?: boolean; collapseOnOutsideClick?: boolean } = $props()
 
   let titleEl = $state<HTMLElement>()
   let innerHeight = $state(window.innerHeight)
@@ -13,19 +23,21 @@
 
   // Viewport offset of the sheet's top edge, so `floating` controls can sit just
   // above it and follow as it's dragged. The sheet grows from the bottom via
-  // `max-height`, so a ResizeObserver fires on every drag/snap frame.
+  // `max-height`, so a ResizeObserver fires on every drag/snap frame. Published on
+  // sheetState so the page behind can size itself to the uncovered area.
   // ponytail: at a near-full drag the buttons translate off the top — acceptable.
-  let sheetTop = $state(0)
-
   $effect(() => {
     const sheetEl = titleEl?.closest('.bottom-sheet')
     if (sheetEl == null) return
 
-    const measure = () => (sheetTop = sheetEl.getBoundingClientRect().top)
+    const measure = () => (sheetState.sheetTop = sheetEl.getBoundingClientRect().top)
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(sheetEl)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      sheetState.sheetTop = null
+    }
   })
 
   const titleSnapPoint = $derived.by(() => {
@@ -38,7 +50,7 @@
   })
 
   const handleDocumentClick = (event: MouseEvent) => {
-    if (!open || sheetState.requestSnap != null) return
+    if (!collapseOnOutsideClick || !open || sheetState.requestSnap != null) return
 
     const target = event.target as HTMLElement
 
@@ -73,6 +85,19 @@
     >
       <div class="flex items-center justify-between gap-2">
         <div class="flex min-w-0 flex-1 items-center gap-2">
+          {#if back}
+            <button
+              class="btn-icon preset-filled-surface-200-800 shrink-0"
+              aria-label={m.common_back()}
+              onclick={(event) => {
+                event.preventDefault()
+                open = false
+              }}
+            >
+              <Icon name="arrow-left" />
+            </button>
+          {/if}
+
           {#if sheetState.headerLeft}
             {@render sheetState.headerLeft()}
           {/if}
@@ -92,16 +117,18 @@
           </div>
         </div>
 
-        <button
-          class="btn-icon preset-filled-surface-200-800 shrink-0"
-          aria-label={m.common_close()}
-          onclick={(event) => {
-            event.preventDefault()
-            open = false
-          }}
-        >
-          <Icon name="close" />
-        </button>
+        {#if !back}
+          <button
+            class="btn-icon preset-filled-surface-200-800 shrink-0"
+            aria-label={m.common_close()}
+            onclick={(event) => {
+              event.preventDefault()
+              open = false
+            }}
+          >
+            <Icon name="close" />
+          </button>
+        {/if}
       </div>
 
       {#if sheetState.toolbar}
@@ -124,7 +151,7 @@
     disableClosing: true,
     maxHeight: 1,
     snapPoints: [titleSnapPoint, 0.25, 0.5, 0.75],
-    startingSnapPoint: 0.75,
+    startingSnapPoint: sheetState.startingSnap ?? 0.75,
   }}
 >
   {@render content()}
@@ -133,10 +160,10 @@
 {#if open && sheetState.nav}
   {@const nav = sheetState.nav}
   <!-- Sibling of the sheet (not a child) so the sheet's `overflow` doesn't clip it.
-       Sits just above the sheet's top edge and tracks it via `sheetTop`. -->
+       Sits just above the sheet's top edge and tracks it via `sheetState.sheetTop`. -->
   <div
     class="pointer-events-none fixed inset-x-0 z-60 flex -translate-y-full justify-start px-3 pb-2"
-    style="top: {sheetTop}px"
+    style="top: {sheetState.sheetTop ?? 0}px"
     data-sheet-floating
   >
     <div

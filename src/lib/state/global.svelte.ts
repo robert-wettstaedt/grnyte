@@ -129,6 +129,15 @@ export function setGlobalState(): GlobalState | undefined {
     },
   }
 
+  return provideGlobalState(state)
+}
+
+/**
+ * Publishes an already-built state object on context. `setGlobalState` builds
+ * the real one from Zero resources; Storybook's preview decorator injects a
+ * static fixture through here instead.
+ */
+export function provideGlobalState(state: GlobalState): GlobalState {
   setContext(GLOBAL_STATE_KEY, state)
   return state
 }

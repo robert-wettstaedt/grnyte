@@ -13,8 +13,8 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SvelteMap } from 'svelte/reactivity'
-  import { sheetState } from '../../Modal/sheetState.svelte'
-  import { toSheetNav } from '../../Modal/siblingNav'
+  import { sheetState } from '../../../Modal/sheetState.svelte'
+  import { toSheetNav } from '../../../Modal/siblingNav'
   import AreaActions from './AreaActions.svelte'
   import AreaDescription from './AreaDescription.svelte'
   import AreaEmpty from './AreaEmpty.svelte'
@@ -39,7 +39,7 @@
   })
   const siblings = areaList(() => ({ parentFk }))
 
-  const areaHref = (id: number) => resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(id) })
+  const areaHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(id) })
 
   // Blocks beneath this crag, ordered by the query; routes (above) are grouped
   // under them by the BlocksList.
@@ -124,7 +124,7 @@
 
         <a
           class="border-surface-300-700 bg-surface-200-800 hover:bg-surface-300-700 flex items-center gap-3 rounded-xl border p-3 transition-colors"
-          href={resolve('/(app)/(shell)/(map)/areas/[id]/routes', { id: page.params.id! })}
+          href={resolve('/(app)/(shell)/(explore)/(map)/areas/[id]/routes', { id: page.params.id! })}
         >
           <span
             class="bg-primary-500/15 text-primary-500 flex size-11 flex-none items-center justify-center rounded-xl"

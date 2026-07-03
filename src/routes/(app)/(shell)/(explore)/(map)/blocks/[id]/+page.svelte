@@ -8,6 +8,7 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
+  import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -16,8 +17,8 @@
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { sheetState } from '../../Modal/sheetState.svelte'
-  import { toSheetNav } from '../../Modal/siblingNav'
+  import { sheetState } from '../../../Modal/sheetState.svelte'
+  import { toSheetNav } from '../../../Modal/siblingNav'
   import BlockActions from './BlockActions.svelte'
 
   const global = getGlobalState()
@@ -35,13 +36,16 @@
   const routes = blockRouteList(() => blockId)
   const orderedRoutes = $derived(orderRoutesByTopo(routes.data, topos.data))
 
+  // The user's tick per route, shown on every row.
+  const ascentStatus = userAscentStatus(() => global.user?.id)
+
   // Siblings for prev/next nav (ordered by `order`). The immediate area is the last
   // entry of the containment chain. -1 while the block loads → empty result, no
   // all-blocks scan.
   const areaId = $derived(block.data?.areas.at(-1)?.id ?? -1)
   const siblings = blockList(() => ({ areaId }))
 
-  const blockHref = (id: number) => resolve('/(app)/(shell)/(map)/blocks/[id]', { id: String(id) })
+  const blockHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(id) })
 
   // The Breadcrumb wants an area-shaped object; the block's `areas` is already the
   // full containment chain down to its immediate area, so wrap it as the trail.
@@ -81,19 +85,28 @@
       {#if topos.data.length > 0}
         <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1">
           {#each topos.data as topo (topo.id)}
-            <Topo
-              class="h-60 w-auto shrink-0 snap-start"
-              imagePath={topo.imagePath}
-              width={topo.imageWidth}
-              height={topo.imageHeight}
-              alt={m.topo_alt()}
-              lines={topo.lines.map((line) => ({
-                id: line.id,
-                points: line.points,
-                band: getGradeBand(line.gradeFk),
-                topType: line.topType,
-              }))}
-            />
+            <a
+              class="block shrink-0 snap-start"
+              href={resolve('/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]', {
+                id: String(detail.id),
+                topoId: String(topo.id),
+              })}
+              aria-label={m.topo_alt()}
+            >
+              <Topo
+                class="h-60 w-auto"
+                imagePath={topo.imagePath}
+                width={topo.imageWidth}
+                height={topo.imageHeight}
+                alt={m.topo_alt()}
+                lines={topo.lines.map((line) => ({
+                  id: line.id,
+                  points: line.points,
+                  band: getGradeBand(line.gradeFk),
+                  topType: line.topType,
+                }))}
+              />
+            </a>
           {/each}
         </div>
       {/if}
@@ -107,12 +120,10 @@
             {#each orderedRoutes as route (route.id)}
               {@const topo = selectTopoForRoute(topos.data, route.id)}
               <RouteRow
-                band={getGradeBand(route.gradeFk)}
+                route={{ ...route, topoImagePath: topo?.view.imagePath, topoPoints: topo?.line.points }}
                 grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-                name={route.name}
-                stars={route.rating}
-                topoImagePath={topo?.view.imagePath}
-                topoPoints={topo?.line.points}
+                status={ascentStatus.get(route.id)}
+                href={resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(route.id) })}
               />
             {/each}
           </nav>

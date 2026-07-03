@@ -33,7 +33,7 @@
     {#if canAddArea(global.userRegions, area)}
       <Form
         form={createArea}
-        onCancel={() => back(resolve('/(app)/(shell)/(map)/areas/[id]', { id: String(area.id) }))}
+        onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.id) }))}
         submitLabel={m.areas_createArea()}
         title={m.areas_newArea()}
       >

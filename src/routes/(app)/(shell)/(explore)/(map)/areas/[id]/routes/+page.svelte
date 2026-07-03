@@ -6,8 +6,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { areaDetail } from '$lib/entities/area/resources.svelte'
+  import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
-  import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { userLocation } from '$lib/map/geolocation.svelte'
@@ -19,7 +19,7 @@
   import Filter from '../../../Filter/Filter.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import { filteredRouteList } from '$lib/map/filteredRoutes.svelte'
-  import { sheetState } from '../../../Modal/sheetState.svelte'
+  import { sheetState } from '../../../../Modal/sheetState.svelte'
   import SearchField from '../../../SearchBar/SearchField.svelte'
   import { DEFAULT_DIR, parseSort, sortRoutes } from './sort'
 
@@ -44,6 +44,9 @@
     () => filters,
     () => global.user?.id,
   )
+
+  // The user's tick per route, shown on every row.
+  const ascentStatus = userAscentStatus(() => global.user?.id)
 
   // Block coordinates power the distance sort (route → block → geolocation).
   const blocks = blockList(() => ({ areaId }))
@@ -134,7 +137,7 @@
 {#snippet headerLeft()}
   <button
     class="btn-icon preset-filled-surface-200-800"
-    onclick={() => back(resolve('/(app)/(shell)/(map)/areas/[id]', { id: page.params.id! }))}
+    onclick={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: page.params.id! }))}
     title={m.common_back()}
   >
     <Icon name="arrow-left" />
@@ -160,12 +163,10 @@
     <nav class="flex flex-col gap-1.5">
       {#each visible as route (route.id)}
         <RouteRow
-          band={getGradeBand(route.gradeFk)}
+          {route}
           grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-          name={route.name}
-          stars={route.rating}
-          topoImagePath={route.topoImagePath}
-          topoPoints={route.topoPoints}
+          status={ascentStatus.get(route.id)}
+          href={resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(route.id) })}
         />
       {/each}
 

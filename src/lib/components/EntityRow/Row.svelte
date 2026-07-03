@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
+  import { slide } from 'svelte/transition'
 
   interface Props {
     /** Main title. Pass a snippet for custom title markup (e.g. inline stars). */
@@ -14,6 +15,11 @@
     children?: Snippet
     /** Trailing content (chevron, grade chip, follow button, …). */
     rightContent?: Snippet
+    /**
+     * Extra line below the row (tags, action buttons, …). Rendered as a sibling
+     * of the interactive row inside the card shell, so it may contain links.
+     */
+    footer?: Snippet
     /** Render as a link. Takes precedence over `onclick`. */
     href?: string
     /** Tap handler when rendered as a button. */
@@ -24,7 +30,7 @@
      * `@`-reference picker (no border/radius, no trailing chevron, highlightable).
      */
     variant?: 'card' | 'option'
-    /** Keyboard-highlight state — only meaningful for the `option` variant. */
+    /** Highlight state: the keyboard-active `option` row, or the selected `card`. */
     active?: boolean
   }
 
@@ -35,6 +41,7 @@
     description,
     children,
     rightContent,
+    footer,
     href,
     onclick,
     variant = 'card',
@@ -50,7 +57,9 @@
       ? active
         ? 'preset-tonal-primary text-surface-950-50'
         : 'text-surface-950-50 hover:bg-surface-200-800'
-      : 'bg-surface-100-900 border-surface-200-800 text-surface-950-50 hover:bg-surface-200-800',
+      : active
+        ? 'bg-surface-200-800 border-primary-500 text-surface-950-50'
+        : 'bg-surface-100-900 border-surface-200-800 text-surface-950-50 hover:bg-surface-200-800',
   )
 </script>
 
@@ -77,18 +86,44 @@
   {#if rightContent}{@render rightContent()}{/if}
 {/snippet}
 
-{#if href}
-  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- generic pass-through; callers resolve() the href -->
-  <a class="row {variant} {colorClass}" {href}>
-    {@render body()}
-  </a>
-{:else}
-  <button type="button" class="row {variant} {colorClass}" {onclick}>
-    {@render body()}
-  </button>
-{/if}
+<!-- The shell carries the card chrome (border, surface, radius); the row itself
+     is the interactive element. Keeping the footer a *sibling* of the row means
+     it can hold its own links/buttons without nesting interactives. -->
+<div class="shell {variant} {colorClass}">
+  {#if href}
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- generic pass-through; callers resolve() the href -->
+    <a class="row {variant}" {href}>
+      {@render body()}
+    </a>
+  {:else}
+    <button type="button" class="row {variant}" {onclick}>
+      {@render body()}
+    </button>
+  {/if}
+
+  {#if footer}
+    <div class="footer" transition:slide={{ duration: 150 }}>
+      {@render footer()}
+    </div>
+  {/if}
+</div>
 
 <style>
+  .shell {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 16px;
+    border-width: 1px;
+    border-style: solid;
+    transition: background-color 0.15s ease;
+  }
+
+  /* Flat picker row: no border/radius on the shell either. */
+  .shell.option {
+    border-width: 0;
+    border-radius: 10px;
+  }
+
   .row {
     display: flex;
     align-items: center;
@@ -96,21 +131,19 @@
     width: 100%;
     box-sizing: border-box;
     padding: 11px 12px;
-    border-radius: 16px;
-    border-width: 1px;
-    border-style: solid;
+    border-radius: inherit;
     cursor: pointer;
     text-align: left;
     font-family: var(--base-font-family);
-    transition: background-color 0.15s ease;
   }
 
-  /* Flat picker row: no border/radius, tighter padding. */
   .row.option {
-    border-width: 0;
-    border-radius: 10px;
     padding: 7px 9px;
     gap: 9px;
+  }
+
+  .footer {
+    padding: 0 12px 11px;
   }
 
   .grow {

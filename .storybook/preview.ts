@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/sveltekit'
+import GlobalStateDecorator from './GlobalStateDecorator.svelte'
 
 // Pull in the real app stylesheet (Tailwind 4 + Skeleton + grnyte tokens) so
 // components render exactly as they do in the app.
@@ -12,6 +13,9 @@ if (typeof document !== 'undefined') {
 }
 
 const preview: Preview = {
+  // Provides the getGlobalState() context (empty, ready fixture) so components
+  // built on it — e.g. rows rendering markdown sublines — mount outside the app.
+  decorators: [() => GlobalStateDecorator],
   parameters: {
     layout: 'centered',
     backgrounds: {
