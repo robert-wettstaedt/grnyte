@@ -6,7 +6,7 @@
   import { m } from '$lib/paraglide/messages'
   import type { Snippet } from 'svelte'
   import type { KeyboardEventHandler } from 'svelte/elements'
-  import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity'
+  import { MediaQuery, SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity'
   import SearchField from './SearchField.svelte'
 
   interface Props {
@@ -17,6 +17,19 @@
   const { trailing }: Props = $props()
 
   let value = $state(page.url.searchParams.get('q') ?? '')
+  let inputEl = $state<HTMLInputElement>()
+
+  // ponytail: no "physical keyboard" web API — hover + fine pointer is the standard desktop heuristic
+  const hasKeyboard = new MediaQuery('(hover: hover) and (pointer: fine)')
+  const shortcut = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl+K'
+  const placeholder = $derived(hasKeyboard.current ? `${m.common_search()} (${shortcut})` : m.common_search())
+
+  const onWindowKeydown = (event: KeyboardEvent) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault()
+      inputEl?.focus()
+    }
+  }
 
   const submitQuery = (query: string, name: string) => {
     const searchParams = new SvelteURLSearchParams(page.url.searchParams)
@@ -48,7 +61,9 @@
   }
 </script>
 
-<SearchField bind:value placeholder={m.common_search()} onClear={reset} onkeyup={onchange} {trailing}>
+<svelte:window onkeydown={onWindowKeydown} />
+
+<SearchField bind:value bind:inputEl {placeholder} onClear={reset} onkeyup={onchange} {trailing}>
   {#snippet leading()}
     <button
       type="button"

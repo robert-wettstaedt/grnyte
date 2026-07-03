@@ -20,7 +20,7 @@
   backdrop
   bind:open
   panel
-  panelClass="fixed inset-0 left-[31.25rem] z-60 flex items-start py-12 lg:left-[35.25rem]"
+  panelClass="fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]"
   contentClass="max-h-[calc(100dvh-6rem)] w-80"
   subtitle={m.area_manage()}
   {title}

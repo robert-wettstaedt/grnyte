@@ -46,7 +46,7 @@
   // Offsets mirror the search bar (top-2 + h-12) and the area sheet (left-27, w-sm/md, py-12).
   const panelClass = $derived(
     placement === 'sheet'
-      ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-12 lg:left-[35.25rem]'
+      ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]'
       : 'fixed inset-0 left-27 z-60 flex items-start pt-16',
   )
   const contentClass = $derived(
@@ -257,7 +257,7 @@
     }
 
     // eslint-disable-next-line svelte/no-navigation-without-resolve
-    await goto(url)
+    await goto(url, { replaceState: true })
     open = false
   }
 
@@ -274,7 +274,7 @@
     }
 
     // eslint-disable-next-line svelte/no-navigation-without-resolve
-    await goto(url)
+    await goto(url, { replaceState: true })
     open = false
   }
 </script>

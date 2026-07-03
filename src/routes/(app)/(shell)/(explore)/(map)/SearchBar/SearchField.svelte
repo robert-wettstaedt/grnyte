@@ -15,9 +15,11 @@
     leading?: Snippet
     /** Trailing content inside the bar (e.g. the Filter pill). */
     trailing?: Snippet
+    /** Bindable reference to the native input, e.g. for programmatic focus. */
+    inputEl?: HTMLInputElement
   }
 
-  let { value = $bindable(), placeholder, onClear, onkeyup, leading, trailing }: Props = $props()
+  let { value = $bindable(), placeholder, onClear, onkeyup, leading, trailing, inputEl = $bindable() }: Props = $props()
 </script>
 
 <div
@@ -30,6 +32,7 @@
   {/if}
 
   <input
+    bind:this={inputEl}
     bind:value
     {placeholder}
     {onkeyup}
