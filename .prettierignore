@@ -11,3 +11,6 @@ bun.lockb
 
 # Generated
 /src/lib/paraglide/
+
+# Installed agent skills
+/.agents/

@@ -43,7 +43,9 @@ export default defineConfig(
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['.storybook/*.svelte'],
+        },
         extraFileExtensions: ['.svelte'],
         parser: ts.parser,
       },
