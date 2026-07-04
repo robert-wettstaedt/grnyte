@@ -128,7 +128,7 @@
 </script>
 
 <svelte:head>
-  <title>{PUBLIC_APPLICATION_NAME} · {m.landing_metaTitle()}</title>
+  <title>{PUBLIC_APPLICATION_NAME} · {m.landing_tagline()}</title>
   <meta name="description" content={m.landing_metaDescription()} />
 </svelte:head>
 
@@ -191,11 +191,11 @@
           data-fade
           class="chip bg-primary-500/15 text-primary-600-400 gap-2 self-start text-[12.5px] font-bold tracking-wide"
         >
-          <Icon name="lock" size={13} strokeWidth={2.4} />
+          <Icon name="code" size={13} strokeWidth={2.4} />
           {m.landing_heroBadge()}
         </div>
         <h1 data-fade class="text-[clamp(36px,5.6vw,62px)] leading-[1.04] font-bold tracking-[-0.03em] text-balance">
-          {m.landing_heroTitle()}
+          {m.landing_tagline()}
         </h1>
         <p
           data-fade

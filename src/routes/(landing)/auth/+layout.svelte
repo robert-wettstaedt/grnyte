@@ -28,18 +28,17 @@
     </svg>
 
     <div class="relative flex h-full flex-col justify-between p-12">
-      <a href={resolve('/')} class="flex items-center gap-2.5 self-start">
-        <img src={Logo} alt={PUBLIC_APPLICATION_NAME} class="block h-9 w-9 rounded-[9px]" />
-        <strong class="[font-family:var(--heading-font-family)] text-[22px] font-bold tracking-tight">
-          {PUBLIC_APPLICATION_NAME}
-        </strong>
-      </a>
+      <div class="flex flex-col gap-1.5 self-start">
+        <a href={resolve('/')} class="flex items-center gap-2.5">
+          <img src={Logo} alt={PUBLIC_APPLICATION_NAME} class="block h-9 w-9 rounded-[9px]" />
+          <strong class="[font-family:var(--heading-font-family)] text-[22px] font-bold tracking-tight">
+            {PUBLIC_APPLICATION_NAME}
+          </strong>
+        </a>
+        <span class="text-surface-500 text-[13px]">{m.landing_tagline()}</span>
+      </div>
 
       <div class="flex max-w-105 flex-col gap-5">
-        <div class="chip bg-primary-500/15 text-primary-600-400 gap-2 self-start text-[12.5px] font-bold tracking-wide">
-          <Icon name="lock" size={13} strokeWidth={2.4} />
-          {m.auth_invitationOnly()}
-        </div>
         <h2 class="text-[34px] leading-[1.12] font-bold tracking-tight text-balance">
           {m.auth_brandHeadline()}
         </h2>
