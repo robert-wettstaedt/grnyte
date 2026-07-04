@@ -28,3 +28,20 @@ export const pickDerivativeSize = (requestedWidth: number): DerivativeSize =>
 /** Whether `path` is an image we generate derivatives for (also skips existing derivatives). */
 export const isDerivableImage = (path: string): boolean =>
   /\.(jpe?g|png|webp|gif)$/i.test(path) && !/\.\d+\.webp$/i.test(path) && !/\.orig\.[^./]+$/i.test(path)
+
+/**
+ * EXIF-oriented pixel size — what browsers display, and the coordinate space
+ * topo paths were drawn against. Orientations 5–8 rotate by 90°, so the stored
+ * width/height come back swapped. `null` when sharp couldn't read a size.
+ */
+export const orientedDimensions = (meta: {
+  width?: number
+  height?: number
+  orientation?: number
+}): { width: number; height: number } | null => {
+  if (meta.width == null || meta.height == null) {
+    return null
+  }
+  const swapped = meta.orientation != null && meta.orientation >= 5
+  return swapped ? { width: meta.height, height: meta.width } : { width: meta.width, height: meta.height }
+}

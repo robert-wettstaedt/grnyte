@@ -5,6 +5,9 @@ import type { ImagePayload, ImageProvider, OriginalOptions, ThumbnailOptions } f
 
 const basicAuth = `Basic ${Buffer.from(`${NEXTCLOUD_USER_NAME}:${NEXTCLOUD_USER_PASSWORD}`).toString('base64')}`
 
+/** HTTP status of a webdav client error; undefined for non-HTTP failures. */
+const statusOf = (error: unknown): number | undefined => (error as { status?: number } | null)?.status
+
 // The WebDAV client is a private detail of this provider. The image provider is
 // the app's only Nextcloud boundary — originals, thumbnails, and future
 // uploads/deletes all go through here — so nothing else talks to it directly.
@@ -84,6 +87,32 @@ function create(): ImageProvider {
         status: res.status,
         statusText: res.statusText,
       }
+    },
+
+    async store(path: string, data: Buffer): Promise<void> {
+      const target = `${NEXTCLOUD_USER_NAME}${path}`
+      try {
+        await dav().putFileContents(target, data)
+      } catch (putError) {
+        // A missing parent folder (404/409) is the one recoverable failure —
+        // create it and retry once. Everything else (auth, quota, 5xx) surfaces as-is.
+        if (statusOf(putError) !== 404 && statusOf(putError) !== 409) {
+          throw putError
+        }
+        try {
+          await dav().createDirectory(target.slice(0, target.lastIndexOf('/')), { recursive: true })
+        } catch (mkcolError) {
+          // 405 = a concurrent store() won the race to create it — just as good.
+          if (statusOf(mkcolError) !== 405) {
+            throw mkcolError
+          }
+        }
+        await dav().putFileContents(target, data)
+      }
+    },
+
+    async remove(path: string): Promise<void> {
+      await dav().deleteFile(`${NEXTCLOUD_USER_NAME}${path}`)
     },
   }
 }

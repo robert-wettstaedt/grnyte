@@ -22,25 +22,14 @@ import Database from 'postgres'
 import sharp from 'sharp'
 import { createClient } from 'webdav'
 import drizzleConfig from '../../../../drizzle.config'
-import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, isDerivableImage } from '../../images/derivatives'
+import {
+  DERIVATIVE_QUALITY,
+  DERIVATIVE_SIZES,
+  derivativePath,
+  isDerivableImage,
+  orientedDimensions,
+} from '../../images/derivatives'
 import * as schema from '../schema'
-
-/**
- * EXIF-oriented pixel size — what browsers display, and the coordinate space
- * topo paths were drawn against. Orientations 5–8 rotate by 90°, so the stored
- * width/height come back swapped. `null` when sharp couldn't read a size.
- */
-export const orientedDimensions = (meta: {
-  width?: number
-  height?: number
-  orientation?: number
-}): { width: number; height: number } | null => {
-  if (meta.width == null || meta.height == null) {
-    return null
-  }
-  const swapped = meta.orientation != null && meta.orientation >= 5
-  return swapped ? { width: meta.height, height: meta.width } : { width: meta.width, height: meta.height }
-}
 
 /** `/topos/138.jpg` → `/topos` (stored paths always have a leading slash). */
 const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/'))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { orientedDimensions } from './migrate-image-derivatives'
+import { orientedDimensions } from '../../images/derivatives'
 
 describe('orientedDimensions', () => {
   it('returns the stored dimensions for unrotated orientations', () => {

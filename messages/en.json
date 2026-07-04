@@ -161,7 +161,9 @@
   "common_next": "Next",
   "common_ok": "OK",
   "common_recommended": "Recommended",
+  "common_remove": "Remove",
   "common_reset": "Reset",
+  "common_retry": "Retry",
   "common_route": "Route",
   "common_save": "Save",
   "common_saved": "Saved",
@@ -384,5 +386,13 @@
   "topo_next": "Next topo",
   "topo_none": "No topo for this block yet.",
   "topo_position": "Topo {position} / {total}",
-  "topo_previous": "Previous topo"
+  "topo_previous": "Previous topo",
+  "upload_browse": "browse",
+  "upload_constraints": "JPG, PNG, WebP or HEIC, up to {size} each",
+  "upload_dropPrompt": "Drag images here or",
+  "upload_failed": "Upload failed",
+  "upload_invalidType": "Unsupported file type",
+  "upload_networkError": "Network error — check your connection",
+  "upload_tooLarge": "File is too large (max. {size})",
+  "upload_tooMany": "Too many files (max. {count} at a time)"
 }

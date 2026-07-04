@@ -37,6 +37,10 @@ export interface ImageProvider {
   fetchOriginal(path: string, options?: OriginalOptions): Promise<ImagePayload>
   /** A small, cacheable, aspect-preserving thumbnail at (about) `width` px. Throws if unavailable. */
   fetchThumbnail(path: string, options: ThumbnailOptions): Promise<ImagePayload>
+  /** Write `data` at `path`, creating missing parent folders. Overwrites silently. */
+  store(path: string, data: Buffer): Promise<void>
+  /** Delete the object at `path`. */
+  remove(path: string): Promise<void>
 }
 
 /** The image provider the app is configured to use. Swap the backend here. */
