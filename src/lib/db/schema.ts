@@ -908,6 +908,8 @@ export const files = table(
       .primaryKey(),
     ...baseRegionFields,
 
+    // '' for video rows — the media lives at the video host (see finalizeVideo);
+    // discriminate on bunnyStreamFk before treating the path as a storage location.
     path: text('path').notNull(),
     visibility: text('visibility', { enum: areaVisibilityEnum }),
 

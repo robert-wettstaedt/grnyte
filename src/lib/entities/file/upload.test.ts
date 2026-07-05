@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extensionOf, imageMimeOf, isHeic, isImageFileName, stagingPath } from './upload'
+import { extensionOf, imageMimeOf, isHeic, isImageFileName, isVideoFile, stagingPath } from './upload'
 
 describe('extensionOf', () => {
   it('lowercases and strips the dot', () => {
@@ -25,6 +25,14 @@ describe('isImageFileName / isHeic', () => {
   it('flags heic/heif for conversion', () => {
     expect(isHeic('a.heif')).toBe(true)
     expect(isHeic('a.jpg')).toBe(false)
+  })
+})
+
+describe('isVideoFile', () => {
+  it('routes by MIME type, rescuing empty-MIME files by extension', () => {
+    expect(isVideoFile(new File([], 'clip.weird', { type: 'video/quicktime' }))).toBe(true)
+    expect(isVideoFile(new File([], 'clip.MOV', { type: '' }))).toBe(true)
+    expect(isVideoFile(new File([], 'photo.jpg', { type: 'image/jpeg' }))).toBe(false)
   })
 })
 

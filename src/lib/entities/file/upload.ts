@@ -12,6 +12,11 @@ export const STAGING_BUCKET = 'staging'
 /** Per-image size cap enforced client-side before staging. */
 export const MAX_IMAGE_SIZE = 50 * 1024 * 1024
 
+/** Per-video size cap enforced client-side before the TUS upload starts. Bunny
+ *  itself has no size limit — this is purely the accident/abuse knob, sized so
+ *  the heaviest sane beta clip (2min 4K120 H.264 ≈ 1.6GB) still fits. */
+export const MAX_VIDEO_SIZE = 2 * 1024 ** 3
+
 /** Entities an image can be attached to — mirrors the FK columns on `files`. */
 export const fileEntityTypes = ['area', 'ascent', 'block', 'route'] as const
 export type FileEntityType = (typeof fileEntityTypes)[number]
@@ -29,6 +34,14 @@ export const extensionOf = (name: string): string | null => /\.([^./]+)$/.exec(n
 
 export const isImageFileName = (name: string): boolean =>
   (IMAGE_EXTENSIONS as readonly string[]).includes(extensionOf(name) ?? '')
+
+/** Container formats routed to the video pipeline. Bunny transcodes almost
+ *  anything, so the list only backstops files whose MIME type the browser
+ *  reports as empty (mirrors the HEIC rescue for images). */
+export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'm4v', 'webm'] as const
+
+export const isVideoFile = (file: File): boolean =>
+  file.type.startsWith('video/') || (VIDEO_EXTENSIONS as readonly string[]).includes(extensionOf(file.name) ?? '')
 
 /** The staging bucket only admits image/* content types, but browsers often
  *  report an empty `File.type` for HEIC — this is the by-extension fallback. */

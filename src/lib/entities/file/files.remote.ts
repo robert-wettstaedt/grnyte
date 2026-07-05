@@ -1,9 +1,11 @@
 import { command, getRequestEvent } from '$app/server'
+import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { files, type File } from '$lib/db/schema'
+import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
-import type { Context } from '$lib/remote/authed.server'
+import { authedCommand, type Context } from '$lib/remote/authed.server'
+import { getVideoProvider } from '$lib/videos/provider.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import { error } from '@sveltejs/kit'
@@ -42,6 +44,14 @@ const regionOf = async (
       : db.query.routes.findFirst({ columns, where: (routes) => eq(routes.id, id) }))
   return entity?.regionFk
 }
+
+/** The FK column linking a `files` row to its target entity — mirrors the columns on `files`. */
+const entityFks = (type: FileEntityType, id: number) => ({
+  areaFk: type === 'area' ? id : undefined,
+  ascentFk: type === 'ascent' ? id : undefined,
+  blockFk: type === 'block' ? id : undefined,
+  routeFk: type === 'route' ? id : undefined,
+})
 
 const finalizeImageSchema = z.object({
   /** Path within the staging bucket the browser uploaded to (see `stagingPath`). */
@@ -116,7 +126,7 @@ export const finalizeImage = command(
     // Ascent media lives under the uploader's folder; everything else is topo imagery.
     // The row id doubles as the storage file name so the two are matchable both ways.
     const id = createCuid2()
-    const folder = entityType === 'ascent' ? `/user-content/${user.id}` : '/topos'
+    const folder = entityType === 'ascent' ? `/user-content/${user.authUserFk}` : '/topos'
     const path = `${folder}/${id}.${extension}`
     const provider = getImageProvider()
     const stored: string[] = []
@@ -154,10 +164,7 @@ export const finalizeImage = command(
             width: dimensions.width,
             height: dimensions.height,
             regionFk,
-            areaFk: entityType === 'area' ? entityId : undefined,
-            ascentFk: entityType === 'ascent' ? entityId : undefined,
-            blockFk: entityType === 'block' ? entityId : undefined,
-            routeFk: entityType === 'route' ? entityId : undefined,
+            ...entityFks(entityType, entityId),
           })
           .returning(),
       )
@@ -177,5 +184,81 @@ export const finalizeImage = command(
     await supabase.storage.from(STAGING_BUCKET).remove([stagingPath])
 
     return { data: file }
+  },
+)
+
+/**
+ * First half of the video upload flow: create the video object at the host
+ * (grouped under the caller's collection) and presign its upload, which the
+ * browser then runs directly against the host. Plain `command` with a
+ * hand-wired auth gate — pure video-host API round-trips that must not hold a
+ * pooled connection (authedCommand wraps the handler in an RLS transaction).
+ * Region permissions are checked at finalize; worst case an authed user
+ * creates orphaned empty video objects — ponytail: cleanup cron territory,
+ * same as staging orphans.
+ */
+export const createBunnyVideo = command(async () => {
+  const { user } = getRequestEvent().locals
+  if (user == null) {
+    error(401, 'Not authenticated')
+  }
+  return getVideoProvider().createUpload(user.authUserFk)
+})
+
+const finalizeVideoSchema = z.object({
+  /** Bunny video GUID — doubles as the `bunnyStreams` row id. */
+  videoId: z.uuid(),
+  /** Ownership proof minted by `createBunnyVideo` alongside the GUID. */
+  token: z.string(),
+  entityType: z.enum(fileEntityTypes),
+  entityId: z.number(),
+})
+
+/**
+ * Second half: attach a fully-uploaded Bunny video to an entity (an ascent
+ * clip, a route beta video, …). Unlike `finalizeImage` there is no storage
+ * work — the client awaited TUS completion and Bunny already has the bytes —
+ * so a standard authedCommand (one RLS transaction, atomic rollback) fits.
+ */
+export const finalizeVideo = authedCommand(
+  finalizeVideoSchema,
+  async ({ videoId, token, entityType, entityId }, { db, user, userRegions }): Promise<MutationResult<File>> => {
+    // The GUID is client-supplied — the token proves this user created this
+    // video via createBunnyVideo, so made-up or foreign GUIDs can't be attached.
+    if (!getVideoProvider().verifyUpload(videoId, user.authUserFk, token)) {
+      error(403, 'Unknown video')
+    }
+
+    const regionFk = await regionOf(db, user, entityType, entityId)
+    if (regionFk == null) {
+      error(404, `${entityType} not found`)
+    }
+    // The files UPDATE below passes for own ascents or EDIT — pre-check the
+    // non-ascent case so it fails with a real message instead of an opaque
+    // rollback after two inserts.
+    if (entityType !== 'ascent' && !checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], regionFk)) {
+      error(403, `Attaching videos to a ${entityType} requires edit permission`)
+    }
+
+    // files.bunnyStreamFk and bunnyStreams.fileFk are circular, and the
+    // bunny_streams UPDATE policy can never pass a NULL -> value file_fk
+    // transition (its USING clause requires file_fk to already point at an
+    // own-ascent file). So: insert the file first (path '' — the convention
+    // for video rows; the media lives at Bunny), insert the stream row with
+    // file_fk already set, then complete the link on files — whose
+    // own-ascent/EDIT update policies do pass.
+    const [file] = await db
+      .insert(files)
+      .values({ path: '', regionFk, ...entityFks(entityType, entityId) })
+      .returning()
+    await db.insert(bunnyStreams).values({ id: videoId, regionFk, fileFk: file.id })
+    const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
+    if (linked == null) {
+      // Safety net — the checks above should make this unreachable; if RLS
+      // still swallows the update, roll the whole attach back rather than
+      // leave a file without its video.
+      error(403, 'Not allowed to attach videos here')
+    }
+    return { data: linked }
   },
 )

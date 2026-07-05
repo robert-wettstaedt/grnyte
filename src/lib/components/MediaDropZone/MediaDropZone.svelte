@@ -1,15 +1,21 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
-  import { addImageUploads, type ImageUpload } from '$lib/entities/file/upload-manager.svelte'
-  import { isImageFileName, MAX_IMAGE_SIZE, type MediaKind } from '$lib/entities/file/upload'
+  import { addUploads, ImageUpload, VideoUpload, type MediaUpload } from '$lib/entities/file/upload-manager.svelte'
+  import {
+    isImageFileName,
+    isVideoFile,
+    MAX_IMAGE_SIZE,
+    MAX_VIDEO_SIZE,
+    type MediaKind,
+  } from '$lib/entities/file/upload'
   import { m } from '$lib/paraglide/messages'
   import { FileUpload, Progress, useFileUpload } from '@skeletonlabs/skeleton-svelte'
   import type { FileError } from '@zag-js/file-upload'
 
   interface Props {
     /** Pending uploads, bound so the form can finalize them once the entity exists. */
-    uploads?: ImageUpload[]
+    uploads?: MediaUpload[]
     /** What this field takes: images only (topos) or images + videos (ascents). */
     accept?: MediaKind[]
     disabled?: boolean
@@ -24,21 +30,39 @@
   // any multi-file drop wholesale.
   const MAX_FILES = 10
 
-  const rejectionMessage = (errors: FileError[]): string =>
-    errors.includes('FILE_TOO_LARGE')
-      ? m.upload_tooLarge({ size: megabytes(MAX_IMAGE_SIZE) })
-      : errors.includes('TOO_MANY_FILES')
-        ? m.upload_tooMany({ count: MAX_FILES })
-        : m.upload_invalidType()
+  const rejectionMessage = (file: File, errors: FileError[]): string =>
+    // An out-of-accept file that is also oversized carries both errors — the
+    // type mismatch is the real reason, so it wins over the size complaint.
+    errors.includes('FILE_INVALID_TYPE')
+      ? m.upload_invalidType()
+      : errors.includes('FILE_TOO_LARGE')
+        ? m.upload_tooLarge({ size: sizeLabel(isVideoFile(file) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE) })
+        : errors.includes('TOO_MANY_FILES')
+          ? m.upload_tooMany({ count: MAX_FILES })
+          : m.upload_invalidType()
+
+  /** Which pipeline a file belongs to, if any — images win when both match. */
+  const kindOf = (file: File): MediaKind | null =>
+    accept.includes('image') && isImageFileName(file.name)
+      ? 'image'
+      : accept.includes('video') && isVideoFile(file)
+        ? 'video'
+        : null
 
   const addFiles = (files: File[]) => {
-    // ponytail: only the image pipeline exists — video files route to Bunny TUS
-    // once that flow lands; until then they surface as unsupported.
-    const images = files.filter((file) => isImageFileName(file.name))
-    uploads.push(...addImageUploads(images))
-    rejections.push(
-      ...files.filter((file) => !images.includes(file)).map((file) => `${file.name}: ${m.upload_invalidType()}`),
-    )
+    const images: File[] = []
+    const videos: File[] = []
+    for (const file of files) {
+      const kind = kindOf(file)
+      if (kind === 'image') {
+        images.push(file)
+      } else if (kind === 'video') {
+        videos.push(file)
+      } else {
+        rejections.push(`${file.name}: ${m.upload_invalidType()}`)
+      }
+    }
+    uploads.push(...addUploads(images, ImageUpload), ...addUploads(videos, VideoUpload))
     // Our uploads are the source of truth — reset zag's own list so re-picking
     // the same file isn't rejected as a duplicate.
     fileUpload().clearFiles()
@@ -51,11 +75,9 @@
       ...(accept.includes('video') ? ['video/*'] : []),
     ],
     // Size limits are per pipeline, so they live here instead of a blanket
-    // `maxFileSize`: only images are capped (staging bucket, 50MB) — videos go
-    // to Bunny via TUS (built for >100MB files) and get their own cap, if any,
-    // when that flow lands.
-    validate: (file) =>
-      isImageFileName(file.name) && file.size > MAX_IMAGE_SIZE ? ['FILE_TOO_LARGE'] : null,
+    // `maxFileSize`: images are capped by the staging bucket (50MB), videos by
+    // our own accident/abuse knob (2GB — Bunny itself has no limit).
+    validate: (file) => (file.size > (isVideoFile(file) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE) ? ['FILE_TOO_LARGE'] : null),
     maxFiles: MAX_FILES,
     disabled,
     onFileAccept: (details) => {
@@ -66,27 +88,36 @@
       if (details.files.length === 0) {
         return
       }
-      // HEIC photos often carry an empty MIME type, which fails zag's
-      // `image/*` check — rescue anything that is an image by file name.
+      // HEIC photos (and some videos) often carry an empty MIME type, which
+      // fails zag's `image/*`/`video/*` check — rescue by file name.
       const rescued = details.files
         .filter((rejection) => rejection.errors.every((error) => error === 'FILE_INVALID_TYPE'))
         .map((rejection) => rejection.file)
-        .filter((file) => isImageFileName(file.name))
+        .filter((file) => kindOf(file) != null)
       if (rescued.length > 0) {
         addFiles(rescued)
       }
       rejections = details.files
         .filter((rejection) => !rescued.includes(rejection.file))
-        .map((rejection) => `${rejection.file.name}: ${rejectionMessage(rejection.errors)}`)
+        .map((rejection) => `${rejection.file.name}: ${rejectionMessage(rejection.file, rejection.errors)}`)
     },
   }))
 
-  const remove = (upload: ImageUpload) => {
+  const remove = (upload: MediaUpload) => {
     upload.remove()
     uploads.splice(uploads.indexOf(upload), 1)
   }
 
-  const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  const sizeLabel = (bytes: number): string =>
+    bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1)} GB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
+  const dropPrompt = $derived(
+    accept.includes('image')
+      ? accept.includes('video')
+        ? m.upload_dropPromptMedia()
+        : m.upload_dropPrompt()
+      : m.upload_dropPromptVideo(),
+  )
 </script>
 
 <div class="space-y-2">
@@ -96,10 +127,15 @@
     >
       <Icon name="image" class="opacity-50" />
       <p class="text-sm">
-        {m.upload_dropPrompt()}
+        {dropPrompt}
         <span class="text-primary-500 underline">{m.upload_browse()}</span>
       </p>
-      <p class="text-xs opacity-60">{m.upload_constraints({ size: megabytes(MAX_IMAGE_SIZE) })}</p>
+      {#if accept.includes('image')}
+        <p class="text-xs opacity-60">{m.upload_constraints({ size: sizeLabel(MAX_IMAGE_SIZE) })}</p>
+      {/if}
+      {#if accept.includes('video')}
+        <p class="text-xs opacity-60">{m.upload_constraintsVideo({ size: sizeLabel(MAX_VIDEO_SIZE) })}</p>
+      {/if}
       <FileUpload.HiddenInput />
     </FileUpload.Dropzone>
   </FileUpload.Provider>
@@ -110,9 +146,20 @@
 
   {#if uploads.length > 0}
     <ul class="space-y-2">
-      {#each uploads as upload (upload.path)}
+      {#each uploads as upload (upload)}
         <li class="card preset-filled-surface-100-900 flex items-center gap-3 p-2">
-          <img src={upload.previewUrl} alt={upload.file.name} class="size-12 rounded object-cover" />
+          {#if upload.kind === 'video'}
+            <!-- An <img> can't render a video object URL — a muted <video> shows the first frame. -->
+            <video
+              src={upload.previewUrl}
+              muted
+              playsinline
+              preload="metadata"
+              class="size-12 rounded object-cover"
+            ></video>
+          {:else}
+            <img src={upload.previewUrl} alt={upload.file.name} class="size-12 rounded object-cover" />
+          {/if}
 
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm">{upload.file.name}</p>
@@ -126,7 +173,7 @@
                 </Progress.Track>
               </Progress>
             {:else}
-              <p class="text-xs opacity-60">{megabytes(upload.file.size)}</p>
+              <p class="text-xs opacity-60">{sizeLabel(upload.file.size)}</p>
             {/if}
           </div>
 
