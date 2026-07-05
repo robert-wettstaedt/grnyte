@@ -1,7 +1,7 @@
 import { areaList } from '$lib/entities/area/resources.svelte'
 import { blockList } from '$lib/entities/block/resources.svelte'
 import { SvelteMap } from 'svelte/reactivity'
-import type { ParsedRouteFilter } from './filter'
+import { isParsedFilterActive, type ParsedRouteFilter } from './filter'
 import { filteredRouteList } from './filteredRoutes.svelte'
 import type { MapData } from './types'
 
@@ -42,7 +42,13 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
     return counts
   })
 
-  const blocks = $derived(blocksResult.data.filter((block) => routeCountByBlock.has(block.id)))
+  // With a route filter active the map shows only blocks holding matching routes; without
+  // one, every block — a just-created block has no routes yet, but must still show up.
+  const blocks = $derived(
+    isParsedFilterActive(filters())
+      ? blocksResult.data.filter((block) => routeCountByBlock.has(block.id))
+      : blocksResult.data,
+  )
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 

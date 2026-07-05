@@ -12,6 +12,7 @@
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import LocationPicker from '$lib/map/LocationPicker.svelte'
+  import { coordsFromParams } from '$lib/map/map'
   import { encodePath } from '$lib/map/polyline'
   import type { MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
@@ -39,13 +40,17 @@
     return [Math.min(...lats), Math.min(...lngs), Math.max(...lats), Math.max(...lngs)]
   })
 
+  // Location handed over by the quick-create map flow — frames the picker there, so the
+  // map-centre pin starts on the pressed point.
+  const prefill = coordsFromParams(page.url.searchParams)
+
   // Step 1 form state, kept here so it survives the per-step remount of StepPlace.
   let mode = $state<'map' | 'coordinates'>('map')
   let latText = $state('')
   let lngText = $state('')
   let picked = $state<{ lat: number; long: number } | null>(null)
   // The parking committed when advancing to step 2, so StepPlace reframes there on return.
-  let placedCenter = $state<[number, number] | null>(null)
+  let placedCenter = $state<[number, number] | null>(prefill == null ? null : [prefill.lat, prefill.long])
 
   // Step 2: the walking path as [lat, lng] points, starting at the parking. The path is
   // optional (save works with none); the encoded form is mirrored into the hidden input.

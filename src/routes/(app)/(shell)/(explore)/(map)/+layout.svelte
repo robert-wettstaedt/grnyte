@@ -13,7 +13,8 @@
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import Map from '$lib/map/Map.svelte'
-  import type { MapFocus } from '$lib/map/types'
+  import { BLOCK_LABEL_ZOOM, type MapFocus } from '$lib/map/types'
+  import CreateOnMap from './CreateOnMap/CreateOnMap.svelte'
   import Filter from './Filter/Filter.svelte'
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
@@ -30,6 +31,13 @@
   let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
   let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
   let restoredFocus = $state<MapFocus | null>(null)
+
+  // Quick-create (FAB / long-press): placement mode plus the transient focus that centres
+  // the map on a long-pressed point. Never cleared — Map dedupes equal focus values, so a
+  // stale entry can't re-frame the view once a detail `focus` or a new request replaces it.
+  let placing = $state<'block' | 'parking' | null>(null)
+  let createFocus = $state<MapFocus | null>(null)
+  let createOnMap = $state<ReturnType<typeof CreateOnMap>>()
 
   beforeNavigate((navigation) => {
     if (navigation.from?.route.id !== navigation.to?.route.id) {
@@ -119,7 +127,7 @@
     return null
   })
 
-  const effectiveFocus: MapFocus | null = $derived(focus ?? restoredFocus)
+  const effectiveFocus: MapFocus | null = $derived(focus ?? createFocus ?? restoredFocus)
 
   // Highlight the open block's marker on the map.
   const selectedBlockId = $derived.by(() => {
@@ -140,12 +148,25 @@
     gradeCountByBlock={explore.gradeCountByBlock}
     {selectedBlockId}
     focus={effectiveFocus}
+    pickMode={placing != null}
     onviewchange={(view) => (mapViewState = view)}
     onfeatureopen={() => (sheetState.requestSnap = 0.75)}
+    onlongpress={(point) => {
+      if (!open) createOnMap?.openAt(point)
+    }}
   />
 </div>
 
-{#if !open || page.route.id?.includes('/search')}
+<CreateOnMap
+  bind:this={createOnMap}
+  bind:placing
+  center={mapViewState?.center ?? null}
+  zoom={mapViewState?.zoom ?? null}
+  visible={!open}
+  onrequestcenter={(center) => (createFocus = { center, zoom: Math.max(mapViewState?.zoom ?? 0, BLOCK_LABEL_ZOOM) })}
+/>
+
+{#if (!open || page.route.id?.includes('/search')) && placing == null}
   <div
     class="fixed top-2 left-0 z-10 flex w-full items-center justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
     in:fly={{ y: -200 }}

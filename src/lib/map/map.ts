@@ -10,6 +10,13 @@ const isIOS = () =>
 export type Coords = { lat: number; long: number }
 export type MapsDestination = Coords | { query: string }
 
+/** Parse `?lat=…&long=…` (the quick-create map handoff) into coords, or null when absent/garbled. */
+export const coordsFromParams = (params: URLSearchParams): Coords | null => {
+  const lat = Number(params.get('lat') ?? NaN)
+  const long = Number(params.get('long') ?? NaN)
+  return Number.isFinite(lat) && Number.isFinite(long) ? { lat, long } : null
+}
+
 /** Platform-specific maps deep link: driving directions to coords, or a name search. */
 export const mapsUrl = (dest: MapsDestination): string => {
   const apple = isIOS()

@@ -34,6 +34,9 @@ export interface BlocksMapProps {
   /** Fired synchronously when a tapped feature is about to navigate to its detail sheet —
    *  before the click bubbles to document, so the sheet can suppress its outside-click collapse. */
   onfeatureopen?: () => void
+  /** Fired with the pressed `[lat, lng]` on touch long-press or mouse right-click
+   *  (the quick-create entry point). Also suppresses the browser context menu. */
+  onlongpress?: (point: [number, number]) => void
 }
 
 /** The map-data subset produced by `createExploreMapData`, spread into `<Map>`. */

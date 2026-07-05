@@ -388,6 +388,62 @@
       }
     })
 
+    // Long-press / right-click → onlongpress with the pressed coordinate. `contextmenu`
+    // covers mouse right-click and Android's native long-press; iOS Safari never fires it
+    // on touch, so a manual pointer timer covers it. Both can fire for one gesture on
+    // Android — `lastLongPress` dedupes. Movement past a small slop reads as a pan and
+    // cancels, so hesitant drags don't trigger it.
+    const viewport = mapInstance.getViewport()
+    let pressTimer: ReturnType<typeof setTimeout> | undefined
+    let pressStart: [number, number] | null = null
+    let lastLongPress = 0
+
+    const fireLongPress = (clientX: number, clientY: number) => {
+      const now = Date.now()
+      if (now - lastLongPress < 700) return
+      lastLongPress = now
+      const rect = viewport.getBoundingClientRect()
+      const [lng, lat] = toLonLat(mapInstance.getCoordinateFromPixel([clientX - rect.left, clientY - rect.top]))
+      props.onlongpress?.([lat, lng])
+    }
+
+    const cancelPress = () => {
+      clearTimeout(pressTimer)
+      pressStart = null
+    }
+
+    const onContextMenu = (event: MouseEvent) => {
+      if (props.onlongpress == null) return
+      event.preventDefault()
+      cancelPress()
+      fireLongPress(event.clientX, event.clientY)
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      // A second finger (pinch) cancels; mouse users go through contextmenu instead.
+      if (props.onlongpress == null || event.pointerType === 'mouse' || !event.isPrimary) {
+        cancelPress()
+        return
+      }
+      pressStart = [event.clientX, event.clientY]
+      clearTimeout(pressTimer)
+      pressTimer = setTimeout(() => {
+        if (pressStart != null) fireLongPress(pressStart[0], pressStart[1])
+        pressStart = null
+      }, 500)
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (pressStart == null) return
+      if (Math.hypot(event.clientX - pressStart[0], event.clientY - pressStart[1]) > 10) cancelPress()
+    }
+
+    viewport.addEventListener('contextmenu', onContextMenu)
+    viewport.addEventListener('pointerdown', onPointerDown)
+    viewport.addEventListener('pointermove', onPointerMove)
+    viewport.addEventListener('pointerup', cancelPress)
+    viewport.addEventListener('pointercancel', cancelPress)
+
     // Geolocation
     const cleanupGeolocation = setupGeolocation(mapInstance, {
       getIsTracking: () => isTrackingGeolocation,
@@ -409,6 +465,12 @@
     return () => {
       observer.disconnect()
       mapInstance.un('moveend', handleMoveEnd)
+      viewport.removeEventListener('contextmenu', onContextMenu)
+      viewport.removeEventListener('pointerdown', onPointerDown)
+      viewport.removeEventListener('pointermove', onPointerMove)
+      viewport.removeEventListener('pointerup', cancelPress)
+      viewport.removeEventListener('pointercancel', cancelPress)
+      cancelPress()
       cleanupGeolocation()
       mapInstance.setTarget(undefined)
       mapInstance.dispose()
@@ -507,6 +569,14 @@
 </div>
 
 <style>
+  /* No text to select on the map — suppressing selection also keeps iOS from showing
+     its callout/loupe on long-press (which the quick-create gesture relies on). */
+  .map {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
   /* Quiet dark map: only the OSM raster tiles are inverted/desaturated in dark mode,
      so markers and other custom layers keep their original colors. */
   :global(.dark) .map :global(.osm-layer) {

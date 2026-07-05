@@ -54,3 +54,9 @@ export const parseRouteFilter = (params: URLSearchParams): ParsedRouteFilter => 
 
 /** True when any route filter is currently applied. */
 export const isFilterActive = (params: URLSearchParams): boolean => FILTER_PARAM_KEYS.some((key) => params.has(key))
+
+/** {@link isFilterActive} for already-parsed values, for callers holding a `ParsedRouteFilter`. */
+export const isParsedFilterActive = (parsed: ParsedRouteFilter): boolean =>
+  Object.values(parsed.filter).some((value) => value !== undefined) ||
+  parsed.ascentStatus !== undefined ||
+  parsed.favoritesOnly

@@ -8,12 +8,15 @@
   import { areaDetail } from '$lib/entities/area/resources.svelte'
   import BlockForm from '$lib/entities/block/BlockForm.svelte'
   import { createBlock } from '$lib/entities/block/blocks.remote'
+  import { coordsFromParams } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
 
   const global = getGlobalState()
   const area = areaDetail(() => Number(page.params.id))
+  // Location handed over by the quick-create map flow, landing the form pre-located.
+  const initialLocation = coordsFromParams(page.url.searchParams)
 </script>
 
 <svelte:head>
@@ -26,6 +29,7 @@
       <BlockForm
         area={data}
         form={createBlock}
+        {initialLocation}
         onCancel={() => back(resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(data.id) }))}
         submitLabel={m.common_add()}
         title={m.blocks_addBlock()}
