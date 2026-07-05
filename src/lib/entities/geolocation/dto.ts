@@ -4,6 +4,7 @@ export type Geolocation = {
   id: number
   lat: number
   long: number
+  estimated: boolean
 }
 
 export type ParkingDetail = {

@@ -4,6 +4,7 @@
   import Map from '$lib/map/Map.svelte'
   import type { MapData } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
+  import { Switch } from '@skeletonlabs/skeleton-svelte'
 
   type Coords = { lat: number; long: number }
 
@@ -16,13 +17,25 @@
     mapData: MapData
     /** Device-location request in flight (drives the button spinner). */
     locating: boolean
+    /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
+    estimated: boolean
     onUseCurrentLocation: () => void
     /** Open the picker — both "Choose on map" (empty) and "Adjust" (located). */
     onPickLocation: () => void
     onRemove: () => void
+    onEstimatedChange: (estimated: boolean) => void
   }
 
-  const { location, mapData, locating, onUseCurrentLocation, onPickLocation, onRemove }: Props = $props()
+  const {
+    location,
+    mapData,
+    locating,
+    estimated,
+    onUseCurrentLocation,
+    onPickLocation,
+    onRemove,
+    onEstimatedChange,
+  }: Props = $props()
 
   const formatCoord = (c: Coords): string =>
     `${Math.abs(c.lat).toFixed(5)}°${c.lat >= 0 ? 'N' : 'S'}  ·  ${Math.abs(c.long).toFixed(5)}°${c.long >= 0 ? 'E' : 'W'}`
@@ -125,6 +138,21 @@
           {m.common_adjust()}
         </button>
       </div>
+
+      <Switch
+        checked={estimated}
+        class="border-surface-200-800 flex w-full justify-between gap-3 border-t px-3 py-3"
+        onCheckedChange={(details) => onEstimatedChange(details.checked)}
+      >
+        <Switch.Label class="min-w-0">
+          <span class="block text-sm font-semibold">{m.blocks_add_estimatedLabel()}</span>
+          <span class="text-surface-600-400 block text-xs leading-relaxed">{m.blocks_add_estimatedHint()}</span>
+        </Switch.Label>
+        <Switch.Control class="flex-none">
+          <Switch.Thumb />
+        </Switch.Control>
+        <Switch.HiddenInput />
+      </Switch>
 
       <button
         class="border-surface-200-800 text-error-500 hover:bg-error-500/10 flex w-full items-center justify-center gap-2 border-t py-3 text-sm font-semibold"

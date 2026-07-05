@@ -21,12 +21,26 @@
     location: Coords | null
     mapData: MapData
     locating: boolean
+    /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
+    estimated: boolean
     onUseCurrentLocation: () => void
     onPickLocation: () => void
     onRemove: () => void
+    onEstimatedChange: (estimated: boolean) => void
   }
 
-  const { form, area, location, mapData, locating, onUseCurrentLocation, onPickLocation, onRemove }: Props = $props()
+  const {
+    form,
+    area,
+    location,
+    mapData,
+    locating,
+    estimated,
+    onUseCurrentLocation,
+    onPickLocation,
+    onRemove,
+    onEstimatedChange,
+  }: Props = $props()
 
   const global = getGlobalState()
 </script>
@@ -35,6 +49,7 @@
 <input name="areaId" type="hidden" value={area.id} />
 <input name="lat" type="hidden" value={location?.lat ?? ''} />
 <input name="long" type="hidden" value={location?.long ?? ''} />
+<input name="estimated" type="hidden" value={location != null && estimated ? 'true' : ''} />
 
 <!-- Present only when editing — the create form leaves `id` unset. -->
 {#if form.fields.id.value() != null}
@@ -63,4 +78,13 @@
   {/snippet}
 </RemoteFormInputWrapper>
 
-<BlockLocationField {location} {mapData} {locating} {onUseCurrentLocation} {onPickLocation} {onRemove} />
+<BlockLocationField
+  {location}
+  {mapData}
+  {locating}
+  {estimated}
+  {onUseCurrentLocation}
+  {onPickLocation}
+  {onRemove}
+  {onEstimatedChange}
+/>

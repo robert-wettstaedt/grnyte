@@ -29,6 +29,8 @@
     onCancel: () => void
     /** Pre-fill the location, e.g. the block's existing pin when editing. */
     initialLocation?: Coords | null
+    /** Pre-fill the "rough guess" toggle from the block's existing pin when editing. */
+    initialEstimated?: boolean
     /** Open straight on the map picker (the "Move on the map" shortcut) instead of the form. */
     initialStep?: 'form' | 'pin'
     /** Move mode: when set, the picker's "Done" commits the pin directly through this callback
@@ -45,6 +47,7 @@
     submitLabel,
     onCancel,
     initialLocation = null,
+    initialEstimated = false,
     initialStep = 'form',
     onLocationCommit,
     editing = false,
@@ -72,6 +75,8 @@
   let step = $state<'form' | 'pin'>(initialStep)
   // svelte-ignore state_referenced_locally
   let committed = $state<Coords | null>(initialLocation)
+  // svelte-ignore state_referenced_locally
+  let estimated = $state(initialEstimated)
   let confirmOpen = $state(false)
   // Resolves the held submit (see beforeSubmit) once the user answers the confirm dialog.
   let confirmResolve: ((saveAnyway: boolean) => void) | undefined
@@ -133,8 +138,10 @@
       {area}
       {form}
       {locating}
+      {estimated}
       location={committed}
       mapData={explore}
+      onEstimatedChange={(value) => (estimated = value)}
       onPickLocation={() => (step = 'pin')}
       onRemove={() => (committed = null)}
       onUseCurrentLocation={() => (locating = true)}

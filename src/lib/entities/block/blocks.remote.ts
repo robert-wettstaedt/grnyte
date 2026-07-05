@@ -16,6 +16,11 @@ const blockActionSchema = z.object({
   id: stringToInt.optional(),
   lat: optionalCoordinate(90),
   long: optionalCoordinate(180),
+  // Checkbox-style hidden input: "true" when the pin is a rough guess, absent otherwise.
+  estimated: z
+    .string()
+    .optional()
+    .transform((value) => value === 'true'),
   name: z.string().trim().optional().default(''),
 })
 
@@ -59,7 +64,7 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
   if (value.lat != null && value.long != null) {
     const [geolocation] = await db
       .insert(geolocations)
-      .values({ lat: value.lat, long: value.long, regionFk: area.regionFk })
+      .values({ lat: value.lat, long: value.long, estimated: value.estimated, regionFk: area.regionFk })
       .returning()
     geolocationFk = geolocation.id
   }
@@ -129,11 +134,20 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
     if (geolocationFk == null) {
       const [geolocation] = await db
         .insert(geolocations)
-        .values({ lat: value.lat, long: value.long, regionFk: block.regionFk, blockFk: block.id })
+        .values({
+          lat: value.lat,
+          long: value.long,
+          estimated: value.estimated,
+          regionFk: block.regionFk,
+          blockFk: block.id,
+        })
         .returning()
       geolocationFk = geolocation.id
     } else {
-      await db.update(geolocations).set({ lat: value.lat, long: value.long }).where(eq(geolocations.id, geolocationFk))
+      await db
+        .update(geolocations)
+        .set({ lat: value.lat, long: value.long, estimated: value.estimated })
+        .where(eq(geolocations.id, geolocationFk))
     }
 
     await insertActivity(db, {
@@ -234,7 +248,7 @@ type DeleteBlockSnapshot =
       blockId: number
       areaFk: number
       block: Pick<Block, 'name' | 'order' | 'regionFk'>
-      geolocation: { lat: number; long: number } | null
+      geolocation: { lat: number; long: number; estimated: boolean } | null
     }
   | { mode: 'soft'; blockId: number; deletedAt: Date }
 
@@ -276,7 +290,8 @@ async function hardDeleteBlock(db: Context['db'], block: Block): Promise<DeleteB
     blockId: block.id,
     areaFk: block.areaFk,
     block: { name: block.name, order: block.order, regionFk: block.regionFk },
-    geolocation: geolocation == null ? null : { lat: geolocation.lat, long: geolocation.long },
+    geolocation:
+      geolocation == null ? null : { lat: geolocation.lat, long: geolocation.long, estimated: geolocation.estimated },
   }
 }
 
@@ -352,7 +367,7 @@ const restoreBlockSchema = z.discriminatedUnion('mode', [
     blockId: z.number(),
     areaFk: z.number(),
     block: z.object({ name: z.string(), order: z.number(), regionFk: z.number() }),
-    geolocation: z.object({ lat: z.number(), long: z.number() }).nullable(),
+    geolocation: z.object({ lat: z.number(), long: z.number(), estimated: z.boolean() }).nullable(),
   }),
   z.object({ mode: z.literal('soft'), blockId: z.number(), deletedAt: z.coerce.date() }),
 ])

@@ -161,6 +161,7 @@ export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: 
       name: block.name,
       blockId: block.id,
       routeCount: routeCountByBlock.get(block.id) ?? 0,
+      estimated: geo.estimated,
     })
     features.push(feature)
   }
@@ -178,13 +179,16 @@ export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number
       const zoom = mapInstance.getView().getZoom() ?? 0
       const showLabel = zoom >= BLOCK_LABEL_ZOOM
       const routeCount = feature.get('routeCount') as number
+      // An estimated pin shows "?" instead of the route count: the block is somewhere
+      // around here, expect to search for it.
+      const estimated = feature.get('estimated') as boolean
       const selected = feature.get('blockId') === getSelectedId()
       // Lift the selected block's styles above every other feature in the layer.
       const zIndex = selected ? 1000 : undefined
       const fill = new Fill({ color: selected ? primaryColor() : '#ef4444' })
       const styles: Style[] = []
 
-      if (routeCount > 0) {
+      if (routeCount > 0 || estimated) {
         styles.push(
           new Style({
             image: new CircleStyle({
@@ -193,7 +197,7 @@ export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number
               stroke: new Stroke({ color: 'white', width: selected ? 2.5 : 1.5 }),
             }),
             text: new Text({
-              text: String(routeCount),
+              text: estimated ? '?' : String(routeCount),
               font: 'bold 10px sans-serif',
               fill: new Fill({ color: 'white' }),
             }),

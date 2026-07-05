@@ -106,14 +106,19 @@
       <span class="text-surface-500 flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tabular-nums">
         {#if block.geolocation == null}
           <Icon name="alert-triangle" size={14} class="text-warning-500" title={m.blocks_noLocation()} />
-        {:else if distance != null}
-          <span class="flex items-center gap-1">
-            <Icon name="map-pin" size={12} />
-            {distance}
-          </span>
+        {:else}
+          {#if block.geolocation.estimated}
+            <Icon name="map-pin-search" size={14} class="text-warning-500" title={m.blocks_estimatedLocation()} />
+          {/if}
+          {#if distance != null}
+            <span class="flex items-center gap-1">
+              <Icon name="map-pin" size={12} />
+              {distance}
+            </span>
+          {/if}
         {/if}
         {#if blockRoutes.length > 0}
-          {#if block.geolocation == null || distance != null}
+          {#if block.geolocation == null || block.geolocation.estimated || distance != null}
             <span class="opacity-40" aria-hidden="true">·</span>
           {/if}
           {m.routes_routesCount({ count: blockRoutes.length })}

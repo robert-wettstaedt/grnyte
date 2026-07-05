@@ -1174,6 +1174,7 @@ export const geolocations = table(
 
     lat: doublePrecision('lat').notNull(),
     long: doublePrecision('long').notNull(),
+    estimated: boolean('estimated').notNull().default(false),
 
     areaFk: integer('area_fk').references((): AnyColumn => areas.id),
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),

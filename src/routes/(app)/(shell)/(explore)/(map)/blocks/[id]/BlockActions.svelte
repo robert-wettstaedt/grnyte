@@ -39,57 +39,82 @@
     })
 </script>
 
-<div class="flex gap-2">
-  {#if block.geolocation != null}
-    <DirectionsButton {destination} />
-  {:else if canEdit}
-    <!-- No pin yet: nudge the editor to place one (the Directions slot would otherwise be empty). -->
-    <a class="btn preset-tonal-warning btn-lg flex-1 text-base" href={moveHref}>
-      <Icon name="map-pin" size={18} />
-      <span class="flex flex-col items-start leading-none">
-        <span class="text-sm leading-none font-bold">{m.blocks_addLocation()}</span>
-        <span class="text-[10px] leading-none font-normal opacity-80">{m.blocks_locationHint()}</span>
-      </span>
-    </a>
-  {:else}
-    <div class="btn preset-tonal-warning btn-lg flex-1 cursor-default text-sm">
-      <Icon name="alert-triangle" size={16} />
-      {m.blocks_noLocation()}
-    </div>
+<div class="space-y-2">
+  <!-- An estimated pin still gets directions below — but flag it loudly, and turn the banner
+       into the "confirm the spot" CTA. It links to the edit form (not the move picker): only
+       its explicit checkbox clears the flag — moving the pin alone may just be a better guess. -->
+  {#if block.geolocation?.estimated}
+    {#if canEdit}
+      <a
+        class="btn preset-tonal-warning btn-lg w-full text-base"
+        href={resolve('/(app)/blocks/[id]/edit', { id: String(block.id) })}
+      >
+        <Icon name="map-pin-search" size={18} />
+        <span class="flex flex-col items-start leading-none">
+          <span class="text-sm leading-none font-bold">{m.blocks_estimatedLocation()}</span>
+          <span class="text-[10px] leading-none font-normal opacity-80">{m.blocks_estimatedLocationHint()}</span>
+        </span>
+      </a>
+    {:else}
+      <div class="btn preset-tonal-warning btn-lg w-full cursor-default text-sm">
+        <Icon name="map-pin-search" size={16} />
+        {m.blocks_estimatedLocation()}
+      </div>
+    {/if}
   {/if}
 
-  <SaveButton entityId={String(block.id)} entityType="block" regionFk={block.regionFk} />
+  <div class="flex gap-2">
+    {#if block.geolocation != null}
+      <DirectionsButton {destination} />
+    {:else if canEdit}
+      <!-- No pin yet: nudge the editor to place one (the Directions slot would otherwise be empty). -->
+      <a class="btn preset-tonal-warning btn-lg flex-1 text-base" href={moveHref}>
+        <Icon name="map-pin" size={18} />
+        <span class="flex flex-col items-start leading-none">
+          <span class="text-sm leading-none font-bold">{m.blocks_addLocation()}</span>
+          <span class="text-[10px] leading-none font-normal opacity-80">{m.blocks_locationHint()}</span>
+        </span>
+      </a>
+    {:else}
+      <div class="btn preset-tonal-warning btn-lg flex-1 cursor-default text-sm">
+        <Icon name="alert-triangle" size={16} />
+        {m.blocks_noLocation()}
+      </div>
+    {/if}
 
-  <ShareButton text={block.name} />
+    <SaveButton entityId={String(block.id)} entityType="block" regionFk={block.regionFk} />
 
-  {#if canEdit || canDelete}
-    <MoreMenu title={block.name}>
-      {#snippet children(close)}
-        <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.area_manage()}</h3>
+    <ShareButton text={block.name} />
 
-        {#if canEdit}
-          <MenuRow
-            href={resolve('/(app)/blocks/[id]/edit', { id: String(block.id) })}
-            icon="edit"
-            label={m.common_edit()}
-            onclick={close}
-          />
+    {#if canEdit || canDelete}
+      <MoreMenu title={block.name}>
+        {#snippet children(close)}
+          <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.area_manage()}</h3>
 
-          <MenuRow href={moveHref} icon="map-pin" label={m.blocks_move()} onclick={close} />
-        {/if}
+          {#if canEdit}
+            <MenuRow
+              href={resolve('/(app)/blocks/[id]/edit', { id: String(block.id) })}
+              icon="edit"
+              label={m.common_edit()}
+              onclick={close}
+            />
 
-        {#if canDelete}
-          <MenuRow
-            destructive
-            icon="map-pin-x"
-            label={m.blocks_delete()}
-            onclick={() => {
-              close()
-              onDelete()
-            }}
-          />
-        {/if}
-      {/snippet}
-    </MoreMenu>
-  {/if}
+            <MenuRow href={moveHref} icon="map-pin" label={m.blocks_move()} onclick={close} />
+          {/if}
+
+          {#if canDelete}
+            <MenuRow
+              destructive
+              icon="map-pin-x"
+              label={m.blocks_delete()}
+              onclick={() => {
+                close()
+                onDelete()
+              }}
+            />
+          {/if}
+        {/snippet}
+      </MoreMenu>
+    {/if}
+  </div>
 </div>
