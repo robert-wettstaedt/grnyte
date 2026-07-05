@@ -3,17 +3,17 @@ name: CI
 on:
   push:
     branches:
-      - '**' # This will trigger the workflow on push to any branch
+      - "**" # This will trigger the workflow on push to any branch
   pull_request:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     env:
-      NEXTCLOUD_URL: foobar
+      NEXTCLOUD_URL: http://foobar
       PUBLIC_TOPO_EMAIL: foobar
       RESEND_SENDER_EMAIL: foobar
       RESEND_API_KEY: foobar
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install dependencies
         run: npm install
