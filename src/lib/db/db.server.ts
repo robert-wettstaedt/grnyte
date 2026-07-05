@@ -1,6 +1,5 @@
 import { DATABASE_URL } from '$env/static/private'
 import { decodeToken, type SupabaseToken } from '$lib/auth'
-import { config } from '$lib/config'
 import * as schema from '$lib/db/schema'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sql } from 'drizzle-orm'
@@ -8,10 +7,10 @@ import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import Database from 'postgres'
 
 const postgres = Database(DATABASE_URL, {
-  debug: config.database.debug,
+  debug: process.env.NODE_ENV === 'development',
   prepare: false,
-  max: config.database.maxPoolSize,
-  timeout: config.database.connectionTimeout,
+  max: 10,
+  timeout: 30_000,
 })
 
 export const db = drizzle(postgres, { schema })

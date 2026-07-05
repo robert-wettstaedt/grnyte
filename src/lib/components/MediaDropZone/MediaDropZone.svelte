@@ -1,9 +1,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
-  import { config } from '$lib/config'
   import { addImageUploads, type ImageUpload } from '$lib/entities/file/upload-manager.svelte'
-  import { isImageFileName, type MediaKind } from '$lib/entities/file/upload'
+  import { isImageFileName, MAX_IMAGE_SIZE, type MediaKind } from '$lib/entities/file/upload'
   import { m } from '$lib/paraglide/messages'
   import { FileUpload, Progress, useFileUpload } from '@skeletonlabs/skeleton-svelte'
   import type { FileError } from '@zag-js/file-upload'
@@ -27,7 +26,7 @@
 
   const rejectionMessage = (errors: FileError[]): string =>
     errors.includes('FILE_TOO_LARGE')
-      ? m.upload_tooLarge({ size: config.files.maxSize.human })
+      ? m.upload_tooLarge({ size: megabytes(MAX_IMAGE_SIZE) })
       : errors.includes('TOO_MANY_FILES')
         ? m.upload_tooMany({ count: MAX_FILES })
         : m.upload_invalidType()
@@ -56,7 +55,7 @@
     // to Bunny via TUS (built for >100MB files) and get their own cap, if any,
     // when that flow lands.
     validate: (file) =>
-      isImageFileName(file.name) && file.size > config.files.maxSize.number ? ['FILE_TOO_LARGE'] : null,
+      isImageFileName(file.name) && file.size > MAX_IMAGE_SIZE ? ['FILE_TOO_LARGE'] : null,
     maxFiles: MAX_FILES,
     disabled,
     onFileAccept: (details) => {
@@ -100,7 +99,7 @@
         {m.upload_dropPrompt()}
         <span class="text-primary-500 underline">{m.upload_browse()}</span>
       </p>
-      <p class="text-xs opacity-60">{m.upload_constraints({ size: config.files.maxSize.human })}</p>
+      <p class="text-xs opacity-60">{m.upload_constraints({ size: megabytes(MAX_IMAGE_SIZE) })}</p>
       <FileUpload.HiddenInput />
     </FileUpload.Dropzone>
   </FileUpload.Provider>

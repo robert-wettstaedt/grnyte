@@ -1,5 +1,4 @@
-import { config } from '$lib/config'
-import { rateLimit } from '$lib/hooks/rate-limit.server'
+import { RATE_LIMIT, rateLimit } from '$lib/hooks/rate-limit.server'
 import type { RequestEvent } from '@sveltejs/kit'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -27,15 +26,15 @@ describe('Rate Limiting Middleware', () => {
 
     expect(response.status).toBe(200)
     expect(event.setHeaders).toHaveBeenCalledWith({
-      'X-RateLimit-Limit': config.api.rateLimit.max.toString(),
-      'X-RateLimit-Remaining': (config.api.rateLimit.max - 1).toString(),
+      'X-RateLimit-Limit': RATE_LIMIT.max.toString(),
+      'X-RateLimit-Remaining': (RATE_LIMIT.max - 1).toString(),
       'X-RateLimit-Reset': expect.any(String),
     })
   })
 
   it('should block requests exceeding rate limit', async () => {
     const event = mockEvent()
-    const requests = Array(config.api.rateLimit.max + 1)
+    const requests = Array(RATE_LIMIT.max + 1)
       .fill(null)
       .map(() => rateLimit({ event, resolve: mockResolve }))
 
@@ -51,13 +50,13 @@ describe('Rate Limiting Middleware', () => {
 
     // Make max requests
     await Promise.all(
-      Array(config.api.rateLimit.max)
+      Array(RATE_LIMIT.max)
         .fill(null)
         .map(() => rateLimit({ event, resolve: mockResolve })),
     )
 
     // Advance time past the window
-    vi.advanceTimersByTime(config.api.rateLimit.windowMs)
+    vi.advanceTimersByTime(RATE_LIMIT.windowMs)
 
     // Next request should succeed
     const response = await rateLimit({ event, resolve: mockResolve })
@@ -70,7 +69,7 @@ describe('Rate Limiting Middleware', () => {
 
     // Max out first IP
     await Promise.all(
-      Array(config.api.rateLimit.max)
+      Array(RATE_LIMIT.max)
         .fill(null)
         .map(() => rateLimit({ event: event1, resolve: mockResolve })),
     )
@@ -89,7 +88,7 @@ describe('Rate Limiting Middleware', () => {
     await rateLimit({ event: event2, resolve: mockResolve })
 
     // Advance time past the window
-    vi.advanceTimersByTime(config.api.rateLimit.windowMs + 1)
+    vi.advanceTimersByTime(RATE_LIMIT.windowMs + 1)
 
     // Make a new request to trigger cleanup
     await rateLimit({ event: mockEvent('3.3.3.3'), resolve: mockResolve })
@@ -101,23 +100,23 @@ describe('Rate Limiting Middleware', () => {
     expect(response1.status).toBe(200)
     expect(response2.status).toBe(200)
     expect(event1.setHeaders).toHaveBeenCalledWith({
-      'X-RateLimit-Limit': config.api.rateLimit.max.toString(),
-      'X-RateLimit-Remaining': (config.api.rateLimit.max - 1).toString(),
+      'X-RateLimit-Limit': RATE_LIMIT.max.toString(),
+      'X-RateLimit-Remaining': (RATE_LIMIT.max - 1).toString(),
       'X-RateLimit-Reset': expect.any(String),
     })
   })
 
   it('should set correct headers for remaining requests', async () => {
     const event = mockEvent('1.1.1.1.')
-    const requestsToMake = Math.floor(config.api.rateLimit.max / 2)
+    const requestsToMake = Math.floor(RATE_LIMIT.max / 2)
 
     for (let i = 0; i < requestsToMake; i++) {
       await rateLimit({ event, resolve: mockResolve })
     }
 
     expect(event.setHeaders).toHaveBeenLastCalledWith({
-      'X-RateLimit-Limit': config.api.rateLimit.max.toString(),
-      'X-RateLimit-Remaining': (config.api.rateLimit.max - requestsToMake).toString(),
+      'X-RateLimit-Limit': RATE_LIMIT.max.toString(),
+      'X-RateLimit-Remaining': (RATE_LIMIT.max - requestsToMake).toString(),
       'X-RateLimit-Reset': expect.any(String),
     })
   })

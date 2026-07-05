@@ -1,5 +1,4 @@
 import { command, getRequestEvent } from '$app/server'
-import { config } from '$lib/config'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { files, type File } from '$lib/db/schema'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
@@ -117,8 +116,7 @@ export const finalizeImage = command(
     // Ascent media lives under the uploader's folder; everything else is topo imagery.
     // The row id doubles as the storage file name so the two are matchable both ways.
     const id = createCuid2()
-    const folder =
-      entityType === 'ascent' ? `${config.files.folders.userContent}/${user.id}` : config.files.folders.topos
+    const folder = entityType === 'ascent' ? `/user-content/${user.id}` : '/topos'
     const path = `${folder}/${id}.${extension}`
     const provider = getImageProvider()
     const stored: string[] = []

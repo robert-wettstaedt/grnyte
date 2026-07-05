@@ -1,6 +1,10 @@
 import { building } from '$app/environment'
-import { config } from '$lib/config'
 import type { Handle } from '@sveltejs/kit'
+
+export const RATE_LIMIT = {
+  windowMs: 15 * 60 * 1000,
+  max: 500, // requests per IP per window
+}
 
 interface RateLimitStore {
   [key: string]: {
@@ -18,8 +22,7 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
 
   const ip = event.getClientAddress()
   const now = Date.now()
-  const windowMs = config.api.rateLimit.windowMs
-  const max = config.api.rateLimit.max
+  const { windowMs, max } = RATE_LIMIT
 
   // Clean up expired entries
   for (const key in store) {

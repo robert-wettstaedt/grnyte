@@ -9,6 +9,9 @@ import { createId as createCuid2 } from '@paralleldrive/cuid2'
 /** The private Supabase bucket uploads are staged in (created in migration 0075). */
 export const STAGING_BUCKET = 'staging'
 
+/** Per-image size cap enforced client-side before staging. */
+export const MAX_IMAGE_SIZE = 50 * 1024 * 1024
+
 /** Entities an image can be attached to — mirrors the FK columns on `files`. */
 export const fileEntityTypes = ['area', 'ascent', 'block', 'route'] as const
 export type FileEntityType = (typeof fileEntityTypes)[number]
