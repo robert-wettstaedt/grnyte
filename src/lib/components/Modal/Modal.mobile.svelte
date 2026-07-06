@@ -148,5 +148,8 @@
 
   :global(.bottom-sheet-overlay.modal-overlay) {
     z-index: 60 !important;
+    /* Blur what's behind the scrim so the sheet is the only thing in focus. */
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 </style>

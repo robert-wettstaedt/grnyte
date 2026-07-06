@@ -4,4 +4,6 @@ export interface FirstAscensionist {
   name: string
   /** Set when this first ascensionist is a registered user. */
   userFk: number | undefined
+  /** The linked user's username, when {@link userFk} is set. */
+  username: string | undefined
 }

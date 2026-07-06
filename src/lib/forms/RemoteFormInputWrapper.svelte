@@ -1,5 +1,5 @@
-<script lang="ts" generics="T extends RemoteFormFieldValue">
-  import type { RemoteFormField, RemoteFormFieldValue } from '@sveltejs/kit'
+<script lang="ts">
+  import type { RemoteFormIssue } from '@sveltejs/kit'
   import type { Snippet } from 'svelte'
   import type { ClassValue, HTMLAttributes } from 'svelte/elements'
   import { m } from '$lib/paraglide/messages'
@@ -8,7 +8,8 @@
   interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
     children: Snippet<[HTMLAttributes<HTMLElement>]>
     class?: ClassValue
-    field: RemoteFormField<T>
+    /** The remote-form field (or array/object field container) — only its issues are read. */
+    field: { issues(): RemoteFormIssue[] | undefined }
     hint?: string
     label?: string
     required?: boolean

@@ -2,7 +2,7 @@ import { routeTopoThumb } from '$lib/entities/topo/mapper'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import type { RouteListItem } from './dto'
+import type { RouteDetail, RouteListItem } from './dto'
 
 export type RouteListRow = QueryRow<typeof queries.listRoutes>
 
@@ -21,5 +21,18 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     userRating: row.userRating ?? 0,
     topoImagePath: thumb?.imagePath,
     topoPoints: thumb?.points,
+  }
+}
+
+export function toRouteDetail(row: RouteListRow): RouteDetail {
+  return {
+    ...toRouteListItem(row),
+    regionFk: row.regionFk,
+    rawName: row.name,
+    firstAscents: row.firstAscents.flatMap((fa) =>
+      fa.firstAscensionist == null
+        ? []
+        : [{ name: fa.firstAscensionist.name, userFk: fa.firstAscensionist.userFk ?? undefined }],
+    ),
   }
 }

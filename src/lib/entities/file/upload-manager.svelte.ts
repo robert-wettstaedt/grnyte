@@ -241,6 +241,10 @@ export class ImageUpload extends MediaUploadBase {
 export class VideoUpload extends MediaUploadBase {
   readonly kind = 'video' as const
 
+  /** Where the clip was grabbed from (a URL), credited on the route page. Set by the
+   *  route form's video sheet before the upload is added; undefined for own footage. */
+  source: string | undefined
+
   /** Bunny video GUID + presigned TUS auth + ownership token from `createBunnyVideo`.
    *  Created once, reused on retry so TUS resumes instead of restarting. Accepted
    *  edge: a retry after the signature's 24h expiration 401s again — remove/re-add
@@ -273,6 +277,7 @@ export class VideoUpload extends MediaUploadBase {
       token: this.auth.token,
       entityType: target.type,
       entityId: target.id,
+      source: this.source,
     })
     return result?.data
   }

@@ -21,6 +21,6 @@
 
 <Story
   name="Default"
-  args={{ name: 'Lena Hoffmann', subline: '128 ascents · 5 areas', initials: 'LH', hue: 320 }}
+  args={{ name: 'Lena Hoffmann', subline: '128 ascents · 5 areas' }}
   {template}
 />

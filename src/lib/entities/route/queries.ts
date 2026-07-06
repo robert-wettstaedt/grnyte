@@ -29,7 +29,7 @@ export const routesQueryDefs = {
       let q = zql.routes
         .where('deletedAt', 'IS', null)
         .related('tags', r)
-        .related('firstAscents', r)
+        .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
         .related('block', (q) => r(q).related('area', r))
         .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r)))
 

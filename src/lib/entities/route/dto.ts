@@ -16,3 +16,12 @@ export interface RouteListItem {
   /** The route's line points on that topo. */
   topoPoints?: TopoPoint[]
 }
+
+export type RouteDetail = RouteListItem & {
+  regionFk: number
+  /** The stored name as typed, empty for unnamed routes. `name` is the display
+   *  fallback ("<no name>"); editing must prefill from this so a blank route stays blank. */
+  rawName: string
+  /** The route's first ascensionists, for the edit form's picker. */
+  firstAscents: { name: string; userFk: number | undefined }[]
+}

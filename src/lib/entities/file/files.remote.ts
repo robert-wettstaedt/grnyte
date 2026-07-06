@@ -212,6 +212,8 @@ const finalizeVideoSchema = z.object({
   token: z.string(),
   entityType: z.enum(fileEntityTypes),
   entityId: z.number(),
+  /** Where the clip was grabbed from (route uploads only), credited on the route page. */
+  source: z.url().max(500).optional(),
 })
 
 /**
@@ -222,7 +224,10 @@ const finalizeVideoSchema = z.object({
  */
 export const finalizeVideo = authedCommand(
   finalizeVideoSchema,
-  async ({ videoId, token, entityType, entityId }, { db, user, userRegions }): Promise<MutationResult<File>> => {
+  async (
+    { videoId, token, entityType, entityId, source },
+    { db, user, userRegions },
+  ): Promise<MutationResult<File>> => {
     // The GUID is client-supplied — the token proves this user created this
     // video via createBunnyVideo, so made-up or foreign GUIDs can't be attached.
     if (!getVideoProvider().verifyUpload(videoId, user.authUserFk, token)) {
@@ -251,7 +256,7 @@ export const finalizeVideo = authedCommand(
       .insert(files)
       .values({ path: '', regionFk, ...entityFks(entityType, entityId) })
       .returning()
-    await db.insert(bunnyStreams).values({ id: videoId, regionFk, fileFk: file.id })
+    await db.insert(bunnyStreams).values({ id: videoId, regionFk, fileFk: file.id, source })
     const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
     if (linked == null) {
       // Safety net — the checks above should make this unreachable; if RLS

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
@@ -64,9 +65,13 @@
                 title={item.label}
                 variant="option"
               >
-                <span class="ref-icon bg-surface-200-800 text-surface-700-300">
-                  <Icon name={TYPE_ICON[item.type]} size={16} strokeWidth={2.1} />
-                </span>
+                {#if item.type === 'users'}
+                  <Avatar name={item.label} />
+                {:else}
+                  <span class="ref-icon bg-surface-200-800 text-surface-700-300">
+                    <Icon name={TYPE_ICON[item.type]} size={16} strokeWidth={2.1} />
+                  </span>
+                {/if}
               </Row>
             </li>
           {/each}

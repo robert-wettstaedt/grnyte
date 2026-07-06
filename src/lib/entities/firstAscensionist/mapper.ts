@@ -9,5 +9,6 @@ export function toFirstAscensionist(row: FirstAscensionistRow): FirstAscensionis
     id: row.id,
     name: row.name,
     userFk: row.userFk ?? undefined,
+    username: row.user?.username,
   }
 }

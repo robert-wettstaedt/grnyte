@@ -66,7 +66,9 @@
       <Popover.Positioner>
         <!-- Zag mirrors the content's z-index onto the positioner, so this is what stacks the
              whole popover. z-60 clears the map's area dialog (z-50) instead of hiding behind it. -->
-        <Popover.Content class="card bg-surface-50-950 border-surface-100-900 z-60 w-96 border-b-2">
+        <!-- Full border + drop shadow so the popover reads as a floating layer instead of
+             blending into the page (both share the same surface background). -->
+        <Popover.Content class="card bg-surface-50-950 border-surface-200-800 z-60 w-96 border shadow-2xl">
           <div class="space-y-4">
             <header class="flex flex-col px-4 py-2 shadow">
               {#if subtitle}
@@ -79,6 +81,12 @@
             <Popover.Description class="px-4 pb-4">
               {@render children?.()}
             </Popover.Description>
+
+            {#if footer}
+              <div class="border-surface-100-900 flex items-center justify-end gap-2 border-t-2 px-4 py-3">
+                {@render footer()}
+              </div>
+            {/if}
           </div>
 
           <Popover.Arrow class="[--arrow-background:var(--color-surface-50-950)] [--arrow-size:--spacing(2)]">

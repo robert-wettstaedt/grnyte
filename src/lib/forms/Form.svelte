@@ -39,6 +39,9 @@
     /** Run just before the form submits; return `false` to cancel it (e.g. to surface a
      *  confirmation first, then resubmit). Not called when advancing through wizard steps. */
     onBeforeSubmit?: () => boolean | Promise<boolean>
+    /** Run after a successful submit (validation passed, handler returned). Use to act on
+     *  `form.result` when the handler returns data instead of redirecting server-side. */
+    onSubmitted?: () => void | Promise<void>
     /** Provide to render a multi-step form. The default `children` snippet is then used for
      *  form-wide content (e.g. hidden inputs), rendered on every step. */
     steps?: FormStep[]
@@ -57,6 +60,7 @@
     fill = false,
     submitDisabled = false,
     onBeforeSubmit,
+    onSubmitted,
     steps,
     step = $bindable(0),
     nextLabel = m.common_next(),
@@ -92,9 +96,12 @@
         return
       }
       try {
-        await submit()
+        const succeeded = await submit()
         await tick()
         element.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center' })
+        if (succeeded) {
+          await onSubmitted?.()
+        }
       } catch (error) {
         if (!navigator.onLine) {
           offline = true

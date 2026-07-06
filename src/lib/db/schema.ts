@@ -1005,6 +1005,9 @@ export const bunnyStreams = table(
     ...baseRegionFields,
 
     fileFk: text('file_fk').references((): AnyColumn => files.id, { onDelete: 'set null' }),
+    /** Where the clip was grabbed from (a YouTube/Instagram URL), credited on the route
+     *  page. Only route uploads ask for it; null for own footage and ascent clips. */
+    source: text('source'),
   },
   (table) => [
     index('bunny_streams_region_fk_idx').on(table.regionFk),
