@@ -7,8 +7,10 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
+  import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -16,10 +18,8 @@
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { isNavKeyExempt } from '../../../../Modal/keyboardNav'
   import Panel from '../../../../Modal/Panel.svelte'
   import { sheetState } from '../../../../Modal/sheetState.svelte'
-  import { toSheetNav } from '../../../../Modal/siblingNav'
 
   const global = getGlobalState()
 
@@ -54,6 +54,18 @@
   let highlightId = $state<number>()
   const selectedRouteId = $derived(topo?.lines.find((line) => line.id === highlightId)?.routeId)
 
+  // Arriving with ?route=<id> (route detail page link) lights that route's line.
+  // Keyed to the param, not a one-shot latch, so a fresh deep-link re-applies even
+  // when the viewer is already mounted; topo sync (same param) never clobbers the
+  // user's own selection.
+  let appliedRoute: string | null = null
+  $effect(() => {
+    const routeParam = page.url.searchParams.get('route')
+    if (topo == null || routeParam == null || routeParam === appliedRoute) return
+    appliedRoute = routeParam
+    highlightId = topo.lines.find((line) => line.routeId === Number(routeParam))?.id
+  })
+
   function toggleRoute(routeId: number) {
     const lineId = topo?.lines.find((line) => line.routeId === routeId)?.id
     highlightId = highlightId === lineId ? undefined : lineId
@@ -85,19 +97,7 @@
       : { ...base, prev: { ...base.prev, label: m.topo_previous() }, next: { ...base.next, label: m.topo_next() } }
   })
 
-  // The Breadcrumb wants an area-shaped object; the block's `areas` is already the
-  // full containment chain down to its immediate area, so wrap it as the trail.
-  const breadcrumbArea = $derived(
-    block.data == null
-      ? null
-      : {
-          id: block.data.id,
-          name: block.data.name,
-          type: null,
-          areas: block.data.areas,
-          regionFk: block.data.regionFk,
-        },
-  )
+  const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
 
   // Panel header, like the (map) sheets: which topo this is, over where it lives
   // (area trail + block — the block joins the crumbs since it isn't the title here).
@@ -190,7 +190,7 @@
                 number={routeNumber.get(route.id)}
                 status={ascentStatus.get(route.id)}
                 mapHref={blockHref}
-                detailsHref={resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(route.id) })}
+                detailsHref={resolve('/(app)/routes/[id]', { id: String(route.id) })}
                 onclick={() => toggleRoute(route.id)}
               />
             </div>

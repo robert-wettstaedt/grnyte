@@ -29,7 +29,7 @@
     if (id == null) return
     void finalizeMediaUploads(uploads, { type: 'route', id })
     await waitForRoute(id)
-    await goto(resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(id) }))
+    await goto(resolve('/(app)/routes/[id]', { id: String(id) }))
   }
 </script>
 

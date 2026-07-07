@@ -163,6 +163,7 @@
   "common_more": "More",
   "common_next": "Next",
   "common_ok": "OK",
+  "common_playVideo": "Play video",
   "common_recommended": "Recommended",
   "common_remove": "Remove",
   "common_reset": "Reset",
@@ -368,6 +369,7 @@
   "routes_deleted": "Route deleted",
   "routes_editRoute": "Edit route",
   "routes_form_descriptionHint": "Where does the line go, and how does it climb? A bit of history is welcome too.",
+  "routes_form_descriptionLabel": "Description",
   "routes_form_faAddNew": "Add \"{name}\"",
   "routes_form_faClimbersLabel": "First ascensionists",
   "routes_form_faHint": "\"Me\" logs it under your profile. New names are fine and don't need an account.",
@@ -408,8 +410,23 @@
   "routes_form_tagsHint": "Tap all that fit",
   "routes_form_tagsLabel": "Tags",
   "routes_form_tagsSelected": "{count} selected",
+  "routes_gradeOpinions": "Grade opinions",
+  "routes_gradeVotes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} vote",
+        "countPlural=other": "{count} votes"
+      }
+    }
+  ],
+  "routes_logAscent": "Log ascent",
   "routes_nameExists": "A route named \"{name}\" already exists on this block",
+  "routes_noOpinions": "No opinions yet",
   "routes_notFound": "Route not found",
+  "routes_openTopo": "Open topo",
+  "routes_originalGrade": "Original grade",
   "routes_routesCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

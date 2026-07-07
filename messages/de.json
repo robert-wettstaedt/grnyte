@@ -163,6 +163,7 @@
   "common_more": "Mehr",
   "common_next": "Weiter",
   "common_ok": "OK",
+  "common_playVideo": "Video abspielen",
   "common_recommended": "Empfohlen",
   "common_remove": "Entfernen",
   "common_reset": "Zurücksetzen",
@@ -368,6 +369,7 @@
   "routes_deleted": "Route gelöscht",
   "routes_editRoute": "Route bearbeiten",
   "routes_form_descriptionHint": "Wo verläuft die Linie, und wie klettert sie sich? Ein bisschen Geschichte ist auch willkommen.",
+  "routes_form_descriptionLabel": "Beschreibung",
   "routes_form_faAddNew": "„{name}“ hinzufügen",
   "routes_form_faClimbersLabel": "Erstbegeher:innen",
   "routes_form_faHint": "„Ich“ trägt sie unter deinem Profil ein. Neue Namen sind okay und brauchen kein Konto.",
@@ -408,8 +410,23 @@
   "routes_form_tagsHint": "Tippe alles an, was passt",
   "routes_form_tagsLabel": "Tags",
   "routes_form_tagsSelected": "{count} ausgewählt",
+  "routes_gradeOpinions": "Grad-Meinungen",
+  "routes_gradeVotes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Stimme",
+        "countPlural=other": "{count} Stimmen"
+      }
+    }
+  ],
+  "routes_logAscent": "Begehung eintragen",
   "routes_nameExists": "Eine Route namens „{name}“ existiert schon an diesem Block",
+  "routes_noOpinions": "Noch keine Meinungen",
   "routes_notFound": "Route nicht gefunden",
+  "routes_openTopo": "Topo öffnen",
+  "routes_originalGrade": "Ursprünglicher Grad",
   "routes_routesCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

@@ -1,13 +1,5 @@
+import type { SheetNav } from '$lib/components/SiblingNav/siblingNav'
 import type { Snippet } from 'svelte'
-
-/** Prev/next navigation between sibling entities. Each modal renders it in its own
- *  layout (mobile: a pill at the sheet edge; desktop: arrows on the card edges). */
-export interface SheetNav {
-  prev: { href: string; label: string }
-  next: { href: string; label: string }
-  position: number
-  total: number
-}
 
 let _title = $state<Snippet | string | null>(null)
 let _subtitle = $state<Snippet | string | null>(null)

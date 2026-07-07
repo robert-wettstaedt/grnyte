@@ -165,7 +165,7 @@
             {route}
             grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
             status={ascentStatus.get(route.id)}
-            href={resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(route.id) })}
+            href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
           />
         {/each}
       </nav>

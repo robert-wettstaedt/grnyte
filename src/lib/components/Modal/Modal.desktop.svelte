@@ -68,7 +68,9 @@
              whole popover. z-60 clears the map's area dialog (z-50) instead of hiding behind it. -->
         <!-- Full border + drop shadow so the popover reads as a floating layer instead of
              blending into the page (both share the same surface background). -->
-        <Popover.Content class="card bg-surface-50-950 border-surface-200-800 z-60 w-96 border shadow-2xl">
+        <Popover.Content
+          class={['card bg-surface-50-950 border-surface-200-800 z-60 border shadow-2xl', contentClass ?? 'w-96']}
+        >
           <div class="space-y-4">
             <header class="flex flex-col px-4 py-2 shadow">
               {#if subtitle}

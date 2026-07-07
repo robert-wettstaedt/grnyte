@@ -1,14 +1,14 @@
 <script lang="ts">
+  import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
+  import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
+  import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
+  import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
   import { deleteParking, restoreParking } from '$lib/entities/area/areas.remote'
   import { canDeleteParking } from '$lib/entities/area/permissions'
   import type { ParkingDetail } from '$lib/entities/geolocation/dto'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
-  import DirectionsButton from '../../Sheet/DirectionsButton.svelte'
-  import MenuRow from '../../Sheet/MenuRow.svelte'
-  import MoreMenu from '../../Sheet/MoreMenu.svelte'
-  import ShareButton from '../../Sheet/ShareButton.svelte'
 
   interface Props {
     parking: ParkingDetail

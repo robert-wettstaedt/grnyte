@@ -1,8 +1,19 @@
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import type { AscentType } from './dto'
-import { toUserAscent } from './mapper'
+import { toRouteAscent, toUserAscent } from './mapper'
 import { ascentStatusByRoute } from './status'
+
+/**
+ * All ascents of one route, with their media — the route detail page's
+ * grade-opinion chart and ascent beta videos.
+ */
+export function routeAscentList(routeId: () => number) {
+  return createResource(
+    () => queries.listRouteAscents({ routeId: routeId() }),
+    (rows) => rows.map(toRouteAscent),
+  )
+}
 
 /**
  * The signed-in user's ascents. Gated by `enabled` so it only syncs when

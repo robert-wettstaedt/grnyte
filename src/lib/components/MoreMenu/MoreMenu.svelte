@@ -7,11 +7,13 @@
   interface Props {
     /** Sheet title — usually the entity name. */
     title: string
+    /** Desktop: the map-sheet side panel (default), or a trigger-anchored popover for standalone pages. */
+    panel?: boolean
     /** Menu body; receives a `close` callback to dismiss the sheet after an action. */
     children: Snippet<[close: () => void]>
   }
 
-  const { title, children }: Props = $props()
+  const { title, panel = true, children }: Props = $props()
 
   let open = $state(false)
 </script>
@@ -19,8 +21,8 @@
 <Modal
   backdrop
   bind:open
-  panel
-  panelClass="fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]"
+  {panel}
+  panelClass={panel ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]' : undefined}
   contentClass="max-h-[calc(100dvh-6rem)] w-80"
   subtitle={m.area_manage()}
   {title}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import { m } from '$lib/paraglide/messages'
   import { BottomSheet, type TypeOfBottomSheet } from 'svelte-bottom-sheet'
   import { sheetState } from './sheetState.svelte'
@@ -169,17 +170,8 @@
     <div
       class="border-surface-200-800 preset-filled-surface-100-900 pointer-events-auto flex items-center gap-1.5 rounded-2xl border p-1.5 shadow-lg"
     >
-      <!-- eslint-disable svelte/no-navigation-without-resolve -- nav hrefs are pre-resolved in the page (toSheetNav). -->
-      <a class="btn-icon btn-icon-lg preset-filled-surface-200-800" href={nav.prev.href} title={nav.prev.label}>
-        <Icon name="chevron-left" size={18} />
-      </a>
-
-      <span class="min-w-8 px-1 text-center text-sm font-bold tabular-nums">{nav.position}/{nav.total}</span>
-
-      <a class="btn-icon btn-icon-lg preset-filled-surface-200-800" href={nav.next.href} title={nav.next.label}>
-        <Icon name="chevron-right" size={18} />
-      </a>
-      <!-- eslint-enable svelte/no-navigation-without-resolve -->
+      <!-- Larger touch targets for the sheet pill; SiblingNav hides the keybind tooltips on touch itself. -->
+      <SiblingNav {nav} large />
     </div>
   </div>
 {/if}

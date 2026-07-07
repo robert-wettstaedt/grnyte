@@ -2,6 +2,7 @@ import { areasQueryDefs } from '$lib/entities/area/queries'
 import { ascentsQueryDefs } from '$lib/entities/ascent/queries'
 import { blocksQueryDefs } from '$lib/entities/block/queries'
 import { favoritesQueryDefs } from '$lib/entities/favorite/queries'
+import { filesQueryDefs } from '$lib/entities/file/queries'
 import { firstAscensionistsQueryDefs } from '$lib/entities/firstAscensionist/queries'
 import { geolocationsQueryDefs } from '$lib/entities/geolocation/queries'
 import { gradesQueryDefs } from '$lib/entities/grade/queries'
@@ -20,6 +21,7 @@ export const queries = defineQueries({
   ...ascentsQueryDefs,
   ...blocksQueryDefs,
   ...favoritesQueryDefs,
+  ...filesQueryDefs,
   ...firstAscensionistsQueryDefs,
   ...geolocationsQueryDefs,
   ...gradesQueryDefs,

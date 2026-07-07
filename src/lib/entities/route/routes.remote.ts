@@ -122,7 +122,7 @@ async function resolveFirstAscensionists(
   return resolved
 }
 
-const routeHref = (id: number) => resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(id) })
+const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
 
 /** Create a route under a block. Returns `{ id }` instead of redirecting so the form can
  *  finalize its background media uploads against the new route before navigating. */

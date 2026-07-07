@@ -46,7 +46,7 @@
     const id = updateRoute.result?.data?.id
     if (id == null) return
     void finalizeMediaUploads(uploads, { type: 'route', id })
-    await goto(resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(id) }))
+    await goto(resolve('/(app)/routes/[id]', { id: String(id) }))
   }
 
   const onDelete = (id: number) =>
@@ -68,7 +68,7 @@
         {#if canEditRoute(global.userRegions, detail)}
           <Form
             form={updateRoute}
-            onCancel={() => back(resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(detail.id) }))}
+            onCancel={() => back(resolve('/(app)/routes/[id]', { id: String(detail.id) }))}
             {onSubmitted}
             submitLabel={m.common_save()}
             title={m.routes_editRoute()}

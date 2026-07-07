@@ -9,6 +9,7 @@
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
+  import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -18,7 +19,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
-  import { toSheetNav } from '../../../Modal/siblingNav'
+  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import BlockActions from './BlockActions.svelte'
 
   const global = getGlobalState()
@@ -47,19 +48,7 @@
 
   const blockHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(id) })
 
-  // The Breadcrumb wants an area-shaped object; the block's `areas` is already the
-  // full containment chain down to its immediate area, so wrap it as the trail.
-  const breadcrumbArea = $derived(
-    block.data == null
-      ? null
-      : {
-          id: block.data.id,
-          name: block.data.name,
-          type: null,
-          areas: block.data.areas,
-          regionFk: block.data.regionFk,
-        },
-  )
+  const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
 
   // The shared Modal renders its header from sheetState, so feed it the title
   // (name + Block tag), the area trail as the subtitle, and the prev/next nav as
@@ -123,7 +112,7 @@
                 route={{ ...route, topoImagePath: topo?.view.imagePath, topoPoints: topo?.line.points }}
                 grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
                 status={ascentStatus.get(route.id)}
-                href={resolve('/(app)/(shell)/(explore)/routes/[id]', { id: String(route.id) })}
+                href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
               />
             {/each}
           </nav>

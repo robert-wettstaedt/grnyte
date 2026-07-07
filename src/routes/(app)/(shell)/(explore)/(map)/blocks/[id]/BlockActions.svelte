@@ -1,6 +1,11 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import DirectionsButton from '$lib/components/DirectionsButton/DirectionsButton.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import MenuRow from '$lib/components/MenuRow/MenuRow.svelte'
+  import MoreMenu from '$lib/components/MoreMenu/MoreMenu.svelte'
+  import SaveButton from '$lib/components/SaveButton/SaveButton.svelte'
+  import ShareButton from '$lib/components/ShareButton/ShareButton.svelte'
   import { deleteBlock, restoreBlock } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canDeleteBlock, canEditBlock } from '$lib/entities/block/permissions'
@@ -9,11 +14,6 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
-  import DirectionsButton from '../../Sheet/DirectionsButton.svelte'
-  import MenuRow from '../../Sheet/MenuRow.svelte'
-  import MoreMenu from '../../Sheet/MoreMenu.svelte'
-  import SaveButton from '../../Sheet/SaveButton.svelte'
-  import ShareButton from '../../Sheet/ShareButton.svelte'
 
   interface Props {
     block: BlockDetail

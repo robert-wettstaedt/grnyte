@@ -1,0 +1,319 @@
+<script lang="ts">
+  import { goto } from '$app/navigation'
+  import { resolve } from '$app/paths'
+  import { page } from '$app/state'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
+  import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
+  import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import Topo from '$lib/components/Topo/Topo.svelte'
+  import { routeAscentList } from '$lib/entities/ascent/resources.svelte'
+  import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
+  import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
+  import { routeFileList } from '$lib/entities/file/resources.svelte'
+  import { getGradeBand } from '$lib/entities/grade/color'
+  import { gradeLabel } from '$lib/entities/grade/label'
+  import { routeDetail } from '$lib/entities/route/resources.svelte'
+  import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
+  import RouteRating from '$lib/entities/route/RouteRating.svelte'
+  import { selectTopoForRoute } from '$lib/entities/topo/mapper'
+  import { orderRoutesByTopo } from '$lib/entities/topo/order'
+  import { blockTopoList } from '$lib/entities/topo/resources.svelte'
+  import { m } from '$lib/paraglide/messages.js'
+  import { getGlobalState } from '$lib/state/global.svelte'
+  import { back } from '$lib/state/navigation.svelte'
+  import { toaster } from '$lib/state/toast'
+  import { SvelteMap } from 'svelte/reactivity'
+  import MediaGrid from './MediaGrid.svelte'
+  import RouteActions from './RouteActions.svelte'
+
+  const global = getGlobalState()
+
+  const routeId = $derived(Number(page.params.id))
+  const route = routeDetail(() => routeId)
+
+  // The block frames the page: header breadcrumb, back fallback, and the topos the
+  // route is drawn on. `-1` while the route loads is the established idiom.
+  const block = blockDetail(() => route.data?.blockFk ?? -1)
+  const topos = blockTopoList(() => route.data?.blockFk ?? -1)
+  const ascents = routeAscentList(() => routeId)
+  const files = routeFileList(() => routeId)
+
+  // The most complete drawing of this route across the block's topos.
+  const hit = $derived(selectTopoForRoute(topos.data, routeId))
+
+  const blockHref = $derived(
+    route.data == null
+      ? resolve('/(app)/(shell)/(explore)/(map)/explore')
+      : resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.data.blockFk) }),
+  )
+
+  // The viewer reads ?route= and opens with this route's line lit.
+  const topoHref = $derived(
+    hit == null || route.data == null
+      ? null
+      : `${resolve('/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]', {
+          id: String(route.data.blockFk),
+          topoId: String(hit.view.id),
+        })}?route=${routeId}`,
+  )
+
+  // Community grade votes, one per logged ascent that carries an opinion.
+  const countByGrade = $derived.by(() => {
+    const counts = new SvelteMap<number, number>()
+    for (const ascent of ascents.data) {
+      if (ascent.gradeFk != null) {
+        counts.set(ascent.gradeFk, (counts.get(ascent.gradeFk) ?? 0) + 1)
+      }
+    }
+    return counts
+  })
+  const voteCount = $derived([...countByGrade.values()].reduce((sum, n) => sum + n, 0))
+
+  // The route's own media first, then beta attached to its ascents.
+  const media = $derived([...files.data, ...ascents.data.flatMap((ascent) => ascent.files)])
+
+  const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
+
+  // Prev/next through the block's routes, in the same left-to-right order the block
+  // and topo pages read them. Routes have no `order` column, so the order is topo-
+  // derived; `blockRouteList` rides the queries.block view already loaded for the hero.
+  const siblingRoutes = blockRouteList(() => route.data?.blockFk ?? -1)
+  const orderedSiblings = $derived(orderRoutesByTopo(siblingRoutes.data, topos.data))
+  const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
+  const nav = $derived(toSheetNav(orderedSiblings, routeId, routeHref))
+
+  // j / l page to the previous / next sibling, matching the explore sheet pages.
+  function handleNavKey(event: KeyboardEvent) {
+    if (nav == null || isNavKeyExempt(event)) return
+    const href = event.key === 'j' ? nav.prev.href : event.key === 'l' ? nav.next.href : null
+    if (href == null) return
+    // eslint-disable-next-line svelte/no-navigation-without-resolve -- nav hrefs are resolved in routeHref.
+    goto(href)
+  }
+
+  // ponytail: placeholder — no ascent-logging flow exists yet (internal branch).
+  // Swap the toast for a goto() to the log route once it lands.
+  const onLog = () => toaster.create({ type: 'info', title: m.common_comingSoon(), duration: 2500 })
+</script>
+
+<svelte:head>
+  <title>{route.data?.name ?? m.common_route()} – {PUBLIC_APPLICATION_NAME}</title>
+</svelte:head>
+
+<svelte:window onkeydown={handleNavKey} />
+
+<QueryState resource={route}>
+  {#snippet ready(detail)}
+    <div class="mx-auto flex min-h-full w-full max-w-screen-sm flex-col">
+      <!-- Mirrors the area/block detail headers: back button, the name as the title with
+           the entity-type tag beside it, and the containment breadcrumb as the subtitle
+           above. Grade + rating sit on the right, aligned like a RouteRow. -->
+      <header
+        class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center gap-3 border-b px-3 py-3 backdrop-blur"
+      >
+        <button
+          class="btn-icon preset-filled-surface-200-800 flex-none"
+          onclick={() => back(blockHref)}
+          type="button"
+          aria-label={m.common_back()}
+        >
+          <Icon name="arrow-left" size={18} />
+        </button>
+
+        <div class="flex min-w-0 flex-1 flex-col">
+          {#if block.data != null}
+            <div class="flex min-w-0 items-center gap-2 text-xs whitespace-nowrap">
+              {#if breadcrumbArea != null && block.data.areas.length > 0}
+                <div class="min-w-0">
+                  <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
+                </div>
+                <span class="shrink-0">·</span>
+              {/if}
+              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- blockHref is pre-resolved above. -->
+              <a class="anchor shrink-0" href={blockHref}>{block.data.name}</a>
+            </div>
+          {/if}
+
+          <div class="flex min-w-0 items-center gap-2">
+            <span class="truncate text-base font-bold">{detail.name}</span>
+            <span
+              class="bg-primary-500/20 text-primary-400 inline-flex h-5.25 flex-none items-center rounded-[7px] px-2 text-[11px] font-bold tracking-[0.02em]"
+            >
+              {m.common_route()}
+            </span>
+          </div>
+        </div>
+
+        <!-- Both always render (an ungraded/unrated route shows the "—" pill + empty stars). -->
+        <div class="flex flex-none flex-col items-end gap-1">
+          <RouteGrade
+            band={getGradeBand(detail.gradeFk)}
+            grade={gradeLabel(global.grades, global.gradingScale, detail.gradeFk)}
+          />
+          <RouteRating rating={detail.rating} />
+        </div>
+      </header>
+
+      <div class="flex flex-col gap-6 px-4 py-5">
+        <!-- HERO TOPO — capped height so a portrait topo can't dominate the page. -->
+        {#if topoHref != null && hit != null}
+          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- topoHref is pre-resolved above. -->
+          <a class="relative block" href={topoHref} aria-label={m.routes_openTopo()}>
+            <Topo
+              class="max-h-88 w-full"
+              imagePath={hit.view.imagePath}
+              width={hit.view.imageWidth}
+              height={hit.view.imageHeight}
+              alt={m.topo_alt()}
+              highlightId={hit.line.id}
+              lines={hit.view.lines.map((line) => ({
+                id: line.id,
+                points: line.points,
+                band: getGradeBand(line.gradeFk),
+                topType: line.topType,
+              }))}
+            />
+            <span
+              class="bg-surface-50-950/80 border-surface-200-800 pointer-events-none absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold backdrop-blur"
+            >
+              {m.routes_openTopo()}
+              <Icon name="chevron-right" size={13} />
+            </span>
+          </a>
+        {/if}
+
+        <RouteActions route={detail} block={block.data} />
+
+        {#if detail.tags.length > 0}
+          <div class="flex flex-wrap gap-2">
+            {#each detail.tags as tag (tag)}
+              <span
+                class="border-surface-200-800 bg-surface-100-900 text-surface-600-400 inline-flex h-8 items-center rounded-full border px-3.5 text-[13px] font-semibold"
+              >
+                {tag}
+              </span>
+            {/each}
+          </div>
+        {/if}
+
+        {#if detail.description.trim() !== ''}
+          <section class="flex flex-col gap-2.5">
+            <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
+              {m.routes_form_descriptionLabel()}
+            </h2>
+            <Markdown markdown={detail.description} />
+          </section>
+        {/if}
+
+        {#if detail.firstAscents.length > 0 || detail.firstAscentYear != null}
+          <section class="flex flex-col gap-2.5">
+            <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.routes_form_faLabel()}</h2>
+            <div
+              class="border-surface-200-800 bg-surface-50-950 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+            >
+              {#if detail.firstAscents.length > 0}
+                <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                  {#each detail.firstAscents as fa (fa.name)}
+                    <span class="flex items-center gap-2">
+                      <Avatar name={fa.name} size={30} solid={fa.userFk != null} />
+                      <span class="text-sm font-semibold whitespace-nowrap">{fa.name}</span>
+                    </span>
+                  {/each}
+                </div>
+
+                {#if detail.firstAscentYear != null}
+                  <span
+                    class="border-surface-200-800 bg-surface-100-900 flex flex-none flex-col items-center rounded-xl border px-3 py-1.5"
+                  >
+                    <span class="text-surface-500 text-[9px] font-bold tracking-wider uppercase">
+                      {m.routes_form_faYearLabel()}
+                    </span>
+                    <span class="font-mono text-sm font-bold">{detail.firstAscentYear}</span>
+                  </span>
+                {/if}
+              {:else}
+                <!-- Year but no named climbers: read it as a plain line, not a lone right pill. -->
+                <span class="text-surface-500 text-sm font-semibold">{m.routes_form_faYearLabel()}</span>
+                <span class="font-mono text-sm font-bold">{detail.firstAscentYear}</span>
+              {/if}
+            </div>
+          </section>
+        {/if}
+
+        {#if detail.gradeFk != null || countByGrade.size > 0}
+          <section class="flex flex-col gap-2.5">
+            <div class="flex items-baseline justify-between gap-3">
+              <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
+                {m.routes_gradeOpinions()}
+              </h2>
+              {#if voteCount > 0}
+                <span class="text-surface-500 text-xs font-semibold">{m.routes_gradeVotes({ count: voteCount })}</span>
+              {/if}
+            </div>
+
+            <!-- The route's grade is the grade it was created with; the community's votes
+                 (the chart) are what shift the consensus away from it over time. -->
+            {#if detail.gradeFk != null}
+              <div
+                class="border-surface-200-800 bg-surface-50-950 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+              >
+                <RouteGrade
+                  band={getGradeBand(detail.gradeFk)}
+                  grade={gradeLabel(global.grades, global.gradingScale, detail.gradeFk)}
+                />
+                <span class="text-surface-600-400 text-sm font-semibold">{m.routes_originalGrade()}</span>
+              </div>
+            {/if}
+
+            {#if countByGrade.size > 0}
+              <GradeHistogram {countByGrade} grades={global.grades} gradingScale={global.gradingScale} />
+            {:else}
+              <p class="text-surface-500 text-sm">{m.routes_noOpinions()}</p>
+            {/if}
+          </section>
+        {/if}
+
+        {#if media.length > 0}
+          <section class="flex flex-col gap-2.5">
+            <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
+              {m.routes_form_mediaLabel()}
+            </h2>
+            <MediaGrid items={media} />
+          </section>
+        {/if}
+      </div>
+
+      <!-- Sticky footer: sibling prev/next pager (like the explore sheets' NavFooter) on the
+           left, the always-visible primary action on the right. Footer treatment mirrors the
+           app's modal footers (border-t-2, btn-sm). The Log button is a placeholder for now:
+           the ascent-logging flow lands later on this internal branch. -->
+      <footer
+        class="border-surface-100-900 bg-surface-50-950 sticky bottom-0 z-10 mt-auto flex items-center justify-between gap-2 border-t-2 px-4 py-3"
+      >
+        {#if nav != null}
+          <div class="flex items-center gap-1.5">
+            <SiblingNav {nav} />
+          </div>
+        {:else}
+          <span></span>
+        {/if}
+
+        <button class="btn btn-sm preset-filled-primary-500" onclick={onLog} type="button">
+          <Icon name="check" size={16} />
+          {m.routes_logAscent()}
+        </button>
+      </footer>
+    </div>
+  {/snippet}
+
+  {#snippet empty()}
+    <ErrorState type="notfound" title={m.routes_notFound()} />
+  {/snippet}
+</QueryState>

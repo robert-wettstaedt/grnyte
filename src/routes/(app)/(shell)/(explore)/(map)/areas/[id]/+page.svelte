@@ -14,13 +14,13 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { sheetState } from '../../../Modal/sheetState.svelte'
-  import { toSheetNav } from '../../../Modal/siblingNav'
+  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import AreaActions from './AreaActions.svelte'
   import AreaDescription from './AreaDescription.svelte'
   import AreaEmpty from './AreaEmpty.svelte'
   import AreaList from './AreaList.svelte'
   import BlocksList from './BlocksList.svelte'
-  import GradeHistogram from './GradeHistogram.svelte'
+  import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
 
   const global = getGlobalState()
 
