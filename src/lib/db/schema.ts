@@ -908,6 +908,16 @@ export const files = table(
       .primaryKey(),
     ...baseRegionFields,
 
+    // Uploader. Set at insert (finalizeImage/finalizeVideo); backfilled for
+    // pre-existing rows from the upload activity, the parent entity's creator,
+    // or the region creator as a last resort (see migration 0079).
+    createdBy: baseContentFields.createdBy,
+
+    // Upload time. Files opt out of baseFields (they keep a cuid2 id), so the
+    // timestamp is declared here. Sorts the media grid; backfilled from the
+    // matching `uploaded` activity for pre-existing rows (see the migration).
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+
     // '' for video rows — the media lives at the video host (see finalizeVideo);
     // discriminate on bunnyStreamFk before treating the path as a storage location.
     path: text('path').notNull(),
@@ -929,6 +939,7 @@ export const files = table(
     index('files_area_fk_idx').on(table.areaFk),
     index('files_ascent_fk_idx').on(table.ascentFk),
     index('files_block_fk_idx').on(table.blockFk),
+    index('files_created_by_idx').on(table.createdBy),
     index('files_region_fk_idx').on(table.regionFk),
     index('files_route_fk_idx').on(table.routeFk),
 
@@ -992,6 +1003,7 @@ export type InsertFile = InferInsertModel<typeof files>
 export const filesRelations = relations(files, ({ one }) => ({
   area: one(areas, { fields: [files.areaFk], references: [areas.id] }),
   ascent: one(ascents, { fields: [files.ascentFk], references: [ascents.id] }),
+  author: one(users, { fields: [files.createdBy], references: [users.id] }),
   block: one(blocks, { fields: [files.blockFk], references: [blocks.id] }),
   bunnyStream: one(bunnyStreams, { fields: [files.bunnyStreamFk], references: [bunnyStreams.id] }),
   region: one(regions, { fields: [files.regionFk], references: [regions.id] }),

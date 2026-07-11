@@ -136,6 +136,16 @@
 </Portal>
 
 <style>
+  /* A sheet can open above a modal dialog (e.g. the media viewer's Share sheet). That
+     parent sets `pointer-events: none` on <body> to inert the background, which this
+     portaled sheet would otherwise inherit, going dead to taps (every tap then falls
+     through to the dialog behind, whose own outside-click detection dismisses the
+     sheet). Re-assert it so the sheet is interactive wherever it is mounted. */
+  :global(.bottom-sheet),
+  :global(.bottom-sheet-overlay) {
+    pointer-events: auto;
+  }
+
   /* Lift the fixed sheet above the keyboard by the measured overlap (set in JS). */
   :global(.bottom-sheet.keyboard-aware) {
     bottom: var(--keyboard-inset, 0px) !important;

@@ -7,8 +7,8 @@
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { parkingDetail } from '$lib/entities/geolocation/resources.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { createCopyButton } from '$lib/state/clipboard.svelte'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { onDestroy } from 'svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import ParkingActions from './ParkingActions.svelte'
 
@@ -19,20 +19,7 @@
     `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(long).toFixed(5)}°${long >= 0 ? 'E' : 'W'}`
 
   // Brief check-mark confirmation after copying the coordinate to the clipboard.
-  let copied = $state(false)
-  let copyTimer: ReturnType<typeof setTimeout> | undefined
-  onDestroy(() => clearTimeout(copyTimer))
-
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      copied = true
-      clearTimeout(copyTimer)
-      copyTimer = setTimeout(() => (copied = false), 1500)
-    } catch {
-      // Clipboard unavailable (insecure context) or permission denied — nothing to recover from.
-    }
-  }
+  const clip = createCopyButton()
 
   // The (map) layout draws the sheet header from sheetState — label it with the
   // parking and, as a subtitle, the crag it belongs to.
@@ -55,7 +42,7 @@
       <button
         type="button"
         class="border-surface-300-700 bg-surface-100-900 hover:bg-surface-200-800 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors"
-        onclick={() => copy(coords)}
+        onclick={() => clip.copy(coords)}
         aria-label={m.parking_copyCoordinates()}
       >
         <span class="bg-primary-500/15 text-primary-500 flex size-10 flex-none items-center justify-center rounded-xl">
@@ -63,9 +50,9 @@
         </span>
         <span class="min-w-0 flex-1 truncate font-mono text-sm font-semibold">{coords}</span>
         <Icon
-          name={copied ? 'check' : 'copy'}
+          name={clip.copied ? 'check' : 'copy'}
           size={18}
-          class={['flex-none', copied ? 'text-primary-500' : 'text-surface-500']}
+          class={['flex-none', clip.copied ? 'text-primary-500' : 'text-surface-500']}
         />
       </button>
     </div>

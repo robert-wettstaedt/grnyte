@@ -10,7 +10,11 @@ export const ascentsQueryDefs = {
     z.object({ routeId: z.number() }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
-      return zql.ascents.where('routeFk', args.routeId).related('files', r)
+      // bunnyStream/author aren't `r`'s region-scoped tables, but they're reached only
+      // through an already region-filtered file (and RLS re-checks them server-side).
+      return zql.ascents
+        .where('routeFk', args.routeId)
+        .related('files', (q) => r(q).related('bunnyStream').related('author'))
     }),
   ),
 

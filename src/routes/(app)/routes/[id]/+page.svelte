@@ -19,6 +19,7 @@
   import { routeFileList } from '$lib/entities/file/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { canEditRoute } from '$lib/entities/route/permissions'
   import { routeDetail } from '$lib/entities/route/resources.svelte'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
@@ -76,8 +77,10 @@
   })
   const voteCount = $derived([...countByGrade.values()].reduce((sum, n) => sum + n, 0))
 
-  // The route's own media first, then beta attached to its ascents.
-  const media = $derived([...files.data, ...ascents.data.flatMap((ascent) => ascent.files)])
+  // The route's own media plus beta attached to its ascents, newest upload first.
+  const media = $derived(
+    [...files.data, ...ascents.data.flatMap((ascent) => ascent.files)].sort((a, b) => b.createdAt - a.createdAt),
+  )
 
   const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
 
@@ -92,6 +95,8 @@
   // j / l page to the previous / next sibling, matching the explore sheet pages.
   function handleNavKey(event: KeyboardEvent) {
     if (nav == null || isNavKeyExempt(event)) return
+    // The media viewer owns j/l while it's open (it pages media siblings).
+    if (page.url.searchParams.has('media')) return
     const href = event.key === 'j' ? nav.prev.href : event.key === 'l' ? nav.next.href : null
     if (href == null) return
     // eslint-disable-next-line svelte/no-navigation-without-resolve -- nav hrefs are resolved in routeHref.
@@ -111,6 +116,7 @@
 
 <QueryState resource={route}>
   {#snippet ready(detail)}
+    {@const canEdit = canEditRoute(global.userRegions, detail)}
     <div class="mx-auto flex min-h-full w-full max-w-screen-sm flex-col">
       <!-- Mirrors the area/block detail headers: back button, the name as the title with
            the entity-type tag beside it, and the containment breadcrumb as the subtitle
@@ -280,12 +286,17 @@
           </section>
         {/if}
 
-        {#if media.length > 0}
+        {#if media.length > 0 || canEdit}
           <section class="flex flex-col gap-2.5">
             <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
               {m.routes_form_mediaLabel()}
             </h2>
-            <MediaGrid items={media} />
+            <MediaGrid
+              items={media}
+              target={{ type: 'route', id: routeId }}
+              {canEdit}
+              shareText={route.data?.name ?? ''}
+            />
           </section>
         {/if}
       </div>

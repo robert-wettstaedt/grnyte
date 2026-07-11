@@ -533,6 +533,20 @@
       "when": 1783359255823,
       "tag": "0077_spooky_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1783453059206,
+      "tag": "0078_clumsy_blue_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1783519283784,
+      "tag": "0079_fancy_leper_queen",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,9 @@ interface PanzoomParams {
    * panning stops at the content's edges. Omit when content fills the node.
    */
   aspect?: number
+  /** Called with the live zoom factor (1 = fit) whenever it changes. Lets a
+   *  consumer gate its own gestures on whether the content is zoomed in. */
+  onZoom?: (scale: number) => void
 }
 
 /**
@@ -31,6 +34,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
   let enabled = false
   let aspect = params.aspect
   let maxScale = params.maxScale ?? 4
+  let onZoom = params.onZoom
 
   // The pannable world: the content's contain-fit rect within the node (the
   // whole node when no aspect is given), plus the node size it was computed for
@@ -42,6 +46,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
     .on('zoom', (event: D3ZoomEvent<HTMLElement, unknown>) => {
       const { x, y, k } = event.transform
       content.style.transform = `translate(${x}px, ${y}px) scale(${k})`
+      onZoom?.(k)
     })
 
   const selection = select<HTMLElement, unknown>(node)
@@ -145,6 +150,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
       const aspectChanged = next.aspect !== aspect
       aspect = next.aspect
       maxScale = next.maxScale ?? 4
+      onZoom = next.onZoom
       if (next.enabled && !enabled) enable()
       else if (!next.enabled && enabled) disable()
       else if (enabled) {

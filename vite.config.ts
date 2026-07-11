@@ -86,5 +86,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.js'],
+    // Date/Intl assertions must not depend on the machine's timezone (a UTC+13
+    // runner would format 2026-04-21T12:00Z as Apr 22 and fail).
+    env: { TZ: 'UTC' },
   },
 })

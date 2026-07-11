@@ -215,8 +215,11 @@
   </RemoteFormInputWrapper>
 </div>
 
-<div class="space-y-2.5">
-  <span class="text-surface-700-300 text-sm font-semibold">{m.routes_form_mediaLabel()}</span>
-  <MediaDropZone accept={['image', 'video']} videoSource bind:uploads />
-  <p class="text-surface-600-400 text-sm">{m.routes_form_mediaHint()}</p>
-</div>
+<!-- Add only: an existing route takes new media on its detail page, where the media lives. -->
+{#if route == null}
+  <div class="space-y-2.5">
+    <span class="text-surface-700-300 text-sm font-semibold">{m.routes_form_mediaLabel()}</span>
+    <MediaDropZone accept={['image', 'video']} videoSource bind:uploads />
+    <p class="text-surface-600-400 text-sm">{m.routes_form_mediaHint()}</p>
+  </div>
+{/if}

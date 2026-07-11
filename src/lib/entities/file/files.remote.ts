@@ -163,6 +163,7 @@ export const finalizeImage = command(
             path,
             width: dimensions.width,
             height: dimensions.height,
+            createdBy: user.id,
             regionFk,
             ...entityFks(entityType, entityId),
           })
@@ -204,6 +205,22 @@ export const createBunnyVideo = command(async () => {
   }
   return getVideoProvider().createUpload(user.authUserFk)
 })
+
+/**
+ * Flip a file between public and private. RLS is the gate: the update only
+ * touches a row the caller can edit (region EDIT) or owns via its ascent, so a
+ * swallowed update surfaces as a 403 rather than silently doing nothing.
+ */
+export const setFileVisibility = authedCommand(
+  z.object({ fileId: z.string().min(1), visibility: z.enum(['public', 'private']) }),
+  async ({ fileId, visibility }, { db }): Promise<MutationResult<File>> => {
+    const [updated] = await db.update(files).set({ visibility }).where(eq(files.id, fileId)).returning()
+    if (updated == null) {
+      error(403, 'Not allowed to change this file')
+    }
+    return { data: updated }
+  },
+)
 
 const finalizeVideoSchema = z.object({
   /** Bunny video GUID — doubles as the `bunnyStreams` row id. */
@@ -254,7 +271,7 @@ export const finalizeVideo = authedCommand(
     // own-ascent/EDIT update policies do pass.
     const [file] = await db
       .insert(files)
-      .values({ path: '', regionFk, ...entityFks(entityType, entityId) })
+      .values({ path: '', createdBy: user.id, regionFk, ...entityFks(entityType, entityId) })
       .returning()
     await db.insert(bunnyStreams).values({ id: videoId, regionFk, fileFk: file.id, source })
     const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()

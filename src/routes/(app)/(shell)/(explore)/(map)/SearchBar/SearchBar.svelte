@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { replaceUrl } from '$lib/state/navigation.svelte'
   import type { Snippet } from 'svelte'
   import type { KeyboardEventHandler } from 'svelte/elements'
   import { MediaQuery, SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity'
@@ -43,8 +43,7 @@
     url.pathname = resolve('/explore/search')
     url.search = searchParams.toString()
 
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
-    goto(url, { keepFocus: true, replaceState: true })
+    void replaceUrl(url, { keepFocus: true })
   }
 
   const onchange: KeyboardEventHandler<HTMLInputElement> = (event) => {

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
   import { page } from '$app/state'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
@@ -9,6 +8,7 @@
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { replaceUrl } from '$lib/state/navigation.svelte'
   import { SvelteMap, SvelteURL } from 'svelte/reactivity'
   import AscentStatusSelect from './fields/AscentStatusSelect.svelte'
   import FavoritesSelect from './fields/FavoritesSelect.svelte'
@@ -256,8 +256,7 @@
       }
     }
 
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
-    await goto(url, { replaceState: true })
+    await replaceUrl(url)
     open = false
   }
 
@@ -273,8 +272,7 @@
       url.searchParams.delete('dir')
     }
 
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
-    await goto(url, { replaceState: true })
+    await replaceUrl(url)
     open = false
   }
 </script>

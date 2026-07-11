@@ -11,4 +11,17 @@ export interface MediaFile {
   height: number | undefined
   /** Bunny Stream video GUID; `undefined` means the row is an image. */
   bunnyStreamFk: string | undefined
+  /** Epoch millis of upload; the media grid sorts by this. */
+  createdAt: number
+  /** Region the file lives in; drives the viewer's edit/delete permission checks. */
+  regionFk: number
+  /** Private unless EXPLICITLY 'public': `undefined`/NULL (the default on every row) is private. */
+  visibility: 'public' | 'private' | undefined
+  /** The owning ascent's creator when the file hangs on an ascent; lets the client
+   *  mirror the own-ascent-media RLS grants (see entities/file/permissions.ts). */
+  ascentCreatedBy: number | undefined
+  /** Origin URL of a Bunny video (credited in the viewer); `undefined` otherwise. */
+  source: string | undefined
+  /** Who uploaded the file (`createdBy` → users); `undefined` if the query omits the relation. */
+  uploader: { id: number; username: string } | undefined
 }

@@ -15,6 +15,7 @@ import { page } from '$app/state'
 import { PUBLIC_BUNNY_STREAM_LIBRARY_ID, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import type { File as FileRow } from '$lib/db/schema'
 import { m } from '$lib/paraglide/messages'
+import { toaster } from '$lib/state/toast'
 import { SvelteMap } from 'svelte/reactivity'
 import { Upload as TusUpload } from 'tus-js-client'
 import { createBunnyVideo, finalizeImage, finalizeVideo } from './files.remote'
@@ -73,6 +74,11 @@ abstract class MediaUploadBase {
   /** The created `files` row once finalized. */
   fileRow = $state.raw<FileRow>()
 
+  /** Set by {@link remove}: the user cancelled. A deliberate abort is not a failure, so
+   *  the finalize toast and {@link retry} skip it (its `status` still lands on `failed`
+   *  from the aborted transfer, but the owner has already dropped it). */
+  aborted = false
+
   /** Whether the bytes have fully landed at their destination. */
   protected isStaged = false
   /** Resolves when the transfer completes; rejects on failure. Recreated by each attempt. */
@@ -113,10 +119,17 @@ abstract class MediaUploadBase {
     enterBusy(this)
     try {
       await this.stagedPromise
+      // remove() may have landed while the bytes were still transferring (it can't
+      // abort a transfer that already finished), so bail before attaching a row the
+      // user cancelled. The preview blob is revoked, so its tile is already gone.
+      if (this.aborted) {
+        throw new Error(m.upload_failed())
+      }
       this.status = 'finalizing'
       this.fileRow = await this.attach(target)
       this.status = 'done'
-      URL.revokeObjectURL(this.previewUrl)
+      // The preview blob stays alive until the synced `files` row takes over the tile
+      // (dropPending revokes it then), so the media never blinks out mid-handoff.
       return this.fileRow!
     } catch (error) {
       this.status = 'failed'
@@ -129,6 +142,10 @@ abstract class MediaUploadBase {
 
   /** Resume after a failure: re-run the transfer if it didn't finish, re-finalize if a target is set. */
   async retry(): Promise<void> {
+    // An aborted upload is gone (reference dropped, preview revoked), nothing to resume.
+    if (this.aborted) {
+      return
+    }
     if (!this.isStaged) {
       this.start()
     } else {
@@ -168,6 +185,7 @@ export class ImageUpload extends MediaUploadBase {
 
   /** Abort the transfer and delete the staged object. */
   remove(): void {
+    this.aborted = true
     this.xhr?.abort()
     if (this.isStaged) {
       // Fire-and-forget — a leftover object is the cleanup cron's job.
@@ -255,8 +273,6 @@ export class VideoUpload extends MediaUploadBase {
    *  construction, so each attempt swaps these instead of recreating the
    *  Upload (the instance retains its URL and resumes at the last offset). */
   private settle: { resolve: () => void; reject: (error: unknown) => void } | undefined
-  /** Set by {@link remove} so a transfer it couldn't abort yet bails instead of starting. */
-  private removed = false
 
   start(): void {
     this.status = 'uploading'
@@ -285,7 +301,7 @@ export class VideoUpload extends MediaUploadBase {
   /** Abort the transfer. The Bunny video object is abandoned as-is — ponytail:
    *  orphaned videos are the cleanup cron's job, no delete endpoint yet. */
   remove(): void {
-    this.removed = true
+    this.aborted = true
     void this.tusUpload?.abort()
     this.settle?.reject(new Error(m.upload_failed()))
     URL.revokeObjectURL(this.previewUrl)
@@ -299,7 +315,7 @@ export class VideoUpload extends MediaUploadBase {
       this.auth ??= await createBunnyVideo()
       // remove() during that round-trip had nothing to abort — bail before
       // starting a transfer nobody wants.
-      if (this.removed) {
+      if (this.aborted) {
         throw new Error(m.upload_failed())
       }
       const auth = this.auth
@@ -348,12 +364,84 @@ export function addUploads<T extends MediaUpload>(files: File[], Upload: new (fi
   })
 }
 
+/** An upload finalizing in the background, tagged with where it's headed. */
+export interface PendingUpload {
+  upload: MediaUpload
+  target: MediaUploadTarget
+}
+
 /**
- * The submit-side step: attach every upload to the created entity. Resolves with
- * the successfully created `files` rows; failed uploads stay `failed` (with their
- * target retained) for the UI to offer a retry — it never throws.
+ * Background finalizes, surfaced so the destination page (which the form navigates
+ * to on submit) can show in-flight uploads as pending tiles until Zero syncs the
+ * real rows. An entry lingers as a `done` tile until the target page's MediaGrid
+ * sees the matching `files` row arrive and drops it (revoking the preview blob),
+ * so the media never blinks out between finalize and sync. A `failed` upload also
+ * lingers so its tile can offer a retry.
+ */
+export const pendingUploads = $state<PendingUpload[]>([])
+
+/** Drop an upload from the registry and free its preview blob. The tile is gone
+ *  after this, so it's only called once the synced row has taken over (see
+ *  MediaGrid's reconcile) or the user removed it. */
+export const dropPending = (upload: MediaUpload) => {
+  const index = pendingUploads.findIndex((entry) => entry.upload === upload)
+  if (index >= 0) {
+    URL.revokeObjectURL(upload.previewUrl)
+    pendingUploads.splice(index, 1)
+  }
+}
+
+/**
+ * The submit-side step: attach every upload to the created entity. Registers each
+ * in {@link pendingUploads} so the target page can track it, then resolves with the
+ * successfully created `files` rows. Failed uploads stay `failed` (with their target
+ * retained) and raise a retry toast; it never throws.
  */
 export async function finalizeMediaUploads(uploads: MediaUpload[], target: MediaUploadTarget): Promise<FileRow[]> {
+  for (const upload of uploads) {
+    if (!pendingUploads.some((entry) => entry.upload === upload)) {
+      pendingUploads.push({ upload, target })
+    }
+  }
+  // Each entry lingers until the target page's MediaGrid hands its done tile off to
+  // the synced `files` row (or the user removes/retries it), so a fast one's tile is
+  // never yanked out from under a slow sibling.
   const results = await Promise.allSettled(uploads.map((upload) => upload.finalize(target)))
+  // Backstop for that handoff: if no grid for the target is mounted when the row
+  // syncs (the user navigated elsewhere), nothing would ever drop the entry, and it
+  // would pin the picked File plus its preview blob for the whole session. A done
+  // tile only matters for the finalize-to-sync gap, so let go after a generous
+  // window. ponytail: 5 minutes outlives any realistic sync; an offline gap longer
+  // than that loses the tile, not the media.
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      setTimeout(() => dropPending(uploads[index]), 5 * 60_000)
+    }
+  })
+  // A user-aborted upload lands on `failed` too, but it's a cancellation, not an error, so skip it.
+  const failed = uploads.filter((upload) => upload.status === 'failed' && !upload.aborted)
+  if (failed.length > 0) {
+    // Fires even after the form navigated away, the only signal for a finalize
+    // that fails once the user is no longer looking at the tiles.
+    toaster.create({
+      type: 'error',
+      title: m.upload_someFailed(),
+      duration: Number.POSITIVE_INFINITY,
+      action: { label: m.common_retry(), onClick: () => failed.forEach((upload) => void retryPending(upload)) },
+    })
+  }
   return results.filter((result) => result.status === 'fulfilled').map((result) => result.value)
+}
+
+/** Retry a failed upload. If it finalizes, its entry is left in {@link pendingUploads}
+ *  for the target page's MediaGrid to hand off to the synced row (same as a first-try
+ *  success); a form's own tiles retry the transfer only and never reach that path. */
+export async function retryPending(upload: MediaUpload): Promise<void> {
+  await upload.retry().catch(() => {})
+}
+
+/** Abort a pending upload and drop it from {@link pendingUploads}. */
+export function removePending(upload: MediaUpload): void {
+  upload.remove()
+  dropPending(upload)
 }

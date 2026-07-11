@@ -31,6 +31,7 @@ import {
   Minus,
   Mountain,
   Navigation,
+  Pause,
   Pickaxe,
   Play,
   Plus,
@@ -52,6 +53,7 @@ import {
   Users,
   UsersRound,
   Volume1,
+  VolumeX,
   WifiOff,
   X,
 } from '@lucide/svelte'
@@ -101,6 +103,7 @@ export const icons = {
   navigation: Navigation,
   'no-signal': WifiOff,
   parking: SquareParking,
+  pause: Pause,
   pickaxe: Pickaxe,
   play: Play,
   plus: Plus,
@@ -119,6 +122,7 @@ export const icons = {
   users: Users,
   'users-round': UsersRound,
   'volume-1': Volume1,
+  'volume-off': VolumeX,
 } satisfies Record<string, Component<IconProps>>
 
 export type IconName = keyof typeof icons

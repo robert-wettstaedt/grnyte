@@ -7,6 +7,7 @@
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
   import { reportClientError } from '$lib/logging/report'
   import { setGlobalState } from '$lib/state/global.svelte'
+  import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
@@ -14,6 +15,11 @@
   const { children } = $props()
 
   const globalState = setGlobalState()
+
+  // Track same-origin history depth app-wide so back buttons (and the media viewer's
+  // close) can fall back to an in-app route instead of leaving the origin. Lives at the
+  // (app) root so the count stays accurate across every page, not just the map area.
+  trackHistoryDepth()
 
   let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
   let markdownCssHref = $state(markdownLightCssUrl)

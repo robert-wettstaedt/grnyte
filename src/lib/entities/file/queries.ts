@@ -8,6 +8,6 @@ export const filesQueryDefs = {
   // listRouteAscents instead.
   listRouteFiles: defineQuery(
     z.object({ routeId: z.number() }),
-    regionMemberCan(({ args }) => zql.files.where('routeFk', args.routeId)),
+    regionMemberCan(({ args }) => zql.files.where('routeFk', args.routeId).related('bunnyStream').related('author')),
   ),
 }
