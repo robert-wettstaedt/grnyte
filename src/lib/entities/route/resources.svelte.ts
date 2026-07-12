@@ -27,6 +27,14 @@ export function routeList(filter: () => RouteListFilter = () => ({})) {
   )
 }
 
+/** Slim route rows for the map (no related trees synced) — see `listRoutesForMap`. */
+export function routeMapList(filter: () => RouteListFilter = () => ({})) {
+  return createResource(
+    () => queries.listRoutesForMap(filter()),
+    (rows) => rows.map((row) => ({ id: row.id, blockFk: row.blockFk, gradeFk: row.gradeFk ?? undefined })),
+  )
+}
+
 export function routeDetail(id: () => number) {
   return createResource(
     () => queries.listRoutes({ routeId: id() }),

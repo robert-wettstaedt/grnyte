@@ -15,11 +15,10 @@ import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
 import Icon from 'ol/style/Icon'
-import { SvelteMap, SvelteSet } from 'svelte/reactivity'
 import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, CRAG_ZOOM } from './types'
 
 // Read-only fallback for areas/crags with no grade data, so we never allocate per feature.
-const EMPTY_GRADE_COUNTS: Map<number, number> = new SvelteMap<number, number>()
+const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 
 // The data layers are created once (empty) and kept stable; only their features are
 // rebuilt when the corresponding data changes (see Map.svelte). Recreating a layer
@@ -288,7 +287,8 @@ export function createParkingLayer(minZoom = BLOCK_ZOOM): VectorLayer {
 
 export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
   const features: Feature[] = []
-  const distinctPaths = [...new SvelteSet(uniqueLineStrings)]
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local dedupe, not reactive state
+  const distinctPaths = [...new Set(uniqueLineStrings)]
 
   for (const encoded of distinctPaths) {
     try {

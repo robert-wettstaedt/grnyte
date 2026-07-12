@@ -23,7 +23,10 @@ export default defineConfig({
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/lib/paraglide',
-      strategy: ['cookie', 'globalVariable', 'preferredLanguage', 'baseLocale'],
+      // globalVariable first: getLocale() re-runs this chain on every m.*() call, and the
+      // cookie strategy parses document.cookie each time (~80ms on /explore's initial load).
+      // setLocale keeps the cookie in sync, so the in-memory variable can safely win.
+      strategy: ['globalVariable', 'cookie', 'preferredLanguage', 'baseLocale'],
     }),
     tailwindcss(),
     sveltekit(),

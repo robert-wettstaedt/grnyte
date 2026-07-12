@@ -10,6 +10,7 @@
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
+  import { routeList } from '$lib/entities/route/resources.svelte'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import { haversineMetres, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
@@ -41,6 +42,7 @@
     return { ...parsed, filter: { ...parsed.filter, areaId, content: search.trim() || undefined } }
   })
   const routes = filteredRouteList(
+    routeList(() => filters.filter),
     () => filters,
     () => global.user?.id,
   )

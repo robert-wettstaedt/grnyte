@@ -4,12 +4,12 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
-  import type { RouteListItem } from '$lib/entities/route/dto'
+  import type { RouteMapItem } from '$lib/entities/route/dto'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
-  import { SvelteMap, SvelteURL } from 'svelte/reactivity'
+  import { SvelteURL } from 'svelte/reactivity'
   import AscentStatusSelect from './fields/AscentStatusSelect.svelte'
   import FavoritesSelect from './fields/FavoritesSelect.svelte'
   import FilterSection from './fields/FilterSection.svelte'
@@ -27,7 +27,8 @@
 
   interface Props {
     loading: boolean
-    routes: RouteListItem[]
+    /** Only `gradeFk` and the count are read, so both the slim map rows and full list items fit. */
+    routes: Pick<RouteMapItem, 'gradeFk'>[]
     /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
     sortOptions?: SortOption[]
     /** Default direction per sort field, used to seed Order and detect defaults. */
@@ -96,7 +97,8 @@
   }
 
   const routeCountByGrade = $derived.by(() => {
-    const counts = new SvelteMap<number, number>()
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale in this $derived; per-key signals cost >5 dev-mode stack captures per grade on load
+    const counts = new Map<number, number>()
     for (const route of routes) {
       if (route.gradeFk != null) {
         counts.set(route.gradeFk, (counts.get(route.gradeFk) ?? 0) + 1)

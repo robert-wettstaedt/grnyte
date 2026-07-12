@@ -1,5 +1,12 @@
 import type { TopoPoint } from '$lib/entities/topo/dto'
 
+/** The map's per-route data: just what the donut counts and Filter need. */
+export interface RouteMapItem {
+  id: number
+  blockFk: number | null
+  gradeFk: number | undefined
+}
+
 export interface RouteListItem {
   createdAt: Date | undefined
   blockFk: number

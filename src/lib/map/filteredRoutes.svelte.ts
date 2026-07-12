@@ -1,35 +1,36 @@
+/* eslint-disable svelte/prefer-svelte-reactivity -- the sets are rebuilt wholesale inside
+   $derived (the new reference is the reactivity) and never mutated afterwards. */
 import { userAscentList } from '$lib/entities/ascent/resources.svelte'
 import { userFavoriteList } from '$lib/entities/favorite/resources.svelte'
-import type { RouteListItem } from '$lib/entities/route/dto'
-import { routeList } from '$lib/entities/route/resources.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
-import { SvelteSet } from 'svelte/reactivity'
 import type { ParsedRouteFilter } from './filter'
 
 /**
- * Routes matching the current filter. Combines the server-side `listRoutes`
- * query with the ascent-status and favorites filters, which Zero can't express
+ * Routes matching the current filter. Combines a server-side route query with
+ * the ascent-status and favorites filters, which Zero can't express
  * (`not(exists())` / polymorphic favorites) and so run client-side against the
  * signed-in user's ascents and favorited routes.
  *
+ * @param routes the server-filtered route resource — `routeMapList` (slim rows,
+ *   the map) or `routeList` (full list items, the area routes sheet).
  * @param filter reactive getter for the parsed URL filter.
  * @param userId reactive getter for the signed-in user's id.
  */
-export function filteredRouteList(
+export function filteredRouteList<T extends { id: number }>(
+  routes: QueryResource<T[]>,
   filter: () => ParsedRouteFilter,
   userId: () => number | undefined,
-): QueryResource<RouteListItem[]> {
-  const routes = routeList(() => filter().filter)
+): QueryResource<T[]> {
 
   // The user's ascents/favorites only sync while their respective filter is on.
   const userAscents = userAscentList(userId, () => filter().ascentStatus != null)
   const userFavorites = userFavoriteList(userId, () => filter().favoritesOnly)
 
-  const favoriteRouteIds = $derived(new SvelteSet(userFavorites.data.map((favorite) => favorite.routeId)))
+  const favoriteRouteIds = $derived(new Set(userFavorites.data.map((favorite) => favorite.routeId)))
 
   const ascentRouteIds = $derived.by(() => {
-    const sent = new SvelteSet<number>()
-    const attempted = new SvelteSet<number>()
+    const sent = new Set<number>()
+    const attempted = new Set<number>()
     for (const ascent of userAscents.data) {
       if (ascent.type === 'attempt') {
         attempted.add(ascent.routeFk)

@@ -1,6 +1,10 @@
+/* eslint-disable svelte/prefer-svelte-reactivity -- these collections are rebuilt wholesale
+   inside $derived (the new reference is the reactivity) and never mutated afterwards.
+   SvelteMap made the counter loops pathological in dev: Svelte captures an Error stack per
+   set once a signal updates >5 times per flush, costing >1s on the initial /explore load. */
 import { areaList } from '$lib/entities/area/resources.svelte'
 import { blockList } from '$lib/entities/block/resources.svelte'
-import { SvelteMap } from 'svelte/reactivity'
+import { routeMapList } from '$lib/entities/route/resources.svelte'
 import { isParsedFilterActive, type ParsedRouteFilter } from './filter'
 import { filteredRouteList } from './filteredRoutes.svelte'
 import type { MapData } from './types'
@@ -11,7 +15,12 @@ import type { MapData } from './types'
  * picker renders the exact same map as /explore.
  */
 export function createExploreMapData(filters: () => ParsedRouteFilter, userId: () => number | undefined) {
-  const routes = filteredRouteList(filters, userId)
+  // Slim rows (no related trees): the map only reads id/blockFk/gradeFk per route.
+  const routes = filteredRouteList(
+    routeMapList(() => filters().filter),
+    filters,
+    userId,
+  )
   const blocksResult = blockList(() => ({}))
   const areasResult = areaList(() => ({}))
 
@@ -21,7 +30,7 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
   // feed) keep stable references. That keeps the map's per-layer effects granular: an
   // update touches just the affected layer instead of rebuilding (and flashing) them all.
   const routeCountByBlock = $derived.by(() => {
-    const counts = new SvelteMap<number, number>()
+    const counts = new Map<number, number>()
     for (const route of routes.data) {
       if (route.blockFk != null) counts.set(route.blockFk, (counts.get(route.blockFk) ?? 0) + 1)
     }
@@ -29,12 +38,12 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
   })
 
   const gradeCountByBlock = $derived.by(() => {
-    const counts = new SvelteMap<number, SvelteMap<number, number>>()
+    const counts = new Map<number, Map<number, number>>()
     for (const route of routes.data) {
       if (route.blockFk == null || route.gradeFk == null) continue
       let byGrade = counts.get(route.blockFk)
       if (byGrade == null) {
-        byGrade = new SvelteMap<number, number>()
+        byGrade = new Map<number, number>()
         counts.set(route.blockFk, byGrade)
       }
       byGrade.set(route.gradeFk, (byGrade.get(route.gradeFk) ?? 0) + 1)

@@ -1,6 +1,8 @@
+/* eslint-disable svelte/prefer-svelte-reactivity -- these collections are rebuilt wholesale
+   inside $derived (the new reference is the reactivity) and never mutated afterwards.
+   Plain Map avoids per-key signal overhead; see exploreData.svelte.ts for the dev-mode cost. */
 import type { BlockDetail } from '$lib/entities/block/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
-import { SvelteMap, SvelteSet } from 'svelte/reactivity'
 import type { BlocksMapProps } from './types'
 
 export const withPadding = (
@@ -27,13 +29,13 @@ export const withPadding = (
 
 export function createMapData(props: BlocksMapProps) {
   const geoBlocks = $derived(props.blocks.filter((block) => block.geolocation != null))
-  const routeCountByBlock = $derived(props.routeCountByBlock ?? new SvelteMap<number, number>())
-  const gradeCountByBlock = $derived(props.gradeCountByBlock ?? new SvelteMap<number, Map<number, number>>())
+  const routeCountByBlock = $derived(props.routeCountByBlock ?? new Map<number, number>())
+  const gradeCountByBlock = $derived(props.gradeCountByBlock ?? new Map<number, Map<number, number>>())
 
   // Area tier — the outermost grouping, shown when zoomed out so the far view isn't
   // cluttered with every crag. Group each block under its first (outermost) area ancestor.
   const blocksByArea = $derived.by(() => {
-    const grouped = new SvelteMap<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
+    const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
 
     for (const block of geoBlocks) {
       const area = block.areas.find((area) => area.type === 'area')
@@ -53,7 +55,7 @@ export function createMapData(props: BlocksMapProps) {
   // Crag tier — the block-holding area, shown at mid zoom (between the area rects and the
   // individual block markers).
   const blocksByCrag = $derived.by(() => {
-    const grouped = new SvelteMap<number, { crag: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
+    const grouped = new Map<number, { crag: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
 
     for (const block of geoBlocks) {
       const crag = block.areas.find((area) => area.type === 'crag')
@@ -71,7 +73,7 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const routeCountByArea = $derived.by(() => {
-    const counts = new SvelteMap<number, number>()
+    const counts = new Map<number, number>()
     const rcMap = routeCountByBlock
 
     for (const [areaId, group] of blocksByArea) {
@@ -86,7 +88,7 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const routeCountByCrag = $derived.by(() => {
-    const counts = new SvelteMap<number, number>()
+    const counts = new Map<number, number>()
     const rcMap = routeCountByBlock
 
     for (const [cragId, group] of blocksByCrag) {
@@ -101,8 +103,8 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   // Per-grade route counts, merged from each member block, for the donut markers.
-  const mergeGradeCounts = (blocks: BlockDetail[]): SvelteMap<number, number> => {
-    const merged = new SvelteMap<number, number>()
+  const mergeGradeCounts = (blocks: BlockDetail[]): Map<number, number> => {
+    const merged = new Map<number, number>()
     for (const block of blocks) {
       const byGrade = gradeCountByBlock.get(block.id)
       if (byGrade == null) continue
@@ -114,7 +116,7 @@ export function createMapData(props: BlocksMapProps) {
   }
 
   const gradeCountByArea = $derived.by(() => {
-    const counts = new SvelteMap<number, Map<number, number>>()
+    const counts = new Map<number, Map<number, number>>()
     for (const [areaId, group] of blocksByArea) {
       counts.set(areaId, mergeGradeCounts(group.blocks))
     }
@@ -122,7 +124,7 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const gradeCountByCrag = $derived.by(() => {
-    const counts = new SvelteMap<number, Map<number, number>>()
+    const counts = new Map<number, Map<number, number>>()
     for (const [cragId, group] of blocksByCrag) {
       counts.set(cragId, mergeGradeCounts(group.blocks))
     }
@@ -130,7 +132,7 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const areaBoundingBoxes = $derived.by(() => {
-    const boxes = new SvelteMap<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>()
+    const boxes = new Map<number, { area: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>()
 
     for (const [areaId, group] of blocksByArea) {
       const coords = group.blocks.map((block) => block.geolocation!).filter((location) => location != null)
@@ -152,7 +154,7 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const cragBoundingBoxes = $derived.by(() => {
-    const boxes = new SvelteMap<number, { crag: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>()
+    const boxes = new Map<number, { crag: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>()
 
     for (const [cragId, group] of blocksByCrag) {
       const coords = group.blocks.map((block) => block.geolocation!).filter((location) => location != null)
@@ -174,14 +176,14 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const uniqueParkingLocations = $derived.by(() => {
-    const deduplicated = new SvelteMap<number, Geolocation>()
+    const deduplicated = new Map<number, Geolocation>()
     for (const parkingLocation of props.parkingLocations ?? []) {
       deduplicated.set(parkingLocation.id, parkingLocation)
     }
     return [...deduplicated.values()]
   })
 
-  const uniqueLineStrings = $derived([...new SvelteSet(props.lineStrings ?? [])])
+  const uniqueLineStrings = $derived([...new Set(props.lineStrings ?? [])])
 
   return {
     get geoBlocks() {

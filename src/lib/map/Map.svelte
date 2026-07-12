@@ -36,7 +36,6 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { SvelteSet } from 'svelte/reactivity'
   import { getGlobalState } from '$lib/state/global.svelte'
 
   const props: BlocksMapProps = $props()
@@ -179,7 +178,8 @@
     pathLayer = path
 
     // Toggle panel: the base layers (OSM + WMS) plus the single "Markers" group.
-    const seenLayers = new SvelteSet<string>()
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local dedupe, not reactive state
+    const seenLayers = new Set<string>()
     layerEntries = mapInstance
       .getLayers()
       .getArray()
