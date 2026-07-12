@@ -17,8 +17,9 @@ export function toRouteAscent(row: RouteAscentRow): RouteAscent {
   return {
     id: row.id,
     gradeFk: row.gradeFk ?? undefined,
-    // The ascent's creator owns its media; carried onto each file so the client
-    // can mirror the own-ascent-media RLS grants (edit/delete/visibility).
-    files: (row.files ?? []).map((file) => toMediaFile(file, row.createdBy)),
+    // The ascent's creator owns its media; stamped onto each file so the client can
+    // mirror the own-ascent-media RLS grants (edit/delete/visibility). Stamped here,
+    // not via a toMediaFile param — see the note on toMediaFile.
+    files: (row.files ?? []).map((file) => ({ ...toMediaFile(file), ascentCreatedBy: row.createdBy })),
   }
 }

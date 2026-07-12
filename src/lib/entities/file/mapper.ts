@@ -17,9 +17,11 @@ interface FileRow {
   author?: { id: number; username: string } | null
 }
 
-/** `ascentCreatedBy`: the parent ascent's creator, passed by the ascent mapper for
- *  files reached through an ascent; files attached to other entities leave it unset. */
-export function toMediaFile(row: FileRow, ascentCreatedBy?: number): MediaFile {
+/** `ascentCreatedBy` is deliberately NOT a parameter: it feeds permission checks, and an
+ *  optional second param made `rows.map(toMediaFile)` silently pass the array INDEX as the
+ *  owner (own-media grants leaked to whichever user's id matched a file's position). The
+ *  ascent mapper stamps it onto the returned object instead. */
+export function toMediaFile(row: FileRow): MediaFile {
   return {
     id: row.id,
     path: row.path,
@@ -31,6 +33,6 @@ export function toMediaFile(row: FileRow, ascentCreatedBy?: number): MediaFile {
     visibility: row.visibility ?? undefined,
     source: row.bunnyStream?.source ?? undefined,
     uploader: row.author ? { id: row.author.id, username: row.author.username } : undefined,
-    ascentCreatedBy,
+    ascentCreatedBy: undefined,
   }
 }
