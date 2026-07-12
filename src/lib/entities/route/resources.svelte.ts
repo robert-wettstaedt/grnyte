@@ -31,7 +31,7 @@ export function routeList(filter: () => RouteListFilter = () => ({})) {
 export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
-    (rows) => rows.map((row) => ({ id: row.id, blockFk: row.blockFk, gradeFk: row.gradeFk ?? undefined })),
+    (rows) => rows.map((row) => ({ id: row.id, blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined })),
   )
 }
 

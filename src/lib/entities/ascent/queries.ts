@@ -4,6 +4,17 @@ import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
 
 export const ascentsQueryDefs = {
+  // One ascent with its media, for the edit-ascent form.
+  ascent: defineQuery(
+    z.object({ ascentId: z.number() }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+      return zql.ascents
+        .where('id', args.ascentId)
+        .related('files', (q) => r(q).related('bunnyStream').related('author'))
+    }),
+  ),
+
   // All ascents of one route, with their media: feeds the route detail page's
   // grade-opinion chart (ascents.gradeFk) and its beta videos (ascent files).
   listRouteAscents: defineQuery(

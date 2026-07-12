@@ -9,6 +9,7 @@ import { migrate as migrateImageDerivatives } from './scripts/migrate-image-deri
 import { migrate as migrateMentions } from './scripts/migrate-mentions'
 import { migrate as migratePromoteOriginals } from './scripts/migrate-promote-originals'
 import { migrate as migrateTopoPaths } from './scripts/migrate-topo-paths'
+import { migrate as migrateUserGrades } from './scripts/migrate-user-grades'
 import { migrate as setup } from './scripts/setup-table-permissions'
 
 const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
@@ -23,5 +24,6 @@ await migrateBlockOrder(db)
 await migratePromoteOriginals(db)
 await migrateImageDerivatives(db)
 await migrateTopoPaths(db)
+await migrateUserGrades(db)
 
 await postgres.end()

@@ -1,8 +1,16 @@
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import type { AscentType } from './dto'
-import { toRouteAscent, toUserAscent } from './mapper'
+import { toAscentDetail, toRouteAscent, toUserAscent } from './mapper'
 import { ascentStatusByRoute } from './status'
+
+/** One ascent with its media, for the edit-ascent form. */
+export function ascentDetail(id: () => number) {
+  return createResource(
+    () => queries.ascent({ ascentId: id() }),
+    (rows) => (rows[0] == null ? undefined : toAscentDetail(rows[0])),
+  )
+}
 
 /**
  * All ascents of one route, with their media — the route detail page's

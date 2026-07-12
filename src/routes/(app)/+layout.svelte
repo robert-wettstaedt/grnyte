@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invalidate } from '$app/navigation'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
@@ -12,9 +13,25 @@
   import { pwaAssetsHead } from 'virtual:pwa-assets/head'
   import { pwaInfo } from 'virtual:pwa-info'
 
-  const { children } = $props()
+  const { children, data } = $props()
 
   const globalState = setGlobalState()
+
+  // Feed Supabase token refreshes to Zero. Supabase rotates the access token
+  // hourly; without this, zero-cache rejects the stale token, the sync socket
+  // dies in `needs-auth` (Zero does not retry that state), and the app silently
+  // serves only what is already in the local replica (anything else loads
+  // forever). Invalidation re-runs the layout load (`depends('supabase:auth')`),
+  // and initZero hands the fresh token to the existing client.
+  $effect(() => {
+    const { data: auth } = data.supabase.auth.onAuthStateChange((_, newSession) => {
+      if (newSession?.access_token !== data.session?.access_token) {
+        void invalidate('supabase:auth')
+      }
+    })
+
+    return () => auth.subscription.unsubscribe()
+  })
 
   // Track same-origin history depth app-wide so back buttons (and the media viewer's
   // close) can fall back to an in-app route instead of leaving the origin. Lives at the

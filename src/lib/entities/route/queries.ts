@@ -33,15 +33,16 @@ export const routesQueryDefs = {
         q = q.where('areaIds', 'ILIKE', `%^${args.areaId}$%`)
       }
 
+      // Filters run on the community grade/rating, the values every list displays.
       if (args.minGrade != null) {
-        q = q.where('gradeFk', '>=', args.minGrade)
+        q = q.where('userGradeFk', '>=', args.minGrade)
       }
       if (args.maxGrade != null) {
-        q = q.where('gradeFk', '<=', args.maxGrade)
+        q = q.where('userGradeFk', '<=', args.maxGrade)
       }
 
       if (args.minRating != null) {
-        q = q.where('rating', '>=', args.minRating)
+        q = q.where('userRating', '>=', args.minRating)
       }
 
       if (args.tags != null && args.tags.length > 0) {
@@ -119,15 +120,16 @@ export const routesQueryDefs = {
         q = q.where('areaIds', 'ILIKE', `%^${args.areaId}$%`)
       }
 
+      // Filters run on the community grade/rating, the values every list displays.
       if (args.minGrade != null) {
-        q = q.where('gradeFk', '>=', args.minGrade)
+        q = q.where('userGradeFk', '>=', args.minGrade)
       }
       if (args.maxGrade != null) {
-        q = q.where('gradeFk', '<=', args.maxGrade)
+        q = q.where('userGradeFk', '<=', args.maxGrade)
       }
 
       if (args.minRating != null) {
-        q = q.where('rating', '>=', args.minRating)
+        q = q.where('userRating', '>=', args.minRating)
       }
 
       if (args.tags != null && args.tags.length > 0) {
@@ -164,15 +166,18 @@ export const routesQueryDefs = {
       }
 
       if (args.sortOrder != null && args.sort != null) {
-        q = q.orderBy(args.sort === 'grade' ? 'gradeFk' : args.sort, args.sortOrder)
+        q = q.orderBy(
+          args.sort === 'grade' ? 'userGradeFk' : args.sort === 'rating' ? 'userRating' : args.sort,
+          args.sortOrder,
+        )
 
         switch (args.sort) {
           case 'rating':
-            q = q.orderBy('gradeFk', 'asc')
+            q = q.orderBy('userGradeFk', 'asc')
             break
 
           case 'grade':
-            q = q.orderBy('rating', 'desc')
+            q = q.orderBy('userRating', 'desc')
             break
         }
 

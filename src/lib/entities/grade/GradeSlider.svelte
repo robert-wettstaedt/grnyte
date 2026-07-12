@@ -4,6 +4,7 @@
   import type { Grade } from '$lib/entities/grade/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
   import type { GradingScale } from '$lib/entities/user/dto'
+  import ClearButton from '$lib/forms/ClearButton.svelte'
   import { m } from '$lib/paraglide/messages'
   import { Slider } from '@skeletonlabs/skeleton-svelte'
 
@@ -45,9 +46,7 @@
     {:else}
       <RouteGrade grade={gradeLabel(grades, gradingScale, value)} {band} />
       <span class="flex-1"></span>
-      <button class="btn-sm text-surface-600-400 font-semibold" onclick={() => (value = undefined)} type="button">
-        {m.common_clear()}
-      </button>
+      <ClearButton onclick={() => (value = undefined)} />
     {/if}
   </div>
 

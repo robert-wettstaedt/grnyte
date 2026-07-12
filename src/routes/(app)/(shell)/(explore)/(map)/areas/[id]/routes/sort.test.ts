@@ -12,7 +12,6 @@ const route = (over: Partial<RouteListItem>): RouteListItem => ({
   name: '',
   rating: 0,
   tags: [],
-  userRating: 0,
   ...over,
 })
 

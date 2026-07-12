@@ -81,7 +81,7 @@ export function toTopoViews(block: BlockRow): TopoView[] {
               routeId: tr.routeFk!,
               name: route?.name ?? '',
               topType: tr.topType,
-              gradeFk: route?.gradeFk ?? undefined,
+              gradeFk: route?.userGradeFk ?? undefined,
               points: convertPathToPoints(tr.path!),
             }
           })

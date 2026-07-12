@@ -23,6 +23,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
 import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
+import { recalcUserGradeAndRating } from './user-grade.server'
 
 const faClimberSchema = z.object({
   name: z.string().trim().min(1),
@@ -160,6 +161,10 @@ export const createRoute = authedForm(routeActionSchema, async (value, { db, use
     })
     .returning()
 
+  // Seeds userGradeFk/userRating from the route's own grade (no ascent votes yet),
+  // through the same SQL every other write path uses.
+  await recalcUserGradeAndRating(db, route.id)
+
   if (value.tags.length > 0) {
     await db
       .insert(routesToTags)
@@ -220,6 +225,9 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
       rating: value.rating ?? null,
     })
     .where(eq(routes.id, route.id))
+
+  // The route's own grade/rating is one of the community votes.
+  await recalcUserGradeAndRating(db, route.id)
 
   if (tagsChanged) {
     const removed = oldTags.filter((tag) => !newTags.includes(tag))
@@ -450,6 +458,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     }
 
     const [created] = await db.insert(routes).values(snapshot.route).returning()
+    await recalcUserGradeAndRating(db, created.id)
 
     if (snapshot.tags.length > 0) {
       await db

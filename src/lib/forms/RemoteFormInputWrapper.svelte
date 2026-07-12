@@ -2,8 +2,8 @@
   import type { RemoteFormIssue } from '@sveltejs/kit'
   import type { Snippet } from 'svelte'
   import type { ClassValue, HTMLAttributes } from 'svelte/elements'
-  import { m } from '$lib/paraglide/messages'
   import FormHint from './FormHint.svelte'
+  import OptionalBadge from './OptionalBadge.svelte'
 
   interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
     children: Snippet<[HTMLAttributes<HTMLElement>]>
@@ -24,11 +24,7 @@
       {label}
 
       {#if !required}
-        <span
-          class="bg-surface-200-800 text-surface-500 inline-flex h-5 items-center rounded-full px-2 text-[10.5px] font-bold tracking-[0.03em] uppercase"
-        >
-          {m.optional()}
-        </span>
+        <OptionalBadge />
       {/if}
     </label>
   {/if}

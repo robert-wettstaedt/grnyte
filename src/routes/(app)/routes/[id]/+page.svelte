@@ -9,6 +9,7 @@
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
@@ -29,9 +30,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { toaster } from '$lib/state/toast'
   import { SvelteMap } from 'svelte/reactivity'
-  import MediaGrid from './MediaGrid.svelte'
   import RouteActions from './RouteActions.svelte'
 
   const global = getGlobalState()
@@ -103,9 +102,7 @@
     goto(href)
   }
 
-  // ponytail: placeholder — no ascent-logging flow exists yet (internal branch).
-  // Swap the toast for a goto() to the log route once it lands.
-  const onLog = () => toaster.create({ type: 'info', title: m.common_comingSoon(), duration: 2500 })
+  const logHref = $derived(resolve('/(app)/routes/[id]/ascents/add', { id: String(routeId) }))
 </script>
 
 <svelte:head>
@@ -253,7 +250,7 @@
           </section>
         {/if}
 
-        {#if detail.gradeFk != null || countByGrade.size > 0}
+        {#if detail.rawGradeFk != null || countByGrade.size > 0}
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
@@ -266,13 +263,13 @@
 
             <!-- The route's grade is the grade it was created with; the community's votes
                  (the chart) are what shift the consensus away from it over time. -->
-            {#if detail.gradeFk != null}
+            {#if detail.rawGradeFk != null}
               <div
                 class="border-surface-200-800 bg-surface-50-950 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
               >
                 <RouteGrade
-                  band={getGradeBand(detail.gradeFk)}
-                  grade={gradeLabel(global.grades, global.gradingScale, detail.gradeFk)}
+                  band={getGradeBand(detail.rawGradeFk)}
+                  grade={gradeLabel(global.grades, global.gradingScale, detail.rawGradeFk)}
                 />
                 <span class="text-surface-600-400 text-sm font-semibold">{m.routes_originalGrade()}</span>
               </div>
@@ -303,8 +300,7 @@
 
       <!-- Sticky footer: sibling prev/next pager (like the explore sheets' NavFooter) on the
            left, the always-visible primary action on the right. Footer treatment mirrors the
-           app's modal footers (border-t-2, btn-sm). The Log button is a placeholder for now:
-           the ascent-logging flow lands later on this internal branch. -->
+           app's modal footers (border-t-2, btn-sm). -->
       <footer
         class="border-surface-100-900 bg-surface-50-950 sticky bottom-0 z-10 mt-auto flex items-center justify-between gap-2 border-t-2 px-4 py-3"
       >
@@ -316,10 +312,10 @@
           <span></span>
         {/if}
 
-        <button class="btn btn-sm preset-filled-primary-500" onclick={onLog} type="button">
+        <a class="btn btn-sm preset-filled-primary-500" href={logHref}>
           <Icon name="check" size={16} />
           {m.routes_logAscent()}
-        </button>
+        </a>
       </footer>
     </div>
   {/snippet}

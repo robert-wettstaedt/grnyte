@@ -38,9 +38,9 @@
   // Seeded once from the route on mount, deliberately: reading live data on every
   // change would clobber the user's edits (same rule as the pages' prefill effects).
   // svelte-ignore state_referenced_locally
-  let gradeFk = $state(route?.gradeFk)
+  let gradeFk = $state(route?.rawGradeFk)
   // svelte-ignore state_referenced_locally
-  let rating = $state(route?.rating ?? 0)
+  let rating = $state(route?.rawRating ?? 0)
   // svelte-ignore state_referenced_locally
   let tags = $state([...(route?.tags ?? [])])
   // svelte-ignore state_referenced_locally

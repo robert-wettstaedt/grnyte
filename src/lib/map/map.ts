@@ -1,4 +1,5 @@
 import { browser } from '$app/environment'
+import { isImperialLocale } from '$lib/units'
 
 // iOS deep-links into Apple Maps; everywhere else Google Maps' universal URL
 // handles both the Android app and desktop browsers. (iPadOS reports as Mac, so
@@ -40,9 +41,6 @@ export const haversineMetres = (a: Coords, b: Coords): number => {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-// ponytail: metric vs imperial picked from the locale region; swap for a user setting if people ask.
-const IMPERIAL_REGIONS = ['US', 'GB', 'LR', 'MM']
-
 /** Display value + Intl unit, switching to the smaller unit (metres/feet) up close. */
 export const pickDistanceUnit = (metres: number, imperial: boolean): { value: number; unit: string } => {
   if (imperial) {
@@ -57,8 +55,7 @@ export const pickDistanceUnit = (metres: number, imperial: boolean): { value: nu
 
 /** Localized "18 km" / "300 m" / "0.5 mi" for a raw metre value; unit inferred from the runtime locale. */
 export const formatMetres = (metres: number): string => {
-  const region = new Intl.Locale(navigator.language).maximize().region ?? ''
-  const { value, unit } = pickDistanceUnit(metres, IMPERIAL_REGIONS.includes(region))
+  const { value, unit } = pickDistanceUnit(metres, isImperialLocale())
   return new Intl.NumberFormat(navigator.language, {
     style: 'unit',
     unit,

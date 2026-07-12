@@ -13,12 +13,11 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     description: row.description ?? '',
     firstAscentYear: row.firstAscentYear ?? undefined,
-    gradeFk: row.gradeFk ?? undefined,
+    gradeFk: row.userGradeFk ?? undefined,
     id: row.id,
     name: row.name.length === 0 ? m.common_unnamed() : row.name,
-    rating: row.rating ?? 0,
+    rating: row.userRating ?? 0,
     tags: row.tags.map((t) => t.tagFk),
-    userRating: row.userRating ?? 0,
     topoImagePath: thumb?.imagePath,
     topoPoints: thumb?.points,
   }
@@ -29,6 +28,8 @@ export function toRouteDetail(row: RouteListRow): RouteDetail {
     ...toRouteListItem(row),
     regionFk: row.regionFk,
     rawName: row.name,
+    rawGradeFk: row.gradeFk ?? undefined,
+    rawRating: row.rating ?? 0,
     firstAscents: row.firstAscents.flatMap((fa) =>
       fa.firstAscensionist == null
         ? []

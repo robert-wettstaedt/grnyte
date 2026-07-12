@@ -1,7 +1,7 @@
 <script module lang="ts">
   import type { AscentType } from './dto'
 
-  interface StatusInfo {
+  export interface StatusInfo {
     /** Accessible label, e.g. "Flashed". */
     label: string
     /** Accent colour (a `--st-*` token). */
@@ -14,7 +14,8 @@
     dash: string
   }
 
-  const STATUS: Record<AscentType, StatusInfo> = {
+  /** Also drives the ascent form's type picker, so the glyphs stay in sync. */
+  export const STATUS: Record<AscentType, StatusInfo> = {
     flash: {
       label: 'Flashed',
       color: 'var(--st-flash)',
@@ -41,6 +42,8 @@
 </script>
 
 <script lang="ts">
+  import AscentTypeGlyph from './AscentTypeGlyph.svelte'
+
   interface Props {
     /** The user's logged ascent state; renders nothing when `undefined`. */
     status: AscentType | undefined
@@ -59,18 +62,6 @@
     style:background="color-mix(in oklab, {info.color} 20%, transparent)"
     aria-label={info.label}
   >
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill={info.filled ? info.color : 'none'}
-      stroke={info.color}
-      stroke-width="2.4"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-dasharray={info.dash}
-    >
-      <path d={info.path} />
-    </svg>
+    <AscentTypeGlyph {info} />
   </span>
 {/if}

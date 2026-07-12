@@ -35,8 +35,8 @@ export function blockRouteList(id: () => number) {
       (row?.routes ?? []).map((route) => ({
         id: route.id,
         name: route.name.length === 0 ? m.common_unnamed() : route.name,
-        gradeFk: route.gradeFk ?? undefined,
-        rating: route.rating ?? 0,
+        gradeFk: route.userGradeFk ?? undefined,
+        rating: route.userRating ?? 0,
         description: route.description ?? '',
         tags: route.tags.map((tag) => tag.tagFk),
       })),
