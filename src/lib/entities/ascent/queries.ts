@@ -15,8 +15,8 @@ export const ascentsQueryDefs = {
     }),
   ),
 
-  // All ascents of one route, with their media: feeds the route detail page's
-  // grade-opinion chart (ascents.gradeFk) and its beta videos (ascent files).
+  // All ascents of one route, with their media and author: feeds the route detail
+  // page's ascent list, grade-opinion chart, and beta videos (ascent files).
   listRouteAscents: defineQuery(
     z.object({ routeId: z.number() }),
     regionMemberCan(({ args, ctx }) => {
@@ -25,6 +25,7 @@ export const ascentsQueryDefs = {
       // through an already region-filtered file (and RLS re-checks them server-side).
       return zql.ascents
         .where('routeFk', args.routeId)
+        .related('author')
         .related('files', (q) => r(q).related('bunnyStream').related('author'))
     }),
   ),

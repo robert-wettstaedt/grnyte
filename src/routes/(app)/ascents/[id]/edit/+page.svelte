@@ -3,12 +3,10 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import Dialog from '$lib/components/Dialog/Dialog.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
-  import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import AscentFormFields from '$lib/entities/ascent/AscentFormFields.svelte'
-  import { deleteAscent, updateAscent } from '$lib/entities/ascent/ascents.remote'
+  import { updateAscent } from '$lib/entities/ascent/ascents.remote'
   import { canEditAscent } from '$lib/entities/ascent/permissions'
   import { ascentDetail } from '$lib/entities/ascent/resources.svelte'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
@@ -17,7 +15,6 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { toaster } from '$lib/state/toast'
 
   const global = getGlobalState()
   const ascent = ascentDetail(() => Number(page.params.id))
@@ -50,17 +47,6 @@
     if (updateAscent.result?.data?.id == null) return
     await goto(routeHref)
   }
-
-  const onDelete = async () => {
-    const data = ascent.data
-    if (data == null) return
-    // Captured before the delete: once the removal syncs, ascent.data (and with it
-    // routeHref) goes away.
-    const href = routeHref
-    await deleteAscent({ id: data.id })
-    toaster.create({ type: 'info', title: m.ascents_deleted() })
-    await goto(href)
-  }
 </script>
 
 <svelte:head>
@@ -82,22 +68,6 @@
                 title={m.ascents_editAscent()}
               >
                 <AscentFormFields ascent={detail} block={blockData} form={updateAscent} route={routeData} />
-
-                <!-- Danger zone: deleting takes the attached media with it, so it
-                     confirms instead of offering undo (the media can't come back). -->
-                <div class="border-surface-200-800 border-t pt-5">
-                  <Dialog title={m.ascents_delete()} saveText={m.ascents_delete()} onsave={onDelete}>
-                    {#snippet trigger()}
-                      <span class="btn preset-tonal-error w-full">
-                        <Icon name="trash" size={16} />
-                        {m.ascents_delete()}
-                      </span>
-                    {/snippet}
-                    {#snippet content()}
-                      {m.ascents_deleteConfirm({ name: routeData.name })}
-                    {/snippet}
-                  </Dialog>
-                </div>
               </Form>
             {:else}
               <ErrorState type="notfound" title={m.ascents_notFound()} />

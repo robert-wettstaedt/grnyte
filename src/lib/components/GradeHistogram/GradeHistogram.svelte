@@ -12,10 +12,12 @@
     countByGrade: Map<number, number>
     /** Routes with no grade, surfaced as a trailing count below the chart. */
     ungraded?: number
+    /** Show the count above each non-empty bar (for small-n charts like grade votes). */
+    showCounts?: boolean
     onselect?: (bar: { label: string; count: number } | null) => void
   }
 
-  const { grades, gradingScale, countByGrade, ungraded = 0, onselect }: Props = $props()
+  const { grades, gradingScale, countByGrade, ungraded = 0, showCounts = false, onselect }: Props = $props()
 
   interface Bar {
     id: number
@@ -126,7 +128,8 @@
 </script>
 
 {#if useHistogram}
-  <div role="img" aria-label={m.area_grades()}>
+  <!-- Count labels overhang the tallest bar, so give them headroom. -->
+  <div role="img" aria-label={m.area_grades()} class:pt-4={showCounts}>
     <!-- Bars rise from a shared baseline; each grade gets an equal-width column
          scaled against the busiest grade in the range. The pointer's x picks the
          bar underneath (touch-pan-y keeps vertical page scroll). -->
@@ -140,10 +143,18 @@
     >
       {#each bars as bar (bar.id)}
         <div
-          class="flex-1 rounded-t-sm transition-[height,opacity]"
+          class="relative flex-1 rounded-t-sm transition-[height,opacity]"
           class:opacity-40={selectedId != null && selectedId !== bar.id}
           style="height: {barHeight(bar.count)}%; background-color: {bar.color}"
-        ></div>
+        >
+          {#if showCounts && bar.count > 0}
+            <span
+              class="text-surface-600-400 absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap tabular-nums"
+            >
+              {bar.count}
+            </span>
+          {/if}
+        </div>
       {/each}
     </div>
 

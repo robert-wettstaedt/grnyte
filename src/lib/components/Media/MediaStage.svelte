@@ -8,11 +8,21 @@
   import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import Modal from '$lib/components/Modal/Modal.svelte'
   import { panzoom } from '$lib/components/Topo/panzoom'
+  import AscentType from '$lib/entities/ascent/AscentType.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
-  import { formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { getGradeBand } from '$lib/entities/grade/color'
+  import { gradeLabel } from '$lib/entities/grade/label'
+  import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
+  import RouteRating from '$lib/entities/route/RouteRating.svelte'
+  import { now } from '$lib/state/now.svelte'
+  import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
+  import { getGlobalState } from '$lib/state/global.svelte'
+  import { formatConditions } from '$lib/i18n/units'
   import { bunnyHls, bunnyIframe } from '$lib/videos/bunny'
   import type Hls from 'hls.js'
   import type { Attachment } from 'svelte/attachments'
@@ -28,12 +38,25 @@
 
   const { file, onZoomChange, onFallback }: Props = $props()
 
+  const global = getGlobalState()
+
   const guid = $derived(file.bunnyStreamFk)
   const isVideo = $derived(guid != null)
 
+  // Reel-style ascent context: a tappable collapsed line (type, date, first line of
+  // the note) that expands into a sheet with the whole ascent.
+  let infoOpen = $state(false)
+  const ascentHref = $derived(
+    file.ascent == null ? '' : resolve('/(app)/ascents/[id]', { id: String(file.ascent.id) }),
+  )
+  const ascentNotes = $derived(file.ascent?.notes.trim() ?? '')
+  const ascentConditions = $derived(
+    file.ascent == null ? '' : formatConditions(file.ascent.temperature, file.ascent.humidity),
+  )
+
   // Caption timestamp: relative ("3 days ago") within a week, absolute date beyond it.
   // Tapping swaps it to the exact date + time; hover shows the same via `title`.
-  const uploadedRelative = $derived(formatUploadedAt(file.createdAt, Date.now(), getLocale()))
+  const uploadedRelative = $derived(formatUploadedAt(file.createdAt, now(), getLocale()))
   const uploadedExact = $derived(
     new Intl.DateTimeFormat(getLocale(), { dateStyle: 'long', timeStyle: 'short' }).format(file.createdAt),
   )
@@ -286,6 +309,82 @@
             <time datetime={uploadedIso}>{showExact ? uploadedExact : uploadedRelative}</time>
           </button>
         </div>
+      {/if}
+
+      <!-- Beta context: this file hangs on an ascent, not on the route itself. The
+           collapsed line is the trigger; the sheet holds the whole ascent. -->
+      {#if file.ascent != null}
+        {@const ascent = file.ascent}
+        <Modal
+          backdrop
+          bind:open={infoOpen}
+          panel={false}
+          contentClass="w-96"
+          title={m.common_details()}
+          subtitle={file.uploader?.username}
+        >
+          {#snippet trigger(props)}
+            <button
+              {...props}
+              type="button"
+              class={[props.class, 'flex flex-col items-start gap-1 text-left']}
+              onclick={() => (infoOpen = !infoOpen)}
+            >
+              <span class="flex items-center gap-2">
+                <AscentType status={ascent.type} />
+                {#if ascent.dateTime != null}
+                  <span class="text-xs opacity-80">{formatDay(ascent.dateTime, now(), getLocale())}</span>
+                {/if}
+                <Icon name="chevron-down" size={14} class="rotate-180 opacity-60" />
+              </span>
+              {#if ascentNotes !== ''}
+                <span class="text-sm opacity-90">
+                  <Markdown className="short" disableLinks encloseReferences="strong" markdown={ascentNotes} />
+                </span>
+              {/if}
+            </button>
+          {/snippet}
+
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-2">
+              <!-- No gap between type and grade: adjacent .route-tags seam into one pill. -->
+              <span class="flex">
+                <AscentType status={ascent.type} />
+                <RouteGrade
+                  band={getGradeBand(ascent.gradeFk)}
+                  grade={gradeLabel(global.grades, global.gradingScale, ascent.gradeFk)}
+                />
+              </span>
+              <RouteRating rating={ascent.rating} />
+              {#if ascent.dateTime != null}
+                <span class="flex-1"></span>
+                <span class="text-surface-600-400 text-xs font-semibold">
+                  {formatDay(ascent.dateTime, now(), getLocale())}
+                </span>
+              {/if}
+            </div>
+
+            {#if ascentConditions !== ''}
+              <span
+                class="border-surface-200-800 bg-surface-100-900 text-surface-600-400 inline-flex h-6.25 items-center self-start rounded-full border px-2.5 font-mono text-[11px] font-bold"
+              >
+                {ascentConditions}
+              </span>
+            {/if}
+
+            {#if ascentNotes !== ''}
+              <div class="text-sm">
+                <Markdown markdown={ascentNotes} />
+              </div>
+            {/if}
+
+            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- ascentHref is pre-resolved above. -->
+            <a class="btn preset-outlined-surface-200-800 w-full" href={ascentHref}>
+              {m.ascents_viewAscent()}
+              <Icon name="chevron-right" size={15} />
+            </a>
+          </div>
+        </Modal>
       {/if}
 
       {#if sourceHost != null}

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
-  import { STATUS } from './AscentType.svelte'
+  import { ASCENT_TYPES, STATUS } from './AscentType.svelte'
   import AscentTypeGlyph from './AscentTypeGlyph.svelte'
   import type { AscentType } from './dto'
 
@@ -13,13 +13,6 @@
   }
 
   let { name, value = $bindable() }: Props = $props()
-
-  const types: { type: AscentType; label: string }[] = [
-    { type: 'flash', label: m.ascents_form_typeFlash() },
-    { type: 'send', label: m.ascents_form_typeSend() },
-    { type: 'attempt', label: m.ascents_form_typeAttempt() },
-    { type: 'repeat', label: m.ascents_form_typeRepeat() },
-  ]
 </script>
 
 {#if name != null}
@@ -27,7 +20,7 @@
 {/if}
 
 <div class="grid grid-cols-4 gap-2" role="radiogroup" aria-label={m.ascents_form_typeLabel()}>
-  {#each types as { type, label } (type)}
+  {#each ASCENT_TYPES as { type, label } (type)}
     {@const info = STATUS[type]}
     {@const active = value === type}
     <button
@@ -44,7 +37,7 @@
       type="button"
     >
       <AscentTypeGlyph {info} size={20} />
-      {label}
+      {label()}
     </button>
   {/each}
 </div>

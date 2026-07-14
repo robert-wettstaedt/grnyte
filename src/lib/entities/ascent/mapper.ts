@@ -34,14 +34,33 @@ export function toAscentDetail(row: AscentRow): AscentDetail {
 export function toRouteAscent(row: RouteAscentRow): RouteAscent {
   return {
     id: row.id,
+    authorName: row.author?.username ?? '',
     createdBy: row.createdBy,
     dateTime: row.dateTime ?? undefined,
     gradeFk: row.gradeFk ?? undefined,
+    humidity: row.humidity ?? undefined,
     notes: row.notes ?? '',
+    rating: row.rating ?? undefined,
+    regionFk: row.regionFk,
+    temperature: row.temperature ?? undefined,
     type: row.type,
     // The ascent's creator owns its media; stamped onto each file so the client can
     // mirror the own-ascent-media RLS grants (edit/delete/visibility). Stamped here,
-    // not via a toMediaFile param — see the note on toMediaFile.
-    files: (row.files ?? []).map((file) => ({ ...toMediaFile(file), ascentCreatedBy: row.createdBy })),
+    // not via a toMediaFile param — see the note on toMediaFile. The `ascent` stamp
+    // is what marks the file as beta wherever it renders (thumbnail badge, viewer caption).
+    files: (row.files ?? []).map((file) => ({
+      ...toMediaFile(file),
+      ascentCreatedBy: row.createdBy,
+      ascent: {
+        id: row.id,
+        type: row.type,
+        dateTime: row.dateTime ?? undefined,
+        notes: row.notes ?? '',
+        gradeFk: row.gradeFk ?? undefined,
+        rating: row.rating ?? undefined,
+        temperature: row.temperature ?? undefined,
+        humidity: row.humidity ?? undefined,
+      },
+    })),
   }
 }

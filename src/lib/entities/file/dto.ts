@@ -1,3 +1,5 @@
+import type { AscentType } from '$lib/entities/ascent/dto'
+
 /**
  * A displayable media file. Discriminate on `bunnyStreamFk` before treating
  * `path` as a storage location: video rows have `path === ''` and their bytes
@@ -24,4 +26,16 @@ export interface MediaFile {
   source: string | undefined
   /** Who uploaded the file (`createdBy` → users); `undefined` if the query omits the relation. */
   uploader: { id: number; username: string } | undefined
+  /** Set when the file hangs on an ascent (stamped by the ascent mapper): lets thumbnails
+   *  badge the climber and the viewer caption/detail-sheet the ascent it belongs to. */
+  ascent?: {
+    id: number
+    type: AscentType
+    dateTime: number | undefined
+    notes: string
+    gradeFk: number | undefined
+    rating: number | undefined
+    temperature: number | undefined
+    humidity: number | undefined
+  }
 }

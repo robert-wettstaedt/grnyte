@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { page } from '$app/state'
+  import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
   import MediaThumbnail from '$lib/components/Media/MediaThumbnail.svelte'
-  import MediaViewer from '$lib/components/Media/MediaViewer.svelte'
   import MediaDropZone from '$lib/components/MediaDropZone/MediaDropZone.svelte'
   import MediaUploadTile from '$lib/components/MediaDropZone/MediaUploadTile.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
@@ -12,7 +11,6 @@
     retryPending,
     type MediaUploadTarget,
   } from '$lib/entities/file/upload-manager.svelte'
-  import { back, replaceUrl } from '$lib/state/navigation.svelte'
 
   interface Props {
     items: MediaFile[]
@@ -59,28 +57,6 @@
     for (const entry of settled) dropPending(entry.upload)
   })
 
-  // `?media=<file id>` drives one viewer for the whole strip: the open media earns a
-  // history entry (back closes it) and is deep-linkable, and paging between siblings
-  // just swaps the param without remounting the dialog shell.
-  const openFile = $derived(items.find((file) => file.id === page.url.searchParams.get('media')))
-
-  const navigate = (id: string) => {
-    const url = new URL(page.url)
-    url.searchParams.set('media', id)
-    // Replace so paging stays a single history entry: back closes the viewer rather
-    // than walking back through every sibling visited. replaceUrl (not a raw goto)
-    // keeps the tracked history depth honest, so back() doesn't leave the app later.
-    void replaceUrl(url, { keepFocus: true, noScroll: true })
-  }
-
-  // Opening the viewer pushed a `?media` history entry, so back() pops it. On a
-  // deep-linked/reloaded page there is no such entry, so fall back to replacing the
-  // URL with the media-less one instead of letting history.back() leave the app.
-  const closeViewer = () => {
-    const url = new URL(page.url)
-    url.searchParams.delete('media')
-    back(url.pathname + url.search)
-  }
 </script>
 
 <!-- Horizontal snap-scrolling strip: every tile is the same height, its width set
@@ -98,10 +74,8 @@
     />
   {/each}
   {#each items as file (file.id)}
-    <MediaThumbnail {file} class="h-40 snap-start" />
+    <MediaThumbnail {file} badged class="h-40 snap-start" />
   {/each}
 </div>
 
-{#if openFile != null}
-  <MediaViewer file={openFile} siblings={items} {shareText} onNavigate={navigate} onClose={closeViewer} />
-{/if}
+<MediaLightbox {items} {shareText} />

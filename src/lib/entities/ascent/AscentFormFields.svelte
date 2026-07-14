@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
@@ -20,7 +21,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { formatCelsius } from '$lib/units'
+  import { formatCelsius } from '$lib/i18n/units'
   import type { RemoteForm } from '@sveltejs/kit'
   import type { AscentFormInput } from './ascents.remote'
   import AscentType from './AscentType.svelte'
@@ -107,7 +108,6 @@
     const current = String(form.fields.notes.value() ?? '').trim()
     form.fields.notes.set(current === '' ? notes : `${current}\n\n${notes}`)
   }
-
 </script>
 
 <!-- Submitted values not typed directly: the route the ascent belongs to. -->
@@ -121,17 +121,25 @@
 <div class="flex items-center gap-2 whitespace-nowrap">
   <Breadcrumb area={breadcrumbArea} userRegions={global.userRegions} />
   <span class="shrink-0 text-xs">·</span>
-  <span class="shrink-0 text-xs font-semibold">{block.name}</span>
+  <a
+    class="anchor shrink-0 text-xs font-semibold"
+    href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
+  >
+    {block.name}
+  </a>
 </div>
 
 <!-- The route being ticked, so the form never loses its subject. -->
-<div class="border-surface-200-800 bg-surface-50-950 flex items-center gap-3 rounded-2xl border px-3.5 py-3">
+<a
+  class="border-surface-200-800 bg-surface-50-950 hover:bg-surface-100-900 flex items-center gap-3 rounded-2xl border px-3.5 py-3"
+  href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
+>
   <RouteGrade
     band={getGradeBand(route.gradeFk)}
     grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
   />
   <span class="min-w-0 truncate text-sm font-semibold">{route.name}</span>
-</div>
+</a>
 
 <RemoteFormInputWrapper
   class="space-y-2.5"

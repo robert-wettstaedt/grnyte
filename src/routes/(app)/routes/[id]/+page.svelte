@@ -10,10 +10,13 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
+  import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import Topo from '$lib/components/Topo/Topo.svelte'
+  import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
+  import { splitAscents } from '$lib/entities/ascent/list'
   import { routeAscentList } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
@@ -75,6 +78,8 @@
     return counts
   })
   const voteCount = $derived([...countByGrade.values()].reduce((sum, n) => sum + n, 0))
+  // Bar under the pointer while scrubbing the vote histogram, echoed in the header.
+  let selectedVote = $state<{ label: string; count: number } | null>(null)
 
   // The route's own media plus beta attached to its ascents, newest upload first.
   const media = $derived(
@@ -103,6 +108,13 @@
   }
 
   const logHref = $derived(resolve('/(app)/routes/[id]/ascents/add', { id: String(routeId) }))
+  const ascentsHref = $derived(resolve('/(app)/routes/[id]/ascents', { id: String(routeId) }))
+
+  // Newest first; the signed-in climber's latest ascent is pinned above a short
+  // community preview, with the full (filterable) list one tap away.
+  const split = $derived(splitAscents(ascents.data, global.user?.id))
+  const myAscent = $derived(split.mine[0])
+  const previewAscents = $derived(split.community.slice(0, 3))
 </script>
 
 <svelte:head>
@@ -118,18 +130,7 @@
       <!-- Mirrors the area/block detail headers: back button, the name as the title with
            the entity-type tag beside it, and the containment breadcrumb as the subtitle
            above. Grade + rating sit on the right, aligned like a RouteRow. -->
-      <header
-        class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center gap-3 border-b px-3 py-3 backdrop-blur"
-      >
-        <button
-          class="btn-icon preset-filled-surface-200-800 flex-none"
-          onclick={() => back(blockHref)}
-          type="button"
-          aria-label={m.common_back()}
-        >
-          <Icon name="arrow-left" size={18} />
-        </button>
-
+      <PageHeader onback={() => back(blockHref)}>
         <div class="flex min-w-0 flex-1 flex-col">
           {#if block.data != null}
             <div class="flex min-w-0 items-center gap-2 text-xs whitespace-nowrap">
@@ -162,7 +163,7 @@
           />
           <RouteRating rating={detail.rating} />
         </div>
-      </header>
+      </PageHeader>
 
       <div class="flex flex-col gap-6 px-4 py-5">
         <!-- HERO TOPO — capped height so a portrait topo can't dominate the page. -->
@@ -250,6 +251,29 @@
           </section>
         {/if}
 
+        {#if ascents.data.length > 0}
+          <section class="flex flex-col gap-2.5">
+            <div class="flex items-baseline justify-between gap-3">
+              <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
+              <span class="text-surface-500 text-xs font-semibold">{ascents.data.length}</span>
+            </div>
+
+            <!-- Row thumbs duplicate the media section below on purpose: they link each
+                 file to its ascent, and open the same page-level viewer. -->
+            {#if myAscent != null}
+              <AscentRow ascent={myAscent} highlight routeName={detail.name} />
+            {/if}
+            {#each previewAscents as ascent (ascent.id)}
+              <AscentRow {ascent} routeName={detail.name} />
+            {/each}
+
+            <a class="btn preset-outlined-surface-200-800 w-full" href={ascentsHref}>
+              {m.ascents_seeAll({ count: ascents.data.length })}
+              <Icon name="chevron-right" size={15} />
+            </a>
+          </section>
+        {/if}
+
         {#if detail.rawGradeFk != null || countByGrade.size > 0}
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
@@ -257,7 +281,13 @@
                 {m.routes_gradeOpinions()}
               </h2>
               {#if voteCount > 0}
-                <span class="text-surface-500 text-xs font-semibold">{m.routes_gradeVotes({ count: voteCount })}</span>
+                <span class="text-surface-500 text-xs font-semibold tabular-nums">
+                  {#if selectedVote != null}
+                    {selectedVote.label} · {m.routes_gradeVotes({ count: selectedVote.count })}
+                  {:else}
+                    {m.routes_gradeVotes({ count: voteCount })}
+                  {/if}
+                </span>
               {/if}
             </div>
 
@@ -276,7 +306,13 @@
             {/if}
 
             {#if countByGrade.size > 0}
-              <GradeHistogram {countByGrade} grades={global.grades} gradingScale={global.gradingScale} />
+              <GradeHistogram
+                {countByGrade}
+                grades={global.grades}
+                gradingScale={global.gradingScale}
+                showCounts
+                onselect={(bar) => (selectedVote = bar)}
+              />
             {:else}
               <p class="text-surface-500 text-sm">{m.routes_noOpinions()}</p>
             {/if}

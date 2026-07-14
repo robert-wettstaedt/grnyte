@@ -59,10 +59,23 @@
   "areas_nameQuestion": "What should we call this area?",
   "areas_newArea": "New area",
   "areas_title": "Areas",
+  "ascents_community": "Community",
+  "ascents_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} ascent",
+        "countPlural=other": "{count} ascents"
+      }
+    }
+  ],
   "ascents_delete": "Delete ascent",
   "ascents_deleteConfirm": "Your ascent of \"{name}\" and its grade and rating opinions will be removed, along with any attached photos and videos. This cannot be undone.",
   "ascents_deleted": "Ascent deleted",
   "ascents_editAscent": "Edit ascent",
+  "ascents_empty": "No ascents yet.",
+  "ascents_filterAll": "All",
   "ascents_form_conditionsHint": "Helps others pick their day, and puts your grade opinion in context.",
   "ascents_form_conditionsLabel": "Conditions",
   "ascents_form_dateLabel": "When",
@@ -84,6 +97,10 @@
   "ascents_form_typeRepeat": "Repeat",
   "ascents_form_typeSend": "Send",
   "ascents_notFound": "Ascent not found",
+  "ascents_seeAll": "See all {count} ascents",
+  "ascents_title": "Ascents",
+  "ascents_viewAscent": "View ascent",
+  "ascents_yourLogbook": "Your logbook",
   "auth_accountCreated": "Account created",
   "auth_accountCreatedBody": "Check your email to confirm, then sign in.",
   "auth_backToSignIn": "Back to sign in",
@@ -180,6 +197,7 @@
   "common_close": "Close",
   "common_comingSoon": "Coming soon.",
   "common_delete": "Delete",
+  "common_details": "Details",
   "common_directions": "Directions",
   "common_done": "Done",
   "common_edit": "Edit",

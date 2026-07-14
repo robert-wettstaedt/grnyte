@@ -16,3 +16,9 @@ export const formatCelsius = (celsius: number): string => {
     maximumFractionDigits: 0,
   }).format(imperial ? celsius * 1.8 + 32 : celsius)
 }
+
+/** "18°C · 45 %" from an ascent's optional conditions; empty when neither is set. */
+export const formatConditions = (temperature: number | undefined, humidity: number | undefined): string =>
+  [temperature == null ? null : formatCelsius(temperature), humidity == null ? null : `${humidity} %`]
+    .filter(Boolean)
+    .join(' · ')

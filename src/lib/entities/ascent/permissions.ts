@@ -6,7 +6,7 @@ export function canLogAscent(userRegions: UserRegion[], route: { regionFk: numbe
   return checkRegionPermission(userRegions, [REGION_PERMISSION_READ], route.regionFk)
 }
 
-/** Only the climber may edit or delete their ascent (RLS: READ can update/delete own ascents). */
+/** The climber may edit or delete their own ascent; region admins may edit anyone's (mirrors RLS). */
 export function canEditAscent(
   userRegions: UserRegion[],
   userId: number | undefined,

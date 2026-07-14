@@ -1,21 +1,24 @@
 <script lang="ts">
-  import { goto } from '$app/navigation'
-  import { page } from '$app/state'
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
   import { m } from '$lib/paraglide/messages'
+  import { openMedia } from '$lib/state/navigation.svelte'
   import { bunnyPreview, bunnyThumbnail } from '$lib/videos/bunny'
   import { onDestroy } from 'svelte'
   import type { ClassValue } from 'svelte/elements'
 
   interface Props {
     file: MediaFile
+    /** Badge ascent-owned files with the climber's avatar, linking beta to its ascent.
+     *  Off where the row already names the climber (e.g. an ascent row's own strip). */
+    badged?: boolean
     /** Extra tile classes: the grid sets the tile's height here; width follows the aspect ratio. */
     class?: ClassValue
   }
 
-  const { file, class: className }: Props = $props()
+  const { file, badged = false, class: className }: Props = $props()
 
   const guid = $derived(file.bunnyStreamFk)
   const isVideo = $derived(guid != null)
@@ -26,14 +29,8 @@
 
   // Open the viewer through the URL so it earns its own history entry (the back
   // button closes it) and the open media is deep-linkable and shareable. The grid
-  // owns the (single) viewer and reads this param. `goto` (not shallow pushState) so
-  // `page.url` updates reactively; `keepFocus`/`noScroll` keep the page put.
-  const openViewer = () => {
-    const url = new URL(page.url)
-    url.searchParams.set('media', file.id)
-    // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-page query change, not a route.
-    goto(url, { keepFocus: true, noScroll: true })
-  }
+  // owns the (single) viewer and reads this param.
+  const openViewer = () => openMedia(file.id)
 
   // The video tile is Bunny's animated WebP; it degrades preview.webp →
   // thumbnail.jpg → a placeholder. A fresh upload 404s on both while Bunny is
@@ -83,7 +80,7 @@
      same height with its own proportions. -->
 <button
   type="button"
-  class={['bg-surface-950 shrink-0 overflow-hidden rounded-lg', className]}
+  class={['bg-surface-950 relative shrink-0 overflow-hidden rounded-lg', className]}
   style:aspect-ratio={isVideo ? (videoRatio ?? '16 / 9') : ratio}
   aria-label={isVideo ? m.common_playVideo() : m.media_openImage()}
   onclick={openViewer}
@@ -114,5 +111,13 @@
       imgClass="pointer-events-none select-none"
       previewWidth={512}
     />
+  {/if}
+
+  <!-- Ascent-owned media carries the climber's avatar, so the grid itself shows
+       whose beta each tile is; route-level files stay plain. -->
+  {#if badged && file.ascent != null && file.uploader != null}
+    <span class="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full ring-2 ring-black/40">
+      <Avatar name={file.uploader.username} size={22} solid />
+    </span>
   {/if}
 </button>

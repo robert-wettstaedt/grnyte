@@ -1,4 +1,5 @@
 import { afterNavigate, goto } from '$app/navigation'
+import { page } from '$app/state'
 
 // How many same-origin history entries deep we are since entering the app.
 // 0 means the current page is the app's entry point — there is no in-app
@@ -46,6 +47,38 @@ export function trackHistoryDepth() {
         }
     }
   })
+}
+
+// The `?media=<file id>` param drives the fullscreen media viewer for a set of
+// files: opening pushes a history entry (back closes it), paging replaces it in
+// place, closing pops it. One place owns the URL mechanics so the open/page/close
+// history semantics can't drift between the thumbnail, the overflow chip, and the
+// viewer's own paging.
+function mediaUrl(id: string | null): URL {
+  const url = new URL(page.url)
+  if (id == null) {
+    url.searchParams.delete('media')
+  } else {
+    url.searchParams.set('media', id)
+  }
+  return url
+}
+
+/** Open the viewer for `id`: pushes `?media` so the back button closes it. */
+export function openMedia(id: string) {
+  // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-page query change, not a route.
+  return goto(mediaUrl(id), { keepFocus: true, noScroll: true })
+}
+
+/** Page to sibling `id`: replaces `?media` so paging stays one history entry. */
+export function pageMedia(id: string) {
+  return replaceUrl(mediaUrl(id), { keepFocus: true, noScroll: true })
+}
+
+/** Close the viewer: pop the `?media` entry, or replace it away on a deep link. */
+export function closeMedia() {
+  const url = mediaUrl(null)
+  back(url.pathname + url.search)
 }
 
 /** True when there is a same-origin entry we can safely go back to. */

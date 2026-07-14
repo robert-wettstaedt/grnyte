@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { m } from '$lib/paraglide/messages'
   import type { AscentType } from './dto'
 
   export interface StatusInfo {
@@ -39,6 +40,18 @@
       dash: '',
     },
   }
+
+  /**
+   * The four types in display order with their translated form labels (as functions:
+   * this module evaluates before the locale settles). Drives the form's type picker
+   * and the ascent list's filter chips.
+   */
+  export const ASCENT_TYPES: { type: AscentType; label: () => string }[] = [
+    { type: 'flash', label: m.ascents_form_typeFlash },
+    { type: 'send', label: m.ascents_form_typeSend },
+    { type: 'attempt', label: m.ascents_form_typeAttempt },
+    { type: 'repeat', label: m.ascents_form_typeRepeat },
+  ]
 </script>
 
 <script lang="ts">

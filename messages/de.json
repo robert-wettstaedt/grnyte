@@ -59,10 +59,23 @@
   "areas_nameQuestion": "Wie sollen wir dieses Gebiet nennen?",
   "areas_newArea": "Neues Gebiet",
   "areas_title": "Gebiete",
+  "ascents_community": "Community",
+  "ascents_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Begehung",
+        "countPlural=other": "{count} Begehungen"
+      }
+    }
+  ],
   "ascents_delete": "Begehung löschen",
   "ascents_deleteConfirm": "Deine Begehung von „{name}“ und ihre Grad- und Bewertungsmeinungen werden entfernt, ebenso alle angehängten Fotos und Videos. Das kann nicht rückgängig gemacht werden.",
   "ascents_deleted": "Begehung gelöscht",
   "ascents_editAscent": "Begehung bearbeiten",
+  "ascents_empty": "Noch keine Begehungen.",
+  "ascents_filterAll": "Alle",
   "ascents_form_conditionsHint": "Hilft anderen bei der Tagesplanung und ordnet deine Gradmeinung ein.",
   "ascents_form_conditionsLabel": "Bedingungen",
   "ascents_form_dateLabel": "Wann",
@@ -84,6 +97,10 @@
   "ascents_form_typeRepeat": "Wiederholung",
   "ascents_form_typeSend": "Durchstieg",
   "ascents_notFound": "Begehung nicht gefunden",
+  "ascents_seeAll": "Alle {count} Begehungen ansehen",
+  "ascents_title": "Begehungen",
+  "ascents_viewAscent": "Begehung ansehen",
+  "ascents_yourLogbook": "Dein Logbuch",
   "auth_accountCreated": "Konto erstellt",
   "auth_accountCreatedBody": "Bestätige deine E-Mail, dann melde dich an.",
   "auth_backToSignIn": "Zurück zur Anmeldung",
@@ -180,6 +197,7 @@
   "common_close": "Schließen",
   "common_comingSoon": "Bald verfügbar.",
   "common_delete": "Löschen",
+  "common_details": "Details",
   "common_directions": "Route",
   "common_done": "Fertig",
   "common_edit": "Bearbeiten",
