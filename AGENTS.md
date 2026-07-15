@@ -29,6 +29,7 @@ This project uses:
 - Mutations are SvelteKit remote functions (`command` / `authedCommand`), RLS-gated. Never Zero mutators.
 - i18n: add keys to BOTH `messages/en.json` and `messages/de.json` (`domain_camelCase`, kept sorted). No em-dashes anywhere (UI copy, translations, code comments).
 - Icons: use `<Icon name="...">`; only `icons.ts` and `Icon.svelte` may import lucide.
+- Reuse before building: grep for an existing component/function first. If one fits but is not reusable, refactor it to be reusable and composable rather than hand-rolling a copy. Promote shared pieces to `$lib`. Prefer passing an entity DTO over a long list of individual props.
 - Entity modules live in `src/lib/entities/<name>/`, mirroring `area/` as the template.
 - Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
 - Verify changes by driving the running app, not just typechecking.
