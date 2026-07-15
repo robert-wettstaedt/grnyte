@@ -2,17 +2,20 @@ import { command, getRequestEvent } from '$app/server'
 import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
+import { insertActivity } from '$lib/entities/activity/activity.server'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
 import { authedCommand, type Context } from '$lib/remote/authed.server'
-import { getVideoProvider } from '$lib/videos/provider.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { getVideoProvider } from '$lib/videos/provider.server'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
 import z from 'zod'
+import { deleteFileRows, removeFileStorage } from './cleanup.server'
+import { canDeleteFile } from './permissions'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
 
 /**
@@ -220,6 +223,75 @@ export const setFileVisibility = authedCommand(
       error(403, 'Not allowed to change this file')
     }
     return { data: updated }
+  },
+)
+
+/**
+ * Delete one file (its DB row, its Nextcloud images, its Bunny video) from the media
+ * viewer. Hand-wired like finalizeImage rather than authedCommand: the irreversible
+ * storage removal must run only AFTER the DB delete commits, so a mid-transaction
+ * failure can never resurrect a row whose bytes are already gone.
+ *
+ * The server gate (canDeleteFile) is deliberately stricter than the files DELETE RLS,
+ * so it pre-checks up front; RLS is still the enforcement (deleteFileRows only removes
+ * rows the caller can delete), and an empty result means the row survived, so we report
+ * a real 403 instead of a phantom success.
+ */
+export const deleteFile = command(
+  z.object({ id: z.string().min(1) }),
+  async ({ id }): Promise<MutationResult<{ id: string }>> => {
+    const { user, userRegions, supabase } = getRequestEvent().locals
+    if (user == null) {
+      error(401, 'Not authenticated')
+    }
+    const rls = await createDrizzleSupabaseClient(supabase)
+
+    const storage = await rls(async (db) => {
+      const file = await db.query.files.findFirst({
+        where: eq(files.id, id),
+        with: { ascent: { columns: { createdBy: true } } },
+      })
+      if (file == null) {
+        error(404, 'File not found')
+      }
+
+      const canDelete = canDeleteFile(userRegions, user.id, {
+        regionFk: file.regionFk,
+        ascentCreatedBy: file.ascent?.createdBy ?? undefined,
+      })
+      if (!canDelete) {
+        error(403, 'Not allowed to delete this file')
+      }
+
+      const storage = await deleteFileRows(db, [file])
+      if (storage.length === 0) {
+        // Pre-gate passed but RLS still kept the row (policy drift): fail loudly
+        // rather than log a deletion activity and toast success for a live file.
+        error(403, 'Not allowed to delete this file')
+      }
+
+      const entityId = file.routeFk ?? file.ascentFk ?? file.blockFk ?? file.areaFk
+      const entityType =
+        file.routeFk != null ? 'route' : file.ascentFk != null ? 'ascent' : file.blockFk != null ? 'block' : 'area'
+
+      if (entityId != null) {
+        await insertActivity(db, {
+          type: 'deleted',
+          userFk: user.id,
+          entityId: String(entityId),
+          entityType: entityType,
+          columnName: 'file',
+          regionFk: file.regionFk,
+        })
+      }
+
+      return storage
+    })
+
+    // Only now that the row deletion has committed: destroy the backing bytes.
+    await removeFileStorage(storage)
+
+    return { data: { id } }
   },
 )
 

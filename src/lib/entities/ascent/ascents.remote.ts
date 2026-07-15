@@ -1,11 +1,14 @@
-import { ascents, ascentTypeEnum, bunnyStreams, files, routes } from '$lib/db/schema'
+import { command, getRequestEvent } from '$app/server'
+import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import { ascents, ascentTypeEnum, files, routes } from '$lib/db/schema'
 import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
-import { authedCommand, authedForm } from '$lib/remote/authed.server'
+import { authedForm } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, insertActivity } from '../activity/activity.server'
+import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { canEditAscent, canLogAscent } from './permissions'
 
@@ -133,50 +136,61 @@ export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value
 })
 
 /**
- * Delete an ascent and its attached media rows. Owner-only. No undo: the media
- * rows are gone for good, which the form's confirmation dialog spells out.
- * ponytail: storage objects (NC images, Bunny videos) are orphaned, not removed;
- * no user-facing storage delete exists anywhere yet, a cleanup job is the upgrade.
+ * Delete an ascent and its attached media (rows plus Nextcloud images and Bunny
+ * videos). Owner-only. No undo, which the form's confirmation dialog spells out.
+ *
+ * Hand-wired like finalizeImage rather than authedCommand: the irreversible storage
+ * removal must run only after the DB delete commits, so a mid-transaction failure
+ * (a later step, or the commit itself) can never resurrect the ascent with its media
+ * already gone.
  */
-export const deleteAscent = authedCommand(
+export const deleteAscent = command(
   z.object({ id: z.number() }),
-  async ({ id }, { db, user, userRegions }): Promise<MutationResult<{ routeFk: number }>> => {
-    const ascent = await db.query.ascents.findFirst({ where: eq(ascents.id, id) })
-
-    if (ascent == null) {
-      error(404, 'Ascent not found')
+  async ({ id }): Promise<MutationResult<{ routeFk: number }>> => {
+    const { user, userRegions, supabase } = getRequestEvent().locals
+    if (user == null) {
+      error(401, 'Not authenticated')
     }
+    const rls = await createDrizzleSupabaseClient(supabase)
 
-    if (!canEditAscent(userRegions, user.id, ascent)) {
-      error(403, formError('form_noPermission'))
-    }
+    const { routeFk, storage } = await rls(async (db) => {
+      const ascent = await db.query.ascents.findFirst({ where: eq(ascents.id, id) })
 
-    // The file ↔ bunny_streams FKs are circular, and the bunny_streams delete
-    // policy joins through a still-existing file, so: unlink files from their
-    // streams, delete the streams, then the files, then the ascent.
-    const fileRows = await db.query.files.findMany({ columns: { id: true }, where: eq(files.ascentFk, id) })
-    if (fileRows.length > 0) {
-      const fileIds = fileRows.map((row) => row.id)
-      await db.update(files).set({ bunnyStreamFk: null }).where(inArray(files.id, fileIds))
-      await db.delete(bunnyStreams).where(inArray(bunnyStreams.fileFk, fileIds))
-      await db.delete(files).where(inArray(files.id, fileIds))
-    }
+      if (ascent == null) {
+        error(404, 'Ascent not found')
+      }
 
-    await db.delete(ascents).where(eq(ascents.id, id))
+      if (!canEditAscent(userRegions, user.id, ascent)) {
+        error(403, formError('form_noPermission'))
+      }
 
-    await recalcUserGradeAndRating(db, ascent.routeFk)
+      const fileRows = await db.query.files.findMany({
+        columns: { id: true, path: true, bunnyStreamFk: true },
+        where: eq(files.ascentFk, id),
+      })
+      const storage = await deleteFileRows(db, fileRows)
 
-    await insertActivity(db, {
-      type: 'deleted',
-      userFk: user.id,
-      entityId: String(ascent.id),
-      entityType: 'ascent',
-      oldValue: ascent.type,
-      parentEntityId: String(ascent.routeFk),
-      parentEntityType: 'route',
-      regionFk: ascent.regionFk,
+      await db.delete(ascents).where(eq(ascents.id, id))
+
+      await recalcUserGradeAndRating(db, ascent.routeFk)
+
+      await insertActivity(db, {
+        type: 'deleted',
+        userFk: user.id,
+        entityId: String(ascent.id),
+        entityType: 'ascent',
+        oldValue: ascent.type,
+        parentEntityId: String(ascent.routeFk),
+        parentEntityType: 'route',
+        regionFk: ascent.regionFk,
+      })
+
+      return { routeFk: ascent.routeFk, storage }
     })
 
-    return { data: { routeFk: ascent.routeFk } }
+    // Only now that the row deletion has committed: destroy the backing bytes.
+    await removeFileStorage(storage)
+
+    return { data: { routeFk } }
   },
 )

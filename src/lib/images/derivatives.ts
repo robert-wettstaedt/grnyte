@@ -19,6 +19,25 @@ export const derivativePath = (path: string, size: DerivativeSize): string =>
   `${path.replace(/\.[^./]+$/, '')}.${size}.webp`
 
 /**
+ * Every stored object an image `path` could have produced, for unwinding it from
+ * storage on delete: the served original, each webp derivative sibling, and the
+ * pristine `.orig.*` sibling a HEIC upload keeps. `path` is always the `.jpg` we
+ * serve so the orig's real extension isn't recoverable from it, but the sibling
+ * only exists for HEIC (see finalizeImage), so it's one of exactly two
+ * extensions. Both candidates are listed; the non-existent one 404s on a
+ * best-effort remove (cheaper than a full-directory PROPFIND to find the real one).
+ */
+export const imageStoragePaths = (path: string): string[] => {
+  const base = path.replace(/\.[^./]+$/, '')
+  return [
+    path,
+    ...DERIVATIVE_SIZES.map((size) => derivativePath(path, size)),
+    `${base}.orig.heic`,
+    `${base}.orig.heif`,
+  ]
+}
+
+/**
  * The derivative to serve for a requested display width: the smallest size that
  * still downscales (≥ requested), falling back to the largest available.
  */

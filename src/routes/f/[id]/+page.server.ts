@@ -30,6 +30,11 @@ export const load = (async ({ locals, params }) => {
       regionFk: true,
       visibility: true,
       createdAt: true,
+      // The owning entity, so a delete can send the user back to it (see `parent` below).
+      routeFk: true,
+      ascentFk: true,
+      blockFk: true,
+      areaFk: true,
     },
     with: {
       author: {
@@ -120,6 +125,19 @@ export const load = (async ({ locals, params }) => {
       ? undefined
       : { id: locals.user.id, username: locals.user.username, userSettings: locals.user.userSettings ?? undefined }
 
+  // The entity this file hangs on (exactly one FK is set), so a delete can navigate back to
+  // it instead of home. Same precedence as deleteFile's activity target.
+  const parent: { type: 'route' | 'ascent' | 'block' | 'area'; id: number } | null =
+    row.routeFk != null
+      ? { type: 'route', id: row.routeFk }
+      : row.ascentFk != null
+        ? { type: 'ascent', id: row.ascentFk }
+        : row.blockFk != null
+          ? { type: 'block', id: row.blockFk }
+          : row.areaFk != null
+            ? { type: 'area', id: row.areaFk }
+            : null
+
   // The share/delete toolbar is signed-in only; permissions (mirroring the files RLS incl.
   // the own-ascent grant) are resolved here and handed over as booleans.
   const controls =
@@ -129,6 +147,7 @@ export const load = (async ({ locals, params }) => {
           canEdit: canEditFile(locals.userRegions, locals.user?.id, file),
           canDelete: canDeleteFile(locals.userRegions, locals.user?.id, file),
           shareText: file.route?.name ?? '',
+          parent,
         }
 
   // Data minimization: an anonymous viewer's UI renders none of the internal ids, so the

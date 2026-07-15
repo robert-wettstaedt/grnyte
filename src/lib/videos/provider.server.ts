@@ -30,6 +30,8 @@ export interface VideoProvider {
    * user could attach a made-up or foreign video to their own ascent.
    */
   verifyUpload(videoId: string, ownerId: string, token: string): boolean
+  /** Delete the hosted video. Idempotent: an already-gone video is not an error. */
+  remove(videoId: string): Promise<void>
 }
 
 /** The video provider the app is configured to use. Swap the backend here. */

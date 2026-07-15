@@ -5,6 +5,7 @@
   import type { DialogRootProps } from '@skeletonlabs/skeleton-svelte'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import type { Snippet } from 'svelte'
+  import type { HTMLButtonAttributes } from 'svelte/elements'
 
   interface Props extends DialogRootProps {
     content?: Snippet
@@ -12,7 +13,8 @@
     pending?: number
     saveText?: string
     title?: string
-    trigger?: Snippet
+    /** asChild: spread the given props onto your own focusable element so it becomes the trigger. */
+    trigger?: Snippet<[HTMLButtonAttributes]>
   }
 
   const { content, onsave, pending = 0, saveText = m.common_save(), title, trigger, ...props }: Props = $props()
@@ -20,9 +22,7 @@
 
 <Dialog {...props}>
   {#if trigger != null}
-    <Dialog.Trigger>
-      {@render trigger()}
-    </Dialog.Trigger>
+    <Dialog.Trigger element={trigger} />
   {/if}
 
   <Portal>

@@ -6,13 +6,16 @@
   are the branding and the signed-in share/delete toolbar (as in MediaViewer).
 -->
 <script lang="ts">
+  import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
+  import ConfirmDialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MediaStage from '$lib/components/Media/MediaStage.svelte'
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
+  import { deleteFile } from '$lib/entities/file/files.remote'
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
@@ -49,6 +52,33 @@
   )
 
   let shareOpen = $state(false)
+
+  // Where to land after a delete: the file's owning entity (its share page is now a 404),
+  // falling back home if there somehow is no parent.
+  const parentHref = (parent: NonNullable<typeof data.controls>['parent'] | undefined) => {
+    switch (parent?.type) {
+      case 'route':
+        return resolve('/(app)/routes/[id]', { id: String(parent.id) })
+      case 'ascent':
+        return resolve('/(app)/ascents/[id]', { id: String(parent.id) })
+      case 'block':
+        return resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(parent.id) })
+      case 'area':
+        return resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(parent.id) })
+      default:
+        return resolve('/')
+    }
+  }
+
+  const onDelete = async () => {
+    try {
+      await deleteFile({ id: data.file.id })
+      toaster.create({ type: 'info', title: m.media_deleted() })
+      await goto(parentHref(data.controls?.parent))
+    } catch {
+      toaster.create({ type: 'error', title: m.error_generic_title() })
+    }
+  }
 
   const btn = 'btn preset-glass-neutral btn-lg h-12 w-12 shrink-0 px-0'
 </script>
@@ -89,14 +119,16 @@
       />
 
       {#if controls.canDelete}
-        <button
-          type="button"
-          class={btn}
-          aria-label={m.common_delete()}
-          onclick={() => toaster.create({ type: 'info', title: m.common_comingSoon(), duration: 2500 })}
-        >
-          <Icon name="trash" size={20} />
-        </button>
+        <ConfirmDialog title={m.media_delete()} saveText={m.common_delete()} onsave={onDelete}>
+          {#snippet trigger(props)}
+            <button {...props} type="button" class={[props.class, btn]} aria-label={m.common_delete()}>
+              <Icon name="trash" size={20} />
+            </button>
+          {/snippet}
+          {#snippet content()}
+            {m.media_deleteConfirm()}
+          {/snippet}
+        </ConfirmDialog>
       {/if}
     </div>
   {/if}

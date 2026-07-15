@@ -1034,6 +1034,14 @@ export const bunnyStreams = table(
       getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
     policy(
+      `${REGION_PERMISSION_EDIT} can update bunny_streams`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
+    ),
+    policy(
+      `${REGION_PERMISSION_EDIT} can delete bunny_streams`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+    ),
+    policy(
       `${REGION_PERMISSION_READ} can update bunny_streams for files of their own ascents`,
       getPolicyConfig(
         'update',

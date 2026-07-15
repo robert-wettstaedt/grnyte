@@ -10,9 +10,11 @@
   (where d3's pan is a no-op), leaving pinch-zoom and zoomed panning entirely to d3.
 -->
 <script lang="ts">
+  import ConfirmDialog from '$lib/components/Dialog/Dialog.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { isNavKeyExempt } from '$lib/components/SiblingNav/siblingNav'
   import type { MediaFile } from '$lib/entities/file/dto'
+  import { deleteFile } from '$lib/entities/file/files.remote'
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -74,6 +76,32 @@
   // on their own beta media (region EDIT/DELETE alone would hide their controls).
   const canEdit = $derived(canEditFile(global.userRegions, global.user?.id, currentFile))
   const canDelete = $derived(canDeleteFile(global.userRegions, global.user?.id, currentFile))
+
+  // The viewer dialog's own open state, controlled so a delete can close it through its
+  // machine (restoring aria-hidden) instead of a bare host unmount.
+  let open = $state(true)
+  // Open state of the delete confirmation, controlled so keyboard paging can be paused
+  // while it is up (see onKeydown) and so it tears down through its own machine.
+  let confirmOpen = $state(false)
+
+  // Deleting removes the row and its storage for good (confirmed in the dialog). Close the
+  // confirm, then close the VIEWER through its own `open` (so its machine restores the
+  // aria-hidden it put on the page) before the host unmounts it. The confirm is non-modal
+  // (see the dialog below) precisely so it adds no second aria-hidden layer to unwind here.
+  // Close rather than page: the removed file syncs out of `siblings`, which the deck's local
+  // currentIndex can't safely track, and the grid behind reflects it.
+  const onDelete = async () => {
+    try {
+      await deleteFile({ id: currentFile.id })
+    } catch {
+      toaster.create({ type: 'error', title: m.error_generic_title() })
+      return
+    }
+    toaster.create({ type: 'info', title: m.media_deleted() })
+    confirmOpen = false
+    open = false
+    onClose()
+  }
 
   // ----- drag state -----
   let width = $state(0)
@@ -167,7 +195,7 @@
   let shareOpen = $state(false)
 
   const onKeydown = (event: KeyboardEvent) => {
-    if (shareOpen || !canPage || isNavKeyExempt(event)) return
+    if (shareOpen || confirmOpen || !canPage || isNavKeyExempt(event)) return
     const key = event.key.toLowerCase()
     if (key === 'j') {
       event.preventDefault()
@@ -235,8 +263,6 @@
       node.removeEventListener('touchcancel', cancel, opts)
     }
   }
-
-  let open = $state(true)
 
   const previewSrc = (f: MediaFile) =>
     f.bunnyStreamFk != null ? bunnyThumbnail(f.bunnyStreamFk) : `/image/${f.path.replace(/^\/+/, '')}?w=512`
@@ -319,14 +345,25 @@
             <ShareSheet file={currentFile} {canEdit} {shareText} bind:open={shareOpen} />
 
             {#if canDelete}
-              <button
-                type="button"
-                class={btn}
-                aria-label={m.common_delete()}
-                onclick={() => toaster.create({ type: 'info', title: m.common_comingSoon(), duration: 2500 })}
+              <!-- Non-modal: the viewer is already a modal blocking the page, so a second
+                   modal layer here only adds an aria-hidden stack that strands on teardown. -->
+              <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={(event) => (confirmOpen = event.open)}
+                modal={false}
+                title={m.media_delete()}
+                saveText={m.common_delete()}
+                onsave={onDelete}
               >
-                <Icon name="trash" size={20} />
-              </button>
+                {#snippet trigger(props)}
+                  <button {...props} type="button" class={[props.class, btn]} aria-label={m.common_delete()}>
+                    <Icon name="trash" size={20} />
+                  </button>
+                {/snippet}
+                {#snippet content()}
+                  {m.media_deleteConfirm()}
+                {/snippet}
+              </ConfirmDialog>
             {/if}
           </div>
         </header>

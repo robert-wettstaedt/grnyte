@@ -80,4 +80,16 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     const given = Buffer.from(token)
     return given.length === expected.length && timingSafeEqual(given, expected)
   },
+
+  async remove(videoId): Promise<void> {
+    // Not bunnyFetch: DELETE returns no useful body, and a 404 (already gone)
+    // is success here, not the 502 bunnyFetch would raise.
+    const response = await fetch(`${API_BASE}/videos/${videoId}`, {
+      method: 'DELETE',
+      headers: { AccessKey: BUNNY_STREAM_API_KEY },
+    })
+    if (!response.ok && response.status !== 404) {
+      error(502, 'The video host rejected the delete')
+    }
+  },
 })
