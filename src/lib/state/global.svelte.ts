@@ -134,12 +134,58 @@ export function setGlobalState(): GlobalState | undefined {
 
 /**
  * Publishes an already-built state object on context. `setGlobalState` builds
- * the real one from Zero resources; Storybook's preview decorator injects a
- * static fixture through here instead.
+ * the real one from Zero resources; Storybook's preview decorator and the
+ * server-loaded `/f/<id>` share page inject a static fixture through here instead.
  */
 export function provideGlobalState(state: GlobalState): GlobalState {
   setContext(GLOBAL_STATE_KEY, state)
   return state
+}
+
+/**
+ * A static, already-"ready" {@link GlobalState} for contexts without Zero: Storybook
+ * fixtures and the standalone `/f/<id>` page (which loads its reference data over a
+ * server load). Only the fields a caller needs must be passed; the rest default to empty.
+ */
+export function staticGlobalState(
+  data: {
+    grades?: Grade[]
+    tags?: Tag[]
+    user?: User
+    gradingScale?: GradingScale
+    userRole?: AppRole
+    userPermissions?: Permission[]
+    userRegions?: UserRegion[]
+  } = {},
+): GlobalState {
+  const ready = <T>(value: T): QueryResource<T> => ({
+    data: value,
+    status: 'ready',
+    isEmpty: Array.isArray(value) ? value.length === 0 : value == null,
+    isSyncing: false,
+    isComplete: true,
+  })
+
+  const grades = data.grades ?? []
+  const tags = data.tags ?? []
+  const userRegions = data.userRegions ?? []
+
+  return {
+    grades,
+    tags,
+    user: data.user,
+    gradingScale: data.gradingScale ?? data.user?.userSettings?.gradingScale ?? 'FB',
+    userRole: data.userRole,
+    userPermissions: data.userPermissions,
+    userRegions,
+    isLoading: false,
+    gradesResource: ready(grades),
+    tagsResource: ready(tags),
+    userResource: ready(data.user),
+    userRoleResource: ready(data.userRole),
+    rolePermissionsResource: ready([]),
+    userRegionsResource: ready(userRegions),
+  }
 }
 
 /** Reads the global state published by {@link setGlobalState}. */

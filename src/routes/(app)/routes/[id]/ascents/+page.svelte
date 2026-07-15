@@ -82,11 +82,11 @@
     <div class="mx-auto flex min-h-full w-full max-w-screen-sm flex-col">
       <PageHeader onback={() => back(routeHref)}>
         <div class="flex min-w-0 flex-1 flex-col">
-          <span class="text-base font-bold">{m.ascents_title()}</span>
           <span class="text-surface-600-400 truncate text-xs">
             {detail.name} · {gradeLabel(global.grades, global.gradingScale, detail.gradeFk)} ·
             {m.ascents_count({ count: ascents.data.length })}
           </span>
+          <span class="text-base font-bold">{m.ascents_title()}</span>
         </div>
 
         {#snippet bottom()}

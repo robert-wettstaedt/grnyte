@@ -27,9 +27,12 @@
     shareText: string
     /** Bindable so the host can pause its own shortcuts while the sheet is up. */
     open?: boolean
+    /** Notified after a visibility toggle persists; lets a host without a reactive
+     *  `file` (e.g. the server-loaded /f/ page) update its own copy. */
+    onVisibilityChange?: (visibility: 'public' | 'private') => void
   }
 
-  let { file, canEdit, shareText, open = $bindable(false) }: Props = $props()
+  let { file, canEdit, shareText, open = $bindable(false), onVisibilityChange }: Props = $props()
 
   let saving = $state(false)
 
@@ -52,7 +55,9 @@
     if (saving) return
     saving = true
     try {
-      await setFileVisibility({ fileId: file.id, visibility: next ? 'public' : 'private' })
+      const visibility = next ? 'public' : 'private'
+      await setFileVisibility({ fileId: file.id, visibility })
+      onVisibilityChange?.(visibility)
     } catch {
       toaster.create({ type: 'error', title: m.error_generic_title() })
     } finally {
@@ -72,11 +77,20 @@
     <button
       {...props}
       type="button"
-      class={[props.class, 'btn preset-glass-neutral btn-lg h-12 w-12 px-0']}
+      class={[props.class, 'btn preset-glass-neutral btn-lg relative h-12 w-12 px-0']}
       aria-label={m.share_share()}
+      title={isPublic ? m.share_statusPublic() : m.share_statusPrivate()}
       onclick={() => (open = !open)}
     >
       <Icon name="share" size={19} />
+      <!-- At-a-glance visibility: a green dot marks a public (shared) file, a muted dot a
+           private one, so the state is legible without opening the sheet. -->
+      <span
+        class={[
+          'absolute top-1.5 right-1.5 size-2.5 rounded-full ring-2 ring-black/40',
+          isPublic ? 'bg-success-500' : 'bg-surface-400',
+        ]}
+      ></span>
     </button>
   {/snippet}
 

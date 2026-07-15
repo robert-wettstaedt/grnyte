@@ -26,6 +26,15 @@ export interface MediaFile {
   source: string | undefined
   /** Who uploaded the file (`createdBy` → users); `undefined` if the query omits the relation. */
   uploader: { id: number; username: string } | undefined
+  /** The route this file belongs to (directly, or via its ascent). Populated by the
+   *  `/f/<id>` share page so the viewer caption can show route name/grade/rating out of
+   *  context; unset (and unrendered) in the in-app viewer, which already has that context. */
+  route?: {
+    id: number
+    name: string
+    gradeFk: number | undefined
+    rating: number | undefined
+  }
   /** Set when the file hangs on an ascent (stamped by the ascent mapper): lets thumbnails
    *  badge the climber and the viewer caption/detail-sheet the ascent it belongs to. */
   ascent?: {

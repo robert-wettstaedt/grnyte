@@ -24,7 +24,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { formatConditions } from '$lib/i18n/units'
   import { bunnyHls, bunnyIframe } from '$lib/videos/bunny'
-  import type Hls from 'hls.js'
+  import { createHlsAttachment } from '$lib/videos/hls'
   import type { Attachment } from 'svelte/attachments'
 
   interface Props {
@@ -40,15 +40,23 @@
 
   const global = getGlobalState()
 
+  // Links target auth-gated (app) routes, so only render them for a signed-in viewer
+  // (the standalone /f/<id> page injects an undefined user for anonymous visitors).
+  const signedIn = $derived(global.user != null)
+
   const guid = $derived(file.bunnyStreamFk)
   const isVideo = $derived(guid != null)
+
+  // Route context (name/grade/rating), shown by the share page; unset in the in-app viewer.
+  const routeName = $derived(
+    file.route == null ? '' : file.route.name.length === 0 ? m.common_unnamed() : file.route.name,
+  )
+  const routeHref = $derived(file.route == null ? '' : resolve('/(app)/routes/[id]', { id: String(file.route.id) }))
 
   // Reel-style ascent context: a tappable collapsed line (type, date, first line of
   // the note) that expands into a sheet with the whole ascent.
   let infoOpen = $state(false)
-  const ascentHref = $derived(
-    file.ascent == null ? '' : resolve('/(app)/ascents/[id]', { id: String(file.ascent.id) }),
-  )
+  const ascentHref = $derived(file.ascent == null ? '' : resolve('/(app)/ascents/[id]', { id: String(file.ascent.id) }))
   const ascentNotes = $derived(file.ascent?.notes.trim() ?? '')
   const ascentConditions = $derived(
     file.ascent == null ? '' : formatConditions(file.ascent.temperature, file.ascent.humidity),
@@ -95,74 +103,13 @@
     }
   }
 
-  // Adaptive HLS with an iframe fallback. Safari plays HLS natively; elsewhere hls.js
-  // drives it. A fatal error means it can't play here: a decode glitch gets one in-place
-  // recovery, but anything else (a 404 manifest for a missing or still-encoding video, an
-  // unrecoverable network fault) drops to the iframe, which renders Bunny's own state and
-  // plays whenever the video actually exists. (Retrying a missing manifest via startLoad
-  // never recovers and, in Firefox, silently stalls on an empty player.) We own the play()
-  // promise so an aborted autoplay (a failed source, or teardown detaching the media) is
-  // swallowed instead of surfacing as an uncaught DOMException.
+  // Adaptive HLS with an iframe fallback (see createHlsAttachment): a fatal, unrecoverable
+  // error flips videoFailed, dropping us to Bunny's iframe embed.
   let videoFailed = $state(false)
   // Tell the deck when we're on the iframe fallback so it can offer arrow navigation.
   $effect(() => {
     onFallback?.(videoFailed)
   })
-
-  const hlsVideo =
-    (url: string): Attachment<HTMLVideoElement> =>
-    (video) => {
-      const play = () => void video.play().catch(() => {})
-
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Native HLS (Safari): the element's own error event is the only failure
-        // signal here, and it means the source can't play, so drop to the iframe.
-        video.src = url
-        const onError = () => (videoFailed = true)
-        video.addEventListener('error', onError)
-        play()
-        // Pause on teardown (as the hls.js branch does) so a detaching element can't
-        // keep playing audio after the viewer closes on Safari.
-        return () => {
-          video.pause()
-          video.removeEventListener('error', onError)
-        }
-      }
-      // hls.js is half a megabyte that Safari and image-only visits never need,
-      // so it loads on demand right here instead of riding the page chunk.
-      let hls: Hls | undefined
-      let done = false
-      const fail = () => {
-        if (done) return
-        done = true
-        hls?.destroy()
-        videoFailed = true
-      }
-      void import('hls.js').then(({ default: HlsLib }) => {
-        if (done) return
-        if (!HlsLib.isSupported()) {
-          videoFailed = true
-          return
-        }
-        hls = new HlsLib()
-        let recovered = 0
-        hls.on(HlsLib.Events.ERROR, (_event, data) => {
-          if (!data.fatal) return
-          if (data.type === HlsLib.ErrorTypes.MEDIA_ERROR && recovered++ < 1) hls!.recoverMediaError()
-          else fail()
-        })
-        hls.on(HlsLib.Events.MANIFEST_PARSED, play)
-        hls.loadSource(url)
-        hls.attachMedia(video)
-      })
-
-      return () => {
-        if (done) return
-        done = true
-        video.pause()
-        hls?.destroy()
-      }
-    }
 
   // `paused` reflects the element's own play/pause events (one-way); playback is driven
   // imperatively via togglePlay so every play() is ours to catch. Svelte's two-way
@@ -235,7 +182,7 @@
     {#if isVideo}
       <video
         bind:this={videoEl}
-        {@attach hlsVideo(bunnyHls(guid!))}
+        {@attach createHlsAttachment(bunnyHls(guid!), () => (videoFailed = true))}
         class="h-full w-full object-contain"
         playsinline
         bind:muted
@@ -292,13 +239,14 @@
     <div class="flex flex-col gap-1.5">
       {#if file.uploader}
         <div class="flex items-center gap-2">
-          <a
-            href={resolve('/(app)/users/[id]', { id: String(file.uploader.id) })}
-            class="flex items-center gap-2 hover:opacity-80"
+          <svelte:element
+            this={signedIn ? 'a' : 'div'}
+            href={signedIn ? resolve('/(app)/users/[id]', { id: String(file.uploader.id) }) : undefined}
+            class={['flex items-center gap-2', signedIn && 'hover:opacity-80']}
           >
             <Avatar name={file.uploader.username} size={28} solid />
             <span class="text-sm font-semibold">{file.uploader.username}</span>
-          </a>
+          </svelte:element>
           <span class="opacity-50">·</span>
           <button
             type="button"
@@ -309,6 +257,21 @@
             <time datetime={uploadedIso}>{showExact ? uploadedExact : uploadedRelative}</time>
           </button>
         </div>
+      {/if}
+
+      {#if file.route != null}
+        <svelte:element
+          this={signedIn ? 'a' : 'div'}
+          href={signedIn ? routeHref : undefined}
+          class={['flex flex-wrap items-center gap-2', signedIn && 'hover:opacity-80']}
+        >
+          <span class="text-sm font-semibold">{routeName}</span>
+          <RouteGrade
+            band={getGradeBand(file.route.gradeFk)}
+            grade={gradeLabel(global.grades, global.gradingScale, file.route.gradeFk)}
+          />
+          <RouteRating rating={file.route.rating} />
+        </svelte:element>
       {/if}
 
       <!-- Beta context: this file hangs on an ascent, not on the route itself. The
@@ -374,15 +337,19 @@
 
             {#if ascentNotes !== ''}
               <div class="text-sm">
-                <Markdown markdown={ascentNotes} />
+                <!-- Reference/link anchors target auth-gated app routes; strip them for an
+                     anonymous viewer (the /f share page) so they don't bounce to /auth. -->
+                <Markdown markdown={ascentNotes} disableLinks={!signedIn} />
               </div>
             {/if}
 
-            <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- ascentHref is pre-resolved above. -->
-            <a class="btn preset-outlined-surface-200-800 w-full" href={ascentHref}>
-              {m.ascents_viewAscent()}
-              <Icon name="chevron-right" size={15} />
-            </a>
+            {#if signedIn}
+              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- ascentHref is pre-resolved above. -->
+              <a class="btn preset-outlined-surface-200-800 w-full" href={ascentHref}>
+                {m.ascents_viewAscent()}
+                <Icon name="chevron-right" size={15} />
+              </a>
+            {/if}
           </div>
         </Modal>
       {/if}

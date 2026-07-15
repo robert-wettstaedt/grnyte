@@ -1,6 +1,6 @@
 import * as schema from '$lib/db/schema'
 import type { Grade } from '$lib/entities/grade/dto'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import rehypeStringify from 'rehype-stringify'
 import remarkGfm from 'remark-gfm'
@@ -71,7 +71,17 @@ export const convertMarkdownToHtmlSync = (
   return result.value
 }
 
-const enrichMarkdown = async (markdown: string, db?: PostgresJsDatabase<typeof schema>): Promise<string> => {
+/**
+ * @param regionFk When set, resolution is scoped to that region: an area/block/route/user
+ * outside it renders as a tombstone instead of leaking its name. Pass it when the enriched
+ * output is shown out of the viewer's own access context (the public `/f/<id>` share page),
+ * where a privileged `db` would otherwise resolve names across every private region.
+ */
+export const enrichMarkdown = async (
+  markdown: string,
+  db?: PostgresJsDatabase<typeof schema>,
+  regionFk?: number,
+): Promise<string> => {
   const matchesIterator = markdown.matchAll(new RegExp(referenceRegex, 'gi'))
   const matches = Array.from(matchesIterator ?? []).reverse()
 
@@ -92,12 +102,38 @@ const enrichMarkdown = async (markdown: string, db?: PostgresJsDatabase<typeof s
       // other tables expose `name`, so branch the column selection by type.
       const result =
         type === 'users'
-          ? (
-              await db.select({ name: schema.users.username }).from(schema.users).where(eq(schema.users.id, idNumber))
-            ).at(0)
+          ? await (async () => {
+              // Region scope for a user = membership: only resolve a user who belongs to the
+              // file's region, so a public share can't reveal members of other regions.
+              if (regionFk != null) {
+                return (
+                  await db
+                    .select({ name: schema.users.username })
+                    .from(schema.users)
+                    .innerJoin(
+                      schema.regionMembers,
+                      and(
+                        eq(schema.regionMembers.userFk, schema.users.id),
+                        eq(schema.regionMembers.regionFk, regionFk),
+                      ),
+                    )
+                    .where(eq(schema.users.id, idNumber))
+                ).at(0)
+              }
+              return (
+                await db.select({ name: schema.users.username }).from(schema.users).where(eq(schema.users.id, idNumber))
+              ).at(0)
+            })()
           : await (async () => {
               const dbSchema = type === 'areas' ? schema.areas : type === 'blocks' ? schema.blocks : schema.routes
-              const results = await db.select({ name: dbSchema.name }).from(dbSchema).where(eq(dbSchema.id, idNumber))
+              const results = await db
+                .select({ name: dbSchema.name })
+                .from(dbSchema)
+                .where(
+                  regionFk == null
+                    ? eq(dbSchema.id, idNumber)
+                    : and(eq(dbSchema.id, idNumber), eq(dbSchema.regionFk, regionFk)),
+                )
               return results.at(0)
             })()
 

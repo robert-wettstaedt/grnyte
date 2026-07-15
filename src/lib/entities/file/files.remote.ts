@@ -208,8 +208,9 @@ export const createBunnyVideo = command(async () => {
 
 /**
  * Flip a file between public and private. RLS is the gate: the update only
- * touches a row the caller can edit (region EDIT) or owns via its ascent, so a
- * swallowed update surfaces as a 403 rather than silently doing nothing.
+ * touches a row the caller can edit (the files UPDATE policy, mirrored by
+ * canEditFile), so a swallowed update surfaces as a 403 rather than silently
+ * doing nothing.
  */
 export const setFileVisibility = authedCommand(
   z.object({ fileId: z.string().min(1), visibility: z.enum(['public', 'private']) }),

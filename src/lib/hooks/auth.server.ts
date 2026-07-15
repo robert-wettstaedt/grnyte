@@ -156,7 +156,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
-    !['/legal', '/auth', '/f/', '/api/notifications', '/api/zero', '/offline'].some((path) =>
+    !['/legal', '/auth', '/f/', '/image/', '/api/notifications', '/api/zero', '/offline'].some((path) =>
       event.url.pathname.startsWith(path),
     )
   ) {
