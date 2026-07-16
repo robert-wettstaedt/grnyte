@@ -12,6 +12,13 @@ Do NOT fix anything in this skill. Wait for the user to say which numbers.
 
 1. **Review**: run `/code-review` on the working-tree diff (default effort). Focus on correctness,
    consistency with nearby code, and code smell. This is the bug/quality pass.
+   - The `/code-review` finders skew toward higher-severity correctness bugs, so low-severity
+     consistency nits get crowded out. After it returns, do your own **sibling-consistency pass**:
+     for functions/types the diff adds or touches side by side, check they share shape, parameter
+     types, naming, and return conventions. A param that is a `number` in one and a `Date` in its
+     sibling, or one helper that logs-and-continues while its twin throws, is a finding even when
+     each is locally defensible. Local consistency (matches its own call site) is not the same as
+     sibling consistency (matches its peer); this step checks the latter.
 2. **Verify**: run `/grnyte-verify` to drive the actual change in the running app. A finding that only
    shows up when driven (broken flow, wrong permission gate, layout break) is worth more than a typecheck.
    Skip only if the diff has no runtime surface (docs/comments/test-only).

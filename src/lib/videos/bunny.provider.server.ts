@@ -11,6 +11,12 @@ import type { VideoProvider, VideoUploadAuth } from './provider.server'
 
 const API_BASE = `https://video.bunnycdn.com/library/${PUBLIC_BUNNY_STREAM_LIBRARY_ID}`
 
+/** Title given to a freshly created video; Bunny replaces it with the file's
+ *  metadata title once the TUS upload starts. A video still carrying this prefix
+ *  never began uploading, so it is a safe-to-delete orphan even in a library
+ *  shared with other tenants (a successful video of anyone's never keeps it). */
+const PREPARED_TITLE_PREFIX = 'prepared-'
+
 /** Presigned TUS auth: sha256 hex over libraryId + apiKey + expiration + videoId.
  *  `expiration` is a unix timestamp in SECONDS — milliseconds silently 401. */
 const tusSignature = (videoId: string, expiration: number): string =>
@@ -67,7 +73,7 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     const collectionId = await collectionOf(ownerId)
     const { guid } = await bunnyFetch<{ guid: string }>('/videos', {
       method: 'POST',
-      body: JSON.stringify({ title: `prepared-${new Date().toISOString()}`, collectionId }),
+      body: JSON.stringify({ title: `${PREPARED_TITLE_PREFIX}${new Date().toISOString()}`, collectionId }),
     })
     // Generous window: a 2GB upload on a crag connection plus retries must
     // outlive it (Bunny recommends >= 1h; an expired signature 401s mid-upload).
@@ -91,5 +97,32 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     if (!response.ok && response.status !== 404) {
       error(502, 'The video host rejected the delete')
     }
+  },
+
+  async listStaleUploads(before): Promise<string[]> {
+    const perPage = 100
+    const stale: string[] = []
+    for (let page = 1; ; page++) {
+      const { items, totalItems } = await bunnyFetch<{
+        items?: { guid: string; title: string; status: number; dateUploaded: string }[]
+        totalItems: number
+      }>(`/videos?page=${page}&itemsPerPage=${perPage}`)
+      if (items == null || items.length === 0) {
+        break
+      }
+      for (const item of items) {
+        // status 0 = Created, never received bytes: the ONE state that can't be a
+        // real video (any upload moves it past 0), so it's safe even in a library
+        // shared with another instance. Title prefix is a second guard. dateUploaded
+        // is the record's creation time (set at POST, not on upload).
+        if (item.status === 0 && item.title.startsWith(PREPARED_TITLE_PREFIX) && new Date(item.dateUploaded) < before) {
+          stale.push(item.guid)
+        }
+      }
+      if (page * perPage >= totalItems) {
+        break
+      }
+    }
+    return stale
   },
 })

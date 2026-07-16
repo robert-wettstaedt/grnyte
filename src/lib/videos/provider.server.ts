@@ -32,6 +32,14 @@ export interface VideoProvider {
   verifyUpload(videoId: string, ownerId: string, token: string): boolean
   /** Delete the hosted video. Idempotent: an already-gone video is not an error. */
   remove(videoId: string): Promise<void>
+  /**
+   * GUIDs of created-but-never-started uploads older than `before` (orphans
+   * from abandoned forms). Identified by never having received bytes (Bunny
+   * status 0) plus the placeholder title, so it can never match a real video and
+   * is safe even when the library is shared with another instance. Mid-upload
+   * aborts are left (they moved past status 0).
+   */
+  listStaleUploads(before: Date): Promise<string[]>
 }
 
 /** The video provider the app is configured to use. Swap the backend here. */
