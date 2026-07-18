@@ -240,6 +240,53 @@ export const setBlockLocation = authedCommand(
   },
 )
 
+/** Backfill a rough pin from a topo photo's GPS EXIF when the block has none yet. Marked
+ *  `estimated`, and a no-op once the block has any geolocation, so it never overrides a real
+ *  pin and is safe to fire on every topo upload. */
+export const estimateBlockLocationFromPhoto = authedCommand(
+  z.object({
+    id: z.number(),
+    lat: z.number().min(-90).max(90),
+    long: z.number().min(-180).max(180),
+  }),
+  async (value, { db, user, userRegions }) => {
+    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, value.id) })
+
+    if (block == null) {
+      error(404, 'Block not found')
+    }
+
+    if (!canEditBlock(userRegions, block)) {
+      error(403, formError('form_noPermission'))
+    }
+
+    if (block.geolocationFk != null) return
+
+    const [geolocation] = await db
+      .insert(geolocations)
+      .values({
+        blockFk: block.id,
+        estimated: true,
+        lat: value.lat,
+        long: value.long,
+        regionFk: block.regionFk,
+      })
+      .returning()
+    await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
+
+    await insertActivity(db, {
+      columnName: 'location',
+      entityId: String(block.id),
+      entityType: 'block',
+      parentEntityId: String(block.areaFk),
+      parentEntityType: 'area',
+      regionFk: block.regionFk,
+      type: 'updated',
+      userFk: user.id,
+    })
+  },
+)
+
 /** Snapshot {@link deleteBlock} returns so {@link restoreBlock} can undo either delete path.
  *  The hard path carries `order` so the restore can slot the block back where it was. */
 type DeleteBlockSnapshot =

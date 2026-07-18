@@ -10,6 +10,7 @@
   import Topo from '$lib/components/Topo/Topo.svelte'
   import TopoEditorStage from '$lib/components/Topo/TopoEditorStage.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
+  import { estimateBlockLocationFromPhoto } from '$lib/entities/block/blocks.remote'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { ImageUpload } from '$lib/entities/file/upload-manager.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
@@ -33,6 +34,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { notifyUndo, toaster } from '$lib/state/toast'
+  import exifr from 'exifr'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
   import TopoAddRouteModal from './TopoAddRouteModal.svelte'
@@ -246,9 +248,37 @@
           toaster.create({ title: m.error_generic_title(), type: 'error' })
         }
       }
+      // Backfill an estimated pin from the photo's GPS when the block has none yet. Best-effort:
+      // the topo upload is the real action, so a missing or unreadable EXIF must stay silent.
+      if (block.data.geolocation == null) {
+        await estimateLocationFromPhotos(files)
+      }
     } finally {
       photoBusy = false
       replaceTargetId = undefined
+    }
+  }
+
+  async function estimateLocationFromPhotos(files: File[]) {
+    if (block.data == null) return
+    for (const file of files) {
+      let gps: Awaited<ReturnType<typeof exifr.gps>>
+      try {
+        gps = await exifr.gps(file)
+      } catch {
+        continue
+      }
+      if (gps?.latitude == null || gps?.longitude == null) continue
+      try {
+        await estimateBlockLocationFromPhoto({
+          id: block.data.id,
+          lat: gps.latitude,
+          long: gps.longitude,
+        })
+      } catch {
+        // ignore: the pin is a bonus, the photo already uploaded
+      }
+      return
     }
   }
 
