@@ -39,10 +39,15 @@ export function toSheetNav(
   }
 }
 
+/** True when the user is typing in a form field, so keyboard shortcuts should stay inert. Shared by
+ *  window-level keydown handlers (the sheet nav, the topo editor) that must not hijack keys mid-edit. */
+export function isTypingInField(event: KeyboardEvent): boolean {
+  const target = event.target
+  return target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable]') != null
+}
+
 /** True when nav shortcuts should stay inert: a modifier is held or the user is
  *  typing in a form field. Shared by the sheet's j/l handler and page-level keys. */
 export function isNavKeyExempt(event: KeyboardEvent) {
-  if (event.metaKey || event.ctrlKey || event.altKey) return true
-  const target = event.target
-  return target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable]') != null
+  return event.metaKey || event.ctrlKey || event.altKey || isTypingInField(event)
 }

@@ -5,6 +5,7 @@
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
@@ -13,6 +14,7 @@
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { canEditTopo } from '$lib/entities/topo/permissions'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
@@ -98,6 +100,15 @@
             </a>
           {/each}
         </div>
+      {:else if canEditTopo(global.userRegions, detail)}
+        <!-- No topos yet: the strip is hidden, so this is the only entry point to author the first one. -->
+        <a
+          class="btn preset-tonal-primary w-full"
+          href={resolve('/(app)/blocks/[id]/topos/edit', { id: String(detail.id) })}
+        >
+          <Icon name="image" size={18} />
+          {m.topo_addTopos()}
+        </a>
       {/if}
 
       {#if orderedRoutes.length > 0}

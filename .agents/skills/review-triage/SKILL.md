@@ -22,6 +22,11 @@ Do NOT fix anything in this skill. Wait for the user to say which numbers.
 2. **Verify**: run `/grnyte-verify` to drive the actual change in the running app. A finding that only
    shows up when driven (broken flow, wrong permission gate, layout break) is worth more than a typecheck.
    Skip only if the diff has no runtime surface (docs/comments/test-only).
+   - Drive every affected screen at BOTH viewport sizes: mobile iPhone SE (375x667) and desktop
+     Laptop with MDPI (1280x800). Resize the page (e.g. chrome-devtools `resize_page`) and take a
+     screenshot at each size. Visual/layout bugs count as findings: overflow, clipped or overlapping
+     elements, broken wrapping, touch targets hidden behind nav chrome, desktop-only or mobile-only
+     UI showing on the wrong size.
 3. **Merge into one list**: dedupe overlapping findings from the two passes. One numbered item each,
    most-severe first. Per item give a one-line description, the `file:line`, and the fix as a phrase (not
    applied). Separate confirmed bugs from style/opinion so the user can triage fast.

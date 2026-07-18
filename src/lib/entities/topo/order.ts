@@ -1,7 +1,7 @@
 import type { TopoLine, TopoView } from './dto'
 
 /** Leftmost x of a line's start holds, falling back to all its points. */
-const anchorX = (line: TopoLine): number => {
+export const anchorX = (line: Pick<TopoLine, 'points'>): number => {
   const starts = line.points.filter((point) => point.type === 'start')
   const points = starts.length > 0 ? starts : line.points
   return points.length === 0 ? Infinity : Math.min(...points.map((point) => point.x))

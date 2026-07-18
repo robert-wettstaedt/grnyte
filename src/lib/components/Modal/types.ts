@@ -10,6 +10,8 @@ type HTMLAttributes<T extends keyof SvelteHTMLElements, U extends keyof SvelteHT
 export interface Props {
   /** Render a tap-to-dismiss scrim behind the mobile sheet (no effect on desktop). */
   backdrop?: boolean
+  /** This sheet opens on top of another open sheet: raise its z-index so the one below is fully covered. Mobile only. */
+  nested?: boolean
   children?: Snippet
   /** Pinned footer (e.g. action buttons). Fixed to the sheet bottom on mobile, to the panel bottom on desktop. */
   footer?: Snippet

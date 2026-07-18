@@ -554,6 +554,13 @@
       "when": 1784141866399,
       "tag": "0080_bright_blonde_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1784286456167,
+      "tag": "0081_slow_malice",
+      "breakpoints": true
     }
   ]
 }

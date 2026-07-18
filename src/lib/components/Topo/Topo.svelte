@@ -1,10 +1,11 @@
 <script lang="ts">
   import Image from '$lib/components/Image/Image.svelte'
-  import { gradeFgVar, gradeVar, type GradeBand } from '$lib/entities/grade/color'
+  import { gradeVar, type GradeBand } from '$lib/entities/grade/color'
   import type { TopoPoint } from '$lib/entities/topo/dto'
   import { buildLine } from '$lib/entities/topo/path'
   import type { ClassValue } from 'svelte/elements'
   import { panzoom } from './panzoom'
+  import TopoLine from './TopoLine.svelte'
 
   interface LineInput {
     id: number
@@ -126,38 +127,7 @@
       }
     },
   })
-
-  // End marker geometry: an up-arrow for a mantle over the top, a cap bar for a finish hold.
-  function topMarkerD(point: { x: number; y: number }, topType: LineInput['topType']): string {
-    const { x, y } = point
-    if (topType === 'topout') {
-      return `M${x - unit * 1.3},${y + unit * 0.5} L${x},${y - unit} L${x + unit * 1.3},${y + unit * 0.5}`
-    }
-    return `M${x - unit * 1.4},${y} L${x + unit * 1.4},${y}`
-  }
 </script>
-
-<!-- A cased grade-coloured stroke (dark halo + colour), shared by line, bracket and end marker. -->
-{#snippet stroke(d: string, band: GradeBand | undefined)}
-  <path
-    class="pointer-events-none"
-    {d}
-    stroke="oklch(0 0 0 / 0.55)"
-    stroke-width="6"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    vector-effect="non-scaling-stroke"
-  />
-  <path
-    class="pointer-events-none"
-    {d}
-    stroke={gradeVar(band)}
-    stroke-width="3"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    vector-effect="non-scaling-stroke"
-  />
-{/snippet}
 
 <div
   class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
@@ -173,7 +143,7 @@
         path={imagePath}
         {alt}
         loading="eager"
-        class="pointer-events-none h-full w-full touch-none select-none"
+        class="pointer-events-none h-full w-full touch-none bg-transparent! select-none"
         fit="contain"
         previewWidth={1024}
         bind:naturalWidth
@@ -203,47 +173,21 @@
               />
             {/if}
 
-            <!-- Bracket grouping the start holds, then the line, then the end marker. -->
-            {#if line.bracket}
-              {@render stroke(line.bracket, line.band)}
-            {/if}
-            {@render stroke(line.d, line.band)}
-            {#if line.top}
-              {@render stroke(topMarkerD(line.top, line.topType), line.band)}
-            {/if}
-
-            <!-- Guidebook number: grade-coloured disc below the start holds, dimming with its line. -->
-            {#if line.number != null && line.starts.length > 0}
-              {@const x = line.starts.reduce((sum, point) => sum + point.x, 0) / line.starts.length}
-              {@const y = Math.min(Math.max(...line.starts.map((point) => point.y)) + unit * 3, boxHeight - unit * 1.6)}
-              <g
-                class={['select-none', !interactive && 'pointer-events-none']}
-                {...interactive ? press(() => toggle(line.id)) : {}}
-                aria-pressed={interactive ? line.id === highlightId : undefined}
-                aria-label={interactive ? 'Toggle route line' : undefined}
-              >
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={unit * 1.5}
-                  fill={gradeVar(line.band)}
-                  stroke="oklch(0 0 0 / 0.55)"
-                  stroke-width="3"
-                  vector-effect="non-scaling-stroke"
-                />
-                <text
-                  {x}
-                  {y}
-                  fill={gradeFgVar(line.band)}
-                  font-size={unit * 2}
-                  font-weight="700"
-                  text-anchor="middle"
-                  dominant-baseline="central"
-                >
-                  {line.number}
-                </text>
-              </g>
-            {/if}
+            <!-- Bracket + line + end marker + guidebook number, dimming with the group above. The
+                 number badge is tap-to-toggle when interactive (it sits below the line's hit-path). -->
+            <TopoLine
+              {line}
+              {unit}
+              {boxHeight}
+              badgeAttrs={interactive
+                ? {
+                    class: 'select-none',
+                    ...press(() => toggle(line.id)),
+                    'aria-pressed': line.id === highlightId,
+                    'aria-label': 'Toggle route line',
+                  }
+                : { class: 'select-none pointer-events-none' }}
+            />
           </g>
         {/each}
 

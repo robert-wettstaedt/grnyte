@@ -18,7 +18,7 @@ export const blocksQueryDefs = {
         .where('deletedAt', 'IS', null)
         .orderBy('order', 'asc')
         .orderBy('name', 'asc')
-        .related('topos', (q) => r(q).orderBy('id', 'asc').related('file', r))
+        .related('topos', (q) => r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('file', r))
         .related('area', (q) => r(q).related('parent', r))
         .related('geolocation', r)
 
@@ -66,7 +66,7 @@ export const blocksQueryDefs = {
       return q
         .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
         .related('routes', (q) => r(q).where('deletedAt', 'IS', null).related('tags', r))
-        .related('topos', (q) => r(q).orderBy('id', 'asc').related('routes', r).related('file', r))
+        .related('topos', (q) => r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('routes', r).related('file', r))
         .related('geolocation', r)
         .one()
     }),

@@ -73,7 +73,12 @@ export function toTopoViews(block: BlockRow): TopoView[] {
         imageWidth: topo.file?.width ?? undefined,
         imageHeight: topo.file?.height ?? undefined,
         lines: (topo.routes ?? [])
-          .filter((tr) => tr.routeFk != null && tr.path != null && tr.path.trim() !== '')
+          // `routesById` holds only the block's live routes (the query filters deletedAt), so a
+          // row whose route is missing here belongs to a soft-deleted route — drop it, or it
+          // renders as a nameless grey ghost line that survives "Delete route everywhere".
+          .filter(
+            (tr) => tr.routeFk != null && tr.path != null && tr.path.trim() !== '' && routesById.has(tr.routeFk),
+          )
           .map((tr): TopoLine => {
             const route = routesById.get(tr.routeFk!)
             return {

@@ -1099,6 +1099,8 @@ export const topos = table(
     id: baseFields.id,
     ...baseRegionFields,
 
+    order: integer('order').notNull().default(0),
+
     blockFk: integer('block_fk').references((): AnyColumn => blocks.id),
     fileFk: text('file_fk').references((): AnyColumn => files.id),
   },

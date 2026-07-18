@@ -5,6 +5,8 @@
   interface Props {
     icon: IconName
     label: string
+    /** Optional second line under the label. */
+    description?: string
     /** Accent (primary) icon tile — for "add" actions. */
     accent?: boolean
     /** Destructive (error) styling — for delete. */
@@ -13,7 +15,7 @@
     onclick?: () => void
   }
 
-  const { icon, label, accent = false, destructive = false, href, onclick }: Props = $props()
+  const { icon, label, description, accent = false, destructive = false, href, onclick }: Props = $props()
 </script>
 
 {#snippet body()}
@@ -29,7 +31,12 @@
   >
     <Icon name={icon} size={20} />
   </span>
-  <span class="font-medium">{label}</span>
+  <span class="flex min-w-0 flex-col">
+    <span class="font-medium">{label}</span>
+    {#if description}
+      <span class="text-surface-600-400 text-xs font-normal">{description}</span>
+    {/if}
+  </span>
 {/snippet}
 
 {#if href != null}

@@ -56,7 +56,6 @@
     )
     for (const entry of settled) dropPending(entry.upload)
   })
-
 </script>
 
 <!-- Horizontal snap-scrolling strip: every tile is the same height, its width set

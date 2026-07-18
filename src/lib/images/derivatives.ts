@@ -29,12 +29,7 @@ export const derivativePath = (path: string, size: DerivativeSize): string =>
  */
 export const imageStoragePaths = (path: string): string[] => {
   const base = path.replace(/\.[^./]+$/, '')
-  return [
-    path,
-    ...DERIVATIVE_SIZES.map((size) => derivativePath(path, size)),
-    `${base}.orig.heic`,
-    `${base}.orig.heif`,
-  ]
+  return [path, ...DERIVATIVE_SIZES.map((size) => derivativePath(path, size)), `${base}.orig.heic`, `${base}.orig.heif`]
 }
 
 /**

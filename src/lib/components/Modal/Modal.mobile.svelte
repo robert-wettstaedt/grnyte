@@ -11,6 +11,7 @@
     footer,
     headerLeft,
     headerRight,
+    nested = false,
     open = $bindable(),
     snapPoints = [0.5],
     subtitle,
@@ -70,7 +71,9 @@
 {@render trigger?.({})}
 
 {#snippet content()}
-  <BottomSheet.Sheet class="preset-filled-surface-50-950! keyboard-aware {backdrop ? 'modal-elevated' : ''}">
+  <BottomSheet.Sheet
+    class="preset-filled-surface-50-950! keyboard-aware {backdrop ? 'modal-elevated' : ''} {nested ? 'modal-elevated-nested' : ''}"
+  >
     <div
       class="preset-filled-surface-50-950 border-surface-100-900 sticky top-0 z-100 flex items-center justify-between border-b-2 px-4 py-2"
     >
@@ -124,7 +127,7 @@
       <!-- Scrim behind the sheet; tap to dismiss. stopPropagation keeps the tap from
            reaching the map panel's document-click handler (which would collapse it). -->
       <BottomSheet.Overlay
-        class="modal-overlay"
+        class={nested ? 'modal-overlay modal-overlay-nested' : 'modal-overlay'}
         onclick={(event) => {
           event.stopPropagation()
           open = false
@@ -161,5 +164,15 @@
     /* Blur what's behind the scrim so the sheet is the only thing in focus. */
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* A sheet opened on top of another sheet (e.g. add-route over the routes list) must clear
+     the underlying sheet (z-61) so it fully covers it instead of letting it peek through. */
+  :global(.bottom-sheet.modal-elevated-nested) {
+    z-index: 71 !important;
+  }
+
+  :global(.bottom-sheet-overlay.modal-overlay-nested) {
+    z-index: 70 !important;
   }
 </style>

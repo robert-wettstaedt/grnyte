@@ -19,8 +19,4 @@
   </div>
 {/snippet}
 
-<Story
-  name="Default"
-  args={{ name: 'Lena Hoffmann', subline: '128 ascents · 5 areas' }}
-  {template}
-/>
+<Story name="Default" args={{ name: 'Lena Hoffmann', subline: '128 ascents · 5 areas' }} {template} />

@@ -11,6 +11,7 @@
   import { canDeleteBlock, canEditBlock } from '$lib/entities/block/permissions'
   import { waitForBlock } from '$lib/entities/block/resources.svelte'
   import { canAddRoute } from '$lib/entities/route/permissions'
+  import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
@@ -25,6 +26,7 @@
   const canEdit = $derived(canEditBlock(global.userRegions, block))
   const canDelete = $derived(canDeleteBlock(global.userRegions, block))
   const canAddRouteHere = $derived(canAddRoute(global.userRegions, block))
+  const canEditTopos = $derived(canEditTopo(global.userRegions, block))
 
   // Drive straight to the block's own pin, when it has one.
   const destination = $derived(
@@ -88,7 +90,7 @@
 
     <ShareButton text={block.name} />
 
-    {#if canEdit || canDelete || canAddRouteHere}
+    {#if canEdit || canDelete || canAddRouteHere || canEditTopos}
       <MoreMenu title={block.name}>
         {#snippet children(close)}
           <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.area_manage()}</h3>
@@ -98,6 +100,15 @@
               href={resolve('/(app)/blocks/[id]/routes/add', { id: String(block.id) })}
               icon="route"
               label={m.routes_addRoute()}
+              onclick={close}
+            />
+          {/if}
+
+          {#if canEditTopos}
+            <MenuRow
+              href={resolve('/(app)/blocks/[id]/topos/edit', { id: String(block.id) })}
+              icon="image"
+              label={m.topo_editTopos()}
               onclick={close}
             />
           {/if}

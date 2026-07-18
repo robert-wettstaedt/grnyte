@@ -8,6 +8,8 @@
     children,
     contentClass,
     footer,
+    headerLeft,
+    headerRight,
     open = $bindable(),
     panel = false,
     panelClass,
@@ -31,6 +33,10 @@
           class={['card bg-surface-50-950 border-surface-100-900 flex flex-col overflow-hidden border-2', contentClass]}
         >
           <header class="flex shrink-0 items-center justify-between gap-2 px-4 py-2 shadow">
+            {#if headerLeft}
+              {@render headerLeft()}
+            {/if}
+
             <Dialog.Title class="flex min-w-0 flex-col">
               {#if subtitle}
                 <span class="text-surface-600-400 text-xs">{subtitle}</span>
@@ -38,9 +44,13 @@
               <span class="text-lg">{title}</span>
             </Dialog.Title>
 
-            <Dialog.CloseTrigger class="btn-icon preset-filled-surface-200-800 shrink-0" aria-label={m.common_close()}>
-              <Icon name="close" />
-            </Dialog.CloseTrigger>
+            {#if headerRight}
+              {@render headerRight()}
+            {:else}
+              <Dialog.CloseTrigger class="btn-icon preset-filled-surface-200-800 shrink-0" aria-label={m.common_close()}>
+                <Icon name="close" />
+              </Dialog.CloseTrigger>
+            {/if}
           </header>
 
           <Dialog.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-2 pb-4">

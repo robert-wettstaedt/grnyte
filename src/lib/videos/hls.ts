@@ -1,5 +1,5 @@
-import type { Attachment } from 'svelte/attachments'
 import type Hls from 'hls.js'
+import type { Attachment } from 'svelte/attachments'
 
 /**
  * Adaptive HLS playback for a Bunny Stream `<video>`, with a caller-driven fallback.

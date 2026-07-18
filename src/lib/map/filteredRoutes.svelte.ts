@@ -21,7 +21,6 @@ export function filteredRouteList<T extends { id: number }>(
   filter: () => ParsedRouteFilter,
   userId: () => number | undefined,
 ): QueryResource<T[]> {
-
   // The user's ascents/favorites only sync while their respective filter is on.
   const userAscents = userAscentList(userId, () => filter().ascentStatus != null)
   const userFavorites = userFavoriteList(userId, () => filter().favoritesOnly)

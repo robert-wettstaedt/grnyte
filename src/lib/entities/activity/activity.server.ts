@@ -1,6 +1,6 @@
 import * as schema from '$lib/db/schema'
 import { sub } from 'date-fns'
-import { and, Column, eq, gt } from 'drizzle-orm'
+import { and, Column, eq, gt, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 interface HandleOpts extends Pick<
@@ -87,15 +87,49 @@ export const createUpdateActivity = async ({
   }
 }
 
+// Columns that define an activity's identity for debounce. Excludes id/createdAt (auto) and
+// notified (the flag we filter on).
+const activityValueColumns = [
+  'type',
+  'userFk',
+  'entityId',
+  'entityType',
+  'parentEntityId',
+  'parentEntityType',
+  'columnName',
+  'metadata',
+  'oldValue',
+  'newValue',
+  'regionFk',
+] as const
+
 export const insertActivity = async (
   db: PostgresJsDatabase<typeof schema>,
   activity: schema.InsertActivity | schema.InsertActivity[],
 ) => {
   const arr = Array.isArray(activity) ? activity : [activity]
 
-  if (arr.length > 0) {
-    await db.insert(schema.activities).values(arr)
+  if (arr.length === 0) {
+    return
   }
+
+  // Debounce until notified: drop not-yet-notified rows carrying the same values first, so
+  // repeated saves (e.g. topo edits) collapse into one instead of piling up duplicates.
+  // ponytail: one delete per item; callers pass a single activity today. Upgrade = batch if
+  // an array ever gets large.
+  for (const item of arr) {
+    const conditions = activityValueColumns.map((key) => {
+      const value = item[key] ?? null
+      const column = schema.activities[key] as Column
+      return value == null ? isNull(column) : eq(column, value)
+    })
+
+    await db
+      .delete(schema.activities)
+      .where(and(or(isNull(schema.activities.notified), eq(schema.activities.notified, false)), ...conditions))
+  }
+
+  await db.insert(schema.activities).values(arr)
 }
 
 /** Delete activities matching the given fields. Used by undo flows to erase the activity a

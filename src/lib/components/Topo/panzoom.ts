@@ -1,11 +1,47 @@
-import { zoom as d3Zoom, pointer, select, zoomIdentity, zoomTransform, type D3ZoomEvent } from 'd3'
+import { zoom as d3Zoom, pointer, select, zoomIdentity, zoomTransform, type D3ZoomEvent, type ZoomTransform } from 'd3'
 import type { Action } from 'svelte/action'
+
+type Extent = [[number, number], [number, number]]
+
+/**
+ * Like d3's default constrain, but it lets the content overscroll the viewport by
+ * half its size on each axis, so a corner of the image can be dragged to the
+ * centre of the screen (not just pinned to an edge). The padding is a screen
+ * half-viewport converted to world units via the live scale, so the reachable
+ * slack stays a constant half-viewport at any zoom. By default this slack only
+ * kicks in past fit (k > 1); with `overscroll` it applies at every zoom level,
+ * turning the node into a free-pan canvas.
+ */
+export const overscrollConstrain = (
+  transform: ZoomTransform,
+  extent: Extent,
+  translateExtent: Extent,
+  overscroll = false,
+): ZoomTransform => {
+  const k = transform.k
+  const slack = overscroll || k > 1
+  const padX = slack ? (extent[1][0] - extent[0][0]) / 2 / k : 0
+  const padY = slack ? (extent[1][1] - extent[0][1]) / 2 / k : 0
+  const dx0 = transform.invertX(extent[0][0]) - (translateExtent[0][0] - padX)
+  const dx1 = transform.invertX(extent[1][0]) - (translateExtent[1][0] + padX)
+  const dy0 = transform.invertY(extent[0][1]) - (translateExtent[0][1] - padY)
+  const dy1 = transform.invertY(extent[1][1]) - (translateExtent[1][1] + padY)
+  return transform.translate(
+    dx1 > dx0 ? (dx0 + dx1) / 2 : Math.min(0, dx0) || Math.max(0, dx1),
+    dy1 > dy0 ? (dy0 + dy1) / 2 : Math.min(0, dy0) || Math.max(0, dy1),
+  )
+}
 
 interface PanzoomParams {
   /** When false the action is inert: no gestures, native transform, identity. */
   enabled: boolean
   /** Maximum zoom factor. */
   maxScale?: number
+  /** Minimum zoom factor (1 = fit). Below 1 shrinks the content within the node. Default 1. */
+  minScale?: number
+  /** Allow the half-viewport overscroll at every zoom level, not just past fit — a
+   *  free-pan canvas where the content can be nudged even at or below fit. Default false. */
+  overscroll?: boolean
   /**
    * Aspect ratio (w/h) of letterboxed content inside the node (e.g. an
    * `object-contain` image). Pan/zoom is then clamped to the content's fitted
@@ -14,9 +50,17 @@ interface PanzoomParams {
    * panning stops at the content's edges. Omit when content fills the node.
    */
   aspect?: number
-  /** Called with the live zoom factor (1 = fit) whenever it changes. Lets a
-   *  consumer gate its own gestures on whether the content is zoomed in. */
-  onZoom?: (scale: number) => void
+  /** Called with the live zoom factor (1 = fit) and whether the view is at rest
+   *  (fit and centred) whenever the transform changes. Lets a consumer gate its
+   *  own gestures on zoom, and show a reset chip whenever the view is off-default. */
+  onZoom?: (scale: number, atRest: boolean) => void
+  /** Bump this number to animate back to fit (the "reset zoom" chip). */
+  resetSignal?: number
+  /**
+   * Suppress pan/zoom gestures entirely (but keep the current transform). Set while the
+   * consumer is drawing/placing so a press doesn't pan the photo out from under it.
+   */
+  blockPan?: boolean
 }
 
 /**
@@ -34,7 +78,11 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
   let enabled = false
   let aspect = params.aspect
   let maxScale = params.maxScale ?? 4
+  let minScale = params.minScale ?? 1
+  let overscroll = params.overscroll ?? false
   let onZoom = params.onZoom
+  let resetSignal = params.resetSignal
+  let blockPan = params.blockPan ?? false
 
   // The pannable world: the content's contain-fit rect within the node (the
   // whole node when no aspect is given), plus the node size it was computed for
@@ -42,12 +90,25 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
   let world = { x0: 0, y0: 0, w: 0, h: 0, width: 0, height: 0 }
 
   const behavior = d3Zoom<HTMLElement, unknown>()
-    .scaleExtent([1, maxScale])
+    .scaleExtent([minScale, maxScale])
+    // Reject gestures that begin on an interactive overlay (route handles/lines, marked
+    // `data-no-pan`) or while the consumer is drawing (`blockPan`). Their own Svelte handlers
+    // can't stop us: Svelte delegates pointerdown/mousedown/touchstart to the document root,
+    // which runs AFTER this node's native listener — so `stopPropagation` there is too late.
+    // The filter runs inside d3's own handler with the real target, so it isn't. The tail is
+    // d3's default filter (allow the wheel; ignore ctrl-clicks and non-primary buttons).
+    .filter((event) => {
+      if (blockPan) return false
+      const target = event.target
+      if (target instanceof Element && target.closest('[data-no-pan]') != null) return false
+      return (!event.ctrlKey || event.type === 'wheel') && !event.button
+    })
     .on('zoom', (event: D3ZoomEvent<HTMLElement, unknown>) => {
       const { x, y, k } = event.transform
       content.style.transform = `translate(${x}px, ${y}px) scale(${k})`
-      onZoom?.(k)
+      onZoom?.(k, Math.abs(k - 1) < 1e-3 && Math.abs(x) < 0.5 && Math.abs(y) < 0.5)
     })
+    .constrain((t, e, te) => overscrollConstrain(t, e as Extent, te as Extent, overscroll))
 
   const selection = select<HTMLElement, unknown>(node)
 
@@ -77,7 +138,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
       [x0, y0],
       [x0 + w, y0 + h],
     ])
-    behavior.scaleExtent([1, w > 0 && h > 0 ? Math.max(maxScale, width / w, height / h) : maxScale])
+    behavior.scaleExtent([minScale, w > 0 && h > 0 ? Math.max(maxScale, width / w, height / h) : maxScale])
   }
 
   // A resize (the mobile sheet dragging the box) re-lays-out the letterboxed
@@ -148,14 +209,20 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
     update(next: PanzoomParams) {
       // A different image is a different coordinate space — start over at fit.
       const aspectChanged = next.aspect !== aspect
+      const resetRequested = next.resetSignal !== resetSignal
       aspect = next.aspect
       maxScale = next.maxScale ?? 4
+      minScale = next.minScale ?? 1
+      overscroll = next.overscroll ?? false
       onZoom = next.onZoom
+      resetSignal = next.resetSignal
+      blockPan = next.blockPan ?? false
       if (next.enabled && !enabled) enable()
       else if (!next.enabled && enabled) disable()
       else if (enabled) {
         constrain()
         if (aspectChanged) selection.call(behavior.transform, zoomIdentity)
+        else if (resetRequested) selection.transition().duration(200).call(behavior.transform, zoomIdentity)
       }
     },
     destroy() {

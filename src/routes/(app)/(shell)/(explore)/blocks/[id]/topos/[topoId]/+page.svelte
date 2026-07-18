@@ -6,6 +6,7 @@
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import Topo from '$lib/components/Topo/Topo.svelte'
@@ -15,6 +16,7 @@
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
+  import { canEditTopo } from '$lib/entities/topo/permissions'
   import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -79,6 +81,10 @@
   })
 
   let open = $state(true)
+
+  // Region-EDIT maintainers get a jump into the topo editor, opened on this photo.
+  const canEditTopos = $derived(block.data != null && canEditTopo(global.userRegions, block.data))
+  const editHref = $derived(`${resolve('/(app)/blocks/[id]/topos/edit', { id: String(blockId) })}?topo=${topoId}`)
 
   const blockHref = $derived(resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(blockId) }))
   const topoHref = (id: number) =>
@@ -180,6 +186,13 @@
       {#if topo == null}
         <ErrorState type="notfound" title={m.topo_alt()} />
       {:else}
+        {#if canEditTopos}
+          <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- editHref is resolve() + ?topo query. -->
+          <a class="btn preset-outlined-surface-200-800 mb-2 h-11 w-full" href={editHref}>
+            <Icon name="image" size={15} />
+            {m.topo_editTopos()}
+          </a>
+        {/if}
         <nav class="flex flex-col gap-1.5">
           {#each topoRoutes as route (route.id)}
             <div id="topo-route-{route.id}">

@@ -10,6 +10,7 @@
   import { canDeleteRoute, canEditRoute } from '$lib/entities/route/permissions'
   import { waitForRoute } from '$lib/entities/route/resources.svelte'
   import { deleteRoute, restoreRoute } from '$lib/entities/route/routes.remote'
+  import { canEditTopo } from '$lib/entities/topo/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { withUndo } from '$lib/state/toast'
@@ -25,6 +26,13 @@
 
   const canEdit = $derived(canEditRoute(global.userRegions, route))
   const canDelete = $derived(canDeleteRoute(global.userRegions, route))
+  const canEditTopos = $derived(canEditTopo(global.userRegions, route))
+
+  // Opens the topo editor with this route's line selected (or a fresh line armed if it
+  // isn't drawn on any of the block's topos yet).
+  const editLineHref = $derived(
+    `${resolve('/(app)/blocks/[id]/topos/edit', { id: String(route.blockFk) })}?route=${route.id}`,
+  )
 
   // Drive to the route's block, when it has a pin.
   const destination = $derived(
@@ -46,7 +54,7 @@
 
   <ShareButton text={route.name} />
 
-  {#if canEdit || canDelete}
+  {#if canEdit || canDelete || canEditTopos}
     <MoreMenu panel={false} title={route.name}>
       {#snippet children(close)}
         <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.area_manage()}</h3>
@@ -58,6 +66,10 @@
             label={m.common_edit()}
             onclick={close}
           />
+        {/if}
+
+        {#if canEditTopos}
+          <MenuRow href={editLineHref} icon="route" label={m.topo_editLine()} onclick={close} />
         {/if}
 
         {#if canDelete}

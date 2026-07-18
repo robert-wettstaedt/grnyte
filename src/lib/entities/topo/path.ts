@@ -15,6 +15,25 @@ interface Point {
 export const isNormalized = (points: TopoPoint[]): boolean =>
   points.length > 0 && points.every((point) => point.x <= 1.5 && point.y <= 1.5)
 
+/**
+ * Convert legacy pixel-space points to 0-1 fractions using the image dimensions.
+ * Already-normalized points (and points without known dimensions) pass through
+ * unchanged, so this is safe to apply to any committed line before editing it.
+ */
+export const normalizePoints = (points: TopoPoint[], width?: number, height?: number): TopoPoint[] =>
+  isNormalized(points) || width == null || height == null || width <= 0 || height <= 0
+    ? points
+    : points.map((point) => ({ ...point, x: point.x / width, y: point.y / height }))
+
+/**
+ * Whether a line can be safely edited: its points end up cleanly in 0-1 space after normalization.
+ * Legacy pixel paths with no (or mismatched) image dimensions can't be normalized, so editing them
+ * would mix pixel and fraction coords and Save would overwrite the stored path with garbage — the
+ * editor renders those read-only instead. An empty line is trivially editable (nothing to mangle).
+ */
+export const canEditPoints = (points: TopoPoint[], width?: number, height?: number): boolean =>
+  points.length === 0 || isNormalized(normalizePoints(points, width, height))
+
 /** Split points into sub-paths — a new one begins at each `start`. */
 const toSubPaths = (points: Point[]): Point[][] => {
   const subPaths: Point[][] = []
@@ -27,6 +46,28 @@ const toSubPaths = (points: Point[]): Point[][] => {
   }
   return subPaths
 }
+
+/**
+ * Serialize typed points back into the stored path format (`M x,y L x,y … Z`) —
+ * the inverse of `convertPathToPoints`. Each `start` opens a sub-path (`M`), the
+ * rest are `L`, and a `top` closes its sub-path with a trailing `Z` marker. So a
+ * two-hold start reads `M s1 L m1 L top Z M s2`. Coordinates are rounded to 5
+ * decimals, matching the precision of existing rows (a fraction of a pixel on
+ * any real photo) instead of storing float noise like 0.30000000000000004.
+ */
+const round5 = (n: number): number => Math.round(n * 100000) / 100000
+
+export const serializePoints = (points: TopoPoint[]): string =>
+  toSubPaths(points)
+    .map((sub) =>
+      sub
+        .map((point, index) => {
+          const segment = `${index === 0 ? 'M' : 'L'}${round5(point.x)},${round5(point.y)}`
+          return point.type === 'top' ? `${segment} Z` : segment
+        })
+        .join(' '),
+    )
+    .join(' ')
 
 /** Straight `M…L…` polyline through the points (open, no `Z`). */
 const straightPath = (points: Point[]): string =>
@@ -68,6 +109,23 @@ const centroid = (points: Point[]): Point => ({
   x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
   y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
 })
+
+/**
+ * End-marker `d` for a line's top: an up-arrow for a mantle over the top (`topout`)
+ * or a flat cap bar for a finish hold (`top`). `unit` sizes it relative to the image
+ * (see `Topo.svelte`). Shared by the viewer and the editor so both draw it the same.
+ */
+export const topMarkerD = (
+  point: { x: number; y: number },
+  topType: 'top' | 'topout' | undefined,
+  unit: number,
+): string => {
+  const { x, y } = point
+  if (topType === 'topout') {
+    return `M${x - unit * 1.3},${y + unit * 0.5} L${x},${y - unit} L${x + unit * 1.3},${y + unit * 0.5}`
+  }
+  return `M${x - unit * 1.4},${y} L${x + unit * 1.4},${y}`
+}
 
 export interface BuiltLine {
   /** The route line: one path rising from the centre of the start holds to the top. */
