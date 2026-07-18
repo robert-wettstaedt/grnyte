@@ -6,22 +6,22 @@ import { toAreaDetail } from './mapper'
 export interface AreaListFilter {
   content?: string
   /** Parent area id; `null` filters to top-level areas (no parent), omitted means no filter. */
-  parentFk?: number | null
+  parentFk?: null | number
   /** Find areas whose description references the given `!type:id!` token (backlinks). */
   references?: string
-}
-
-export function areaList(filter: () => AreaListFilter = () => ({})) {
-  return createResource(
-    () => queries.listAreas(filter()),
-    (rows) => rows.map(toAreaDetail),
-  )
 }
 
 export function areaDetail(id: () => number) {
   return createResource(
     () => queries.area({ id: id() }),
     (row) => (row == null ? undefined : toAreaDetail(row)),
+  )
+}
+
+export function areaList(filter: () => AreaListFilter = () => ({})) {
+  return createResource(
+    () => queries.listAreas(filter()),
+    (rows) => rows.map(toAreaDetail),
   )
 }
 

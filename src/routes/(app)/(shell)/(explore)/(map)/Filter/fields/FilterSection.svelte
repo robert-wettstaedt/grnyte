@@ -3,15 +3,15 @@
   import type { Snippet } from 'svelte'
 
   interface Props {
-    label: string
-    /** Short text shown on the right of the header, summarising the current value. */
-    summary: string
     /** Whether this filter currently constrains results; highlights the summary. */
     active?: boolean
     children: Snippet
+    label: string
+    /** Short text shown on the right of the header, summarising the current value. */
+    summary: string
   }
 
-  let { label, summary, active = false, children }: Props = $props()
+  let { active = false, children, label, summary }: Props = $props()
 
   let open = $state(false)
 </script>

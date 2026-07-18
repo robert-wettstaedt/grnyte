@@ -1,8 +1,8 @@
 <script lang="ts">
   import Image from '$lib/components/Image/Image.svelte'
+  import type { GradeBand } from '$lib/entities/grade/color'
   import type { TopoPoint } from '$lib/entities/topo/dto'
   import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
-  import type { GradeBand } from '$lib/entities/grade/color'
   import { buildLine } from '$lib/entities/topo/path'
   import { m } from '$lib/paraglide/messages'
   import type { ClassValue } from 'svelte/elements'
@@ -11,33 +11,33 @@
   import TopoLine from './TopoLine.svelte'
 
   interface RenderLine {
-    routeFk: number
-    points: TopoPoint[]
     band: GradeBand | undefined
-    topType: 'top' | 'topout'
     number?: number
+    points: TopoPoint[]
+    routeFk: number
     selected: boolean
+    topType: 'top' | 'topout'
   }
 
   interface Props {
-    imagePath: string
-    width?: number
-    height?: number
     alt: string
-    /** Every line on this photo; `selected` gets editable handles. */
-    lines: RenderLine[]
+    class?: ClassValue
     /** The drawing controller — the stage calls its place/drag/delete ops. */
     editor: TopoEditor
+    height?: number
+    imagePath: string
+    /** Every line on this photo; `selected` gets editable handles. */
+    lines: RenderLine[]
     /** Show the magnifier lens on point placement/drag (finger occludes the target otherwise). */
     /** Live zoom factor (1 = fit) and whether the view is at rest (fit and centred),
      *  so the page can show a reset-zoom chip whenever the view is off-default. */
     onZoom?: (scale: number, atRest: boolean) => void
     /** Bump to animate the stage back to fit (the reset-zoom chip). */
     resetZoom?: number
-    class?: ClassValue
+    width?: number
   }
 
-  let { imagePath, width, height, alt, lines, editor, onZoom, resetZoom, class: className }: Props = $props()
+  let { alt, class: className, editor, height, imagePath, lines, onZoom, resetZoom, width }: Props = $props()
 
   let containerEl = $state<HTMLDivElement>()
   let svgEl = $state<SVGSVGElement>()
@@ -52,19 +52,19 @@
   // Committed-style geometry (curve + bracket + end marker) for every line.
   const rendered = $derived(
     lines.map((line) => {
-      const { d, bracket, starts, top } = buildLine(line.points, true, boxWidth, boxHeight)
-      return { ...line, d, bracket, starts, top }
+      const { bracket, d, starts, top } = buildLine(line.points, true, boxWidth, boxHeight)
+      return { ...line, bracket, d, starts, top }
     }),
   )
   const selected = $derived(rendered.find((line) => line.selected))
 
   // Rings where points of different lines coincide (snap made them shared).
   const sharedRings = $derived.by(() => {
-    const seen: Record<string, { x: number; y: number; count: number }> = {}
+    const seen: Record<string, { count: number; x: number; y: number }> = {}
     for (const line of lines) {
       for (const point of line.points) {
         const key = `${point.x.toFixed(4)},${point.y.toFixed(4)}`
-        const entry = (seen[key] ??= { x: point.x * boxWidth, y: point.y * boxHeight, count: 0 })
+        const entry = (seen[key] ??= { count: 0, x: point.x * boxWidth, y: point.y * boxHeight })
         entry.count += 1
       }
     }
@@ -75,7 +75,7 @@
   const inserts = $derived.by(() => {
     if (selected == null) return []
     const points = selected.points
-    const spots: { x: number; y: number; afterId: string; nx: number; ny: number }[] = []
+    const spots: { afterId: string; nx: number; ny: number; x: number; y: number }[] = []
     for (let i = 0; i < points.length - 1; i++) {
       const a = points[i]
       const b = points[i + 1]
@@ -83,13 +83,13 @@
       if (a.type === 'top' || b.type === 'start') continue
       const nx = (a.x + b.x) / 2
       const ny = (a.y + b.y) / 2
-      spots.push({ x: nx * boxWidth, y: ny * boxHeight, afterId: a.id, nx, ny })
+      spots.push({ afterId: a.id, nx, ny, x: nx * boxWidth, y: ny * boxHeight })
     }
     return spots
   })
 
   /** Client coords → normalized 0-1 in image space, accounting for the panzoom transform. */
-  function toNorm(clientX: number, clientY: number): { x: number; y: number } | undefined {
+  function toNorm(clientX: number, clientY: number): undefined | { x: number; y: number } {
     const ctm = svgEl?.getScreenCTM()
     if (ctm == null || boxWidth === 0 || boxHeight === 0) return undefined
     const p = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse())
@@ -110,13 +110,13 @@
     const bgW = rect.width * LENS_ZOOM
     const bgH = rect.height * LENS_ZOOM
     return {
+      bgH,
+      bgW,
+      bgX: LENS_SIZE / 2 - norm.x * bgW,
+      bgY: LENS_SIZE / 2 - norm.y * bgH,
       clientX,
       clientY,
       src: img.currentSrc || img.src,
-      bgW,
-      bgH,
-      bgX: LENS_SIZE / 2 - norm.x * bgW,
-      bgY: LENS_SIZE / 2 - norm.y * bgH,
     }
   }
 
@@ -134,9 +134,9 @@
   let placing = $state<{ x: number; y: number }>()
 
   type Drag =
+    | { kind: 'line'; lastX: number; lastY: number; moved: boolean; routeFk: number; startX: number; startY: number }
     | { kind: 'place' }
-    | { kind: 'point'; pointId: string; startX: number; startY: number; moved: boolean }
-    | { kind: 'line'; routeFk: number; lastX: number; lastY: number; startX: number; startY: number; moved: boolean }
+    | { kind: 'point'; moved: boolean; pointId: string; startX: number; startY: number }
   let drag = $state<Drag>()
 
   // Selecting a line renders the insert-point `+` markers under the finger this same frame, so the
@@ -164,7 +164,7 @@
   function onPointHandleDown(event: PointerEvent, pointId: string) {
     event.stopPropagation()
     editor.beginStroke()
-    drag = { kind: 'point', pointId, startX: event.clientX, startY: event.clientY, moved: false }
+    drag = { kind: 'point', moved: false, pointId, startX: event.clientX, startY: event.clientY }
     showLens(event.clientX, event.clientY)
     ;(event.target as Element).setPointerCapture?.(event.pointerId)
   }
@@ -179,12 +179,12 @@
     editor.beginStroke()
     drag = {
       kind: 'line',
-      routeFk,
       lastX: event.clientX,
       lastY: event.clientY,
+      moved: false,
+      routeFk,
       startX: event.clientX,
       startY: event.clientY,
-      moved: false,
     }
     ;(event.target as Element).setPointerCapture?.(event.pointerId)
   }
@@ -246,13 +246,13 @@
   class={['bg-surface-800 relative overflow-hidden', className]}
   style:aspect-ratio={ready ? `${boxWidth} / ${boxHeight}` : undefined}
   use:panzoom={{
-    enabled: true,
     aspect: ready ? boxWidth / boxHeight : undefined,
-    minScale: 0.5,
-    overscroll: true,
-    onZoom,
-    resetSignal: resetZoom,
     blockPan: editor.pointType != null || drag != null,
+    enabled: true,
+    minScale: 0.5,
+    onZoom,
+    overscroll: true,
+    resetSignal: resetZoom,
   }}
 >
   <div class="absolute inset-0">

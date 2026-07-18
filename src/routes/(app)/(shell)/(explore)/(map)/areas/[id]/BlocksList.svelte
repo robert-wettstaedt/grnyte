@@ -1,10 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import Icon from '$lib/components/Icon/Icon.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
-  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { getGradeBand } from '$lib/entities/grade/color'
@@ -14,6 +13,7 @@
   import { formatDistance } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { SvelteMap } from 'svelte/reactivity'
 
   interface Props {
@@ -147,9 +147,9 @@
                 lines={blockRoutes
                   .filter((route) => route.topoImagePath === image.path && route.topoPoints != null)
                   .map((route) => ({
+                    band: getGradeBand(route.gradeFk),
                     id: route.id,
                     points: route.topoPoints ?? [],
-                    band: getGradeBand(route.gradeFk),
                   }))}
               />
             </a>

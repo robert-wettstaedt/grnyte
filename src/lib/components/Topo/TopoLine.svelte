@@ -7,26 +7,26 @@
 
   /** The drawn geometry of one route line (from `buildLine`) plus its grade/number. */
   interface Line {
-    d: string
-    bracket: string
-    starts: { x: number; y: number }[]
-    top: { x: number; y: number } | undefined
-    topType: 'top' | 'topout' | undefined
     band: GradeBand | undefined
+    bracket: string
+    d: string
     number?: number
+    starts: { x: number; y: number }[]
+    top: undefined | { x: number; y: number }
+    topType: 'top' | 'topout' | undefined
   }
 
   interface Props {
+    /** Spread onto the number-badge group — the viewer makes it tap-to-toggle. */
+    badgeAttrs?: SVGAttributes<SVGGElement>
+    /** Image box height, to clamp the number badge inside the frame. */
+    boxHeight: number
     line: Line
     /** Marker size as a fraction of the image (see `Topo.svelte`). */
     unit: number
-    /** Image box height, to clamp the number badge inside the frame. */
-    boxHeight: number
-    /** Spread onto the number-badge group — the viewer makes it tap-to-toggle. */
-    badgeAttrs?: SVGAttributes<SVGGElement>
   }
 
-  let { line, unit, boxHeight, badgeAttrs }: Props = $props()
+  let { badgeAttrs, boxHeight, line, unit }: Props = $props()
 </script>
 
 <!-- A cased grade-coloured stroke (dark halo + colour), shared by line, bracket and end marker. -->

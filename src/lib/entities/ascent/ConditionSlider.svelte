@@ -8,19 +8,19 @@
   // of GradeSlider.
   // ponytail: lives here next to its only consumer; move to components/ with a second one.
   interface Props {
-    /** Inline label, doubles as the slider's accessible name. */
-    label: string
-    min: number
-    max: number
-    step?: number
     /** Render the picked value, e.g. `${value} %`. */
     format: (value: number) => string
+    /** Inline label, doubles as the slider's accessible name. */
+    label: string
+    max: number
+    min: number
     /** When set, the value submits through a hidden input with this name (empty when unset). */
     name?: string
+    step?: number
     value?: number | undefined
   }
 
-  let { label, min, max, step = 1, format, name, value = $bindable() }: Props = $props()
+  let { format, label, max, min, name, step = 1, value = $bindable() }: Props = $props()
 </script>
 
 {#if name != null}

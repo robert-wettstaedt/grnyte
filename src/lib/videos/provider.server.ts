@@ -1,16 +1,5 @@
 import { getBunnyVideoProvider } from './bunny.provider.server'
 
-/** Credentials the browser attaches to its direct (TUS) upload of one video. */
-export interface VideoUploadAuth {
-  /** Provider-side id of the created video object — doubles as `bunnyStreams.id`. */
-  videoId: string
-  signature: string
-  /** Unix timestamp in seconds the signature expires at. */
-  expiration: number
-  /** Ownership proof for `finalizeVideo` — see {@link VideoProvider.verifyUpload}. */
-  token: string
-}
-
 /**
  * The app's single video-hosting boundary, mirroring {@link ImageProvider}.
  * Unlike images the server never touches video bytes — the browser uploads
@@ -25,14 +14,6 @@ export interface VideoProvider {
   /** Create a video object grouped under the uploading user, presigned for a direct browser upload. */
   createUpload(ownerId: string): Promise<VideoUploadAuth>
   /**
-   * Whether `token` proves {@link createUpload} minted `videoId` for `ownerId`.
-   * The GUID at finalize is client-supplied — without this check any authed
-   * user could attach a made-up or foreign video to their own ascent.
-   */
-  verifyUpload(videoId: string, ownerId: string, token: string): boolean
-  /** Delete the hosted video. Idempotent: an already-gone video is not an error. */
-  remove(videoId: string): Promise<void>
-  /**
    * GUIDs of created-but-never-started uploads older than `before` (orphans
    * from abandoned forms). Identified by never having received bytes (Bunny
    * status 0) plus the placeholder title, so it can never match a real video and
@@ -40,6 +21,25 @@ export interface VideoProvider {
    * aborts are left (they moved past status 0).
    */
   listStaleUploads(before: Date): Promise<string[]>
+  /** Delete the hosted video. Idempotent: an already-gone video is not an error. */
+  remove(videoId: string): Promise<void>
+  /**
+   * Whether `token` proves {@link createUpload} minted `videoId` for `ownerId`.
+   * The GUID at finalize is client-supplied — without this check any authed
+   * user could attach a made-up or foreign video to their own ascent.
+   */
+  verifyUpload(videoId: string, ownerId: string, token: string): boolean
+}
+
+/** Credentials the browser attaches to its direct (TUS) upload of one video. */
+export interface VideoUploadAuth {
+  /** Unix timestamp in seconds the signature expires at. */
+  expiration: number
+  signature: string
+  /** Ownership proof for `finalizeVideo` — see {@link VideoProvider.verifyUpload}. */
+  token: string
+  /** Provider-side id of the created video object — doubles as `bunnyStreams.id`. */
+  videoId: string
 }
 
 /** The video provider the app is configured to use. Swap the backend here. */

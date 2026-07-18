@@ -6,13 +6,13 @@
   interface Props {
     /** The area whose location trail is shown. */
     area: AreaDetail | AreaListItem
-    /** The signed-in user's memberships — names the region only when there's more than one. */
-    userRegions: UserRegion[]
     /** Append `area` itself as the final crumb (e.g. when it's the parent of a new child). */
     includeSelf?: boolean
+    /** The signed-in user's memberships — names the region only when there's more than one. */
+    userRegions: UserRegion[]
   }
 
-  let { area, userRegions, includeSelf = false }: Props = $props()
+  let { area, includeSelf = false, userRegions }: Props = $props()
 
   // Deep hierarchies make the breadcrumb unreadable, so keep only the two crumbs
   // nearest the current area; anything above collapses to an ellipsis.

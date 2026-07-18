@@ -8,11 +8,11 @@ export function canAddRoute(userRegions: UserRegion[], block: RoutePermissionTar
   return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], block.regionFk)
 }
 
+export function canDeleteRoute(userRegions: UserRegion[], route: RoutePermissionTarget): boolean {
+  return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], route.regionFk)
+}
+
 /** Any region member may edit a route, the community fills the gaps (RLS: READ can update routes). */
 export function canEditRoute(userRegions: UserRegion[], route: RoutePermissionTarget): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], route.regionFk)
-}
-
-export function canDeleteRoute(userRegions: UserRegion[], route: RoutePermissionTarget): boolean {
-  return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], route.regionFk)
 }

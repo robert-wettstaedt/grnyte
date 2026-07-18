@@ -3,27 +3,27 @@
   import Row from './Row.svelte'
 
   interface Props {
-    /** Block name. */
-    name: string
-    /** Eyebrow line — typically the geographic region. */
-    region?: string
-    /** Breadcrumb path of parent areas. */
-    crumbs?: string | string[]
-    /** Secondary line, e.g. "12 routes · 6 m". */
-    subline?: string
-    /** Badge over the topo thumbnail, e.g. a route count. */
-    badge?: string
-    /** Render as a link. */
-    href?: string
-    /** Tap handler when rendered as a button. */
-    onclick?: (event: MouseEvent) => void
-    /** `card` (listing) or `option` (compact `@`-picker row). */
-    variant?: 'card' | 'option'
     /** Keyboard-highlight state — only for the `option` variant. */
     active?: boolean
+    /** Badge over the topo thumbnail, e.g. a route count. */
+    badge?: string
+    /** Breadcrumb path of parent areas. */
+    crumbs?: string | string[]
+    /** Render as a link. */
+    href?: string
+    /** Block name. */
+    name: string
+    /** Tap handler when rendered as a button. */
+    onclick?: (event: MouseEvent) => void
+    /** Eyebrow line — typically the geographic region. */
+    region?: string
+    /** Secondary line, e.g. "12 routes · 6 m". */
+    subline?: string
+    /** `card` (listing) or `option` (compact `@`-picker row). */
+    variant?: 'card' | 'option'
   }
 
-  let { name, region, crumbs, subline, badge, href, onclick, variant = 'card', active = false }: Props = $props()
+  let { active = false, badge, crumbs, href, name, onclick, region, subline, variant = 'card' }: Props = $props()
 
   const thumbSize = $derived(variant === 'option' ? 40 : 56)
 

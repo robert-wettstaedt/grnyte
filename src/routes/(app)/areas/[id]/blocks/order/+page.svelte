@@ -6,11 +6,11 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { reorderBlocks } from '$lib/entities/block/blocks.remote'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockList } from '$lib/entities/block/resources.svelte'
-  import { areaDetail } from '$lib/entities/area/resources.svelte'
   import { haversineMetres, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages'
   import { runCommand } from '$lib/remote/mutation'
@@ -69,7 +69,7 @@
   const select = (id: number) => (selectedId = id)
   $effect(() => {
     if (selectedId == null || listEl == null) return
-    listEl.querySelector(`[data-block-id="${selectedId}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    listEl.querySelector(`[data-block-id="${selectedId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   })
 
   // svelte-dnd-action handle pattern: drag is disabled until the grip is pressed, so the list
@@ -153,7 +153,7 @@
             <ul
               bind:this={listEl}
               class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4"
-              use:dndzone={{ items: staged, dragDisabled, flipDurationMs: 150, dropTargetStyle: {} }}
+              use:dndzone={{ dragDisabled, dropTargetStyle: {}, flipDurationMs: 150, items: staged }}
               onconsider={consider}
               onfinalize={finalize}
             >

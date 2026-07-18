@@ -59,8 +59,8 @@ async function collectionOf(ownerId: string): Promise<string> {
     items?.find((item) => item.name === ownerId)?.guid ??
     (
       await bunnyFetch<{ guid: string }>('/collections', {
-        method: 'POST',
         body: JSON.stringify({ name: ownerId }),
+        method: 'POST',
       })
     ).guid
   collections.set(ownerId, guid)
@@ -72,31 +72,13 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
   async createUpload(ownerId): Promise<VideoUploadAuth> {
     const collectionId = await collectionOf(ownerId)
     const { guid } = await bunnyFetch<{ guid: string }>('/videos', {
+      body: JSON.stringify({ collectionId, title: `${PREPARED_TITLE_PREFIX}${new Date().toISOString()}` }),
       method: 'POST',
-      body: JSON.stringify({ title: `${PREPARED_TITLE_PREFIX}${new Date().toISOString()}`, collectionId }),
     })
     // Generous window: a 2GB upload on a crag connection plus retries must
     // outlive it (Bunny recommends >= 1h; an expired signature 401s mid-upload).
     const expiration = Math.floor(Date.now() / 1000) + 24 * 60 * 60
-    return { videoId: guid, signature: tusSignature(guid, expiration), expiration, token: uploadToken(guid, ownerId) }
-  },
-
-  verifyUpload(videoId, ownerId, token): boolean {
-    const expected = Buffer.from(uploadToken(videoId, ownerId))
-    const given = Buffer.from(token)
-    return given.length === expected.length && timingSafeEqual(given, expected)
-  },
-
-  async remove(videoId): Promise<void> {
-    // Not bunnyFetch: DELETE returns no useful body, and a 404 (already gone)
-    // is success here, not the 502 bunnyFetch would raise.
-    const response = await fetch(`${API_BASE}/videos/${videoId}`, {
-      method: 'DELETE',
-      headers: { AccessKey: BUNNY_STREAM_API_KEY },
-    })
-    if (!response.ok && response.status !== 404) {
-      error(502, 'The video host rejected the delete')
-    }
+    return { expiration, signature: tusSignature(guid, expiration), token: uploadToken(guid, ownerId), videoId: guid }
   },
 
   async listStaleUploads(before): Promise<string[]> {
@@ -104,7 +86,7 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
     const stale: string[] = []
     for (let page = 1; ; page++) {
       const { items, totalItems } = await bunnyFetch<{
-        items?: { guid: string; title: string; status: number; dateUploaded: string }[]
+        items?: { dateUploaded: string; guid: string; status: number; title: string }[]
         totalItems: number
       }>(`/videos?page=${page}&itemsPerPage=${perPage}`)
       if (items == null || items.length === 0) {
@@ -124,5 +106,23 @@ export const getBunnyVideoProvider = (): VideoProvider => ({
       }
     }
     return stale
+  },
+
+  async remove(videoId): Promise<void> {
+    // Not bunnyFetch: DELETE returns no useful body, and a 404 (already gone)
+    // is success here, not the 502 bunnyFetch would raise.
+    const response = await fetch(`${API_BASE}/videos/${videoId}`, {
+      headers: { AccessKey: BUNNY_STREAM_API_KEY },
+      method: 'DELETE',
+    })
+    if (!response.ok && response.status !== 404) {
+      error(502, 'The video host rejected the delete')
+    }
+  },
+
+  verifyUpload(videoId, ownerId, token): boolean {
+    const expected = Buffer.from(uploadToken(videoId, ownerId))
+    const given = Buffer.from(token)
+    return given.length === expected.length && timingSafeEqual(given, expected)
   },
 })

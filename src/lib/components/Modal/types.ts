@@ -2,21 +2,18 @@ import type { PopoverRootProps } from '@skeletonlabs/skeleton-svelte'
 import type { Snippet } from 'svelte'
 import type { SvelteHTMLElements } from 'svelte/elements'
 
-type HTMLAttributes<T extends keyof SvelteHTMLElements, U extends keyof SvelteHTMLElements[T] = never> = Omit<
-  SvelteHTMLElements[T],
-  U
->
-
 export interface Props {
   /** Render a tap-to-dismiss scrim behind the mobile sheet (no effect on desktop). */
   backdrop?: boolean
-  /** This sheet opens on top of another open sheet: raise its z-index so the one below is fully covered. Mobile only. */
-  nested?: boolean
   children?: Snippet
+  /** Desktop panel card classes (width/height), e.g. `w-sm max-h-[80dvh]`. */
+  contentClass?: string
   /** Pinned footer (e.g. action buttons). Fixed to the sheet bottom on mobile, to the panel bottom on desktop. */
   footer?: Snippet
   headerLeft?: Snippet
   headerRight?: Snippet
+  /** This sheet opens on top of another open sheet: raise its z-index so the one below is fully covered. Mobile only. */
+  nested?: boolean
   open?: boolean
   /**
    * Desktop only: render as a fixed positioned panel (a non-modal Dialog) instead
@@ -26,11 +23,14 @@ export interface Props {
   panel?: boolean
   /** Desktop panel positioner classes (placement), e.g. `fixed top-16 left-27 z-60`. */
   panelClass?: string
-  /** Desktop panel card classes (width/height), e.g. `w-sm max-h-[80dvh]`. */
-  contentClass?: string
   popoverProps?: PopoverRootProps
   snapPoints?: number[]
   subtitle?: string
   title: string
   trigger: Snippet<[HTMLAttributes<'button'>]>
 }
+
+type HTMLAttributes<T extends keyof SvelteHTMLElements, U extends keyof SvelteHTMLElements[T] = never> = Omit<
+  SvelteHTMLElements[T],
+  U
+>

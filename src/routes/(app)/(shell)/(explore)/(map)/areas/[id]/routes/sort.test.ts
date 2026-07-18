@@ -21,7 +21,7 @@ const noDistance = () => Infinity
 describe('sortRoutes', () => {
   it('grade desc puts hardest first, ungraded last', () => {
     const out = sortRoutes(
-      [route({ id: 1, gradeFk: 3 }), route({ id: 2 }), route({ id: 3, gradeFk: 7 })],
+      [route({ gradeFk: 3, id: 1 }), route({ id: 2 }), route({ gradeFk: 7, id: 3 })],
       'grade',
       'desc',
       noDistance,

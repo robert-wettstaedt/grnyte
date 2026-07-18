@@ -15,14 +15,14 @@ export const REFERENCE_TOMBSTONE = String.fromCharCode(0)
 
 export type EncloseOptions = 'anchor' | 'strong'
 
-export type ReferenceType = 'areas' | 'blocks' | 'routes' | 'users'
-
 export interface MarkdownReferencesIds {
   areas: number[]
   blocks: number[]
   routes: number[]
   users: number[]
 }
+
+export type ReferenceType = 'areas' | 'blocks' | 'routes' | 'users'
 
 export const getReferences = (markdown: string): MarkdownReferencesIds => {
   const matchesIterator = markdown.matchAll(new RegExp(referenceRegex, 'gi'))
@@ -48,17 +48,17 @@ export const getReferences = (markdown: string): MarkdownReferencesIds => {
 }
 
 export interface MarkdownReference {
-  type: ReferenceType
   id: number
-  name: string
   /** The target no longer exists — render a tombstone rather than resolving `name`. */
   missing?: boolean
+  name: string
+  type: ReferenceType
 }
 
 export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownReference[]): string => {
   let enrichedMarkdown = markdown
 
-  refs.forEach(({ id, name, type, missing }) => {
+  refs.forEach(({ id, missing, name, type }) => {
     const payload = btoa(missing ? REFERENCE_TOMBSTONE : name)
     enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${payload}!`)
   })
@@ -95,9 +95,9 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
     // Deleted target: inert, muted "… not found" text — never a link to a dead page.
     if (decoded === REFERENCE_TOMBSTONE) {
       const tombstone: PhrasingContent = {
-        type: 'strong',
-        data: { hName: 'span', hProperties: { class: 'reference-missing' } },
         children: [{ type: 'text', value: notFoundLabel(type) }],
+        data: { hName: 'span', hProperties: { class: 'reference-missing' } },
+        type: 'strong',
       }
       return [tombstone]
     }
@@ -109,17 +109,17 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
     const isUser = type === 'users'
 
     const strong: PhrasingContent = {
-      type: 'strong',
       children: [{ type: 'text', value: isUser ? `@${name}` : name }],
+      type: 'strong',
     }
 
     return [
       encloseReferences === 'strong'
         ? strong
         : {
+            children: [strong],
             type: 'link',
             url: isUser ? `/users/${name}` : `/${type}/${id}`,
-            children: [strong],
           },
     ]
   }

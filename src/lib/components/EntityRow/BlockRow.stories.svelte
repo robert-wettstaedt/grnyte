@@ -4,12 +4,12 @@
   import BlockRow from './BlockRow.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/EntityRow/BlockRow',
     component: BlockRow,
-    tags: ['autodocs'],
     parameters: {
       layout: 'centered',
     },
+    tags: ['autodocs'],
+    title: 'Components/EntityRow/BlockRow',
   })
 </script>
 
@@ -21,8 +21,8 @@
 
 <Story
   name="Default"
-  args={{ name: 'The Arch', crumbs: 'Roadside', subline: '12 routes · 6 m', badge: '12' }}
+  args={{ badge: '12', crumbs: 'Roadside', name: 'The Arch', subline: '12 routes · 6 m' }}
   {template}
 />
 
-<Story name="No badge" args={{ name: 'The Arch', crumbs: 'Roadside', subline: '12 routes · 6 m' }} {template} />
+<Story name="No badge" args={{ crumbs: 'Roadside', name: 'The Arch', subline: '12 routes · 6 m' }} {template} />

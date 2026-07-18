@@ -21,7 +21,7 @@ export const toggleFavorite = authedCommand(
     if (existing == null) {
       await db
         .insert(favorites)
-        .values({ authUserFk: user.authUserFk, userFk: user.id, entityId, entityType, regionFk })
+        .values({ authUserFk: user.authUserFk, entityId, entityType, regionFk, userFk: user.id })
 
       // await insertActivity(db, {
       //   type: 'created',

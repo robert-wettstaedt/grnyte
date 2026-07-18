@@ -11,6 +11,24 @@ export const REGION_PERMISSION_ADMIN = 'region.admin'
 
 export type AppPermission = typeof APP_PERMISSION_ADMIN
 
+export type RegionPermission =
+  | typeof REGION_PERMISSION_ADMIN
+  | typeof REGION_PERMISSION_DELETE
+  | typeof REGION_PERMISSION_EDIT
+  | typeof REGION_PERMISSION_READ
+
+export interface SupabaseToken extends JwtPayload {
+  aud?: string | string[]
+  exp?: number
+  iat?: number
+  iss?: string
+  jti?: string
+  nbf?: number
+  role?: string
+  sub?: string
+  user_role?: (typeof appRole.enumValues)[number]
+}
+
 export function checkAppPermission(
   userPermissions: App.Locals['userPermissions'],
   requiredPermissions: AppPermission[],
@@ -18,32 +36,14 @@ export function checkAppPermission(
   return requiredPermissions.some((permission) => userPermissions?.includes(permission))
 }
 
-export type RegionPermission =
-  | typeof REGION_PERMISSION_READ
-  | typeof REGION_PERMISSION_EDIT
-  | typeof REGION_PERMISSION_DELETE
-  | typeof REGION_PERMISSION_ADMIN
-
 export function checkRegionPermission(
   userRegions: UserRegion[],
   requiredPermissions: RegionPermission[],
-  regionId: number | undefined | null,
+  regionId: null | number | undefined,
 ): boolean {
   return requiredPermissions.some((permission) =>
     userRegions.some((region) => region.regionFk === regionId && region.permissions.includes(permission)),
   )
-}
-
-export interface SupabaseToken extends JwtPayload {
-  iss?: string
-  sub?: string
-  aud?: string[] | string
-  exp?: number
-  nbf?: number
-  iat?: number
-  jti?: string
-  role?: string
-  user_role?: (typeof appRole.enumValues)[number]
 }
 
 export function decodeToken(accessToken: string): SupabaseToken {

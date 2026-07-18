@@ -5,7 +5,15 @@ import type { User, UserSettings } from './dto'
 export type CurrentUserRow = QueryRow<typeof queries.currentUser>
 type UserSettingsRow = CurrentUserRow['userSettings']
 
-export function toUserSettings(row: UserSettingsRow): UserSettings | undefined {
+export function toUser(row: CurrentUserRow): User {
+  return {
+    id: row.id,
+    username: row.username,
+    userSettings: toUserSettings(row.userSettings),
+  }
+}
+
+export function toUserSettings(row: UserSettingsRow): undefined | UserSettings {
   if (row == null) {
     return undefined
   }
@@ -15,13 +23,5 @@ export function toUserSettings(row: UserSettingsRow): UserSettings | undefined {
     notifyModerations: row.notifyModerations ?? false,
     notifyNewAscents: row.notifyNewAscents ?? false,
     notifyNewUsers: row.notifyNewUsers ?? false,
-  }
-}
-
-export function toUser(row: CurrentUserRow): User {
-  return {
-    id: row.id,
-    username: row.username,
-    userSettings: toUserSettings(row.userSettings),
   }
 }

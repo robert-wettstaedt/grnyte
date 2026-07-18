@@ -5,35 +5,15 @@ import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, redirect, type InvalidField, type RemoteFormInput } from '@sveltejs/kit'
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
-
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
+  db: Tx
   user: NonNullable<App.Locals['user']>
   userPermissions: App.Locals['userPermissions']
   userRegions: UserRegion[]
-  db: Tx
 }
 
-/** before: auth-gate, open an RLS transaction, run the handler inside it; after: log failures. */
-async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
-  const { user, userPermissions, userRegions, supabase } = getRequestEvent().locals
-  if (user == null) {
-    error(401, 'Not authenticated')
-  }
-
-  let returnValue: Awaited<O>
-
-  const rls = await createDrizzleSupabaseClient(supabase)
-  try {
-    returnValue = await rls(async (db) => handler({ user, userPermissions, userRegions, db }))
-  } catch (e) {
-    console.error('[remote] handler failed', e)
-    throw e
-  }
-
-  return returnValue
-}
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 /** `command`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
 export function authedCommand<S extends StandardSchemaV1, O>(
@@ -41,14 +21,6 @@ export function authedCommand<S extends StandardSchemaV1, O>(
   handler: (input: StandardSchemaV1.InferOutput<S>, ctx: Context) => Promise<MutationResult<O> | void>,
 ) {
   return command(schema, (input) => run((ctx) => handler(input, ctx)))
-}
-
-/** `query`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
-export function authedQuery<S extends StandardSchemaV1, O>(
-  schema: S,
-  handler: (input: StandardSchemaV1.InferOutput<S>, ctx: Context) => O | Promise<O>,
-) {
-  return query(schema, (input) => run((ctx) => handler(input, ctx)))
 }
 
 /** `form`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
@@ -69,4 +41,32 @@ export function authedForm<S extends StandardSchemaV1<RemoteFormInput, Record<st
 
     return value
   })
+}
+
+/** `query`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
+export function authedQuery<S extends StandardSchemaV1, O>(
+  schema: S,
+  handler: (input: StandardSchemaV1.InferOutput<S>, ctx: Context) => O | Promise<O>,
+) {
+  return query(schema, (input) => run((ctx) => handler(input, ctx)))
+}
+
+/** before: auth-gate, open an RLS transaction, run the handler inside it; after: log failures. */
+async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
+  const { supabase, user, userPermissions, userRegions } = getRequestEvent().locals
+  if (user == null) {
+    error(401, 'Not authenticated')
+  }
+
+  let returnValue: Awaited<O>
+
+  const rls = await createDrizzleSupabaseClient(supabase)
+  try {
+    returnValue = await rls(async (db) => handler({ db, user, userPermissions, userRegions }))
+  } catch (e) {
+    console.error('[remote] handler failed', e)
+    throw e
+  }
+
+  return returnValue
 }

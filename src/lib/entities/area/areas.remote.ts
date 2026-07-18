@@ -1,5 +1,5 @@
 import { resolve } from '$app/paths'
-import { areaTypeEnum, areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
+import { areas, areaTypeEnum, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
 import { coordinate, formError, stringToInt } from '$lib/forms/schemas'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
@@ -62,13 +62,13 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
   }
 
   await insertActivity(db, {
-    type: 'created',
-    userFk: user.id,
     entityId: String(createdArea.id),
     entityType: 'area',
     parentEntityId: createdArea.parentFk == null ? null : String(createdArea.parentFk),
     parentEntityType: 'area',
     regionFk: createdArea.regionFk,
+    type: 'created',
+    userFk: user.id,
   })
 
   return { redirectTo: resolve('/(app)/areas/[id]', { id: createdArea.id.toString() }) }
@@ -108,10 +108,10 @@ export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, 
     entityType: 'area',
     newEntity: { description: value.description, name: value.name },
     oldEntity: { description: area.description, name: area.name },
-    userFk: user.id,
     parentEntityId: String(area.parentFk),
     parentEntityType: 'area',
     regionFk: area.regionFk,
+    userFk: user.id,
   })
 
   return { redirectTo: resolve('/(app)/areas/[id]', { id: area.id.toString() }) }
@@ -120,12 +120,12 @@ export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, 
 /** Snapshot {@link deleteArea} returns so {@link restoreArea} can undo either delete path. */
 type DeleteAreaSnapshot =
   | {
-      mode: 'hard'
+      area: Pick<Area, 'description' | 'geoPaths' | 'name' | 'parentFk' | 'regionFk' | 'type' | 'walkingPaths'>
       areaId: number
-      area: Pick<Area, 'name' | 'description' | 'type' | 'regionFk' | 'parentFk' | 'walkingPaths' | 'geoPaths'>
+      mode: 'hard'
       parking: { lat: number; long: number }[]
     }
-  | { mode: 'soft'; areaId: number; deletedAt: Date }
+  | { areaId: number; deletedAt: Date; mode: 'soft' }
 
 /** Collect `rootId` and every area transitively nested beneath it (via `parentFk`).
  *  Cycle-safe; a level-by-level loop is plenty for the shallow area trees we have. */
@@ -150,17 +150,17 @@ async function hardDeleteArea(db: Context['db'], area: Area): Promise<DeleteArea
   await db.delete(areas).where(eq(areas.id, area.id))
 
   return {
-    mode: 'hard',
-    areaId: area.id,
     area: {
-      name: area.name,
       description: area.description,
-      type: area.type,
-      regionFk: area.regionFk,
-      parentFk: area.parentFk,
-      walkingPaths: area.walkingPaths,
       geoPaths: area.geoPaths,
+      name: area.name,
+      parentFk: area.parentFk,
+      regionFk: area.regionFk,
+      type: area.type,
+      walkingPaths: area.walkingPaths,
     },
+    areaId: area.id,
+    mode: 'hard',
     parking: parking.map(({ lat, long }) => ({ lat, long })),
   }
 }
@@ -191,7 +191,7 @@ async function softDeleteArea(db: Context['db'], area: Area): Promise<DeleteArea
       .where(and(inArray(routes.blockFk, blockIds), isNull(routes.deletedAt)))
   }
 
-  return { mode: 'soft', areaId: area.id, deletedAt }
+  return { areaId: area.id, deletedAt, mode: 'soft' }
 }
 
 /** Delete an area. A leaf area (no sub-areas, blocks or files) is hard-deleted; anything
@@ -223,13 +223,13 @@ export const deleteArea = authedCommand(
       subArea == null && block == null && file == null ? await hardDeleteArea(db, area) : await softDeleteArea(db, area)
 
     await insertActivity(db, {
-      type: 'deleted',
-      userFk: user.id,
       entityId: String(area.id),
       entityType: 'area',
       parentEntityId: area.parentFk == null ? null : String(area.parentFk),
       parentEntityType: 'area',
       regionFk: area.regionFk,
+      type: 'deleted',
+      userFk: user.id,
     })
     if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
 
@@ -238,26 +238,26 @@ export const deleteArea = authedCommand(
         ? resolve('/explore')
         : resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(area.parentFk) })
 
-    return { redirectTo, data }
+    return { data, redirectTo }
   },
 )
 
 const restoreAreaSchema = z.discriminatedUnion('mode', [
   z.object({
-    mode: z.literal('hard'),
-    areaId: z.number(),
     area: z.object({
-      name: z.string(),
       description: z.string().nullable().optional(),
-      type: z.enum(areaTypeEnum).nullable().optional(),
-      regionFk: z.number(),
-      parentFk: z.number().nullable().optional(),
-      walkingPaths: z.array(z.string()).nullable().optional(),
       geoPaths: z.array(z.string()).nullable().optional(),
+      name: z.string(),
+      parentFk: z.number().nullable().optional(),
+      regionFk: z.number(),
+      type: z.enum(areaTypeEnum).nullable().optional(),
+      walkingPaths: z.array(z.string()).nullable().optional(),
     }),
+    areaId: z.number(),
+    mode: z.literal('hard'),
     parking: z.array(z.object({ lat: z.number(), long: z.number() })),
   }),
-  z.object({ mode: z.literal('soft'), areaId: z.number(), deletedAt: z.coerce.date() }),
+  z.object({ areaId: z.number(), deletedAt: z.coerce.date(), mode: z.literal('soft') }),
 ])
 
 /** What {@link restoreArea} receives — the parsed snapshot, whose optional/nullable area fields
@@ -279,7 +279,7 @@ async function hardRestoreArea(
   if (snapshot.parking.length > 0) {
     await db
       .insert(geolocations)
-      .values(snapshot.parking.map(({ lat, long }) => ({ lat, long, areaFk: created.id, regionFk: created.regionFk })))
+      .values(snapshot.parking.map(({ lat, long }) => ({ areaFk: created.id, lat, long, regionFk: created.regionFk })))
   }
 
   return created
@@ -311,8 +311,8 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
 
     return {
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(created.id) }),
       data: { areaId: created.id },
+      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(created.id) }),
     }
   }
 
@@ -328,8 +328,8 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
   await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
 
   return {
-    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
     data: { areaId: snapshot.areaId },
+    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
   }
 })
 
@@ -364,14 +364,14 @@ export const addParking = authedForm(
     await createParking(db, area, { lat, long, path })
 
     await insertActivity(db, {
-      type: 'updated',
-      userFk: user.id,
+      columnName: 'parking location',
       entityId: String(area.id),
       entityType: 'area',
-      columnName: 'parking location',
       parentEntityId: String(area.parentFk),
       parentEntityType: 'area',
       regionFk: area.regionFk,
+      type: 'updated',
+      userFk: user.id,
     })
 
     return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }) }
@@ -419,26 +419,26 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
 
   if (area != null) {
     await insertActivity(db, {
-      type: 'deleted',
-      userFk: user.id,
+      columnName: 'parking location',
       entityId: String(area.id),
       entityType: 'area',
-      columnName: 'parking location',
       parentEntityId: String(area.parentFk),
       parentEntityType: 'area',
       regionFk: area.regionFk,
+      type: 'deleted',
+      userFk: user.id,
     })
   }
 
   // Back to the area, plus a snapshot (the envelope's `data`) to recreate the parking on Undo.
   return {
-    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(parking.areaFk) }),
     data: {
       areaId: parking.areaFk,
       lat: parking.lat,
       long: parking.long,
       path: removedPath,
     },
+    redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(parking.areaFk) }),
   }
 })
 
@@ -455,10 +455,10 @@ export const restoreParking = authedCommand(
     await createParking(db, area, { lat, long, path })
 
     await deleteActivity(db, {
+      columnName: 'parking location',
       entityId: String(areaId),
       entityType: 'area',
       type: 'deleted',
-      columnName: 'parking location',
     })
   },
 )

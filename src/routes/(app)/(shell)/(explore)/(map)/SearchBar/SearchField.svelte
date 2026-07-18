@@ -4,22 +4,22 @@
   import type { Snippet } from 'svelte'
 
   interface Props {
-    /** Bindable text value. */
-    value: string
-    placeholder: string
+    /** Bindable reference to the native input, e.g. for programmatic focus. */
+    inputEl?: HTMLInputElement
+    /** Replaces the decorative leading search icon (e.g. a submit button). */
+    leading?: Snippet
     /** Cleared via the trailing × button (shown only while `value` is non-empty). */
     onClear: () => void
     /** Native input event (keyup), e.g. submit-on-Enter for navigation search. */
     onkeyup?: (event: KeyboardEvent & { currentTarget: HTMLInputElement }) => void
-    /** Replaces the decorative leading search icon (e.g. a submit button). */
-    leading?: Snippet
+    placeholder: string
     /** Trailing content inside the bar (e.g. the Filter pill). */
     trailing?: Snippet
-    /** Bindable reference to the native input, e.g. for programmatic focus. */
-    inputEl?: HTMLInputElement
+    /** Bindable text value. */
+    value: string
   }
 
-  let { value = $bindable(), placeholder, onClear, onkeyup, leading, trailing, inputEl = $bindable() }: Props = $props()
+  let { inputEl = $bindable(), leading, onClear, onkeyup, placeholder, trailing, value = $bindable() }: Props = $props()
 </script>
 
 <div

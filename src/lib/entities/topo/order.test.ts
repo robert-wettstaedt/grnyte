@@ -4,12 +4,12 @@ import { convertPathToPoints } from './mapper'
 import { orderRoutesByTopo } from './order'
 
 const line = (routeId: number, path: string): TopoLine => ({
-  id: routeId,
-  routeId,
-  name: '',
-  topType: 'top',
   gradeFk: undefined,
+  id: routeId,
+  name: '',
   points: convertPathToPoints(path),
+  routeId,
+  topType: 'top',
 })
 
 const view = (id: number, ...lines: TopoLine[]): TopoView => ({ id, imagePath: '', lines })

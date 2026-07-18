@@ -9,7 +9,7 @@
 
   interface Props extends DialogRootProps {
     content?: Snippet
-    onsave?: () => void | Promise<unknown>
+    onsave?: () => Promise<unknown> | void
     pending?: number
     saveText?: string
     title?: string

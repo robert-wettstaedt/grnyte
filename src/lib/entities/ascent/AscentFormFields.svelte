@@ -4,8 +4,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
-  import MediaDropZone from '$lib/components/MediaDropZone/MediaDropZone.svelte'
   import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
+  import MediaDropZone from '$lib/components/MediaDropZone/MediaDropZone.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import type { BlockDetail } from '$lib/entities/block/dto'
   import type { MediaUpload } from '$lib/entities/file/upload-manager.svelte'
@@ -18,10 +18,10 @@
   import FormHint from '$lib/forms/FormHint.svelte'
   import OptionalBadge from '$lib/forms/OptionalBadge.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
+  import { formatCelsius } from '$lib/i18n/units'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { formatCelsius } from '$lib/i18n/units'
   import type { RemoteForm } from '@sveltejs/kit'
   import type { AscentFormInput } from './ascents.remote'
   import AscentType from './AscentType.svelte'
@@ -36,20 +36,20 @@
   // The custom inputs are self-sufficient (they render their own hidden inputs),
   // same as the route form. Mirrors RouteFormFields.
   interface Props {
+    /** When editing: the ascent, to seed the non-text fields once on mount. */
+    ascent?: AscentDetail
+    /** The route's block, framing the form (breadcrumb). */
+    block: BlockDetail
     form: RemoteForm<AscentFormInput, unknown>
     /** The route being climbed. */
     route: RouteDetail
-    /** The route's block, framing the form (breadcrumb). */
-    block: BlockDetail
-    /** When editing: the ascent, to seed the non-text fields once on mount. */
-    ascent?: AscentDetail
     /** Media picked in the add form, uploading in the background while the user types.
      *  The page finalizes them against the ascent once it exists. Editing attaches
      *  media directly instead (the ascent already exists). */
     uploads?: MediaUpload[]
   }
 
-  let { form, route, block, ascent, uploads = $bindable([]) }: Props = $props()
+  let { ascent, block, form, route, uploads = $bindable([]) }: Props = $props()
 
   const global = getGlobalState()
 
@@ -307,7 +307,7 @@
   {#if ascent == null}
     <MediaDropZone accept={['image', 'video']} bind:uploads />
   {:else}
-    <MediaGrid canEdit items={ascent.files} shareText={route.name} target={{ type: 'ascent', id: ascent.id }} />
+    <MediaGrid canEdit items={ascent.files} shareText={route.name} target={{ id: ascent.id, type: 'ascent' }} />
   {/if}
   <p class="text-surface-600-400 text-sm">{m.ascents_form_mediaHint()}</p>
 </div>

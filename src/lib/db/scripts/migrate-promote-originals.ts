@@ -40,8 +40,8 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   // The app's image access goes through the ImageProvider, but that module reads
   // `$env/static/private` (SvelteKit-only), so this script talks WebDAV directly.
   const dav = createClient(`${NEXTCLOUD_URL}/remote.php/dav/files`, {
-    username: NEXTCLOUD_USER_NAME,
     password: NEXTCLOUD_USER_PASSWORD,
+    username: NEXTCLOUD_USER_NAME,
   })
 
   // One PROPFIND per folder instead of one exists() round-trip per file.

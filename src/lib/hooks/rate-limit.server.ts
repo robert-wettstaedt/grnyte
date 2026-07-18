@@ -2,8 +2,8 @@ import { building } from '$app/environment'
 import type { Handle } from '@sveltejs/kit'
 
 export const RATE_LIMIT = {
-  windowMs: 15 * 60 * 1000,
   max: 500, // requests per IP per window
+  windowMs: 15 * 60 * 1000,
 }
 
 interface RateLimitStore {
@@ -22,7 +22,7 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
 
   const ip = event.getClientAddress()
   const now = Date.now()
-  const { windowMs, max } = RATE_LIMIT
+  const { max, windowMs } = RATE_LIMIT
 
   // Clean up expired entries
   for (const key in store) {
@@ -63,10 +63,10 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
   // Check if rate limit exceeded
   if (store[ip].count > max) {
     return new Response('Too Many Requests', {
-      status: 429,
       headers: {
         'Retry-After': reset.toString(),
       },
+      status: 429,
     })
   }
 

@@ -74,15 +74,6 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
     get blocks() {
       return blocks
     },
-    get parkingLocations() {
-      return parkingLocations
-    },
-    get lineStrings() {
-      return lineStrings
-    },
-    get routeCountByBlock() {
-      return routeCountByBlock
-    },
     get gradeCountByBlock() {
       return gradeCountByBlock
     },
@@ -90,7 +81,16 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
     get isLoading() {
       return isLoading
     },
+    get lineStrings() {
+      return lineStrings
+    },
+    get parkingLocations() {
+      return parkingLocations
+    },
+    get routeCountByBlock() {
+      return routeCountByBlock
+    },
     /** The underlying route resource, exposed so callers can show filter/loading state. */
     routes,
-  } satisfies MapData & { routes: typeof routes; isLoading: boolean }
+  } satisfies MapData & { isLoading: boolean; routes: typeof routes }
 }

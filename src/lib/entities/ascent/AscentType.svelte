@@ -3,42 +3,42 @@
   import type { AscentType } from './dto'
 
   export interface StatusInfo {
-    /** Accessible label, e.g. "Flashed". */
-    label: string
     /** Accent colour (a `--st-*` token). */
     color: string
-    /** SVG path for the status glyph (24×24 viewBox). */
-    path: string
-    /** Whether the glyph is filled (vs a stroked outline). */
-    filled: boolean
     /** Optional dash pattern (e.g. the dotted "attempt" ring). */
     dash: string
+    /** Whether the glyph is filled (vs a stroked outline). */
+    filled: boolean
+    /** Accessible label, e.g. "Flashed". */
+    label: string
+    /** SVG path for the status glyph (24×24 viewBox). */
+    path: string
   }
 
   /** Also drives the ascent form's type picker, so the glyphs stay in sync. */
   export const STATUS: Record<AscentType, StatusInfo> = {
-    flash: {
-      label: 'Flashed',
-      color: 'var(--st-flash)',
-      path: 'M11 2 4 13h5l-1 9 8-12h-6l1-8Z',
-      filled: true,
-      dash: '',
-    },
-    send: { label: 'Sent', color: 'var(--st-sent)', path: 'M4 12.5l4.5 4.5L20 6', filled: false, dash: '' },
     attempt: {
-      label: 'Tried',
       color: 'var(--st-proj)',
-      path: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z',
-      filled: false,
       dash: '3 3.2',
+      filled: false,
+      label: 'Tried',
+      path: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z',
+    },
+    flash: {
+      color: 'var(--st-flash)',
+      dash: '',
+      filled: true,
+      label: 'Flashed',
+      path: 'M11 2 4 13h5l-1 9 8-12h-6l1-8Z',
     },
     repeat: {
-      label: 'Repeat',
       color: 'var(--st-repeat)',
-      path: 'M20 8a8.5 8.5 0 0 0-15-2.3M4 16a8.5 8.5 0 0 0 15 2.3M5 4.2v3.5h3.5M19 19.8v-3.5h-3.5',
-      filled: false,
       dash: '',
+      filled: false,
+      label: 'Repeat',
+      path: 'M20 8a8.5 8.5 0 0 0-15-2.3M4 16a8.5 8.5 0 0 0 15 2.3M5 4.2v3.5h3.5M19 19.8v-3.5h-3.5',
     },
+    send: { color: 'var(--st-sent)', dash: '', filled: false, label: 'Sent', path: 'M4 12.5l4.5 4.5L20 6' },
   }
 
   /**
@@ -46,11 +46,11 @@
    * this module evaluates before the locale settles). Drives the form's type picker
    * and the ascent list's filter chips.
    */
-  export const ASCENT_TYPES: { type: AscentType; label: () => string }[] = [
-    { type: 'flash', label: m.ascents_form_typeFlash },
-    { type: 'send', label: m.ascents_form_typeSend },
-    { type: 'attempt', label: m.ascents_form_typeAttempt },
-    { type: 'repeat', label: m.ascents_form_typeRepeat },
+  export const ASCENT_TYPES: { label: () => string; type: AscentType }[] = [
+    { label: m.ascents_form_typeFlash, type: 'flash' },
+    { label: m.ascents_form_typeSend, type: 'send' },
+    { label: m.ascents_form_typeAttempt, type: 'attempt' },
+    { label: m.ascents_form_typeRepeat, type: 'repeat' },
   ]
 </script>
 

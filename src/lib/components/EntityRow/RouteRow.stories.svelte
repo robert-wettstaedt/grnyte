@@ -5,19 +5,19 @@
   import RouteRow from './RouteRow.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/EntityRow/RouteRow',
-    component: RouteRow,
-    tags: ['autodocs'],
-    parameters: {
-      layout: 'centered',
-    },
     argTypes: {
       status: {
         control: 'select',
-        options: [undefined, 'flash', 'send', 'attempt', 'repeat'],
         description: "The user's logged ascent state, if any.",
+        options: [undefined, 'flash', 'send', 'attempt', 'repeat'],
       },
     },
+    component: RouteRow,
+    parameters: {
+      layout: 'centered',
+    },
+    tags: ['autodocs'],
+    title: 'Components/EntityRow/RouteRow',
   })
 
   // The route DTO carries name, gradeFk (→ heat band), rating (stars), the
@@ -26,9 +26,9 @@
   // references: those resolve through Zero, which Storybook doesn't run (the
   // preview decorator only provides the global-state context).
   const base = {
-    route: { name: 'Arch Nemesis', gradeFk: 12, rating: 3, description: 'Sit start on crimps', tags: [] },
     crumbs: 'Roadside · The Arch',
     grade: '7a+',
+    route: { description: 'Sit start on crimps', gradeFk: 12, name: 'Arch Nemesis', rating: 3, tags: [] },
     status: 'send',
   } satisfies ComponentProps<typeof RouteRow>
 </script>
@@ -47,7 +47,7 @@
 
 <Story name="Repeat" args={{ ...base, status: 'repeat' }} {template} />
 
-<Story name="No ascent" args={{ ...base, status: undefined, route: { ...base.route, rating: 0 } }} {template} />
+<Story name="No ascent" args={{ ...base, route: { ...base.route, rating: 0 }, status: undefined }} {template} />
 
 <Story name="As link" args={{ ...base, href: '#' }} {template} />
 
@@ -57,8 +57,8 @@
   args={{
     ...base,
     active: true,
-    mapHref: '#',
     detailsHref: '#',
+    mapHref: '#',
     route: { ...base.route, tags: ['SD', 'high'] },
   }}
   {template}

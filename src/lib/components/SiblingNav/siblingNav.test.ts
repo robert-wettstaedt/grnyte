@@ -18,18 +18,18 @@ describe('toSheetNav', () => {
 
   it('wraps prev before the first to the last', () => {
     expect(toSheetNav(list, 10, href)).toEqual({
-      prev: { href: '/x/30', label: 'C' },
       next: { href: '/x/20', label: 'B' },
       position: 1,
+      prev: { href: '/x/30', label: 'C' },
       total: 3,
     })
   })
 
   it('wraps next past the last to the first', () => {
     expect(toSheetNav(list, 30, href)).toMatchObject({
-      prev: { label: 'B' },
       next: { label: 'A' },
       position: 3,
+      prev: { label: 'B' },
       total: 3,
     })
   })

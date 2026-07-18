@@ -6,20 +6,20 @@
   import Topo from './Topo.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/Topo',
+    args: { alt: 'Sample topo', imagePath: 'topo-sample.svg' },
     component: Topo,
-    tags: ['autodocs'],
     parameters: { layout: 'centered' },
-    args: { imagePath: 'topo-sample.svg', alt: 'Sample topo' },
+    tags: ['autodocs'],
+    title: 'Components/Topo',
   })
 
   // Lines in the 800×1000 pixel space of the placeholder image (.storybook/fixtures).
   // A trailing `Z` marks the last point as the top-out.
   const line = (id: number, path: string, band: GradeBand | undefined, topType: 'top' | 'topout') => ({
-    id,
     band,
-    topType,
+    id,
     points: convertPathToPoints(path),
+    topType,
   })
 
   // A spread that exercises the renderer in one canvas: all four grade bands (colour),
@@ -67,10 +67,10 @@
 <Story name="All routes" args={{ lines: allRoutes }} {template} />
 
 <!-- One line emphasised, the rest dimmed but still visible (e.g. driven by a route list). -->
-<Story name="Highlighted" args={{ lines: allRoutes, highlightId: 2 }} {template} />
+<Story name="Highlighted" args={{ highlightId: 2, lines: allRoutes }} {template} />
 
 <!-- Tap / click a line to focus it; tap again to clear. -->
-<Story name="Interactive (tap to focus)" args={{ lines: allRoutes, interactive: true }} {template} />
+<Story name="Interactive (tap to focus)" args={{ interactive: true, lines: allRoutes }} {template} />
 
 <!-- Pinch, wheel or double-tap to zoom, drag to pan, to inspect holds. -->
 <Story name="Zoomable" args={{ lines: allRoutes, zoomable: true }} {template} />

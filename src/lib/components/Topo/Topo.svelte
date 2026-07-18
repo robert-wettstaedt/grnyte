@@ -8,49 +8,49 @@
   import TopoLine from './TopoLine.svelte'
 
   interface LineInput {
-    id: number
-    points: TopoPoint[]
     /** Grade heat band, or `undefined` for an ungraded route (neutral line). */
     band: GradeBand | undefined
-    /** How the route finishes — drives the end marker. */
-    topType?: 'top' | 'topout'
+    id: number
     /** Guidebook-style number badged at the base of the line. */
     number?: number
+    points: TopoPoint[]
+    /** How the route finishes — drives the end marker. */
+    topType?: 'top' | 'topout'
   }
 
   interface Props {
+    alt: string
+    class?: ClassValue
+    /** Smooth Catmull-Rom curves (default) vs straight segments between points. */
+    curved?: boolean
+    /** Stored pixel height; see `width`. */
+    height?: number
+    /** Emphasise this line and dim the rest (they stay visible). Bindable so tap-focus syncs. */
+    highlightId?: number
     /** `files.path` of the topo image. */
     imagePath: string
+    /** Let the user tap a line to focus it (toggles `highlightId`). */
+    interactive?: boolean
+    /** Route lines to draw, each coloured by its grade band. */
+    lines: LineInput[]
     /** Stored pixel width of the topo image (`files.width`) — gives the box its
      *  aspect ratio and the overlay its coordinate space before the photo loads. */
     width?: number
-    /** Stored pixel height; see `width`. */
-    height?: number
-    alt: string
-    /** Route lines to draw, each coloured by its grade band. */
-    lines: LineInput[]
-    /** Emphasise this line and dim the rest (they stay visible). Bindable so tap-focus syncs. */
-    highlightId?: number
-    /** Let the user tap a line to focus it (toggles `highlightId`). */
-    interactive?: boolean
     /** Let the user pinch / wheel zoom and drag to pan, to inspect holds. */
     zoomable?: boolean
-    /** Smooth Catmull-Rom curves (default) vs straight segments between points. */
-    curved?: boolean
-    class?: ClassValue
   }
 
   let {
-    imagePath,
-    width,
-    height,
     alt,
-    lines,
-    highlightId = $bindable(),
-    interactive = false,
-    zoomable = false,
-    curved = true,
     class: className,
+    curved = true,
+    height,
+    highlightId = $bindable(),
+    imagePath,
+    interactive = false,
+    lines,
+    width,
+    zoomable = false,
   }: Props = $props()
 
   // The stored dims are the authoritative viewBox: they are the ORIGINAL's pixel
@@ -76,8 +76,8 @@
 
   const rendered = $derived(
     lines.map((line) => {
-      const { d, bracket, starts, top } = buildLine(line.points, curved, boxWidth, boxHeight)
-      return { id: line.id, band: line.band, topType: line.topType, number: line.number, d, bracket, starts, top }
+      const { bracket, d, starts, top } = buildLine(line.points, curved, boxWidth, boxHeight)
+      return { band: line.band, bracket, d, id: line.id, number: line.number, starts, top, topType: line.topType }
     }),
   )
 
@@ -88,11 +88,11 @@
   // line through it (for highlight dimming) and takes the band of the last line —
   // i.e. the top-most line at that point — so the marker matches the line above it.
   const holds = $derived.by(() => {
-    const seen: Record<string, { key: string; x: number; y: number; ids: number[]; band: GradeBand | undefined }> = {}
+    const seen: Record<string, { band: GradeBand | undefined; ids: number[]; key: string; x: number; y: number }> = {}
     for (const line of rendered) {
       for (const start of line.starts) {
         const key = `${Math.round(start.x)},${Math.round(start.y)}`
-        const entry = (seen[key] ??= { key, x: start.x, y: start.y, ids: [], band: undefined })
+        const entry = (seen[key] ??= { band: undefined, ids: [], key, x: start.x, y: start.y })
         entry.ids.push(line.id)
         entry.band = line.band
       }
@@ -113,9 +113,6 @@
 
   // Button behaviour for an SVG overlay element: tap or Enter/Space runs the action.
   const press = (action: () => void) => ({
-    role: 'button' as const,
-    tabindex: 0,
-    style: 'cursor: pointer',
     onclick: (event: MouseEvent) => {
       event.stopPropagation()
       action()
@@ -126,13 +123,16 @@
         action()
       }
     },
+    role: 'button' as const,
+    style: 'cursor: pointer',
+    tabindex: 0,
   })
 </script>
 
 <div
   class={['bg-surface-950 relative overflow-hidden rounded-xl', className]}
   style:aspect-ratio={ready ? `${boxWidth} / ${boxHeight}` : undefined}
-  use:panzoom={{ enabled: zoomable, aspect: ready ? boxWidth / boxHeight : undefined }}
+  use:panzoom={{ aspect: ready ? boxWidth / boxHeight : undefined, enabled: zoomable }}
 >
   <div class="absolute inset-0">
     {#key imagePath}
@@ -183,8 +183,8 @@
                 ? {
                     class: 'select-none',
                     ...press(() => toggle(line.id)),
-                    'aria-pressed': line.id === highlightId,
                     'aria-label': 'Toggle route line',
+                    'aria-pressed': line.id === highlightId,
                   }
                 : { class: 'select-none pointer-events-none' }}
             />

@@ -3,9 +3,9 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { haversineMetres, type Coords } from '$lib/map/map'
 
 export interface LocatableBlock {
-  geolocation: Geolocation | undefined
   /** Ancestor chain, outermost first — the crag is the entry with `type === 'crag'`. */
   areas: AreaListItem[]
+  geolocation: Geolocation | undefined
 }
 
 /**
@@ -18,8 +18,8 @@ export function findNearestCrag(
   blocks: LocatableBlock[],
   point: Coords,
   maxMeters = 500,
-): { cragId: number; distanceMeters: number } | null {
-  let best: { cragId: number; distanceMeters: number } | null = null
+): null | { cragId: number; distanceMeters: number } {
+  let best: null | { cragId: number; distanceMeters: number } = null
 
   for (const block of blocks) {
     if (block.geolocation == null) continue

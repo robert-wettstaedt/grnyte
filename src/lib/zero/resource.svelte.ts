@@ -2,8 +2,6 @@ import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@roc
 import { getZ } from './z.svelte'
 import type { Schema } from './zero-schema'
 
-export type ResourceStatus = 'loading' | 'ready' | 'error'
-
 /**
  * What pages and components see: reactive, DTO-mapped query state.
  *
@@ -18,12 +16,14 @@ export type ResourceStatus = 'loading' | 'ready' | 'error'
  */
 export interface QueryResource<TOut> {
   readonly data: TOut
-  readonly status: ResourceStatus
+  readonly isComplete: boolean
   /** `ready` but with nothing to render: `[]` for lists, `undefined` for `.one()`. */
   readonly isEmpty: boolean
   readonly isSyncing: boolean
-  readonly isComplete: boolean
+  readonly status: ResourceStatus
 }
+
+export type ResourceStatus = 'error' | 'loading' | 'ready'
 
 class Resource<
   TTable extends keyof Schema['tables'] & string,
@@ -33,15 +33,37 @@ class Resource<
   TReturn,
   TOut,
 > implements QueryResource<TOut> {
-  #request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>
-  #select: (data: HumanReadable<TReturn>) => TOut
+  get data(): TOut {
+    return this.#data
+  }
+  get isComplete(): boolean {
+    return this.#query.details.type === 'complete'
+  }
+  get isEmpty(): boolean {
+    return this.#status === 'ready' && this.#rawEmpty
+  }
+
+  get isSyncing(): boolean {
+    return this.#query.details.type === 'unknown'
+  }
+
+  get status(): ResourceStatus {
+    return this.#status
+  }
+
   #enabled: () => boolean
+
+  #request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>
 
   // Recreated whenever the request getter's dependencies change (route params,
   // filters) or the Zero client is swapped on login/logout — `getZ()` is a
   // reactive read. The ViewStore inside zero-svelte dedupes identical queries
   // and defers cleanup, so this is cheap.
   #query = $derived.by(() => getZ().createQuery(this.#request(), this.#enabled()))
+
+  #select: (data: HumanReadable<TReturn>) => TOut
+
+  #data = $derived.by(() => this.#select(this.#query.data))
 
   #rawEmpty = $derived.by(() => {
     const raw = this.#query.data
@@ -64,8 +86,6 @@ class Resource<
     return 'ready'
   })
 
-  #data = $derived.by(() => this.#select(this.#query.data))
-
   constructor(
     request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
     select: (data: HumanReadable<TReturn>) => TOut,
@@ -74,26 +94,6 @@ class Resource<
     this.#request = request
     this.#select = select
     this.#enabled = enabled
-  }
-
-  get data(): TOut {
-    return this.#data
-  }
-
-  get status(): ResourceStatus {
-    return this.#status
-  }
-
-  get isEmpty(): boolean {
-    return this.#status === 'ready' && this.#rawEmpty
-  }
-
-  get isSyncing(): boolean {
-    return this.#query.details.type === 'unknown'
-  }
-
-  get isComplete(): boolean {
-    return this.#query.details.type === 'complete'
   }
 }
 

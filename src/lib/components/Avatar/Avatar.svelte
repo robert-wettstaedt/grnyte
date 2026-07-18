@@ -3,19 +3,19 @@
 
   // Round initials avatar. Solid fill marks a registered user, tinted a plain name.
   interface Props {
-    /** Display name — initials come from the first two words. */
-    name?: string
-    /** Solid fill (registered user) vs tinted. */
-    solid?: boolean
-    /** Diameter in px. */
-    size?: number
-    /** Show a pulsing placeholder instead of initials while the name is still loading. */
-    loading?: boolean
     /** Replaces the derived initials (e.g. a "Me" label or an icon). */
     children?: Snippet
+    /** Show a pulsing placeholder instead of initials while the name is still loading. */
+    loading?: boolean
+    /** Display name — initials come from the first two words. */
+    name?: string
+    /** Diameter in px. */
+    size?: number
+    /** Solid fill (registered user) vs tinted. */
+    solid?: boolean
   }
 
-  let { name = '', solid = false, size = 30, loading = false, children }: Props = $props()
+  let { children, loading = false, name = '', size = 30, solid = false }: Props = $props()
 
   const initials = $derived.by(() => {
     const parts = name.trim().split(/\s+/)

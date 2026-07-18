@@ -11,16 +11,16 @@
   import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
+  import { parseRouteFilter } from '$lib/map/filter'
+  import { filteredRouteList } from '$lib/map/filteredRoutes.svelte'
   import { userLocation } from '$lib/map/geolocation.svelte'
   import { haversineMetres, type Coords } from '$lib/map/map'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { SvelteMap } from 'svelte/reactivity'
-  import Filter from '../../../Filter/Filter.svelte'
-  import { parseRouteFilter } from '$lib/map/filter'
-  import { filteredRouteList } from '$lib/map/filteredRoutes.svelte'
   import { sheetState } from '../../../../Modal/sheetState.svelte'
+  import Filter from '../../../Filter/Filter.svelte'
   import SearchField from '../../../SearchBar/SearchField.svelte'
   import { DEFAULT_DIR, parseSort, sortRoutes } from './sort'
 
@@ -67,10 +67,10 @@
 
   // Sort options offered in the Filter sheet — distance only when blocks have coords.
   const sortOptions = $derived([
-    { value: 'grade', label: m.filter_grade() },
-    { value: 'name', label: m.sort_name() },
-    { value: 'rating', label: m.filter_rating() },
-    ...(blockGeo.size > 0 ? [{ value: 'distance', label: m.sort_distance() }] : []),
+    { label: m.filter_grade(), value: 'grade' },
+    { label: m.sort_name(), value: 'name' },
+    { label: m.filter_rating(), value: 'rating' },
+    ...(blockGeo.size > 0 ? [{ label: m.sort_distance(), value: 'distance' }] : []),
   ])
 
   // Request the user's location only once distance sort is actually chosen.

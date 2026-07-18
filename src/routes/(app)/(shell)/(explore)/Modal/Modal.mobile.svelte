@@ -12,8 +12,8 @@
   // routes turn it off so interacting with the stage leaves the sheet alone.
   let {
     back = false,
-    collapseOnOutsideClick = true,
     children,
+    collapseOnOutsideClick = true,
     onclose,
     open = $bindable(),
   }: ModalProps & { back?: boolean; collapseOnOutsideClick?: boolean } = $props()

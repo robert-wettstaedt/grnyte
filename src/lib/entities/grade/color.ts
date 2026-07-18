@@ -31,7 +31,7 @@ export type GradeBand = 1 | 2 | 3 | 4
  * ponytail: thresholds are the seeded grade ids (0 = 5A … 21 = 9A); if the
  * grades table is ever reindexed, bucket by the stored V number instead.
  */
-export const getGradeBand = (gradeFk: number | undefined | null): GradeBand | undefined => {
+export const getGradeBand = (gradeFk: null | number | undefined): GradeBand | undefined => {
   if (gradeFk == null) {
     return undefined
   }
@@ -53,7 +53,7 @@ export const getGradeBand = (gradeFk: number | undefined | null): GradeBand | un
  * the map-marker data-URI, inline histogram bars) rather than the CSS token.
  * Accepts a raw id or any object exposing one, so it can be reused across sites.
  */
-export const getGradeColor = (grade: number | { id: number } | undefined | null): string => {
+export const getGradeColor = (grade: null | number | undefined | { id: number }): string => {
   const band = getGradeBand(typeof grade === 'object' ? grade?.id : grade)
   return band == null ? UNGRADED_COLOR : GRADE_COLORS[band - 1]
 }

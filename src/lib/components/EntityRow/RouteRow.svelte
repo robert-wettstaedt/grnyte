@@ -16,30 +16,30 @@
   /** The slice of a route the row renders — a `RouteListItem` satisfies it. */
   type RouteRowData = Pick<
     RouteListItem,
-    'name' | 'gradeFk' | 'rating' | 'description' | 'tags' | 'topoImagePath' | 'topoPoints'
+    'description' | 'gradeFk' | 'name' | 'rating' | 'tags' | 'topoImagePath' | 'topoPoints'
   >
 
   interface Props {
-    /** The route: name, grade band (via `gradeFk`), stars, description and topo thumbnail. */
-    route: RouteRowData
-    /** Display grade in the user's scale, e.g. "7a+". */
-    grade: string
-    /** Breadcrumb path, e.g. "Roadside · The Arch". */
-    crumbs?: string | string[]
-    /** The user's logged ascent state, if any. */
-    status?: AscentStatus
-    /** Render as a link. */
-    href?: string
-    /** Tap handler when rendered as a button. */
-    onclick?: (event: MouseEvent) => void
     /** Selected state — highlights the card and expands the tags/actions line. */
     active?: boolean
-    /** Guidebook line number — shown in the thumb instead of a topo preview. */
-    number?: number
-    /** Pre-resolved block detail href — the "Show on map" action of the expanded row. */
-    mapHref?: string
+    /** Breadcrumb path, e.g. "Roadside · The Arch". */
+    crumbs?: string | string[]
     /** Pre-resolved route detail href — the "Details" action of the expanded row. */
     detailsHref?: string
+    /** Display grade in the user's scale, e.g. "7a+". */
+    grade: string
+    /** Render as a link. */
+    href?: string
+    /** Pre-resolved block detail href — the "Show on map" action of the expanded row. */
+    mapHref?: string
+    /** Guidebook line number — shown in the thumb instead of a topo preview. */
+    number?: number
+    /** Tap handler when rendered as a button. */
+    onclick?: (event: MouseEvent) => void
+    /** The route: name, grade band (via `gradeFk`), stars, description and topo thumbnail. */
+    route: RouteRowData
+    /** The user's logged ascent state, if any. */
+    status?: AscentStatus
   }
 
   let { active = false, crumbs, detailsHref, grade, href, mapHref, number, onclick, route, status }: Props = $props()

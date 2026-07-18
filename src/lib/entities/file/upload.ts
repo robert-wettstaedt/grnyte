@@ -30,7 +30,7 @@ export type MediaKind = 'image' | 'video'
 export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'] as const
 
 /** Lowercased file extension without the dot; `null` when there is none. */
-export const extensionOf = (name: string): string | null => /\.([^./]+)$/.exec(name)?.[1].toLowerCase() ?? null
+export const extensionOf = (name: string): null | string => /\.([^./]+)$/.exec(name)?.[1].toLowerCase() ?? null
 
 export const isImageFileName = (name: string): boolean =>
   (IMAGE_EXTENSIONS as readonly string[]).includes(extensionOf(name) ?? '')
@@ -46,12 +46,12 @@ export const isVideoFile = (file: File): boolean =>
 /** The staging bucket only admits image/* content types, but browsers often
  *  report an empty `File.type` for HEIC — this is the by-extension fallback. */
 const IMAGE_MIME_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
   heic: 'image/heic',
   heif: 'image/heif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
 }
 export const imageMimeOf = (name: string): string | undefined => IMAGE_MIME_TYPES[extensionOf(name) ?? '']
 

@@ -11,12 +11,12 @@ export function reportClientError(error: unknown): void {
   try {
     logClientError({
       error: stringifyError(error).slice(0, 10_000),
-      pathname: location.pathname,
       navigator: {
-        userAgent: navigator.userAgent,
         language: navigator.language,
         onLine: navigator.onLine,
+        userAgent: navigator.userAgent,
       },
+      pathname: location.pathname,
     }).catch(() => {})
   } catch {
     // reporting is best-effort; swallow everything

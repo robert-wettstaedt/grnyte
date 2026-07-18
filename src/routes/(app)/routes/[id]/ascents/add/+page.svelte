@@ -31,7 +31,7 @@
   const onSubmitted = async () => {
     const id = createAscent.result?.data?.id
     if (id == null) return
-    void finalizeMediaUploads(uploads, { type: 'ascent', id })
+    void finalizeMediaUploads(uploads, { id, type: 'ascent' })
     await goto(routeHref)
   }
 </script>

@@ -4,6 +4,34 @@ import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
 
 export const blocksQueryDefs = {
+  block: defineQuery(
+    z.object({
+      areaId: z.number().optional(),
+      blockId: z.number().optional(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      let q = zql.blocks.where('deletedAt', 'IS', null)
+
+      if (args.areaId != null) {
+        q = q.where('areaFk', args.areaId)
+      }
+
+      if (args.blockId != null) {
+        q = q.where('id', args.blockId)
+      }
+
+      return q
+        .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
+        .related('routes', (q) => r(q).where('deletedAt', 'IS', null).related('tags', r))
+        .related('topos', (q) =>
+          r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('routes', r).related('file', r),
+        )
+        .related('geolocation', r)
+        .one()
+    }),
+  ),
   listBlocks: defineQuery(
     z.object({
       areaId: z.number().optional().nullable(),
@@ -43,32 +71,6 @@ export const blocksQueryDefs = {
       }
 
       return q
-    }),
-  ),
-  block: defineQuery(
-    z.object({
-      areaId: z.number().optional(),
-      blockId: z.number().optional(),
-    }),
-    regionMemberCan(({ args, ctx }) => {
-      const r = relatedRegion(ctx)
-
-      let q = zql.blocks.where('deletedAt', 'IS', null)
-
-      if (args.areaId != null) {
-        q = q.where('areaFk', args.areaId)
-      }
-
-      if (args.blockId != null) {
-        q = q.where('id', args.blockId)
-      }
-
-      return q
-        .related('area', (q) => r(q).related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r))))
-        .related('routes', (q) => r(q).where('deletedAt', 'IS', null).related('tags', r))
-        .related('topos', (q) => r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('routes', r).related('file', r))
-        .related('geolocation', r)
-        .one()
     }),
   ),
 }

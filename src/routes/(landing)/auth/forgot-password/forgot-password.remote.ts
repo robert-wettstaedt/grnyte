@@ -9,8 +9,8 @@ const forgotPasswordSchema = z.object({
 
 export const forgotPassword = form(forgotPasswordSchema, async ({ email }) => {
   const {
-    url,
     locals: { supabase },
+    url,
   } = getRequestEvent()
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -21,5 +21,5 @@ export const forgotPassword = form(forgotPasswordSchema, async ({ email }) => {
     invalid(error.message)
   }
 
-  return { success: true, email }
+  return { email, success: true }
 })

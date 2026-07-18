@@ -44,7 +44,7 @@ describe('buildLine', () => {
   })
 
   it('brackets the two hands of a start and rises from their centre, with a single top', () => {
-    const { starts, bracket, d, top } = buildLine(
+    const { bracket, d, starts, top } = buildLine(
       convertPathToPoints('M100,900 L150,700 M200,900 L150,700 L160,300 Z'),
       true,
     )

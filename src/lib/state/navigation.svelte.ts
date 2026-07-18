@@ -14,10 +14,44 @@ let depth = $state(0)
 let replacing = false
 
 /**
+ * Go back within the app, or navigate to `fallback` when the previous history
+ * entry is on another origin (or there is none).
+ */
+export function back(fallback: string) {
+  if (depth > 0) {
+    history.back()
+  } else {
+    void replaceUrl(fallback)
+  }
+}
+
+/** True when there is a same-origin entry we can safely go back to. */
+export function canGoBack(): boolean {
+  return depth > 0
+}
+
+/** Close the viewer: pop the `?media` entry, or replace it away on a deep link. */
+export function closeMedia() {
+  const url = mediaUrl(null)
+  back(url.pathname + url.search)
+}
+
+/** Open the viewer for `id`: pushes `?media` so the back button closes it. */
+export function openMedia(id: string) {
+  // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-page query change, not a route.
+  return goto(mediaUrl(id), { keepFocus: true, noScroll: true })
+}
+
+/** Page to sibling `id`: replaces `?media` so paging stays one history entry. */
+export function pageMedia(id: string) {
+  return replaceUrl(mediaUrl(id), { keepFocus: true, noScroll: true })
+}
+
+/**
  * `goto` with `replaceState: true` that the depth tracker ignores. Use this (not a
  * raw goto) for every replace navigation, or the back-button fallback logic drifts.
  */
-export function replaceUrl(url: string | URL, opts: Omit<Parameters<typeof goto>[1] & object, 'replaceState'> = {}) {
+export function replaceUrl(url: string | URL, opts: Omit<object & Parameters<typeof goto>[1], 'replaceState'> = {}) {
   replacing = true
   // eslint-disable-next-line svelte/no-navigation-without-resolve -- callers pass resolved/same-page URLs
   return goto(url, { ...opts, replaceState: true }).catch((error) => {
@@ -54,7 +88,7 @@ export function trackHistoryDepth() {
 // place, closing pops it. One place owns the URL mechanics so the open/page/close
 // history semantics can't drift between the thumbnail, the overflow chip, and the
 // viewer's own paging.
-function mediaUrl(id: string | null): URL {
+function mediaUrl(id: null | string): URL {
   const url = new URL(page.url)
   if (id == null) {
     url.searchParams.delete('media')
@@ -62,38 +96,4 @@ function mediaUrl(id: string | null): URL {
     url.searchParams.set('media', id)
   }
   return url
-}
-
-/** Open the viewer for `id`: pushes `?media` so the back button closes it. */
-export function openMedia(id: string) {
-  // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-page query change, not a route.
-  return goto(mediaUrl(id), { keepFocus: true, noScroll: true })
-}
-
-/** Page to sibling `id`: replaces `?media` so paging stays one history entry. */
-export function pageMedia(id: string) {
-  return replaceUrl(mediaUrl(id), { keepFocus: true, noScroll: true })
-}
-
-/** Close the viewer: pop the `?media` entry, or replace it away on a deep link. */
-export function closeMedia() {
-  const url = mediaUrl(null)
-  back(url.pathname + url.search)
-}
-
-/** True when there is a same-origin entry we can safely go back to. */
-export function canGoBack(): boolean {
-  return depth > 0
-}
-
-/**
- * Go back within the app, or navigate to `fallback` when the previous history
- * entry is on another origin (or there is none).
- */
-export function back(fallback: string) {
-  if (depth > 0) {
-    history.back()
-  } else {
-    void replaceUrl(fallback)
-  }
 }

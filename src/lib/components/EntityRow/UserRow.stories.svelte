@@ -4,12 +4,12 @@
   import UserRow from './UserRow.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/EntityRow/UserRow',
     component: UserRow,
-    tags: ['autodocs'],
     parameters: {
       layout: 'centered',
     },
+    tags: ['autodocs'],
+    title: 'Components/EntityRow/UserRow',
   })
 </script>
 

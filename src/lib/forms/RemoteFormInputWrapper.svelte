@@ -29,7 +29,7 @@
     </label>
   {/if}
 
-  {@render children(id == null ? {} : { id, 'aria-describedby': `${id}-hint`, 'aria-errormessage': `${id}-error` })}
+  {@render children(id == null ? {} : { 'aria-describedby': `${id}-hint`, 'aria-errormessage': `${id}-error`, id })}
 
   <FormHint {hint} {id} issues={field.issues()} />
 </div>

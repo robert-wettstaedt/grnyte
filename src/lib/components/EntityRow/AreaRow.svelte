@@ -5,38 +5,38 @@
   import Row from './Row.svelte'
 
   interface Props {
-    /** Area name. */
-    name: string
-    description?: string
-    /** Route counts keyed by grade id (`gradeFk`) — drives the donut. */
-    countByGrade: Map<number, number>
-    /** Total routes, shown in the donut centre. */
-    total: number
-    /** Eyebrow line — typically the geographic region. */
-    region?: string
-    /** Breadcrumb path of parent areas. */
-    crumbs?: string | string[]
-    /** Render as a link. */
-    href?: string
-    /** Tap handler when rendered as a button. */
-    onclick?: (event: MouseEvent) => void
-    /** `card` (listing) or `option` (compact `@`-picker row). */
-    variant?: 'card' | 'option'
     /** Keyboard-highlight state — only for the `option` variant. */
     active?: boolean
+    /** Route counts keyed by grade id (`gradeFk`) — drives the donut. */
+    countByGrade: Map<number, number>
+    /** Breadcrumb path of parent areas. */
+    crumbs?: string | string[]
+    description?: string
+    /** Render as a link. */
+    href?: string
+    /** Area name. */
+    name: string
+    /** Tap handler when rendered as a button. */
+    onclick?: (event: MouseEvent) => void
+    /** Eyebrow line — typically the geographic region. */
+    region?: string
+    /** Total routes, shown in the donut centre. */
+    total: number
+    /** `card` (listing) or `option` (compact `@`-picker row). */
+    variant?: 'card' | 'option'
   }
 
   let {
-    name,
-    countByGrade,
-    description,
-    total,
-    region,
-    crumbs,
-    href,
-    onclick,
-    variant = 'card',
     active = false,
+    countByGrade,
+    crumbs,
+    description,
+    href,
+    name,
+    onclick,
+    region,
+    total,
+    variant = 'card',
   }: Props = $props()
 </script>
 

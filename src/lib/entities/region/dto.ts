@@ -3,9 +3,9 @@ import type { RegionSettings } from '$lib/forms/schemas'
 
 /** An active region membership of the signed-in user, before permissions are resolved. */
 export interface RegionMembership {
+  name: string
   regionFk: number
   role: AppRole
-  name: string
   settings: RegionSettings | undefined
 }
 

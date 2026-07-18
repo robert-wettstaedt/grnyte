@@ -1,16 +1,23 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
-  import OlGeolocation from 'ol/Geolocation.js'
-  import OlMap from 'ol/Map.js'
-  import View from 'ol/View.js'
+  import Icon from '$lib/components/Icon/Icon.svelte'
+  import type { IconName } from '$lib/components/Icon/icons'
+  import Modal from '$lib/components/Modal/Modal.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { getGlobalState } from '$lib/state/global.svelte'
   import { Attribution, defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
+  import 'ol/ol.css'
+  import type Feature from 'ol/Feature.js'
+  import OlGeolocation from 'ol/Geolocation.js'
   import { defaults as defaultInteractions } from 'ol/interaction.js'
   import { Tile as TileLayer } from 'ol/layer.js'
-  import 'ol/ol.css'
+  import type VectorLayer from 'ol/layer/Vector.js'
+  import OlMap from 'ol/Map.js'
   import { fromLonLat, toLonLat } from 'ol/proj.js'
   import OSM from 'ol/source/OSM'
+  import View from 'ol/View.js'
   import { untrack } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
   import { createMapData } from './data.svelte'
@@ -29,14 +36,7 @@
     createPathLayer,
     createWmsLayers,
   } from './layers.svelte'
-  import type Feature from 'ol/Feature.js'
-  import type VectorLayer from 'ol/layer/Vector.js'
   import { BLOCK_LABEL_ZOOM, type BlocksMapProps, type LayerEntry } from './types'
-  import Icon from '$lib/components/Icon/Icon.svelte'
-  import type { IconName } from '$lib/components/Icon/icons'
-  import Modal from '$lib/components/Modal/Modal.svelte'
-  import { m } from '$lib/paraglide/messages'
-  import { getGlobalState } from '$lib/state/global.svelte'
 
   const props: BlocksMapProps = $props()
 
@@ -44,17 +44,17 @@
     get blocks() {
       return props.blocks
     },
-    get parkingLocations() {
-      return props.parkingLocations
+    get gradeCountByBlock() {
+      return props.gradeCountByBlock
     },
     get lineStrings() {
       return props.lineStrings
     },
+    get parkingLocations() {
+      return props.parkingLocations
+    },
     get routeCountByBlock() {
       return props.routeCountByBlock
-    },
-    get gradeCountByBlock() {
-      return props.gradeCountByBlock
     },
   })
 
@@ -72,7 +72,7 @@
   // Plain (non-reactive) on purpose: captured on moveend so that if the map is ever
   // rebuilt (a genuine remount), its View can be reseeded from the last position
   // instead of snapping back to the initial world view.
-  let savedView: { center: number[]; zoom: number } | undefined
+  let savedView: undefined | { center: number[]; zoom: number }
 
   const global = getGlobalState()
 
@@ -113,9 +113,9 @@
       const min = fromLonLat([focus.extent[1], focus.extent[0]])
       const max = fromLonLat([focus.extent[3], focus.extent[2]])
       map.getView().fit([min[0], min[1], max[0], max[1]], {
-        padding: focus.padding ?? [50, 50, 50, 50],
-        maxZoom: focus.zoom ?? BLOCK_LABEL_ZOOM,
         duration: 300,
+        maxZoom: focus.zoom ?? BLOCK_LABEL_ZOOM,
+        padding: focus.padding ?? [50, 50, 50, 50],
       })
     } else if (focus.center) {
       const center = fromLonLat([focus.center[1], focus.center[0]])
@@ -123,12 +123,12 @@
 
       if (focus.padding) {
         map.getView().fit([center[0], center[1], center[0], center[1]], {
-          padding: focus.padding,
-          maxZoom: zoom,
           duration: 300,
+          maxZoom: zoom,
+          padding: focus.padding,
         })
       } else {
-        map.getView().animate({ center, zoom, duration: 300 })
+        map.getView().animate({ center, duration: 300, zoom })
       }
     }
   })
@@ -186,9 +186,9 @@
       .map((layer) => {
         const layerName = layer.get('layerName') as string
         return {
-          name: layerName,
           icon: getLayerIcon(layerName, markersLabel),
           label: layerName,
+          name: layerName,
           visible: layer.getVisible(),
         }
       })
@@ -212,7 +212,7 @@
 
   // Replace a stable layer's features in place — one re-render of just that layer, no
   // teardown — so unrelated layers never flicker when this slice of data changes.
-  const syncFeatures = (layer: VectorLayer | undefined, features: Feature[]) => {
+  const syncFeatures = (layer: undefined | VectorLayer, features: Feature[]) => {
     const source = layer?.getSource()
     if (source == null) return
     source.clear()
@@ -259,14 +259,14 @@
     if (map == null) return
     const view = map.getView()
     const zoom = view.getZoom()
-    if (zoom != null) view.animate({ zoom: zoom + 1, duration: 200 })
+    if (zoom != null) view.animate({ duration: 200, zoom: zoom + 1 })
   }
 
   const handleZoomOut = () => {
     if (map == null) return
     const view = map.getView()
     const zoom = view.getZoom()
-    if (zoom != null) view.animate({ zoom: zoom - 1, duration: 200 })
+    if (zoom != null) view.animate({ duration: 200, zoom: zoom - 1 })
   }
 
   const handleToggleLayer = (name: string) => {
@@ -307,19 +307,19 @@
     const isStatic = untrack(() => props.static)
 
     const mapInstance = new OlMap({
-      controls: defaultControls({ attribution: false, zoom: false, rotate: false }).extend([
+      controls: defaultControls({ attribution: false, rotate: false, zoom: false }).extend([
         new Attribution({ collapsible: true }),
       ]),
       interactions: isStatic ? [] : defaultInteractions(),
-      target: node as HTMLElement,
       layers: [
-        new TileLayer({ source: new OSM(), properties: { layerName: 'OpenStreetMap' }, className: 'osm-layer' }),
+        new TileLayer({ className: 'osm-layer', properties: { layerName: 'OpenStreetMap' }, source: new OSM() }),
         ...wmsLayers,
       ],
+      target: node as HTMLElement,
       view: new View({
         center: savedView?.center ?? fromLonLat([2.6117597, 48.4103865]),
-        zoom: savedView?.zoom ?? 4,
         constrainResolution: true,
+        zoom: savedView?.zoom ?? 4,
       }),
     })
     map = mapInstance
@@ -446,10 +446,10 @@
 
     // Geolocation
     const cleanupGeolocation = setupGeolocation(mapInstance, {
-      getIsTracking: () => isTrackingGeolocation,
-      setIsTracking: (v) => (isTrackingGeolocation = v),
-      setIsError: (v) => (isGeolocationError = v),
       getHasFocus: () => props.focus != null,
+      getIsTracking: () => isTrackingGeolocation,
+      setIsError: (v) => (isGeolocationError = v),
+      setIsTracking: (v) => (isTrackingGeolocation = v),
     })
 
     // Resize

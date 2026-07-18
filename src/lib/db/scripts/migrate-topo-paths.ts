@@ -40,13 +40,13 @@ export const normalizePath = (
   path: string,
   width: number,
   height: number,
-): { next: string } | { next: null; reason: 'normalized' | 'unparsable' | 'out-of-bounds' | 'empty' } => {
+): { next: null; reason: 'empty' | 'normalized' | 'out-of-bounds' | 'unparsable' } | { next: string } => {
   const tokens = path.trim().split(/\s+/)
   if (tokens.length === 0 || path.trim() === '') {
     return { next: null, reason: 'empty' }
   }
 
-  const parsed: ({ letter: string; x: number; y: number } | 'Z')[] = []
+  const parsed: ('Z' | { letter: string; x: number; y: number })[] = []
   for (const token of tokens) {
     if (token.toUpperCase() === 'Z') {
       parsed.push('Z')
@@ -97,10 +97,10 @@ const round = (value: number): number => Number(value.toFixed(5))
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {
   const rows = await db
     .select({
+      height: schema.files.height,
       id: schema.topoRoutes.id,
       path: schema.topoRoutes.path,
       width: schema.files.width,
-      height: schema.files.height,
     })
     .from(schema.topoRoutes)
     .innerJoin(schema.topos, eq(schema.topoRoutes.topoFk, schema.topos.id))

@@ -25,7 +25,7 @@
 
   const routeHref = $derived(resolve('/(app)/routes/[id]', { id: String(routeId) }))
 
-  let filter = $state<AscentType | 'all'>('all')
+  let filter = $state<'all' | AscentType>('all')
 
   const countByType = $derived.by(() => {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale per derivation
@@ -38,12 +38,12 @@
 
   // Filter chips: everything, or one ascent type. "All" is just the first chip.
   const chips = $derived([
-    { key: 'all' as const, label: m.ascents_filterAll, color: 'var(--color-primary-400)', count: ascents.data.length },
-    ...ASCENT_TYPES.map(({ type, label }) => ({
-      key: type,
-      label,
+    { color: 'var(--color-primary-400)', count: ascents.data.length, key: 'all' as const, label: m.ascents_filterAll },
+    ...ASCENT_TYPES.map(({ label, type }) => ({
       color: STATUS[type].color,
       count: countByType.get(type) ?? 0,
+      key: type,
+      label,
     })),
   ])
 
@@ -58,7 +58,7 @@
   // Deep link from /ascents/[id]: highlight the row and scroll it into view once
   // it has synced in and rendered.
   const targetId = $derived(Number(page.url.searchParams.get('ascent')) || null)
-  let scrolledTo = $state<number | null>(null)
+  let scrolledTo = $state<null | number>(null)
   $effect(() => {
     if (targetId == null || scrolledTo === targetId || ascents.data.length === 0) return
     const el = document.getElementById(`ascent-${targetId}`)
@@ -92,7 +92,7 @@
         {#snippet bottom()}
           <!-- Type filter: one horizontally scrollable row of count chips. -->
           <div class="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5">
-            {#each chips as { key, label, color, count } (key)}
+            {#each chips as { color, count, key, label } (key)}
               <button
                 class={[
                   'border-surface-200-800 flex h-8.5 flex-none items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold',

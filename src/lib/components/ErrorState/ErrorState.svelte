@@ -5,7 +5,7 @@
   import { m } from '$lib/paraglide/messages'
   import { back, canGoBack } from '$lib/state/navigation.svelte'
 
-  type ErrorType = 'notfound' | 'offline' | 'server' | 'generic'
+  type ErrorType = 'generic' | 'notfound' | 'offline' | 'server'
 
   // Full-screen blocking error state: icon, heading, body and recovery buttons.
   // `type` selects the icon, tonal colour and default copy; the offline state
@@ -16,32 +16,32 @@
     type?: ErrorType
   }
 
-  const { type = 'generic', title, description }: Props = $props()
+  const { description, title, type = 'generic' }: Props = $props()
 
-  const variants: Record<ErrorType, { icon: IconName; tile: string; title: () => string; body: () => string }> = {
-    notfound: {
-      icon: 'map-pin-x',
-      tile: 'bg-primary-500/15 text-primary-500',
-      title: m.error_notfound_title,
-      body: m.error_notfound_body,
-    },
-    offline: {
-      icon: 'no-signal',
-      tile: 'bg-surface-200-800 text-surface-600-400',
-      title: m.error_offline_title,
-      body: m.error_offline_body,
-    },
-    server: {
-      icon: 'alert-triangle',
-      tile: 'bg-error-500/15 text-error-500',
-      title: m.error_server_title,
-      body: m.error_server_body,
-    },
+  const variants: Record<ErrorType, { body: () => string; icon: IconName; tile: string; title: () => string }> = {
     generic: {
+      body: m.error_generic_body,
       icon: 'alert-triangle',
       tile: 'bg-error-500/15 text-error-500',
       title: m.error_generic_title,
-      body: m.error_generic_body,
+    },
+    notfound: {
+      body: m.error_notfound_body,
+      icon: 'map-pin-x',
+      tile: 'bg-primary-500/15 text-primary-500',
+      title: m.error_notfound_title,
+    },
+    offline: {
+      body: m.error_offline_body,
+      icon: 'no-signal',
+      tile: 'bg-surface-200-800 text-surface-600-400',
+      title: m.error_offline_title,
+    },
+    server: {
+      body: m.error_server_body,
+      icon: 'alert-triangle',
+      tile: 'bg-error-500/15 text-error-500',
+      title: m.error_server_title,
     },
   }
 

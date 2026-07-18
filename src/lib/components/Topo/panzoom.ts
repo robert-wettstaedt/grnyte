@@ -33,15 +33,6 @@ export const overscrollConstrain = (
 }
 
 interface PanzoomParams {
-  /** When false the action is inert: no gestures, native transform, identity. */
-  enabled: boolean
-  /** Maximum zoom factor. */
-  maxScale?: number
-  /** Minimum zoom factor (1 = fit). Below 1 shrinks the content within the node. Default 1. */
-  minScale?: number
-  /** Allow the half-viewport overscroll at every zoom level, not just past fit — a
-   *  free-pan canvas where the content can be nudged even at or below fit. Default false. */
-  overscroll?: boolean
   /**
    * Aspect ratio (w/h) of letterboxed content inside the node (e.g. an
    * `object-contain` image). Pan/zoom is then clamped to the content's fitted
@@ -50,17 +41,26 @@ interface PanzoomParams {
    * panning stops at the content's edges. Omit when content fills the node.
    */
   aspect?: number
-  /** Called with the live zoom factor (1 = fit) and whether the view is at rest
-   *  (fit and centred) whenever the transform changes. Lets a consumer gate its
-   *  own gestures on zoom, and show a reset chip whenever the view is off-default. */
-  onZoom?: (scale: number, atRest: boolean) => void
-  /** Bump this number to animate back to fit (the "reset zoom" chip). */
-  resetSignal?: number
   /**
    * Suppress pan/zoom gestures entirely (but keep the current transform). Set while the
    * consumer is drawing/placing so a press doesn't pan the photo out from under it.
    */
   blockPan?: boolean
+  /** When false the action is inert: no gestures, native transform, identity. */
+  enabled: boolean
+  /** Maximum zoom factor. */
+  maxScale?: number
+  /** Minimum zoom factor (1 = fit). Below 1 shrinks the content within the node. Default 1. */
+  minScale?: number
+  /** Called with the live zoom factor (1 = fit) and whether the view is at rest
+   *  (fit and centred) whenever the transform changes. Lets a consumer gate its
+   *  own gestures on zoom, and show a reset chip whenever the view is off-default. */
+  onZoom?: (scale: number, atRest: boolean) => void
+  /** Allow the half-viewport overscroll at every zoom level, not just past fit — a
+   *  free-pan canvas where the content can be nudged even at or below fit. Default false. */
+  overscroll?: boolean
+  /** Bump this number to animate back to fit (the "reset zoom" chip). */
+  resetSignal?: number
 }
 
 /**
@@ -87,7 +87,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
   // The pannable world: the content's contain-fit rect within the node (the
   // whole node when no aspect is given), plus the node size it was computed for
   // so a resize can map the old view onto the new geometry.
-  let world = { x0: 0, y0: 0, w: 0, h: 0, width: 0, height: 0 }
+  let world = { h: 0, height: 0, w: 0, width: 0, x0: 0, y0: 0 }
 
   const behavior = d3Zoom<HTMLElement, unknown>()
     .scaleExtent([minScale, maxScale])
@@ -104,7 +104,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
       return (!event.ctrlKey || event.type === 'wheel') && !event.button
     })
     .on('zoom', (event: D3ZoomEvent<HTMLElement, unknown>) => {
-      const { x, y, k } = event.transform
+      const { k, x, y } = event.transform
       content.style.transform = `translate(${x}px, ${y}px) scale(${k})`
       onZoom?.(k, Math.abs(k - 1) < 1e-3 && Math.abs(x) < 0.5 && Math.abs(y) < 0.5)
     })
@@ -133,7 +133,7 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
       y0 = (height - h) / 2
     }
 
-    world = { x0, y0, w, h, width, height }
+    world = { h, height, w, width, x0, y0 }
     behavior.translateExtent([
       [x0, y0],
       [x0 + w, y0 + h],
@@ -206,6 +206,10 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
   if (params.enabled) enable()
 
   return {
+    destroy() {
+      selection.on('.zoom', null)
+      resizeObserver.disconnect()
+    },
     update(next: PanzoomParams) {
       // A different image is a different coordinate space — start over at fit.
       const aspectChanged = next.aspect !== aspect
@@ -224,10 +228,6 @@ export const panzoom: Action<HTMLElement, PanzoomParams> = (node, params) => {
         if (aspectChanged) selection.call(behavior.transform, zoomIdentity)
         else if (resetRequested) selection.transition().duration(200).call(behavior.transform, zoomIdentity)
       }
-    },
-    destroy() {
-      selection.on('.zoom', null)
-      resizeObserver.disconnect()
     },
   }
 }

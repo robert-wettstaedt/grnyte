@@ -15,9 +15,9 @@ export const usersQueryDefs = {
 
   listUsers: defineQuery(
     z.object({
-      regionFk: z.number(),
       content: z.string().optional(),
       limit: z.number().optional(),
+      regionFk: z.number(),
     }),
     authenticatedUserCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)

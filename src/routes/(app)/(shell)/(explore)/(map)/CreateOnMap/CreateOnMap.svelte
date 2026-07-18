@@ -1,9 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
+  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
   import { canAddBlock, canAddParking } from '$lib/entities/area/permissions'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
@@ -20,16 +20,16 @@
   interface Props {
     /** Live map centre `[lat, lng]` from the layout's view tracking. */
     center: [number, number] | null
-    zoom: number | null
-    /** False while a detail sheet is open — hides the FAB. */
-    visible: boolean
-    /** Placement mode, bound so the layout can flip the map's pickMode and hide the search bar. */
-    placing: 'block' | 'parking' | null
     /** Ask the layout to frame the map on a point (the long-press handoff). */
     onrequestcenter: (center: [number, number]) => void
+    /** Placement mode, bound so the layout can flip the map's pickMode and hide the search bar. */
+    placing: 'block' | 'parking' | null
+    /** False while a detail sheet is open — hides the FAB. */
+    visible: boolean
+    zoom: null | number
   }
 
-  let { center, zoom, visible, placing = $bindable(), onrequestcenter }: Props = $props()
+  let { center, onrequestcenter, placing = $bindable(), visible, zoom }: Props = $props()
 
   const global = getGlobalState()
   const areas = areaList()
@@ -39,7 +39,7 @@
   let pickerOpen = $state(false)
   let search = $state('')
   /** Manual override from the crag picker; wins over the proximity match. */
-  let chosenCragId = $state<number | null>(null)
+  let chosenCragId = $state<null | number>(null)
 
   const canCreate = $derived(global.userRegions.some((region) => region.permissions.includes(REGION_PERMISSION_EDIT)))
   const showFab = $derived(visible && canCreate && (zoom ?? 0) >= BLOCK_LABEL_ZOOM && placing == null)

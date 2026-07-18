@@ -1,31 +1,31 @@
 <script lang="ts">
-  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Map from '$lib/map/Map.svelte'
   import type { MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
+  import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
-    mapData: MapData
     areaExtent: [number, number, number, number] | null
-    // The parking committed when advancing to step 2; reframe back here on return.
-    placedCenter: [number, number] | null
-    // Form state lifted to the parent so it survives the step-toggle remount.
-    mode?: 'map' | 'coordinates'
     latText?: string
     lngText?: string
+    mapData: MapData
+    // Form state lifted to the parent so it survives the step-toggle remount.
+    mode?: 'coordinates' | 'map'
     // Output: the location to save (map centre in map mode, the typed pair otherwise).
-    picked?: { lat: number; long: number } | null
+    picked?: null | { lat: number; long: number }
+    // The parking committed when advancing to step 2; reframe back here on return.
+    placedCenter: [number, number] | null
   }
 
   let {
-    mapData,
     areaExtent,
-    placedCenter,
-    mode = $bindable('map'),
     latText = $bindable(''),
     lngText = $bindable(''),
+    mapData,
+    mode = $bindable('map'),
     picked = $bindable(null),
+    placedCenter,
   }: Props = $props()
 
   // Set once the map settles/pans (onviewchange); until then fall back to the framing centre.
@@ -39,7 +39,7 @@
   // Returning to step 1 remounts the map; framing it on the placed parking keeps the placement.
   const placeFocus = $derived<MapFocus | null>(placedCenter == null ? focus : { center: placedCenter, zoom: 15 })
 
-  const candidate = $derived.by<{ lat: number; long: number } | null>(() => {
+  const candidate = $derived.by<null | { lat: number; long: number }>(() => {
     if (mode === 'map') {
       return mapCenter == null ? null : { lat: mapCenter[0], long: mapCenter[1] }
     }

@@ -1,27 +1,27 @@
-import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
-import type { TopoView } from '$lib/entities/topo/dto'
-import { anchorX } from '$lib/entities/topo/order'
 import { isTypingInField } from '$lib/components/SiblingNav/siblingNav'
+import type { TopoView } from '$lib/entities/topo/dto'
+import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
+import { anchorX } from '$lib/entities/topo/order'
 
 interface Options {
   editor: TopoEditor
-  /** The photos as displayed, for 1..9 selection and the current photo's pixel dims. */
-  topos: () => TopoView[]
   /** Persist the dirty session. The caller guards on dirty/saving. */
   onSave: () => void
   onToggleFullscreen: () => void
+  /** The photos as displayed, for 1..9 selection and the current photo's pixel dims. */
+  topos: () => TopoView[]
 }
 
 /**
  * Window-keydown handler for the topo editor. Returns a listener for `<svelte:window onkeydown>`,
  * mirroring the sheet's `sheetNavKeydown`. Inert while typing in a field. Shortcuts:
  * Cmd/Ctrl+Z redo/undo, Cmd/Ctrl+S save, Esc deselect, J/L prev/next line, F fullscreen,
- * 1..9 jump to that photo, and the arrows nudge the selected point (preferred) or line by 1px.
+ * 1..9 jump to that photo, and the arrows nudge the selected point (preferred) or line by 10px.
  */
-export function topoEditorKeydown({ editor, topos, onSave, onToggleFullscreen }: Options) {
+export function topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos }: Options) {
   // J/L cycle the drawn lines on the current photo, ordered left-to-right and wrapping. With nothing
   // selected, L grabs the first and J the last.
-  function selectSibling(delta: 1 | -1) {
+  function selectSibling(delta: -1 | 1) {
     const drawn = editor.currentLines.filter((line) => line.points.length > 0).sort((a, b) => anchorX(a) - anchorX(b))
     if (drawn.length === 0) return
     const current = drawn.findIndex((line) => line.routeFk === editor.selectedRouteFk)
@@ -29,8 +29,8 @@ export function topoEditorKeydown({ editor, topos, onSave, onToggleFullscreen }:
     editor.selectRoute(drawn[next].routeFk)
   }
 
-  // Nudge the selection by 1px in image space. Coords are normalized, so 1px is 1/imageWidth or
-  // 1/imageHeight. A selected point wins over the line. `fresh` (the first, non-repeat press) opens
+  // Nudge the selection by 10px in image space. Coords are normalized, so 10px is 10/imageWidth or
+  // 10/imageHeight. A selected point wins over the line. `fresh` (the first, non-repeat press) opens
   // one undo step via beginStroke; held auto-repeats coalesce into it.
   function nudge(dx: number, dy: number, fresh: boolean) {
     const current = topos().find((topo) => topo.id === editor.topoId) ?? topos()[0]

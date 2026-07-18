@@ -8,8 +8,8 @@ import Database from 'postgres'
 
 const postgres = Database(DATABASE_URL, {
   debug: process.env.NODE_ENV === 'development',
-  prepare: false,
   max: 10,
+  prepare: false,
   timeout: 30_000,
 })
 

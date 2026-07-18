@@ -35,7 +35,7 @@
 
   // ShareSheet toggles visibility; the row isn't Zero-reactive here, so mirror it locally
   // (and hand MediaStage/ShareSheet the same file).
-  let visibilityOverride = $state<'public' | 'private'>()
+  let visibilityOverride = $state<'private' | 'public'>()
   const file = $derived(visibilityOverride == null ? data.file : { ...data.file, visibility: visibilityOverride })
 
   const title = $derived(
@@ -73,10 +73,10 @@
   const onDelete = async () => {
     try {
       await deleteFile({ id: data.file.id })
-      toaster.create({ type: 'info', title: m.media_deleted() })
+      toaster.create({ title: m.media_deleted(), type: 'info' })
       await goto(parentHref(data.controls?.parent))
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
     }
   }
 

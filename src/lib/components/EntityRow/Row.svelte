@@ -3,18 +3,14 @@
   import { slide } from 'svelte/transition'
 
   interface Props {
-    /** Main title. Pass a snippet for custom title markup (e.g. inline stars). */
-    title: string | Snippet
-    /** Eyebrow line above the title — typically the geographic region. */
-    region?: string
+    /** Highlight state: the keyboard-active `option` row, or the selected `card`. */
+    active?: boolean
+    /** Leading visual (donut, thumbnail, avatar, grade tile, …). */
+    children?: Snippet
     /** Breadcrumb path; an array is joined with " · ". */
     crumbs?: string | string[]
     /** Secondary line below the title. Pass a snippet for rich content (tags, markdown). */
-    description?: string | Snippet
-    /** Leading visual (donut, thumbnail, avatar, grade tile, …). */
-    children?: Snippet
-    /** Trailing content (chevron, grade chip, follow button, …). */
-    rightContent?: Snippet
+    description?: Snippet | string
     /**
      * Extra line below the row (tags, action buttons, …). Rendered as a sibling
      * of the interactive row inside the card shell, so it may contain links.
@@ -24,28 +20,32 @@
     href?: string
     /** Tap handler when rendered as a button. */
     onclick?: (event: MouseEvent) => void
+    /** Eyebrow line above the title — typically the geographic region. */
+    region?: string
+    /** Trailing content (chevron, grade chip, follow button, …). */
+    rightContent?: Snippet
+    /** Main title. Pass a snippet for custom title markup (e.g. inline stars). */
+    title: Snippet | string
     /**
      * Layout variant. `card` (default) is the bordered list-item used on the
      * Search/listing screens; `option` is the flat, tighter row used inside the
      * `@`-reference picker (no border/radius, no trailing chevron, highlightable).
      */
     variant?: 'card' | 'option'
-    /** Highlight state: the keyboard-active `option` row, or the selected `card`. */
-    active?: boolean
   }
 
   let {
-    title,
-    region,
+    active = false,
+    children,
     crumbs,
     description,
-    children,
-    rightContent,
     footer,
     href,
     onclick,
+    region,
+    rightContent,
+    title,
     variant = 'card',
-    active = false,
   }: Props = $props()
 
   const crumbText = $derived(Array.isArray(crumbs) ? crumbs.join(' · ') : crumbs)

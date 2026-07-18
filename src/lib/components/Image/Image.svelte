@@ -3,9 +3,7 @@
   import type { Snippet } from 'svelte'
   import type { ClassValue, HTMLImgAttributes } from 'svelte/elements'
 
-  interface Props extends Omit<HTMLImgAttributes, 'src' | 'class' | 'alt' | 'onload' | 'onerror'> {
-    /** Path of the file as stored on the `files` record (leading slash optional). */
-    path: string
+  interface Props extends Omit<HTMLImgAttributes, 'alt' | 'class' | 'onerror' | 'onload' | 'src'> {
     /**
      * Alternative text — also announced when the image fails to load. An empty
      * string marks the image decorative; the failure placeholder is then
@@ -17,18 +15,20 @@
      * and error states have somewhere to render and to avoid layout shift.
      */
     class?: ClassValue
-    /** Classes for the inner `<img>`. */
-    imgClass?: ClassValue
+    /** Replaces the default failure placeholder (both error and offline). */
+    error?: Snippet
     /** How the photo fills the box (`object-fit`). A prop rather than an `imgClass`
      *  override because two object-* utilities on one element resolve by stylesheet
      *  order, not class order — cover silently won over a passed object-contain. */
-    fit?: 'cover' | 'contain'
-    /** Replaces the default failure placeholder (both error and offline). */
-    error?: Snippet
-    /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
-    naturalWidth?: number
+    fit?: 'contain' | 'cover'
+    /** Classes for the inner `<img>`. */
+    imgClass?: ClassValue
     /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
     naturalHeight?: number
+    /** Bound to the loaded image's intrinsic pixel size (0 until it loads). */
+    naturalWidth?: number
+    /** Path of the file as stored on the `files` record (leading slash optional). */
+    path: string
     /**
      * Request a resized, cacheable thumbnail this many px wide instead of the
      * full-res image — for list tiles and other small renders. Aspect-preserving.
@@ -37,19 +37,19 @@
   }
 
   let {
-    path,
     alt,
     class: className,
-    imgClass,
     error,
     fit = 'cover',
-    naturalWidth = $bindable(),
+    imgClass,
     naturalHeight = $bindable(),
+    naturalWidth = $bindable(),
+    path,
     previewWidth,
     ...rest
   }: Props = $props()
 
-  type Status = 'loading' | 'loaded' | 'error' | 'offline'
+  type Status = 'error' | 'loaded' | 'loading' | 'offline'
 
   const src = $derived(`/image/${path.replace(/^\/+/, '')}${previewWidth == null ? '' : `?w=${previewWidth}`}`)
   let status = $state<Status>('loading')

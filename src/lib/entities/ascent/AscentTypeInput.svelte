@@ -20,7 +20,7 @@
 {/if}
 
 <div class="grid grid-cols-4 gap-2" role="radiogroup" aria-label={m.ascents_form_typeLabel()}>
-  {#each ASCENT_TYPES as { type, label } (type)}
+  {#each ASCENT_TYPES as { label, type } (type)}
     {@const info = STATUS[type]}
     {@const active = value === type}
     <button

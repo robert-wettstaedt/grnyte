@@ -47,8 +47,8 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   // The app's image access goes through the ImageProvider, but that module reads
   // `$env/static/private` (SvelteKit-only), so this script talks WebDAV directly.
   const dav = createClient(`${NEXTCLOUD_URL}/remote.php/dav/files`, {
-    username: NEXTCLOUD_USER_NAME,
     password: NEXTCLOUD_USER_PASSWORD,
+    username: NEXTCLOUD_USER_NAME,
   })
 
   // One PROPFIND per folder instead of one exists() round-trip per derivative.
@@ -70,7 +70,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   }
 
   const rows = await db
-    .select({ id: schema.files.id, path: schema.files.path, width: schema.files.width, height: schema.files.height })
+    .select({ height: schema.files.height, id: schema.files.id, path: schema.files.path, width: schema.files.width })
     .from(schema.files)
 
   const skipped: Record<string, string[]> = {}
@@ -122,7 +122,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
       return
     }
 
-    let dims: { width: number; height: number } | null = null
+    let dims: null | { height: number; width: number } = null
     try {
       dims = orientedDimensions(await sharp(buffer).metadata())
     } catch (err) {
@@ -135,7 +135,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
 
     for (const row of group) {
       if (row.width !== dims.width || row.height !== dims.height) {
-        await db.update(schema.files).set({ width: dims.width, height: dims.height }).where(eq(schema.files.id, row.id))
+        await db.update(schema.files).set({ height: dims.height, width: dims.width }).where(eq(schema.files.id, row.id))
       }
     }
 
@@ -144,7 +144,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
         const webp = await sharp(buffer)
           // Bake the EXIF orientation in — the resized derivative carries no metadata.
           .rotate()
-          .resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
+          .resize({ fit: 'inside', height: size, width: size, withoutEnlargement: true })
           .webp({ quality: DERIVATIVE_QUALITY })
           .toBuffer()
         await dav.putFileContents(`${NEXTCLOUD_USER_NAME}${derivativePath(path, size)}`, webp)

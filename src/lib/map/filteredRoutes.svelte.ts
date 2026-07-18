@@ -37,7 +37,7 @@ export function filteredRouteList<T extends { id: number }>(
         sent.add(ascent.routeFk)
       }
     }
-    return { sent, attempted }
+    return { attempted, sent }
   })
 
   const data = $derived.by(() => {
@@ -66,8 +66,8 @@ export function filteredRouteList<T extends { id: number }>(
     get data() {
       return data
     },
-    get status() {
-      return routes.status
+    get isComplete() {
+      return routes.isComplete
     },
     // Empty reflects the *filtered* result, so client-side filters that remove
     // every route still trigger the empty state.
@@ -77,8 +77,8 @@ export function filteredRouteList<T extends { id: number }>(
     get isSyncing() {
       return routes.isSyncing
     },
-    get isComplete() {
-      return routes.isComplete
+    get status() {
+      return routes.status
     },
   }
 }

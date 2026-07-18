@@ -6,16 +6,16 @@ import type { ImagePayload, ImageProvider, OriginalOptions, ThumbnailOptions } f
 const basicAuth = `Basic ${Buffer.from(`${NEXTCLOUD_USER_NAME}:${NEXTCLOUD_USER_PASSWORD}`).toString('base64')}`
 
 /** HTTP status of a webdav client error; undefined for non-HTTP failures. */
-const statusOf = (error: unknown): number | undefined => (error as { status?: number } | null)?.status
+const statusOf = (error: unknown): number | undefined => (error as null | { status?: number })?.status
 
 // The WebDAV client is a private detail of this provider. The image provider is
 // the app's only Nextcloud boundary — originals, thumbnails, and future
 // uploads/deletes all go through here — so nothing else talks to it directly.
-let client: WebDAVClient | undefined
+let client: undefined | WebDAVClient
 const dav = (): WebDAVClient =>
   (client ??= createClient(`${NEXTCLOUD_URL}/remote.php/dav/files`, {
-    username: NEXTCLOUD_USER_NAME,
     password: NEXTCLOUD_USER_PASSWORD,
+    username: NEXTCLOUD_USER_NAME,
   }))
 
 let instance: ImageProvider | undefined
@@ -89,6 +89,10 @@ function create(): ImageProvider {
       }
     },
 
+    async remove(path: string): Promise<void> {
+      await dav().deleteFile(`${NEXTCLOUD_USER_NAME}${path}`)
+    },
+
     async store(path: string, data: Buffer): Promise<void> {
       const target = `${NEXTCLOUD_USER_NAME}${path}`
       try {
@@ -109,10 +113,6 @@ function create(): ImageProvider {
         }
         await dav().putFileContents(target, data)
       }
-    },
-
-    async remove(path: string): Promise<void> {
-      await dav().deleteFile(`${NEXTCLOUD_USER_NAME}${path}`)
     },
   }
 }

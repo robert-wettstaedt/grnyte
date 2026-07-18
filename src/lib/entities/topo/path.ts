@@ -128,10 +128,10 @@ export const topMarkerD = (
 }
 
 export interface BuiltLine {
-  /** The route line: one path rising from the centre of the start holds to the top. */
-  d: string
   /** Bracket bar joining the start holds (empty for a single-hold start). */
   bracket: string
+  /** The route line: one path rising from the centre of the start holds to the top. */
+  d: string
   /** One point per sub-path — each a starting handhold (deduped across lines by the caller). */
   starts: Point[]
   /** The top-out point, for the end marker. */
@@ -156,7 +156,7 @@ export const buildLine = (points: TopoPoint[], curved: boolean, imgWidth = 1, im
   )
 
   if (subPaths.length === 0) {
-    return { d: '', bracket: '', starts: [], top: undefined }
+    return { bracket: '', d: '', starts: [], top: undefined }
   }
 
   const starts = subPaths.map((sub) => sub[0])
@@ -179,8 +179,8 @@ export const buildLine = (points: TopoPoint[], curved: boolean, imgWidth = 1, im
 
   const allPoints = subPaths.flat()
   return {
-    d,
     bracket,
+    d,
     starts,
     top: allPoints.length > 1 ? (trunk.find((point) => point.type === 'top') ?? trunk.at(-1)) : undefined,
   }

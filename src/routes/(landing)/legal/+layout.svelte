@@ -1,9 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import Logo from '$lib/assets/logo.svg'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import type { Snippet } from 'svelte'
+  import Logo from '$lib/assets/logo.svg'
   import { m } from '$lib/paraglide/messages'
+  import type { Snippet } from 'svelte'
 
   const { children }: { children: Snippet } = $props()
 

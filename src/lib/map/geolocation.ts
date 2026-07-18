@@ -3,16 +3,16 @@ import type OlMap from 'ol/Map.js'
 import Overlay from 'ol/Overlay.js'
 
 interface GeolocationCallbacks {
-  getIsTracking: () => boolean
-  setIsTracking: (value: boolean) => void
-  setIsError: (value: boolean) => void
   getHasFocus: () => boolean
+  getIsTracking: () => boolean
+  setIsError: (value: boolean) => void
+  setIsTracking: (value: boolean) => void
 }
 
 export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallbacks): () => void {
   const geolocation = new OlGeolocation({
-    trackingOptions: { enableHighAccuracy: true },
     projection: mapInstance.getView().getProjection(),
+    trackingOptions: { enableHighAccuracy: true },
   })
   mapInstance.set('geolocation', geolocation)
 

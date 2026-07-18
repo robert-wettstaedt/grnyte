@@ -2,10 +2,10 @@
   import { gradeFgVar, gradeVar, type GradeBand } from '$lib/entities/grade/color'
 
   interface Props {
-    /** Display grade in the user's scale, e.g. "7a+". */
-    grade: string
     /** Heat-scale band that colours the chip, or `undefined` for an ungraded route. */
     band: GradeBand | undefined
+    /** Display grade in the user's scale, e.g. "7a+". */
+    grade: string
   }
 
   const { band, grade }: Props = $props()

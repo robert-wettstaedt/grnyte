@@ -15,7 +15,7 @@ export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
 
 export const convertMarkdownToHtml = async (
-  markdown: string | null | undefined,
+  markdown: null | string | undefined,
   db?: PostgresJsDatabase<typeof schema>,
   encloseReferences?: EncloseOptions,
 ): Promise<string> => {
@@ -41,7 +41,7 @@ export const convertMarkdownToHtml = async (
 }
 
 export const convertMarkdownToHtmlSync = (
-  markdown: string | null | undefined,
+  markdown: null | string | undefined,
   grades: Grade[],
   encloseReferences?: EncloseOptions,
   disableLinks = false,

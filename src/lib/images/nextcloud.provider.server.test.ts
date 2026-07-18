@@ -38,7 +38,7 @@ describe('nextcloud image provider — fetchThumbnail', () => {
 
   it('falls back to an aspect-preserving Nextcloud preview when the derivative is missing', async () => {
     getFileContents.mockRejectedValue(new Error('Not Found'))
-    const fetch = vi.fn((_url: URL | RequestInfo, _init?: RequestInit) =>
+    const fetch = vi.fn((_url: RequestInfo | URL, _init?: RequestInit) =>
       Promise.resolve(new Response(new ArrayBuffer(8), { status: 200, statusText: 'OK' })),
     )
     vi.stubGlobal('fetch', fetch)

@@ -58,9 +58,9 @@
   const editor = new TopoEditor((topoId) => {
     const view = topos.data.find((v) => v.id === topoId)
     return (view?.lines ?? []).map((line) => ({
+      points: normalizePoints(line.points, view?.imageWidth, view?.imageHeight),
       routeFk: line.routeId,
       topType: line.topType,
-      points: normalizePoints(line.points, view?.imageWidth, view?.imageHeight),
     }))
   })
 
@@ -117,11 +117,11 @@
     const ordered = [...currentTopo.lines].sort((a, b) => anchorX(a) - anchorX(b))
     const numberById = new Map(ordered.map((line, index) => [line.id, index + 1]))
     return currentTopo.lines.map((line) => ({
-      id: line.id,
-      points: line.points,
       band: getGradeBand(line.gradeFk),
-      topType: line.topType,
+      id: line.id,
       number: numberById.get(line.id),
+      points: line.points,
+      topType: line.topType,
     }))
   })
 
@@ -135,12 +135,12 @@
     editor.currentLines
       .filter((line) => line.points.length > 0 || line.routeFk === editor.selectedRouteFk)
       .map((line) => ({
-        routeFk: line.routeFk,
-        points: line.points,
-        topType: line.topType,
         band: getGradeBand(routeById.get(line.routeFk)?.gradeFk),
         number: routeNumber.get(line.routeFk),
+        points: line.points,
+        routeFk: line.routeFk,
         selected: line.routeFk === editor.selectedRouteFk,
+        topType: line.topType,
       })),
   )
 
@@ -208,7 +208,7 @@
         notifyUndo({ message: m.routes_deleted(), onUndo: () => restoreRoute(snapshot) })
       }
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
     }
   }
 
@@ -235,15 +235,15 @@
         try {
           const upload = new ImageUpload(file)
           upload.start()
-          const row = await upload.finalize({ type: 'block', id: block.data.id })
+          const row = await upload.finalize({ id: block.data.id, type: 'block' })
           if (replaceTargetId != null) {
-            await replaceTopoImage({ topoId: replaceTargetId, fileId: row.id })
+            await replaceTopoImage({ fileId: row.id, topoId: replaceTargetId })
           } else {
             const result = await createTopo({ blockId: block.data.id, fileId: row.id })
             if (result?.data != null) editor.topoId = result.data.id
           }
         } catch {
-          toaster.create({ type: 'error', title: m.error_generic_title() })
+          toaster.create({ title: m.error_generic_title(), type: 'error' })
         }
       }
     } finally {
@@ -262,7 +262,7 @@
       editor.forget(id)
       editor.topoId = remaining?.id
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
     }
   }
 
@@ -271,7 +271,7 @@
     try {
       await reorderTopos({ blockId: block.data.id, orderedIds })
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
     }
   }
 
@@ -289,13 +289,13 @@
     saving = true
     try {
       for (const id of editor.dirtyTopoIds) {
-        await saveTopoLines({ topoId: id, lines: editor.savedLinesFor(id) })
+        await saveTopoLines({ lines: editor.savedLinesFor(id), topoId: id })
         // Stamp the saved baseline so the pill/guard clear now, not after the Zero echo.
         editor.markSaved(id)
         pendingSync = [...pendingSync, id]
       }
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
     } finally {
       saving = false
     }
@@ -322,11 +322,11 @@
 
   const onKeydown = topoEditorKeydown({
     editor,
-    topos: () => topos.data,
     onSave: () => {
       if (editor.dirty && !saving) save()
     },
     onToggleFullscreen: toggleFullscreen,
+    topos: () => topos.data,
   })
 </script>
 
@@ -411,7 +411,7 @@
   <!-- Bottom chrome: the Routes button (when nothing is selected) above the photo strip. -->
   <div
     class="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-stretch gap-2 p-3"
-    transition:fly={{ y: 24, duration: 220 }}
+    transition:fly={{ duration: 220, y: 24 }}
   >
     {#if currentTopo != null && currentTopoEditable && selectedRoute == null}
       <!-- Routes: a bottom sheet on mobile, a right-hand panel on desktop. -->

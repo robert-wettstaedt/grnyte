@@ -2,12 +2,12 @@
   import type { Snippet } from 'svelte'
 
   export interface FormStep {
-    label: string
     body: Snippet
     /** Gate the header's primary button for this step (Next, or Submit on the last step). Default true. */
     canContinue?: boolean
+    label: string
     /** Side-effect when leaving this step forwards, e.g. seed state for the next step. */
-    onContinue?: () => void | Promise<void>
+    onContinue?: () => Promise<void> | void
   }
 </script>
 
@@ -27,43 +27,43 @@
   // primary button advancing through steps before submitting on the last one).
   interface Props {
     children?: Snippet
-    form: RemoteForm<Input, unknown>
-    onCancel: () => void
-    submitLabel: string
-    title: string
     /** Fill the container with an edge-to-edge body (e.g. a map picker) instead of the
      *  default scrolling, padded field column. Needs a definite-height parent. */
     fill?: boolean
-    /** Gate submit on a caller precondition, on top of the built-in pending state. */
-    submitDisabled?: boolean
+    form: RemoteForm<Input, unknown>
+    /** Label for the advance button on non-final steps. */
+    nextLabel?: string
     /** Run just before the form submits; return `false` to cancel it (e.g. to surface a
      *  confirmation first, then resubmit). Not called when advancing through wizard steps. */
     onBeforeSubmit?: () => boolean | Promise<boolean>
+    onCancel: () => void
     /** Run after a successful submit (validation passed, handler returned). Use to act on
      *  `form.result` when the handler returns data instead of redirecting server-side. */
-    onSubmitted?: () => void | Promise<void>
+    onSubmitted?: () => Promise<void> | void
+    /** Current step index (0-based), bindable so callers can read/seed it. */
+    step?: number
     /** Provide to render a multi-step form. The default `children` snippet is then used for
      *  form-wide content (e.g. hidden inputs), rendered on every step. */
     steps?: FormStep[]
-    /** Current step index (0-based), bindable so callers can read/seed it. */
-    step?: number
-    /** Label for the advance button on non-final steps. */
-    nextLabel?: string
+    /** Gate submit on a caller precondition, on top of the built-in pending state. */
+    submitDisabled?: boolean
+    submitLabel: string
+    title: string
   }
 
   let {
     children,
+    fill = false,
     form,
+    nextLabel = m.common_next(),
+    onBeforeSubmit,
     onCancel,
+    onSubmitted,
+    step = $bindable(0),
+    steps,
+    submitDisabled = false,
     submitLabel,
     title,
-    fill = false,
-    submitDisabled = false,
-    onBeforeSubmit,
-    onSubmitted,
-    steps,
-    step = $bindable(0),
-    nextLabel = m.common_next(),
   }: Props = $props()
 
   const stepped = $derived(steps != null && steps.length > 0)
@@ -91,7 +91,7 @@
   <ErrorState type="offline" />
 {:else}
   <form
-    {...form.enhance(async ({ submit, element }) => {
+    {...form.enhance(async ({ element, submit }) => {
       if (onBeforeSubmit != null && !(await onBeforeSubmit())) {
         return
       }

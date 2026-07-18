@@ -22,28 +22,47 @@ const GLOBAL_STATE_KEY = Symbol('global-state')
 export interface GlobalState {
   /** All grades, ordered by their ordinal id (low → high). */
   readonly grades: Grade[]
-  /** All available route tags, ordered by id. */
-  readonly tags: Tag[]
-  /** The signed-in user with their settings, or `undefined` while loading. */
-  readonly user: User | undefined
+  /** Raw resources, for loading/empty/error states. */
+  readonly gradesResource: QueryResource<Grade[]>
   /** The user's preferred grading scale; defaults to `FB` until settings load. */
   readonly gradingScale: GradingScale
-  /** The user's app/region role, or `undefined` if they have none. */
-  readonly userRole: AppRole | undefined
+  /** True while app-shell prerequisites are still loading. */
+  readonly isLoading: boolean
+  readonly rolePermissionsResource: QueryResource<RolePermission[]>
+  /** All available route tags, ordered by id. */
+  readonly tags: Tag[]
+  readonly tagsResource: QueryResource<Tag[]>
+  /** The signed-in user with their settings, or `undefined` while loading. */
+  readonly user: undefined | User
+
   /** Permissions granted by the user's role, or `undefined` if they have no role. */
   readonly userPermissions: Permission[] | undefined
   /** The user's active region memberships, each with the permissions its role grants. */
   readonly userRegions: UserRegion[]
-  /** True while app-shell prerequisites are still loading. */
-  readonly isLoading: boolean
-
-  /** Raw resources, for loading/empty/error states. */
-  readonly gradesResource: QueryResource<Grade[]>
-  readonly tagsResource: QueryResource<Tag[]>
-  readonly userResource: QueryResource<User | undefined>
-  readonly userRoleResource: QueryResource<AppRole | undefined>
-  readonly rolePermissionsResource: QueryResource<RolePermission[]>
   readonly userRegionsResource: QueryResource<RegionMembership[]>
+  readonly userResource: QueryResource<undefined | User>
+  /** The user's app/region role, or `undefined` if they have none. */
+  readonly userRole: AppRole | undefined
+  readonly userRoleResource: QueryResource<AppRole | undefined>
+}
+
+/** Reads the global state published by {@link setGlobalState}. */
+export function getGlobalState(): GlobalState {
+  const state = getContext<GlobalState | undefined>(GLOBAL_STATE_KEY)
+  if (state == null) {
+    throw new Error('Global state is not available — setGlobalState() must run in the (app) layout first')
+  }
+  return state
+}
+
+/**
+ * Publishes an already-built state object on context. `setGlobalState` builds
+ * the real one from Zero resources; Storybook's preview decorator and the
+ * server-loaded `/f/<id>` share page inject a static fixture through here instead.
+ */
+export function provideGlobalState(state: GlobalState): GlobalState {
+  setContext(GLOBAL_STATE_KEY, state)
+  return state
 }
 
 /**
@@ -67,17 +86,33 @@ export function setGlobalState(): GlobalState | undefined {
     get grades() {
       return gradesResource.data
     },
-    get tags() {
-      return tagsResource.data
-    },
-    get user() {
-      return userResource.data
+    get gradesResource() {
+      return gradesResource
     },
     get gradingScale() {
       return userResource.data?.userSettings?.gradingScale ?? 'FB'
     },
-    get userRole() {
-      return userRoleResource.data
+    get isLoading() {
+      return (
+        gradesResource.status === 'loading' ||
+        tagsResource.status === 'loading' ||
+        userResource.status === 'loading' ||
+        userRoleResource.status === 'loading' ||
+        rolePermissionsResource.status === 'loading' ||
+        userRegionsResource.status === 'loading'
+      )
+    },
+    get rolePermissionsResource() {
+      return rolePermissionsResource
+    },
+    get tags() {
+      return tagsResource.data
+    },
+    get tagsResource() {
+      return tagsResource
+    },
+    get user() {
+      return userResource.data
     },
     get userPermissions() {
       const role = userRoleResource.data
@@ -99,47 +134,21 @@ export function setGlobalState(): GlobalState | undefined {
           .map((rolePermission) => rolePermission.permission),
       }))
     },
-    get isLoading() {
-      return (
-        gradesResource.status === 'loading' ||
-        tagsResource.status === 'loading' ||
-        userResource.status === 'loading' ||
-        userRoleResource.status === 'loading' ||
-        rolePermissionsResource.status === 'loading' ||
-        userRegionsResource.status === 'loading'
-      )
-    },
-    get gradesResource() {
-      return gradesResource
-    },
-    get tagsResource() {
-      return tagsResource
+    get userRegionsResource() {
+      return userRegionsResource
     },
     get userResource() {
       return userResource
     },
+    get userRole() {
+      return userRoleResource.data
+    },
     get userRoleResource() {
       return userRoleResource
-    },
-    get rolePermissionsResource() {
-      return rolePermissionsResource
-    },
-    get userRegionsResource() {
-      return userRegionsResource
     },
   }
 
   return provideGlobalState(state)
-}
-
-/**
- * Publishes an already-built state object on context. `setGlobalState` builds
- * the real one from Zero resources; Storybook's preview decorator and the
- * server-loaded `/f/<id>` share page inject a static fixture through here instead.
- */
-export function provideGlobalState(state: GlobalState): GlobalState {
-  setContext(GLOBAL_STATE_KEY, state)
-  return state
 }
 
 /**
@@ -150,20 +159,20 @@ export function provideGlobalState(state: GlobalState): GlobalState {
 export function staticGlobalState(
   data: {
     grades?: Grade[]
+    gradingScale?: GradingScale
     tags?: Tag[]
     user?: User
-    gradingScale?: GradingScale
-    userRole?: AppRole
     userPermissions?: Permission[]
     userRegions?: UserRegion[]
+    userRole?: AppRole
   } = {},
 ): GlobalState {
   const ready = <T>(value: T): QueryResource<T> => ({
     data: value,
-    status: 'ready',
+    isComplete: true,
     isEmpty: Array.isArray(value) ? value.length === 0 : value == null,
     isSyncing: false,
-    isComplete: true,
+    status: 'ready',
   })
 
   const grades = data.grades ?? []
@@ -172,27 +181,18 @@ export function staticGlobalState(
 
   return {
     grades,
-    tags,
-    user: data.user,
+    gradesResource: ready(grades),
     gradingScale: data.gradingScale ?? data.user?.userSettings?.gradingScale ?? 'FB',
-    userRole: data.userRole,
+    isLoading: false,
+    rolePermissionsResource: ready([]),
+    tags,
+    tagsResource: ready(tags),
+    user: data.user,
     userPermissions: data.userPermissions,
     userRegions,
-    isLoading: false,
-    gradesResource: ready(grades),
-    tagsResource: ready(tags),
-    userResource: ready(data.user),
-    userRoleResource: ready(data.userRole),
-    rolePermissionsResource: ready([]),
     userRegionsResource: ready(userRegions),
+    userResource: ready(data.user),
+    userRole: data.userRole,
+    userRoleResource: ready(data.userRole),
   }
-}
-
-/** Reads the global state published by {@link setGlobalState}. */
-export function getGlobalState(): GlobalState {
-  const state = getContext<GlobalState | undefined>(GLOBAL_STATE_KEY)
-  if (state == null) {
-    throw new Error('Global state is not available — setGlobalState() must run in the (app) layout first')
-  }
-  return state
 }

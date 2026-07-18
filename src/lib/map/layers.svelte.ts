@@ -3,12 +3,12 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { buildGradeDonutSvg } from '$lib/entities/grade/donut'
 import type { UserRegion } from '$lib/entities/region/dto'
 import Feature, { type FeatureLike } from 'ol/Feature.js'
-import type OlMap from 'ol/Map.js'
 import Polyline from 'ol/format/Polyline'
 import { LineString, Polygon } from 'ol/geom'
 import Point from 'ol/geom/Point.js'
 import { fromExtent } from 'ol/geom/Polygon'
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
+import type OlMap from 'ol/Map.js'
 import { fromLonLat } from 'ol/proj.js'
 import { Vector as VectorSource } from 'ol/source.js'
 import TileWMS from 'ol/source/TileWMS.js'
@@ -24,55 +24,6 @@ const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 // rebuilt when the corresponding data changes (see Map.svelte). Recreating a layer
 // reloads its styles — including the expensive donut data-URI icons below — which
 // flashes the map, so we never do that on a data update.
-
-// Marker showing the area/crag's grade histogram as a small donut with the route
-// count in the center. Built once per feature (the data-URI icon is expensive to
-// regenerate) and anchored at the polygon's interior point.
-function createDonutMarkerStyles(
-  name: string,
-  count: number,
-  gradeCounts: Map<number, number>,
-  donutSize: number,
-): Style[] {
-  const interiorPoint = (feature: FeatureLike) => (feature.getGeometry() as Polygon).getInteriorPoint()
-  const svg = buildGradeDonutSvg(gradeCounts, count, donutSize)
-
-  return [
-    new Style({
-      geometry: interiorPoint,
-      image: new Icon({ src: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg) }),
-    }),
-    new Style({
-      geometry: interiorPoint,
-      text: new Text({
-        text: name,
-        font: 'bold 13px sans-serif',
-        fill: new Fill({ color: '#1f2937' }),
-        stroke: new Stroke({ color: 'white', width: 3 }),
-        offsetY: donutSize / 2 + 12,
-        overflow: true,
-      }),
-    }),
-  ]
-}
-
-export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
-  return userRegions.flatMap((region) =>
-    (region.settings?.mapLayers ?? []).map(
-      (regionLayer) =>
-        new TileLayer({
-          properties: { layerName: regionLayer.name },
-          source: new TileWMS({
-            attributions: regionLayer.attributions ?? [],
-            url: regionLayer.url,
-            params: regionLayer.params ?? {},
-          }),
-          minZoom: regionLayer.minZoom ?? undefined,
-          opacity: regionLayer.opacity ?? undefined,
-        }),
-    ),
-  )
-}
 
 // The outermost area grouping, drawn when zoomed out so the far view isn't cluttered with
 // every crag; from CRAG_ZOOM the crag rects take over.
@@ -95,8 +46,8 @@ export function buildAreaFeatures(
     feature.set('areaId', areaId)
     feature.setStyle([
       new Style({
-        stroke: new Stroke({ color: '#1f2937', width: 1 }),
         fill: new Fill({ color: 'rgba(248, 250, 252, 0.15)' }),
+        stroke: new Stroke({ color: '#1f2937', width: 1 }),
       }),
       ...createDonutMarkerStyles(area.name, routeCount, gradeCounts, 36),
     ])
@@ -106,22 +57,34 @@ export function buildAreaFeatures(
   return features
 }
 
-export function createAreaLayer(): VectorLayer {
-  const layer = new VectorLayer({ source: new VectorSource(), maxZoom: CRAG_ZOOM })
-  layer.set('layerName', 'Markers')
-  return layer
+export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: Map<number, number>): Feature[] {
+  const features: Feature[] = []
+
+  for (const block of geoBlocks) {
+    const geo = block.geolocation!
+    const feature = new Feature({
+      blockId: block.id,
+      estimated: geo.estimated,
+      geometry: new Point(fromLonLat([geo.long, geo.lat])),
+      name: block.name,
+      routeCount: routeCountByBlock.get(block.id) ?? 0,
+    })
+    features.push(feature)
+  }
+
+  return features
 }
 
 // A crag is the block-holding area: a rect around its blocks, shown at mid zoom until the
 // user zooms in far enough for the individual block markers to take over.
 export function buildCragFeatures(
-  cragBoundingBoxes: Map<number, { crag: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>,
+  cragBoundingBoxes: Map<number, { bounds: [number, number, number, number]; crag: BlockDetail['areas'][0] }>,
   routeCountByCrag: Map<number, number>,
   gradeCountByCrag: Map<number, Map<number, number>>,
 ): Feature[] {
   const features: Feature[] = []
 
-  for (const [cragId, { crag, bounds }] of cragBoundingBoxes) {
+  for (const [cragId, { bounds, crag }] of cragBoundingBoxes) {
     const [minLat, minLng, maxLat, maxLng] = bounds
     const routeCount = routeCountByCrag.get(cragId) ?? 0
     const gradeCounts = gradeCountByCrag.get(cragId) ?? EMPTY_GRADE_COUNTS
@@ -133,8 +96,8 @@ export function buildCragFeatures(
     feature.set('areaId', cragId)
     feature.setStyle([
       new Style({
-        stroke: new Stroke({ color: '#313944', width: 1 }),
         fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
+        stroke: new Stroke({ color: '#313944', width: 1 }),
       }),
       ...createDonutMarkerStyles(crag.name, routeCount, gradeCounts, 32),
     ])
@@ -142,102 +105,6 @@ export function buildCragFeatures(
   }
 
   return features
-}
-
-export function createCragLayer(): VectorLayer {
-  const layer = new VectorLayer({ source: new VectorSource(), minZoom: CRAG_ZOOM, maxZoom: BLOCK_ZOOM })
-  layer.set('layerName', 'Markers')
-  return layer
-}
-
-export function buildBlockFeatures(geoBlocks: BlockDetail[], routeCountByBlock: Map<number, number>): Feature[] {
-  const features: Feature[] = []
-
-  for (const block of geoBlocks) {
-    const geo = block.geolocation!
-    const feature = new Feature({
-      geometry: new Point(fromLonLat([geo.long, geo.lat])),
-      name: block.name,
-      blockId: block.id,
-      routeCount: routeCountByBlock.get(block.id) ?? 0,
-      estimated: geo.estimated,
-    })
-    features.push(feature)
-  }
-
-  return features
-}
-
-export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number | undefined): VectorLayer {
-  const layer = new VectorLayer({
-    source: new VectorSource(),
-    minZoom: BLOCK_ZOOM,
-    // Above the parking (zIndex 1) and path (0): the blocks are the content, so they win overlaps.
-    zIndex: 2,
-    style: (feature) => {
-      const zoom = mapInstance.getView().getZoom() ?? 0
-      const showLabel = zoom >= BLOCK_LABEL_ZOOM
-      const routeCount = feature.get('routeCount') as number
-      // An estimated pin shows "?" instead of the route count: the block is somewhere
-      // around here, expect to search for it.
-      const estimated = feature.get('estimated') as boolean
-      const selected = feature.get('blockId') === getSelectedId()
-      // Lift the selected block's styles above every other feature in the layer.
-      const zIndex = selected ? 1000 : undefined
-      const fill = new Fill({ color: selected ? primaryColor() : '#ef4444' })
-      const styles: Style[] = []
-
-      if (routeCount > 0 || estimated) {
-        styles.push(
-          new Style({
-            image: new CircleStyle({
-              radius: selected ? 14 : 12,
-              fill,
-              stroke: new Stroke({ color: 'white', width: selected ? 2.5 : 1.5 }),
-            }),
-            text: new Text({
-              text: estimated ? '?' : String(routeCount),
-              font: 'bold 10px sans-serif',
-              fill: new Fill({ color: 'white' }),
-            }),
-            zIndex,
-          }),
-        )
-      } else {
-        styles.push(
-          new Style({
-            image: new CircleStyle({
-              radius: selected ? 8 : 5,
-              fill,
-              stroke: selected ? new Stroke({ color: 'white', width: 2 }) : undefined,
-            }),
-            zIndex,
-          }),
-        )
-      }
-
-      if (showLabel) {
-        styles.push(
-          new Style({
-            text: new Text({
-              text: feature.get('name') as string,
-              font: '12px sans-serif',
-              fill: new Fill({ color: '#000' }),
-              backgroundFill: new Fill({ color: 'rgba(255, 255, 255, 0.8)' }),
-              padding: [2, 4, 2, 4],
-              offsetY: 18,
-              overflow: true,
-            }),
-            zIndex,
-          }),
-        )
-      }
-
-      return styles
-    },
-  })
-  layer.set('layerName', 'Markers')
-  return layer
 }
 
 // `id` is optional so the reorder map can pass a bare reference point (no navigation),
@@ -252,37 +119,6 @@ export function buildParkingFeatures(
         parkingId: p.id,
       }),
   )
-}
-
-/** Parking marker: a filled blue square-parking badge (lucide geometry). Built from an inline
- *  SVG, not a webfont \u2014 the app dropped Font Awesome. */
-function parkingMarkerSvg(size = 28): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}"><rect x="1" y="1" width="22" height="22" rx="5" fill="#1e40af" stroke="white" stroke-width="1.5"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-}
-
-// `minZoom` defaults to BLOCK_ZOOM (the main map's zoom tiers); the reorder map passes 0 so the
-// parking always shows on its single-area view.
-export function createParkingLayer(minZoom = BLOCK_ZOOM): VectorLayer {
-  const layer = new VectorLayer({
-    source: new VectorSource(),
-    minZoom,
-    // Above the path layer (default zIndex 0) so the approach line never crosses over the marker.
-    zIndex: 1,
-    // Add a subtle circular hit area so transparent parts of the icon remain clickable.
-    style: [
-      new Style({
-        image: new CircleStyle({
-          radius: 14,
-          fill: new Fill({ color: 'rgba(30, 64, 175, 0.01)' }),
-        }),
-      }),
-      new Style({
-        image: new Icon({ src: 'data:image/svg+xml;utf8,' + encodeURIComponent(parkingMarkerSvg(28)) }),
-      }),
-    ],
-  })
-  layer.set('layerName', 'Markers')
-  return layer
 }
 
 export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
@@ -305,10 +141,119 @@ export function buildPathFeatures(uniqueLineStrings: string[]): Feature[] {
   return features
 }
 
+export function createAreaLayer(): VectorLayer {
+  const layer = new VectorLayer({ maxZoom: CRAG_ZOOM, source: new VectorSource() })
+  layer.set('layerName', 'Markers')
+  return layer
+}
+
+export function createBlockLayer(mapInstance: OlMap, getSelectedId: () => number | undefined): VectorLayer {
+  const layer = new VectorLayer({
+    minZoom: BLOCK_ZOOM,
+    source: new VectorSource(),
+    style: (feature) => {
+      const zoom = mapInstance.getView().getZoom() ?? 0
+      const showLabel = zoom >= BLOCK_LABEL_ZOOM
+      const routeCount = feature.get('routeCount') as number
+      // An estimated pin shows "?" instead of the route count: the block is somewhere
+      // around here, expect to search for it.
+      const estimated = feature.get('estimated') as boolean
+      const selected = feature.get('blockId') === getSelectedId()
+      // Lift the selected block's styles above every other feature in the layer.
+      const zIndex = selected ? 1000 : undefined
+      const fill = new Fill({ color: selected ? primaryColor() : '#ef4444' })
+      const styles: Style[] = []
+
+      if (routeCount > 0 || estimated) {
+        styles.push(
+          new Style({
+            image: new CircleStyle({
+              fill,
+              radius: selected ? 14 : 12,
+              stroke: new Stroke({ color: 'white', width: selected ? 2.5 : 1.5 }),
+            }),
+            text: new Text({
+              fill: new Fill({ color: 'white' }),
+              font: 'bold 10px sans-serif',
+              text: estimated ? '?' : String(routeCount),
+            }),
+            zIndex,
+          }),
+        )
+      } else {
+        styles.push(
+          new Style({
+            image: new CircleStyle({
+              fill,
+              radius: selected ? 8 : 5,
+              stroke: selected ? new Stroke({ color: 'white', width: 2 }) : undefined,
+            }),
+            zIndex,
+          }),
+        )
+      }
+
+      if (showLabel) {
+        styles.push(
+          new Style({
+            text: new Text({
+              backgroundFill: new Fill({ color: 'rgba(255, 255, 255, 0.8)' }),
+              fill: new Fill({ color: '#000' }),
+              font: '12px sans-serif',
+              offsetY: 18,
+              overflow: true,
+              padding: [2, 4, 2, 4],
+              text: feature.get('name') as string,
+            }),
+            zIndex,
+          }),
+        )
+      }
+
+      return styles
+    },
+    // Above the parking (zIndex 1) and path (0): the blocks are the content, so they win overlaps.
+    zIndex: 2,
+  })
+  layer.set('layerName', 'Markers')
+  return layer
+}
+
+export function createCragLayer(): VectorLayer {
+  const layer = new VectorLayer({ maxZoom: BLOCK_ZOOM, minZoom: CRAG_ZOOM, source: new VectorSource() })
+  layer.set('layerName', 'Markers')
+  return layer
+}
+
+// `minZoom` defaults to BLOCK_ZOOM (the main map's zoom tiers); the reorder map passes 0 so the
+// parking always shows on its single-area view.
+export function createParkingLayer(minZoom = BLOCK_ZOOM): VectorLayer {
+  const layer = new VectorLayer({
+    minZoom,
+    source: new VectorSource(),
+    // Add a subtle circular hit area so transparent parts of the icon remain clickable.
+    style: [
+      new Style({
+        image: new CircleStyle({
+          fill: new Fill({ color: 'rgba(30, 64, 175, 0.01)' }),
+          radius: 14,
+        }),
+      }),
+      new Style({
+        image: new Icon({ src: 'data:image/svg+xml;utf8,' + encodeURIComponent(parkingMarkerSvg(28)) }),
+      }),
+    ],
+    // Above the path layer (default zIndex 0) so the approach line never crosses over the marker.
+    zIndex: 1,
+  })
+  layer.set('layerName', 'Markers')
+  return layer
+}
+
 export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   const layer = new VectorLayer({
-    source: new VectorSource(),
     minZoom,
+    source: new VectorSource(),
     style: new Style({
       stroke: new Stroke({ color: 'rgba(30, 64, 175, 0.7)', width: 2 }),
     }),
@@ -317,20 +262,64 @@ export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
   return layer
 }
 
+export function createWmsLayers(userRegions: UserRegion[]): TileLayer[] {
+  return userRegions.flatMap((region) =>
+    (region.settings?.mapLayers ?? []).map(
+      (regionLayer) =>
+        new TileLayer({
+          minZoom: regionLayer.minZoom ?? undefined,
+          opacity: regionLayer.opacity ?? undefined,
+          properties: { layerName: regionLayer.name },
+          source: new TileWMS({
+            attributions: regionLayer.attributions ?? [],
+            params: regionLayer.params ?? {},
+            url: regionLayer.url,
+          }),
+        }),
+    ),
+  )
+}
+
+// Marker showing the area/crag's grade histogram as a small donut with the route
+// count in the center. Built once per feature (the data-URI icon is expensive to
+// regenerate) and anchored at the polygon's interior point.
+function createDonutMarkerStyles(
+  name: string,
+  count: number,
+  gradeCounts: Map<number, number>,
+  donutSize: number,
+): Style[] {
+  const interiorPoint = (feature: FeatureLike) => (feature.getGeometry() as Polygon).getInteriorPoint()
+  const svg = buildGradeDonutSvg(gradeCounts, count, donutSize)
+
+  return [
+    new Style({
+      geometry: interiorPoint,
+      image: new Icon({ src: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg) }),
+    }),
+    new Style({
+      geometry: interiorPoint,
+      text: new Text({
+        fill: new Fill({ color: '#1f2937' }),
+        font: 'bold 13px sans-serif',
+        offsetY: donutSize / 2 + 12,
+        overflow: true,
+        stroke: new Stroke({ color: 'white', width: 3 }),
+        text: name,
+      }),
+    }),
+  ]
+}
+
+/** Parking marker: a filled blue square-parking badge (lucide geometry). Built from an inline
+ *  SVG, not a webfont \u2014 the app dropped Font Awesome. */
+function parkingMarkerSvg(size = 28): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}"><rect x="1" y="1" width="22" height="22" rx="5" fill="#1e40af" stroke="white" stroke-width="1.5"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+}
+
 // OpenLayers' colour parser doesn't understand `oklch`, so resolve the theme's
 // primary to an `rgb(...)` string once (the browser serialises it that way).
 let cachedPrimaryColor: string | undefined
-function primaryColor(): string {
-  if (cachedPrimaryColor != null) return cachedPrimaryColor
-  if (typeof document === 'undefined') return '#7c3aed'
-  const probe = document.createElement('span')
-  probe.style.color = 'var(--color-primary-500)'
-  document.body.appendChild(probe)
-  cachedPrimaryColor = getComputedStyle(probe).color || '#7c3aed'
-  probe.remove()
-  return cachedPrimaryColor
-}
-
 /** A path being drawn (parking → area), from `[lat, lng]` points: a marker at the
  *  start (the parking) plus a dashed primary line once there's a waypoint. */
 export function createDrawnPathLayer(latLngs: [number, number][]): VectorLayer {
@@ -342,12 +331,12 @@ export function createDrawnPathLayer(latLngs: [number, number][]): VectorLayer {
   }
 
   const strokeStyle = new Style({
-    stroke: new Stroke({ color: primaryColor(), width: 4, lineDash: [2, 9], lineCap: 'round', lineJoin: 'round' }),
+    stroke: new Stroke({ color: primaryColor(), lineCap: 'round', lineDash: [2, 9], lineJoin: 'round', width: 4 }),
   })
   const markerStyle = new Style({
     image: new CircleStyle({
-      radius: 7,
       fill: new Fill({ color: primaryColor() }),
+      radius: 7,
       stroke: new Stroke({ color: 'white', width: 2.5 }),
     }),
   })
@@ -356,4 +345,15 @@ export function createDrawnPathLayer(latLngs: [number, number][]): VectorLayer {
     source: new VectorSource({ features }),
     style: (feature) => (feature.getGeometry() instanceof Point ? markerStyle : strokeStyle),
   })
+}
+
+function primaryColor(): string {
+  if (cachedPrimaryColor != null) return cachedPrimaryColor
+  if (typeof document === 'undefined') return '#7c3aed'
+  const probe = document.createElement('span')
+  probe.style.color = 'var(--color-primary-500)'
+  document.body.appendChild(probe)
+  cachedPrimaryColor = getComputedStyle(probe).color || '#7c3aed'
+  probe.remove()
+  return cachedPrimaryColor
 }

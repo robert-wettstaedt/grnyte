@@ -8,8 +8,25 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 // and what to do when importing types
 declare global {
   namespace App {
-    type Permission = RegionPermission | AppPermission
+    // interface Error {}
+    interface Locals extends SafeSession {
+      safeGetSession: () => Promise<SafeSession>
+      supabase: SupabaseClient
+    }
 
+    interface PageData {
+      // All optional: these come from the root layout load, so page-level loads
+      // (which contribute their own keys) needn't provide them.
+      authUserId?: string | undefined
+      session?: null | Session | undefined
+      supabase?: Locals['supabase']
+    }
+
+    interface PageState {
+      blocksViewMode?: 'grid' | 'list'
+      mapView?: { center: [number, number]; zoom: number }
+    }
+    type Permission = AppPermission | RegionPermission
     interface SafeSession {
       session: Session | undefined
       user:
@@ -30,23 +47,6 @@ declare global {
       userPermissions: Permission[] | undefined
       userRegions: UserRegion[]
       userRole: string | undefined
-    }
-
-    // interface Error {}
-    interface Locals extends SafeSession {
-      safeGetSession: () => Promise<SafeSession>
-      supabase: SupabaseClient
-    }
-    interface PageData {
-      // All optional: these come from the root layout load, so page-level loads
-      // (which contribute their own keys) needn't provide them.
-      authUserId?: string | undefined
-      session?: Session | undefined | null
-      supabase?: Locals['supabase']
-    }
-    interface PageState {
-      blocksViewMode?: 'list' | 'grid'
-      mapView?: { center: [number, number]; zoom: number }
     }
     // interface Platform {}
   }

@@ -45,10 +45,10 @@
   const prefill = coordsFromParams(page.url.searchParams)
 
   // Step 1 form state, kept here so it survives the per-step remount of StepPlace.
-  let mode = $state<'map' | 'coordinates'>('map')
+  let mode = $state<'coordinates' | 'map'>('map')
   let latText = $state('')
   let lngText = $state('')
-  let picked = $state<{ lat: number; long: number } | null>(null)
+  let picked = $state<null | { lat: number; long: number }>(null)
   // The parking committed when advancing to step 2, so StepPlace reframes there on return.
   let placedCenter = $state<[number, number] | null>(prefill == null ? null : [prefill.lat, prefill.long])
 
@@ -95,8 +95,8 @@
         submitLabel={m.common_save()}
         title={m.areas_addParkingLocation()}
         steps={[
-          { label: m.parking_stepPlace(), body: placeStep, canContinue: picked != null, onContinue: seedPath },
-          { label: m.parking_stepPath(), body: pathStep },
+          { body: placeStep, canContinue: picked != null, label: m.parking_stepPlace(), onContinue: seedPath },
+          { body: pathStep, label: m.parking_stepPath() },
         ]}
       >
         <!-- The submitted parking + optional path, mirrored from state into the form. -->

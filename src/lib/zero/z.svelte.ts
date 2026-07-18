@@ -7,17 +7,29 @@ import { schema, type Schema } from './zero-schema'
 // The current Zero client, scoped to the signed-in user. `$state.raw` so that
 // replacing the instance (login/logout) re-runs every `$derived` that read it
 // through `getZ()` — resources re-target their queries onto the new client.
-let instance = $state.raw<Z<Schema> | undefined>(undefined)
+let instance = $state.raw<undefined | Z<Schema>>(undefined)
 
 // The token last handed to the client, to detect Supabase token refreshes.
 let accessToken: string | undefined
+
+/**
+ * The current Zero client. Reactive: reading it inside `$derived`/`$effect`
+ * subscribes to client swaps. Only available after the root layout load ran.
+ */
+export function getZ(): Z<Schema> {
+  if (instance == null) {
+    throw new Error('Zero is not initialized — initZero(session) must run in the root layout load first')
+  }
+
+  return instance
+}
 
 /**
  * Creates (or reuses) the Zero client for the given session. Called from the
  * root layout load, which re-runs on `supabase:auth` invalidation — the client
  * is only swapped when the signed-in user actually changed.
  */
-export function initZero(session: Session | undefined | null): Z<Schema> {
+export function initZero(session: null | Session | undefined): Z<Schema> {
   const userID = session?.user.id ?? 'anon'
 
   if (instance != null && instance.userID === userID) {
@@ -60,16 +72,4 @@ export function initZero(session: Session | undefined | null): Z<Schema> {
 
   instance = z
   return z
-}
-
-/**
- * The current Zero client. Reactive: reading it inside `$derived`/`$effect`
- * subscribes to client swaps. Only available after the root layout load ran.
- */
-export function getZ(): Z<Schema> {
-  if (instance == null) {
-    throw new Error('Zero is not initialized — initZero(session) must run in the root layout load first')
-  }
-
-  return instance
 }

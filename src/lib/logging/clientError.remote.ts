@@ -10,10 +10,10 @@ import z from 'zod'
 export const logClientError = command(
   z.object({
     error: z.string().max(10_000),
-    pathname: z.string().max(2048).optional(),
     navigator: z.json().optional(),
+    pathname: z.string().max(2048).optional(),
   }),
-  async ({ error, pathname, navigator }) => {
+  async ({ error, navigator, pathname }) => {
     const { locals } = getRequestEvent()
 
     await db.insert(clientErrorLogs).values({

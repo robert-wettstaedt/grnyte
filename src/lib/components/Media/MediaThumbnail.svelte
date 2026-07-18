@@ -10,15 +10,15 @@
   import type { ClassValue } from 'svelte/elements'
 
   interface Props {
-    file: MediaFile
     /** Badge ascent-owned files with the climber's avatar, linking beta to its ascent.
      *  Off where the row already names the climber (e.g. an ascent row's own strip). */
     badged?: boolean
     /** Extra tile classes: the grid sets the tile's height here; width follows the aspect ratio. */
     class?: ClassValue
+    file: MediaFile
   }
 
-  const { file, badged = false, class: className }: Props = $props()
+  const { badged = false, class: className, file }: Props = $props()
 
   const guid = $derived(file.bunnyStreamFk)
   const isVideo = $derived(guid != null)
@@ -38,7 +38,7 @@
   // of going terminal, and the tile comes alive the moment the derivatives
   // exist. ponytail: gives up after ~8 minutes (10 tries), a remount starts
   // over; push encode status through Zero if that ever hurts.
-  let videoStage = $state<'preview' | 'thumbnail' | 'waiting' | 'failed'>('preview')
+  let videoStage = $state<'failed' | 'preview' | 'thumbnail' | 'waiting'>('preview')
   let attempt = $state(0)
   let retryTimer: ReturnType<typeof setTimeout> | undefined
   onDestroy(() => clearTimeout(retryTimer))
@@ -71,7 +71,7 @@
   // those baked-in bars get cropped instead of shown.
   let videoRatio = $state<string>()
   const onProbe = (event: Event) => {
-    const { naturalWidth: w, naturalHeight: h } = event.currentTarget as HTMLImageElement
+    const { naturalHeight: h, naturalWidth: w } = event.currentTarget as HTMLImageElement
     if (w > 0 && h > 0) videoRatio = `${w} / ${h}`
   }
 </script>

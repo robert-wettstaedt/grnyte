@@ -12,29 +12,29 @@
   // either an empty state (pin via current location / map) or a located preview card
   // (adjust / remove). Purely presentational — the parent owns the location + actions.
   interface Props {
+    /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
+    estimated: boolean
+    /** Device-location request in flight (drives the button spinner). */
+    locating: boolean
     location: Coords | null
     /** Map layers for the located-state preview. */
     mapData: MapData
-    /** Device-location request in flight (drives the button spinner). */
-    locating: boolean
-    /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
-    estimated: boolean
-    onUseCurrentLocation: () => void
+    onEstimatedChange: (estimated: boolean) => void
     /** Open the picker — both "Choose on map" (empty) and "Adjust" (located). */
     onPickLocation: () => void
     onRemove: () => void
-    onEstimatedChange: (estimated: boolean) => void
+    onUseCurrentLocation: () => void
   }
 
   const {
+    estimated,
+    locating,
     location,
     mapData,
-    locating,
-    estimated,
-    onUseCurrentLocation,
+    onEstimatedChange,
     onPickLocation,
     onRemove,
-    onEstimatedChange,
+    onUseCurrentLocation,
   }: Props = $props()
 
   const formatCoord = (c: Coords): string =>

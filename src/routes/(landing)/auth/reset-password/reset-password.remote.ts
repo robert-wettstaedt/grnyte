@@ -5,10 +5,10 @@ import { z } from 'zod'
 
 const resetPasswordSchema = z
   .object({
+    confirmPassword: z.string({ error: formError('form_required') }),
     password: z
       .string({ error: formError('form_required') })
       .min(8, { error: formError('form_charsMin', { count: 8 }) }),
-    confirmPassword: z.string({ error: formError('form_required') }),
   })
   .refine((v) => v.password === v.confirmPassword, {
     error: formError('auth_passwordMismatch'),

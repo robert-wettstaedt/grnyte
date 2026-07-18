@@ -2,15 +2,15 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
-    text: string
-    href: string
     /** Whether the current values may be submitted (drives the footer button). */
     canSubmit: boolean
+    href: string
     oncancel: () => void
     onsubmit: () => void
+    text: string
   }
 
-  let { text = $bindable(), href = $bindable(), canSubmit, oncancel, onsubmit }: Props = $props()
+  let { canSubmit, href = $bindable(), oncancel, onsubmit, text = $bindable() }: Props = $props()
 
   const inputClass =
     'border-surface-300-700 bg-surface-50-950 focus:border-primary-500 w-full rounded-lg border px-3 py-2 text-sm focus:ring-0 focus:outline-none'

@@ -7,32 +7,32 @@
   // Reusable auth form field: design-styled label row + input + issue messages.
   // Shared by the sign-in and sign-up pages.
   interface Props {
-    field: RemoteFormField<string>
-    label: string
-    type: 'email' | 'password' | 'text'
-    placeholder: string
-    /** Drives mobile autofill / keychain / password-manager — see the per-field tokens on each page. */
-    autocomplete: HTMLInputAttributes['autocomplete']
-    /** Mobile keyboard's enter-key label: 'next' for non-final fields, 'go'/'done' for the last. */
-    enterkeyhint?: HTMLInputAttributes['enterkeyhint']
-    autocapitalize?: 'none' | 'sentences' | 'words' | 'characters'
-    required?: boolean
-    autofocus?: boolean
     /** Optional trailing content on the label row, e.g. a “Forgot?” link. */
     action?: Snippet
+    autocapitalize?: 'characters' | 'none' | 'sentences' | 'words'
+    /** Drives mobile autofill / keychain / password-manager — see the per-field tokens on each page. */
+    autocomplete: HTMLInputAttributes['autocomplete']
+    autofocus?: boolean
+    /** Mobile keyboard's enter-key label: 'next' for non-final fields, 'go'/'done' for the last. */
+    enterkeyhint?: HTMLInputAttributes['enterkeyhint']
+    field: RemoteFormField<string>
+    label: string
+    placeholder: string
+    required?: boolean
+    type: 'email' | 'password' | 'text'
   }
 
   const {
+    action,
+    autocapitalize,
+    autocomplete,
+    autofocus = false,
+    enterkeyhint,
     field,
     label,
-    type,
     placeholder,
-    autocomplete,
-    enterkeyhint,
-    autocapitalize,
     required = true,
-    autofocus = false,
-    action,
+    type,
   }: Props = $props()
 
   const id = $props.id()

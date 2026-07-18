@@ -15,19 +15,19 @@ import type { MarkdownReference, MarkdownReferencesIds, ReferenceType } from './
 export function markdownReferences(ids: () => MarkdownReferencesIds) {
   const areas = createResource(
     () => queries.listAreas({ id: ids().areas }),
-    (rows) => rows.map((row): MarkdownReference => ({ type: 'areas', id: row.id, name: row.name })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.name, type: 'areas' })),
     { enabled: () => ids().areas.length > 0 },
   )
 
   const blocks = createResource(
     () => queries.listBlocks({ blockId: ids().blocks }),
-    (rows) => rows.map((row): MarkdownReference => ({ type: 'blocks', id: row.id, name: row.name })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.name, type: 'blocks' })),
     { enabled: () => ids().blocks.length > 0 },
   )
 
   const routes = createResource(
     () => queries.listRoutes({ routeId: ids().routes }),
-    (rows) => rows.map((row): MarkdownReference => ({ type: 'routes', id: row.id, name: row.name })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.name, type: 'routes' })),
     { enabled: () => ids().routes.length > 0 },
   )
 
@@ -35,7 +35,7 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
   // content — `usersByIds` is the by-id resolver, not the picker enumerator.
   const users = createResource(
     () => queries.usersByIds({ id: ids().users }),
-    (rows) => rows.map((row): MarkdownReference => ({ type: 'users', id: row.id, name: row.username })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.username, type: 'users' })),
     { enabled: () => ids().users.length > 0 },
   )
 
@@ -48,7 +48,7 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
     if (!resource.isComplete) return []
     return requested
       .filter((id) => !resource.data.some((ref) => ref.id === id))
-      .map((id) => ({ type, id, name: '', missing: true }))
+      .map((id) => ({ id, missing: true, name: '', type }))
   }
 
   return {

@@ -57,45 +57,6 @@ export const convertPathToPoints = (path: string): TopoPoint[] => {
  */
 type BlockRow = QueryRow<typeof queries.block>
 
-export function toTopoViews(block: BlockRow): TopoView[] {
-  const routesById = new Map((block.routes ?? []).map((route) => [route.id, route]))
-
-  return (block.topos ?? []).flatMap((topo) => {
-    const imagePath = topo.file?.path
-    if (imagePath == null) {
-      return []
-    }
-
-    return [
-      {
-        id: topo.id,
-        imagePath,
-        imageWidth: topo.file?.width ?? undefined,
-        imageHeight: topo.file?.height ?? undefined,
-        lines: (topo.routes ?? [])
-          // `routesById` holds only the block's live routes (the query filters deletedAt), so a
-          // row whose route is missing here belongs to a soft-deleted route — drop it, or it
-          // renders as a nameless grey ghost line that survives "Delete route everywhere".
-          .filter(
-            (tr) => tr.routeFk != null && tr.path != null && tr.path.trim() !== '' && routesById.has(tr.routeFk),
-          )
-          .map((tr): TopoLine => {
-            const route = routesById.get(tr.routeFk!)
-            return {
-              id: tr.id,
-              routeId: tr.routeFk!,
-              name: route?.name ?? '',
-              topType: tr.topType,
-              gradeFk: route?.userGradeFk ?? undefined,
-              points: convertPathToPoints(tr.path!),
-            }
-          })
-          .filter((line) => line.points.length > 0),
-      },
-    ]
-  })
-}
-
 /**
  * Find which topo to show for a single route. A route can be drawn on several
  * topos; pick the one where its line has the most points (the most complete
@@ -107,9 +68,9 @@ export function toTopoViews(block: BlockRow): TopoView[] {
  * "most points wins", but reads straight off the route (no block context needed).
  */
 export function routeTopoThumb(
-  topoRoutes: readonly { path: string | null; topo?: { file?: { path: string | null } | null } | null }[],
-): { imagePath: string; points: TopoPoint[] } | undefined {
-  let best: { imagePath: string; points: TopoPoint[] } | undefined
+  topoRoutes: readonly { path: null | string; topo?: null | { file?: null | { path: null | string } } }[],
+): undefined | { imagePath: string; points: TopoPoint[] } {
+  let best: undefined | { imagePath: string; points: TopoPoint[] }
   for (const tr of topoRoutes) {
     const imagePath = tr.topo?.file?.path
     if (tr.path == null || tr.path.trim() === '' || imagePath == null) {
@@ -123,15 +84,52 @@ export function routeTopoThumb(
   return best
 }
 
-export function selectTopoForRoute(views: TopoView[], routeId: number): { view: TopoView; line: TopoLine } | undefined {
-  let best: { view: TopoView; line: TopoLine } | undefined
+export function selectTopoForRoute(views: TopoView[], routeId: number): undefined | { line: TopoLine; view: TopoView } {
+  let best: undefined | { line: TopoLine; view: TopoView }
 
   for (const view of views) {
     const line = view.lines.find((candidate) => candidate.routeId === routeId)
     if (line != null && (best == null || line.points.length > best.line.points.length)) {
-      best = { view, line }
+      best = { line, view }
     }
   }
 
   return best
+}
+
+export function toTopoViews(block: BlockRow): TopoView[] {
+  const routesById = new Map((block.routes ?? []).map((route) => [route.id, route]))
+
+  return (block.topos ?? []).flatMap((topo) => {
+    const imagePath = topo.file?.path
+    if (imagePath == null) {
+      return []
+    }
+
+    return [
+      {
+        id: topo.id,
+        imageHeight: topo.file?.height ?? undefined,
+        imagePath,
+        imageWidth: topo.file?.width ?? undefined,
+        lines: (topo.routes ?? [])
+          // `routesById` holds only the block's live routes (the query filters deletedAt), so a
+          // row whose route is missing here belongs to a soft-deleted route — drop it, or it
+          // renders as a nameless grey ghost line that survives "Delete route everywhere".
+          .filter((tr) => tr.routeFk != null && tr.path != null && tr.path.trim() !== '' && routesById.has(tr.routeFk))
+          .map((tr): TopoLine => {
+            const route = routesById.get(tr.routeFk!)
+            return {
+              gradeFk: route?.userGradeFk ?? undefined,
+              id: tr.id,
+              name: route?.name ?? '',
+              points: convertPathToPoints(tr.path!),
+              routeId: tr.routeFk!,
+              topType: tr.topType,
+            }
+          })
+          .filter((line) => line.points.length > 0),
+      },
+    ]
+  })
 }

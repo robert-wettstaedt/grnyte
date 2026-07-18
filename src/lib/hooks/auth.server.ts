@@ -2,7 +2,7 @@ import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/publi
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { createServerClient } from '@supabase/ssr'
-import { type Handle, redirect } from '@sveltejs/kit'
+import { redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 export async function getUserPermissions(
@@ -14,11 +14,11 @@ export async function getUserPermissions(
   })
 
   const userRegions = await db.query.regionMembers.findMany({
-    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUserId), isNotNull(table.isActive)),
     columns: {
       regionFk: true,
       role: true,
     },
+    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUserId), isNotNull(table.isActive)),
     with: {
       region: {
         columns: {
@@ -38,17 +38,17 @@ export async function getUserPermissions(
 
   const userRegionsResult = userRegions.map((member) => ({
     ...member,
-    permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
     name: member.region.name,
+    permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
     settings: member.region.settings ?? undefined,
   }))
 
   return {
-    userRole: userRole?.role,
-    userRegions: userRegionsResult,
-    userPermissions,
-    user: undefined,
     session: undefined,
+    user: undefined,
+    userPermissions,
+    userRegions: userRegionsResult,
+    userRole: userRole?.role,
   }
 }
 
@@ -89,8 +89,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
        * standard behavior.
        */
       setAll: (cookiesToSet) => {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          event.cookies.set(name, value, { ...options, secure: process.env.NODE_ENV !== 'development', path: '/' })
+        cookiesToSet.forEach(({ name, options, value }) => {
+          event.cookies.set(name, value, { ...options, path: '/', secure: process.env.NODE_ENV !== 'development' })
         })
       },
     },
@@ -111,8 +111,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
         session: undefined,
         user: undefined,
         userPermissions: undefined,
-        userRole: undefined,
         userRegions: [],
+        userRole: undefined,
       }
     }
 
@@ -144,7 +144,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
 }
 
 export const authGuard: Handle = async ({ event, resolve }) => {
-  const { session, user, userPermissions, userRole, userRegions } = await event.locals.safeGetSession()
+  const { session, user, userPermissions, userRegions, userRole } = await event.locals.safeGetSession()
 
   event.locals.session = session
   event.locals.user = user

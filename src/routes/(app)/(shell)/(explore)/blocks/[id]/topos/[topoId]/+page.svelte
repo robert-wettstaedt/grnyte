@@ -60,7 +60,7 @@
   // Keyed to the param, not a one-shot latch, so a fresh deep-link re-applies even
   // when the viewer is already mounted; topo sync (same param) never clobbers the
   // user's own selection.
-  let appliedRoute: string | null = null
+  let appliedRoute: null | string = null
   $effect(() => {
     const routeParam = page.url.searchParams.get('route')
     if (topo == null || routeParam == null || routeParam === appliedRoute) return
@@ -77,7 +77,7 @@
   // the sheet: it stays wherever the user dragged it.
   $effect(() => {
     if (selectedRouteId == null) return
-    document.getElementById(`topo-route-${selectedRouteId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    document.getElementById(`topo-route-${selectedRouteId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   })
 
   let open = $state(true)
@@ -100,7 +100,7 @@
     )
     return base == null
       ? null
-      : { ...base, prev: { ...base.prev, label: m.topo_previous() }, next: { ...base.next, label: m.topo_next() } }
+      : { ...base, next: { ...base.next, label: m.topo_next() }, prev: { ...base.prev, label: m.topo_previous() } }
   })
 
   const breadcrumbArea = $derived(block.data == null ? null : blockBreadcrumbArea(block.data))
@@ -170,11 +170,11 @@
       zoomable
       bind:highlightId
       lines={topo.lines.map((line) => ({
-        id: line.id,
-        points: line.points,
         band: getGradeBand(line.gradeFk),
-        topType: line.topType,
+        id: line.id,
         number: routeNumber.get(line.routeId),
+        points: line.points,
+        topType: line.topType,
       }))}
     />
   {/if}

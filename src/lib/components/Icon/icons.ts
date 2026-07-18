@@ -72,9 +72,9 @@ import type { Component } from 'svelte'
  */
 export const icons = {
   'alert-triangle': TriangleAlert,
+  area: Mountain,
   'arrow-left': ArrowLeft,
   'at-sign': AtSign,
-  area: Mountain,
   block: Box,
   bold: Bold,
   bookmark: Bookmark,

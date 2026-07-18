@@ -42,24 +42,24 @@ export const haversineMetres = (a: Coords, b: Coords): number => {
 }
 
 /** Display value + Intl unit, switching to the smaller unit (metres/feet) up close. */
-export const pickDistanceUnit = (metres: number, imperial: boolean): { value: number; unit: string } => {
+export const pickDistanceUnit = (metres: number, imperial: boolean): { unit: string; value: number } => {
   if (imperial) {
     return metres < 1609.344
-      ? { value: Math.round(metres / 0.3048 / 10) * 10, unit: 'foot' }
-      : { value: metres / 1609.344, unit: 'mile' }
+      ? { unit: 'foot', value: Math.round(metres / 0.3048 / 10) * 10 }
+      : { unit: 'mile', value: metres / 1609.344 }
   }
   return metres < 1000
-    ? { value: Math.round(metres / 10) * 10, unit: 'meter' }
-    : { value: metres / 1000, unit: 'kilometer' }
+    ? { unit: 'meter', value: Math.round(metres / 10) * 10 }
+    : { unit: 'kilometer', value: metres / 1000 }
 }
 
 /** Localized "18 km" / "300 m" / "0.5 mi" for a raw metre value; unit inferred from the runtime locale. */
 export const formatMetres = (metres: number): string => {
-  const { value, unit } = pickDistanceUnit(metres, isImperialLocale())
+  const { unit, value } = pickDistanceUnit(metres, isImperialLocale())
   return new Intl.NumberFormat(navigator.language, {
+    maximumFractionDigits: value < 10 ? 1 : 0,
     style: 'unit',
     unit,
-    maximumFractionDigits: value < 10 ? 1 : 0,
   }).format(value)
 }
 

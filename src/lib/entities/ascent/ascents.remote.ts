@@ -13,20 +13,20 @@ import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { canEditAscent, canLogAscent } from './permissions'
 
 const ascentActionSchema = z.object({
-  routeId: stringToInt,
-  id: stringToIntOptional,
-  type: z.enum(ascentTypeEnum, { error: formError('form_required') }),
-  gradeFk: stringToIntOptional,
-  // 1–3 stars; the field is absent when unrated (same convention as the route form).
-  rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
   dateTime: z.iso.date({ error: formError('form_required') }),
-  temperature: stringToIntOptional.pipe(
-    z.int().min(-30, formError('form_numInvalid')).max(50, formError('form_numInvalid')).optional(),
-  ),
+  gradeFk: stringToIntOptional,
   humidity: stringToIntOptional.pipe(
     z.int().min(0, formError('form_numInvalid')).max(100, formError('form_numInvalid')).optional(),
   ),
+  id: stringToIntOptional,
   notes: z.string().optional().default(''),
+  // 1–3 stars; the field is absent when unrated (same convention as the route form).
+  rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
+  routeId: stringToInt,
+  temperature: stringToIntOptional.pipe(
+    z.int().min(-30, formError('form_numInvalid')).max(50, formError('form_numInvalid')).optional(),
+  ),
+  type: z.enum(ascentTypeEnum, { error: formError('form_required') }),
 })
 
 /** Field shape the shared add/edit-ascent form binds to, `id` is set only when editing. */
@@ -64,14 +64,14 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { db, u
   await recalcUserGradeAndRating(db, route.id)
 
   await insertActivity(db, {
-    type: 'created',
-    userFk: user.id,
     entityId: String(ascent.id),
     entityType: 'ascent',
     newValue: value.type,
     parentEntityId: String(route.id),
     parentEntityType: 'route',
     regionFk: route.regionFk,
+    type: 'created',
+    userFk: user.id,
   })
 
   return { data: { id: ascent.id } }
@@ -108,15 +108,6 @@ export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value
     db,
     entityId: String(ascent.id),
     entityType: 'ascent',
-    oldEntity: {
-      dateTime: ascent.dateTime,
-      gradeFk: ascent.gradeFk,
-      humidity: ascent.humidity,
-      notes: ascent.notes ?? '',
-      rating: ascent.rating,
-      temperature: ascent.temperature,
-      type: ascent.type,
-    },
     newEntity: {
       dateTime: value.dateTime,
       gradeFk: value.gradeFk,
@@ -126,10 +117,19 @@ export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value
       temperature: value.temperature,
       type: value.type,
     },
-    userFk: user.id,
+    oldEntity: {
+      dateTime: ascent.dateTime,
+      gradeFk: ascent.gradeFk,
+      humidity: ascent.humidity,
+      notes: ascent.notes ?? '',
+      rating: ascent.rating,
+      temperature: ascent.temperature,
+      type: ascent.type,
+    },
     parentEntityId: String(ascent.routeFk),
     parentEntityType: 'route',
     regionFk: ascent.regionFk,
+    userFk: user.id,
   })
 
   return { data: { id: ascent.id, routeFk: ascent.routeFk } }
@@ -147,7 +147,7 @@ export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value
 export const deleteAscent = command(
   z.object({ id: z.number() }),
   async ({ id }): Promise<MutationResult<{ routeFk: number }>> => {
-    const { user, userRegions, supabase } = getRequestEvent().locals
+    const { supabase, user, userRegions } = getRequestEvent().locals
     if (user == null) {
       error(401, 'Not authenticated')
     }
@@ -165,7 +165,7 @@ export const deleteAscent = command(
       }
 
       const fileRows = await db.query.files.findMany({
-        columns: { id: true, path: true, bunnyStreamFk: true },
+        columns: { bunnyStreamFk: true, id: true, path: true },
         where: eq(files.ascentFk, id),
       })
       const storage = await deleteFileRows(db, fileRows)
@@ -175,14 +175,14 @@ export const deleteAscent = command(
       await recalcUserGradeAndRating(db, ascent.routeFk)
 
       await insertActivity(db, {
-        type: 'deleted',
-        userFk: user.id,
         entityId: String(ascent.id),
         entityType: 'ascent',
         oldValue: ascent.type,
         parentEntityId: String(ascent.routeFk),
         parentEntityType: 'route',
         regionFk: ascent.regionFk,
+        type: 'deleted',
+        userFk: user.id,
       })
 
       return { routeFk: ascent.routeFk, storage }

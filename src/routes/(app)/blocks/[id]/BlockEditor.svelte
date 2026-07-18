@@ -9,8 +9,8 @@
   import { setBlockLocation, updateBlock } from '$lib/entities/block/blocks.remote'
   import { canEditBlock } from '$lib/entities/block/permissions'
   import { blockDetail } from '$lib/entities/block/resources.svelte'
-  import { runCommand } from '$lib/remote/mutation'
   import { m } from '$lib/paraglide/messages'
+  import { runCommand } from '$lib/remote/mutation'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
 
@@ -18,11 +18,11 @@
   // straight to the map picker. Both submit `updateBlock`, so the form must carry the
   // current name + location even on /move, or saving after a pin nudge would wipe them.
   interface Props {
-    title: string
     initialStep?: 'form' | 'pin'
+    title: string
   }
 
-  const { title, initialStep = 'form' }: Props = $props()
+  const { initialStep = 'form', title }: Props = $props()
 
   const global = getGlobalState()
   const block = blockDetail(() => Number(page.params.id))

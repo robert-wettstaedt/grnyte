@@ -1,16 +1,16 @@
 <script module lang="ts">
-  import { defineMeta } from '@storybook/addon-svelte-csf'
   import { ImageUpload, VideoUpload, type MediaUploadStatus } from '$lib/entities/file/upload-manager.svelte'
+  import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import MediaDropZone from './MediaDropZone.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/MediaDropZone',
     component: MediaDropZone,
-    tags: ['autodocs'],
     parameters: {
       layout: 'centered',
     },
+    tags: ['autodocs'],
+    title: 'Components/MediaDropZone',
   })
 
   // A real 1x1 png so the preview thumbnails render.
@@ -19,7 +19,7 @@
     (char) => char.charCodeAt(0),
   )
 
-  const fake = (name: string, status: MediaUploadStatus, patch: { progress?: number; error?: string } = {}) => {
+  const fake = (name: string, status: MediaUploadStatus, patch: { error?: string; progress?: number } = {}) => {
     const upload = new ImageUpload(new File([png], name, { type: 'image/png' }))
     upload.status = status
     upload.progress = patch.progress ?? 0
@@ -30,7 +30,7 @@
   // Constructor only creates the preview object URL — start() is never called,
   // so no Bunny traffic. The fake bytes aren't a decodable video, so the
   // <video> thumbnail renders as a dark box, which is fine for eyeballing.
-  const fakeVideo = (name: string, status: MediaUploadStatus, patch: { progress?: number; error?: string } = {}) => {
+  const fakeVideo = (name: string, status: MediaUploadStatus, patch: { error?: string; progress?: number } = {}) => {
     const upload = new VideoUpload(new File([png], name, { type: 'video/mp4' }))
     upload.status = status
     upload.progress = patch.progress ?? 0

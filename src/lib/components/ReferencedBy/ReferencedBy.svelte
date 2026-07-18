@@ -7,12 +7,12 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
+    id: number
     /** The entity being referenced — we search descriptions for its `!type:id!` token. */
     type: 'areas' | 'blocks' | 'routes'
-    id: number
   }
 
-  const { type, id }: Props = $props()
+  const { id, type }: Props = $props()
 
   // The portable reference token the markdown editor stores; its `!` delimiters keep the
   // match exact (`!blocks:42!` ≠ `!blocks:421!`).

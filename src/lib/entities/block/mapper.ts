@@ -4,29 +4,50 @@ import { m } from '$lib/paraglide/messages'
 import type { Row } from '$lib/zero/types'
 import type { BlockDetail, BlockListItem } from './dto'
 
+/** What `toBlockDetail` reads — satisfied by both the list and the single-block query. */
+interface BlockDetailRow extends BlockRow {
+  readonly createdAt: null | number
+  readonly geolocation?: Row<'geolocations'> | undefined
+  readonly topos?: readonly {
+    readonly file?:
+      | null
+      | undefined
+      | {
+          readonly height?: null | number | undefined
+          readonly path: null | string
+          readonly width?: null | number | undefined
+        }
+    readonly id: number
+  }[]
+}
+
 interface BlockRow {
+  readonly area?: AreaAncestor | undefined
   readonly id: number
   readonly name: string
   readonly order: number
   readonly regionFk: number
-  readonly area?: AreaAncestor | undefined
 }
 
-/** What `toBlockDetail` reads — satisfied by both the list and the single-block query. */
-interface BlockDetailRow extends BlockRow {
-  readonly createdAt: number | null
-  readonly geolocation?: Row<'geolocations'> | undefined
-  readonly topos?: readonly {
-    readonly id: number
-    readonly file?:
-      | {
-          readonly path: string | null
-          readonly width?: number | null | undefined
-          readonly height?: number | null | undefined
-        }
-      | null
-      | undefined
-  }[]
+export function toBlockDetail(row: BlockDetailRow): BlockDetail {
+  return {
+    ...toBlockListItem(row),
+    createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
+    geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
+    rawName: row.name,
+    topoImages: (row.topos ?? []).flatMap((topo) =>
+      topo.file?.path == null
+        ? []
+        : [
+            {
+              height: topo.file.height ?? undefined,
+              id: topo.id,
+              path: topo.file.path,
+              width: topo.file.width ?? undefined,
+            },
+          ],
+    ),
+  }
 }
 
 export function toBlockListItem(row: BlockRow): BlockListItem {
@@ -48,26 +69,5 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
     name: row.name.length === 0 ? `${m.common_block()} ${row.order + 1}` : row.name,
     order: row.order,
     regionFk: row.regionFk,
-  }
-}
-
-export function toBlockDetail(row: BlockDetailRow): BlockDetail {
-  return {
-    ...toBlockListItem(row),
-    createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
-    geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
-    topoImages: (row.topos ?? []).flatMap((topo) =>
-      topo.file?.path == null
-        ? []
-        : [
-            {
-              id: topo.id,
-              path: topo.file.path,
-              width: topo.file.width ?? undefined,
-              height: topo.file.height ?? undefined,
-            },
-          ],
-    ),
-    rawName: row.name,
   }
 }

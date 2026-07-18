@@ -8,7 +8,7 @@
     class?: ClassValue | null
     rangeClass?: string
     size?: Sizes | string
-    style?: string | null
+    style?: null | string
     trackClass?: string
   }
 

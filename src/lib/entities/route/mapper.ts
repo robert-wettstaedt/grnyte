@@ -6,6 +6,21 @@ import type { RouteDetail, RouteListItem } from './dto'
 
 export type RouteListRow = QueryRow<typeof queries.listRoutes>
 
+export function toRouteDetail(row: RouteListRow): RouteDetail {
+  return {
+    ...toRouteListItem(row),
+    firstAscents: row.firstAscents.flatMap((fa) =>
+      fa.firstAscensionist == null
+        ? []
+        : [{ name: fa.firstAscensionist.name, userFk: fa.firstAscensionist.userFk ?? undefined }],
+    ),
+    rawGradeFk: row.gradeFk ?? undefined,
+    rawName: row.name,
+    rawRating: row.rating ?? 0,
+    regionFk: row.regionFk,
+  }
+}
+
 export function toRouteListItem(row: RouteListRow): RouteListItem {
   const thumb = routeTopoThumb(row.topoRoutes ?? [])
   return {
@@ -20,20 +35,5 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     tags: row.tags.map((t) => t.tagFk),
     topoImagePath: thumb?.imagePath,
     topoPoints: thumb?.points,
-  }
-}
-
-export function toRouteDetail(row: RouteListRow): RouteDetail {
-  return {
-    ...toRouteListItem(row),
-    regionFk: row.regionFk,
-    rawName: row.name,
-    rawGradeFk: row.gradeFk ?? undefined,
-    rawRating: row.rating ?? 0,
-    firstAscents: row.firstAscents.flatMap((fa) =>
-      fa.firstAscensionist == null
-        ? []
-        : [{ name: fa.firstAscensionist.name, userFk: fa.firstAscensionist.userFk ?? undefined }],
-    ),
   }
 }

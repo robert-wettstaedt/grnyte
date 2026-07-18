@@ -5,15 +5,15 @@
   import type { Snippet } from 'svelte'
 
   interface Props {
-    /** Sheet title — usually the entity name. */
-    title: string
-    /** Desktop: the map-sheet side panel (default), or a trigger-anchored popover for standalone pages. */
-    panel?: boolean
     /** Menu body; receives a `close` callback to dismiss the sheet after an action. */
     children: Snippet<[close: () => void]>
+    /** Desktop: the map-sheet side panel (default), or a trigger-anchored popover for standalone pages. */
+    panel?: boolean
+    /** Sheet title — usually the entity name. */
+    title: string
   }
 
-  const { title, panel = true, children }: Props = $props()
+  const { children, panel = true, title }: Props = $props()
 
   let open = $state(false)
 </script>

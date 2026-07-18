@@ -7,25 +7,25 @@
   // (bottom-anchored sheet on mobile, centred modal on desktop). Copy defaults to the
   // add flow; the edit flow overrides it with "Save …" wording.
   interface Props {
-    open: boolean
-    title?: string
     body?: string
     /** Label for the "save without a location" action. */
     confirmLabel?: string
-    onPinNow: () => void
-    onConfirm: () => void
     /** Dismiss (the secondary "go back" path — also fires on backdrop tap / Escape). */
     onCancel: () => void
+    onConfirm: () => void
+    onPinNow: () => void
+    open: boolean
+    title?: string
   }
 
   const {
-    open,
-    title = m.blocks_add_confirmTitle(),
     body = m.blocks_add_confirmBody(),
     confirmLabel = m.blocks_add_addWithoutLocation(),
-    onPinNow,
-    onConfirm,
     onCancel,
+    onConfirm,
+    onPinNow,
+    open,
+    title = m.blocks_add_confirmTitle(),
   }: Props = $props()
 </script>
 

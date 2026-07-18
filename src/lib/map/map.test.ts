@@ -18,12 +18,12 @@ describe('haversineMetres', () => {
 
 describe('pickDistanceUnit', () => {
   it('switches metres → km at 1 km', () => {
-    expect(pickDistanceUnit(300, false)).toEqual({ value: 300, unit: 'meter' })
-    expect(pickDistanceUnit(1000, false)).toEqual({ value: 1, unit: 'kilometer' })
+    expect(pickDistanceUnit(300, false)).toEqual({ unit: 'meter', value: 300 })
+    expect(pickDistanceUnit(1000, false)).toEqual({ unit: 'kilometer', value: 1 })
   })
 
   it('switches feet → miles at 1 mile', () => {
-    expect(pickDistanceUnit(304.8, true)).toEqual({ value: 1000, unit: 'foot' }) // 1000 ft
-    expect(pickDistanceUnit(1609.344, true)).toEqual({ value: 1, unit: 'mile' })
+    expect(pickDistanceUnit(304.8, true)).toEqual({ unit: 'foot', value: 1000 }) // 1000 ft
+    expect(pickDistanceUnit(1609.344, true)).toEqual({ unit: 'mile', value: 1 })
   })
 })

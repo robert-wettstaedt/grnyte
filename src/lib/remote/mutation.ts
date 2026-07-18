@@ -10,10 +10,10 @@ import { goto } from '$app/navigation'
  * state), or both.
  */
 export interface MutationResult<T = void> {
-  /** Where the client navigates once the command succeeds. */
-  redirectTo?: string
   /** Payload handed back to the caller — e.g. an undo snapshot, or a command's result. */
   data?: T
+  /** Where the client navigates once the command succeeds. */
+  redirectTo?: string
 }
 
 /**

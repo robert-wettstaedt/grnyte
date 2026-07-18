@@ -8,12 +8,12 @@ import type { RouteAscent } from './dto'
 export function splitAscents(
   ascents: readonly RouteAscent[],
   userId: number | undefined,
-): { mine: RouteAscent[]; community: RouteAscent[] } {
+): { community: RouteAscent[]; mine: RouteAscent[] } {
   const mine: RouteAscent[] = []
   const community: RouteAscent[] = []
   const sorted = [...ascents].sort((a, b) => (b.dateTime ?? 0) - (a.dateTime ?? 0))
   for (const ascent of sorted) {
     ;(userId != null && ascent.createdBy === userId ? mine : community).push(ascent)
   }
-  return { mine, community }
+  return { community, mine }
 }

@@ -5,26 +5,26 @@
   import { m } from '$lib/paraglide/messages.js'
 
   interface Props {
+    /** Route counts keyed by grade id (`gradeFk`). */
+    countByGrade: Map<number, number>
     /** All grades, ordered low → high. */
     grades: Grade[]
     gradingScale: GradingScale
-    /** Route counts keyed by grade id (`gradeFk`). */
-    countByGrade: Map<number, number>
-    /** Routes with no grade, surfaced as a trailing count below the chart. */
-    ungraded?: number
+    onselect?: (bar: null | { count: number; label: string }) => void
     /** Show the count above each non-empty bar (for small-n charts like grade votes). */
     showCounts?: boolean
-    onselect?: (bar: { label: string; count: number } | null) => void
+    /** Routes with no grade, surfaced as a trailing count below the chart. */
+    ungraded?: number
   }
 
-  const { grades, gradingScale, countByGrade, ungraded = 0, showCounts = false, onselect }: Props = $props()
+  const { countByGrade, grades, gradingScale, onselect, showCounts = false, ungraded = 0 }: Props = $props()
 
   interface Bar {
+    color: string
+    count: number
     id: number
     /** Compact axis label. */
     label: string
-    color: string
-    count: number
   }
 
   // Grade strings carry the scale as a redundant prefix (e.g. `FB 6A+`); drop it
@@ -49,10 +49,10 @@
       for (const grade of grades) {
         if (grade.id >= firstId && grade.id <= lastId) {
           result.push({
-            id: grade.id,
-            label: stripScale(grade[gradingScale] ?? '—'),
             color: getGradeColor(grade),
             count: countByGrade.get(grade.id) ?? 0,
+            id: grade.id,
+            label: stripScale(grade[gradingScale] ?? '—'),
           })
         }
       }
@@ -62,20 +62,20 @@
   })
 
   interface Chip {
-    id: number
-    label: string
     color: string
     count: number
+    id: number
+    label: string
   }
 
   // One entry per grade that has routes. Shown when there are too few distinct
   // grades for a bar chart to read as anything but a couple of oversized blocks.
   const chips = $derived.by(() =>
     occupiedGrades.map<Chip>((grade) => ({
-      id: grade.id,
-      label: stripScale(grade[gradingScale] ?? '—'),
       color: getGradeColor(grade),
       count: countByGrade.get(grade.id) ?? 0,
+      id: grade.id,
+      label: stripScale(grade[gradingScale] ?? '—'),
     })),
   )
 
@@ -112,12 +112,12 @@
     return Math.max(8, (count / maxCount) * 100)
   }
 
-  let selectedId = $state<number | null>(null)
+  let selectedId = $state<null | number>(null)
 
   const select = (bar: Bar | null): void => {
     const active = bar != null && bar.count > 0 ? bar : null
     selectedId = active?.id ?? null
-    onselect?.(active != null ? { label: active.label, count: active.count } : null)
+    onselect?.(active != null ? { count: active.count, label: active.label } : null)
   }
 
   const pick = (event: PointerEvent): void => {

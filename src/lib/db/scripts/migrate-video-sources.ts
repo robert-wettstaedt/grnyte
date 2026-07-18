@@ -84,7 +84,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
     from files f
     join bunny_streams bs on bs.id = f.bunny_stream_fk
     where f.route_fk is not null and f.ascent_fk is null
-  `)) as unknown as { route_id: number; stream_id: string; source: string | null }[]
+  `)) as unknown as { route_id: number; source: null | string; stream_id: string }[]
 
   const videosByRoute = new Map<number, typeof videoRows>()
   for (const row of videoRows) {
@@ -94,7 +94,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   // Small table — fetch all routes and analyze in JS rather than prefiltering in SQL.
   const routes = (await db.execute(sql`
     select id, name, description from routes order by id
-  `)) as unknown as { id: number; name: string; description: string | null }[]
+  `)) as unknown as { description: null | string; id: number; name: string }[]
 
   let migrated = 0
   let flagged = 0

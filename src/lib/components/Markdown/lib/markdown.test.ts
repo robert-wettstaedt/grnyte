@@ -138,21 +138,21 @@ describe('Markdown Conversion', () => {
 
 describe('Markdown grade badges', () => {
   it('renders an FB grade as a badge div with class and style', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('Test 7A+ ok', grades)
 
     expect(html).toContain('<span class="badge font-semibold text-white" style="background: #b91c1c">7A+</span>')
   })
 
   it('renders a V grade as a badge div with class and style', () => {
-    const grades = [{ id: 0, FB: '', V: 'V5' }] as Grade[]
+    const grades = [{ FB: '', id: 0, V: 'V5' }] as Grade[]
     const html = convertMarkdownToHtmlSync('Go V5 now', grades)
 
     expect(html).toContain('<span class="badge font-semibold text-white" style="background: #b91c1c">V5</span>')
   })
 
   it('does not nest badges inside badges', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('Test 7A+ and 7A+ again', grades)
 
     const badgeCount = (html.match(/<span class="badge\b/g) ?? []).length
@@ -163,7 +163,7 @@ describe('Markdown grade badges', () => {
   })
 
   it('escapes grade labels when generating badge nodes', () => {
-    const grades = [{ id: 0, FB: '7A+<', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+<', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('Try 7A+<', grades)
 
     expect(html).toMatch(/7A\+(?:&lt;|&#x3C;)/)
@@ -171,7 +171,7 @@ describe('Markdown grade badges', () => {
   })
 
   it('does not turn 7A- into 7A+ (no partial token matches)', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('Try 7A- please', grades)
 
     expect(html).toContain('7A-')
@@ -179,14 +179,14 @@ describe('Markdown grade badges', () => {
   })
 
   it('matches grades case-insensitively', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('try 7a+ now', grades)
 
     expect(html).toContain('>7A+</span>')
   })
 
   it('matches when surrounded by punctuation', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('do (7A+), ok.', grades)
 
     expect(html).toContain('<p>do (')
@@ -196,7 +196,7 @@ describe('Markdown grade badges', () => {
   })
 
   it('does not match inside words', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('x7A+ y', grades)
 
     expect(html).toContain('x7A+ y')
@@ -204,7 +204,7 @@ describe('Markdown grade badges', () => {
   })
 
   it('does not match with extra +/- characters after a token', () => {
-    const grades = [{ id: 0, FB: '7A+', V: '' }] as Grade[]
+    const grades = [{ FB: '7A+', id: 0, V: '' }] as Grade[]
     const html1 = convertMarkdownToHtmlSync('weird 7A++ case', grades)
     const html2 = convertMarkdownToHtmlSync('weird 7A+- case', grades)
 
@@ -216,7 +216,7 @@ describe('Markdown grade badges', () => {
   })
 
   it('supports FB grades with spaces (matches the short token)', () => {
-    const grades = [{ id: 0, FB: 'FB 7A+', V: '' }] as Grade[]
+    const grades = [{ FB: 'FB 7A+', id: 0, V: '' }] as Grade[]
     const html = convertMarkdownToHtmlSync('try 7A+ and FB 7A+', grades)
 
     // Both should render with the canonical label from the grade row.

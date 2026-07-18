@@ -12,8 +12,8 @@
   import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
+  import SiblingNav from '$lib/components/SiblingNav/SiblingNav.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
   import { splitAscents } from '$lib/entities/ascent/list'
@@ -79,7 +79,7 @@
   })
   const voteCount = $derived([...countByGrade.values()].reduce((sum, n) => sum + n, 0))
   // Bar under the pointer while scrubbing the vote histogram, echoed in the header.
-  let selectedVote = $state<{ label: string; count: number } | null>(null)
+  let selectedVote = $state<null | { count: number; label: string }>(null)
 
   // The route's own media plus beta attached to its ascents, newest upload first.
   const media = $derived(
@@ -178,9 +178,9 @@
               alt={m.topo_alt()}
               highlightId={hit.line.id}
               lines={hit.view.lines.map((line) => ({
+                band: getGradeBand(line.gradeFk),
                 id: line.id,
                 points: line.points,
-                band: getGradeBand(line.gradeFk),
                 topType: line.topType,
               }))}
             />
@@ -326,7 +326,7 @@
             </h2>
             <MediaGrid
               items={media}
-              target={{ type: 'route', id: routeId }}
+              target={{ id: routeId, type: 'route' }}
               {canEdit}
               shareText={route.data?.name ?? ''}
             />

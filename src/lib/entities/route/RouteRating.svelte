@@ -3,7 +3,7 @@
 
   interface Props {
     /** Quality rating, 0–3 filled stars; the rest backfill as empty stars. */
-    rating?: number | null
+    rating?: null | number
   }
 
   const { rating }: Props = $props()

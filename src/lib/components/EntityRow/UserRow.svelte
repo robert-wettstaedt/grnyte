@@ -4,21 +4,21 @@
   import Row from './Row.svelte'
 
   interface Props {
-    /** Display name. */
-    name: string
-    /** Secondary line, e.g. "128 ascents · 5 areas". */
-    subline?: string
-    /** Render as a link. */
-    href?: string
-    /** Tap handler when rendered as a button. */
-    onclick?: (event: MouseEvent) => void
-    /** `card` (listing) or `option` (compact `@`-picker row). */
-    variant?: 'card' | 'option'
     /** Keyboard-highlight state — only for the `option` variant. */
     active?: boolean
+    /** Render as a link. */
+    href?: string
+    /** Display name. */
+    name: string
+    /** Tap handler when rendered as a button. */
+    onclick?: (event: MouseEvent) => void
+    /** Secondary line, e.g. "128 ascents · 5 areas". */
+    subline?: string
+    /** `card` (listing) or `option` (compact `@`-picker row). */
+    variant?: 'card' | 'option'
   }
 
-  let { name, subline, href, onclick, variant = 'card', active = false }: Props = $props()
+  let { active = false, href, name, onclick, subline, variant = 'card' }: Props = $props()
 </script>
 
 <Row title={name} description={subline} {href} {onclick} {variant} {active}>

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { findNearestCrag, type LocatableBlock } from './cragLocator'
 
-const crag = (id: number) => ({ id, name: `Crag ${id}`, type: 'crag' as const, areas: [] })
+const crag = (id: number) => ({ areas: [], id, name: `Crag ${id}`, type: 'crag' as const })
 const block = (cragId: number, lat: number, long: number): LocatableBlock => ({
-  geolocation: { id: 0, lat, long, estimated: false },
-  areas: [{ id: 99, name: 'Region', type: 'area', areas: [] }, crag(cragId)],
+  areas: [{ areas: [], id: 99, name: 'Region', type: 'area' }, crag(cragId)],
+  geolocation: { estimated: false, id: 0, lat, long },
 })
 
 describe('findNearestCrag', () => {
@@ -25,8 +25,8 @@ describe('findNearestCrag', () => {
 
   it('skips blocks without geolocation or crag ancestor', () => {
     const bare: LocatableBlock[] = [
-      { geolocation: undefined, areas: [crag(3)] },
-      { geolocation: { id: 0, lat: point.lat, long: point.long, estimated: false }, areas: [] },
+      { areas: [crag(3)], geolocation: undefined },
+      { areas: [], geolocation: { estimated: false, id: 0, lat: point.lat, long: point.long } },
     ]
     expect(findNearestCrag(bare, point)).toBeNull()
   })

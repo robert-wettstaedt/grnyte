@@ -7,19 +7,19 @@ import type { AreaDetail, AreaListItem } from './dto'
 export interface AreaAncestor {
   readonly id: number
   readonly name: string
+  readonly parent?: AreaAncestor | undefined
   // Zero marks this optional (the column carries a DB default), so it can arrive null even
   // though the DB itself is non-null; callers coalesce to 'area'.
   readonly type: 'area' | 'crag' | null
-  readonly parent?: AreaAncestor | undefined
 }
 
 /** What `toAreaDetail` reads — satisfied by both the list and the single-area query. */
 export interface AreaDetailRow extends AreaAncestor {
-  readonly regionFk: number
-  readonly description: string | null
-  readonly createdAt: number | null
+  readonly createdAt: null | number
+  readonly description: null | string
+  readonly geoPaths: null | readonly string[]
   readonly parkingLocations: readonly Row<'geolocations'>[]
-  readonly geoPaths: readonly string[] | null
+  readonly regionFk: number
 }
 
 export function toAncestors(row: AreaAncestor | undefined): AreaListItem[] {
@@ -39,22 +39,22 @@ export function toAncestors(row: AreaAncestor | undefined): AreaListItem[] {
   return ancestors
 }
 
-export function toAreaListItem(row: AreaAncestor): AreaListItem {
-  return {
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    areas: toAncestors(row),
-  }
-}
-
 export function toAreaDetail(row: AreaDetailRow): AreaDetail {
   return {
     ...toAreaListItem(row),
-    regionFk: row.regionFk,
-    description: row.description ?? undefined,
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
-    parkingLocations: row.parkingLocations.map(toGeolocation),
+    description: row.description ?? undefined,
     geoPaths: row.geoPaths == null ? [] : [...row.geoPaths],
+    parkingLocations: row.parkingLocations.map(toGeolocation),
+    regionFk: row.regionFk,
+  }
+}
+
+export function toAreaListItem(row: AreaAncestor): AreaListItem {
+  return {
+    areas: toAncestors(row),
+    id: row.id,
+    name: row.name,
+    type: row.type,
   }
 }

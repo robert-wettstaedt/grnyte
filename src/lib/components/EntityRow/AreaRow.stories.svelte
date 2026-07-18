@@ -4,12 +4,12 @@
   import AreaRow from './AreaRow.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/EntityRow/AreaRow',
     component: AreaRow,
-    tags: ['autodocs'],
     parameters: {
       layout: 'centered',
     },
+    tags: ['autodocs'],
+    title: 'Components/EntityRow/AreaRow',
   })
 
   // Route counts keyed by grade id; ids span the amber → red → purple bands.
@@ -32,12 +32,12 @@
 <Story
   name="Default"
   args={{
+    countByGrade,
     name: 'Roadside',
     region: 'Frankenjura',
     total: 42,
-    countByGrade,
   }}
   {template}
 />
 
-<Story name="As link" args={{ name: 'Roadside', total: 42, countByGrade, href: '#' }} {template} />
+<Story name="As link" args={{ countByGrade, href: '#', name: 'Roadside', total: 42 }} {template} />

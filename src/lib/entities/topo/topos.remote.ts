@@ -16,19 +16,19 @@ const insertTopoActivity = (
   db: PostgresJsDatabase<typeof schema>,
   user: NonNullable<App.Locals['user']>,
   regionId: number,
-  blockId?: number | null,
-  areaId?: number | null,
+  blockId?: null | number,
+  areaId?: null | number,
 ) => {
   if (blockId != null) {
     return insertActivity(db, {
-      type: 'updated',
-      userFk: user.id,
+      columnName: 'topo',
       entityId: String(blockId),
       entityType: 'block',
-      columnName: 'topo',
       parentEntityId: areaId == null ? undefined : String(areaId),
       parentEntityType: areaId == null ? undefined : 'area',
       regionFk: regionId,
+      type: 'updated',
+      userFk: user.id,
     })
   }
 }
@@ -57,7 +57,7 @@ export const createTopo = authedCommand(
 
     const [created] = await db
       .insert(topos)
-      .values({ blockFk: blockId, fileFk: fileId, regionFk: block.regionFk, order: nextOrder })
+      .values({ blockFk: blockId, fileFk: fileId, order: nextOrder, regionFk: block.regionFk })
       .returning()
 
     await insertTopoActivity(db, user, block.regionFk, block.id, block.areaFk)
@@ -73,7 +73,7 @@ export const createTopo = authedCommand(
 export const deleteTopo = command(
   z.object({ id: z.number() }),
   async ({ id }): Promise<MutationResult<{ id: number }>> => {
-    const { user, userRegions, supabase } = getRequestEvent().locals
+    const { supabase, user, userRegions } = getRequestEvent().locals
     if (user == null) {
       error(401, 'Not authenticated')
     }
@@ -83,8 +83,8 @@ export const deleteTopo = command(
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, id),
         with: {
-          file: { columns: { id: true, path: true, bunnyStreamFk: true } },
           block: { columns: { areaFk: true } },
+          file: { columns: { bunnyStreamFk: true, id: true, path: true } },
         },
       })
       if (topo == null) {
@@ -115,9 +115,9 @@ export const deleteTopo = command(
  * (0–1), so they stay proportional on the new photo. The old image is removed post-commit.
  */
 export const replaceTopoImage = command(
-  z.object({ topoId: z.number(), fileId: z.string().min(1) }),
-  async ({ topoId, fileId }): Promise<MutationResult<{ id: number }>> => {
-    const { user, userRegions, supabase } = getRequestEvent().locals
+  z.object({ fileId: z.string().min(1), topoId: z.number() }),
+  async ({ fileId, topoId }): Promise<MutationResult<{ id: number }>> => {
+    const { supabase, user, userRegions } = getRequestEvent().locals
     if (user == null) {
       error(401, 'Not authenticated')
     }
@@ -127,8 +127,8 @@ export const replaceTopoImage = command(
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, topoId),
         with: {
-          file: { columns: { id: true, path: true, bunnyStreamFk: true } },
           block: { columns: { areaFk: true } },
+          file: { columns: { bunnyStreamFk: true, id: true, path: true } },
         },
       })
       if (topo == null) {
@@ -178,8 +178,8 @@ export const reorderTopos = authedCommand(
 )
 
 const topoLineSchema = z.object({
-  routeFk: z.number(),
   path: z.string(),
+  routeFk: z.number(),
   topType: z.enum(topoRouteTopTypeEnum),
 })
 
@@ -188,8 +188,8 @@ const topoLineSchema = z.object({
  * line by `routeFk` (a route has at most one line per photo) and deletes lines no longer present.
  */
 export const saveTopoLines = authedCommand(
-  z.object({ topoId: z.number(), lines: z.array(topoLineSchema) }),
-  async ({ topoId, lines }, { db, user, userRegions }) => {
+  z.object({ lines: z.array(topoLineSchema), topoId: z.number() }),
+  async ({ lines, topoId }, { db, user, userRegions }) => {
     const topo = await db.query.topos.findFirst({
       where: eq(topos.id, topoId),
       with: { block: { columns: { areaFk: true } } },
@@ -208,7 +208,7 @@ export const saveTopoLines = authedCommand(
       topo.blockFk == null
         ? []
         : await db.query.routes.findMany({
-            columns: { id: true, deletedAt: true },
+            columns: { deletedAt: true, id: true },
             where: eq(routes.blockFk, topo.blockFk),
           })
     const liveRouteIds = new Set(blockRoutes.filter((route) => route.deletedAt == null).map((route) => route.id))
@@ -228,11 +228,11 @@ export const saveTopoLines = authedCommand(
       const row = existingByRoute.get(line.routeFk)
       if (row == null) {
         await db.insert(topoRoutes).values({
-          topoFk: topoId,
-          routeFk: line.routeFk,
           path: line.path,
-          topType: line.topType,
           regionFk: topo.regionFk,
+          routeFk: line.routeFk,
+          topoFk: topoId,
+          topType: line.topType,
         })
       } else if (row.path !== line.path || row.topType !== line.topType) {
         await db.update(topoRoutes).set({ path: line.path, topType: line.topType }).where(eq(topoRoutes.id, row.id))

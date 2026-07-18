@@ -15,31 +15,31 @@
   // recommended location field. The surrounding chrome (header, submit) lives in `Form`;
   // location state + actions are owned by the parent (`BlockForm`). Mirrors AreaFormFields.
   interface Props {
-    form: RemoteForm<BlockFormInput, unknown>
     /** The crag the block belongs to. */
     area: AreaDetail
-    location: Coords | null
-    mapData: MapData
-    locating: boolean
     /** The pin is a rough guess ("?" on the map), not a confirmed spot. */
     estimated: boolean
-    onUseCurrentLocation: () => void
+    form: RemoteForm<BlockFormInput, unknown>
+    locating: boolean
+    location: Coords | null
+    mapData: MapData
+    onEstimatedChange: (estimated: boolean) => void
     onPickLocation: () => void
     onRemove: () => void
-    onEstimatedChange: (estimated: boolean) => void
+    onUseCurrentLocation: () => void
   }
 
   const {
-    form,
     area,
+    estimated,
+    form,
+    locating,
     location,
     mapData,
-    locating,
-    estimated,
-    onUseCurrentLocation,
+    onEstimatedChange,
     onPickLocation,
     onRemove,
-    onEstimatedChange,
+    onUseCurrentLocation,
   }: Props = $props()
 
   const global = getGlobalState()

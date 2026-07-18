@@ -9,7 +9,7 @@
   interface Props {
     class?: string
     entityId: string
-    entityType: 'block' | 'route' | 'area'
+    entityType: 'area' | 'block' | 'route'
     regionFk: number
   }
 

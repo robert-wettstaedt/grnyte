@@ -1,26 +1,26 @@
 import type { RouteListItem } from '$lib/entities/route/dto'
 
-export type SortField = 'grade' | 'name' | 'rating' | 'distance'
 export type SortDir = 'asc' | 'desc'
+export type SortField = 'distance' | 'grade' | 'name' | 'rating'
 
 export const SORT_FIELDS = ['grade', 'name', 'rating', 'distance'] as const
 
 /** Sensible default direction per field (hardest grade / best rating / nearest first). */
 export const DEFAULT_DIR: Record<SortField, SortDir> = {
+  distance: 'asc',
   grade: 'desc',
   name: 'asc',
   rating: 'desc',
-  distance: 'asc',
 }
 
-const isSortField = (value: string | null): value is SortField => SORT_FIELDS.includes(value as SortField)
+const isSortField = (value: null | string): value is SortField => SORT_FIELDS.includes(value as SortField)
 
 /** Reads `sort`/`dir` URL params into a typed sort state, defaulting to grade, hardest first. */
-export const parseSort = (params: URLSearchParams): { field: SortField; dir: SortDir } => {
+export const parseSort = (params: URLSearchParams): { dir: SortDir; field: SortField } => {
   const field = isSortField(params.get('sort')) ? (params.get('sort') as SortField) : 'grade'
   const dirParam = params.get('dir')
   const dir: SortDir = dirParam === 'asc' || dirParam === 'desc' ? dirParam : DEFAULT_DIR[field]
-  return { field, dir }
+  return { dir, field }
 }
 
 /**

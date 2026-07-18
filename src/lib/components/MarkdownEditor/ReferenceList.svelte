@@ -8,21 +8,21 @@
   import type { ReferenceCandidate, ReferenceGroup } from './lib/reference-search.svelte'
 
   interface Props {
-    /** Grouped, filtered candidates (in section order). */
-    groups: ReferenceGroup[]
     /** Highlighted candidate, indexed across the flattened list. */
     activeIndex: number
+    /** Grouped, filtered candidates (in section order). */
+    groups: ReferenceGroup[]
     /** Selection (tap or Enter). */
     onselect: (item: ReferenceCandidate) => void
   }
 
-  let { groups, activeIndex, onselect }: Props = $props()
+  let { activeIndex, groups, onselect }: Props = $props()
 
   const TYPE_ICON: Record<ReferenceType, IconName> = {
-    users: 'user',
     areas: 'area',
     blocks: 'block',
     routes: 'route',
+    users: 'user',
   }
 
   const groupLabel = (type: ReferenceType): string =>
@@ -39,8 +39,8 @@
   const sections = $derived.by(() => {
     let index = 0
     return groups.map((group) => ({
+      items: group.items.map((item) => ({ index: index++, item })),
       type: group.type,
-      items: group.items.map((item) => ({ item, index: index++ })),
     }))
   })
 </script>
@@ -56,7 +56,7 @@
         </p>
 
         <ul class="flex flex-col gap-0.5">
-          {#each section.items as { item, index } (item.type + '-' + item.id)}
+          {#each section.items as { index, item } (item.type + '-' + item.id)}
             <li>
               <Row
                 active={index === activeIndex}

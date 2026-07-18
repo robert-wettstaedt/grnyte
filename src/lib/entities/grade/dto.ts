@@ -1,5 +1,5 @@
 export interface Grade {
-  id: number
   FB: string | undefined
+  id: number
   V: string | undefined
 }

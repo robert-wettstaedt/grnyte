@@ -9,16 +9,16 @@ export const REFERENCE_NODE_NAME = 'reference'
 
 /** A reference candidate surfaced by the picker and inserted as a chip. */
 export interface ReferenceItem {
-  type: ReferenceType
   id: number
   label: string
+  type: ReferenceType
 }
 
 /** The shape the node stores in its attributes (`id` is a string, like Mention). */
 interface ReferenceAttrs {
-  type: ReferenceType
   id: string
   label: string
+  type: ReferenceType
 }
 
 const REF_TYPES = 'areas|blocks|routes|users'
@@ -26,20 +26,20 @@ const REF_TYPES = 'areas|blocks|routes|users'
 const REF_FIND = new RegExp(`!(?:${REF_TYPES}):\\d+!`)
 const REF_ANCHORED = new RegExp(`^!(${REF_TYPES}):(\\d+)!`)
 
-const attrsOf = (node: PMNode | JSONContent): ReferenceAttrs => {
+const attrsOf = (node: JSONContent | PMNode): ReferenceAttrs => {
   const attrs = (node.attrs ?? {}) as Partial<ReferenceAttrs>
-  return { type: attrs.type as ReferenceType, id: attrs.id ?? '', label: attrs.label ?? '' }
+  return { id: attrs.id ?? '', label: attrs.label ?? '', type: attrs.type as ReferenceType }
 }
 
 export interface ReferenceExtensionOptions {
-  /** Suggestion config (trigger, items, command, render) supplied by the editor. */
-  suggestion: Omit<SuggestionOptions<ReferenceItem, ReferenceItem>, 'editor'>
   /**
    * Best-effort, synchronous label lookup used when rehydrating stored
    * `!type:id!` tokens into chips on load. Returns `undefined` when the entity
    * isn't loaded yet — the chip still round-trips to markdown via type + id.
    */
   resolveLabel: (type: ReferenceType, id: string) => string | undefined
+  /** Suggestion config (trigger, items, command, render) supplied by the editor. */
+  suggestion: Omit<SuggestionOptions<ReferenceItem, ReferenceItem>, 'editor'>
 }
 
 /**
@@ -49,10 +49,8 @@ export interface ReferenceExtensionOptions {
  * The picker covers People · Areas · Blocks · Routes — all four serialize the
  * same way; the render pipeline resolves each id to its current name.
  */
-export const createReferenceExtension = ({ suggestion, resolveLabel }: ReferenceExtensionOptions) =>
+export const createReferenceExtension = ({ resolveLabel, suggestion }: ReferenceExtensionOptions) =>
   Mention.extend({
-    name: REFERENCE_NODE_NAME,
-
     addAttributes() {
       return {
         ...(this.parent?.() ?? {}),
@@ -64,50 +62,52 @@ export const createReferenceExtension = ({ suggestion, resolveLabel }: Reference
       }
     },
 
-    // --- Markdown round-trip: the portable `!type:id!` token ---
-    markdownTokenName: REFERENCE_NODE_NAME,
     markdownTokenizer: {
-      name: REFERENCE_NODE_NAME,
       level: 'inline',
+      name: REFERENCE_NODE_NAME,
       start: (src) => src.match(REF_FIND)?.index ?? -1,
       tokenize: (src) => {
         const match = REF_ANCHORED.exec(src)
         if (match == null) {
           return undefined
         }
-        return { type: REFERENCE_NODE_NAME, raw: match[0], refType: match[1], refId: match[2] }
+        return { raw: match[0], refId: match[2], refType: match[1], type: REFERENCE_NODE_NAME }
       },
     },
+
+    // --- Markdown round-trip: the portable `!type:id!` token ---
+    markdownTokenName: REFERENCE_NODE_NAME,
+    name: REFERENCE_NODE_NAME,
     parseMarkdown: (token: MarkdownToken): JSONContent => {
       const type = token.refType as ReferenceType
       const id = String(token.refId)
-      return { type: REFERENCE_NODE_NAME, attrs: { type, id, label: resolveLabel(type, id) ?? '' } }
+      return { attrs: { id, label: resolveLabel(type, id) ?? '', type }, type: REFERENCE_NODE_NAME }
     },
     renderMarkdown: (node: JSONContent): string => {
-      const { type, id } = attrsOf(node)
+      const { id, type } = attrsOf(node)
       return `!${type}:${id}!`
     },
   }).configure({
-    suggestion: suggestion as unknown as MentionOptions['suggestion'],
     // Self-contained typed chip: carries every attribute so `getHTML`/`parseHTML`
     // round-trip without relying on the merged HTMLAttributes.
     renderHTML: ({ node }): DOMOutputSpec => {
-      const { type, id, label } = attrsOf(node)
+      const { id, label, type } = attrsOf(node)
       const prefix = type === 'users' ? '@' : ''
       return [
         'span',
         {
-          'data-type': REFERENCE_NODE_NAME,
-          'data-ref-type': type,
+          class: `reference-chip reference-chip-${type}`,
           'data-id': id,
           'data-label': label,
-          class: `reference-chip reference-chip-${type}`,
+          'data-ref-type': type,
+          'data-type': REFERENCE_NODE_NAME,
         },
         `${prefix}${label}`,
       ]
     },
     renderText: ({ node }) => {
-      const { type, label } = attrsOf(node)
+      const { label, type } = attrsOf(node)
       return `${type === 'users' ? '@' : ''}${label}`
     },
+    suggestion: suggestion as unknown as MentionOptions['suggestion'],
   })

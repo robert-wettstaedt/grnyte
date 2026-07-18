@@ -5,11 +5,11 @@
   import GradeRange from './GradeRange.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/GradeRange',
-    component: GradeRange,
-    tags: ['autodocs'],
-    parameters: { layout: 'centered' },
     args: { gradingScale: 'FB' },
+    component: GradeRange,
+    parameters: { layout: 'centered' },
+    tags: ['autodocs'],
+    title: 'Components/GradeRange',
   })
 
   // The seeded Font/V grade table (5A … 9A), ids 0–21 — mirrors production.
@@ -38,7 +38,7 @@
       ['8C+', 'V16'],
       ['9A', 'V17'],
     ] as const
-  ).map(([FB, V], id) => ({ id, FB: `FB ${FB}`, V }))
+  ).map(([FB, V], id) => ({ FB: `FB ${FB}`, id, V }))
 
   // A spread of route counts so the mini-histogram above the slider has shape.
   const routeCountByGrade = new Map<number, number>([

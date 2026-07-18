@@ -9,14 +9,14 @@
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
-  import { now } from '$lib/state/now.svelte'
   import { formatDay } from '$lib/i18n/relativeTime'
+  import { formatConditions } from '$lib/i18n/units'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { openMedia } from '$lib/state/navigation.svelte'
+  import { now } from '$lib/state/now.svelte'
   import { toaster } from '$lib/state/toast'
-  import { formatConditions } from '$lib/i18n/units'
   import { deleteAscent } from './ascents.remote'
   import AscentType from './AscentType.svelte'
   import type { RouteAscent } from './dto'
@@ -55,7 +55,7 @@
   // undo. No navigation needed: the removal syncs and the row drops out of the list.
   const onDelete = async () => {
     await deleteAscent({ id: ascent.id })
-    toaster.create({ type: 'info', title: m.ascents_deleted() })
+    toaster.create({ title: m.ascents_deleted(), type: 'info' })
   }
 
   const MAX_THUMBS = 3

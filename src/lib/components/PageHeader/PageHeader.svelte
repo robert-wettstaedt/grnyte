@@ -1,20 +1,20 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
+  import type { Snippet } from 'svelte'
 
   // Sticky page chrome for full-page detail/list routes: back button plus a title
   // row, with an optional second row (e.g. filter chips) underneath.
   interface Props {
-    /** Back-button handler; callers wire it to `back(fallbackHref)`. */
-    onback: () => void
-    /** Content beside the back button (title block, trailing actions). */
-    children: Snippet
     /** Optional second row under the title row. */
     bottom?: Snippet
+    /** Content beside the back button (title block, trailing actions). */
+    children: Snippet
+    /** Back-button handler; callers wire it to `back(fallbackHref)`. */
+    onback: () => void
   }
 
-  const { onback, children, bottom }: Props = $props()
+  const { bottom, children, onback }: Props = $props()
 </script>
 
 <header

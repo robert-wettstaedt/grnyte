@@ -1,17 +1,5 @@
 import { getNextcloudImageProvider } from './nextcloud.provider.server'
 
-export interface OriginalOptions {
-  /** Client headers to forward upstream for range / content negotiation (e.g. `range`, `accept`). */
-  requestHeaders?: Record<string, string>
-  signal?: AbortSignal
-}
-
-export interface ThumbnailOptions {
-  /** Target box in px; the aspect ratio is preserved (the caller crops the tile). */
-  width: number
-  signal?: AbortSignal
-}
-
 /** A relayed upstream image response — the `/image` route copies these onto its own `Response`. */
 export interface ImagePayload {
   data: ArrayBuffer
@@ -37,10 +25,22 @@ export interface ImageProvider {
   fetchOriginal(path: string, options?: OriginalOptions): Promise<ImagePayload>
   /** A small, cacheable, aspect-preserving thumbnail at (about) `width` px. Throws if unavailable. */
   fetchThumbnail(path: string, options: ThumbnailOptions): Promise<ImagePayload>
-  /** Write `data` at `path`, creating missing parent folders. Overwrites silently. */
-  store(path: string, data: Buffer): Promise<void>
   /** Delete the object at `path`. */
   remove(path: string): Promise<void>
+  /** Write `data` at `path`, creating missing parent folders. Overwrites silently. */
+  store(path: string, data: Buffer): Promise<void>
+}
+
+export interface OriginalOptions {
+  /** Client headers to forward upstream for range / content negotiation (e.g. `range`, `accept`). */
+  requestHeaders?: Record<string, string>
+  signal?: AbortSignal
+}
+
+export interface ThumbnailOptions {
+  signal?: AbortSignal
+  /** Target box in px; the aspect ratio is preserved (the caller crops the tile). */
+  width: number
 }
 
 /** The image provider the app is configured to use. Swap the backend here. */

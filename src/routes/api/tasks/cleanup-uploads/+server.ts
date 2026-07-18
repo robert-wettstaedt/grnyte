@@ -99,5 +99,5 @@ export const POST: RequestHandler = async ({ request }) => {
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
   ])
   console.log(`[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos`)
-  return json({ staging, bunny })
+  return json({ bunny, staging })
 }

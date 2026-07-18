@@ -1,7 +1,7 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
 
-  export type MediaFilter = 'hasTopo' | 'hasBeta'
+  export type MediaFilter = 'hasBeta' | 'hasTopo'
 
   interface Props {
     value: MediaFilter[]
@@ -17,9 +17,9 @@
     }
   }
 
-  const options: { value: MediaFilter; label: () => string }[] = [
-    { value: 'hasTopo', label: () => m.filter_hasTopo() },
-    { value: 'hasBeta', label: () => m.filter_hasBeta() },
+  const options: { label: () => string; value: MediaFilter }[] = [
+    { label: () => m.filter_hasTopo(), value: 'hasTopo' },
+    { label: () => m.filter_hasBeta(), value: 'hasBeta' },
   ]
 </script>
 

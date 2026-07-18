@@ -32,17 +32,17 @@ const faClimberSchema = z.object({
 
 const routeActionSchema = z.object({
   blockId: stringToInt,
-  id: stringToIntOptional,
-  name: z.string().trim().optional().default(''),
-  gradeFk: stringToIntOptional,
-  // 1–3 stars; the field is absent when unrated (0 stars → no rating, not "0 stars").
-  rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
+  description: z.string().optional().default(''),
+  firstAscensionists: z.array(faClimberSchema).optional().default([]),
   firstAscentYear: stringToIntOptional.pipe(
     z.int().min(1900, formError('form_numInvalid')).max(2100, formError('form_numInvalid')).optional(),
   ),
-  description: z.string().optional().default(''),
+  gradeFk: stringToIntOptional,
+  id: stringToIntOptional,
+  name: z.string().trim().optional().default(''),
+  // 1–3 stars; the field is absent when unrated (0 stars → no rating, not "0 stars").
+  rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
   tags: z.array(z.string()).optional().default([]),
-  firstAscensionists: z.array(faClimberSchema).optional().default([]),
 })
 
 /** Field shape the shared add/edit-route form binds to, `id` is set only when editing. */
@@ -54,10 +54,10 @@ type RouteFormValue = z.output<typeof routeActionSchema>
  *  ponytail: one query per ancestor, area trees are a handful of levels deep. */
 async function areaAncestry(db: Context['db'], areaId: number): Promise<number[]> {
   const chain: number[] = []
-  let current: number | null = areaId
+  let current: null | number = areaId
   while (current != null && !chain.includes(current)) {
     chain.unshift(current)
-    const area: { parentFk: number | null } | undefined = await db.query.areas.findFirst({
+    const area: undefined | { parentFk: null | number } = await db.query.areas.findFirst({
       columns: { parentFk: true },
       where: eq(areas.id, current),
     })
@@ -78,7 +78,7 @@ async function findDuplicateName(
     return undefined
   }
   return db.query.routes.findFirst({
-    where: (table, { and, eq, ne, isNull }) =>
+    where: (table, { and, eq, isNull, ne }) =>
       and(
         eq(table.name, value.name),
         eq(table.blockFk, blockFk),
@@ -179,14 +179,14 @@ export const createRoute = authedForm(routeActionSchema, async (value, { db, use
   }
 
   await insertActivity(db, {
-    type: 'created',
-    userFk: user.id,
     entityId: String(route.id),
     entityType: 'route',
     newValue: route.name,
     parentEntityId: String(block.id),
     parentEntityType: 'block',
     regionFk: block.regionFk,
+    type: 'created',
+    userFk: user.id,
   })
 
   return { data: { id: route.id } }
@@ -267,18 +267,6 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
     db,
     entityId: String(route.id),
     entityType: 'route',
-    oldEntity: {
-      description: route.description ?? '',
-      firstAscensionists: oldFaRows
-        .map((row) => row.firstAscensionist.name)
-        .sort()
-        .join(','),
-      firstAscentYear: route.firstAscentYear,
-      gradeFk: route.gradeFk,
-      name: route.name,
-      rating: route.rating,
-      tags: oldTags.join(','),
-    },
     newEntity: {
       description: value.description,
       firstAscensionists: newFaRows
@@ -291,10 +279,22 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
       rating: value.rating,
       tags: newTags.join(','),
     },
-    userFk: user.id,
+    oldEntity: {
+      description: route.description ?? '',
+      firstAscensionists: oldFaRows
+        .map((row) => row.firstAscensionist.name)
+        .sort()
+        .join(','),
+      firstAscentYear: route.firstAscentYear,
+      gradeFk: route.gradeFk,
+      name: route.name,
+      rating: route.rating,
+      tags: oldTags.join(','),
+    },
     parentEntityId: String(route.blockFk),
     parentEntityType: 'block',
     regionFk: route.regionFk,
+    userFk: user.id,
   })
 
   return { data: { id: route.id } }
@@ -303,8 +303,8 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
 /** Snapshot {@link deleteRoute} returns so {@link restoreRoute} can undo either delete path. */
 type DeleteRouteSnapshot =
   | {
+      firstAscensionistFks: number[]
       mode: 'hard'
-      routeId: number
       route: Pick<
         Route,
         | 'areaFks'
@@ -318,8 +318,8 @@ type DeleteRouteSnapshot =
         | 'rating'
         | 'regionFk'
       >
+      routeId: number
       tags: string[]
-      firstAscensionistFks: number[]
     }
   | { mode: 'soft'; routeId: number }
 
@@ -384,8 +384,8 @@ export const deleteRoute = authedCommand(
       await db.delete(routes).where(eq(routes.id, id))
 
       data = {
+        firstAscensionistFks: faRows.map((row) => row.firstAscensionistFk),
         mode: 'hard',
-        routeId: id,
         route: {
           areaFks: route.areaFks,
           areaIds: route.areaIds,
@@ -398,8 +398,8 @@ export const deleteRoute = authedCommand(
           rating: route.rating,
           regionFk: route.regionFk,
         },
+        routeId: id,
         tags: tagRows.map((row) => row.tagFk),
-        firstAscensionistFks: faRows.map((row) => row.firstAscensionistFk),
       }
     } else {
       await db
@@ -410,27 +410,27 @@ export const deleteRoute = authedCommand(
     }
 
     await insertActivity(db, {
-      type: 'deleted',
-      userFk: user.id,
       entityId: String(route.id),
       entityType: 'route',
       oldValue: route.name,
       parentEntityId: String(route.blockFk),
       parentEntityType: 'block',
       regionFk: route.regionFk,
+      type: 'deleted',
+      userFk: user.id,
     })
 
     return {
-      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) }),
       data,
+      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(route.blockFk) }),
     }
   },
 )
 
 const restoreRouteSchema = z.discriminatedUnion('mode', [
   z.object({
+    firstAscensionistFks: z.array(z.number()),
     mode: z.literal('hard'),
-    routeId: z.number(),
     route: z.object({
       areaFks: z.array(z.number()).nullable(),
       areaIds: z.string().nullable(),
@@ -443,8 +443,8 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
       rating: z.number().nullable(),
       regionFk: z.number(),
     }),
+    routeId: z.number(),
     tags: z.array(z.string()),
-    firstAscensionistFks: z.array(z.number()),
   }),
   z.object({ mode: z.literal('soft'), routeId: z.number() }),
 ])
@@ -477,7 +477,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
 
     await deleteActivity(db, { entityId: String(snapshot.routeId), entityType: 'route', type: 'deleted' })
 
-    return { redirectTo: routeHref(created.id), data: { routeId: created.id } }
+    return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
   }
 
   const route = await db.query.routes.findFirst({ where: eq(routes.id, snapshot.routeId) })
@@ -489,5 +489,5 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
   await deleteActivity(db, { entityId: String(route.id), entityType: 'route', type: 'deleted' })
 
-  return { redirectTo: routeHref(route.id), data: { routeId: route.id } }
+  return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
 })

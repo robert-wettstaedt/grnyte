@@ -13,17 +13,17 @@
   } from '$lib/entities/file/upload-manager.svelte'
 
   interface Props {
+    /** Show the Add tile at the head of the strip (permission-gated by the caller). */
+    canEdit?: boolean
     items: MediaFile[]
     /** Passed through to the viewer as the share text (the route name). */
     shareText?: string
     /** When set, uploads finalizing against this entity show as leading tiles until they sync,
      *  and (with `canEdit`) the Add tile leads the strip so new media lands right here. */
     target?: MediaUploadTarget
-    /** Show the Add tile at the head of the strip (permission-gated by the caller). */
-    canEdit?: boolean
   }
 
-  const { items, shareText = '', target, canEdit = false }: Props = $props()
+  const { canEdit = false, items, shareText = '', target }: Props = $props()
 
   const syncedIds = $derived(new Set(items.map((file) => file.id)))
 

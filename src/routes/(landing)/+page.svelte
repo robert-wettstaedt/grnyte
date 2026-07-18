@@ -18,35 +18,35 @@
   const github = 'https://github.com/robert-wettstaedt/grnyte'
   const demo = 'https://demo.grnyte.rocks/auth/signin'
 
-  const features: { title: string; body: string; icon: IconName }[] = [
-    { title: m.landing_featurePrivateTitle(), body: m.landing_featurePrivateBody(), icon: 'lock' },
-    { title: m.landing_featureGuidebookTitle(), body: m.landing_featureGuidebookBody(), icon: 'map' },
-    { title: m.landing_featureMapsTitle(), body: m.landing_featureMapsBody(), icon: 'map-pin' },
-    { title: m.landing_featureOfflineTitle(), body: m.landing_featureOfflineBody(), icon: 'smartphone' },
-    { title: m.landing_featureLogbookTitle(), body: m.landing_featureLogbookBody(), icon: 'trending-up' },
-    { title: m.landing_featureRegionTitle(), body: m.landing_featureRegionBody(), icon: 'users' },
+  const features: { body: string; icon: IconName; title: string }[] = [
+    { body: m.landing_featurePrivateBody(), icon: 'lock', title: m.landing_featurePrivateTitle() },
+    { body: m.landing_featureGuidebookBody(), icon: 'map', title: m.landing_featureGuidebookTitle() },
+    { body: m.landing_featureMapsBody(), icon: 'map-pin', title: m.landing_featureMapsTitle() },
+    { body: m.landing_featureOfflineBody(), icon: 'smartphone', title: m.landing_featureOfflineTitle() },
+    { body: m.landing_featureLogbookBody(), icon: 'trending-up', title: m.landing_featureLogbookTitle() },
+    { body: m.landing_featureRegionBody(), icon: 'users', title: m.landing_featureRegionTitle() },
   ]
 
-  const personas: { title: string; body: string; icon: IconName }[] = [
-    { title: m.landing_personaDevelopersTitle(), body: m.landing_personaDevelopersBody(), icon: 'pickaxe' },
-    { title: m.landing_personaCommunitiesTitle(), body: m.landing_personaCommunitiesBody(), icon: 'users-round' },
-    { title: m.landing_personaRegionsTitle(), body: m.landing_personaRegionsBody(), icon: 'tent-tree' },
+  const personas: { body: string; icon: IconName; title: string }[] = [
+    { body: m.landing_personaDevelopersBody(), icon: 'pickaxe', title: m.landing_personaDevelopersTitle() },
+    { body: m.landing_personaCommunitiesBody(), icon: 'users-round', title: m.landing_personaCommunitiesTitle() },
+    { body: m.landing_personaRegionsBody(), icon: 'tent-tree', title: m.landing_personaRegionsTitle() },
   ]
 
   // Public platforms to export to once an area goes public.
   const platforms = [
-    { name: '8a.nu', icon: icon8a },
-    { name: 'The Topo', icon: iconTheTopo },
-    { name: 'theCrag', icon: iconTheCrag },
+    { icon: icon8a, name: '8a.nu' },
+    { icon: iconTheTopo, name: 'The Topo' },
+    { icon: iconTheCrag, name: 'theCrag' },
   ]
 
   // "A look inside" phone mockups. Placeholder frames for now — drop a real <img> into
   // each .lp-screen once the 2.0 UI is ready. Real shots MUST use demo/dummy data,
   // never a live private region (that's the whole point of the product).
   const shots = [
-    { label: m.landing_shotMapLabel(), caption: m.landing_shotMapCaption() },
-    { label: m.landing_shotTopoLabel(), caption: m.landing_shotTopoCaption() },
-    { label: m.landing_shotLogbookLabel(), caption: m.landing_shotLogbookCaption() },
+    { caption: m.landing_shotMapCaption(), label: m.landing_shotMapLabel() },
+    { caption: m.landing_shotTopoCaption(), label: m.landing_shotTopoLabel() },
+    { caption: m.landing_shotLogbookCaption(), label: m.landing_shotLogbookLabel() },
   ]
 
   // ===== scroll motion (GSAP): heavy + browser-only, loaded via dynamic import in onMount =====
@@ -70,8 +70,8 @@
 
         gsap.fromTo(
           root.querySelectorAll('[data-hero] [data-fade]'),
-          { y: 26, autoAlpha: 0 },
-          { y: 0, autoAlpha: 1, duration: 0.85, stagger: 0.09, ease: 'power3.out', delay: 0.1 },
+          { autoAlpha: 0, y: 26 },
+          { autoAlpha: 1, delay: 0.1, duration: 0.85, ease: 'power3.out', stagger: 0.09, y: 0 },
         )
 
         root.querySelectorAll<SVGPathElement>('[data-contour]').forEach((p, i) => {
@@ -80,7 +80,7 @@
           gsap.fromTo(
             p,
             { strokeDashoffset: len },
-            { strokeDashoffset: 0, duration: 2.2, delay: 0.15 + i * 0.18, ease: 'power2.out' },
+            { delay: 0.15 + i * 0.18, duration: 2.2, ease: 'power2.out', strokeDashoffset: 0 },
           )
         })
 
@@ -88,22 +88,22 @@
           const target = el.children.length === 1 ? el.children[0] : el
           gsap.fromTo(
             target,
-            { y: 32, autoAlpha: 0 },
-            { y: 0, autoAlpha: 1, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 82%' } },
+            { autoAlpha: 0, y: 32 },
+            { autoAlpha: 1, duration: 0.8, ease: 'power3.out', scrollTrigger: { start: 'top 82%', trigger: el }, y: 0 },
           )
         })
 
         root.querySelectorAll<HTMLElement>('[data-stagger]').forEach((grid) => {
           gsap.fromTo(
             grid.children,
-            { y: 28, autoAlpha: 0 },
+            { autoAlpha: 0, y: 28 },
             {
-              y: 0,
               autoAlpha: 1,
               duration: 0.7,
-              stagger: 0.08,
               ease: 'power3.out',
-              scrollTrigger: { trigger: grid, start: 'top 82%' },
+              scrollTrigger: { start: 'top 82%', trigger: grid },
+              stagger: 0.08,
+              y: 0,
             },
           )
         })
@@ -112,9 +112,9 @@
         const heroSvg = root.querySelector('[data-hero] > svg')
         if (hero && heroSvg) {
           gsap.to(heroSvg, {
-            yPercent: 12,
             ease: 'none',
-            scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true },
+            scrollTrigger: { end: 'bottom top', scrub: true, start: 'top top', trigger: hero },
+            yPercent: 12,
           })
         }
       })

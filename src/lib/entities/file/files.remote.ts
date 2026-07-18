@@ -31,7 +31,7 @@ const regionOf = async (
 ): Promise<number | undefined> => {
   if (type === 'ascent') {
     const ascent = await db.query.ascents.findFirst({
-      columns: { regionFk: true, createdBy: true },
+      columns: { createdBy: true, regionFk: true },
       where: (ascents) => eq(ascents.id, id),
     })
     if (ascent != null && ascent.createdBy !== user.id) {
@@ -57,10 +57,10 @@ const entityFks = (type: FileEntityType, id: number) => ({
 })
 
 const finalizeImageSchema = z.object({
+  entityId: z.number(),
+  entityType: z.enum(fileEntityTypes),
   /** Path within the staging bucket the browser uploaded to (see `stagingPath`). */
   stagingPath: z.string().min(1),
-  entityType: z.enum(fileEntityTypes),
-  entityId: z.number(),
 })
 
 /**
@@ -76,13 +76,13 @@ const finalizeImageSchema = z.object({
  */
 export const finalizeImage = command(
   finalizeImageSchema,
-  async ({ stagingPath, entityType, entityId }): Promise<MutationResult<File>> => {
+  async ({ entityId, entityType, stagingPath }): Promise<MutationResult<File>> => {
     // Hand-wired auth + RLS instead of authedCommand: this pipeline is dominated
     // by storage work (staging download, HEIC convert, sharp encodes, WebDAV
     // PUTs), which must not run inside authedCommand's handler-wide transaction
     // holding a pooled connection — DB access happens in the two short `rls`
     // transactions below instead.
-    const { user, supabase } = getRequestEvent().locals
+    const { supabase, user } = getRequestEvent().locals
     if (user == null) {
       error(401, 'Not authenticated')
     }
@@ -150,7 +150,7 @@ export const finalizeImage = command(
         const webp = await sharp(buffer)
           // Bake the EXIF orientation in — the resized derivative carries no metadata.
           .rotate()
-          .resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
+          .resize({ fit: 'inside', height: size, width: size, withoutEnlargement: true })
           .webp({ quality: DERIVATIVE_QUALITY })
           .toBuffer()
         await store(derivativePath(path, size), webp)
@@ -162,12 +162,12 @@ export const finalizeImage = command(
         db
           .insert(files)
           .values({
+            createdBy: user.id,
+            height: dimensions.height,
             id,
             path,
-            width: dimensions.width,
-            height: dimensions.height,
-            createdBy: user.id,
             regionFk,
+            width: dimensions.width,
             ...entityFks(entityType, entityId),
           })
           .returning(),
@@ -239,7 +239,7 @@ export const setFileVisibility = authedCommand(
 export const deleteFile = command(
   z.object({ id: z.string().min(1) }),
   async ({ id }): Promise<MutationResult<{ id: string }>> => {
-    const { user, userRegions, supabase } = getRequestEvent().locals
+    const { supabase, user, userRegions } = getRequestEvent().locals
     if (user == null) {
       error(401, 'Not authenticated')
     }
@@ -255,8 +255,8 @@ export const deleteFile = command(
       }
 
       const canDelete = canDeleteFile(userRegions, user.id, {
-        regionFk: file.regionFk,
         ascentCreatedBy: file.ascent?.createdBy ?? undefined,
+        regionFk: file.regionFk,
       })
       if (!canDelete) {
         error(403, 'Not allowed to delete this file')
@@ -275,12 +275,12 @@ export const deleteFile = command(
 
       if (entityId != null) {
         await insertActivity(db, {
-          type: 'deleted',
-          userFk: user.id,
+          columnName: 'file',
           entityId: String(entityId),
           entityType: entityType,
-          columnName: 'file',
           regionFk: file.regionFk,
+          type: 'deleted',
+          userFk: user.id,
         })
       }
 
@@ -295,14 +295,14 @@ export const deleteFile = command(
 )
 
 const finalizeVideoSchema = z.object({
-  /** Bunny video GUID — doubles as the `bunnyStreams` row id. */
-  videoId: z.uuid(),
-  /** Ownership proof minted by `createBunnyVideo` alongside the GUID. */
-  token: z.string(),
-  entityType: z.enum(fileEntityTypes),
   entityId: z.number(),
+  entityType: z.enum(fileEntityTypes),
   /** Where the clip was grabbed from (route uploads only), credited on the route page. */
   source: z.url().max(500).optional(),
+  /** Ownership proof minted by `createBunnyVideo` alongside the GUID. */
+  token: z.string(),
+  /** Bunny video GUID — doubles as the `bunnyStreams` row id. */
+  videoId: z.uuid(),
 })
 
 /**
@@ -314,7 +314,7 @@ const finalizeVideoSchema = z.object({
 export const finalizeVideo = authedCommand(
   finalizeVideoSchema,
   async (
-    { videoId, token, entityType, entityId, source },
+    { entityId, entityType, source, token, videoId },
     { db, user, userRegions },
   ): Promise<MutationResult<File>> => {
     // The GUID is client-supplied — the token proves this user created this
@@ -343,9 +343,9 @@ export const finalizeVideo = authedCommand(
     // own-ascent/EDIT update policies do pass.
     const [file] = await db
       .insert(files)
-      .values({ path: '', createdBy: user.id, regionFk, ...entityFks(entityType, entityId) })
+      .values({ createdBy: user.id, path: '', regionFk, ...entityFks(entityType, entityId) })
       .returning()
-    await db.insert(bunnyStreams).values({ id: videoId, regionFk, fileFk: file.id, source })
+    await db.insert(bunnyStreams).values({ fileFk: file.id, id: videoId, regionFk, source })
     const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
     if (linked == null) {
       // Safety net — the checks above should make this unreachable; if RLS

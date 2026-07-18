@@ -7,42 +7,6 @@ let position = $state<Coords | null | undefined>(undefined)
 let watchers = 0
 let watchId: number | undefined
 
-function start() {
-  if (watchId != null || typeof navigator === 'undefined' || !('geolocation' in navigator)) {
-    return
-  }
-  watchId = navigator.geolocation.watchPosition(
-    (pos) => (position = { lat: pos.coords.latitude, long: pos.coords.longitude }),
-    () => {
-      // Denied/unavailable — flip to null only if we never got a fix, so a later
-      // error doesn't wipe a position we already have.
-      if (position === undefined) {
-        position = null
-      }
-    },
-    // ponytail: high accuracy + continuous watch is battery-heavy, but it's bounded
-    // to map views with a live subscriber and crag distances need the precision.
-    { enableHighAccuracy: true },
-  )
-}
-
-function stop() {
-  if (watchId != null) {
-    navigator.geolocation.clearWatch(watchId)
-    watchId = undefined
-  }
-}
-
-// The watch should run only while subscribed *and* the tab is visible — a hidden
-// tab can't show the distance, so pausing the GPS there is free battery.
-function sync() {
-  if (watchers > 0 && !document.hidden) {
-    start()
-  } else {
-    stop()
-  }
-}
-
 /**
  * Shared, live user location for the map section. While any component is
  * subscribed (and `enabled`), a single `watchPosition` keeps `current` updated
@@ -77,5 +41,41 @@ export function userLocation(enabled: () => boolean = () => true) {
     get current(): Coords | null | undefined {
       return position
     },
+  }
+}
+
+function start() {
+  if (watchId != null || typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+    return
+  }
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => (position = { lat: pos.coords.latitude, long: pos.coords.longitude }),
+    () => {
+      // Denied/unavailable — flip to null only if we never got a fix, so a later
+      // error doesn't wipe a position we already have.
+      if (position === undefined) {
+        position = null
+      }
+    },
+    // ponytail: high accuracy + continuous watch is battery-heavy, but it's bounded
+    // to map views with a live subscriber and crag distances need the precision.
+    { enableHighAccuracy: true },
+  )
+}
+
+function stop() {
+  if (watchId != null) {
+    navigator.geolocation.clearWatch(watchId)
+    watchId = undefined
+  }
+}
+
+// The watch should run only while subscribed *and* the tab is visible — a hidden
+// tab can't show the distance, so pausing the GPS there is free battery.
+function sync() {
+  if (watchers > 0 && !document.hidden) {
+    start()
+  } else {
+    stop()
   }
 }

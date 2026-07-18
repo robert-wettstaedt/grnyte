@@ -9,13 +9,25 @@ import type { UserRegion } from '$lib/entities/region/dto'
 import type { MediaFile } from './dto'
 
 /** Just the fields the permission checks read, so a server caller can gate without a full MediaFile. */
-type FilePermissionInput = Pick<MediaFile, 'regionFk' | 'ascentCreatedBy'>
+type FilePermissionInput = Pick<MediaFile, 'ascentCreatedBy' | 'regionFk'>
 
 /** The own-ascent half of the files RLS: READ members may change media on their own ascents. */
 const ownsAscentMedia = (userRegions: UserRegion[], userId: number | undefined, file: FilePermissionInput): boolean =>
   userId != null &&
   file.ascentCreatedBy === userId &&
   checkRegionPermission(userRegions, [REGION_PERMISSION_READ], file.regionFk)
+
+/** Mirrors the files DELETE RLS (region DELETE, or READ on media of your own ascent). */
+export function canDeleteFile(
+  userRegions: UserRegion[],
+  userId: number | undefined,
+  file: FilePermissionInput,
+): boolean {
+  return (
+    checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], file.regionFk) ||
+    ownsAscentMedia(userRegions, userId, file)
+  )
+}
 
 /**
  * Whether the viewer may edit (incl. publish) a file. DELIBERATELY STRICTER than the files
@@ -39,16 +51,4 @@ export function canEditFile(userRegions: UserRegion[], userId: number | undefine
     )
   }
   return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], file.regionFk)
-}
-
-/** Mirrors the files DELETE RLS (region DELETE, or READ on media of your own ascent). */
-export function canDeleteFile(
-  userRegions: UserRegion[],
-  userId: number | undefined,
-  file: FilePermissionInput,
-): boolean {
-  return (
-    checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], file.regionFk) ||
-    ownsAscentMedia(userRegions, userId, file)
-  )
 }

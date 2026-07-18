@@ -5,14 +5,14 @@
   // Toggleable chip set over the global tag list, submitting through hidden
   // `<name>[i]` inputs.
   interface Props {
-    tags: Tag[]
     /** Hidden-input name the selected ids submit under (as `<name>[i]`). */
     name?: string
+    tags: Tag[]
     /** Selected tag ids. */
     value?: string[]
   }
 
-  let { tags, name, value = $bindable([]) }: Props = $props()
+  let { name, tags, value = $bindable([]) }: Props = $props()
 
   const toggle = (id: string) => {
     value = value.includes(id) ? value.filter((tag) => tag !== id) : [...value, id]

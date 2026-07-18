@@ -6,8 +6,8 @@ export type GradeRow = QueryRow<typeof queries.listGrades>
 
 export function toGrade(row: GradeRow): Grade {
   return {
-    id: row.id,
     FB: row.FB ?? undefined,
+    id: row.id,
     V: row.V ?? undefined,
   }
 }

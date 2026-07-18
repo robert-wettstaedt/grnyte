@@ -55,7 +55,7 @@ export function createMapData(props: BlocksMapProps) {
   // Crag tier — the block-holding area, shown at mid zoom (between the area rects and the
   // individual block markers).
   const blocksByCrag = $derived.by(() => {
-    const grouped = new Map<number, { crag: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
+    const grouped = new Map<number, { blocks: BlockDetail[]; crag: BlockDetail['areas'][0] }>()
 
     for (const block of geoBlocks) {
       const crag = block.areas.find((area) => area.type === 'crag')
@@ -63,7 +63,7 @@ export function createMapData(props: BlocksMapProps) {
 
       const existing = grouped.get(crag.id)
       if (existing == null) {
-        grouped.set(crag.id, { crag, blocks: [block] })
+        grouped.set(crag.id, { blocks: [block], crag })
       } else {
         existing.blocks.push(block)
       }
@@ -154,7 +154,7 @@ export function createMapData(props: BlocksMapProps) {
   })
 
   const cragBoundingBoxes = $derived.by(() => {
-    const boxes = new Map<number, { crag: BlockDetail['areas'][0]; bounds: [number, number, number, number] }>()
+    const boxes = new Map<number, { bounds: [number, number, number, number]; crag: BlockDetail['areas'][0] }>()
 
     for (const [cragId, group] of blocksByCrag) {
       const coords = group.blocks.map((block) => block.geolocation!).filter((location) => location != null)
@@ -169,7 +169,7 @@ export function createMapData(props: BlocksMapProps) {
         Math.max(...lngs),
       ]
 
-      boxes.set(cragId, { crag: group.crag, bounds: withPadding(bounds, coords.length) })
+      boxes.set(cragId, { bounds: withPadding(bounds, coords.length), crag: group.crag })
     }
 
     return boxes
@@ -186,8 +186,8 @@ export function createMapData(props: BlocksMapProps) {
   const uniqueLineStrings = $derived([...new Set(props.lineStrings ?? [])])
 
   return {
-    get geoBlocks() {
-      return geoBlocks
+    get areaBoundingBoxes() {
+      return areaBoundingBoxes
     },
     get blocksByArea() {
       return blocksByArea
@@ -195,14 +195,11 @@ export function createMapData(props: BlocksMapProps) {
     get blocksByCrag() {
       return blocksByCrag
     },
-    get routeCountByBlock() {
-      return routeCountByBlock
+    get cragBoundingBoxes() {
+      return cragBoundingBoxes
     },
-    get routeCountByArea() {
-      return routeCountByArea
-    },
-    get routeCountByCrag() {
-      return routeCountByCrag
+    get geoBlocks() {
+      return geoBlocks
     },
     get gradeCountByArea() {
       return gradeCountByArea
@@ -210,17 +207,20 @@ export function createMapData(props: BlocksMapProps) {
     get gradeCountByCrag() {
       return gradeCountByCrag
     },
-    get areaBoundingBoxes() {
-      return areaBoundingBoxes
+    get routeCountByArea() {
+      return routeCountByArea
     },
-    get cragBoundingBoxes() {
-      return cragBoundingBoxes
+    get routeCountByBlock() {
+      return routeCountByBlock
     },
-    get uniqueParkingLocations() {
-      return uniqueParkingLocations
+    get routeCountByCrag() {
+      return routeCountByCrag
     },
     get uniqueLineStrings() {
       return uniqueLineStrings
+    },
+    get uniqueParkingLocations() {
+      return uniqueParkingLocations
     },
   }
 }

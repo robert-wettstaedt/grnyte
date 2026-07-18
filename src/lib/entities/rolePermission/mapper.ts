@@ -6,7 +6,7 @@ export type RolePermissionRow = QueryRow<typeof queries.listRolePermissions>
 
 export function toRolePermission(row: RolePermissionRow): RolePermission {
   return {
-    role: row.role,
     permission: row.permission,
+    role: row.role,
   }
 }

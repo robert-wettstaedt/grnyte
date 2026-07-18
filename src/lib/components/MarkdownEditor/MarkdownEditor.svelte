@@ -9,29 +9,29 @@
   import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
   import type { Attachment } from 'svelte/attachments'
   import type { HTMLAttributes } from 'svelte/elements'
-  import LinkModal from './LinkModal.svelte'
-  import ReferenceList from './ReferenceList.svelte'
   import { createReferenceExtension, REFERENCE_NODE_NAME, type ReferenceItem } from './lib/reference-node'
   import { referenceSearch, type ReferenceCandidate } from './lib/reference-search.svelte'
+  import LinkModal from './LinkModal.svelte'
+  import ReferenceList from './ReferenceList.svelte'
 
   // Extends HTMLAttributes so the props from a remote form field
   // (`{...field.as('text')}` → name/aria-invalid; wrapper → id/aria-describedby/
   // aria-errormessage) spread straight onto the editable region.
   interface Props extends HTMLAttributes<HTMLDivElement> {
-    /** Markdown string — bindable, the editor's single source of truth. */
-    value?: string | number
+    /** Swallowed: `field.as('text')` ships it, but we seed from `value`. */
+    defaultValue?: number | string
+    /** Form field name — when set, the markdown is submitted via a hidden input. */
+    name?: string
     /** Placeholder shown while empty. */
     placeholder?: string
     /** Region whose members may be `@`-mentioned (enables the People group). */
     regionFk?: number
-    /** Form field name — when set, the markdown is submitted via a hidden input. */
-    name?: string
-    /** Swallowed: `field.as('text')` ships it, but we seed from `value`. */
-    defaultValue?: string | number
+    /** Markdown string — bindable, the editor's single source of truth. */
+    value?: number | string
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let { value = $bindable(''), placeholder, regionFk, name, defaultValue: _d, ...rest }: Props = $props()
+  let { defaultValue: _d, name, placeholder, regionFk, value = $bindable(''), ...rest }: Props = $props()
 
   // Captured once: the editor initialises from this, then syncs outward. (Fresh
   // mounts with stored markdown rehydrate `!type:id!` tokens into chips here.)
@@ -47,17 +47,17 @@
 
   // --- `@` reference picker ---------------------------------------------------
   interface PickerState {
+    command: ((item: ReferenceItem) => void) | null
+    index: number
     open: boolean
     query: string
-    index: number
-    command: ((item: ReferenceItem) => void) | null
   }
-  let picker = $state<PickerState>({ open: false, query: '', index: 0, command: null })
+  let picker = $state<PickerState>({ command: null, index: 0, open: false, query: '' })
 
-  const search = referenceSearch({ query: () => picker.query, regionFk: () => regionFk, open: () => picker.open })
+  const search = referenceSearch({ open: () => picker.open, query: () => picker.query, regionFk: () => regionFk })
 
   const selectItem = (item: ReferenceCandidate) => {
-    picker.command?.({ type: item.type, id: item.id, label: item.label })
+    picker.command?.({ id: item.id, label: item.label, type: item.type })
     picker.open = false
   }
 
@@ -91,41 +91,43 @@
 
   const suggestion: Omit<SuggestionOptions<ReferenceItem, ReferenceItem>, 'editor'> = {
     char: '@',
-    // The candidate list is reactive (`referenceSearch`); the suggestion plugin
-    // only drives the trigger, query, range and keyboard lifecycle.
-    items: () => [],
-    command: ({ editor, range, props }) => {
+    command: ({ editor, props, range }) => {
       editor
         .chain()
         .focus()
         .insertContentAt(range, [
-          { type: REFERENCE_NODE_NAME, attrs: { type: props.type, id: String(props.id), label: props.label } },
-          { type: 'text', text: ' ' },
+          { attrs: { id: String(props.id), label: props.label, type: props.type }, type: REFERENCE_NODE_NAME },
+          { text: ' ', type: 'text' },
         ])
         .run()
     },
+    // The candidate list is reactive (`referenceSearch`); the suggestion plugin
+    // only drives the trigger, query, range and keyboard lifecycle.
+    items: () => [],
     render: () => ({
-      onStart: (props: SuggestionProps<ReferenceItem, ReferenceItem>) => {
-        picker = { open: true, query: props.query, index: 0, command: props.command }
-      },
-      onUpdate: (props: SuggestionProps<ReferenceItem, ReferenceItem>) => {
-        picker = { open: true, query: props.query, index: 0, command: props.command }
-      },
-      onKeyDown: ({ event }) => onPickerKeyDown(event),
       onExit: () => {
         picker.open = false
+      },
+      onKeyDown: ({ event }) => onPickerKeyDown(event),
+      onStart: (props: SuggestionProps<ReferenceItem, ReferenceItem>) => {
+        picker = { command: props.command, index: 0, open: true, query: props.query }
+      },
+      onUpdate: (props: SuggestionProps<ReferenceItem, ReferenceItem>) => {
+        picker = { command: props.command, index: 0, open: true, query: props.query }
       },
     }),
   }
 
   const referenceExtension = createReferenceExtension({
-    suggestion,
     resolveLabel: (type, id) => search.resolveLabel(type, id),
+    suggestion,
   })
 
   // --- Editor lifecycle -------------------------------------------------------
   const mountEditor: Attachment<HTMLElement> = (node) => {
     const editor = new Editor({
+      content: String(initialValue),
+      contentType: 'markdown',
       element: node,
       extensions: [
         StarterKit.configure({
@@ -134,16 +136,14 @@
           codeBlock: false,
           heading: false,
           horizontalRule: false,
+          link: { openOnClick: false },
           orderedList: false,
           strike: false,
           underline: false,
-          link: { openOnClick: false },
         }),
         Markdown,
         referenceExtension,
       ],
-      content: String(initialValue),
-      contentType: 'markdown',
       onTransaction: ({ editor }) => {
         editorState = { editor }
       },
@@ -226,16 +226,16 @@
   const getLinkSelection = () => {
     const editor = editorState.editor
     if (editor == null) {
-      return { text: '', href: '' }
+      return { href: '', text: '' }
     }
     const { from, to } = editor.state.selection
     return {
-      text: editor.state.doc.textBetween(from, to, ' '),
       href: (editor.getAttributes('link').href as string | undefined) ?? '',
+      text: editor.state.doc.textBetween(from, to, ' '),
     }
   }
 
-  const applyLink = ({ text, href }: { text: string; href: string }) => {
+  const applyLink = ({ href, text }: { href: string; text: string }) => {
     const editor = editorState.editor
     if (editor == null) {
       return
@@ -243,7 +243,7 @@
     editor
       .chain()
       .focus()
-      .insertContent({ type: 'text', text: text.length > 0 ? text : href, marks: [{ type: 'link', attrs: { href } }] })
+      .insertContent({ marks: [{ attrs: { href }, type: 'link' }], text: text.length > 0 ? text : href, type: 'text' })
       .run()
   }
 </script>
@@ -251,7 +251,7 @@
 <div class="border-surface-200-800 bg-surface-100-900 overflow-hidden rounded-2xl border">
   <!-- Toolbar -->
   <div class="border-surface-200-800 flex items-center gap-1 border-b px-2 py-1.5">
-    {#snippet tool(icon: 'bold' | 'italic' | 'list' | 'at-sign', label: string, active: boolean, onclick: () => void)}
+    {#snippet tool(icon: 'at-sign' | 'bold' | 'italic' | 'list', label: string, active: boolean, onclick: () => void)}
       <button
         type="button"
         aria-label={label}
@@ -263,7 +263,7 @@
       </button>
     {/snippet}
 
-    {#snippet action(icon: 'undo' | 'redo', label: string, disabled: boolean, onclick: () => void)}
+    {#snippet action(icon: 'redo' | 'undo', label: string, disabled: boolean, onclick: () => void)}
       <button
         type="button"
         aria-label={label}

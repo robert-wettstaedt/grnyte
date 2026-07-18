@@ -13,7 +13,7 @@ const FORWARDED_HEADERS = ['accept', 'range']
 // originals keep their EXIF (incl. GPS), derivatives are re-encoded webp with none.
 const MAX_WIDTH = DERIVATIVE_SIZES[1]
 
-export async function GET({ locals, request, params, url }) {
+export async function GET({ locals, params, request, url }) {
   // The DB stores paths with a leading slash; the URL segment may or may not.
   const resourcePath = params.resourcePath.startsWith('/') ? params.resourcePath : `/${params.resourcePath}`
 
@@ -75,7 +75,7 @@ export async function GET({ locals, request, params, url }) {
     // original, so the consumer still gets an image rather than a broken one — except
     // for public (anon) access, where the original would leak EXIF, so that 502s instead.
     payload = await provider
-      .fetchThumbnail(resourcePath, { width: effectiveWidth, signal: request.signal })
+      .fetchThumbnail(resourcePath, { signal: request.signal, width: effectiveWidth })
       .catch((err) => {
         console.error(`Thumbnail failed for "${resourcePath}":`, err)
         if (!authorized) {

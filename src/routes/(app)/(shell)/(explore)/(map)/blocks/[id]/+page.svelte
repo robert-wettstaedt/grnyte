@@ -8,20 +8,20 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
+  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { blockBreadcrumbArea } from '$lib/entities/block/breadcrumb'
   import { blockDetail, blockList, blockRouteList } from '$lib/entities/block/resources.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
-  import { canEditTopo } from '$lib/entities/topo/permissions'
   import { selectTopoForRoute } from '$lib/entities/topo/mapper'
-  import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { orderRoutesByTopo } from '$lib/entities/topo/order'
+  import { canEditTopo } from '$lib/entities/topo/permissions'
+  import { blockTopoList } from '$lib/entities/topo/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
-  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import BlockActions from './BlockActions.svelte'
 
   const global = getGlobalState()
@@ -91,9 +91,9 @@
                 height={topo.imageHeight}
                 alt={m.topo_alt()}
                 lines={topo.lines.map((line) => ({
+                  band: getGradeBand(line.gradeFk),
                   id: line.id,
                   points: line.points,
-                  band: getGradeBand(line.gradeFk),
                   topType: line.topType,
                 }))}
               />

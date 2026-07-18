@@ -6,6 +6,7 @@
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
   import type { RouteMapItem } from '$lib/entities/route/dto'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
+  import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from '$lib/map/filter'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
@@ -18,29 +19,28 @@
   import MediaSelect, { type MediaFilter } from './fields/MediaSelect.svelte'
   import RatingSelect from './fields/RatingSelect.svelte'
   import TagSelect from './fields/TagSelect.svelte'
-  import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from '$lib/map/filter'
 
   interface SortOption {
-    value: string
     label: string
+    value: string
   }
 
   interface Props {
     loading: boolean
-    /** Only `gradeFk` and the count are read, so both the slim map rows and full list items fit. */
-    routes: Pick<RouteMapItem, 'gradeFk'>[]
-    /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
-    sortOptions?: SortOption[]
-    /** Default direction per sort field, used to seed Order and detect defaults. */
-    sortDefaults?: Record<string, 'asc' | 'desc'>
     /**
      * Desktop panel placement: `search` drops it under the search bar (explore),
      * `sheet` docks a slim column beside the routes sheet (area routes). No effect on mobile.
      */
     placement?: 'search' | 'sheet'
+    /** Only `gradeFk` and the count are read, so both the slim map rows and full list items fit. */
+    routes: Pick<RouteMapItem, 'gradeFk'>[]
+    /** Default direction per sort field, used to seed Order and detect defaults. */
+    sortDefaults?: Record<string, 'asc' | 'desc'>
+    /** When set, a Sort section is shown and `sort`/`dir` URL params are managed. */
+    sortOptions?: SortOption[]
   }
 
-  const { loading, routes, sortOptions, sortDefaults, placement = 'search' }: Props = $props()
+  const { loading, placement = 'search', routes, sortDefaults, sortOptions }: Props = $props()
 
   // Desktop panel geometry. `search`: under the search bar, sharing its x + width.
   // `sheet`: a slim column docked right of the routes sheet, sharing its y + height.
@@ -83,7 +83,7 @@
 
   let value = $state<number[]>([0, 0])
   let minRating = $state(0)
-  let ascentStatus = $state<AscentStatus | ''>('')
+  let ascentStatus = $state<'' | AscentStatus>('')
   let selectedTags = $state<string[]>([])
   let mediaFilters = $state<MediaFilter[]>([])
   let favoritesOnly = $state(false)

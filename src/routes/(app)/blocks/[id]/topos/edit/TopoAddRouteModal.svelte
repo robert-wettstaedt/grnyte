@@ -14,7 +14,7 @@
   import { slide } from 'svelte/transition'
 
   /** The block-route-list shape (a subset of RouteListItem) — enough for the picker rows. */
-  type RouteCandidate = Pick<RouteListItem, 'id' | 'name' | 'gradeFk' | 'rating' | 'description' | 'tags'>
+  type RouteCandidate = Pick<RouteListItem, 'description' | 'gradeFk' | 'id' | 'name' | 'rating' | 'tags'>
 
   interface Props {
     block: BlockDetail

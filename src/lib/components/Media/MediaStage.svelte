@@ -17,26 +17,26 @@
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
-  import { now } from '$lib/state/now.svelte'
   import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { formatConditions } from '$lib/i18n/units'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { formatConditions } from '$lib/i18n/units'
+  import { now } from '$lib/state/now.svelte'
   import { bunnyHls, bunnyIframe } from '$lib/videos/bunny'
   import { createHlsAttachment } from '$lib/videos/hls'
   import type { Attachment } from 'svelte/attachments'
 
   interface Props {
     file: MediaFile
-    /** Reports the live zoom factor (1 = fit) so the deck can gate its swipe gestures. */
-    onZoomChange?: (scale: number) => void
     /** Reports when the video dropped to the iframe fallback, a cross-origin frame that
      *  swallows touch, so the deck surfaces its arrow buttons (swipe can't reach it). */
     onFallback?: (active: boolean) => void
+    /** Reports the live zoom factor (1 = fit) so the deck can gate its swipe gestures. */
+    onZoomChange?: (scale: number) => void
   }
 
-  const { file, onZoomChange, onFallback }: Props = $props()
+  const { file, onFallback, onZoomChange }: Props = $props()
 
   const global = getGlobalState()
 
@@ -169,8 +169,8 @@
   <div
     class="absolute inset-0 overflow-hidden"
     use:panzoom={{
-      enabled: true,
       aspect,
+      enabled: true,
       onZoom: (k) => {
         // First zoom-in is the signal to stream the true original.
         if (k > 1) wantFull = true

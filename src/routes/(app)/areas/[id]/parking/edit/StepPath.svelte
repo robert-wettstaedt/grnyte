@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import Map from '$lib/map/Map.svelte'
   import { formatMetres, haversineMetres } from '$lib/map/map'
+  import Map from '$lib/map/Map.svelte'
   import type { MapData, MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
 

@@ -6,15 +6,15 @@ import { getVideoProvider } from '$lib/videos/provider.server'
 import { inArray } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-/** The columns {@link deleteFileRows} needs to unwind a row from storage. */
-type DeletableFile = Pick<File, 'id' | 'path' | 'bunnyStreamFk'>
-
 /**
  * A deleted file's backing storage: a hosted video, or the image objects (served
  * original, webp derivatives, orig sibling). Produced by {@link deleteFileRows},
  * consumed by {@link removeFileStorage} once the DB delete has committed.
  */
-export type FileStorageTarget = { video: string } | { images: string[] }
+export type FileStorageTarget = { images: string[] } | { video: string }
+
+/** The columns {@link deleteFileRows} needs to unwind a row from storage. */
+type DeletableFile = Pick<File, 'bunnyStreamFk' | 'id' | 'path'>
 
 /**
  * Delete file rows (and their bunny_streams) inside the caller's RLS transaction and

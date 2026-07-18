@@ -8,10 +8,10 @@ import type { BlockListItem } from './dto'
  */
 export function blockBreadcrumbArea(block: BlockListItem): AreaListItem & { regionFk: number } {
   return {
+    areas: block.areas,
     id: block.id,
     name: block.name,
-    type: null,
-    areas: block.areas,
     regionFk: block.regionFk,
+    type: null,
   }
 }

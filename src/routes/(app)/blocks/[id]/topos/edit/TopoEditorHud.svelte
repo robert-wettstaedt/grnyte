@@ -8,30 +8,30 @@
 
   interface Props {
     editor: TopoEditor
+    isFullscreen: boolean
     /** Whether topo lines are hidden on the stage (two-way; the eye toggle flips it). */
     linesHidden: boolean
-    isFullscreen: boolean
-    zoom: number
-    /** True when the stage is at its neutral 1x view (hides the reset-zoom pill). */
-    viewAtRest: boolean
-    saving: boolean
     onLeave: () => void
-    onToggleFullscreen: () => void
     onResetZoom: () => void
     onSave: () => void
+    onToggleFullscreen: () => void
+    saving: boolean
+    /** True when the stage is at its neutral 1x view (hides the reset-zoom pill). */
+    viewAtRest: boolean
+    zoom: number
   }
 
   let {
     editor,
-    linesHidden = $bindable(),
     isFullscreen,
-    zoom,
-    viewAtRest,
-    saving,
+    linesHidden = $bindable(),
     onLeave,
-    onToggleFullscreen,
     onResetZoom,
     onSave,
+    onToggleFullscreen,
+    saving,
+    viewAtRest,
+    zoom,
   }: Props = $props()
 
   // Keybind hints for the tooltips. The modifier tracks the OS so Windows/Linux users see Ctrl, not

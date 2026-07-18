@@ -16,12 +16,12 @@
   import { withUndo } from '$lib/state/toast'
 
   interface Props {
-    route: RouteDetail
     /** The block the route sits on — its pin is the directions target. */
     block: BlockDetail | undefined
+    route: RouteDetail
   }
 
-  const { route, block }: Props = $props()
+  const { block, route }: Props = $props()
   const global = getGlobalState()
 
   const canEdit = $derived(canEditRoute(global.userRegions, route))

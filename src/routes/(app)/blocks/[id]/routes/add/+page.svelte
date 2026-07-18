@@ -27,7 +27,7 @@
   const onSubmitted = async () => {
     const id = createRoute.result?.data?.id
     if (id == null) return
-    void finalizeMediaUploads(uploads, { type: 'route', id })
+    void finalizeMediaUploads(uploads, { id, type: 'route' })
     await waitForRoute(id)
     await goto(resolve('/(app)/routes/[id]', { id: String(id) }))
   }

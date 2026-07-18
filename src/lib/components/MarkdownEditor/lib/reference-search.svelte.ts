@@ -10,8 +10,8 @@ export interface ReferenceCandidate extends ReferenceItem {
 
 /** Candidates of one kind; the section header label is localised by the list. */
 export interface ReferenceGroup {
-  type: ReferenceType
   items: ReferenceCandidate[]
+  type: ReferenceType
 }
 
 // Section order in the dropdown and the per-section cap. The cap is pushed into
@@ -20,12 +20,12 @@ const GROUP_ORDER: ReferenceType[] = ['users', 'areas', 'blocks', 'routes']
 const PER_GROUP_LIMIT = 6
 
 interface ReferenceSearchOptions {
+  /** Only query while the picker is open — keeps it idle (and synced-down) otherwise. */
+  open: () => boolean
   /** Current `@` query (the text typed after the trigger). */
   query: () => string
   /** Region whose members may be `@`-mentioned; `undefined` hides the People group. */
   regionFk: () => number | undefined
-  /** Only query while the picker is open — keeps it idle (and synced-down) otherwise. */
-  open: () => boolean
 }
 
 /**
@@ -36,18 +36,18 @@ interface ReferenceSearchOptions {
  * nothing runs (and `users` never syncs over the network) until the picker is
  * actually triggered.
  */
-export function referenceSearch({ query, regionFk, open }: ReferenceSearchOptions) {
+export function referenceSearch({ open, query, regionFk }: ReferenceSearchOptions) {
   const areas = createResource(
     () => queries.listAreas({ content: query(), limit: PER_GROUP_LIMIT }),
     (rows): ReferenceCandidate[] =>
-      rows.map((row) => ({ type: 'areas', id: row.id, label: row.name, context: row.parent?.name })),
+      rows.map((row) => ({ context: row.parent?.name, id: row.id, label: row.name, type: 'areas' })),
     { enabled: open },
   )
 
   const blocks = createResource(
     () => queries.listBlocks({ content: query(), limit: PER_GROUP_LIMIT }),
     (rows): ReferenceCandidate[] =>
-      rows.map((row) => ({ type: 'blocks', id: row.id, label: row.name, context: row.area?.name })),
+      rows.map((row) => ({ context: row.area?.name, id: row.id, label: row.name, type: 'blocks' })),
     { enabled: open },
   )
 
@@ -55,37 +55,37 @@ export function referenceSearch({ query, regionFk, open }: ReferenceSearchOption
     () => queries.listRoutes({ content: query(), pageSize: PER_GROUP_LIMIT, sort: 'rating', sortOrder: 'desc' }),
     (rows): ReferenceCandidate[] =>
       rows.map((row) => ({
-        type: 'routes',
+        context: [row.block?.area?.name, row.block?.name].filter((crumb) => crumb != null),
         id: row.id,
         label: row.name,
-        context: [row.block?.area?.name, row.block?.name].filter((crumb) => crumb != null),
+        type: 'routes',
       })),
     { enabled: open },
   )
 
   const users = createResource(
-    () => queries.listUsers({ regionFk: regionFk()!, content: query(), limit: PER_GROUP_LIMIT }),
-    (rows): ReferenceCandidate[] => rows.map((row) => ({ type: 'users', id: row.id, label: row.username })),
+    () => queries.listUsers({ content: query(), limit: PER_GROUP_LIMIT, regionFk: regionFk()! }),
+    (rows): ReferenceCandidate[] => rows.map((row) => ({ id: row.id, label: row.username, type: 'users' })),
     { enabled: () => open() && regionFk() != null },
   )
 
   const candidates = (): Record<ReferenceType, ReferenceCandidate[]> => ({
-    users: users.data,
     areas: areas.data,
     blocks: blocks.data,
     routes: routes.data,
+    users: users.data,
   })
 
   return {
-    /** Non-empty groups, in section order (already filtered + capped by the queries). */
-    get groups(): ReferenceGroup[] {
-      const all = candidates()
-      return GROUP_ORDER.map((type) => ({ type, items: all[type] })).filter((group) => group.items.length > 0)
-    },
-
     /** Flattened candidates in display order — drives keyboard navigation. */
     get flat(): ReferenceCandidate[] {
       return this.groups.flatMap((group) => group.items)
+    },
+
+    /** Non-empty groups, in section order (already filtered + capped by the queries). */
+    get groups(): ReferenceGroup[] {
+      const all = candidates()
+      return GROUP_ORDER.map((type) => ({ items: all[type], type })).filter((group) => group.items.length > 0)
     },
 
     /**

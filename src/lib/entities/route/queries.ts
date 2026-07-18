@@ -4,81 +4,6 @@ import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
 
 export const routesQueryDefs = {
-  /**
-   * The map's route list: one bare row per route (no related trees). The /explore map and
-   * its Filter only read `id`/`blockFk`/`gradeFk`, while `listRoutes` materializes tags,
-   * first ascents, block+area and topo+file for every route, which dominates the cold-load
-   * sync (roughly half the synced rows) and Zero's IVM work. Filters still apply
-   * server-side via `whereExists`, which doesn't sync the related rows.
-   */
-  listRoutesForMap: defineQuery(
-    z.object({
-      areaId: z.number().nullish(),
-      content: z.string().optional(),
-      firstAscensionists: z.array(z.number()).optional(),
-      hasBeta: z.boolean().optional(),
-      hasTopo: z.boolean().optional(),
-      maxGrade: z.number().optional(),
-      minGrade: z.number().optional(),
-      minRating: z.number().optional(),
-      references: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-    }),
-    regionMemberCan(({ args, ctx }) => {
-      const r = relatedRegion(ctx)
-
-      let q = zql.routes.where('deletedAt', 'IS', null)
-
-      if (args.areaId != null) {
-        q = q.where('areaIds', 'ILIKE', `%^${args.areaId}$%`)
-      }
-
-      // Filters run on the community grade/rating, the values every list displays.
-      if (args.minGrade != null) {
-        q = q.where('userGradeFk', '>=', args.minGrade)
-      }
-      if (args.maxGrade != null) {
-        q = q.where('userGradeFk', '<=', args.maxGrade)
-      }
-
-      if (args.minRating != null) {
-        q = q.where('userRating', '>=', args.minRating)
-      }
-
-      if (args.tags != null && args.tags.length > 0) {
-        q = q.whereExists('tags', (q) => r(q).where('tagFk', 'IN', args.tags!))
-      }
-
-      if (args.firstAscensionists != null && args.firstAscensionists.length > 0) {
-        q = q.whereExists('firstAscents', (q) => r(q).where('firstAscensionistFk', 'IN', args.firstAscensionists!))
-      }
-
-      if (args.hasTopo) {
-        q = q.whereExists('topoRoutes', r)
-      }
-
-      if (args.hasBeta) {
-        q = q.where(({ or, exists }) =>
-          or(
-            exists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null)),
-            exists('ascents', (a) => r(a).whereExists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null))),
-          ),
-        )
-      }
-
-      if (args.content != null) {
-        q = q.where((q) =>
-          q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
-        )
-      }
-
-      if (args.references != null) {
-        q = q.where('description', 'ILIKE', `%${args.references}%`)
-      }
-
-      return q
-    }),
-  ),
   listRoutes: defineQuery(
     z.object({
       areaId: z.number().nullish(),
@@ -145,7 +70,7 @@ export const routesQueryDefs = {
       }
 
       if (args.hasBeta) {
-        q = q.where(({ or, exists }) =>
+        q = q.where(({ exists, or }) =>
           or(
             exists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null)),
             exists('ascents', (a) => r(a).whereExists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null))),
@@ -186,6 +111,81 @@ export const routesQueryDefs = {
 
       if (args.pageSize != null) {
         q = q.limit(args.pageSize)
+      }
+
+      return q
+    }),
+  ),
+  /**
+   * The map's route list: one bare row per route (no related trees). The /explore map and
+   * its Filter only read `id`/`blockFk`/`gradeFk`, while `listRoutes` materializes tags,
+   * first ascents, block+area and topo+file for every route, which dominates the cold-load
+   * sync (roughly half the synced rows) and Zero's IVM work. Filters still apply
+   * server-side via `whereExists`, which doesn't sync the related rows.
+   */
+  listRoutesForMap: defineQuery(
+    z.object({
+      areaId: z.number().nullish(),
+      content: z.string().optional(),
+      firstAscensionists: z.array(z.number()).optional(),
+      hasBeta: z.boolean().optional(),
+      hasTopo: z.boolean().optional(),
+      maxGrade: z.number().optional(),
+      minGrade: z.number().optional(),
+      minRating: z.number().optional(),
+      references: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      let q = zql.routes.where('deletedAt', 'IS', null)
+
+      if (args.areaId != null) {
+        q = q.where('areaIds', 'ILIKE', `%^${args.areaId}$%`)
+      }
+
+      // Filters run on the community grade/rating, the values every list displays.
+      if (args.minGrade != null) {
+        q = q.where('userGradeFk', '>=', args.minGrade)
+      }
+      if (args.maxGrade != null) {
+        q = q.where('userGradeFk', '<=', args.maxGrade)
+      }
+
+      if (args.minRating != null) {
+        q = q.where('userRating', '>=', args.minRating)
+      }
+
+      if (args.tags != null && args.tags.length > 0) {
+        q = q.whereExists('tags', (q) => r(q).where('tagFk', 'IN', args.tags!))
+      }
+
+      if (args.firstAscensionists != null && args.firstAscensionists.length > 0) {
+        q = q.whereExists('firstAscents', (q) => r(q).where('firstAscensionistFk', 'IN', args.firstAscensionists!))
+      }
+
+      if (args.hasTopo) {
+        q = q.whereExists('topoRoutes', r)
+      }
+
+      if (args.hasBeta) {
+        q = q.where(({ exists, or }) =>
+          or(
+            exists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null)),
+            exists('ascents', (a) => r(a).whereExists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null))),
+          ),
+        )
+      }
+
+      if (args.content != null) {
+        q = q.where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
+        )
+      }
+
+      if (args.references != null) {
+        q = q.where('description', 'ILIKE', `%${args.references}%`)
       }
 
       return q

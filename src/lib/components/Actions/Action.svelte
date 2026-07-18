@@ -2,16 +2,16 @@
   import type { Snippet } from 'svelte'
 
   interface Props {
+    children: Snippet
+    /** Disables the button variant (anchors can't be disabled natively). */
+    disabled?: boolean
     /** When set, the action renders as a link; otherwise as a button. */
     href?: string
     /** Click handler for the button variant; ignored when `href` is set. */
     onclick?: () => void
-    /** Disables the button variant (anchors can't be disabled natively). */
-    disabled?: boolean
-    children: Snippet
   }
 
-  const { href, onclick, disabled = false, children }: Props = $props()
+  const { children, disabled = false, href, onclick }: Props = $props()
 
   // Shared so the link and button variants are visually identical. `shrink-0`
   // plus `whitespace-nowrap` keep each action at its natural size — so the

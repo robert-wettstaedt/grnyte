@@ -47,7 +47,10 @@
             {#if headerRight}
               {@render headerRight()}
             {:else}
-              <Dialog.CloseTrigger class="btn-icon preset-filled-surface-200-800 shrink-0" aria-label={m.common_close()}>
+              <Dialog.CloseTrigger
+                class="btn-icon preset-filled-surface-200-800 shrink-0"
+                aria-label={m.common_close()}
+              >
                 <Icon name="close" />
               </Dialog.CloseTrigger>
             {/if}

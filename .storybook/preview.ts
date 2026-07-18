@@ -1,6 +1,5 @@
 import type { Preview } from '@storybook/sveltekit'
 import GlobalStateDecorator from './GlobalStateDecorator.svelte'
-
 // Pull in the real app stylesheet (Tailwind 4 + Skeleton + grnyte tokens) so
 // components render exactly as they do in the app.
 import '../src/app.css'
@@ -17,15 +16,11 @@ const preview: Preview = {
   // built on it — e.g. rows rendering markdown sublines — mount outside the app.
   decorators: [() => GlobalStateDecorator],
   parameters: {
-    layout: 'centered',
     backgrounds: {
       options: {
-        root: { name: 'Surface root', value: 'oklch(0.165 0.008 305)' },
         card: { name: 'Surface card', value: 'oklch(0.215 0.010 305)' },
+        root: { name: 'Surface root', value: 'oklch(0.165 0.008 305)' },
       },
-    },
-    initialGlobals: {
-      backgrounds: { value: 'root' },
     },
     controls: {
       matchers: {
@@ -33,6 +28,10 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    initialGlobals: {
+      backgrounds: { value: 'root' },
+    },
+    layout: 'centered',
   },
 }
 

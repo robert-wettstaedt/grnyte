@@ -5,7 +5,7 @@
   import { onMount } from 'svelte'
   import { convertMarkdownToHtmlSync } from './lib'
   import { markdownReferences } from './lib/references.svelte'
-  import { type EncloseOptions, enrichMarkdownWithReferences, getReferences } from './lib/remark-references'
+  import { enrichMarkdownWithReferences, getReferences, type EncloseOptions } from './lib/remark-references'
 
   interface Props {
     className?: string
@@ -27,8 +27,8 @@
 
     const observer = new MutationObserver(updateMarkdownTheme)
     observer.observe(document.documentElement, {
-      attributes: true,
       attributeFilter: ['class'],
+      attributes: true,
     })
 
     return () => {

@@ -10,21 +10,21 @@
   // map · coordinates picker. Owns the picker's transient state so callers only deal
   // in the committed result. Reused by the add-block flow and (later) "move on the map".
   interface Props {
-    mapData: MapData
     areaExtent: [number, number, number, number] | null
-    /** Seed the picker, e.g. the existing location when adjusting. */
-    initial?: Coords | null
-    title: string
     /** Label of the screen returned to (shown next to the back arrow). */
     backLabel: string
+    /** Seed the picker, e.g. the existing location when adjusting. */
+    initial?: Coords | null
+    mapData: MapData
     onBack: () => void
     onDone: (coords: Coords) => void
+    title: string
   }
 
-  const { mapData, areaExtent, initial = null, title, backLabel, onBack, onDone }: Props = $props()
+  const { areaExtent, backLabel, initial = null, mapData, onBack, onDone, title }: Props = $props()
 
   // Seeded once from `initial`; the screen remounts on each open, so it never goes stale.
-  let mode = $state<'map' | 'coordinates'>('map')
+  let mode = $state<'coordinates' | 'map'>('map')
   // svelte-ignore state_referenced_locally
   let latText = $state(initial == null ? '' : String(initial.lat))
   // svelte-ignore state_referenced_locally

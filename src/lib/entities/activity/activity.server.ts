@@ -5,32 +5,32 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 interface HandleOpts extends Pick<
   schema.InsertActivity,
-  'entityId' | 'entityType' | 'userFk' | 'parentEntityId' | 'parentEntityType' | 'regionFk'
+  'entityId' | 'entityType' | 'parentEntityId' | 'parentEntityType' | 'regionFk' | 'userFk'
 > {
-  oldEntity: Record<string, unknown>
-  newEntity: Record<string, unknown>
   db: PostgresJsDatabase<typeof schema>
+  newEntity: Record<string, unknown>
+  oldEntity: Record<string, unknown>
 }
 
 export const createUpdateActivity = async ({
-  oldEntity,
-  newEntity,
   db,
   entityId,
   entityType,
-  userFk,
+  newEntity,
+  oldEntity,
   parentEntityId,
   parentEntityType,
   regionFk,
+  userFk,
 }: HandleOpts) => {
-  const changes: Pick<schema.InsertActivity, 'columnName' | 'oldValue' | 'newValue'>[] = []
+  const changes: Pick<schema.InsertActivity, 'columnName' | 'newValue' | 'oldValue'>[] = []
 
   Object.keys(newEntity).forEach((key) => {
     if (String(oldEntity[key] ?? null) !== String(newEntity[key] ?? null)) {
       changes.push({
         columnName: key,
-        oldValue: oldEntity[key] == null ? null : String(oldEntity[key]),
         newValue: newEntity[key] == null ? null : String(newEntity[key]),
+        oldValue: oldEntity[key] == null ? null : String(oldEntity[key]),
       })
     }
   })
@@ -71,16 +71,16 @@ export const createUpdateActivity = async ({
     await db.insert(schema.activities).values(
       changes.map(
         (change): schema.InsertActivity => ({
-          type: 'updated',
-          userFk,
+          columnName: change.columnName,
           entityId,
           entityType,
-          columnName: change.columnName,
-          oldValue: change.oldValue,
           newValue: change.newValue,
+          oldValue: change.oldValue,
           parentEntityId,
           parentEntityType,
           regionFk,
+          type: 'updated',
+          userFk,
         }),
       ),
     )
@@ -138,7 +138,7 @@ export const insertActivity = async (
  *  possible but negligible right after a delete. Upgrade = scope by id/createdAt. */
 export const deleteActivity = async (
   db: PostgresJsDatabase<typeof schema>,
-  filter: Partial<Pick<schema.InsertActivity, 'entityId' | 'entityType' | 'type' | 'columnName' | 'userFk'>>,
+  filter: Partial<Pick<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'type' | 'userFk'>>,
 ) => {
   const conditions = Object.entries(filter)
     .filter(([, value]) => value != null)

@@ -17,12 +17,12 @@ describe('convertPathToPoints', () => {
 
 describe('selectTopoForRoute', () => {
   const line = (id: number, routeId: number, path: string): TopoView['lines'][number] => ({
-    id,
-    routeId,
-    name: '',
-    topType: 'top',
     gradeFk: undefined,
+    id,
+    name: '',
     points: convertPathToPoints(path),
+    routeId,
+    topType: 'top',
   })
 
   it('picks the topo where the route line has the most points', () => {

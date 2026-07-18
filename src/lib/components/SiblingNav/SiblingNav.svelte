@@ -3,19 +3,19 @@
      mobile pill / desktop footer, the route detail page's sticky footer). On the desktop/keyboard
      surfaces the chevrons carry hover tooltips with the j/l keybind hints. -->
 <script lang="ts">
-  import type { IconName } from '$lib/components/Icon/icons'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import type { IconName } from '$lib/components/Icon/icons'
   import KbdTooltip from '$lib/components/KbdTooltip/KbdTooltip.svelte'
   import type { HTMLAttributes } from 'svelte/elements'
   import type { SheetNav } from './siblingNav'
 
   interface Props {
-    nav: SheetNav
     /** Larger touch targets, for the mobile sheet pill. */
     large?: boolean
+    nav: SheetNav
   }
 
-  const { nav, large = false }: Props = $props()
+  const { large = false, nav }: Props = $props()
 
   const linkClass = $derived(['btn-icon preset-filled-surface-200-800', large && 'btn-icon-lg'])
 </script>
@@ -24,12 +24,7 @@
 {#snippet chevron(icon: IconName, href: string, label: string, key: string)}
   <KbdTooltip {label} {key}>
     {#snippet trigger(attributes)}
-      <a
-        {...attributes as unknown as HTMLAttributes<HTMLAnchorElement>}
-        class={linkClass}
-        {href}
-        aria-label={label}
-      >
+      <a {...attributes as unknown as HTMLAttributes<HTMLAnchorElement>} class={linkClass} {href} aria-label={label}>
         <Icon name={icon} size={18} />
       </a>
     {/snippet}

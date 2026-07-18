@@ -5,18 +5,18 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
-  import { m } from '$lib/paraglide/messages'
-  import { getGlobalState } from '$lib/state/global.svelte'
-  import { fade, fly } from 'svelte/transition'
-  import type { LayoutProps } from './$types'
   import { createExploreMapData } from '$lib/map/exploreData.svelte'
   import { parseRouteFilter } from '$lib/map/filter'
   import Map from '$lib/map/Map.svelte'
   import { BLOCK_LABEL_ZOOM, type MapFocus } from '$lib/map/types'
-  import CreateOnMap from './CreateOnMap/CreateOnMap.svelte'
-  import Filter from './Filter/Filter.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { getGlobalState } from '$lib/state/global.svelte'
+  import { fade, fly } from 'svelte/transition'
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
+  import type { LayoutProps } from './$types'
+  import CreateOnMap from './CreateOnMap/CreateOnMap.svelte'
+  import Filter from './Filter/Filter.svelte'
   import SearchBar from './SearchBar/SearchBar.svelte'
 
   let { children }: LayoutProps = $props()
@@ -24,7 +24,7 @@
   const global = getGlobalState()
 
   let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
-  let mapViewState = $state<{ center: [number, number]; zoom: number } | null>(null)
+  let mapViewState = $state<null | { center: [number, number]; zoom: number }>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
   // Quick-create (FAB / long-press): placement mode plus the transient focus that centres
@@ -99,14 +99,14 @@
 
     if (routeId.includes('parking/')) {
       const parking = explore.parkingLocations.find((location) => location.id === id)
-      return parking == null ? null : { center: [parking.lat, parking.long], zoom: 16, padding }
+      return parking == null ? null : { center: [parking.lat, parking.long], padding, zoom: 16 }
     }
 
     if (routeId.includes('blocks/')) {
       const block = explore.blocks.find((candidate) => candidate.id === id)
       return block?.geolocation == null
         ? null
-        : { center: [block.geolocation.lat, block.geolocation.long], zoom: 16, padding }
+        : { center: [block.geolocation.lat, block.geolocation.long], padding, zoom: 16 }
     }
 
     if (routeId.includes('areas/')) {

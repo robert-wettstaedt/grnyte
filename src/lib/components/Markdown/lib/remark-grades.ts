@@ -22,7 +22,6 @@ export const remarkGrades: Plugin<[RemarkGradesOptions?], Root> = ({ grades } = 
     const background = grade == null ? null : getGradeColor(grade)
 
     return {
-      type: 'strong',
       children: [{ type: 'text', value: label }],
       data: {
         hName: 'span',
@@ -31,6 +30,7 @@ export const remarkGrades: Plugin<[RemarkGradesOptions?], Root> = ({ grades } = 
           ...(background == null ? {} : { style: `background: ${background}` }),
         },
       },
+      type: 'strong',
     }
   }
 

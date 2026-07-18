@@ -1,8 +1,8 @@
 <script lang="ts">
-  import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
-  import { getGradeBand, gradeVar, GRADE_COLORS } from '$lib/entities/grade/color'
+  import { getGradeBand, GRADE_COLORS, gradeVar } from '$lib/entities/grade/color'
   import type { Grade } from '$lib/entities/grade/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import type { GradingScale } from '$lib/entities/user/dto'
   import ClearButton from '$lib/forms/ClearButton.svelte'
   import { m } from '$lib/paraglide/messages'

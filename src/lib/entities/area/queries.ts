@@ -4,13 +4,30 @@ import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
 
 export const areasQueryDefs = {
+  area: defineQuery(
+    z.object({
+      id: z.number(),
+    }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      return zql.areas
+        .where('id', args.id)
+        .where('deletedAt', 'IS', null)
+        .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
+        .related('author')
+        .related('files', r)
+        .related('parkingLocations', r)
+        .one()
+    }),
+  ),
   listAreas: defineQuery(
     z.object({
-      id: z.union([z.number(), z.array(z.number())]).optional(),
-      parentFk: z.number().nullable().optional(),
       content: z.string().optional(),
-      references: z.string().optional(),
+      id: z.union([z.number(), z.array(z.number())]).optional(),
       limit: z.number().optional(),
+      parentFk: z.number().nullable().optional(),
+      references: z.string().optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
@@ -48,23 +65,6 @@ export const areasQueryDefs = {
       }
 
       return q
-    }),
-  ),
-  area: defineQuery(
-    z.object({
-      id: z.number(),
-    }),
-    regionMemberCan(({ args, ctx }) => {
-      const r = relatedRegion(ctx)
-
-      return zql.areas
-        .where('id', args.id)
-        .where('deletedAt', 'IS', null)
-        .related('parent', (q) => r(q).related('parent', (q) => r(q).related('parent', r)))
-        .related('author')
-        .related('files', r)
-        .related('parkingLocations', r)
-        .one()
     }),
   ),
 }

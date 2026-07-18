@@ -17,15 +17,15 @@ export const FILTER_PARAM_KEYS = [
 ] as const
 
 export interface ParsedRouteFilter {
-  /** Params the Zero `listRoutes` query understands (filtered server-side). */
-  filter: RouteListFilter
   /** Tick status, filtered client-side from the signed-in user's ascents. */
   ascentStatus: AscentStatus | undefined
   /** Whether to keep only the user's favorited routes (client-side). */
   favoritesOnly: boolean
+  /** Params the Zero `listRoutes` query understands (filtered server-side). */
+  filter: RouteListFilter
 }
 
-export const isAscentStatus = (value: string | null): value is AscentStatus =>
+export const isAscentStatus = (value: null | string): value is AscentStatus =>
   value === 'done' || value === 'todo' || value === 'project'
 
 /** Reads the explore URL's search params into typed route-filter values. */
@@ -38,17 +38,17 @@ export const parseRouteFilter = (params: URLSearchParams): ParsedRouteFilter => 
   const ascentStatus = params.get('ascentStatus')
 
   return {
-    filter: {
-      minGrade: minGrade == null ? undefined : Number(minGrade),
-      maxGrade: maxGrade == null ? undefined : Number(maxGrade),
-      minRating: minRating == null ? undefined : Number(minRating),
-      tags: tags ? tags.split(',') : undefined,
-      firstAscensionists: firstAscensionists ? firstAscensionists.split(',').map(Number) : undefined,
-      hasTopo: params.get('hasTopo') === '1' ? true : undefined,
-      hasBeta: params.get('hasBeta') === '1' ? true : undefined,
-    },
     ascentStatus: isAscentStatus(ascentStatus) ? ascentStatus : undefined,
     favoritesOnly: params.get('favorites') === '1',
+    filter: {
+      firstAscensionists: firstAscensionists ? firstAscensionists.split(',').map(Number) : undefined,
+      hasBeta: params.get('hasBeta') === '1' ? true : undefined,
+      hasTopo: params.get('hasTopo') === '1' ? true : undefined,
+      maxGrade: maxGrade == null ? undefined : Number(maxGrade),
+      minGrade: minGrade == null ? undefined : Number(minGrade),
+      minRating: minRating == null ? undefined : Number(minRating),
+      tags: tags ? tags.split(',') : undefined,
+    },
   }
 }
 

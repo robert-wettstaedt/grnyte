@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
+type MessageKey = keyof Messages
 // Derive paraglide's per-message key + param types so server-side error payloads stay type-safe.
 type Messages = (typeof import('$lib/paraglide/messages'))['m']
-type MessageKey = keyof Messages
 type ParamsOf<K extends MessageKey> = Parameters<Messages[K]>[0]
 
 /** Build a locale-agnostic zod error payload that FormHint resolves via paraglide `m[key](params)`. */

@@ -1,18 +1,18 @@
-import { describe, expect, it, vi } from 'vitest'
-import { TopoEditor, type EditLine } from '$lib/entities/topo/editor.svelte'
 import type { TopoView } from '$lib/entities/topo/dto'
+import { TopoEditor, type EditLine } from '$lib/entities/topo/editor.svelte'
+import { describe, expect, it, vi } from 'vitest'
 import { topoEditorKeydown } from './keydown'
 
 /** A minimal fake keydown event — the handler only reads these fields. */
 function press(key: string, opts: Partial<KeyboardEvent> = {}): KeyboardEvent {
   return {
+    ctrlKey: false,
     key,
     metaKey: false,
-    ctrlKey: false,
-    shiftKey: false,
-    repeat: false,
-    target: null,
     preventDefault: () => {},
+    repeat: false,
+    shiftKey: false,
+    target: null,
     ...opts,
   } as unknown as KeyboardEvent
 }
@@ -20,21 +20,21 @@ function press(key: string, opts: Partial<KeyboardEvent> = {}): KeyboardEvent {
 /** Editor over photo 1 with two drawn lines (route 10 left of route 20), plus a two-photo strip. */
 function setup() {
   const line = (routeFk: number, x: number): EditLine => ({
+    points: [{ id: `p${routeFk}`, type: 'start', x, y: 0.5 }],
     routeFk,
     topType: 'top',
-    points: [{ id: `p${routeFk}`, type: 'start', x, y: 0.5 }],
   })
   const store: Record<number, EditLine[]> = { 1: [line(10, 0.2), line(20, 0.8)], 2: [] }
   const editor = new TopoEditor((id) => store[id] ?? [])
   editor.topoId = 1
 
   const topos: TopoView[] = [
-    { id: 1, imagePath: 'a', imageWidth: 100, imageHeight: 200, lines: [] },
-    { id: 2, imagePath: 'b', imageWidth: 100, imageHeight: 200, lines: [] },
+    { id: 1, imageHeight: 200, imagePath: 'a', imageWidth: 100, lines: [] },
+    { id: 2, imageHeight: 200, imagePath: 'b', imageWidth: 100, lines: [] },
   ]
   const onSave = vi.fn()
   const onToggleFullscreen = vi.fn()
-  const handler = topoEditorKeydown({ editor, topos: () => topos, onSave, onToggleFullscreen })
+  const handler = topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos: () => topos })
   const xOf = (routeFk: number) => editor.currentLines.find((l) => l.routeFk === routeFk)!.points[0].x
   return { editor, handler, onSave, onToggleFullscreen, xOf }
 }
@@ -62,19 +62,19 @@ describe('topoEditorKeydown', () => {
     expect(editor.topoId).toBe(1)
   })
 
-  it('arrow keys nudge the selected line by 1px in image space', () => {
+  it('arrow keys nudge the selected line by 10px in image space', () => {
     const { editor, handler, xOf } = setup()
     editor.selectRoute(10)
-    handler(press('ArrowRight')) // +1px on a 100px-wide image -> +0.01
-    expect(xOf(10)).toBeCloseTo(0.21)
+    handler(press('ArrowRight')) // +10px on a 100px-wide image -> +0.1
+    expect(xOf(10)).toBeCloseTo(0.3)
   })
 
   it('nudges a selected point instead of the line', () => {
     const { editor, handler } = setup()
     editor.selectRoute(20)
     editor.selectPoint('p20')
-    handler(press('ArrowUp')) // -1px on a 200px-tall image -> -0.005
-    expect(editor.selectedPoint!.y).toBeCloseTo(0.495)
+    handler(press('ArrowUp')) // -10px on a 200px-tall image -> -0.05
+    expect(editor.selectedPoint!.y).toBeCloseTo(0.45)
   })
 
   it('ignores arrows when nothing is selected', () => {
@@ -103,11 +103,11 @@ describe('topoEditorKeydown', () => {
     const { editor, handler, xOf } = setup()
     editor.selectRoute(10)
     handler(press('ArrowRight'))
-    expect(xOf(10)).toBeCloseTo(0.21)
+    expect(xOf(10)).toBeCloseTo(0.3)
     handler(press('z', { metaKey: true }))
     expect(xOf(10)).toBeCloseTo(0.2)
     handler(press('z', { metaKey: true, shiftKey: true }))
-    expect(xOf(10)).toBeCloseTo(0.21)
+    expect(xOf(10)).toBeCloseTo(0.3)
   })
 
   it('Escape clears the line selection', () => {

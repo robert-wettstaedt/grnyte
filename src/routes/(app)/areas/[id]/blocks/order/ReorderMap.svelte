@@ -16,16 +16,16 @@
   interface Props {
     /** Blocks in their staged order — a pin's number is the block's 1-based list position. */
     blocks: BlockDetail[]
-    /** Reference point for "sort by distance" (parking or centroid), shown as a parking pin. */
-    parking: Coords | null
     /** Encoded approach polylines (the area's walking paths), drawn like the main map. */
     geoPaths?: string[]
+    onselect?: (id: number) => void
+    /** Reference point for "sort by distance" (parking or centroid), shown as a parking pin. */
+    parking: Coords | null
     /** Highlighted block (two-way with the list). */
     selectedId?: number
-    onselect?: (id: number) => void
   }
 
-  const { blocks, parking, geoPaths, selectedId, onselect }: Props = $props()
+  const { blocks, geoPaths, onselect, parking, selectedId }: Props = $props()
 
   let map = $state<OlMap>()
   let hasSize = $state(false)
@@ -38,10 +38,10 @@
 
   const mapAttachment: Attachment = (node) => {
     const instance = new OlMap({
-      controls: defaultControls({ attribution: false, zoom: false, rotate: false }),
+      controls: defaultControls({ attribution: false, rotate: false, zoom: false }),
+      layers: [new TileLayer({ className: 'osm-layer', source: new OSM() })],
       target: node as HTMLElement,
-      layers: [new TileLayer({ source: new OSM(), className: 'osm-layer' })],
-      view: new View({ center: fromLonLat([2.6, 48.4]), zoom: 4, constrainResolution: true }),
+      view: new View({ center: fromLonLat([2.6, 48.4]), constrainResolution: true, zoom: 4 }),
     })
     map = instance
 
@@ -78,9 +78,9 @@
         instance.addOverlay(
           new Overlay({
             element: el,
+            position: fromLonLat([block.geolocation.long, block.geolocation.lat]),
             positioning: 'center-center',
             stopEvent: true,
-            position: fromLonLat([block.geolocation.long, block.geolocation.lat]),
           }),
         )
         pinEls.set(block.id, el)
@@ -133,7 +133,7 @@
       instance.getView().setCenter(coords[0])
       instance.getView().setZoom(16)
     } else {
-      instance.getView().fit(boundingExtent(coords), { padding: [48, 48, 48, 48], maxZoom: 17 })
+      instance.getView().fit(boundingExtent(coords), { maxZoom: 17, padding: [48, 48, 48, 48] })
     }
   })
 </script>

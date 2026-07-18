@@ -6,10 +6,10 @@
   let wrapEl: HTMLDivElement
   let showFallback = $state(true)
 
-  const ROUTES: Array<{ theta: number; color: number }> = [
-    { theta: 0.95, color: 0xe8893f }, // grade-4 orange
-    { theta: 1.55, color: 0x4fc3d4 }, // grade-2 cyan
-    { theta: 2.15, color: 0xe0533b }, // grade-5 red
+  const ROUTES: Array<{ color: number; theta: number }> = [
+    { color: 0xe8893f, theta: 0.95 }, // grade-4 orange
+    { color: 0x4fc3d4, theta: 1.55 }, // grade-2 cyan
+    { color: 0xe0533b, theta: 2.15 }, // grade-5 red
   ]
 
   function boot(
@@ -95,9 +95,9 @@
     const boulder = new THREE.Mesh(
       geo,
       new THREE.MeshStandardMaterial({
-        roughness: 0.95,
-        metalness: 0.02,
         flatShading: true,
+        metalness: 0.02,
+        roughness: 0.95,
         vertexColors: true,
       }),
     )
@@ -112,7 +112,7 @@
       if (hit) return hit.point.clone().multiplyScalar(1.012)
       return shape(dir).multiplyScalar(1.012)
     }
-    for (const { theta: theta0, color } of ROUTES) {
+    for (const { color, theta: theta0 } of ROUTES) {
       const pts: Vector3[] = []
       for (let i = 0; i <= 24; i++) {
         const t = i / 24

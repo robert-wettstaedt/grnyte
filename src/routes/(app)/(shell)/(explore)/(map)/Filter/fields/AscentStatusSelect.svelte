@@ -4,16 +4,16 @@
 
   interface Props {
     /** Selected tick status; `''` means no filter ("any"). */
-    value: AscentStatus | ''
+    value: '' | AscentStatus
   }
 
   let { value = $bindable() }: Props = $props()
 
-  const options = $derived<{ value: AscentStatus | ''; label: string }[]>([
-    { value: '', label: m.common_any() },
-    { value: 'todo', label: m.filter_ascentTodo() },
-    { value: 'project', label: m.filter_ascentProject() },
-    { value: 'done', label: m.filter_ascentDone() },
+  const options = $derived<{ label: string; value: '' | AscentStatus }[]>([
+    { label: m.common_any(), value: '' },
+    { label: m.filter_ascentTodo(), value: 'todo' },
+    { label: m.filter_ascentProject(), value: 'project' },
+    { label: m.filter_ascentDone(), value: 'done' },
   ])
 </script>
 

@@ -4,7 +4,7 @@ import type { Handle } from '@sveltejs/kit'
 
 // creating a handle to use the paraglide middleware
 const paraglideHandle: Handle = ({ event, resolve }) =>
-  paraglideMiddleware(event.request, ({ request: localizedRequest, locale }) => {
+  paraglideMiddleware(event.request, ({ locale, request: localizedRequest }) => {
     event.request = localizedRequest
     return resolve(event, {
       transformPageChunk: ({ html }) => {

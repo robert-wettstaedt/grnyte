@@ -11,9 +11,9 @@ export const isImperialLocale = (): boolean => {
 export const formatCelsius = (celsius: number): string => {
   const imperial = isImperialLocale()
   return new Intl.NumberFormat(navigator.language, {
+    maximumFractionDigits: 0,
     style: 'unit',
     unit: imperial ? 'fahrenheit' : 'celsius',
-    maximumFractionDigits: 0,
   }).format(imperial ? celsius * 1.8 + 32 : celsius)
 }
 

@@ -2,6 +2,13 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import {
+    isImageFileName,
+    isVideoFile,
+    MAX_IMAGE_SIZE,
+    MAX_VIDEO_SIZE,
+    type MediaKind,
+  } from '$lib/entities/file/upload'
+  import {
     addUploads,
     finalizeMediaUploads,
     ImageUpload,
@@ -10,35 +17,28 @@
     type MediaUpload,
     type MediaUploadTarget,
   } from '$lib/entities/file/upload-manager.svelte'
-  import MediaUploadTile from './MediaUploadTile.svelte'
-  import {
-    isImageFileName,
-    isVideoFile,
-    MAX_IMAGE_SIZE,
-    MAX_VIDEO_SIZE,
-    type MediaKind,
-  } from '$lib/entities/file/upload'
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
   import type { FileError } from '@zag-js/file-upload'
+  import MediaUploadTile from './MediaUploadTile.svelte'
 
   interface Props {
-    /** Pending uploads, bound so the form can finalize them once the entity exists. */
-    uploads?: MediaUpload[]
     /** What this field takes: images only (topos) or images + videos (ascents). */
     accept?: MediaKind[]
-    /** Split the Add tile into "photos" and "video with a source URL" (route uploads:
-     *  reposted beta clips credit where they came from). Needs `accept` to include video. */
-    videoSource?: boolean
+    disabled?: boolean
     /** When set, the entity already exists: each pick finalizes against it right away
      *  (no form submit to wait for) and its tile shows on the target page from the
      *  global registry, so this field renders only the Add control. */
     target?: MediaUploadTarget
-    disabled?: boolean
+    /** Pending uploads, bound so the form can finalize them once the entity exists. */
+    uploads?: MediaUpload[]
+    /** Split the Add tile into "photos" and "video with a source URL" (route uploads:
+     *  reposted beta clips credit where they came from). Needs `accept` to include video. */
+    videoSource?: boolean
   }
 
-  let { uploads = $bindable([]), accept = ['image'], videoSource = false, target, disabled = false }: Props = $props()
+  let { accept = ['image'], disabled = false, target, uploads = $bindable([]), videoSource = false }: Props = $props()
   const id = $props.id()
 
   // Tile mode (has a target): render just the Add tile, sized to sit in a media strip.
@@ -60,7 +60,7 @@
   // Inline under the field in a form; a toast in tile mode, which has no inline slot for them.
   const reportRejections = (list: string[]) => {
     if (tile) {
-      list.forEach((message) => toaster.create({ type: 'error', title: message, duration: 5000 }))
+      list.forEach((message) => toaster.create({ duration: 5000, title: message, type: 'error' }))
     } else {
       rejections = list
     }
@@ -72,7 +72,7 @@
   let sheetOpen = $state(false)
   let sheetStep = $state<'choose' | 'video'>('choose')
   let sheetVideo = $state<File | null>(null)
-  let sheetError = $state<string | null>(null)
+  let sheetError = $state<null | string>(null)
   let sourceRaw = $state('')
   let photoInput: HTMLInputElement | undefined = $state()
   let videoInput: HTMLInputElement | undefined = $state()
@@ -200,17 +200,13 @@
   }
 
   const fileUpload = useFileUpload(() => ({
-    id,
     accept: [
       ...(accept.includes('image') ? ['image/*', '.heic', '.heif'] : []),
       ...(accept.includes('video') ? ['video/*'] : []),
     ],
-    // Size limits are per pipeline, so they live here instead of a blanket
-    // `maxFileSize`: images are capped by the staging bucket (50MB), videos by
-    // our own accident/abuse knob (2GB, Bunny itself has no limit).
-    validate: (file) => (file.size > (isVideoFile(file) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE) ? ['FILE_TOO_LARGE'] : null),
-    maxFiles: MAX_FILES,
     disabled,
+    id,
+    maxFiles: MAX_FILES,
     onFileAccept: (details) => addFiles(details.files),
     onFileReject: (details) => {
       if (details.files.length === 0) {
@@ -231,6 +227,10 @@
           .map((rejection) => `${rejection.file.name}: ${rejectionMessage(rejection.file, rejection.errors)}`),
       )
     },
+    // Size limits are per pipeline, so they live here instead of a blanket
+    // `maxFileSize`: images are capped by the staging bucket (50MB), videos by
+    // our own accident/abuse knob (2GB, Bunny itself has no limit).
+    validate: (file) => (file.size > (isVideoFile(file) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE) ? ['FILE_TOO_LARGE'] : null),
   }))
 
   const remove = (upload: MediaUpload) => {

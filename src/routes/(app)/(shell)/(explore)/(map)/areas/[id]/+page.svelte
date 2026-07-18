@@ -4,9 +4,11 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
+  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import { areaDetail, areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
   import { routeList } from '$lib/entities/route/resources.svelte'
@@ -14,13 +16,11 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import { sheetState } from '../../../Modal/sheetState.svelte'
-  import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
   import AreaActions from './AreaActions.svelte'
   import AreaDescription from './AreaDescription.svelte'
   import AreaEmpty from './AreaEmpty.svelte'
   import AreaList from './AreaList.svelte'
   import BlocksList from './BlocksList.svelte'
-  import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
 
   const global = getGlobalState()
 
@@ -63,7 +63,7 @@
   const ungradedCount = $derived(routes.data.filter((route) => route.gradeFk == null).length)
   const gradedCount = $derived(routes.data.length - ungradedCount)
 
-  let selected = $state<{ label: string; count: number } | null>(null)
+  let selected = $state<null | { count: number; label: string }>(null)
 
   const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 

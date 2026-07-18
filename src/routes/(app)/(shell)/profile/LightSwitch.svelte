@@ -3,7 +3,7 @@
   import { m } from '$lib/paraglide/messages'
   import { onMount } from 'svelte'
 
-  type ModePreference = 'light' | 'dark' | 'system'
+  type ModePreference = 'dark' | 'light' | 'system'
 
   const MODE_STORAGE_KEY = 'mode'
 

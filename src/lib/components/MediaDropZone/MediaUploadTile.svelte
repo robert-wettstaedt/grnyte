@@ -6,16 +6,16 @@
   import type { ClassValue } from 'svelte/elements'
 
   interface Props {
-    upload: MediaUpload
-    /** Re-run a failed upload. */
-    onRetry: () => void
-    /** Abort and drop the upload. Omit to hide the remove button. */
-    onRemove?: () => void
     /** Tile size, set by the caller (the form uses square thumbs, the grid taller ones). */
     class?: ClassValue
+    /** Abort and drop the upload. Omit to hide the remove button. */
+    onRemove?: () => void
+    /** Re-run a failed upload. */
+    onRetry: () => void
+    upload: MediaUpload
   }
 
-  const { upload, onRetry, onRemove, class: className = 'h-26 w-26' }: Props = $props()
+  const { class: className = 'h-26 w-26', onRemove, onRetry, upload }: Props = $props()
 </script>
 
 <div class={['border-surface-300-700 bg-surface-100-900 relative overflow-hidden rounded-xl border', className]}>

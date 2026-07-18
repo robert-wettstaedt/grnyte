@@ -5,11 +5,11 @@
   import GradeHistogram from './GradeHistogram.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/GradeHistogram',
-    component: GradeHistogram,
-    tags: ['autodocs'],
-    parameters: { layout: 'centered' },
     args: { gradingScale: 'FB' },
+    component: GradeHistogram,
+    parameters: { layout: 'centered' },
+    tags: ['autodocs'],
+    title: 'Components/GradeHistogram',
   })
 
   // The seeded Font/V grade table (5A … 9A), ids 0–21 — mirrors production, so the
@@ -39,7 +39,7 @@
       ['8C+', 'V16'],
       ['9A', 'V17'],
     ] as const
-  ).map(([FB, V], id) => ({ id, FB: `FB ${FB}`, V }))
+  ).map(([FB, V], id) => ({ FB: `FB ${FB}`, id, V }))
 
   const counts = (entries: [number, number][]) => new Map(entries)
 
@@ -83,16 +83,16 @@
 {/snippet}
 
 <!-- Typical distribution, coloured by the 4-tier difficulty scale (very easy → hard). -->
-<Story name="Typical crag" args={{ grades, countByGrade: typical }} {template} />
+<Story name="Typical crag" args={{ countByGrade: typical, grades }} {template} />
 
 <!-- Counts across every tier — shows all four band colours together. -->
-<Story name="Full range" args={{ grades, countByGrade: fullRange }} {template} />
+<Story name="Full range" args={{ countByGrade: fullRange, grades }} {template} />
 
 <!-- Some routes ungraded: held out of the chart and counted below it. -->
-<Story name="With ungraded" args={{ grades, countByGrade: typical, ungraded: 4 }} {template} />
+<Story name="With ungraded" args={{ countByGrade: typical, grades, ungraded: 4 }} {template} />
 
 <!-- Too few grades for bars: falls back to compact colour-swatch chips. -->
-<Story name="Sparse (chips)" args={{ grades, countByGrade: sparse }} {template} />
+<Story name="Sparse (chips)" args={{ countByGrade: sparse, grades }} {template} />
 
 <!-- Same data on the V scale. -->
-<Story name="V scale" args={{ grades, gradingScale: 'V', countByGrade: fullRange }} {template} />
+<Story name="V scale" args={{ countByGrade: fullRange, grades, gradingScale: 'V' }} {template} />

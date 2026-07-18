@@ -9,8 +9,8 @@ type RegionPreloadTable =
   | 'files'
   | 'firstAscensionists'
   | 'geolocations'
-  | 'routeExternalResource27crags'
   | 'routeExternalResource8a'
+  | 'routeExternalResource27crags'
   | 'routeExternalResources'
   | 'routeExternalResourceTheCrag'
   | 'routes'
@@ -37,17 +37,17 @@ export const regionPreloadTables: RegionPreloadTable[] = [
   'topos',
 ]
 
-type RegionTable = RegionPreloadTable | 'activities' | 'favorites' | 'regionMembers'
-
-type RegionQuery<TReturn> = Query<RegionTable, Schema, TReturn>
-
 export type QueryContext = {
   authUserId: string | undefined
   pageState?: Partial<App.SafeSession>
 }
 
+type RegionQuery<TReturn> = Query<RegionTable, Schema, TReturn>
+
+type RegionTable = 'activities' | 'favorites' | 'regionMembers' | RegionPreloadTable
+
 const addRegionCheck = <
-  TContext extends QueryContext | null | undefined,
+  TContext extends null | QueryContext | undefined,
   TReturn,
   TReturnQuery extends RegionQuery<TReturn>,
 >(
@@ -119,7 +119,7 @@ export const regionMemberCan =
   }
 
 export const relatedRegion =
-  <TContext extends QueryContext | null | undefined>(ctx: TContext) =>
+  <TContext extends null | QueryContext | undefined>(ctx: TContext) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic pass-through; the region shape is irrelevant here
   <TReturnQuery extends RegionQuery<any>>(q: TReturnQuery): TReturnQuery => {
     return addRegionCheck(ctx, q)

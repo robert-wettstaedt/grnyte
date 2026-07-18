@@ -3,12 +3,12 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
+    max?: number
     /** Minimum rating to keep; `0` means no rating filter ("any"). */
     value: number
-    max?: number
   }
 
-  let { value = $bindable(), max = 3 }: Props = $props()
+  let { max = 3, value = $bindable() }: Props = $props()
 
   const stars = $derived(Array.from({ length: max }, (_, index) => index + 1))
 

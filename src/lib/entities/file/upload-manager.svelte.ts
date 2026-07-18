@@ -21,15 +21,15 @@ import { Upload as TusUpload } from 'tus-js-client'
 import { createBunnyVideo, finalizeImage, finalizeVideo } from './files.remote'
 import { imageMimeOf, STAGING_BUCKET, stagingPath, type FileEntityType } from './upload'
 
-export type MediaUploadStatus = 'uploading' | 'staged' | 'finalizing' | 'done' | 'failed'
-
-export interface MediaUploadTarget {
-  type: FileEntityType
-  id: number
-}
-
 /** What a drop zone holds and a form finalizes — `kind` discriminates the two pipelines. */
 export type MediaUpload = ImageUpload | VideoUpload
+
+export type MediaUploadStatus = 'done' | 'failed' | 'finalizing' | 'staged' | 'uploading'
+
+export interface MediaUploadTarget {
+  id: number
+  type: FileEntityType
+}
 
 // Warn on tab close while any upload is transferring or finalizing — a staged
 // file that hasn't been submitted loses nothing, so it doesn't count as busy.
@@ -57,27 +57,33 @@ const exitBusy = (upload: MediaUploadBase) => {
   syncGuard()
 }
 
+/** An upload finalizing in the background, tagged with where it's headed. */
+export interface PendingUpload {
+  target: MediaUploadTarget
+  upload: MediaUpload
+}
+
 /**
  * The status machine both pipelines share. Subclasses own the transfer
  * (staging XHR / Bunny TUS) and provide {@link attach} — the finalize remote
  * call that runs once the bytes have landed.
  */
 abstract class MediaUploadBase {
-  readonly file: File
-  /** Object URL for the local preview; revoked once the upload leaves the UI. */
-  readonly previewUrl: string
-
-  status = $state<MediaUploadStatus>('uploading')
-  /** Bytes transferred, 0..1. */
-  progress = $state(0)
-  error = $state<string>()
-  /** The created `files` row once finalized. */
-  fileRow = $state.raw<FileRow>()
-
   /** Set by {@link remove}: the user cancelled. A deliberate abort is not a failure, so
    *  the finalize toast and {@link retry} skip it (its `status` still lands on `failed`
    *  from the aborted transfer, but the owner has already dropped it). */
   aborted = false
+  error = $state<string>()
+
+  readonly file: File
+  /** The created `files` row once finalized. */
+  fileRow = $state.raw<FileRow>()
+  /** Object URL for the local preview; revoked once the upload leaves the UI. */
+  readonly previewUrl: string
+  /** Bytes transferred, 0..1. */
+  progress = $state(0)
+
+  status = $state<MediaUploadStatus>('uploading')
 
   /** Whether the bytes have fully landed at their destination. */
   protected isStaged = false
@@ -91,13 +97,6 @@ abstract class MediaUploadBase {
     this.file = file
     this.previewUrl = URL.createObjectURL(file)
   }
-
-  /** Kick off (or resume) the transfer. Does not throw — failure lands in `status`/`error`. */
-  abstract start(): void
-  /** Abort the transfer and drop whatever landed. The owner drops the reference. */
-  abstract remove(): void
-  /** The finalize remote call — runs once the transfer has completed. */
-  protected abstract attach(target: MediaUploadTarget): Promise<FileRow | undefined>
 
   /**
    * Attach the upload to its entity: wait for the transfer to complete, then
@@ -113,6 +112,29 @@ abstract class MediaUploadBase {
     }
     return (this.finalizePromise ??= this.runFinalize(target).finally(() => (this.finalizePromise = undefined)))
   }
+  /** Abort the transfer and drop whatever landed. The owner drops the reference. */
+  abstract remove(): void
+  /** Resume after a failure: re-run the transfer if it didn't finish, re-finalize if a target is set. */
+  async retry(): Promise<void> {
+    // An aborted upload is gone (reference dropped, preview revoked), nothing to resume.
+    if (this.aborted) {
+      return
+    }
+    if (!this.isStaged) {
+      this.start()
+    } else {
+      this.error = undefined
+    }
+    if (this.target != null) {
+      await this.finalize(this.target)
+    }
+  }
+
+  /** Kick off (or resume) the transfer. Does not throw — failure lands in `status`/`error`. */
+  abstract start(): void
+
+  /** The finalize remote call — runs once the transfer has completed. */
+  protected abstract attach(target: MediaUploadTarget): Promise<FileRow | undefined>
 
   private async runFinalize(target: MediaUploadTarget): Promise<FileRow> {
     this.target = target
@@ -139,22 +161,6 @@ abstract class MediaUploadBase {
       exitBusy(this)
     }
   }
-
-  /** Resume after a failure: re-run the transfer if it didn't finish, re-finalize if a target is set. */
-  async retry(): Promise<void> {
-    // An aborted upload is gone (reference dropped, preview revoked), nothing to resume.
-    if (this.aborted) {
-      return
-    }
-    if (!this.isStaged) {
-      this.start()
-    } else {
-      this.error = undefined
-    }
-    if (this.target != null) {
-      await this.finalize(this.target)
-    }
-  }
 }
 
 export class ImageUpload extends MediaUploadBase {
@@ -162,11 +168,22 @@ export class ImageUpload extends MediaUploadBase {
   /** Path in the staging bucket — stable for the upload's lifetime, usable as a list key. */
   readonly path: string
 
-  private xhr: XMLHttpRequest | undefined
+  private xhr: undefined | XMLHttpRequest
 
   constructor(file: File) {
     super(file)
     this.path = stagingPath(page.data.authUserId ?? '', file.name)
+  }
+
+  /** Abort the transfer and delete the staged object. */
+  remove(): void {
+    this.aborted = true
+    this.xhr?.abort()
+    if (this.isStaged) {
+      // Fire-and-forget — a leftover object is the cleanup cron's job.
+      void page.data.supabase?.storage.from(STAGING_BUCKET).remove([this.path])
+    }
+    URL.revokeObjectURL(this.previewUrl)
   }
 
   start(): void {
@@ -179,19 +196,8 @@ export class ImageUpload extends MediaUploadBase {
   }
 
   protected async attach(target: MediaUploadTarget): Promise<FileRow | undefined> {
-    const result = await finalizeImage({ stagingPath: this.path, entityType: target.type, entityId: target.id })
+    const result = await finalizeImage({ entityId: target.id, entityType: target.type, stagingPath: this.path })
     return result?.data
-  }
-
-  /** Abort the transfer and delete the staged object. */
-  remove(): void {
-    this.aborted = true
-    this.xhr?.abort()
-    if (this.isStaged) {
-      // Fire-and-forget — a leftover object is the cleanup cron's job.
-      void page.data.supabase?.storage.from(STAGING_BUCKET).remove([this.path])
-    }
-    URL.revokeObjectURL(this.previewUrl)
   }
 
   /**
@@ -268,11 +274,20 @@ export class VideoUpload extends MediaUploadBase {
    *  edge: a retry after the signature's 24h expiration 401s again — remove/re-add
    *  is the recovery. */
   private auth: Awaited<ReturnType<typeof createBunnyVideo>> | undefined
-  private tusUpload: TusUpload | undefined
   /** Current attempt's promise handles — the tus callbacks are bound once at
    *  construction, so each attempt swaps these instead of recreating the
    *  Upload (the instance retains its URL and resumes at the last offset). */
-  private settle: { resolve: () => void; reject: (error: unknown) => void } | undefined
+  private settle: undefined | { reject: (error: unknown) => void; resolve: () => void }
+  private tusUpload: TusUpload | undefined
+
+  /** Abort the transfer. The Bunny video object is abandoned as-is — ponytail:
+   *  orphaned videos are the cleanup cron's job, no delete endpoint yet. */
+  remove(): void {
+    this.aborted = true
+    void this.tusUpload?.abort()
+    this.settle?.reject(new Error(m.upload_failed()))
+    URL.revokeObjectURL(this.previewUrl)
+  }
 
   start(): void {
     this.status = 'uploading'
@@ -289,22 +304,13 @@ export class VideoUpload extends MediaUploadBase {
       throw new Error('VideoUpload.finalize() called before start()')
     }
     const result = await finalizeVideo({
-      videoId: this.auth.videoId,
-      token: this.auth.token,
-      entityType: target.type,
       entityId: target.id,
+      entityType: target.type,
       source: this.source,
+      token: this.auth.token,
+      videoId: this.auth.videoId,
     })
     return result?.data
-  }
-
-  /** Abort the transfer. The Bunny video object is abandoned as-is — ponytail:
-   *  orphaned videos are the cleanup cron's job, no delete endpoint yet. */
-  remove(): void {
-    this.aborted = true
-    void this.tusUpload?.abort()
-    this.settle?.reject(new Error(m.upload_failed()))
-    URL.revokeObjectURL(this.previewUrl)
   }
 
   private async uploadToBunny(): Promise<void> {
@@ -320,24 +326,24 @@ export class VideoUpload extends MediaUploadBase {
       }
       const auth = this.auth
       await new Promise<void>((resolve, reject) => {
-        this.settle = { resolve, reject }
+        this.settle = { reject, resolve }
         this.tusUpload ??= new TusUpload(this.file, {
           endpoint: 'https://video.bunnycdn.com/tusupload',
-          retryDelays: [0, 3000, 5000, 10000, 20000],
           headers: {
-            AuthorizationSignature: auth.signature,
             AuthorizationExpire: String(auth.expiration),
-            VideoId: auth.videoId,
+            AuthorizationSignature: auth.signature,
             LibraryId: PUBLIC_BUNNY_STREAM_LIBRARY_ID,
+            VideoId: auth.videoId,
           },
           metadata: { filetype: this.file.type || 'video/mp4', title: this.file.name },
+          onError: (error) => this.settle?.reject(error),
+          onProgress: (sent, total) => (this.progress = total > 0 ? sent / total : 0),
+          onSuccess: () => this.settle?.resolve(),
+          retryDelays: [0, 3000, 5000, 10000, 20000],
           // Never resume across page loads: each pick creates a fresh Bunny
           // video, and tus' fingerprint ignores the VideoId header — a stale
           // localStorage entry would splice bytes into the wrong video.
           storeFingerprintForResuming: false,
-          onProgress: (sent, total) => (this.progress = total > 0 ? sent / total : 0),
-          onError: (error) => this.settle?.reject(error),
-          onSuccess: () => this.settle?.resolve(),
         })
         this.tusUpload.start()
       })
@@ -362,12 +368,6 @@ export function addUploads<T extends MediaUpload>(files: File[], Upload: new (fi
     upload.start()
     return upload
   })
-}
-
-/** An upload finalizing in the background, tagged with where it's headed. */
-export interface PendingUpload {
-  upload: MediaUpload
-  target: MediaUploadTarget
 }
 
 /**
@@ -400,7 +400,7 @@ export const dropPending = (upload: MediaUpload) => {
 export async function finalizeMediaUploads(uploads: MediaUpload[], target: MediaUploadTarget): Promise<FileRow[]> {
   for (const upload of uploads) {
     if (!pendingUploads.some((entry) => entry.upload === upload)) {
-      pendingUploads.push({ upload, target })
+      pendingUploads.push({ target, upload })
     }
   }
   // Each entry lingers until the target page's MediaGrid hands its done tile off to
@@ -424,13 +424,19 @@ export async function finalizeMediaUploads(uploads: MediaUpload[], target: Media
     // Fires even after the form navigated away, the only signal for a finalize
     // that fails once the user is no longer looking at the tiles.
     toaster.create({
-      type: 'error',
-      title: m.upload_someFailed(),
-      duration: Number.POSITIVE_INFINITY,
       action: { label: m.common_retry(), onClick: () => failed.forEach((upload) => void retryPending(upload)) },
+      duration: Number.POSITIVE_INFINITY,
+      title: m.upload_someFailed(),
+      type: 'error',
     })
   }
   return results.filter((result) => result.status === 'fulfilled').map((result) => result.value)
+}
+
+/** Abort a pending upload and drop it from {@link pendingUploads}. */
+export function removePending(upload: MediaUpload): void {
+  upload.remove()
+  dropPending(upload)
 }
 
 /** Retry a failed upload. If it finalizes, its entry is left in {@link pendingUploads}
@@ -438,10 +444,4 @@ export async function finalizeMediaUploads(uploads: MediaUpload[], target: Media
  *  success); a form's own tiles retry the transfer only and never reach that path. */
 export async function retryPending(upload: MediaUpload): Promise<void> {
   await upload.retry().catch(() => {})
-}
-
-/** Abort a pending upload and drop it from {@link pendingUploads}. */
-export function removePending(upload: MediaUpload): void {
-  upload.remove()
-  dropPending(upload)
 }

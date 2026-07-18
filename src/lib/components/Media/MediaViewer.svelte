@@ -29,16 +29,16 @@
 
   interface Props {
     file: MediaFile
-    /** Ordered siblings the deck pages through (includes `file`). */
-    siblings: MediaFile[]
-    /** Text shared alongside the page URL (e.g. the route name). */
-    shareText?: string
+    onClose: () => void
     /** Sync the open sibling's id to the host (`?media=`), for deep-linking. */
     onNavigate: (id: string) => void
-    onClose: () => void
+    /** Text shared alongside the page URL (e.g. the route name). */
+    shareText?: string
+    /** Ordered siblings the deck pages through (includes `file`). */
+    siblings: MediaFile[]
   }
 
-  const { file, siblings, shareText = '', onNavigate, onClose }: Props = $props()
+  const { file, onClose, onNavigate, shareText = '', siblings }: Props = $props()
 
   const global = getGlobalState()
 
@@ -94,10 +94,10 @@
     try {
       await deleteFile({ id: currentFile.id })
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
       return
     }
-    toaster.create({ type: 'info', title: m.media_deleted() })
+    toaster.create({ title: m.media_deleted(), type: 'info' })
     confirmOpen = false
     open = false
     onClose()
@@ -132,7 +132,7 @@
   }
   onDestroy(() => clearTimeout(settleTimer))
 
-  function commit(dir: 1 | -1) {
+  function commit(dir: -1 | 1) {
     currentIndex = (currentIndex + dir + n) % n
     stageZoom = 1
     onNavigate(siblings[currentIndex].id)
@@ -150,7 +150,7 @@
 
   function release() {
     if (axis === 'h' && canPage && width > 0 && Math.abs(dragX) > width * 0.22) {
-      const dir: 1 | -1 = dragX < 0 ? 1 : -1
+      const dir: -1 | 1 = dragX < 0 ? 1 : -1
       animating = true
       dragX = dir === 1 ? -width : width
       settle(() => {
@@ -169,7 +169,7 @@
   }
 
   // Arrows / keys page with the same slide as a completed swipe.
-  function page(dir: 1 | -1) {
+  function page(dir: -1 | 1) {
     if (!canPage || animating) return
     if (width > 0) {
       axis = 'h'

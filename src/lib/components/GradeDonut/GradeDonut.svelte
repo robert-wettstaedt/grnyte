@@ -4,13 +4,13 @@
   interface Props {
     /** Route counts keyed by grade id (`gradeFk`). */
     countByGrade: Map<number, number>
-    /** Number shown in the donut's center — total routes in the area. */
-    total: number
     /** Diameter in pixels. */
     size?: number
+    /** Number shown in the donut's center — total routes in the area. */
+    total: number
   }
 
-  const { countByGrade, total, size = 56 }: Props = $props()
+  const { countByGrade, size = 56, total }: Props = $props()
 
   const radius = DONUT_RADIUS
   const center = DONUT_CENTER

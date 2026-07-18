@@ -35,7 +35,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
   let convertedCount = 0
 
   /** Replace each `@username` with `!users:id!`; unknown names stay as-is. */
-  const convert = (value: string): { next: string; changed: boolean } => {
+  const convert = (value: string): { changed: boolean; next: string } => {
     let changed = false
 
     const next = value.replace(mentionRegex, (match) => {
@@ -51,7 +51,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
       return `!users:${id}!`
     })
 
-    return { next, changed }
+    return { changed, next }
   }
 
   /**
@@ -78,7 +78,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = 
       }
 
       scanned += 1
-      const { next, changed } = convert(value)
+      const { changed, next } = convert(value)
 
       if (!changed) {
         continue

@@ -4,7 +4,7 @@
 
   interface Props {
     hint?: string
-    id?: string | null
+    id?: null | string
     issues?: RemoteFormIssue[]
   }
 

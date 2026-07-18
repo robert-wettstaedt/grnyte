@@ -7,16 +7,16 @@
   import { MediaQuery } from 'svelte/reactivity'
 
   interface Props {
-    label: string
     /** Keybind hint for the kbd badge, e.g. 'J' or '⌘S'. Omit for a plain label tooltip. */
     key?: string
+    label: string
     /** The trigger element. Always spread `attributes` onto it and set an explicit aria-label. Do NOT
         add your own `title`: it would preempt the Skeleton tooltip on hover. This owns the title, so
         `attributes` carries the tooltip wiring on hover, or a `title` fallback on touch. */
     trigger: Snippet<[Record<string, unknown>]>
   }
 
-  const { label, key, trigger }: Props = $props()
+  const { key, label, trigger }: Props = $props()
 
   // Only hover-capable devices (which, by implication, have a keyboard) get the tooltip; on touch the
   // keybind hint is meaningless, so the trigger renders bare.

@@ -9,17 +9,17 @@ export interface AreaListFilter {
   content?: string
 }
 
-export function blockList(filter: () => AreaListFilter = () => ({})) {
-  return createResource(
-    () => queries.listBlocks(filter()),
-    (rows) => rows.map(toBlockDetail),
-  )
-}
-
 export function blockDetail(id: () => number) {
   return createResource(
     () => queries.block({ blockId: id() }),
     (row) => (row == null ? undefined : toBlockDetail(row)),
+  )
+}
+
+export function blockList(filter: () => AreaListFilter = () => ({})) {
+  return createResource(
+    () => queries.listBlocks(filter()),
+    (rows) => rows.map(toBlockDetail),
   )
 }
 
@@ -33,11 +33,11 @@ export function blockRouteList(id: () => number) {
     () => queries.block({ blockId: id() }),
     (row) =>
       (row?.routes ?? []).map((route) => ({
+        description: route.description ?? '',
+        gradeFk: route.userGradeFk ?? undefined,
         id: route.id,
         name: route.name.length === 0 ? m.common_unnamed() : route.name,
-        gradeFk: route.userGradeFk ?? undefined,
         rating: route.userRating ?? 0,
-        description: route.description ?? '',
         tags: route.tags.map((tag) => tag.tagFk),
       })),
   )

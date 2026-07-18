@@ -1,25 +1,25 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import KbdTooltip from '$lib/components/KbdTooltip/KbdTooltip.svelte'
-  import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
+  import type { TopoEditor } from '$lib/entities/topo/editor.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { fly, slide } from 'svelte/transition'
 
   interface Props {
-    editor: TopoEditor
-    /** The currently selected route (the line being edited). */
-    route: Pick<RouteListItem, 'id' | 'name' | 'gradeFk'>
     /** Whether the current user may delete the route entity (region permission). */
     canDelete: boolean
+    editor: TopoEditor
     onDeleteRoute: () => void
+    /** The currently selected route (the line being edited). */
+    route: Pick<RouteListItem, 'gradeFk' | 'id' | 'name'>
   }
 
-  const { editor, route, canDelete, onDeleteRoute }: Props = $props()
+  const { canDelete, editor, onDeleteRoute, route }: Props = $props()
   const global = getGlobalState()
 
   let cardMinimized = $state(false)
@@ -30,14 +30,14 @@
 
   const selectedPoint = $derived(editor.selectedPoint)
 
-  function togglePointType(mode: 'start' | 'middle' | 'top') {
+  function togglePointType(mode: 'middle' | 'start' | 'top') {
     editor.pointType = editor.pointType === mode ? undefined : mode
     editor.selectedPointId = undefined
   }
 </script>
 
 <!-- Selected-route editing card: overlays the photo strip and slides up like a sheet. -->
-<div class="pointer-events-none absolute inset-x-0 bottom-0 z-40 p-3" transition:fly={{ y: 24, duration: 220 }}>
+<div class="pointer-events-none absolute inset-x-0 bottom-0 z-40 p-3" transition:fly={{ duration: 220, y: 24 }}>
   <div class="preset-filled-surface-50-950 pointer-events-auto mx-auto w-full max-w-md rounded-2xl p-3 shadow-2xl">
     <div class="flex items-center gap-2">
       <div class="flex min-w-0 flex-1 items-center gap-2">

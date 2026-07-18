@@ -8,22 +8,22 @@ import { z } from 'zod'
 
 const signUpSchema = z
   .object({
+    confirmPassword: z.string({ error: formError('form_required') }),
     email: z.email({ error: formError('form_required') }),
+    password: z
+      .string({ error: formError('form_required') })
+      .min(8, { error: formError('form_charsMin', { count: 8 }) }),
     username: z
       .string({ error: formError('form_required') })
       .trim()
       .min(3, { error: formError('form_charsMin', { count: 3 }) }),
-    password: z
-      .string({ error: formError('form_required') })
-      .min(8, { error: formError('form_charsMin', { count: 8 }) }),
-    confirmPassword: z.string({ error: formError('form_required') }),
   })
   .refine((v) => v.password === v.confirmPassword, {
     error: formError('auth_passwordMismatch'),
     path: ['confirmPassword'],
   })
 
-export const signUp = form(signUpSchema, async ({ email, username, password }, issue) => {
+export const signUp = form(signUpSchema, async ({ email, password, username }, issue) => {
   const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
   if (existing != null) {
     invalid(issue.username(formError('auth_usernameTaken')))
@@ -46,7 +46,7 @@ export const signUp = form(signUpSchema, async ({ email, username, password }, i
   const [createdUser] = await db.insert(schema.users).values({ authUserFk: data.user.id, username }).returning()
   const [createdSettings] = await db
     .insert(schema.userSettings)
-    .values({ userFk: createdUser.id, authUserFk: data.user.id })
+    .values({ authUserFk: data.user.id, userFk: createdUser.id })
     .returning()
   await db.update(schema.users).set({ userSettingsFk: createdSettings.id }).where(eq(schema.users.id, createdUser.id))
 

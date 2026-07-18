@@ -4,26 +4,26 @@
   import type { Snippet } from 'svelte'
 
   let {
-    resource,
-    ready,
-    loading,
-    error,
     empty,
+    error,
     forceState,
+    loading,
+    ready,
+    resource,
   }: {
-    resource: QueryResource<TOut>
-    /** Rendered once there is data to show; receives the DTO-mapped data. */
-    ready: Snippet<[NonNullable<TOut>]>
-    loading?: Snippet
-    error?: Snippet
     /** Rendered when the result is `ready` but empty (`[]` or `undefined`). */
     empty?: Snippet
+    error?: Snippet
     /**
      * Dev/test override: force a branch regardless of the real resource state,
      * so the loading / error / empty UI can be eyeballed in place anywhere it's
      * used. Leave unset in real usage.
      */
-    forceState?: 'loading' | 'error' | 'empty'
+    forceState?: 'empty' | 'error' | 'loading'
+    loading?: Snippet
+    /** Rendered once there is data to show; receives the DTO-mapped data. */
+    ready: Snippet<[NonNullable<TOut>]>
+    resource: QueryResource<TOut>
   } = $props()
 
   const status = $derived(forceState ?? resource.status)

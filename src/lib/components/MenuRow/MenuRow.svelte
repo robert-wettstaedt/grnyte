@@ -3,19 +3,19 @@
   import type { IconName } from '$lib/components/Icon/icons'
 
   interface Props {
-    icon: IconName
-    label: string
-    /** Optional second line under the label. */
-    description?: string
     /** Accent (primary) icon tile — for "add" actions. */
     accent?: boolean
+    /** Optional second line under the label. */
+    description?: string
     /** Destructive (error) styling — for delete. */
     destructive?: boolean
     href?: string
+    icon: IconName
+    label: string
     onclick?: () => void
   }
 
-  const { icon, label, description, accent = false, destructive = false, href, onclick }: Props = $props()
+  const { accent = false, description, destructive = false, href, icon, label, onclick }: Props = $props()
 </script>
 
 {#snippet body()}

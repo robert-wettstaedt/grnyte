@@ -3,7 +3,7 @@ import { createResource } from '$lib/zero/resource.svelte'
 import { getZ } from '$lib/zero/z.svelte'
 import { toRouteDetail, toRouteListItem } from './mapper'
 
-export type AscentStatus = 'done' | 'todo' | 'project'
+export type AscentStatus = 'done' | 'project' | 'todo'
 
 export interface RouteListFilter {
   areaId?: number
@@ -20,6 +20,13 @@ export interface RouteListFilter {
   tags?: string[]
 }
 
+export function routeDetail(id: () => number) {
+  return createResource(
+    () => queries.listRoutes({ routeId: id() }),
+    (rows) => (rows[0] == null ? undefined : toRouteDetail(rows[0])),
+  )
+}
+
 export function routeList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutes(filter()),
@@ -31,14 +38,7 @@ export function routeList(filter: () => RouteListFilter = () => ({})) {
 export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
-    (rows) => rows.map((row) => ({ id: row.id, blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined })),
-  )
-}
-
-export function routeDetail(id: () => number) {
-  return createResource(
-    () => queries.listRoutes({ routeId: id() }),
-    (rows) => (rows[0] == null ? undefined : toRouteDetail(rows[0])),
+    (rows) => rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id })),
   )
 }
 

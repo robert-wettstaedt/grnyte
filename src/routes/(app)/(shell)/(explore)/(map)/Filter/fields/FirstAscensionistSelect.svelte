@@ -4,14 +4,14 @@
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
+    /** The signed-in user's id, for the "first ascent by me" shortcut. */
+    currentUserId: number | undefined
     firstAscensionists: FirstAscensionist[]
     /** Selected first-ascensionist ids. */
     value: number[]
-    /** The signed-in user's id, for the "first ascent by me" shortcut. */
-    currentUserId: number | undefined
   }
 
-  let { firstAscensionists, value = $bindable(), currentUserId }: Props = $props()
+  let { currentUserId, firstAscensionists, value = $bindable() }: Props = $props()
 
   /** How many matches to render before asking the user to refine the search. */
   const RESULT_LIMIT = 30
@@ -33,7 +33,7 @@
     const found = firstAscensionists
       .filter((fa) => term === '' || fa.name.toLowerCase().includes(term))
       .sort((a, b) => a.name.localeCompare(b.name))
-    return { shown: found.slice(0, RESULT_LIMIT), overflow: Math.max(0, found.length - RESULT_LIMIT) }
+    return { overflow: Math.max(0, found.length - RESULT_LIMIT), shown: found.slice(0, RESULT_LIMIT) }
   })
 
   const toggle = (id: number) => {

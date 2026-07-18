@@ -49,13 +49,13 @@ export const isDerivableImage = (path: string): boolean =>
  * width/height come back swapped. `null` when sharp couldn't read a size.
  */
 export const orientedDimensions = (meta: {
-  width?: number
   height?: number
   orientation?: number
-}): { width: number; height: number } | null => {
+  width?: number
+}): null | { height: number; width: number } => {
   if (meta.width == null || meta.height == null) {
     return null
   }
   const swapped = meta.orientation != null && meta.orientation >= 5
-  return swapped ? { width: meta.height, height: meta.width } : { width: meta.width, height: meta.height }
+  return swapped ? { height: meta.width, width: meta.height } : { height: meta.height, width: meta.width }
 }

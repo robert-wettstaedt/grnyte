@@ -13,17 +13,17 @@
   import type { RemoteForm } from '@sveltejs/kit'
   import type { RouteDetail } from './dto'
   import RouteRatingInput from './RouteRatingInput.svelte'
-  import RouteTagsInput from './RouteTagsInput.svelte'
   import type { RouteFormInput } from './routes.remote'
+  import RouteTagsInput from './RouteTagsInput.svelte'
 
   // Shared body for the add/edit route forms. Every field is optional (one note up top
   // says so instead of per-field badges, hence `required` on each wrapper); the custom
   // inputs are self-sufficient (they render their own hidden inputs) and sit in the same
   // RemoteFormInputWrapper as the text fields. Mirrors BlockFormFields.
   interface Props {
-    form: RemoteForm<RouteFormInput, unknown>
     /** The block the route lives on. */
     block: BlockDetail
+    form: RemoteForm<RouteFormInput, unknown>
     /** When editing: the route, to seed the non-text fields once on mount. */
     route?: RouteDetail
     /** Media picked in the form, uploading in the background while the user types.
@@ -31,7 +31,7 @@
     uploads?: MediaUpload[]
   }
 
-  let { form, block, route, uploads = $bindable([]) }: Props = $props()
+  let { block, form, route, uploads = $bindable([]) }: Props = $props()
 
   const global = getGlobalState()
 
@@ -49,11 +49,11 @@
   // The Breadcrumb wants an area-shaped object; the block's `areas` is already the
   // full containment chain, and the block itself joins as the final label below.
   const breadcrumbArea = $derived({
+    areas: block.areas,
     id: block.id,
     name: block.name,
-    type: null,
-    areas: block.areas,
     regionFk: block.regionFk,
+    type: null,
   })
 
   // Newest first: recent years are the likely picks, so they sit at the top of the wheel.

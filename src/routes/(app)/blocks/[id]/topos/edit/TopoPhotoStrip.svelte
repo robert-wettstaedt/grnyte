@@ -10,19 +10,19 @@
   import { fade, fly } from 'svelte/transition'
 
   interface Props {
-    topos: Pick<TopoView, 'id' | 'imagePath'>[]
     currentTopoId: number | undefined
-    /** An upload is in flight; disables the add button and shows a spinner. */
-    photoBusy: boolean
-    onSelect: (topoId: number) => void
     onAddPhoto: () => void
-    onReplacePhoto: (topoId: number) => void
     onDeletePhoto: () => void
     /** Persist a new photo order (called once a drag-reorder gesture settles). */
     onReorder: (orderedIds: number[]) => void
+    onReplacePhoto: (topoId: number) => void
+    onSelect: (topoId: number) => void
+    /** An upload is in flight; disables the add button and shows a spinner. */
+    photoBusy: boolean
+    topos: Pick<TopoView, 'id' | 'imagePath'>[]
   }
 
-  const { topos, currentTopoId, photoBusy, onSelect, onAddPhoto, onReplacePhoto, onDeletePhoto, onReorder }: Props =
+  const { currentTopoId, onAddPhoto, onDeletePhoto, onReorder, onReplacePhoto, onSelect, photoBusy, topos }: Props =
     $props()
 
   let photoMenuOpen = $state(false)
@@ -157,7 +157,7 @@
           aria-label={m.topo_dragToReorder()}
           title={m.topo_dragToReorder()}
           onpointerdown={(event) => onThumbPointerDown(event, index)}
-          transition:fly={{ y: -12, duration: 150 }}
+          transition:fly={{ duration: 150, y: -12 }}
         >
           <Icon name="grip-horizontal" size={15} />
         </button>

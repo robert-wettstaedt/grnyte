@@ -15,7 +15,7 @@ export const remarkDisableLinks: Plugin<[], Root> = () => (tree) => {
     }
 
     if (node.type === 'link' || node.type === 'linkReference') {
-      const strong: Strong = { type: 'strong', children: node.children }
+      const strong: Strong = { children: node.children, type: 'strong' }
       parent.children[index] = strong as (typeof parent.children)[number]
     }
   })

@@ -8,9 +8,9 @@
     /** Whether a link mark is active at the current selection (button highlight). */
     active?: boolean
     /** Read the live editor selection to seed the form each time it opens. */
-    getInitial: () => { text: string; href: string }
+    getInitial: () => { href: string; text: string }
     /** Confirmed: insert/update the link. */
-    onsubmit: (value: { text: string; href: string }) => void
+    onsubmit: (value: { href: string; text: string }) => void
   }
 
   let { active = false, getInitial, onsubmit }: Props = $props()
@@ -40,7 +40,7 @@
       return
     }
     open = false
-    onsubmit({ text: text.trim(), href: href.trim() })
+    onsubmit({ href: href.trim(), text: text.trim() })
   }
 </script>
 

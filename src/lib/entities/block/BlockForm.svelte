@@ -21,36 +21,36 @@
   // submit with a confirm when no location is set. Edit reuses this verbatim — pass
   // `updateBlock`, an `initialLocation`, and an "Edit block"/"Save" title and label.
   interface Props {
-    form: RemoteForm<BlockFormInput, unknown>
     /** The crag the block belongs to — drives the breadcrumb and the picker's framing. */
     area: AreaDetail
-    title: string
-    submitLabel: string
-    onCancel: () => void
-    /** Pre-fill the location, e.g. the block's existing pin when editing. */
-    initialLocation?: Coords | null
+    /** Editing an existing block — switches the no-location confirm to "Save …" wording. */
+    editing?: boolean
+    form: RemoteForm<BlockFormInput, unknown>
     /** Pre-fill the "rough guess" toggle from the block's existing pin when editing. */
     initialEstimated?: boolean
+    /** Pre-fill the location, e.g. the block's existing pin when editing. */
+    initialLocation?: Coords | null
     /** Open straight on the map picker (the "Move on the map" shortcut) instead of the form. */
     initialStep?: 'form' | 'pin'
+    onCancel: () => void
     /** Move mode: when set, the picker's "Done" commits the pin directly through this callback
      *  (typically a save + navigate) instead of returning to the form to be submitted. */
     onLocationCommit?: (coords: Coords) => void
-    /** Editing an existing block — switches the no-location confirm to "Save …" wording. */
-    editing?: boolean
+    submitLabel: string
+    title: string
   }
 
   const {
-    form,
     area,
-    title,
-    submitLabel,
-    onCancel,
-    initialLocation = null,
-    initialEstimated = false,
-    initialStep = 'form',
-    onLocationCommit,
     editing = false,
+    form,
+    initialEstimated = false,
+    initialLocation = null,
+    initialStep = 'form',
+    onCancel,
+    onLocationCommit,
+    submitLabel,
+    title,
   }: Props = $props()
 
   const global = getGlobalState()
@@ -91,7 +91,7 @@
     if (current === undefined) return // still waiting for the first fix
     locating = false
     if (current === null) {
-      toaster.create({ type: 'error', title: m.blocks_add_locateError() })
+      toaster.create({ title: m.blocks_add_locateError(), type: 'error' })
     } else {
       committed = { lat: current.lat, long: current.long }
     }

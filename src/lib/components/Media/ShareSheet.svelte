@@ -6,8 +6,9 @@
   then it is still the thing we hand out.
 -->
 <script lang="ts">
-  import { page } from '$app/state'
   import { browser } from '$app/environment'
+  import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
@@ -17,22 +18,21 @@
   import { createCopyButton } from '$lib/state/clipboard.svelte'
   import { toaster } from '$lib/state/toast'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
-  import { resolve } from '$app/paths'
 
   interface Props {
-    file: MediaFile
     /** Whether the viewer may change visibility (region EDIT / own ascent). */
     canEdit: boolean
-    /** Text shared alongside the link (e.g. the route name). */
-    shareText: string
-    /** Bindable so the host can pause its own shortcuts while the sheet is up. */
-    open?: boolean
+    file: MediaFile
     /** Notified after a visibility toggle persists; lets a host without a reactive
      *  `file` (e.g. the server-loaded /f/ page) update its own copy. */
-    onVisibilityChange?: (visibility: 'public' | 'private') => void
+    onVisibilityChange?: (visibility: 'private' | 'public') => void
+    /** Bindable so the host can pause its own shortcuts while the sheet is up. */
+    open?: boolean
+    /** Text shared alongside the link (e.g. the route name). */
+    shareText: string
   }
 
-  let { file, canEdit, shareText, open = $bindable(false), onVisibilityChange }: Props = $props()
+  let { canEdit, file, onVisibilityChange, open = $bindable(false), shareText }: Props = $props()
 
   let saving = $state(false)
 
@@ -59,7 +59,7 @@
       await setFileVisibility({ fileId: file.id, visibility })
       onVisibilityChange?.(visibility)
     } catch {
-      toaster.create({ type: 'error', title: m.error_generic_title() })
+      toaster.create({ title: m.error_generic_title(), type: 'error' })
     } finally {
       saving = false
     }

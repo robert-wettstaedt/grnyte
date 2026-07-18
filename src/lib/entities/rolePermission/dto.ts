@@ -8,6 +8,6 @@ export type Permission = Row<'rolePermissions'>['permission']
 
 /** A single role→permission grant from the `rolePermissions` reference table. */
 export interface RolePermission {
-  role: AppRole
   permission: Permission
+  role: AppRole
 }

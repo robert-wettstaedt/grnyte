@@ -4,10 +4,10 @@
   import GradeDonut from './GradeDonut.svelte'
 
   const { Story } = defineMeta({
-    title: 'Components/GradeDonut',
     component: GradeDonut,
-    tags: ['autodocs'],
     parameters: { layout: 'centered' },
+    tags: ['autodocs'],
+    title: 'Components/GradeDonut',
   })
 
   // Route counts keyed by grade id; arcs are grouped and coloured by the 4 tiers
@@ -49,4 +49,4 @@
 <Story name="With ungraded" args={{ countByGrade: allTiers, total: sum(allTiers) + 8 }} {template} />
 
 <!-- Larger diameter (e.g. an area header vs a map marker). -->
-<Story name="Large" args={{ countByGrade: allTiers, total: sum(allTiers), size: 96 }} {template} />
+<Story name="Large" args={{ countByGrade: allTiers, size: 96, total: sum(allTiers) }} {template} />

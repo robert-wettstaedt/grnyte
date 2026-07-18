@@ -8,10 +8,50 @@ export const DONUT_STROKE_WIDTH = 4
 
 export interface DonutSegment {
   color: string
-  /** Arc length as a fraction of the ring's 100-unit circumference. */
-  length: number
   /** Dash offset that walks this arc clockwise from 12 o'clock. */
   dashOffset: number
+  /** Arc length as a fraction of the ring's 100-unit circumference. */
+  length: number
+}
+
+/**
+ * Renders the grade donut as a standalone SVG string for use as an OpenLayers
+ * marker icon (data URI). Unlike the `GradeDonut` component it carries its own
+ * colors and a white backing disc so it reads on top of the map, and draws the
+ * centered count inside the SVG rather than as an overlaid element.
+ *
+ * @param size diameter in pixels.
+ */
+export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: number, size: number): string {
+  const segments = computeDonutSegments(countByGrade, total)
+  const c = DONUT_CENTER
+  const r = DONUT_RADIUS
+  const sw = DONUT_STROKE_WIDTH
+
+  // Font size in viewBox units; longer numbers shrink so they stay inside the hole.
+  const fontSize = Math.min(13, 40 / String(total).length)
+
+  const ring = segments
+    .map(
+      (segment) =>
+        `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${segment.color}" stroke-width="${sw}" ` +
+        `stroke-dasharray="${segment.length} ${100 - segment.length}" stroke-dashoffset="${segment.dashOffset}"/>`,
+    )
+    .join('')
+
+  // Dark backing ring (visible through the gaps between arcs) plus a white disc just big
+  // enough to fill the hole behind the count, so it reads on top of the map. The ring is
+  // dark so the light end of the grade scale (very-easy peach) still contrasts against it.
+  const hole = r - sw / 2
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${c * 2} ${c * 2}">` +
+    `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#52525b" stroke-width="${sw}"/>` +
+    `<circle cx="${c}" cy="${c}" r="${hole}" fill="#ffffff" fill-opacity="0.8"/>` +
+    ring +
+    `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +
+    `font-weight="700" font-size="${fontSize}" fill="#1f2937">${total}</text>` +
+    `</svg>`
+  )
 }
 
 /**
@@ -53,52 +93,12 @@ export function computeDonutSegments(countByGrade: Map<number, number>, total: n
     const length = (count / sum) * available
     const segment = {
       color,
-      length,
       // +25 shifts the dash start from 3 o'clock to 12 o'clock; subtracting the
       // running total walks each arc clockwise around the ring.
       dashOffset: 125 - cumulative,
+      length,
     }
     cumulative += length + gap
     return segment
   })
-}
-
-/**
- * Renders the grade donut as a standalone SVG string for use as an OpenLayers
- * marker icon (data URI). Unlike the `GradeDonut` component it carries its own
- * colors and a white backing disc so it reads on top of the map, and draws the
- * centered count inside the SVG rather than as an overlaid element.
- *
- * @param size diameter in pixels.
- */
-export function buildGradeDonutSvg(countByGrade: Map<number, number>, total: number, size: number): string {
-  const segments = computeDonutSegments(countByGrade, total)
-  const c = DONUT_CENTER
-  const r = DONUT_RADIUS
-  const sw = DONUT_STROKE_WIDTH
-
-  // Font size in viewBox units; longer numbers shrink so they stay inside the hole.
-  const fontSize = Math.min(13, 40 / String(total).length)
-
-  const ring = segments
-    .map(
-      (segment) =>
-        `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${segment.color}" stroke-width="${sw}" ` +
-        `stroke-dasharray="${segment.length} ${100 - segment.length}" stroke-dashoffset="${segment.dashOffset}"/>`,
-    )
-    .join('')
-
-  // Dark backing ring (visible through the gaps between arcs) plus a white disc just big
-  // enough to fill the hole behind the count, so it reads on top of the map. The ring is
-  // dark so the light end of the grade scale (very-easy peach) still contrasts against it.
-  const hole = r - sw / 2
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${c * 2} ${c * 2}">` +
-    `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#52525b" stroke-width="${sw}"/>` +
-    `<circle cx="${c}" cy="${c}" r="${hole}" fill="#ffffff" fill-opacity="0.8"/>` +
-    ring +
-    `<text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" ` +
-    `font-weight="700" font-size="${fontSize}" fill="#1f2937">${total}</text>` +
-    `</svg>`
-  )
 }

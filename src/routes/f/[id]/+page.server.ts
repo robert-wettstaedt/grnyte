@@ -20,23 +20,41 @@ import type { PageServerLoad } from './$types'
 // A public file is shown to anyone; a private one only to members of its region.
 export const load = (async ({ locals, params }) => {
   const row = await db.query.files.findFirst({
-    where: eq(files.id, params.id),
     columns: {
-      id: true,
-      path: true,
-      width: true,
-      height: true,
-      bunnyStreamFk: true,
-      regionFk: true,
-      visibility: true,
-      createdAt: true,
-      // The owning entity, so a delete can send the user back to it (see `parent` below).
-      routeFk: true,
+      areaFk: true,
       ascentFk: true,
       blockFk: true,
-      areaFk: true,
+      bunnyStreamFk: true,
+      createdAt: true,
+      height: true,
+      id: true,
+      path: true,
+      regionFk: true,
+      // The owning entity, so a delete can send the user back to it (see `parent` below).
+      routeFk: true,
+      visibility: true,
+      width: true,
     },
+    where: eq(files.id, params.id),
     with: {
+      ascent: {
+        columns: {
+          createdBy: true,
+          dateTime: true,
+          gradeFk: true,
+          humidity: true,
+          id: true,
+          notes: true,
+          rating: true,
+          temperature: true,
+          type: true,
+        },
+        with: {
+          route: {
+            columns: { gradeFk: true, id: true, name: true, rating: true, userGradeFk: true, userRating: true },
+          },
+        },
+      },
       author: {
         columns: { id: true, username: true },
         // For the reference-data fixture's grading scale when the viewer has no setting of
@@ -44,25 +62,7 @@ export const load = (async ({ locals, params }) => {
         with: { userSettings: { columns: { gradingScale: true } } },
       },
       bunnyStream: { columns: { source: true } },
-      route: { columns: { id: true, name: true, gradeFk: true, userGradeFk: true, rating: true, userRating: true } },
-      ascent: {
-        columns: {
-          id: true,
-          type: true,
-          dateTime: true,
-          notes: true,
-          gradeFk: true,
-          rating: true,
-          temperature: true,
-          humidity: true,
-          createdBy: true,
-        },
-        with: {
-          route: {
-            columns: { id: true, name: true, gradeFk: true, userGradeFk: true, rating: true, userRating: true },
-          },
-        },
-      },
+      route: { columns: { gradeFk: true, id: true, name: true, rating: true, userGradeFk: true, userRating: true } },
     },
   })
 
@@ -91,28 +91,28 @@ export const load = (async ({ locals, params }) => {
 
   const file: MediaFile = {
     ...toMediaFile({ ...row, createdAt: new Date(row.createdAt).getTime() }),
+    ascent:
+      row.ascent == null
+        ? undefined
+        : {
+            dateTime: new Date(row.ascent.dateTime).getTime(),
+            gradeFk: row.ascent.gradeFk ?? undefined,
+            humidity: row.ascent.humidity ?? undefined,
+            id: row.ascent.id,
+            notes,
+            rating: row.ascent.rating ?? undefined,
+            temperature: row.ascent.temperature ?? undefined,
+            type: row.ascent.type,
+          },
     ascentCreatedBy,
     route:
       routeRow == null
         ? undefined
         : {
+            gradeFk: routeRow.userGradeFk ?? routeRow.gradeFk ?? undefined,
             id: routeRow.id,
             name: routeRow.name ?? '',
-            gradeFk: routeRow.userGradeFk ?? routeRow.gradeFk ?? undefined,
             rating: routeRow.userRating ?? routeRow.rating ?? undefined,
-          },
-    ascent:
-      row.ascent == null
-        ? undefined
-        : {
-            id: row.ascent.id,
-            type: row.ascent.type,
-            dateTime: new Date(row.ascent.dateTime).getTime(),
-            notes,
-            gradeFk: row.ascent.gradeFk ?? undefined,
-            rating: row.ascent.rating ?? undefined,
-            temperature: row.ascent.temperature ?? undefined,
-            humidity: row.ascent.humidity ?? undefined,
           },
   }
 
@@ -127,15 +127,15 @@ export const load = (async ({ locals, params }) => {
 
   // The entity this file hangs on (exactly one FK is set), so a delete can navigate back to
   // it instead of home. Same precedence as deleteFile's activity target.
-  const parent: { type: 'route' | 'ascent' | 'block' | 'area'; id: number } | null =
+  const parent: null | { id: number; type: 'area' | 'ascent' | 'block' | 'route' } =
     row.routeFk != null
-      ? { type: 'route', id: row.routeFk }
+      ? { id: row.routeFk, type: 'route' }
       : row.ascentFk != null
-        ? { type: 'ascent', id: row.ascentFk }
+        ? { id: row.ascentFk, type: 'ascent' }
         : row.blockFk != null
-          ? { type: 'block', id: row.blockFk }
+          ? { id: row.blockFk, type: 'block' }
           : row.areaFk != null
-            ? { type: 'area', id: row.areaFk }
+            ? { id: row.areaFk, type: 'area' }
             : null
 
   // The share/delete toolbar is signed-in only; permissions (mirroring the files RLS incl.
@@ -144,10 +144,10 @@ export const load = (async ({ locals, params }) => {
     locals.session == null
       ? null
       : {
-          canEdit: canEditFile(locals.userRegions, locals.user?.id, file),
           canDelete: canDeleteFile(locals.userRegions, locals.user?.id, file),
-          shareText: file.route?.name ?? '',
+          canEdit: canEditFile(locals.userRegions, locals.user?.id, file),
           parent,
+          shareText: file.route?.name ?? '',
         }
 
   // Data minimization: an anonymous viewer's UI renders none of the internal ids, so the
@@ -158,12 +158,12 @@ export const load = (async ({ locals, params }) => {
       ? file
       : {
           ...file,
-          regionFk: 0,
-          ascentCreatedBy: undefined,
-          uploader: file.uploader == null ? undefined : { id: 0, username: file.uploader.username },
-          route: file.route == null ? undefined : { ...file.route, id: 0 },
           ascent: file.ascent == null ? undefined : { ...file.ascent, id: 0 },
+          ascentCreatedBy: undefined,
+          regionFk: 0,
+          route: file.route == null ? undefined : { ...file.route, id: 0 },
+          uploader: file.uploader == null ? undefined : { id: 0, username: file.uploader.username },
         }
 
-  return { file: clientFile, grades, gradingScale, user, controls }
+  return { controls, file: clientFile, grades, gradingScale, user }
 }) satisfies PageServerLoad

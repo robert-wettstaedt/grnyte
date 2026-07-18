@@ -6,7 +6,7 @@ import type { Grade } from './dto'
  * (`FB 6A+` → `6A+`). Returns an em-dash for ungraded routes. Shared by every
  * route row so grades read identically across blocks, areas and the routes list.
  */
-export function gradeLabel(grades: Grade[], scale: GradingScale, gradeFk: number | undefined | null): string {
+export function gradeLabel(grades: Grade[], scale: GradingScale, gradeFk: null | number | undefined): string {
   if (gradeFk == null) {
     return '—'
   }

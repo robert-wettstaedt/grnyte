@@ -6,9 +6,9 @@ export type RegionMemberRow = QueryRow<typeof queries.listUserRegions>
 
 export function toRegionMembership(row: RegionMemberRow): RegionMembership {
   return {
+    name: row.region?.name ?? '',
     regionFk: row.regionFk,
     role: row.role,
-    name: row.region?.name ?? '',
     settings: row.region?.settings ?? undefined,
   }
 }

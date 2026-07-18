@@ -18,7 +18,7 @@ describe('TopoEditor', () => {
     editor.pointType = 'top'
     editor.place(0.5, 0.1)
 
-    expect(editor.savedLinesFor(1)).toEqual([{ routeFk: 42, topType: 'top', path: 'M0.5,0.9 L0.5,0.1 Z' }])
+    expect(editor.savedLinesFor(1)).toEqual([{ path: 'M0.5,0.9 L0.5,0.1 Z', routeFk: 42, topType: 'top' }])
   })
 
   it('is dirty after an edit and clean after discard', () => {
@@ -104,7 +104,7 @@ describe('TopoEditor', () => {
     expect(editor.isDirty(1)).toBe(false)
     expect(editor.syncedWithCommitted(1)).toBe(false)
     // Zero echoes the saved lines back: now the doc is safe to forget.
-    store[1] = [{ routeFk: 42, topType: 'top', points: [{ id: 'x', type: 'start', x: 0.4, y: 0.8 }] }]
+    store[1] = [{ points: [{ id: 'x', type: 'start', x: 0.4, y: 0.8 }], routeFk: 42, topType: 'top' }]
     expect(editor.syncedWithCommitted(1)).toBe(true)
   })
 

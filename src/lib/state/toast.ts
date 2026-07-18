@@ -6,17 +6,17 @@ import { createToaster } from '@skeletonlabs/skeleton-svelte'
  *  survive client-side navigation (the undo snackbar outlives the route change a
  *  delete triggers). Import {@link toaster} anywhere to raise a toast. */
 export const toaster = createToaster({
-  placement: 'bottom',
-  max: 3,
   gap: 8,
+  max: 3,
   // Lift the snackbar off the home indicator / sheet edge so it reads as floating.
-  offsets: { top: '1rem', right: '1rem', left: '1rem', bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' },
+  offsets: { bottom: 'calc(env(safe-area-inset-bottom) + 1rem)', left: '1rem', right: '1rem', top: '1rem' },
+  placement: 'bottom',
 })
 
 export interface UndoToastData {
+  duration?: number
   message: string
   onUndo: () => unknown
-  duration?: number
 }
 
 /**
@@ -28,10 +28,10 @@ export interface UndoToastData {
  */
 export function notifyUndo(opts: UndoToastData): void {
   toaster.create({
-    type: 'info',
-    title: opts.message,
-    duration: opts.duration ?? Number.POSITIVE_INFINITY,
     action: { label: m.common_undo(), onClick: () => void opts.onUndo() },
+    duration: opts.duration ?? Number.POSITIVE_INFINITY,
+    title: opts.message,
+    type: 'info',
   })
 }
 
@@ -54,18 +54,18 @@ export function notifyUndo(opts: UndoToastData): void {
 export async function withUndo<T, U>(
   pending: Promise<MutationResult<T> | void>,
   opts: {
+    duration?: number
     message: string
     onUndo: (snapshot: T) => Promise<MutationResult<U> | void>
     waitFor?: (data: U) => unknown
-    duration?: number
   },
 ): Promise<void> {
   const snapshot = await runCommand(pending)
   if (snapshot != null) {
     // Run the undo through `runCommand` too, so a restore that returns `redirectTo` navigates.
     notifyUndo({
-      message: opts.message,
       duration: opts.duration,
+      message: opts.message,
       onUndo: () =>
         runCommand(opts.onUndo(snapshot), {
           beforeRedirect: (data) => (data == null ? undefined : opts.waitFor?.(data)),

@@ -4,13 +4,13 @@
 
   /** A magnifier view centred on the point under the pointer. */
   export interface Lens {
+    bgH: number
+    bgW: number
+    bgX: number
+    bgY: number
     clientX: number
     clientY: number
     src: string
-    bgW: number
-    bgH: number
-    bgX: number
-    bgY: number
   }
 </script>
 
