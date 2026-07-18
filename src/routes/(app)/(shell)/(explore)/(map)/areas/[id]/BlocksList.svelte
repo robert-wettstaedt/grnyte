@@ -15,6 +15,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import { SvelteMap } from 'svelte/reactivity'
+  import { fade } from 'svelte/transition'
 
   interface Props {
     /** Blocks beneath the area, already ordered by the query. */
@@ -125,59 +126,63 @@
       </span>
     </a>
 
-    {#if view === 'topos'}
-      {#if block.topoImages.length > 0}
-        <div class="flex flex-col gap-3">
-          {#each block.topoImages as image (image.id)}
-            <a
-              class="block"
-              href={resolve('/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]', {
-                id: String(block.id),
-                topoId: String(image.id),
-              })}
-              aria-label={m.topo_alt()}
-            >
-              <Topo
-                class="w-full"
-                imagePath={image.path}
-                width={image.width}
-                height={image.height}
-                alt={m.topo_alt()}
-                lines={blockRoutes
-                  .filter((route) => route.topoImagePath === image.path && route.topoPoints != null)
-                  .map((route) => ({
-                    band: getGradeBand(route.gradeFk),
-                    id: route.id,
-                    points: route.topoPoints ?? [],
-                  }))}
+    {#key view}
+      <div in:fade={{ duration: 150 }}>
+        {#if view === 'topos'}
+          {#if block.topoImages.length > 0}
+            <div class="flex flex-col gap-3">
+              {#each block.topoImages as image (image.id)}
+                <a
+                  class="block"
+                  href={resolve('/(app)/(shell)/(explore)/blocks/[id]/topos/[topoId]', {
+                    id: String(block.id),
+                    topoId: String(image.id),
+                  })}
+                  aria-label={m.topo_alt()}
+                >
+                  <Topo
+                    class="w-full"
+                    imagePath={image.path}
+                    width={image.width}
+                    height={image.height}
+                    alt={m.topo_alt()}
+                    lines={blockRoutes
+                      .filter((route) => route.topoImagePath === image.path && route.topoPoints != null)
+                      .map((route) => ({
+                        band: getGradeBand(route.gradeFk),
+                        id: route.id,
+                        points: route.topoPoints ?? [],
+                      }))}
+                  />
+                </a>
+              {/each}
+            </div>
+          {:else}
+            <p class="text-surface-500 text-sm">{m.topo_none()}</p>
+          {/if}
+        {:else if blockRoutes.length > 0}
+          <nav class="flex flex-col gap-1.5">
+            {#each blockRoutes as route (route.id)}
+              <RouteRow
+                {route}
+                grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
+                status={ascentStatus.get(route.id)}
+                href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
               />
-            </a>
-          {/each}
-        </div>
-      {:else}
-        <p class="text-surface-500 text-sm">{m.topo_none()}</p>
-      {/if}
-    {:else if blockRoutes.length > 0}
-      <nav class="flex flex-col gap-1.5">
-        {#each blockRoutes as route (route.id)}
-          <RouteRow
-            {route}
-            grade={gradeLabel(global.grades, global.gradingScale, route.gradeFk)}
-            status={ascentStatus.get(route.id)}
-            href={resolve('/(app)/routes/[id]', { id: String(route.id) })}
-          />
-        {/each}
-      </nav>
-    {:else}
-      <div class="flex items-center gap-2">
-        {#each block.topoImages as image (image.id)}
-          <span class="size-13 flex-none overflow-hidden rounded-xl">
-            <Image path={image.path} alt={m.topo_alt()} class="h-full w-full" previewWidth={160} />
-          </span>
-        {/each}
+            {/each}
+          </nav>
+        {:else}
+          <div class="flex items-center gap-2">
+            {#each block.topoImages as image (image.id)}
+              <span class="size-13 flex-none overflow-hidden rounded-xl">
+                <Image path={image.path} alt={m.topo_alt()} class="h-full w-full" previewWidth={160} />
+              </span>
+            {/each}
 
-        <p class="text-surface-500 text-sm">{m.blocks_noRoutes()}</p>
+            <p class="text-surface-500 text-sm">{m.blocks_noRoutes()}</p>
+          </div>
+        {/if}
       </div>
-    {/if}
+    {/key}
   </section>
 {/each}

@@ -16,6 +16,8 @@
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { flip } from 'svelte/animate'
+  import { fade } from 'svelte/transition'
 
   const global = getGlobalState()
 
@@ -95,7 +97,7 @@
             {#each chips as { color, count, key, label } (key)}
               <button
                 class={[
-                  'border-surface-200-800 flex h-8.5 flex-none items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold',
+                  'border-surface-200-800 flex h-8.5 flex-none items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold transition-colors',
                   filter !== key && 'bg-surface-100-900 text-surface-600-400',
                 ]}
                 onclick={() => (filter = key)}
@@ -115,13 +117,15 @@
           <section class="flex flex-col gap-2">
             <h2 class="text-primary-400 text-xs font-bold tracking-wider uppercase">{m.ascents_yourLogbook()}</h2>
             {#each split.mine as ascent (ascent.id)}
-              <AscentRow
-                {ascent}
-                expanded={ascent.id === targetId}
-                highlight
-                id={`ascent-${ascent.id}`}
-                routeName={detail.name}
-              />
+              <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
+                <AscentRow
+                  {ascent}
+                  expanded={ascent.id === targetId}
+                  highlight
+                  id={`ascent-${ascent.id}`}
+                  routeName={detail.name}
+                />
+              </div>
             {/each}
           </section>
         {/if}
@@ -132,13 +136,15 @@
               {m.ascents_community()} · {split.community.length}
             </h2>
             {#each split.community as ascent (ascent.id)}
-              <AscentRow
-                {ascent}
-                expanded={ascent.id === targetId}
-                highlight={ascent.id === targetId}
-                id={`ascent-${ascent.id}`}
-                routeName={detail.name}
-              />
+              <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
+                <AscentRow
+                  {ascent}
+                  expanded={ascent.id === targetId}
+                  highlight={ascent.id === targetId}
+                  id={`ascent-${ascent.id}`}
+                  routeName={detail.name}
+                />
+              </div>
             {/each}
           </section>
         {/if}

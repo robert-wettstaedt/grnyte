@@ -2,6 +2,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import type { QueryResource } from '$lib/zero/resource.svelte'
   import type { Snippet } from 'svelte'
+  import { fade } from 'svelte/transition'
 
   let {
     empty,
@@ -34,11 +35,12 @@
   {#if error}
     {@render error()}
   {:else}
-    <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert">
+    <div class="card preset-tonal-error px-4 py-3 text-sm" role="alert" in:fade={{ duration: 150 }}>
       {m.queryState_error()}
     </div>
   {/if}
 {:else if status === 'loading'}
+  <!-- No transition: the skeleton is the first feedback on navigation, so it shows instantly. -->
   {#if loading}
     {@render loading()}
   {:else}
@@ -52,8 +54,13 @@
   {#if empty}
     {@render empty()}
   {:else}
-    <p class="text-surface-600-400 py-8 text-center">{m.queryState_empty()}</p>
+    <p class="text-surface-600-400 py-8 text-center" in:fade={{ duration: 150 }}>{m.queryState_empty()}</p>
   {/if}
 {:else}
-  {@render ready(resource.data as NonNullable<TOut>)}
+  <!-- Fade the loaded content in as it replaces the skeleton. `in` only (no `out`): an out
+       transition would keep the leaving skeleton in flow and jump the layout. The wrapper is
+       `min-h-full flex-col` so full-height pages (sticky footers) still chain their height. -->
+  <div class="flex min-h-full flex-col" in:fade={{ duration: 150 }}>
+    {@render ready(resource.data as NonNullable<TOut>)}
+  </div>
 {/if}

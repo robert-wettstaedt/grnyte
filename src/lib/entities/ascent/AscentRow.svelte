@@ -17,6 +17,7 @@
   import { openMedia } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
   import { toaster } from '$lib/state/toast'
+  import { slide } from 'svelte/transition'
   import { deleteAscent } from './ascents.remote'
   import AscentType from './AscentType.svelte'
   import type { RouteAscent } from './dto'
@@ -150,7 +151,7 @@
   </div>
 
   {#if expanded}
-    <div class="flex flex-col gap-2.5 px-3.5 pb-3">
+    <div class="flex flex-col gap-2.5 px-3.5 pb-3" transition:slide={{ duration: 150 }}>
       {#if hasNotes}
         <div class="text-sm">
           <Markdown markdown={ascent.notes} />
