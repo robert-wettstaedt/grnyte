@@ -34,7 +34,6 @@
   const topos = blockTopoList(() => blockId)
   const routes = blockRouteList(() => blockId)
 
-  // The user's tick per route, shown on every row.
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   const topo = $derived(topos.data.find((view) => view.id === topoId))

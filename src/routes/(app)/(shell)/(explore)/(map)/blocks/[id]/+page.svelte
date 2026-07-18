@@ -39,7 +39,6 @@
   const routes = blockRouteList(() => blockId)
   const orderedRoutes = $derived(orderRoutesByTopo(routes.data, topos.data))
 
-  // The user's tick per route, shown on every row.
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   // Siblings for prev/next nav (ordered by `order`). The immediate area is the last

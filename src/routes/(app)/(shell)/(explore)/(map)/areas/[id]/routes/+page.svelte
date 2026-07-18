@@ -47,7 +47,6 @@
     () => global.user?.id,
   )
 
-  // The user's tick per route, shown on every row.
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   // Block coordinates power the distance sort (route → block → geolocation).

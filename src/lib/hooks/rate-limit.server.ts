@@ -24,14 +24,12 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
   const now = Date.now()
   const { max, windowMs } = RATE_LIMIT
 
-  // Clean up expired entries
   for (const key in store) {
     if (store[key].resetTime < now) {
       delete store[key]
     }
   }
 
-  // Initialize or get existing rate limit data
   if (!store[ip]) {
     store[ip] = {
       count: 0,
@@ -39,7 +37,6 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
     }
   }
 
-  // Reset if window has expired
   if (store[ip].resetTime < now) {
     store[ip] = {
       count: 0,
@@ -47,10 +44,8 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
     }
   }
 
-  // Increment request count
   store[ip].count++
 
-  // Set rate limit headers
   const remaining = Math.max(0, max - store[ip].count)
   const reset = Math.ceil((store[ip].resetTime - now) / 1000)
 
@@ -60,7 +55,6 @@ export const rateLimit: Handle = async ({ event, resolve }) => {
     'X-RateLimit-Reset': reset.toString(),
   })
 
-  // Check if rate limit exceeded
   if (store[ip].count > max) {
     return new Response('Too Many Requests', {
       headers: {

@@ -15,10 +15,7 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// self.__WB_MANIFEST is default injection point
 precacheAndRoute(self.__WB_MANIFEST)
-
-// clean old assets
 cleanupOutdatedCaches()
 
 // Prerendered static shell (see src/routes/offline) cached at install so a cold
@@ -58,7 +55,6 @@ self.addEventListener('fetch', (event) => {
 
 imageCache({ matchCallback: ({ url }) => url.pathname.startsWith('/nextcloud/topos/') })
 
-// Handle push events for notifications
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
@@ -102,7 +98,6 @@ self.addEventListener('push', (event) => {
   }
 })
 
-// Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   const notification = event.notification
   const action = event.action

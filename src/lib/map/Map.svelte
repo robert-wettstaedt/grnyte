@@ -324,7 +324,6 @@
     })
     map = mapInstance
 
-    // Click navigation
     mapInstance.on('click', (event) => {
       if (props.drawPath) {
         const [lng, lat] = toLonLat(event.coordinate)
@@ -350,7 +349,6 @@
       }
     })
 
-    // Pointer cursor for blocks
     mapInstance.on('pointermove', (event) => {
       if (props.pickMode) return
       const target = mapInstance.getTarget()
@@ -444,7 +442,6 @@
     viewport.addEventListener('pointerup', cancelPress)
     viewport.addEventListener('pointercancel', cancelPress)
 
-    // Geolocation
     const cleanupGeolocation = setupGeolocation(mapInstance, {
       getHasFocus: () => props.focus != null,
       getIsTracking: () => isTrackingGeolocation,
@@ -452,7 +449,6 @@
       setIsTracking: (v) => (isTrackingGeolocation = v),
     })
 
-    // Resize
     const observer = new ResizeObserver(() => {
       mapInstance.updateSize()
       const size = mapInstance.getSize()

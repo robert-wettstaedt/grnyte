@@ -121,7 +121,6 @@ export const supabase: Handle = async ({ event, resolve }) => {
 
       return { ...pageState, session }
     } catch {
-      // Return minimal session data on error
       return {
         session,
         user: undefined,
@@ -152,7 +151,6 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   event.locals.userRegions = userRegions
   event.locals.userRole = userRole
 
-  // Check if user needs authentication
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&

@@ -1245,7 +1245,7 @@ export const activities = table(
     entityType: text('entity_type', { enum: [...activityParentEntityType, 'file', 'user'] }).notNull(),
     metadata: text('metadata'), // JSON string containing relevant changes
     newValue: text('new_value'), // Only populated for 'updated' activities
-    notified: boolean('notified'), // Whether this activity has been notified
+    notified: boolean('notified'),
     oldValue: text('old_value'), // Only populated for 'updated' activities
     parentEntityId: text('parent_entity_id'),
     parentEntityType: text('parent_entity_type', { enum: activityParentEntityType }),

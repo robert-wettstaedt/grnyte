@@ -23,32 +23,10 @@ export const toggleFavorite = authedCommand(
         .insert(favorites)
         .values({ authUserFk: user.authUserFk, entityId, entityType, regionFk, userFk: user.id })
 
-      // await insertActivity(db, {
-      //   type: 'created',
-      //   userFk: user.id,
-      //   entityId: String(route.id),
-      //   entityType: 'route',
-      //   columnName: 'favorite',
-      //   parentEntityId: String(route.blockFk),
-      //   parentEntityType: 'block',
-      //   regionFk: route.regionFk,
-      // })
-
       return { data: true }
     }
 
     await db.delete(favorites).where(eq(favorites.id, existing.id))
-
-    // await insertActivity(db, {
-    //   type: 'deleted',
-    //   userFk: user.id,
-    //   entityId: String(route.id),
-    //   entityType: 'route',
-    //   columnName: 'favorite',
-    //   parentEntityId: String(route.blockFk),
-    //   parentEntityType: 'block',
-    //   regionFk: route.regionFk,
-    // })
 
     return { data: false }
   },

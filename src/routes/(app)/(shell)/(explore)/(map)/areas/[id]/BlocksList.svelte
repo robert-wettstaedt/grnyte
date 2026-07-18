@@ -27,7 +27,6 @@
 
   const global = getGlobalState()
 
-  // The user's tick per route, shown on every row.
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
   const routesByBlock = $derived.by(() => {
