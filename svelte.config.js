@@ -4,6 +4,12 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
+  // Required to consume SvelteKit remote-function queries (authedQuery) reactively on the client.
+  compilerOptions: {
+    experimental: {
+      async: true,
+    },
+  },
   extensions: ['.svelte'],
   kit: {
     adapter: process.env.VERCEL ? adapterAuto() : adapterNode(),

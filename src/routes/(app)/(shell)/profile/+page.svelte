@@ -1,16 +1,16 @@
 <script lang="ts">
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import ProfileView from '$lib/components/Profile/ProfileView.svelte'
   import { m } from '$lib/paraglide/messages.js'
-  import LightSwitch from './LightSwitch.svelte'
+  import { getGlobalState } from '$lib/state/global.svelte'
+
+  const global = getGlobalState()
 </script>
 
 <svelte:head>
   <title>{m.profile_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<div class="container mx-auto max-w-3xl space-y-6 px-4 py-8 pb-24 md:pb-8">
-  <h1 class="h1">{m.profile_title()}</h1>
-  <p class="text-surface-600-400">{m.common_comingSoon()}</p>
-</div>
-
-<LightSwitch />
+{#if global.user != null}
+  <ProfileView userId={global.user.id} username={global.user.username} isSelf />
+{/if}

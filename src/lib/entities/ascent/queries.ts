@@ -34,4 +34,20 @@ export const ascentsQueryDefs = {
     z.object({ userId: z.number() }),
     regionMemberCan(({ args }) => zql.ascents.where('createdBy', args.userId)),
   ),
+
+  // A user's ascents enriched for their profile: author + media (like
+  // listRouteAscents) plus the route's name and community grade. Kept separate
+  // from the lean listUserAscents so the widely-shared ascent-status query
+  // doesn't drag these related trees into everyone's cold-load sync.
+  listUserAscentsDetailed: defineQuery(
+    z.object({ userId: z.number() }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+      return zql.ascents
+        .where('createdBy', args.userId)
+        .related('author')
+        .related('files', (q) => r(q).related('bunnyStream').related('author'))
+        .related('route', (q) => r(q).related('block', (q) => r(q).related('area', r)))
+    }),
+  ),
 }

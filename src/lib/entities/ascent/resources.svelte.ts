@@ -1,7 +1,7 @@
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import type { AscentType } from './dto'
-import { toAscentDetail, toRouteAscent, toUserAscent } from './mapper'
+import { toAscentDetail, toRouteAscent, toUserAscent, toUserAscentDetail } from './mapper'
 import { ascentStatusByRoute } from './status'
 
 /** One ascent with its media, for the edit-ascent form. */
@@ -20,6 +20,20 @@ export function routeAscentList(routeId: () => number) {
   return createResource(
     () => queries.listRouteAscents({ routeId: routeId() }),
     (rows) => rows.map(toRouteAscent),
+  )
+}
+
+/**
+ * A user's ascents enriched with route name + community grade and their media —
+ * the profile page's sessions, stats and grade histogram. Separate from the lean
+ * `userAscentList` so the shared ascent-status query stays small. Gated by
+ * `enabled` and skipped until a `userId` is available.
+ */
+export function userAscentDetailList(userId: () => number | undefined, enabled: () => boolean = () => true) {
+  return createResource(
+    () => queries.listUserAscentsDetailed({ userId: userId() ?? -1 }),
+    (rows) => rows.map(toUserAscentDetail),
+    { enabled: () => userId() != null && enabled() },
   )
 }
 

@@ -5,6 +5,7 @@
   import type { Props } from './types'
 
   let {
+    backdrop = false,
     children,
     contentClass,
     footer,
@@ -26,8 +27,15 @@
        to the trigger. Close via the X, Escape, or re-tapping the trigger. -->
   {@render trigger?.({})}
 
-  <Dialog {open} onOpenChange={(event) => (open = event.open)} modal={false} closeOnInteractOutside={false}>
+  <!-- backdrop opts this panel into modal behaviour: a blurred scrim, tap-outside
+       to close and a focus trap. Without it the panel stays non-modal (e.g. the
+       search-bar panel, where the background must remain interactive). -->
+  <Dialog {open} onOpenChange={(event) => (open = event.open)} modal={backdrop} closeOnInteractOutside={backdrop}>
     <Portal>
+      {#if backdrop}
+        <Dialog.Backdrop class="bg-surface-50-950/50 fixed inset-0 z-40 backdrop-blur-sm" />
+      {/if}
+
       <Dialog.Positioner class={panelClass}>
         <Dialog.Content
           class={['card bg-surface-50-950 border-surface-100-900 flex flex-col overflow-hidden border-2', contentClass]}

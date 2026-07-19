@@ -190,8 +190,10 @@
   "common_adjust": "Adjust",
   "common_any": "Any",
   "common_apply": "Apply",
+  "common_areas": "Areas",
   "common_back": "Back",
   "common_block": "Block",
+  "common_blocks": "Blocks",
   "common_cancel": "Cancel",
   "common_clear": "Clear",
   "common_close": "Close",
@@ -212,6 +214,7 @@
   "common_reset": "Reset",
   "common_retry": "Retry",
   "common_route": "Route",
+  "common_routes": "Routes",
   "common_save": "Save",
   "common_saved": "Saved",
   "common_savedByOthers": [
@@ -410,6 +413,57 @@
   "parking_stepPlace": "Place parking",
   "parking_title": "Parking",
   "parking_undoPoint": "Undo last point",
+  "profile_activity": "Activity",
+  "profile_activityHint": "Tap a day to see details",
+  "profile_allSends": "All sends",
+  "profile_climbsCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} climb",
+        "countPlural=other": "{count} climbs"
+      }
+    }
+  ],
+  "profile_completedProjects": "Completed projects",
+  "profile_contributions": "Contributions",
+  "profile_favorites": "Favorites",
+  "profile_firstAscents": "First ascents",
+  "profile_flashes": "Flashes",
+  "profile_gradePyramid": "Grade pyramid",
+  "profile_hardest": "Hardest",
+  "profile_noAscents": "No climbs logged yet",
+  "profile_noFavorites": "No favorites yet",
+  "profile_noFirstAscents": "No first ascents yet",
+  "profile_noProjects": "No projects",
+  "profile_openProjects": "Open projects",
+  "profile_recentSessions": "Recent sessions",
+  "profile_removeAll": "Remove all",
+  "profile_removeAllConfirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove your {count} favorite? This cannot be undone.",
+        "countPlural=other": "Remove all {count} favorites? This cannot be undone."
+      }
+    }
+  ],
+  "profile_removeFavorite": "Remove favorite",
+  "profile_sends": "Sends",
+  "profile_sessionsCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} session",
+        "countPlural=other": "{count} sessions"
+      }
+    }
+  ],
+  "profile_sortRecent": "Recent",
+  "profile_sortSessions": "Sessions",
   "profile_title": "Profile",
   "queryState_empty": "Nothing here yet.",
   "queryState_error": "Something went wrong while loading this data.",

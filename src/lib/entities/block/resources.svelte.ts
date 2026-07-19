@@ -5,6 +5,8 @@ import { toBlockDetail } from './mapper'
 
 export interface BlockListFilter {
   areaId?: number
+  /** Restrict to these block ids (e.g. hydrating a favorites list). */
+  blockId?: number | number[]
   content?: string
   /** Cap the result set (e.g. a search preview). */
   limit?: number

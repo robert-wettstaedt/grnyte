@@ -30,3 +30,16 @@ export interface UserAscent {
   routeFk: number
   type: AscentType
 }
+
+/** A user's ascent enriched with its route's name and community grade — the
+ *  profile page's sessions, stats and grade histogram all derive from these. */
+export interface UserAscentDetail extends RouteAscent {
+  /** The route's area name, for the logbook row's location breadcrumb. */
+  areaName?: string
+  /** The route's block name (auto-numbered fallback applied), for the breadcrumb. */
+  blockName?: string
+  routeFk: number
+  /** The route's community grade (`userGradeFk`) — what the grade histogram buckets by. */
+  routeGradeFk: number | undefined
+  routeName: string
+}

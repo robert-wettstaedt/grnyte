@@ -10,7 +10,7 @@
     /** All grades, ordered low → high. */
     grades: Grade[]
     gradingScale: GradingScale
-    onselect?: (bar: null | { count: number; label: string }) => void
+    onselect?: (bar: null | { count: number; id: number; label: string }) => void
     /** Show the count above each non-empty bar (for small-n charts like grade votes). */
     showCounts?: boolean
     /** Routes with no grade, surfaced as a trailing count below the chart. */
@@ -114,47 +114,46 @@
 
   let selectedId = $state<null | number>(null)
 
-  const select = (bar: Bar | null): void => {
-    const active = bar != null && bar.count > 0 ? bar : null
-    selectedId = active?.id ?? null
-    onselect?.(active != null ? { count: active.count, label: active.label } : null)
-  }
-
-  const pick = (event: PointerEvent): void => {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    const index = Math.floor(((event.clientX - rect.left) / rect.width) * bars.length)
-    select(bars[Math.max(0, Math.min(bars.length - 1, index))])
+  // Click/tap toggles a *persistent* selection (survives the pointer leaving), so
+  // a caller can reveal content below the chart and the user can still reach it.
+  // Clicking the active bar/chip, or any empty one, clears the selection.
+  const toggle = (item: Bar | Chip): void => {
+    const next = item.count > 0 && selectedId !== item.id ? item : null
+    selectedId = next?.id ?? null
+    onselect?.(next != null ? { count: next.count, id: next.id, label: next.label } : null)
   }
 </script>
 
 {#if useHistogram}
   <!-- Count labels overhang the tallest bar, so give them headroom. -->
-  <div role="img" aria-label={m.area_grades()} class:pt-4={showCounts}>
-    <!-- Bars rise from a shared baseline; each grade gets an equal-width column
-         scaled against the busiest grade in the range. The pointer's x picks the
-         bar underneath (touch-pan-y keeps vertical page scroll). -->
-    <div
-      class="flex h-26 touch-pan-y items-end gap-1"
-      onpointermove={pick}
-      onpointerdown={pick}
-      onpointerleave={() => select(null)}
-      onpointerup={(event) => event.pointerType !== 'mouse' && select(null)}
-      role="presentation"
-    >
+  <div role="group" aria-label={m.area_grades()} class:pt-4={showCounts}>
+    <!-- Each grade is a full-height column button rising from a shared baseline,
+         scaled against the busiest grade in the range; clicking one toggles a
+         persistent selection the caller can react to. Full-height keeps the tap
+         target usable even for short bars. -->
+    <div class="flex h-26 items-end gap-1">
       {#each bars as bar (bar.id)}
-        <div
-          class="relative flex-1 rounded-t-sm transition-[height,opacity]"
-          class:opacity-40={selectedId != null && selectedId !== bar.id}
-          style="height: {barHeight(bar.count)}%; background-color: {bar.color}"
+        <button
+          type="button"
+          class="flex h-full flex-1 cursor-pointer items-end"
+          aria-pressed={selectedId === bar.id}
+          aria-label="{bar.label}: {m.routes_routesCount({ count: bar.count })}"
+          onclick={() => toggle(bar)}
         >
-          {#if showCounts && bar.count > 0}
-            <span
-              class="text-surface-600-400 absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap tabular-nums"
-            >
-              {bar.count}
-            </span>
-          {/if}
-        </div>
+          <span
+            class="relative w-full rounded-t-sm transition-[height,opacity]"
+            class:opacity-40={selectedId != null && selectedId !== bar.id}
+            style="height: {barHeight(bar.count)}%; background-color: {bar.color}"
+          >
+            {#if showCounts && bar.count > 0}
+              <span
+                class="text-surface-600-400 absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap tabular-nums"
+              >
+                {bar.count}
+              </span>
+            {/if}
+          </span>
+        </button>
       {/each}
     </div>
 
@@ -180,14 +179,20 @@
        (color swatch · grade · count) instead of an oversized bar. -->
   <div class="flex flex-wrap gap-2">
     {#each chips as chip (chip.id)}
-      <div
-        class="border-surface-300-700 bg-surface-200-800 flex items-center gap-2 rounded-lg border px-3 py-1.5"
+      <button
+        type="button"
+        class="border-surface-300-700 bg-surface-200-800 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 transition-opacity"
+        class:opacity-40={selectedId != null && selectedId !== chip.id}
+        class:border-primary-500={selectedId === chip.id}
+        aria-pressed={selectedId === chip.id}
+        aria-label="{chip.label}: {m.routes_routesCount({ count: chip.count })}"
         title={m.routes_routesCount({ count: chip.count })}
+        onclick={() => toggle(chip)}
       >
         <span class="size-2.5 flex-none rounded-full" style="background-color: {chip.color}"></span>
         <span class="text-sm font-semibold">{chip.label}</span>
         <span class="text-surface-600-400 text-xs tabular-nums">{chip.count}</span>
-      </div>
+      </button>
     {/each}
   </div>
 {/if}

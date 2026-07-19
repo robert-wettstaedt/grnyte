@@ -4,6 +4,8 @@ import { toAreaDetail } from './mapper'
 
 export interface AreaListFilter {
   content?: string
+  /** Restrict to these area ids (e.g. hydrating a favorites list). */
+  id?: number | number[]
   /** Cap the result set (e.g. a search preview). */
   limit?: number
   /** Parent area id; `null` filters to top-level areas (no parent), omitted means no filter. */

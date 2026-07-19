@@ -29,19 +29,26 @@
   // climber's profile. The hosting page owns the viewer (MediaGrid or MediaLightbox).
   interface Props {
     ascent: RouteAscent
+    /** Location breadcrumb (e.g. "Area · Block"), shown above the route name in logbook mode. */
+    crumbs?: string | string[]
     /** Expand the details (a deep-linked row opens pre-expanded); the row still toggles freely. */
     expanded?: boolean
     /** Primary-tinted framing for the signed-in climber's own (or a deep-linked) row. */
     highlight?: boolean
     /** DOM id, so a deep link (?ascent=) can scroll the row into view. */
     id?: string
+    /** Logbook mode (the profile's session list): show the route as the row's label
+     *  and drop the author avatar — the author is the profile itself. */
+    route?: { href: string; name: string }
     /** The route's name: the delete confirmation text. */
     routeName?: string
   }
 
-  let { ascent, expanded = $bindable(false), highlight = false, id, routeName = '' }: Props = $props()
+  let { ascent, crumbs, expanded = $bindable(false), highlight = false, id, route, routeName = '' }: Props = $props()
 
   const global = getGlobalState()
+
+  const crumbText = $derived(Array.isArray(crumbs) ? crumbs.join(' · ') : crumbs)
 
   const canEdit = $derived(canEditAscent(global.userRegions, global.user?.id, ascent))
   // Empty until the author row syncs in (Zero loads the relation lazily): show a
@@ -88,14 +95,24 @@
       <!-- The avatar pairs with the text block only; the media strip lives below so
            its size change on expand can't re-center (jump) the avatar. -->
       <div class="flex items-center gap-3">
-        <!-- Same destination as the name link; hidden from the tab order and readers. -->
-        <a class="pointer-events-auto flex-none" href={userHref} aria-hidden="true" tabindex="-1">
-          <Avatar name={ascent.authorName} size={38} solid loading={authorLoading} />
-        </a>
+        {#if route == null}
+          <!-- Same destination as the name link; hidden from the tab order and readers. -->
+          <a class="pointer-events-auto flex-none" href={userHref} aria-hidden="true" tabindex="-1">
+            <Avatar name={ascent.authorName} size={38} solid loading={authorLoading} />
+          </a>
+        {/if}
 
         <span class="flex min-w-0 flex-1 flex-col gap-1.5">
+          {#if crumbText}
+            <span class="text-surface-500 truncate text-[11px] font-semibold tracking-wide">{crumbText}</span>
+          {/if}
           <span class="flex items-center gap-2">
-            {#if authorLoading}
+            {#if route != null}
+              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- callers resolve() the href -->
+              <a class="pointer-events-auto truncate text-sm font-semibold hover:underline" href={route.href}>
+                {route.name}
+              </a>
+            {:else if authorLoading}
               <span class="bg-surface-200-800 h-3.5 w-24 animate-pulse rounded"></span>
             {:else}
               <a class="pointer-events-auto truncate text-sm font-semibold hover:underline" href={userHref}>
@@ -104,7 +121,8 @@
             {/if}
             <AscentType status={ascent.type} />
             <span class="flex-1"></span>
-            {#if ascent.dateTime != null}
+            <!-- In logbook mode the session's day header already dates the row. -->
+            {#if route == null && ascent.dateTime != null}
               <span class="text-surface-600-400 flex-none text-xs font-semibold">
                 {formatDay(ascent.dateTime, now(), getLocale())}
               </span>
@@ -131,7 +149,8 @@
            expanding the row grows them and shows the full set. Indented past the
            avatar column so it aligns with the text block. -->
       {#if ascent.files.length > 0}
-        <span class="pointer-events-auto ml-12.5 flex items-center gap-1.5 overflow-x-auto">
+        <!-- Indented past the avatar column so it aligns with the text block; no avatar in logbook mode, so no indent. -->
+        <span class="pointer-events-auto flex items-center gap-1.5 overflow-x-auto" class:ml-12.5={route == null}>
           {#each expanded ? ascent.files : ascent.files.slice(0, MAX_THUMBS) as file (file.id)}
             <MediaThumbnail {file} class={expanded ? 'h-24' : 'h-10'} />
           {/each}

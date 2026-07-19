@@ -24,6 +24,14 @@ export function currentUserRole() {
   )
 }
 
+/** A single user's id + username by id — the public profile header. */
+export function userById(id: () => number) {
+  return createResource(
+    () => queries.usersByIds({ id: [id()] }),
+    (rows) => (rows[0] == null ? undefined : { id: rows[0].id, username: rows[0].username }),
+  )
+}
+
 /** Users matching a search, across the given regions. */
 export function userList(filter: () => UserListFilter, opts?: { enabled?: () => boolean }) {
   return createResource(

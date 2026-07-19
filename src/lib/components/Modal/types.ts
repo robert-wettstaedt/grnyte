@@ -3,7 +3,8 @@ import type { Snippet } from 'svelte'
 import type { SvelteHTMLElements } from 'svelte/elements'
 
 export interface Props {
-  /** Render a tap-to-dismiss scrim behind the mobile sheet (no effect on desktop). */
+  /** Render a blurred, tap-to-dismiss scrim behind the modal. On mobile it backs the
+   *  sheet; on a desktop `panel` it also makes the dialog modal (focus trap + outside close). */
   backdrop?: boolean
   children?: Snippet
   /** Desktop panel card classes (width/height), e.g. `w-sm max-h-[80dvh]`. */

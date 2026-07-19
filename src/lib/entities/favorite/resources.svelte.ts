@@ -1,6 +1,6 @@
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
-import { toUserFavorite } from './mapper'
+import { toUserFavorite, toUserFavoriteEntity } from './mapper'
 
 /** Whether the signed-in user has favorited one specific entity. Reactive, so it
  *  flips on its own once a {@link toggleFavorite} write syncs back through Zero. */
@@ -26,6 +26,19 @@ export function otherSaveCount(
   return createResource(
     () => queries.listEntityFavorites({ entityId: entityId(), entityType: entityType() }),
     (rows) => rows.filter((row) => row.userFk !== userId()).length,
+  )
+}
+
+/**
+ * A user's favorites across all entity types (area/block/route), newest first —
+ * the profile's Favorites section. Skipped until a `userId` is available.
+ */
+export function userAllFavoriteList(userId: () => number | undefined, enabled: () => boolean = () => true) {
+  return createResource(
+    // ponytail: -1 can't be a real user id; only reached while disabled (userId null)
+    () => queries.listUserAllFavorites({ userId: userId() ?? -1 }),
+    (rows) => rows.map(toUserFavoriteEntity),
+    { enabled: () => userId() != null && enabled() },
   )
 }
 

@@ -2,10 +2,13 @@
   import { ENTITY_TYPE_ICON } from '$lib/components/EntitySearch/search.svelte'
   import GradeDonut from '$lib/components/GradeDonut/GradeDonut.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import type { Snippet } from 'svelte'
   import Row from './Row.svelte'
   import Thumb from './Thumb.svelte'
 
   interface Props {
+    /** Trailing action inside the card (e.g. a remove button). */
+    action?: Snippet
     /** Route counts keyed by grade id (`gradeFk`) — drives the donut. */
     countByGrade?: Map<number, number>
     /** Breadcrumb path of parent areas. */
@@ -19,7 +22,7 @@
     total?: number
   }
 
-  let { countByGrade, crumbs, description, href, name, total }: Props = $props()
+  let { action, countByGrade, crumbs, description, href, name, total }: Props = $props()
 </script>
 
 {#snippet body()}
@@ -28,7 +31,7 @@
   {/if}
 {/snippet}
 
-<Row title={name} {crumbs} description={body} {href}>
+<Row title={name} {action} {crumbs} description={body} {href}>
   {#if countByGrade != null && total != null}
     <GradeDonut {countByGrade} {total} size={52} />
   {:else}

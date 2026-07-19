@@ -15,4 +15,11 @@ export const firstAscensionistsQueryDefs = {
       return q
     }),
   ),
+
+  // The first-ascensionist row(s) linked to a user — resolves the fk the route FA
+  // filter needs to list a climber's first ascents on their profile.
+  listUserFirstAscensionist: defineQuery(
+    z.object({ userId: z.number() }),
+    regionMemberCan(({ args }) => zql.firstAscensionists.where('userFk', args.userId)),
+  ),
 }

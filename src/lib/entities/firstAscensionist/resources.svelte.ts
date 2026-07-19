@@ -12,3 +12,15 @@ export function firstAscensionistList(filter: () => { regionFk?: number } = () =
     (rows) => rows.map(toFirstAscensionist),
   )
 }
+
+/**
+ * The first-ascensionist rows linked to a user (usually one): the ids feed the
+ * route FA filter, the names the profile header.
+ */
+export function userFirstAscensionists(userId: () => number | undefined) {
+  return createResource(
+    () => queries.listUserFirstAscensionist({ userId: userId() ?? -1 }),
+    (rows) => rows.map((row) => ({ id: row.id, name: row.name })),
+    { enabled: () => userId() != null },
+  )
+}

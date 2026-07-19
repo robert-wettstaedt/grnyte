@@ -11,6 +11,7 @@
   import RouteTags from '$lib/entities/route/RouteTags.svelte'
   import { buildLine, isNormalized } from '$lib/entities/topo/path'
   import { m } from '$lib/paraglide/messages.js'
+  import type { Snippet } from 'svelte'
   import Row from './Row.svelte'
   import type { AscentStatus } from './types'
 
@@ -21,6 +22,8 @@
   >
 
   interface Props {
+    /** Trailing action inside the card (e.g. a remove button). */
+    action?: Snippet
     /** Selected state — highlights the card and expands the tags/actions line. */
     active?: boolean
     /** Breadcrumb path, e.g. "Roadside · The Arch". */
@@ -43,7 +46,19 @@
     status?: AscentStatus
   }
 
-  let { active = false, crumbs, detailsHref, grade, href, mapHref, number, onclick, route, status }: Props = $props()
+  let {
+    action,
+    active = false,
+    crumbs,
+    detailsHref,
+    grade,
+    href,
+    mapHref,
+    number,
+    onclick,
+    route,
+    status,
+  }: Props = $props()
 
   // The selected card grows an extra line (tags + actions) — only when there's
   // something to put in it.
@@ -124,6 +139,7 @@
 {/snippet}
 
 <Row
+  {action}
   {active}
   {crumbs}
   {href}

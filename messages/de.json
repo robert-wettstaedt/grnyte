@@ -190,8 +190,10 @@
   "common_adjust": "Anpassen",
   "common_any": "Beliebig",
   "common_apply": "Anwenden",
+  "common_areas": "Gebiete",
   "common_back": "Zurück",
   "common_block": "Block",
+  "common_blocks": "Blöcke",
   "common_cancel": "Abbrechen",
   "common_clear": "Zurücksetzen",
   "common_close": "Schließen",
@@ -212,6 +214,7 @@
   "common_reset": "Zurücksetzen",
   "common_retry": "Erneut versuchen",
   "common_route": "Route",
+  "common_routes": "Routen",
   "common_save": "Speichern",
   "common_saved": "Gespeichert",
   "common_savedByOthers": [
@@ -410,6 +413,57 @@
   "parking_stepPlace": "Parkplatz setzen",
   "parking_title": "Parkplatz",
   "parking_undoPoint": "Letzten Punkt rückgängig",
+  "profile_activity": "Aktivität",
+  "profile_activityHint": "Tippe auf einen Tag für Details",
+  "profile_allSends": "Alle Begehungen",
+  "profile_climbsCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Begehung",
+        "countPlural=other": "{count} Begehungen"
+      }
+    }
+  ],
+  "profile_completedProjects": "Abgeschlossene Projekte",
+  "profile_contributions": "Beiträge",
+  "profile_favorites": "Favoriten",
+  "profile_firstAscents": "Erstbegehungen",
+  "profile_flashes": "Flashes",
+  "profile_gradePyramid": "Schwierigkeitspyramide",
+  "profile_hardest": "Schwerste",
+  "profile_noAscents": "Noch keine Begehungen erfasst",
+  "profile_noFavorites": "Noch keine Favoriten",
+  "profile_noFirstAscents": "Noch keine Erstbegehungen",
+  "profile_noProjects": "Keine Projekte",
+  "profile_openProjects": "Offene Projekte",
+  "profile_recentSessions": "Letzte Sessions",
+  "profile_removeAll": "Alle entfernen",
+  "profile_removeAllConfirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Deinen {count} Favoriten entfernen? Das kann nicht rückgängig gemacht werden.",
+        "countPlural=other": "Alle {count} Favoriten entfernen? Das kann nicht rückgängig gemacht werden."
+      }
+    }
+  ],
+  "profile_removeFavorite": "Favorit entfernen",
+  "profile_sends": "Begehungen",
+  "profile_sessionsCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Session",
+        "countPlural=other": "{count} Sessions"
+      }
+    }
+  ],
+  "profile_sortRecent": "Neueste",
+  "profile_sortSessions": "Sessions",
   "profile_title": "Profil",
   "queryState_empty": "Hier gibt es noch nichts.",
   "queryState_error": "Beim Laden der Daten ist ein Fehler aufgetreten.",

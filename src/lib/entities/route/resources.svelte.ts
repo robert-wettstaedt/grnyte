@@ -17,6 +17,9 @@ export interface RouteListFilter {
   pageSize?: number
   /** Find routes whose description references the given `!type:id!` token (backlinks). */
   references?: string
+  /** Server-side ordering (pairs with `sortOrder`); unsorted otherwise. */
+  sort?: 'firstAscentYear' | 'grade' | 'rating'
+  sortOrder?: 'asc' | 'desc'
   tags?: string[]
 }
 
@@ -40,6 +43,19 @@ export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   return createResource(
     () => queries.listRoutesForMap(filter()),
     (rows) => rows.map((row) => ({ blockFk: row.blockFk, gradeFk: row.userGradeFk ?? undefined, id: row.id })),
+  )
+}
+
+/**
+ * Full route rows (with topo) for a set of ids — the profile's project and
+ * favorite lists hydrate their derived id sets through this. Skipped while the
+ * id set is empty; callers reorder the result by their own list.
+ */
+export function routesByIds(ids: () => number[], opts?: { enabled?: () => boolean }) {
+  return createResource(
+    () => queries.listRoutes({ routeId: ids() }),
+    (rows) => rows.map(toRouteListItem),
+    { enabled: () => ids().length > 0 && (opts?.enabled?.() ?? true) },
   )
 }
 

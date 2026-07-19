@@ -3,6 +3,8 @@
   import { slide } from 'svelte/transition'
 
   interface Props {
+    /** Trailing action inside the card, right of the row (e.g. a remove button). */
+    action?: Snippet
     /** Highlight state: the keyboard-active `option` row, or the selected `card`. */
     active?: boolean
     /** Leading visual (donut, thumbnail, avatar, grade tile, …). */
@@ -33,6 +35,7 @@
   }
 
   let {
+    action,
     active = false,
     children,
     crumbs,
@@ -86,16 +89,23 @@
      is the interactive element. Keeping the footer a *sibling* of the row means
      it can hold its own links/buttons without nesting interactives. -->
 <div class="shell {variant} {colorClass}">
-  {#if href}
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- generic pass-through; callers resolve() the href -->
-    <a class="row {variant}" {href}>
-      {@render body()}
-    </a>
-  {:else}
-    <button type="button" class="row {variant}" {onclick}>
-      {@render body()}
-    </button>
-  {/if}
+  <div class="row-line">
+    {#if href}
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- generic pass-through; callers resolve() the href -->
+      <a class="row {variant}" {href}>
+        {@render body()}
+      </a>
+    {:else}
+      <button type="button" class="row {variant}" {onclick}>
+        {@render body()}
+      </button>
+    {/if}
+
+    {#if action}
+      <!-- Sibling of the row (not nested), so it can hold its own button/link. -->
+      <div class="action">{@render action()}</div>
+    {/if}
+  </div>
 
   {#if footer}
     <div class="footer" transition:slide={{ duration: 150 }}>
@@ -120,17 +130,32 @@
     border-radius: 10px;
   }
 
+  .row-line {
+    display: flex;
+    align-items: stretch;
+    border-radius: inherit;
+  }
+
   .row {
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     box-sizing: border-box;
     padding: 11px 12px;
     border-radius: inherit;
     cursor: pointer;
     text-align: left;
     font-family: var(--base-font-family);
+  }
+
+  /* Trailing action sits inside the card, vertically centred, right-aligned. */
+  .action {
+    display: flex;
+    flex: none;
+    align-items: center;
+    padding-inline-end: 8px;
   }
 
   .row.option {

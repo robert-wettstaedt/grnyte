@@ -10,6 +10,14 @@ export const favoritesQueryDefs = {
     regionMemberCan(({ args }) => zql.favorites.where('entityType', args.entityType).where('entityId', args.entityId)),
   ),
 
+  // A user's favorites across all entity types, newest first — the profile's
+  // Favorites section. Separate from listUserFavorites (route-only, feeds the map
+  // favorites filter) so neither query has to carry the other's rows.
+  listUserAllFavorites: defineQuery(
+    z.object({ userId: z.number() }),
+    regionMemberCan(({ args }) => zql.favorites.where('userFk', args.userId).orderBy('createdAt', 'desc')),
+  ),
+
   // The current user's favorite for one specific entity — empty when not saved.
   listUserEntityFavorites: defineQuery(
     z.object({ entityId: z.string(), entityType: z.enum(['block', 'route', 'area']), userId: z.number() }),

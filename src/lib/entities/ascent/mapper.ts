@@ -1,10 +1,12 @@
 import { toMediaFile } from '$lib/entities/file/mapper'
+import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import type { AscentDetail, RouteAscent, UserAscent } from './dto'
+import type { AscentDetail, RouteAscent, UserAscent, UserAscentDetail } from './dto'
 
 export type AscentRow = QueryRow<typeof queries.ascent>
 export type RouteAscentRow = QueryRow<typeof queries.listRouteAscents>
+export type UserAscentDetailRow = QueryRow<typeof queries.listUserAscentsDetailed>
 export type UserAscentRow = QueryRow<typeof queries.listUserAscents>
 
 export function toAscentDetail(row: AscentRow): AscentDetail {
@@ -62,5 +64,18 @@ export function toUserAscent(row: UserAscentRow): UserAscent {
   return {
     routeFk: row.routeFk,
     type: row.type,
+  }
+}
+
+export function toUserAscentDetail(row: UserAscentDetailRow): UserAscentDetail {
+  const block = row.route?.block
+  return {
+    ...toRouteAscent(row),
+    areaName: block?.area?.name,
+    blockName:
+      block == null ? undefined : block.name.length === 0 ? `${m.common_block()} ${block.order + 1}` : block.name,
+    routeFk: row.routeFk,
+    routeGradeFk: row.route?.userGradeFk ?? undefined,
+    routeName: row.route?.name ?? '',
   }
 }
