@@ -1,6 +1,5 @@
 import { queries } from '$lib/zero/queries'
-import { createResource } from '$lib/zero/resource.svelte'
-import { getZ } from '$lib/zero/z.svelte'
+import { createResource, waitForRow } from '$lib/zero/resource.svelte'
 import { toRouteDetail, toRouteListItem } from './mapper'
 
 export type AscentStatus = 'done' | 'project' | 'todo'
@@ -16,7 +15,6 @@ export interface RouteListFilter {
   minRating?: number
   /** Cap the result set (e.g. a search preview). */
   pageSize?: number
-  parentFk?: number
   /** Find routes whose description references the given `!type:id!` token (backlinks). */
   references?: string
   tags?: string[]
@@ -45,23 +43,7 @@ export function routeMapList(filter: () => RouteListFilter = () => ({})) {
   )
 }
 
-/**
- * Resolve once Zero has the live route row for `id` locally, or after `timeoutMs`.
- * Mirrors {@link waitForBlock}: defers a post-restore redirect until the recreated
- * row has synced, so the route detail renders instead of flashing "not found".
- * ponytail: 5s cap is the ceiling, a slower sync just lands on the loading state.
- */
+/** Resolve once Zero has the live route row for `id` locally, or after `timeoutMs`. See {@link waitForRow}. */
 export function waitForRoute(id: number, timeoutMs = 5000): Promise<void> {
-  return new Promise((resolve) => {
-    const view = getZ().materialize(queries.listRoutes({ routeId: id }))
-    const finish = () => {
-      clearTimeout(timer)
-      view.destroy()
-      resolve()
-    }
-    const timer = setTimeout(finish, timeoutMs)
-    view.addListener((rows) => {
-      if (rows.length > 0) finish()
-    })
-  })
+  return waitForRow(queries.listRoutes({ routeId: id }), (rows) => rows.length > 0, timeoutMs)
 }

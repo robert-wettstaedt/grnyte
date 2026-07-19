@@ -123,3 +123,37 @@ export function createResource<
 ): QueryResource<TOut> {
   return new Resource(request, select, opts?.enabled ?? (() => true))
 }
+
+/**
+ * Resolve once the query has a row satisfying `isReady` in the local store, or
+ * after `timeoutMs`. A server write (Drizzle) reaches Zero only after the sync
+ * engine replicates it, so navigating to a just-restored entity races that lag
+ * and flashes "not found". Awaiting this before navigation defers it until the
+ * row is there. Entity modules wrap it as `waitForArea`/`waitForBlock`/etc.
+ * ponytail: 5s cap is the ceiling — a slower sync just navigates to the loading state.
+ */
+export function waitForRow<
+  TTable extends keyof Schema['tables'] & string,
+  TInput extends ReadonlyJSONValue | undefined,
+  TOutput extends ReadonlyJSONValue | undefined,
+  TReturn,
+  TContext,
+>(
+  query: QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
+  isReady: (data: HumanReadable<TReturn>) => boolean,
+  timeoutMs = 5000,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const view = getZ().materialize(query)
+    const finish = () => {
+      clearTimeout(timer)
+      view.destroy()
+      resolve()
+    }
+    const timer = setTimeout(finish, timeoutMs)
+    // The listener hands back a deep-readonly view; `isReady` only inspects it.
+    view.addListener((data) => {
+      if (isReady(data as HumanReadable<TReturn>)) finish()
+    })
+  })
+}
