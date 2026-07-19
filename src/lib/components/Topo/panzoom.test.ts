@@ -14,15 +14,20 @@ test('locked at fit (k=1): no overscroll', () => {
   expect(overscrollConstrain(t, extent, content).x).toBe(0)
 })
 
-test('zoomed: a corner can be dragged to screen centre', () => {
+test('zoomed + overscroll: a corner can be dragged to screen centre', () => {
   // At k=2, tx=500 puts the content's left edge at the viewport centre.
   const t = zoomIdentity.translate(500, 0).scale(2)
-  expect(overscrollConstrain(t, extent, content).x).toBe(500)
+  expect(overscrollConstrain(t, extent, content, true).x).toBe(500)
 })
 
-test('zoomed: panning past centre is clamped back', () => {
+test('zoomed + overscroll: panning past centre is clamped back', () => {
   const t = zoomIdentity.translate(600, 0).scale(2)
-  expect(overscrollConstrain(t, extent, content).x).toBe(500)
+  expect(overscrollConstrain(t, extent, content, true).x).toBe(500)
+})
+
+test('zoomed without overscroll: content edge pins to the viewport edge (no past-fit slack)', () => {
+  // The plain viewer: at k=2 the left edge stops at the viewport edge, never past it.
+  expect(overscrollConstrain(zoomIdentity.translate(500, 0).scale(2), extent, content).x).toBe(0)
 })
 
 test('overscroll flag: fit (k=1) can pan a corner to centre and clamps past it', () => {

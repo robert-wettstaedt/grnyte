@@ -166,10 +166,21 @@ export const reorderTopos = authedCommand(
 
     // Only reorder the block's own topos — a stale client snapshot (or a crafted call)
     // may contain ids of deleted topos or of another block entirely.
-    const own = await db.query.topos.findMany({ columns: { id: true }, where: eq(topos.blockFk, blockId) })
+    const own = await db.query.topos.findMany({ columns: { id: true, order: true }, where: eq(topos.blockFk, blockId) })
     const ownIds = new Set(own.map((topo) => topo.id))
 
-    for (const [index, id] of orderedIds.filter((id) => ownIds.has(id)).entries()) {
+    // Renumber ALL of the block's topos 0..n-1: the client's order first, then any own topos
+    // it omitted (a stale snapshot missing a just-created photo) appended in their current order.
+    // Numbering only the listed ids would leave an omitted topo on a stale `order` that collides
+    // with a new index.
+    const wanted = orderedIds.filter((id) => ownIds.has(id))
+    const wantedSet = new Set(wanted)
+    const tail = own
+      .filter((topo) => !wantedSet.has(topo.id))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((topo) => topo.id)
+
+    for (const [index, id] of [...wanted, ...tail].entries()) {
       await db.update(topos).set({ order: index }).where(eq(topos.id, id))
     }
 

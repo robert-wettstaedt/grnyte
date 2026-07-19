@@ -4,13 +4,12 @@ import type { Action } from 'svelte/action'
 type Extent = [[number, number], [number, number]]
 
 /**
- * Like d3's default constrain, but it lets the content overscroll the viewport by
- * half its size on each axis, so a corner of the image can be dragged to the
- * centre of the screen (not just pinned to an edge). The padding is a screen
- * half-viewport converted to world units via the live scale, so the reachable
- * slack stays a constant half-viewport at any zoom. By default this slack only
- * kicks in past fit (k > 1); with `overscroll` it applies at every zoom level,
- * turning the node into a free-pan canvas.
+ * Like d3's default constrain, but — when `overscroll` is set — it lets the content
+ * overscroll the viewport by half its size on each axis, so a corner of the image can be
+ * dragged to the centre of the screen (not just pinned to an edge). The padding is a screen
+ * half-viewport converted to world units via the live scale, so the reachable slack stays a
+ * constant half-viewport at any zoom. Without `overscroll` the content edge-pins to the
+ * viewport at every zoom, exactly like d3's default constrain (the plain viewer's behaviour).
  */
 export const overscrollConstrain = (
   transform: ZoomTransform,
@@ -19,7 +18,7 @@ export const overscrollConstrain = (
   overscroll = false,
 ): ZoomTransform => {
   const k = transform.k
-  const slack = overscroll || k > 1
+  const slack = overscroll
   const padX = slack ? (extent[1][0] - extent[0][0]) / 2 / k : 0
   const padY = slack ? (extent[1][1] - extent[0][1]) / 2 / k : 0
   const dx0 = transform.invertX(extent[0][0]) - (translateExtent[0][0] - padX)
@@ -56,8 +55,9 @@ interface PanzoomParams {
    *  (fit and centred) whenever the transform changes. Lets a consumer gate its
    *  own gestures on zoom, and show a reset chip whenever the view is off-default. */
   onZoom?: (scale: number, atRest: boolean) => void
-  /** Allow the half-viewport overscroll at every zoom level, not just past fit — a
-   *  free-pan canvas where the content can be nudged even at or below fit. Default false. */
+  /** Allow the half-viewport overscroll (a free-pan canvas where the content can be nudged past
+   *  the viewport edge) at every zoom level. Without it the content edge-pins to the viewport,
+   *  matching d3's default constrain. Default false. */
   overscroll?: boolean
   /** Bump this number to animate back to fit (the "reset zoom" chip). */
   resetSignal?: number

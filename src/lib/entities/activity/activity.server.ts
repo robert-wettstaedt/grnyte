@@ -129,7 +129,15 @@ export const insertActivity = async (
       .where(and(or(isNull(schema.activities.notified), eq(schema.activities.notified, false)), ...conditions))
   }
 
-  await db.insert(schema.activities).values(arr)
+  // Collapse exact-duplicate rows within a single call (same identity), last-writer-wins, so a
+  // multi-item batch can't insert two rows the per-item debounce above just cleared as one.
+  const deduped = new Map<string, schema.InsertActivity>()
+  for (const item of arr) {
+    const key = activityValueColumns.map((col) => JSON.stringify(item[col] ?? null)).join('|')
+    deduped.set(key, item)
+  }
+
+  await db.insert(schema.activities).values([...deduped.values()])
 }
 
 /** Delete activities matching the given fields. Used by undo flows to erase the activity a

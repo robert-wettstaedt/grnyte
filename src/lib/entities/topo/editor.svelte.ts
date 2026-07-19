@@ -188,6 +188,11 @@ export class TopoEditor {
     this.#saved.delete(topoId)
   }
 
+  /** Whether a topo still has a local working doc (kept until Save's Zero echo lands, or discarded). */
+  hasDoc(topoId: number): boolean {
+    return this.#docs.has(topoId)
+  }
+
   /** Insert a middle point right after `afterPointId` (the ghost `+` between two points). */
   insertMiddleAfter(afterPointId: string, x: number, y: number): void {
     const [sx, sy] = this.#snap(x, y)

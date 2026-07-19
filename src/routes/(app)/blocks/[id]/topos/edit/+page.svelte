@@ -198,13 +198,14 @@
   async function deleteSelectedRoute() {
     if (selectedRoute == null) return
     const id = selectedRoute.id
-    // Purge the route from every local doc and history first, so neither Save nor undo
-    // can resurrect a line pointing at the deleted route.
-    editor.removeRouteEverywhere(id)
     try {
       // Not runCommand/withUndo: deleteRoute's envelope redirects to the block page (right
       // for the route screen, wrong here) — stay in the editor, keep the undo snackbar.
       const result = await deleteRoute({ id })
+      // Purge the route from every local doc and history only after the delete commits, so
+      // neither Save nor undo can resurrect a line pointing at the deleted route — and a
+      // failed delete leaves the drawn line intact instead of silently dropping it.
+      editor.removeRouteEverywhere(id)
       if (result?.data != null) {
         const snapshot = result.data
         notifyUndo({ message: m.routes_deleted(), onUndo: () => restoreRoute(snapshot) })
@@ -317,25 +318,31 @@
 
   async function save() {
     saving = true
-    try {
-      for (const id of editor.dirtyTopoIds) {
+    // Save each dirty topo independently: one failed photo must not skip the rest, and the
+    // ones that did save should still clear their pill.
+    let failed = 0
+    for (const id of editor.dirtyTopoIds) {
+      try {
         await saveTopoLines({ lines: editor.savedLinesFor(id), topoId: id })
         // Stamp the saved baseline so the pill/guard clear now, not after the Zero echo.
         editor.markSaved(id)
         pendingSync = [...pendingSync, id]
+      } catch {
+        failed++
       }
-    } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
-    } finally {
-      saving = false
     }
+    saving = false
+    if (failed > 0) toaster.create({ title: m.error_generic_title(), type: 'error' })
   }
 
   $effect(() => {
-    const synced = pendingSync.filter((id) => editor.syncedWithCommitted(id))
-    if (synced.length > 0) {
-      for (const id of synced) editor.forget(id)
-      pendingSync = pendingSync.filter((id) => !synced.includes(id))
+    // Drop an id once the committed lines catch up (forget its doc), or once the editor no
+    // longer tracks it at all (discardAll/forget already dropped the doc) — otherwise a
+    // Discard right after Save would strand the id here for the page's lifetime.
+    const done = pendingSync.filter((id) => !editor.hasDoc(id) || editor.syncedWithCommitted(id))
+    if (done.length > 0) {
+      for (const id of done) editor.forget(id)
+      pendingSync = pendingSync.filter((id) => !done.includes(id))
     }
   })
 
