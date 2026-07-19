@@ -35,7 +35,9 @@
   const placedCenter = $derived<[number, number] | null>(initial == null ? null : [initial.lat, initial.long])
 </script>
 
-<div class="flex h-full flex-col">
+<!-- flex-1 (not h-full): the QueryState wrapper is min-h-full, so height:100% has no
+     definite parent to resolve against and would collapse. Filling as a flex item does. -->
+<div class="flex min-h-0 flex-1 flex-col">
   <header
     class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur"
   >

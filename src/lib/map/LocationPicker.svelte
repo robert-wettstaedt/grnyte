@@ -162,16 +162,20 @@
   {:else}
     <!-- The picked location is the map centre; a fixed pin marks it. -->
     <div class="relative min-h-0 flex-1">
-      <Map
-        blocks={mapData.blocks}
-        parkingLocations={mapData.parkingLocations}
-        lineStrings={mapData.lineStrings}
-        routeCountByBlock={mapData.routeCountByBlock}
-        gradeCountByBlock={mapData.gradeCountByBlock}
-        focus={placeFocus}
-        onviewchange={(view) => (pannedCenter = view.center)}
-        pickMode
-      />
+      <!-- Fill via absolute inset-0 (mirrors the /explore layout): the map's own height:100%
+           can't resolve through the flex-grown parents, so give it a positioned box instead. -->
+      <div class="absolute inset-0">
+        <Map
+          blocks={mapData.blocks}
+          parkingLocations={mapData.parkingLocations}
+          lineStrings={mapData.lineStrings}
+          routeCountByBlock={mapData.routeCountByBlock}
+          gradeCountByBlock={mapData.gradeCountByBlock}
+          focus={placeFocus}
+          onviewchange={(view) => (pannedCenter = view.center)}
+          pickMode
+        />
+      </div>
 
       <div
         class="bg-surface-100-900/90 border-surface-300-700 text-surface-700-300 pointer-events-none absolute top-3 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap backdrop-blur"
