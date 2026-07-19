@@ -55,6 +55,12 @@
 
     const target = event.target as HTMLElement
 
+    // A button inside the sheet that removes itself on click (e.g. a "Show all"
+    // toggle) leaves `target` detached by the time this bubbles to the document,
+    // so `.closest()` finds nothing and the sheet would wrongly collapse. A
+    // detached node is never a real tap on the map behind the sheet — ignore it.
+    if (!target.isConnected) return
+
     if (!target.closest('.bottom-sheet') && !target.closest('[data-sheet-floating]')) {
       sheet?.setSnapPoint(titleSnapPoint)
     }

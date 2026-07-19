@@ -20,8 +20,6 @@
     href?: string
     /** Tap handler when rendered as a button. */
     onclick?: (event: MouseEvent) => void
-    /** Eyebrow line above the title — typically the geographic region. */
-    region?: string
     /** Trailing content (chevron, grade chip, follow button, …). */
     rightContent?: Snippet
     /** Main title. Pass a snippet for custom title markup (e.g. inline stars). */
@@ -42,7 +40,6 @@
     footer,
     href,
     onclick,
-    region,
     rightContent,
     title,
     variant = 'card',
@@ -67,7 +64,6 @@
   {@render children?.()}
 
   <span class="grow">
-    {#if region}<span class="crumb text-surface-500">{region}</span>{/if}
     {#if crumbText}<span class="crumb text-surface-500">{crumbText}</span>{/if}
 
     {#if typeof title === 'function'}

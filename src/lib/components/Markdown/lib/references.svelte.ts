@@ -1,6 +1,7 @@
+import type { EntityType } from '$lib/components/EntitySearch/search.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, type QueryResource } from '$lib/zero/resource.svelte'
-import type { MarkdownReference, MarkdownReferencesIds, ReferenceType } from './remark-references'
+import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
 
 /**
  * Resolves the area/block/route/user ids referenced in a markdown string to
@@ -41,7 +42,7 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
 
   // Requested ids absent from a completed result are deleted targets → tombstones.
   const tombstones = (
-    type: ReferenceType,
+    type: EntityType,
     requested: number[],
     resource: QueryResource<MarkdownReference[]>,
   ): MarkdownReference[] => {

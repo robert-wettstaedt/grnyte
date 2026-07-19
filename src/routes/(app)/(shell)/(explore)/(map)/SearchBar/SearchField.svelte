@@ -10,6 +10,10 @@
     leading?: Snippet
     /** Cleared via the trailing × button (shown only while `value` is non-empty). */
     onClear: () => void
+    /** Input focus, e.g. to open a suggestions dropdown. */
+    onfocus?: (event: FocusEvent & { currentTarget: HTMLInputElement }) => void
+    /** Native keydown, e.g. arrow/enter navigation of a suggestions dropdown. */
+    onkeydown?: (event: KeyboardEvent & { currentTarget: HTMLInputElement }) => void
     /** Native input event (keyup), e.g. submit-on-Enter for navigation search. */
     onkeyup?: (event: KeyboardEvent & { currentTarget: HTMLInputElement }) => void
     placeholder: string
@@ -19,7 +23,17 @@
     value: string
   }
 
-  let { inputEl = $bindable(), leading, onClear, onkeyup, placeholder, trailing, value = $bindable() }: Props = $props()
+  let {
+    inputEl = $bindable(),
+    leading,
+    onClear,
+    onfocus,
+    onkeydown,
+    onkeyup,
+    placeholder,
+    trailing,
+    value = $bindable(),
+  }: Props = $props()
 </script>
 
 <div
@@ -35,6 +49,8 @@
     bind:this={inputEl}
     bind:value
     {placeholder}
+    {onfocus}
+    {onkeydown}
     {onkeyup}
     aria-label={placeholder}
     class="min-w-0 flex-1 border-none bg-transparent outline-none"

@@ -24,7 +24,14 @@ export function toRouteDetail(row: RouteListRow): RouteDetail {
 export function toRouteListItem(row: RouteListRow): RouteListItem {
   const thumb = routeTopoThumb(row.topoRoutes ?? [])
   return {
+    areaName: row.block?.area?.name,
     blockFk: row.blockFk,
+    blockName:
+      row.block == null
+        ? ''
+        : row.block.name.length === 0
+          ? `${m.common_block()} ${row.block.order + 1}`
+          : row.block.name,
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     description: row.description ?? '',
     firstAscentYear: row.firstAscentYear ?? undefined,
@@ -32,6 +39,8 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     id: row.id,
     name: row.name.length === 0 ? m.common_unnamed() : row.name,
     rating: row.userRating ?? 0,
+    rawName: row.name,
+    regionFk: row.regionFk,
     tags: row.tags.map((t) => t.tagFk),
     topoImagePath: thumb?.imagePath,
     topoPoints: thumb?.points,

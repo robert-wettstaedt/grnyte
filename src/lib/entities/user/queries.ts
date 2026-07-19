@@ -17,14 +17,21 @@ export const usersQueryDefs = {
     z.object({
       content: z.string().optional(),
       limit: z.number().optional(),
-      regionFk: z.number(),
+      // Users who are active members of any of these regions (a global search
+      // spans every region the signed-in user belongs to). Empty = match none.
+      regionFks: z.array(z.number()),
     }),
     authenticatedUserCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
       let q = zql.users
         .whereExists('regionMemberships', (membership) =>
-          r(membership).where('regionFk', args.regionFk).where('isActive', true),
+          r(membership).where('regionFk', 'IN', args.regionFks).where('isActive', true),
+        )
+        // The matching memberships come back too, so the caller can label each
+        // user with its region(s) when the search spans more than one.
+        .related('regionMemberships', (membership) =>
+          r(membership).where('regionFk', 'IN', args.regionFks).where('isActive', true),
         )
         .orderBy('username', 'asc')
 

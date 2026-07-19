@@ -11,6 +11,8 @@
   import { BLOCK_LABEL_ZOOM, type MapFocus } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { liveSearchQuery } from '$lib/state/searchQuery.svelte'
+  import { visualViewport } from '$lib/state/visualViewport.svelte'
   import { fade, fly } from 'svelte/transition'
   import Modal from '../Modal/Modal.svelte'
   import { sheetState } from '../Modal/sheetState.svelte'
@@ -22,6 +24,10 @@
   let { children }: LayoutProps = $props()
 
   const global = getGlobalState()
+
+  // Keep the search bar glued to the visible viewport top so the iOS on-screen
+  // keyboard can't scroll this `fixed` layer up behind the status bar.
+  const vv = visualViewport()
 
   let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
   let mapViewState = $state<null | { center: [number, number]; zoom: number }>(null)
@@ -81,10 +87,35 @@
     return cachedFilters
   })
 
+  // The live search-bar text narrows the map markers as the user types (not just
+  // the committed `?q=` the /search list reads). It persists across a detail
+  // round trip (the bar restores from it on remount), so it survives open/close.
+  const search = liveSearchQuery()
+
   const explore = createExploreMapData(
     () => filters,
     () => global.user?.id,
+    () => search.current,
   )
+
+  // The map URL to return to when a sheet closes: always `/explore` carrying the
+  // current filter params (but not the search `q` — the live query rides back via
+  // the signal, so a cleared search can't reappear from a stale URL). Captured while
+  // on an explore route; retained while a detail route is open. Mapping the search
+  // route to `/explore` is also what lets the search list itself dismiss to the map.
+  // Deterministic on purpose: history depth can't be relied on (mobile sheet history,
+  // intermediate detail-to-detail hops), but this URL literally carries the filters back.
+  let exploreReturn = resolve('/explore')
+  $effect(() => {
+    const id = page.route.id ?? ''
+    if (id.endsWith('/explore') || id.endsWith('/search')) {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- throwaway parse to build a return-URL string, not reactive state
+      const params = new URLSearchParams(page.url.search)
+      params.delete('q')
+      const qs = params.toString()
+      exploreReturn = resolve('/explore') + (qs ? `?${qs}` : '')
+    }
+  })
 
   // Frame the open detail item on the map. Padding keeps it clear of the detail
   // sheet — a wide left inset for the desktop side panel, a tall bottom inset for
@@ -164,6 +195,7 @@
 {#if (!open || page.route.id?.includes('/search')) && placing == null}
   <div
     class="fixed top-2 left-0 z-10 flex w-full items-center justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
+    style:top="calc(0.5rem + {vv.offsetTop}px)"
     in:fly={{ y: -200 }}
     out:fly={{ y: -200 }}
   >
@@ -195,6 +227,10 @@
   {@render children?.()}
 {/if}
 
-<Modal bind:open onclose={() => goto(resolve('/explore'))}>
+<!-- Close back to the explore URL we came from (its filters + committed `?q=`), so
+     closing a detail doesn't drop the filters; the search text rides back via the
+     persisted live query. -->
+<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- exploreReturn is a resolved same-app path we captured -->
+<Modal bind:open onclose={() => goto(exploreReturn)}>
   {@render children?.()}
 </Modal>

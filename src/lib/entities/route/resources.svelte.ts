@@ -14,6 +14,8 @@ export interface RouteListFilter {
   maxGrade?: number
   minGrade?: number
   minRating?: number
+  /** Cap the result set (e.g. a search preview). */
+  pageSize?: number
   parentFk?: number
   /** Find routes whose description references the given `!type:id!` token (backlinks). */
   references?: string
@@ -27,10 +29,11 @@ export function routeDetail(id: () => number) {
   )
 }
 
-export function routeList(filter: () => RouteListFilter = () => ({})) {
+export function routeList(filter: () => RouteListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
   return createResource(
     () => queries.listRoutes(filter()),
     (rows) => rows.map(toRouteListItem),
+    opts,
   )
 }
 

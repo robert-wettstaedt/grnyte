@@ -7,6 +7,8 @@ import { toBlockDetail } from './mapper'
 export interface AreaListFilter {
   areaId?: number
   content?: string
+  /** Cap the result set (e.g. a search preview). */
+  limit?: number
 }
 
 export function blockDetail(id: () => number) {
@@ -16,10 +18,11 @@ export function blockDetail(id: () => number) {
   )
 }
 
-export function blockList(filter: () => AreaListFilter = () => ({})) {
+export function blockList(filter: () => AreaListFilter = () => ({}), opts?: { enabled?: () => boolean }) {
   return createResource(
     () => queries.listBlocks(filter()),
     (rows) => rows.map(toBlockDetail),
+    opts,
   )
 }
 

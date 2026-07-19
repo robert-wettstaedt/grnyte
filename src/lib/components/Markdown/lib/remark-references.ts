@@ -1,3 +1,4 @@
+import type { EntityType } from '$lib/components/EntitySearch/search.svelte'
 import { m } from '$lib/paraglide/messages'
 import type { PhrasingContent, Root } from 'mdast'
 import { findAndReplace, type ReplaceFunction } from 'mdast-util-find-and-replace'
@@ -22,8 +23,6 @@ export interface MarkdownReferencesIds {
   users: number[]
 }
 
-export type ReferenceType = 'areas' | 'blocks' | 'routes' | 'users'
-
 export const getReferences = (markdown: string): MarkdownReferencesIds => {
   const matchesIterator = markdown.matchAll(new RegExp(referenceRegex, 'gi'))
   const matches = Array.from(matchesIterator ?? []).reverse()
@@ -34,7 +33,7 @@ export const getReferences = (markdown: string): MarkdownReferencesIds => {
     const [type, id] = match[0]
       .trim()
       .substring(1, match[0].length - 1)
-      .split(':') as [ReferenceType, string]
+      .split(':') as [EntityType, string]
 
     const idNumber = Number(id)
     if (Number.isNaN(idNumber)) {
@@ -52,7 +51,7 @@ export interface MarkdownReference {
   /** The target no longer exists — render a tombstone rather than resolving `name`. */
   missing?: boolean
   name: string
-  type: ReferenceType
+  type: EntityType
 }
 
 export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownReference[]): string => {

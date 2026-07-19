@@ -19,10 +19,4 @@
   </div>
 {/snippet}
 
-<Story
-  name="Default"
-  args={{ badge: '12', crumbs: 'Roadside', name: 'The Arch', subline: '12 routes · 6 m' }}
-  {template}
-/>
-
-<Story name="No badge" args={{ crumbs: 'Roadside', name: 'The Arch', subline: '12 routes · 6 m' }} {template} />
+<Story name="Default" args={{ crumbs: 'Roadside', name: 'The Arch' }} {template} />

@@ -1,4 +1,4 @@
-import type { ReferenceType } from '$lib/components/Markdown/lib/remark-references'
+import type { EntityItem, EntityType } from '$lib/components/EntitySearch/search.svelte'
 import type { JSONContent, MarkdownToken } from '@tiptap/core'
 import Mention, { type MentionOptions } from '@tiptap/extension-mention'
 import type { DOMOutputSpec, Node as PMNode } from '@tiptap/pm/model'
@@ -7,18 +7,11 @@ import type { SuggestionOptions } from '@tiptap/suggestion'
 /** Node name, also used as the markdown token name for the unified `@` reference. */
 export const REFERENCE_NODE_NAME = 'reference'
 
-/** A reference candidate surfaced by the picker and inserted as a chip. */
-export interface ReferenceItem {
-  id: number
-  label: string
-  type: ReferenceType
-}
-
 /** The shape the node stores in its attributes (`id` is a string, like Mention). */
 interface ReferenceAttrs {
   id: string
   label: string
-  type: ReferenceType
+  type: EntityType
 }
 
 const REF_TYPES = 'areas|blocks|routes|users'
@@ -28,7 +21,7 @@ const REF_ANCHORED = new RegExp(`^!(${REF_TYPES}):(\\d+)!`)
 
 const attrsOf = (node: JSONContent | PMNode): ReferenceAttrs => {
   const attrs = (node.attrs ?? {}) as Partial<ReferenceAttrs>
-  return { id: attrs.id ?? '', label: attrs.label ?? '', type: attrs.type as ReferenceType }
+  return { id: attrs.id ?? '', label: attrs.label ?? '', type: attrs.type as EntityType }
 }
 
 export interface ReferenceExtensionOptions {
@@ -37,9 +30,9 @@ export interface ReferenceExtensionOptions {
    * `!type:id!` tokens into chips on load. Returns `undefined` when the entity
    * isn't loaded yet — the chip still round-trips to markdown via type + id.
    */
-  resolveLabel: (type: ReferenceType, id: string) => string | undefined
+  resolveLabel: (type: EntityType, id: string) => string | undefined
   /** Suggestion config (trigger, items, command, render) supplied by the editor. */
-  suggestion: Omit<SuggestionOptions<ReferenceItem, ReferenceItem>, 'editor'>
+  suggestion: Omit<SuggestionOptions<EntityItem, EntityItem>, 'editor'>
 }
 
 /**
@@ -79,7 +72,7 @@ export const createReferenceExtension = ({ resolveLabel, suggestion }: Reference
     markdownTokenName: REFERENCE_NODE_NAME,
     name: REFERENCE_NODE_NAME,
     parseMarkdown: (token: MarkdownToken): JSONContent => {
-      const type = token.refType as ReferenceType
+      const type = token.refType as EntityType
       const id = String(token.refId)
       return { attrs: { id, label: resolveLabel(type, id) ?? '', type }, type: REFERENCE_NODE_NAME }
     },

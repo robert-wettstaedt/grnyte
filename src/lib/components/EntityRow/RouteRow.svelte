@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { ENTITY_TYPE_ICON } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
+  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import AscentType from '$lib/entities/ascent/AscentType.svelte'
   import { getGradeBand, gradeFgVar, gradeVar } from '$lib/entities/grade/color'
   import type { RouteListItem } from '$lib/entities/route/dto'
@@ -9,7 +11,6 @@
   import RouteTags from '$lib/entities/route/RouteTags.svelte'
   import { buildLine, isNormalized } from '$lib/entities/topo/path'
   import { m } from '$lib/paraglide/messages.js'
-  import Markdown from '../Markdown/Markdown.svelte'
   import Row from './Row.svelte'
   import type { AscentStatus } from './types'
 
@@ -179,7 +180,7 @@
       {/if}
     {:else}
       <span class="text-surface-500 absolute inset-0 grid place-items-center" aria-hidden="true">
-        <Icon name="mountain" size={24} />
+        <Icon name={ENTITY_TYPE_ICON.routes} size={24} />
       </span>
     {/if}
   </span>

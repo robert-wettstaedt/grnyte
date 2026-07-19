@@ -1,4 +1,6 @@
 <script lang="ts">
+  import EntityList from '$lib/components/EntitySearch/EntityList.svelte'
+  import { entitySearch, type EntityCandidate, type EntityItem } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { markdownReferences } from '$lib/components/Markdown/lib/references.svelte'
   import { getReferences } from '$lib/components/Markdown/lib/remark-references'
@@ -9,10 +11,8 @@
   import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
   import type { Attachment } from 'svelte/attachments'
   import type { HTMLAttributes } from 'svelte/elements'
-  import { createReferenceExtension, REFERENCE_NODE_NAME, type ReferenceItem } from './lib/reference-node'
-  import { referenceSearch, type ReferenceCandidate } from './lib/reference-search.svelte'
+  import { createReferenceExtension, REFERENCE_NODE_NAME } from './lib/reference-node'
   import LinkModal from './LinkModal.svelte'
-  import ReferenceList from './ReferenceList.svelte'
 
   // Extends HTMLAttributes so the props from a remote form field
   // (`{...field.as('text')}` → name/aria-invalid; wrapper → id/aria-describedby/
@@ -47,16 +47,20 @@
 
   // --- `@` reference picker ---------------------------------------------------
   interface PickerState {
-    command: ((item: ReferenceItem) => void) | null
+    command: ((item: EntityItem) => void) | null
     index: number
     open: boolean
     query: string
   }
   let picker = $state<PickerState>({ command: null, index: 0, open: false, query: '' })
 
-  const search = referenceSearch({ open: () => picker.open, query: () => picker.query, regionFk: () => regionFk })
+  const search = entitySearch({
+    open: () => picker.open,
+    query: () => picker.query,
+    regionFks: () => (regionFk == null ? [] : [regionFk]),
+  })
 
-  const selectItem = (item: ReferenceCandidate) => {
+  const selectItem = (item: EntityCandidate) => {
     picker.command?.({ id: item.id, label: item.label, type: item.type })
     picker.open = false
   }
@@ -89,7 +93,7 @@
     }
   }
 
-  const suggestion: Omit<SuggestionOptions<ReferenceItem, ReferenceItem>, 'editor'> = {
+  const suggestion: Omit<SuggestionOptions<EntityItem, EntityItem>, 'editor'> = {
     char: '@',
     command: ({ editor, props, range }) => {
       editor
@@ -101,7 +105,7 @@
         ])
         .run()
     },
-    // The candidate list is reactive (`referenceSearch`); the suggestion plugin
+    // The candidate list is reactive (`entitySearch`); the suggestion plugin
     // only drives the trigger, query, range and keyboard lifecycle.
     items: () => [],
     render: () => ({
@@ -109,10 +113,10 @@
         picker.open = false
       },
       onKeyDown: ({ event }) => onPickerKeyDown(event),
-      onStart: (props: SuggestionProps<ReferenceItem, ReferenceItem>) => {
+      onStart: (props: SuggestionProps<EntityItem, EntityItem>) => {
         picker = { command: props.command, index: 0, open: true, query: props.query }
       },
-      onUpdate: (props: SuggestionProps<ReferenceItem, ReferenceItem>) => {
+      onUpdate: (props: SuggestionProps<EntityItem, EntityItem>) => {
         picker = { command: props.command, index: 0, open: true, query: props.query }
       },
     }),
@@ -307,7 +311,7 @@
   <!-- In-flow reference picker (per design — not a caret-floating popover) -->
   {#if picker.open}
     <div class="border-surface-200-800 max-h-64 overflow-y-auto border-t">
-      <ReferenceList groups={search.groups} activeIndex={picker.index} onselect={selectItem} />
+      <EntityList groups={search.groups} activeIndex={picker.index} onselect={selectItem} />
     </div>
   {/if}
 </div>

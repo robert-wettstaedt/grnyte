@@ -14,7 +14,11 @@ import type { MapData } from './types'
  * route & grade counts that feed the donut markers. Shared so the parking
  * picker renders the exact same map as /explore.
  */
-export function createExploreMapData(filters: () => ParsedRouteFilter, userId: () => number | undefined) {
+export function createExploreMapData(
+  filters: () => ParsedRouteFilter,
+  userId: () => number | undefined,
+  search: () => string = () => '',
+) {
   // Slim rows (no related trees): the map only reads id/blockFk/gradeFk per route.
   const routes = filteredRouteList(
     routeMapList(() => filters().filter),
@@ -51,13 +55,38 @@ export function createExploreMapData(filters: () => ParsedRouteFilter, userId: (
     return counts
   })
 
-  // With a route filter active the map shows only blocks holding matching routes; without
-  // one, every block — a just-created block has no routes yet, but must still show up.
-  const blocks = $derived(
-    isParsedFilterActive(filters())
-      ? blocksResult.data.filter((block) => routeCountByBlock.has(block.id))
-      : blocksResult.data,
-  )
+  // Search scope: blocks matching the query by their own name or any ancestor area
+  // name (the `areas` chain is already synced, so no extra query). `null` when not
+  // searching, so the map stays untouched.
+  // ponytail: name/area match only — a bare route-name search shows the route in the
+  // list, not on the map; couple `content` into `routeMapList` above if that's wanted.
+  const searchBlockIds = $derived.by(() => {
+    const needle = search().trim().toLowerCase()
+    if (needle.length === 0) return null
+    const ids = new Set<number>()
+    for (const block of blocksResult.data) {
+      if (
+        block.name.toLowerCase().includes(needle) ||
+        block.areas.some((area) => area.name.toLowerCase().includes(needle))
+      ) {
+        ids.add(block.id)
+      }
+    }
+    return ids
+  })
+
+  // Search narrows to name/area matches; a route filter then narrows those to blocks
+  // holding matching routes (so search + filter compose). Without either, every block
+  // shows — a just-created block has no routes yet, but must still appear. The
+  // untouched path returns the source array by reference so the map layer doesn't flash.
+  const blocks = $derived.by(() => {
+    const searchIds = searchBlockIds
+    let result = searchIds == null ? blocksResult.data : blocksResult.data.filter((block) => searchIds.has(block.id))
+    if (isParsedFilterActive(filters())) {
+      result = result.filter((block) => routeCountByBlock.has(block.id))
+    }
+    return result
+  })
   const parkingLocations = $derived(areasResult.data.flatMap((area) => area.parkingLocations))
   const lineStrings = $derived(areasResult.data.flatMap((area) => area.geoPaths))
 

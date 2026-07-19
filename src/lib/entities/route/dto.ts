@@ -14,7 +14,11 @@ export type RouteDetail = RouteListItem & {
 }
 
 export interface RouteListItem {
+  /** Name of the route's area, for a breadcrumb (search results). */
+  areaName?: string
   blockFk: number
+  /** Name of the route's block, for a breadcrumb (search results). */
+  blockName?: string
   createdAt: Date | undefined
   description: string
   firstAscentYear: number | undefined
@@ -26,6 +30,12 @@ export interface RouteListItem {
   name: string
   /** Community rating (`userRating`), same one-vote-per-user rule as the grade. */
   rating: number
+  /** The stored name as typed, empty for unnamed routes (`name` is the "<no name>"
+   *  display fallback). Search scores against this so an unnamed route can't match
+   *  the placeholder text. */
+  rawName?: string
+  /** The route's region, for a region breadcrumb when a search spans more than one. */
+  regionFk?: number
   tags: string[]
   /** `files.path` of the route's best topo image, if it's drawn on one. */
   topoImagePath?: string

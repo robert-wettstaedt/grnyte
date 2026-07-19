@@ -34,7 +34,6 @@
   args={{
     countByGrade,
     name: 'Roadside',
-    region: 'Frankenjura',
     total: 42,
   }}
   {template}
