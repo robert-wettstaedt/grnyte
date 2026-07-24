@@ -32,5 +32,6 @@ export function toUserSettings(row: UserSettingsRow): undefined | UserSettings {
     notifyModerations: row.notifyModerations ?? false,
     notifyNewAscents: row.notifyNewAscents ?? false,
     notifyNewUsers: row.notifyNewUsers ?? false,
+    unitSystem: row.unitSystem ?? null,
   }
 }

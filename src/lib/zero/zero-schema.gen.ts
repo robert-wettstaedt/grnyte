@@ -1424,6 +1424,12 @@ const userSettingsTable = {
       serverName: 'notify_new_users',
       type: 'boolean',
     },
+    unitSystem: {
+      customType: null as unknown as 'imperial' | 'metric',
+      optional: true,
+      serverName: 'unit_system',
+      type: 'string',
+    },
     userFk: {
       customType: null as unknown as number,
       optional: false,

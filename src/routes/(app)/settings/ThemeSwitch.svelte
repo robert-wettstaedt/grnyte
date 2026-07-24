@@ -2,10 +2,14 @@
   import { browser } from '$app/environment'
   import { m } from '$lib/paraglide/messages'
   import { onMount } from 'svelte'
+  import SettingSelect from './SettingSelect.svelte'
 
   type ModePreference = 'dark' | 'light' | 'system'
 
   const MODE_STORAGE_KEY = 'mode'
+
+  // `id` ties the select to the settings row's <label for>.
+  const { id }: { id: string } = $props()
 
   let mode = $state<ModePreference>('system')
 
@@ -17,7 +21,8 @@
     }
   })
 
-  const onModeChange = () => {
+  const onModeChange = (value: ModePreference) => {
+    mode = value
     if (!browser) return
 
     localStorage.setItem(MODE_STORAGE_KEY, mode)
@@ -27,8 +32,13 @@
   }
 </script>
 
-<select aria-label={m.theme_label()} bind:value={mode} class="select w-32" name="mode" onchange={onModeChange}>
-  <option value="light">{m.theme_light()}</option>
-  <option value="dark">{m.theme_dark()}</option>
-  <option value="system">{m.theme_system()}</option>
-</select>
+<SettingSelect
+  {id}
+  value={mode}
+  onchange={onModeChange}
+  options={[
+    { label: m.theme_light(), value: 'light' },
+    { label: m.theme_dark(), value: 'dark' },
+    { label: m.theme_system(), value: 'system' },
+  ]}
+/>

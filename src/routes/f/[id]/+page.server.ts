@@ -123,7 +123,13 @@ export const load = (async ({ locals, params }) => {
   const user =
     locals.user == null
       ? undefined
-      : { id: locals.user.id, username: locals.user.username, userSettings: locals.user.userSettings ?? undefined }
+      : {
+          id: locals.user.id,
+          username: locals.user.username,
+          // MediaStage renders the ascent's conditions, so hand the viewer's real unit preference
+          // through; the page sets it as the override so the caption reads in their system.
+          userSettings: locals.user.userSettings ?? undefined,
+        }
 
   // The entity this file hangs on (exactly one FK is set), so a delete can navigate back to
   // it instead of home. Same precedence as deleteFile's activity target.

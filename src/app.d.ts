@@ -39,6 +39,7 @@ declare global {
                   notifyModerations: true
                   notifyNewAscents: true
                   notifyNewUsers: true
+                  unitSystem: true
                 }
               }
             }
@@ -53,7 +54,7 @@ declare global {
 
   interface Window {
     // Applies the persisted theme (class + theme-color meta). Defined by the inline
-    // bootstrap in src/app.html so it runs before first paint; called by LightSwitch on change.
+    // bootstrap in src/app.html so it runs before first paint; called by ThemeSwitch on change.
     __applyTheme?: () => void
   }
 }

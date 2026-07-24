@@ -4,15 +4,11 @@
   import Logo from '$lib/assets/logo.svg'
   import { m } from '$lib/paraglide/messages'
   import type { Snippet } from 'svelte'
+  import { legalLinks } from './links'
 
   const { children }: { children: Snippet } = $props()
 
-  const pages = [
-    { href: resolve('/legal/privacy'), label: m.legal_layout_001() },
-    { href: resolve('/legal/terms'), label: m.legal_layout_002() },
-    { href: resolve('/legal/cookies'), label: m.legal_layout_003() },
-    { href: resolve('/legal/disclaimer'), label: m.legal_disclaimer_title() },
-  ]
+  const pages = legalLinks()
 </script>
 
 <div class="bg-surface-50-950 text-surface-950-50 flex min-h-dvh flex-col">

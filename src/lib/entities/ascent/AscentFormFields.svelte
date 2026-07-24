@@ -18,7 +18,7 @@
   import FormHint from '$lib/forms/FormHint.svelte'
   import OptionalBadge from '$lib/forms/OptionalBadge.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
-  import { formatCelsius } from '$lib/i18n/units'
+  import { formatCelsius } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'

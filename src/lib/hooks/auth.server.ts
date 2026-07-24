@@ -63,6 +63,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
             notifyModerations: true,
             notifyNewAscents: true,
             notifyNewUsers: true,
+            unitSystem: true,
           },
         },
       },

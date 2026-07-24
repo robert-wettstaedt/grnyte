@@ -1,5 +1,5 @@
 import { browser } from '$app/environment'
-import { isImperialLocale } from '$lib/i18n/units'
+import { isImperialLocale } from '$lib/i18n/units.svelte'
 
 // iOS deep-links into Apple Maps; everywhere else Google Maps' universal URL
 // handles both the Android app and desktop browsers. (iPadOS reports as Mac, so

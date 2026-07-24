@@ -196,6 +196,8 @@ export const userSettings = table(
 
     notifyNewAscents: boolean('notify_new_ascents').notNull().default(false),
     notifyNewUsers: boolean('notify_new_users').notNull().default(false),
+    // null = follow the runtime locale (see isImperialLocale); set = explicit override.
+    unitSystem: text('unit_system', { enum: ['metric', 'imperial'] }),
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),

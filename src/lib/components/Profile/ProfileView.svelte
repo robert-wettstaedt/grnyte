@@ -30,11 +30,13 @@
   interface Props {
     /** The signed-in user viewing their own profile. */
     isSelf: boolean
+    /** When set (public profile), the header shows a back button. */
+    onBack?: () => void
     userId: number
     username: string
   }
 
-  const { isSelf, userId, username }: Props = $props()
+  const { isSelf, onBack, userId, username }: Props = $props()
   const global = getGlobalState()
 
   const ascents = userAscentDetailList(() => userId)
@@ -178,7 +180,7 @@
 {/snippet}
 
 <div class="container mx-auto max-w-3xl space-y-8 px-4 py-8 pb-24 md:pb-8">
-  <ProfileHeader {username} {faName} {stats} {hardestGrade} contributions={contributions.current} />
+  <ProfileHeader {username} {faName} {stats} {hardestGrade} {isSelf} {onBack} contributions={contributions.current} />
 
   <QueryState resource={ascents}>
     {#snippet ready()}

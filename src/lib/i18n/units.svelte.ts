@@ -1,8 +1,20 @@
-// ponytail: metric vs imperial picked from the locale region; swap for a user setting if people ask.
 const IMPERIAL_REGIONS = ['US', 'GB', 'LR', 'MM']
 
-/** Whether the runtime locale prefers imperial units (shared by distance and temperature). */
+// null follows the runtime locale (the default); an explicit user setting overrides it. Reactive
+// $state so a mid-session change (or signing in as another user) re-renders already-mounted views
+// that format distance/temperature. Fed by the (app) layout and the /f share page from settings.
+let unitOverride = $state<'imperial' | 'metric' | null>(null)
+
+/** Apply the signed-in user's unit preference (null clears it, back to locale inference). */
+export const setUnitPreference = (system: 'imperial' | 'metric' | null): void => {
+  unitOverride = system
+}
+
+/** Whether to render imperial units (shared by distance and temperature): user override, else locale. */
 export const isImperialLocale = (): boolean => {
+  if (unitOverride != null) {
+    return unitOverride === 'imperial'
+  }
   const region = new Intl.Locale(navigator.language).maximize().region ?? ''
   return IMPERIAL_REGIONS.includes(region)
 }

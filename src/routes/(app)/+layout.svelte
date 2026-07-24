@@ -6,6 +6,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
+  import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError } from '$lib/logging/report'
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
@@ -16,6 +17,12 @@
   const { children, data } = $props()
 
   const globalState = setGlobalState()
+
+  // Feed the user's stored unit preference to the shared formatters (distance, temperature).
+  // Re-runs when settings sync/change; null falls back to locale inference.
+  $effect(() => {
+    setUnitPreference(globalState?.user?.userSettings?.unitSystem ?? null)
+  })
 
   // Feed Supabase token refreshes to Zero. Supabase rotates the access token
   // hourly; without this, zero-cache rejects the stale token, the sync socket

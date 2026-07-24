@@ -1,4 +1,5 @@
 export type GradingScale = 'FB' | 'V'
+export type UnitSystem = 'imperial' | 'metric'
 
 export interface User {
   id: number
@@ -19,4 +20,6 @@ export interface UserSettings {
   notifyModerations: boolean
   notifyNewAscents: boolean
   notifyNewUsers: boolean
+  /** Explicit metric/imperial override; null follows the runtime locale. */
+  unitSystem: null | UnitSystem
 }

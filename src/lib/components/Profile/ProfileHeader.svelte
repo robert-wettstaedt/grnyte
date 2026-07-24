@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import type { ProfileStats } from '$lib/entities/ascent/stats'
   import { m } from '$lib/paraglide/messages'
 
@@ -11,18 +13,43 @@
     faName: string
     /** Hardest sent grade, already labelled for the active grading scale. */
     hardestGrade: string
+    /** Own profile: shows the settings cog in the corner. */
+    isSelf: boolean
+    /** When set (public profile), shows a back button mirroring the settings cog. */
+    onBack?: () => void
     stats: ProfileStats
     username: string
   }
 
-  const { contributions, faName, hardestGrade, stats, username }: Props = $props()
+  const { contributions, faName, hardestGrade, isSelf, onBack, stats, username }: Props = $props()
 
   // Compact counts so a large tally stays one glyph wide (1100 -> "1.1K"). Forced to
   // `en` because German compact notation doesn't abbreviate thousands; we always want "K".
   const compact = new Intl.NumberFormat('en', { maximumFractionDigits: 1, notation: 'compact' })
 </script>
 
-<header class="flex flex-col items-center gap-4 text-center">
+<header class="relative flex flex-col items-center gap-4 text-center">
+  {#if onBack != null}
+    <button
+      type="button"
+      class="btn-icon preset-filled-surface-200-800 absolute top-0 left-0"
+      title={m.common_back()}
+      aria-label={m.common_back()}
+      onclick={onBack}
+    >
+      <Icon name="arrow-left" />
+    </button>
+  {/if}
+  {#if isSelf}
+    <a
+      href={resolve('/settings')}
+      class="btn-icon preset-filled-surface-200-800 absolute top-0 right-0"
+      title={m.settings_title()}
+      aria-label={m.settings_title()}
+    >
+      <Icon name="settings" />
+    </a>
+  {/if}
   <Avatar name={username} size={80} solid loading={username === ''} />
   <div>
     <h1 class="h3 font-bold">{username}</h1>

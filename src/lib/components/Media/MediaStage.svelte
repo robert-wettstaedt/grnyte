@@ -18,7 +18,7 @@
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
-  import { formatConditions } from '$lib/i18n/units'
+  import { formatConditions } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'

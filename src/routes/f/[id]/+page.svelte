@@ -16,6 +16,7 @@
   import MediaStage from '$lib/components/Media/MediaStage.svelte'
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
   import { deleteFile } from '$lib/entities/file/files.remote'
+  import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
   import { toaster } from '$lib/state/toast'
@@ -30,6 +31,12 @@
   provideGlobalState(
     untrack(() => staticGlobalState({ grades: data.grades, gradingScale: data.gradingScale, user: data.user })),
   )
+
+  // This route is outside the (app) layout, so it feeds the signed-in viewer's unit preference to
+  // the formatters MediaStage uses (temperature). Anon visitors (no user) fall back to the locale.
+  $effect(() => {
+    setUnitPreference(data.user?.userSettings?.unitSystem ?? null)
+  })
 
   const controls = $derived(data.controls)
 
