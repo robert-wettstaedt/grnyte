@@ -1,1 +1,0 @@
-CREATE POLICY "data.edit can delete routes_to_tags" ON "routes_to_tags" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize('data.edit')));

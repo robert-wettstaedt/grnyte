@@ -12,9 +12,16 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     await db.execute(sql.raw(`revoke all on table public."${tableName}" from anon, public;`))
   }
 
+  // keyv is created lazily at runtime by the cache library, so it may not exist
+  // yet on a freshly migrated database. Guard it so a from-empty migrate works.
   await db.execute(sql`
-    revoke all on table public.keyv from anon, public;
-    ALTER TABLE keyv ENABLE ROW LEVEL SECURITY;
+    DO $$
+    BEGIN
+      IF to_regclass('public.keyv') IS NOT NULL THEN
+        REVOKE ALL ON TABLE public.keyv FROM anon, public;
+        ALTER TABLE public.keyv ENABLE ROW LEVEL SECURITY;
+      END IF;
+    END $$;
   `)
   db.execute(sql`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon;`)
 }

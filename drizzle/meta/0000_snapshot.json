@@ -1,6 +1,6 @@
 {
-  "id": "4a5e71b5-d668-4343-984b-e05a88eb9554",
-  "prevId": "dc8b744c-3e64-4039-93b1-4bcd840a3ed7",
+  "id": "73a619f7-77ef-44dc-a78a-33c4d8569256",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -25,7 +25,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "type": {
           "name": "type",
@@ -111,36 +111,6 @@
           "method": "btree",
           "with": {}
         },
-        "activities_type_idx": {
-          "name": "activities_type_idx",
-          "columns": [
-            {
-              "expression": "type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "activities_user_fk_idx": {
-          "name": "activities_user_fk_idx",
-          "columns": [
-            {
-              "expression": "user_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "activities_entity_id_idx": {
           "name": "activities_entity_id_idx",
           "columns": [
@@ -171,6 +141,21 @@
           "method": "btree",
           "with": {}
         },
+        "activities_notified_idx": {
+          "name": "activities_notified_idx",
+          "columns": [
+            {
+              "expression": "notified",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "activities_parent_entity_id_idx": {
           "name": "activities_parent_entity_id_idx",
           "columns": [
@@ -186,11 +171,41 @@
           "method": "btree",
           "with": {}
         },
-        "activities_notified_idx": {
-          "name": "activities_notified_idx",
+        "activities_type_idx": {
+          "name": "activities_type_idx",
           "columns": [
             {
-              "expression": "notified",
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_user_fk_idx": {
+          "name": "activities_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activities_region_fk_idx": {
+          "name": "activities_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -233,41 +248,41 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can insert activities": {
-          "name": "data.read can insert activities",
+        "region.read can insert activities": {
+          "name": "region.read can insert activities",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.read'))"
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can read activities": {
-          "name": "data.read can read activities",
+        "region.read can read activities": {
+          "name": "region.read can read activities",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.delete can delete activities": {
-          "name": "data.delete can delete activities",
+        "region.delete can delete activities": {
+          "name": "region.delete can delete activities",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.read can delete their own activities": {
-          "name": "data.read can delete their own activities",
+        "region.read can delete their own activities": {
+          "name": "region.read can delete their own activities",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         }
       },
       "checkConstraints": {},
@@ -312,7 +327,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description": {
           "name": "description",
@@ -339,6 +354,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "geo_paths": {
+          "name": "geo_paths",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "parent_fk": {
           "name": "parent_fk",
           "type": "integer",
@@ -352,6 +373,21 @@
           "columns": [
             {
               "expression": "description",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "areas_region_fk_idx": {
+          "name": "areas_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -422,52 +458,61 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read areas": {
-          "name": "data.read can read areas",
+        "region.read can read areas": {
+          "name": "region.read can read areas",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert areas": {
-          "name": "data.edit can insert areas",
+        "region.edit can insert areas": {
+          "name": "region.edit can insert areas",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update areas": {
-          "name": "data.edit can update areas",
+        "region.edit can update areas": {
+          "name": "region.edit can update areas",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete areas": {
-          "name": "data.delete can delete areas",
+        "region.delete can delete areas": {
+          "name": "region.delete can delete areas",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.read can update areas": {
-          "name": "data.read can update areas",
+        "region.edit can delete areas": {
+          "name": "region.edit can delete areas",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update areas": {
+          "name": "region.read can update areas",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))",
-          "withCheck": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -494,7 +539,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_by": {
           "name": "created_by",
@@ -509,6 +554,12 @@
           "notNull": true,
           "default": "now()"
         },
+        "humidity": {
+          "name": "humidity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "notes": {
           "name": "notes",
           "type": "text",
@@ -517,6 +568,12 @@
         },
         "rating": {
           "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "temperature": {
+          "name": "temperature",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -561,6 +618,21 @@
           "columns": [
             {
               "expression": "notes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ascents_region_fk_idx": {
+          "name": "ascents_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -644,61 +716,52 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can insert ascents": {
-          "name": "data.read can insert ascents",
+        "region.read can insert ascents": {
+          "name": "region.read can insert ascents",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.read'))"
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can read ascents": {
-          "name": "data.read can read ascents",
+        "region.read can read ascents": {
+          "name": "region.read can read ascents",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can update ascents": {
-          "name": "data.read can update ascents",
+        "region.read can update their own ascents": {
+          "name": "region.read can update their own ascents",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))",
-          "withCheck": "(SELECT authorize('data.read'))"
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         },
-        "data.read can delete their own ascents": {
-          "name": "data.read can delete their own ascents",
+        "region.read can delete their own ascents": {
+          "name": "region.read can delete their own ascents",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = created_by\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         },
-        "data.edit can update ascents": {
-          "name": "data.edit can update ascents",
+        "region.admin can fully access ascents": {
+          "name": "region.admin can fully access ascents",
           "as": "PERMISSIVE",
-          "for": "UPDATE",
+          "for": "ALL",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
-        },
-        "data.delete can delete ascents": {
-          "name": "data.delete can delete ascents",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.admin', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -743,7 +806,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "order": {
           "name": "order",
@@ -765,11 +828,41 @@
         }
       },
       "indexes": {
+        "blocks_region_fk_idx": {
+          "name": "blocks_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "blocks_slug_idx": {
           "name": "blocks_slug_idx",
           "columns": [
             {
               "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "blocks_geolocation_fk_idx": {
+          "name": "blocks_geolocation_fk_idx",
+          "columns": [
+            {
+              "expression": "geolocation_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -838,52 +931,61 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read blocks": {
-          "name": "data.read can read blocks",
+        "region.read can read blocks": {
+          "name": "region.read can read blocks",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert blocks": {
-          "name": "data.edit can insert blocks",
+        "region.edit can insert blocks": {
+          "name": "region.edit can insert blocks",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update blocks": {
-          "name": "data.edit can update blocks",
+        "region.edit can update blocks": {
+          "name": "region.edit can update blocks",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete blocks": {
-          "name": "data.delete can delete blocks",
+        "region.delete can delete blocks": {
+          "name": "region.delete can delete blocks",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.read can update blocks": {
-          "name": "data.read can update blocks",
+        "region.edit can delete blocks": {
+          "name": "region.edit can delete blocks",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update blocks": {
+          "name": "region.read can update blocks",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))",
-          "withCheck": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -903,7 +1005,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "file_fk": {
           "name": "file_fk",
@@ -912,7 +1014,38 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "bunny_streams_region_fk_idx": {
+          "name": "bunny_streams_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "bunny_streams_file_fk_idx": {
+          "name": "bunny_streams_file_fk_idx",
+          "columns": [
+            {
+              "expression": "file_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "bunny_streams_region_fk_regions_id_fk": {
           "name": "bunny_streams_region_fk_regions_id_fk",
@@ -944,42 +1077,297 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can insert bunny_streams": {
-          "name": "data.read can insert bunny_streams",
+        "region.read can insert bunny_streams": {
+          "name": "region.read can insert bunny_streams",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.read'))"
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can read bunny_streams": {
-          "name": "data.read can read bunny_streams",
+        "region.read can read bunny_streams": {
+          "name": "region.read can read bunny_streams",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can update bunny_streams for files of their own ascents": {
-          "name": "data.read can update bunny_streams for files of their own ascents",
+        "region.read can update bunny_streams for files of their own ascents": {
+          "name": "region.read can update bunny_streams for files of their own ascents",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        ",
-          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         },
-        "data.read can delete bunny_streams for files of their own ascents": {
-          "name": "data.read can delete bunny_streams for files of their own ascents",
+        "region.read can delete bunny_streams for files of their own ascents": {
+          "name": "region.read can delete bunny_streams for files of their own ascents",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.files f\n              JOIN public.ascents a ON f.ascent_fk = a.id\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              f.id = file_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
+        },
+        "region.admin can fully access bunny_streams": {
+          "name": "region.admin can fully access bunny_streams",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.admin', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.client_error_logs": {
+      "name": "client_error_logs",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "navigator": {
+          "name": "navigator",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pathname": {
+          "name": "pathname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "client_error_logs_created_by_users_id_fk": {
+          "name": "client_error_logs_created_by_users_id_fk",
+          "tableFrom": "client_error_logs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.favorites": {
+      "name": "favorites",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth_user_fk": {
+          "name": "auth_user_fk",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_fk": {
+          "name": "user_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "favorites_created_at_idx": {
+          "name": "favorites_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_entity_id_idx": {
+          "name": "favorites_entity_id_idx",
+          "columns": [
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_entity_type_idx": {
+          "name": "favorites_entity_type_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "favorites_region_fk_regions_id_fk": {
+          "name": "favorites_region_fk_regions_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "favorites_auth_user_fk_users_id_fk": {
+          "name": "favorites_auth_user_fk_users_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "auth_user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "favorites_user_fk_users_id_fk": {
+          "name": "favorites_user_fk_users_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "users can insert own favorites": {
+          "name": "users can insert own favorites",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "region.read can read favorites": {
+          "name": "region.read can read favorites",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "users can update own favorites": {
+          "name": "users can update own favorites",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
+        "users can delete own favorites": {
+          "name": "users can delete own favorites",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
         }
       },
       "checkConstraints": {},
@@ -999,7 +1387,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "path": {
           "name": "path",
@@ -1080,6 +1468,21 @@
           "columns": [
             {
               "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "files_region_fk_idx": {
+          "name": "files_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1189,61 +1592,61 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can insert files": {
-          "name": "data.read can insert files",
+        "region.read can insert files": {
+          "name": "region.read can insert files",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.read'))"
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can read files": {
-          "name": "data.read can read files",
+        "region.read can read files": {
+          "name": "region.read can read files",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.read can update files belonging to their own ascents": {
-          "name": "data.read can update files belonging to their own ascents",
+        "region.edit can update files": {
+          "name": "region.edit can update files",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        ",
-          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.read can delete files belonging to their own ascents": {
-          "name": "data.read can delete files belonging to their own ascents",
+        "region.edit can delete files": {
+          "name": "region.edit can delete files",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n        "
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update files": {
-          "name": "data.edit can update files",
+        "region.read can update files belonging to their own ascents": {
+          "name": "region.read can update files belonging to their own ascents",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        ",
+          "withCheck": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         },
-        "data.edit can delete files": {
-          "name": "data.edit can delete files",
+        "region.read can delete files belonging to their own ascents": {
+          "name": "region.read can delete files belonging to their own ascents",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))"
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              public.ascents a\n              JOIN public.users u ON a.created_by = u.id\n            WHERE\n              a.id = ascent_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          ) AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         }
       },
       "checkConstraints": {},
@@ -1263,7 +1666,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
@@ -1279,11 +1682,11 @@
         }
       },
       "indexes": {
-        "first_ascensionists_user_fk_idx": {
-          "name": "first_ascensionists_user_fk_idx",
+        "first_ascensionists_name_idx": {
+          "name": "first_ascensionists_name_idx",
           "columns": [
             {
-              "expression": "user_fk",
+              "expression": "name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1294,11 +1697,26 @@
           "method": "btree",
           "with": {}
         },
-        "first_ascensionists_name_idx": {
-          "name": "first_ascensionists_name_idx",
+        "first_ascensionists_region_fk_idx": {
+          "name": "first_ascensionists_region_fk_idx",
           "columns": [
             {
-              "expression": "name",
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "first_ascensionists_user_fk_idx": {
+          "name": "first_ascensionists_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1341,15 +1759,15 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can fully access first_ascensionists": {
-          "name": "data.read can fully access first_ascensionists",
+        "region.read can fully access first_ascensionists": {
+          "name": "region.read can fully access first_ascensionists",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))",
-          "withCheck": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -1369,7 +1787,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "lat": {
           "name": "lat",
@@ -1426,6 +1844,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "geolocations_region_fk_idx": {
+          "name": "geolocations_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1472,51 +1905,60 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read geolocations": {
-          "name": "data.read can read geolocations",
+        "region.read can read geolocations": {
+          "name": "region.read can read geolocations",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert geolocations": {
-          "name": "data.edit can insert geolocations",
+        "region.edit can insert geolocations": {
+          "name": "region.edit can insert geolocations",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update geolocations": {
-          "name": "data.edit can update geolocations",
+        "region.edit can update geolocations": {
+          "name": "region.edit can update geolocations",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete geolocations": {
-          "name": "data.delete can delete geolocations",
+        "region.delete can delete geolocations": {
+          "name": "region.delete can delete geolocations",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.read can insert geolocations": {
-          "name": "data.read can insert geolocations",
+        "region.read can insert geolocations": {
+          "name": "region.read can insert geolocations",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.read'))"
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can delete geolocations": {
+          "name": "region.edit can delete geolocations",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -1550,15 +1992,14 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "authenticated users can fully access grades": {
-          "name": "authenticated users can fully access grades",
+        "authenticated users can read grades": {
+          "name": "authenticated users can read grades",
           "as": "PERMISSIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "true",
-          "withCheck": "true"
+          "using": "true"
         }
       },
       "checkConstraints": {},
@@ -1609,6 +2050,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "lang": {
+          "name": "lang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1675,6 +2122,15 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
+        "users can delete own push_subscriptions": {
+          "name": "users can delete own push_subscriptions",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk"
+        },
         "users can insert own push_subscriptions": {
           "name": "users can insert own push_subscriptions",
           "as": "PERMISSIVE",
@@ -1702,15 +2158,220 @@
           ],
           "using": "(SELECT auth.uid()) = auth_user_fk",
           "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.region_invitations": {
+      "name": "region_invitations",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
-        "users can delete own push_subscriptions": {
-          "name": "users can delete own push_subscriptions",
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "region_fk": {
+          "name": "region_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "invitation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accepted_by": {
+          "name": "accepted_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "region_invitations_token_idx": {
+          "name": "region_invitations_token_idx",
+          "columns": [
+            {
+              "expression": "token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_invitations_region_fk_idx": {
+          "name": "region_invitations_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_invitations_email_idx": {
+          "name": "region_invitations_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "region_invitations_status_idx": {
+          "name": "region_invitations_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "region_invitations_region_fk_regions_id_fk": {
+          "name": "region_invitations_region_fk_regions_id_fk",
+          "tableFrom": "region_invitations",
+          "tableTo": "regions",
+          "columnsFrom": [
+            "region_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_invitations_invited_by_users_id_fk": {
+          "name": "region_invitations_invited_by_users_id_fk",
+          "tableFrom": "region_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "region_invitations_accepted_by_users_id_fk": {
+          "name": "region_invitations_accepted_by_users_id_fk",
+          "tableFrom": "region_invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "accepted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "region_invitations_token_unique": {
+          "name": "region_invitations_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {
+        "region.admin can insert region_invitations": {
+          "name": "region.admin can insert region_invitations",
           "as": "PERMISSIVE",
-          "for": "DELETE",
+          "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT auth.uid()) = auth_user_fk"
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
+        },
+        "users can read region_invitations": {
+          "name": "users can read region_invitations",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "users can update region_invitations": {
+          "name": "users can update region_invitations",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true",
+          "withCheck": "true"
         }
       },
       "checkConstraints": {},
@@ -1737,7 +2398,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "role": {
           "name": "role",
@@ -1817,6 +2478,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "region_members_region_auth_user_idx": {
+          "name": "region_members_region_auth_user_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "auth_user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1877,6 +2559,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
+        "app.admin can fully access region_members": {
+          "name": "app.admin can fully access region_members",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('app.admin'))",
+          "withCheck": "(SELECT authorize('app.admin'))"
+        },
         "authenticated users can read region_members": {
           "name": "authenticated users can read region_members",
           "as": "PERMISSIVE",
@@ -1935,11 +2627,30 @@
           "primaryKey": true,
           "notNull": true
         },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_members": {
+          "name": "max_members",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
+        },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "settings": {
+          "name": "settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1959,10 +2670,43 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "regions_created_by_users_id_fk": {
+          "name": "regions_created_by_users_id_fk",
+          "tableFrom": "regions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
+        "authenticated users can create regions": {
+          "name": "authenticated users can create regions",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "true"
+        },
+        "app.admin can fully access regions": {
+          "name": "app.admin can fully access regions",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
         "users can read regions they are members of": {
           "name": "users can read regions they are members of",
           "as": "PERMISSIVE",
@@ -1972,15 +2716,14 @@
           ],
           "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              region_members as rm\n            WHERE\n              rm.region_fk = regions.id\n              AND rm.auth_user_fk = (SELECT auth.uid())\n              AND rm.is_active = true\n          )\n        "
         },
-        "regions.admin can fully access regions": {
-          "name": "regions.admin can fully access regions",
+        "region.admin can update region that they are members of": {
+          "name": "region.admin can update region that they are members of",
           "as": "PERMISSIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "true",
-          "withCheck": "true"
+          "using": "\n          EXISTS (\n            SELECT\n              1\n            FROM\n              region_members as rm\n            WHERE\n              rm.region_fk = regions.id\n              AND rm.auth_user_fk = (SELECT auth.uid())\n              AND rm.is_active = true\n          )\n        "
         }
       },
       "checkConstraints": {},
@@ -2043,7 +2786,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
@@ -2150,42 +2893,42 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read route_external_resource_27crags": {
-          "name": "data.read can read route_external_resource_27crags",
+        "region.read can read route_external_resource_27crags": {
+          "name": "region.read can read route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert route_external_resource_27crags": {
-          "name": "data.edit can insert route_external_resource_27crags",
+        "region.edit can insert route_external_resource_27crags": {
+          "name": "region.edit can insert route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update route_external_resource_27crags": {
-          "name": "data.edit can update route_external_resource_27crags",
+        "region.edit can update route_external_resource_27crags": {
+          "name": "region.edit can update route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete route_external_resource_27crags": {
-          "name": "data.delete can delete route_external_resource_27crags",
+        "region.delete can delete route_external_resource_27crags": {
+          "name": "region.delete can delete route_external_resource_27crags",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -2205,7 +2948,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "zlaggable_name": {
           "name": "zlaggable_name",
@@ -2348,42 +3091,42 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read route_external_resource_8a": {
-          "name": "data.read can read route_external_resource_8a",
+        "region.read can read route_external_resource_8a": {
+          "name": "region.read can read route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert route_external_resource_8a": {
-          "name": "data.edit can insert route_external_resource_8a",
+        "region.edit can insert route_external_resource_8a": {
+          "name": "region.edit can insert route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update route_external_resource_8a": {
-          "name": "data.edit can update route_external_resource_8a",
+        "region.edit can update route_external_resource_8a": {
+          "name": "region.edit can update route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete route_external_resource_8a": {
-          "name": "data.delete can delete route_external_resource_8a",
+        "region.delete can delete route_external_resource_8a": {
+          "name": "region.delete can delete route_external_resource_8a",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -2403,7 +3146,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
@@ -2486,42 +3229,42 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read route_external_resource_the_crag": {
-          "name": "data.read can read route_external_resource_the_crag",
+        "region.read can read route_external_resource_the_crag": {
+          "name": "region.read can read route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert route_external_resource_the_crag": {
-          "name": "data.edit can insert route_external_resource_the_crag",
+        "region.edit can insert route_external_resource_the_crag": {
+          "name": "region.edit can insert route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update route_external_resource_the_crag": {
-          "name": "data.edit can update route_external_resource_the_crag",
+        "region.edit can update route_external_resource_the_crag": {
+          "name": "region.edit can update route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete route_external_resource_the_crag": {
-          "name": "data.delete can delete route_external_resource_the_crag",
+        "region.delete can delete route_external_resource_the_crag": {
+          "name": "region.delete can delete route_external_resource_the_crag",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -2541,7 +3284,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "route_fk": {
           "name": "route_fk",
@@ -2574,6 +3317,21 @@
           "columns": [
             {
               "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "route_external_resources_region_fk_idx": {
+          "name": "route_external_resources_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2655,42 +3413,42 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read route_external_resources": {
-          "name": "data.read can read route_external_resources",
+        "region.read can read route_external_resources": {
+          "name": "region.read can read route_external_resources",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert route_external_resources": {
-          "name": "data.edit can insert route_external_resources",
+        "region.edit can insert route_external_resources": {
+          "name": "region.edit can insert route_external_resources",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update route_external_resources": {
-          "name": "data.edit can update route_external_resources",
+        "region.edit can update route_external_resources": {
+          "name": "region.edit can update route_external_resources",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete route_external_resources": {
-          "name": "data.delete can delete route_external_resources",
+        "region.delete can delete route_external_resources": {
+          "name": "region.delete can delete route_external_resources",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -2735,7 +3493,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "description": {
           "name": "description",
@@ -2764,6 +3522,12 @@
         "area_fks": {
           "name": "area_fks",
           "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_ids": {
+          "name": "area_ids",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -2823,11 +3587,131 @@
           "method": "btree",
           "with": {}
         },
+        "routes_region_fk_idx": {
+          "name": "routes_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "routes_slug_idx": {
           "name": "routes_slug_idx",
           "columns": [
             {
               "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_area_fks_gin_idx": {
+          "name": "routes_area_fks_gin_idx",
+          "columns": [
+            {
+              "expression": "area_fks",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "routes_area_ids_idx": {
+          "name": "routes_area_ids_idx",
+          "columns": [
+            {
+              "expression": "area_ids",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_grade_fk_idx": {
+          "name": "routes_grade_fk_idx",
+          "columns": [
+            {
+              "expression": "grade_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_user_grade_fk_idx": {
+          "name": "routes_user_grade_fk_idx",
+          "columns": [
+            {
+              "expression": "user_grade_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_rating_idx": {
+          "name": "routes_rating_idx",
+          "columns": [
+            {
+              "expression": "rating",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_first_ascent_year_idx": {
+          "name": "routes_first_ascent_year_idx",
+          "columns": [
+            {
+              "expression": "first_ascent_year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_created_by_idx": {
+          "name": "routes_created_by_idx",
+          "columns": [
+            {
+              "expression": "created_by",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2922,61 +3806,61 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read routes": {
-          "name": "data.read can read routes",
+        "region.read can read routes": {
+          "name": "region.read can read routes",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert routes": {
-          "name": "data.edit can insert routes",
+        "region.edit can insert routes": {
+          "name": "region.edit can insert routes",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update routes": {
-          "name": "data.edit can update routes",
+        "region.edit can update routes": {
+          "name": "region.edit can update routes",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete routes": {
-          "name": "data.delete can delete routes",
+        "region.delete can delete routes": {
+          "name": "region.delete can delete routes",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.read can update routes": {
-          "name": "data.read can update routes",
+        "region.edit can delete routes": {
+          "name": "region.edit can delete routes",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.read can update routes": {
+          "name": "region.read can update routes",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))",
-          "withCheck": "(SELECT authorize('data.read'))"
-        },
-        "data.edit can delete routes": {
-          "name": "data.edit can delete routes",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -2996,7 +3880,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "first_ascensionist_fk": {
           "name": "first_ascensionist_fk",
@@ -3012,11 +3896,11 @@
         }
       },
       "indexes": {
-        "routes_to_first_ascensionists_route_fk_idx": {
-          "name": "routes_to_first_ascensionists_route_fk_idx",
+        "routes_to_first_ascensionists_first_ascensionist_fk_idx": {
+          "name": "routes_to_first_ascensionists_first_ascensionist_fk_idx",
           "columns": [
             {
-              "expression": "route_fk",
+              "expression": "first_ascensionist_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3027,11 +3911,11 @@
           "method": "btree",
           "with": {}
         },
-        "routes_to_first_ascensionists_first_ascensionist_fk_idx": {
-          "name": "routes_to_first_ascensionists_first_ascensionist_fk_idx",
+        "routes_to_first_ascensionists_route_fk_idx": {
+          "name": "routes_to_first_ascensionists_route_fk_idx",
           "columns": [
             {
-              "expression": "first_ascensionist_fk",
+              "expression": "route_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3087,15 +3971,15 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can fully access routes_to_first_ascensionists": {
-          "name": "data.read can fully access routes_to_first_ascensionists",
+        "region.read can fully access routes_to_first_ascensionists": {
+          "name": "region.read can fully access routes_to_first_ascensionists",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))",
-          "withCheck": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.read', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -3109,7 +3993,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "route_fk": {
           "name": "route_fk",
@@ -3124,7 +4008,53 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "routes_to_tags_region_fk_idx": {
+          "name": "routes_to_tags_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_to_tags_route_fk_idx": {
+          "name": "routes_to_tags_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "routes_to_tags_tag_fk_idx": {
+          "name": "routes_to_tags_tag_fk_idx",
+          "columns": [
+            {
+              "expression": "tag_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "routes_to_tags_region_fk_regions_id_fk": {
           "name": "routes_to_tags_region_fk_regions_id_fk",
@@ -3177,51 +4107,51 @@
       },
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read routes_to_tags": {
-          "name": "data.read can read routes_to_tags",
+        "region.read can read routes_to_tags": {
+          "name": "region.read can read routes_to_tags",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert routes_to_tags": {
-          "name": "data.edit can insert routes_to_tags",
+        "region.edit can insert routes_to_tags": {
+          "name": "region.edit can insert routes_to_tags",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update routes_to_tags": {
-          "name": "data.edit can update routes_to_tags",
+        "region.edit can update routes_to_tags": {
+          "name": "region.edit can update routes_to_tags",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete routes_to_tags": {
-          "name": "data.delete can delete routes_to_tags",
+        "region.delete can delete routes_to_tags": {
+          "name": "region.delete can delete routes_to_tags",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.edit can delete routes_to_tags": {
-          "name": "data.edit can delete routes_to_tags",
+        "region.edit can delete routes_to_tags": {
+          "name": "region.edit can delete routes_to_tags",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -3243,42 +4173,24 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read tags": {
-          "name": "data.read can read tags",
+        "app.admin can fully access tags": {
+          "name": "app.admin can fully access tags",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize('app.admin'))",
+          "withCheck": "(SELECT authorize('app.admin'))"
+        },
+        "authenticated users can read tags": {
+          "name": "authenticated users can read tags",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
-        },
-        "data.edit can insert tags": {
-          "name": "data.edit can insert tags",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "(SELECT authorize('data.edit'))"
-        },
-        "data.edit can update tags": {
-          "name": "data.edit can update tags",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
-        },
-        "data.delete can delete tags": {
-          "name": "data.delete can delete tags",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "true"
         }
       },
       "checkConstraints": {},
@@ -3298,7 +4210,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "top_type": {
           "name": "top_type",
@@ -3326,6 +4238,21 @@
         }
       },
       "indexes": {
+        "topo_routes_region_fk_idx": {
+          "name": "topo_routes_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "topo_routes_route_fk_idx": {
           "name": "topo_routes_route_fk_idx",
           "columns": [
@@ -3401,51 +4328,51 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read topo_routes": {
-          "name": "data.read can read topo_routes",
+        "region.read can read topo_routes": {
+          "name": "region.read can read topo_routes",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert topo_routes": {
-          "name": "data.edit can insert topo_routes",
+        "region.edit can insert topo_routes": {
+          "name": "region.edit can insert topo_routes",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update topo_routes": {
-          "name": "data.edit can update topo_routes",
+        "region.edit can update topo_routes": {
+          "name": "region.edit can update topo_routes",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete topo_routes": {
-          "name": "data.delete can delete topo_routes",
+        "region.delete can delete topo_routes": {
+          "name": "region.delete can delete topo_routes",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.edit can delete topo_routes": {
-          "name": "data.edit can delete topo_routes",
+        "region.edit can delete topo_routes": {
+          "name": "region.edit can delete topo_routes",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -3465,7 +4392,7 @@
           "name": "region_fk",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "block_fk": {
           "name": "block_fk",
@@ -3486,6 +4413,36 @@
           "columns": [
             {
               "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "topos_region_fk_idx": {
+          "name": "topos_region_fk_idx",
+          "columns": [
+            {
+              "expression": "region_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "topos_file_fk_idx": {
+          "name": "topos_file_fk_idx",
+          "columns": [
+            {
+              "expression": "file_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3541,51 +4498,51 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read topos": {
-          "name": "data.read can read topos",
+        "region.read can read topos": {
+          "name": "region.read can read topos",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
-        "data.edit can insert topos": {
-          "name": "data.edit can insert topos",
+        "region.edit can insert topos": {
+          "name": "region.edit can insert topos",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.edit can update topos": {
-          "name": "data.edit can update topos",
+        "region.edit can update topos": {
+          "name": "region.edit can update topos",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))",
-          "withCheck": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
-        "data.delete can delete topos": {
-          "name": "data.delete can delete topos",
+        "region.delete can delete topos": {
+          "name": "region.delete can delete topos",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.delete'))"
+          "using": "(SELECT authorize_in_region('region.delete', region_fk))"
         },
-        "data.edit can delete topos": {
-          "name": "data.edit can delete topos",
+        "region.edit can delete topos": {
+          "name": "region.edit can delete topos",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.edit'))"
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))"
         }
       },
       "checkConstraints": {},
@@ -3956,14 +4913,14 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "data.read can read users": {
-          "name": "data.read can read users",
+        "authenticated users can read users": {
+          "name": "authenticated users can read users",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT authorize('data.read'))"
+          "using": "true"
         },
         "users can update own users": {
           "name": "users can update own users",
@@ -3981,36 +4938,34 @@
     }
   },
   "enums": {
-    "public.activity_type": {
-      "name": "activity_type",
-      "schema": "public",
-      "values": [
-        "created",
-        "updated",
-        "deleted",
-        "uploaded"
-      ]
-    },
     "public.app_permission": {
       "name": "app_permission",
       "schema": "public",
       "values": [
-        "data.read",
-        "data.edit",
-        "data.delete",
-        "data.export",
-        "regions.admin",
-        "tags.admin",
-        "users.admin"
+        "region.read",
+        "region.edit",
+        "region.delete",
+        "region.admin",
+        "app.admin"
       ]
     },
     "public.app_role": {
       "name": "app_role",
       "schema": "public",
       "values": [
-        "user",
-        "maintainer",
-        "admin"
+        "app_admin",
+        "region_user",
+        "region_maintainer",
+        "region_admin"
+      ]
+    },
+    "public.invitation_status": {
+      "name": "invitation_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "accepted",
+        "expired"
       ]
     }
   },

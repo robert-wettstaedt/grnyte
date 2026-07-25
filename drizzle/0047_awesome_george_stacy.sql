@@ -1,1 +1,0 @@
-ALTER TABLE "role_permissions" ALTER COLUMN "permission" SET DATA TYPE "public"."app_permission" USING "permission"::text::"public"."app_permission";

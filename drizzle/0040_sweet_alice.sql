@@ -1,1 +1,0 @@
-ALTER TYPE "public"."app_permission" ADD VALUE 'region.admin' BEFORE 'data.export';

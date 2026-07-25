@@ -15,8 +15,11 @@ import { migrate as setup } from './scripts/setup-table-permissions'
 const postgres = Database(drizzleConfig.dbCredentials.url, { prepare: false })
 const db = drizzle(postgres, { schema })
 
-await setup(db)
+// migrate first so all tables exist, then harden table permissions. (setup()
+// REVOKEs on every table, so it must run after the tables are created -
+// otherwise a from-empty `migrate` fails on the first nonexistent table.)
 await migrate(db, { migrationsFolder: 'drizzle' })
+await setup(db)
 
 await migrateMentions(db)
 await migrateBlockNames(db)

@@ -1,1 +1,0 @@
-CREATE POLICY "data.read can update routes" ON "routes" AS PERMISSIVE FOR UPDATE TO "authenticated" USING ((SELECT authorize('data.read'))) WITH CHECK ((SELECT authorize('data.read')));

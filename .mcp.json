@@ -3,6 +3,10 @@
     "svelte": {
       "type": "http",
       "url": "https://mcp.svelte.dev/mcp"
+    },
+    "mdn": {
+      "type": "http",
+      "url": "https://mcp.mdn.mozilla.net/"
     }
   }
 }
