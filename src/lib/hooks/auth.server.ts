@@ -160,11 +160,16 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, '/auth')
   }
 
-  // Redirect authenticated users away from auth pages (except reset-password)
+  // Redirect authenticated users away from auth pages. The emailed-link routes are exempt:
+  // reset-password and confirm are both opened while already signed in (a settings-initiated
+  // email change confirms through /auth/confirm), so bouncing them would drop the token
+  // unprocessed, and /auth/error is where an expired one of those lands.
+  const emailedLinkRoutes = ['/auth/confirm', '/auth/error', '/auth/reset-password']
+
   if (
     event.locals.session != null &&
     event.url.pathname.startsWith('/auth') &&
-    !event.url.pathname.startsWith('/auth/reset-password')
+    !emailedLinkRoutes.some((path) => event.url.pathname.startsWith(path))
   ) {
     redirect(303, '/')
   }

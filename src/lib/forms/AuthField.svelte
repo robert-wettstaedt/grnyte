@@ -4,8 +4,8 @@
   import type { Snippet } from 'svelte'
   import type { HTMLInputAttributes } from 'svelte/elements'
 
-  // Reusable auth form field: design-styled label row + input + issue messages.
-  // Shared by the sign-in and sign-up pages.
+  // Reusable credential field: design-styled label row + input + issue messages.
+  // Shared by the auth pages and the account settings forms.
   interface Props {
     /** Optional trailing content on the label row, e.g. a “Forgot?” link. */
     action?: Snippet

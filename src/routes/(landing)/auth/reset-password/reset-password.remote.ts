@@ -1,5 +1,5 @@
 import { form, getRequestEvent } from '$app/server'
-import { formError } from '$lib/forms/schemas'
+import { authError, formError } from '$lib/forms/schemas'
 import { invalid } from '@sveltejs/kit'
 import { z } from 'zod'
 
@@ -24,7 +24,7 @@ export const resetPassword = form(resetPasswordSchema, async ({ password }) => {
   const { error } = await supabase.auth.updateUser({ password })
 
   if (error != null) {
-    invalid(error.message)
+    invalid(authError(error))
   }
 
   return { success: true }

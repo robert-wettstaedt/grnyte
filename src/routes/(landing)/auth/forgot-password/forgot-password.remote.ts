@@ -1,5 +1,5 @@
 import { form, getRequestEvent } from '$app/server'
-import { formError } from '$lib/forms/schemas'
+import { authError, formError } from '$lib/forms/schemas'
 import { invalid } from '@sveltejs/kit'
 import { z } from 'zod'
 
@@ -18,7 +18,7 @@ export const forgotPassword = form(forgotPasswordSchema, async ({ email }) => {
   })
 
   if (error != null) {
-    invalid(error.message)
+    invalid(authError(error))
   }
 
   return { email, success: true }

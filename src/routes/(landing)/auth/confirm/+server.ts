@@ -26,7 +26,16 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   }
 
   if (locals.session != null) {
+    // Refresh so a just-confirmed change (e.g. a new email) lands in the session claims.
     await locals.supabase.auth.refreshSession(locals.session)
+
+    // Supabase can verify the link on its own side and bounce here with the tokens in the URL
+    // fragment, which never reaches the server. A signed-in caller arriving without a token has
+    // therefore already been confirmed — pass them through instead of crying error.
+    if (token_hash == null) {
+      redirectTo.searchParams.delete('next')
+      redirect(303, redirectTo)
+    }
   }
 
   redirectTo.pathname = '/auth/error'

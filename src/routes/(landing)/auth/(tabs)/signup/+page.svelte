@@ -1,9 +1,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
-  import AuthField from '../../AuthField.svelte'
   import { signUp } from './signup.remote'
 </script>
 

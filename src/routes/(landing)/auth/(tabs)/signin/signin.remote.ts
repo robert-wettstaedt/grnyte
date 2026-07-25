@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
-import { formError } from '$lib/forms/schemas'
+import { authError, formError } from '$lib/forms/schemas'
 import { invalid, redirect } from '@sveltejs/kit'
 import { z } from 'zod'
 
@@ -19,10 +19,10 @@ export const signIn = form(signInSchema, async ({ email, password }) => {
 
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-  // Surface supabase's message as a form-level issue (FormError); resolveIssueMessage
-  // falls back to the raw string for keys it doesn't recognise.
+  // Supabase only speaks English, so its error code is mapped onto our copy and surfaced as a
+  // form-level issue (FormError).
   if (error != null) {
-    invalid(error.message)
+    invalid(authError(error))
   }
 
   redirect(303, resolve('/explore'))

@@ -13,10 +13,14 @@
   import { back } from '$lib/state/navigation.svelte'
   import { toaster } from '$lib/state/toast'
   import { legalLinks } from '../../(landing)/legal/links'
+  import SettingLink from './SettingLink.svelte'
   import SettingSelect from './SettingSelect.svelte'
   import ThemeSwitch from './ThemeSwitch.svelte'
 
   const global = getGlobalState()
+
+  // The account's email lives in Supabase auth, not in our `users` row.
+  const email = $derived(page.data.session?.user.email)
 
   // Local edit state seeded from the loaded settings (the app shell gates rendering until they
   // load, so `user` is present here). 'auto' is the UI value for "follow locale".
@@ -77,6 +81,16 @@
   </PageHeader>
 
   <div class="container mx-auto max-w-2xl space-y-8 px-4 py-8 pb-24 md:pb-8">
+    <!-- Account -->
+    <section class="space-y-2">
+      <h2 class="text-surface-500 text-xs font-semibold tracking-wide uppercase">{m.settings_account()}</h2>
+      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+        <SettingLink href={resolve('/settings/username')} label={m.auth_username()} value={global.user?.username} />
+        <SettingLink href={resolve('/settings/email')} label={m.auth_email()} value={email} />
+        <SettingLink href={resolve('/settings/password')} label={m.auth_password()} value="••••••••" />
+      </div>
+    </section>
+
     <!-- Preferences -->
     <section class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
       <label for="setting-language" class="flex items-center justify-between gap-4 p-4">
@@ -132,10 +146,7 @@
       <h2 class="text-surface-500 text-xs font-semibold tracking-wide uppercase">{m.settings_legal()}</h2>
       <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
         {#each legalPages as link (link.href)}
-          <a href={link.href} class="hover:bg-surface-100-900 flex items-center justify-between gap-4 p-4">
-            <span>{link.label}</span>
-            <Icon name="chevron-right" class="text-surface-400-600" />
-          </a>
+          <SettingLink href={link.href} label={link.label} />
         {/each}
       </div>
     </section>
