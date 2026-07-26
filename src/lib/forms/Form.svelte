@@ -28,7 +28,8 @@
   interface Props {
     children?: Snippet
     /** Fill the container with an edge-to-edge body (e.g. a map picker) instead of the
-     *  default scrolling, padded field column. Needs a definite-height parent. */
+     *  default scrolling, padded field column. Fills as a flex item (not `h-full`), so it
+     *  still chains height through QueryState's `min-h-full` wrapper. */
     fill?: boolean
     form: RemoteForm<Input, unknown>
     /** Label for the advance button on non-final steps. */
@@ -110,7 +111,7 @@
         throw error
       }
     })}
-    class={['flex w-full flex-col', fill ? 'h-full' : 'mx-auto min-h-full max-w-screen-sm']}
+    class={['flex w-full flex-col', fill ? 'min-h-0 flex-1' : 'mx-auto min-h-full max-w-screen-sm']}
   >
     <!-- Same shape as components/PageHeader: sticky bar, 32px back chip, left-aligned h3 title.
          Not PageHeader itself because this one also carries a trailing submit and the stepper. -->
