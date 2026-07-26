@@ -1,90 +1,125 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1733943209675,
-			"tag": "0000_baseline",
-			"breakpoints": true
-		},
-		{
-			"idx": 72,
-			"version": "7",
-			"when": 1781465479362,
-			"tag": "0072_odd_marvex",
-			"breakpoints": true
-		},
-		{
-			"idx": 73,
-			"version": "7",
-			"when": 1781943209673,
-			"tag": "0073_superb_dark_beast",
-			"breakpoints": true
-		},
-		{
-			"idx": 74,
-			"version": "7",
-			"when": 1783010889396,
-			"tag": "0074_grey_klaw",
-			"breakpoints": true
-		},
-		{
-			"idx": 75,
-			"version": "7",
-			"when": 1783104645313,
-			"tag": "0075_staging_bucket",
-			"breakpoints": true
-		},
-		{
-			"idx": 76,
-			"version": "7",
-			"when": 1783252278938,
-			"tag": "0076_swift_storm",
-			"breakpoints": true
-		},
-		{
-			"idx": 77,
-			"version": "7",
-			"when": 1783359255823,
-			"tag": "0077_spooky_korg",
-			"breakpoints": true
-		},
-		{
-			"idx": 78,
-			"version": "7",
-			"when": 1783453059206,
-			"tag": "0078_clumsy_blue_marvel",
-			"breakpoints": true
-		},
-		{
-			"idx": 79,
-			"version": "7",
-			"when": 1783519283784,
-			"tag": "0079_fancy_leper_queen",
-			"breakpoints": true
-		},
-		{
-			"idx": 80,
-			"version": "7",
-			"when": 1784141866399,
-			"tag": "0080_bright_blonde_phantom",
-			"breakpoints": true
-		},
-		{
-			"idx": 81,
-			"version": "7",
-			"when": 1784286456167,
-			"tag": "0081_slow_malice",
-			"breakpoints": true
-		},
-		{
-			"idx": 82,
-			"version": "7",
-			"when": 1784491574651,
-			"tag": "0082_daffy_captain_marvel",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1733943209675,
+      "tag": "0000_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1781465479362,
+      "tag": "0072_odd_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1781943209673,
+      "tag": "0073_superb_dark_beast",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1783010889396,
+      "tag": "0074_grey_klaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1783104645313,
+      "tag": "0075_staging_bucket",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1783252278938,
+      "tag": "0076_swift_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1783359255823,
+      "tag": "0077_spooky_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1783453059206,
+      "tag": "0078_clumsy_blue_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1783519283784,
+      "tag": "0079_fancy_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1784141866399,
+      "tag": "0080_bright_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1784286456167,
+      "tag": "0081_slow_malice",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1784491574651,
+      "tag": "0082_daffy_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1785052705217,
+      "tag": "0083_colossal_nightmare",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1785052716511,
+      "tag": "0084_free_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1785074822517,
+      "tag": "0085_broken_songbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1785074837474,
+      "tag": "0086_small_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1785096147727,
+      "tag": "0087_role_activity_values",
+      "breakpoints": true
+    }
+  ]
 }

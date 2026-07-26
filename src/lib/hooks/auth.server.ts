@@ -9,27 +9,35 @@ export async function getUserPermissions(
   db: PostgresJsDatabase<typeof schema>,
   authUserId: string,
 ): Promise<App.SafeSession> {
-  const userRole = await db.query.userRoles.findFirst({
-    where: (table, { eq }) => eq(table.authUserFk, authUserId),
-  })
+  // Three independent reads on a pooled connection, and this runs on every request as well as
+  // every get-queries POST, so they go together rather than three round-trips deep.
+  const [userRole, userRegions, permissions] = await Promise.all([
+    db.query.userRoles.findFirst({
+      where: (table, { eq }) => eq(table.authUserFk, authUserId),
+    }),
 
-  const userRegions = await db.query.regionMembers.findMany({
-    columns: {
-      regionFk: true,
-      role: true,
-    },
-    where: (table, { and, eq, isNotNull }) => and(eq(table.authUserFk, authUserId), isNotNull(table.isActive)),
-    with: {
-      region: {
-        columns: {
-          name: true,
-          settings: true,
+    db.query.regionMembers.findMany({
+      columns: {
+        regionFk: true,
+        role: true,
+      },
+      // `eq(isActive, true)`, not `isNotNull`: the column is NOT NULL, so the old predicate matched
+      // every row and a deactivated membership kept full access. This list is what scopes every Zero
+      // region query and what every checkRegionPermission call reads, and nothing downstream
+      // re-checks is_active, so a deactivated member went on syncing the whole region silently.
+      where: (table, { and, eq }) => and(eq(table.authUserFk, authUserId), eq(table.isActive, true)),
+      with: {
+        region: {
+          columns: {
+            name: true,
+            settings: true,
+          },
         },
       },
-    },
-  })
+    }),
 
-  const permissions = await db.query.rolePermissions.findMany()
+    db.query.rolePermissions.findMany(),
+  ])
 
   const userPermissions =
     userRole == null

@@ -8,13 +8,17 @@
   interface Props {
     /** Optional second row under the title row. */
     bottom?: Snippet
-    /** Content beside the back button (title block, trailing actions). */
-    children: Snippet
+    /** Content beside the back button, for stacked blocks like breadcrumb + name. Pass `title`
+     *  instead for a plain page title. */
+    children?: Snippet
     /** Back-button handler; callers wire it to `back(fallbackHref)`. */
     onback: () => void
+    /** Plain page title. Centred and small, matching the header in forms/Form.svelte - change
+     *  the two together. */
+    title?: string
   }
 
-  const { bottom, children, onback }: Props = $props()
+  const { bottom, children, onback, title }: Props = $props()
 </script>
 
 <header
@@ -29,7 +33,13 @@
     >
       <Icon name="arrow-left" size={18} />
     </button>
-    {@render children()}
+    {#if title != null}
+      <h1 class="min-w-0 flex-1 truncate text-center text-sm font-bold">{title}</h1>
+      <!-- Mirrors the back button so a centred title sits on the true centre of the bar. -->
+      <div class="size-8 flex-none" aria-hidden="true"></div>
+    {:else}
+      {@render children?.()}
+    {/if}
   </div>
   {#if bottom}
     {@render bottom()}

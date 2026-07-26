@@ -35,11 +35,39 @@ export const getPolicyConfig = (policyFor: PgPolicyConfig['for'], check: SQL): P
 export const getAuthorizedPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
   getPolicyConfig(policyFor, sql.raw(`(SELECT authorize('${permission}'))`))
 
-export const getAuthorizedInRegionPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
-  getPolicyConfig(policyFor, sql.raw(`(SELECT authorize_in_region('${permission}', region_fk))`))
+/** `regionColumn` is for the one table that does not carry a `region_fk`: `regions` itself,
+ *  where the region is the row and the column is `regions.id`. */
+export const getAuthorizedInRegionPolicyConfig = (
+  policyFor: PgPolicyConfig['for'],
+  permission: App.Permission,
+  regionColumn = 'region_fk',
+) => getPolicyConfig(policyFor, sql.raw(`(SELECT authorize_in_region('${permission}', ${regionColumn}))`))
 
 export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for']) =>
   getPolicyConfig(policyFor, sql.raw('(SELECT auth.uid()) = auth_user_fk'))
+
+/**
+ * An activity row the caller wrote themselves, in a region they can still read. `activities`
+ * joins `users` to get there because it stores `user_fk`, not `auth_user_fk`.
+ *
+ * Shared by the own-row delete and the own-row update: it is the same row and the same author,
+ * and a security predicate spelled out twice is one edit away from meaning two different things.
+ */
+export const getOwnActivityPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+  getPolicyConfig(
+    policyFor,
+    sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.users u
+            WHERE
+              u.id = user_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          ) AND EXISTS (SELECT authorize_in_region('${permission}', region_fk))
+        `),
+  )
 
 export const createBasicTablePolicies = (tableName: string) => [
   policy(

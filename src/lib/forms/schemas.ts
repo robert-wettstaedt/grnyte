@@ -53,6 +53,13 @@ export const usernameSchema = z
   .max(39, { error: formError('form_charsMax', { count: 39 }) })
   .regex(/^[\da-zA-Z][-\da-zA-Z_]*$/, { error: formError('auth_usernameInvalid') })
 
+/** The display name of an entity a user creates (area, region, ...). Trimmed, and long enough
+ *  to be recognisable in a list. */
+export const nameSchema = z
+  .string({ error: formError('form_required') })
+  .trim()
+  .min(3, { error: formError('form_charsMin', { count: 3 }) })
+
 export const stringToInt = z.codec(
   z.string({ error: formError('form_required') }).regex(z.regexes.integer, formError('form_numInvalid')),
   z.int(),

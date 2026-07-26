@@ -35,6 +35,7 @@ import {
   createBasicTablePolicies,
   getAuthorizedInRegionPolicyConfig,
   getAuthorizedPolicyConfig,
+  getOwnActivityPolicyConfig,
   getOwnEntryPolicyConfig,
   getPolicyConfig,
 } from './policy'
@@ -171,7 +172,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     references: [firstAscensionists.id],
   }),
   pushSubscriptions: many(pushSubscriptions),
-  regionMemberships: many(regionMembers),
+  regionMemberships: many(regionMembers, { relationName: 'region-member-user' }),
   routes: many(routes),
   userSettings: one(userSettings, { fields: [users.userSettingsFk], references: [userSettings.id] }),
 }))
@@ -270,7 +271,7 @@ export const regions = table(
     index('regions_name_idx').on(table.name),
 
     policy('authenticated users can create regions', getPolicyConfig('insert', sql`true`)),
-    policy(`${APP_PERMISSION_ADMIN} can fully access regions`, getPolicyConfig('all', sql`true`)),
+    policy(`${APP_PERMISSION_ADMIN} can fully access regions`, getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN)),
     policy(
       `users can read regions they are members of`,
       getPolicyConfig(
@@ -289,30 +290,20 @@ export const regions = table(
         `,
       ),
     ),
+    // `regions.id` rather than the helper's default `region_fk`: this table does not have one,
+    // it is the region. Deleting stays app.admin-only via the policy above - a region delete
+    // cascades through every piece of content in it.
     policy(
-      `${REGION_PERMISSION_ADMIN} can update region that they are members of`,
-      getPolicyConfig(
-        'select',
-        sql`
-          EXISTS (
-            SELECT
-              1
-            FROM
-              region_members as rm
-            WHERE
-              rm.region_fk = regions.id
-              AND rm.auth_user_fk = (SELECT auth.uid())
-              AND rm.is_active = true
-          )
-        `,
-      ),
+      `${REGION_PERMISSION_ADMIN} can update regions they administer`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_ADMIN, 'regions.id'),
     ),
   ],
 ).enableRLS()
 export type InsertRegion = InferInsertModel<typeof regions>
 export type Region = InferSelectModel<typeof regions>
 
-export const regionsRelations = relations(regions, ({ many }) => ({
+export const regionsRelations = relations(regions, ({ many, one }) => ({
+  author: one(users, { fields: [regions.createdBy], references: [users.id] }),
   members: many(regionMembers),
 }))
 
@@ -342,9 +333,21 @@ export const regionMembers = table(
       `${APP_PERMISSION_ADMIN} can fully access region_members`,
       getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN),
     ),
-    policy('authenticated users can read region_members', getPolicyConfig('select', sql`true`)),
-    policy('users can insert own region_members', getOwnEntryPolicyConfig('insert')),
-    policy('users can update own region_members', getOwnEntryPolicyConfig('update')),
+    policy(
+      `${REGION_PERMISSION_ADMIN} can manage region_members`,
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN),
+    ),
+    // Scoped to the reader's own regions, not `true`: this table is what tenancy is made of, and a
+    // blanket read let any signed-in user enumerate every region's membership - who is in it, their
+    // role and their auth uid - including regions whose `regions` row they cannot see.
+    policy(
+      `${REGION_PERMISSION_READ} can read region_members`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    // No own-row insert or update: either one lets any authenticated user join an arbitrary region
+    // as region_admin, or promote themselves once in. The invite-accept flow needs its own insert
+    // policy keyed on a matching region_invitations row.
+    // Deleting your own row stays open, so leaving a region does not need an admin.
     policy('users can delete own region_members', getOwnEntryPolicyConfig('delete')),
   ],
 ).enableRLS()
@@ -356,7 +359,10 @@ export const regionMembersRelations = relations(regionMembers, ({ one }) => ({
   invitedBy: one(users, { fields: [regionMembers.invitedByFk], references: [users.id] }),
   region: one(regions, { fields: [regionMembers.regionFk], references: [regions.id] }),
   rolePermission: one(rolePermissions, { fields: [regionMembers.role], references: [rolePermissions.role] }),
-  user: one(users, { fields: [regionMembers.userFk], references: [users.id] }),
+  // region_members has two FKs into users, so `users.regionMemberships` cannot pair itself - without
+  // the relationName it silently binds to whichever drizzle resolves first (it flipped to invited_by
+  // once regions gained an author relation, which would have made user search match by inviter).
+  user: one(users, { fields: [regionMembers.userFk], references: [users.id], relationName: 'region-member-user' }),
 }))
 
 export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired'])
@@ -386,8 +392,24 @@ export const regionInvitations = table(
       `${REGION_PERMISSION_ADMIN} can insert region_invitations`,
       getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_ADMIN),
     ),
-    policy(`users can read region_invitations`, getPolicyConfig('select', sql`true`)),
-    policy(`users can update region_invitations`, getPolicyConfig('update', sql`true`)),
+    policy(
+      `${REGION_PERMISSION_ADMIN} can update region_invitations`,
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_ADMIN),
+    ),
+    policy(
+      `region members can read region_invitations`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    // An invitee is not a member yet, so membership alone would leave them unable to see or accept
+    // the invitation addressed to them. Matched on the JWT email, so it covers only their own.
+    policy(
+      `users can read own region_invitations`,
+      getPolicyConfig('select', sql.raw(`(SELECT auth.jwt() ->> 'email') = email`)),
+    ),
+    policy(
+      `users can update own region_invitations`,
+      getPolicyConfig('update', sql.raw(`(SELECT auth.jwt() ->> 'email') = email`)),
+    ),
   ],
 ).enableRLS()
 
@@ -1280,20 +1302,14 @@ export const activities = table(
     ),
     policy(
       `${REGION_PERMISSION_READ} can delete their own activities`,
-      getPolicyConfig(
-        'delete',
-        sql.raw(`
-          EXISTS (
-            SELECT
-              1
-            FROM
-              public.users u
-            WHERE
-              u.id = user_fk
-              AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
-        `),
-      ),
+      getOwnActivityPolicyConfig('delete', REGION_PERMISSION_READ),
+    ),
+    // Without this, `createUpdateActivity`'s debounce silently loses writes: a table with RLS on
+    // denies any command it has no policy for, so its merge-into-the-existing-row UPDATE matched
+    // nothing and the change had already been taken off the insert list.
+    policy(
+      `${REGION_PERMISSION_READ} can update their own activities`,
+      getOwnActivityPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()

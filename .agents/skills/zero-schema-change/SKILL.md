@@ -38,8 +38,9 @@ A schema change is a fixed sequence, not just a `schema.ts` edit.
   for every defaulted column — benign.** The real consequence: a `NOT NULL DEFAULT` column becomes
   **`T | null` in the Zero row type**. Coerce it in the entity mapper (`row.createdAt ?? 0`), don't
   fight the generated type.
-- New tables that reads should reach must be added to `regionPreloadTables` / `RegionTable` in
-  `src/lib/zero/permissions.ts` (see the `scaffold-entity` skill).
+- New region-scoped tables must be added to `regionTables` in `src/lib/zero/permissions.ts` (see the
+  `scaffold-entity` skill). `tenancy.test.ts` sweeps that list, so a table left off it is both
+  unprotected and untested.
 - The generated migration + `drizzle/meta/*` snapshot are part of the change — commit them.
 
 ## Verify

@@ -112,42 +112,66 @@
     })}
     class={['flex w-full flex-col', fill ? 'h-full' : 'mx-auto min-h-full max-w-screen-sm']}
   >
+    <!-- Same shape as components/PageHeader: sticky bar, 32px back chip, left-aligned h3 title.
+         Not PageHeader itself because this one also carries a trailing submit and the stepper. -->
     <header
-      class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur"
+      class="border-surface-200-800 bg-surface-50-950/90 sticky top-0 z-10 flex items-center gap-3 border-b px-3 py-3 backdrop-blur"
     >
+      <!-- Icon-only below sm, icon plus label from sm up: German labels ("Abbrechen", "Speichern")
+           ate so much of a phone-width bar that the title truncated. -->
       {#if stepped && step > 0}
         <button
-          class="btn preset-tonal-surface"
+          class="btn preset-filled-surface-200-800 size-8 flex-none px-0 sm:size-auto sm:px-4"
           onclick={() => (step -= 1)}
           type="button"
           aria-label={steps![step - 1].label}
         >
-          <Icon name="arrow-left" size={16} />
+          <Icon name="arrow-left" size={18} />
           <span class="hidden sm:inline">{steps![step - 1].label}</span>
         </button>
       {:else}
-        <button class="btn preset-tonal-surface" onclick={onCancel} type="button">{m.common_cancel()}</button>
+        <button
+          class="btn preset-filled-surface-200-800 size-8 flex-none px-0 sm:size-auto sm:px-4"
+          onclick={onCancel}
+          type="button"
+          aria-label={m.common_cancel()}
+        >
+          <Icon name="arrow-left" size={18} />
+          <span class="hidden sm:inline">{m.common_cancel()}</span>
+        </button>
       {/if}
 
-      <!-- Absolutely centred so the unequal side buttons can't push it off-centre on mobile. -->
-      <span class="pointer-events-none absolute left-1/2 -translate-x-1/2 text-sm font-bold whitespace-nowrap">
-        {title}
-      </span>
+      <!-- Same treatment as components/PageHeader's `title` - change the two together. In flow
+           rather than absolutely centred, so a long title truncates instead of running under the
+           buttons. -->
+      <h1 class="min-w-0 flex-1 truncate text-center text-sm font-bold">{title}</h1>
 
       {#if stepped && !isLast}
-        <button class="btn preset-filled-primary-500" disabled={!canContinue} onclick={advance} type="button">
-          {nextLabel}
+        <button
+          class="btn preset-filled-primary-500 size-8 flex-none px-0 sm:size-auto sm:px-4"
+          disabled={!canContinue}
+          onclick={advance}
+          type="button"
+          aria-label={nextLabel}
+        >
+          <!-- Icon after the label here: it points forward, so "Weiter →" reads right where the
+               back and submit buttons want their icon in front. -->
+          <span class="hidden sm:inline">{nextLabel}</span>
+          <Icon name="arrow-right" size={18} />
         </button>
       {:else}
         <button
-          class="btn preset-filled-primary-500"
+          class="btn preset-filled-primary-500 size-8 flex-none px-0 sm:size-auto sm:px-4"
           disabled={form.pending > 0 || submitDisabled || !canContinue}
           type="submit"
+          aria-label={submitLabel}
         >
           {#if form.pending > 0}
             <LoadingIndicator />
+          {:else}
+            <Icon name="check" size={18} />
           {/if}
-          {submitLabel}
+          <span class="hidden sm:inline">{submitLabel}</span>
         </button>
       {/if}
     </header>

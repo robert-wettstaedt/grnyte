@@ -1,6 +1,7 @@
 import type { IconProps } from '@lucide/svelte'
 import {
   ArrowLeft,
+  ArrowRight,
   ArrowUpDown,
   AtSign,
   Bold,
@@ -78,6 +79,7 @@ export const icons = {
   'alert-triangle': TriangleAlert,
   area: Mountain,
   'arrow-left': ArrowLeft,
+  'arrow-right': ArrowRight,
   'arrow-up-down': ArrowUpDown,
   'at-sign': AtSign,
   block: Stone,

@@ -1,0 +1,1 @@
+CREATE POLICY "region.read can read region_members" ON "region_members" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((SELECT authorize_in_region('region.read', region_fk)));

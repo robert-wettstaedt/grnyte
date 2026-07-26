@@ -16,6 +16,15 @@ export async function POST({ request }) {
   }
 
   const pageState = await getUserPermissions(db, sub)
+
+  // The one place a region query's scope is decided. `regionMemberCan` leaves a query unfiltered
+  // when the context carries no memberships (that is the client path, against an already-filtered
+  // local replica), so serving from here without them would hand zero-cache queries that sync
+  // every region in the database. An account with no memberships has `[]`, not a missing list.
+  if (pageState.userRegions == null) {
+    error(500, 'Could not resolve region memberships')
+  }
+
   const ctx = { authUserId: sub, pageState }
 
   const q = await handleQueryRequest((name, args) => mustGetQuery(queries, name).fn({ args, ctx }), schema, request)

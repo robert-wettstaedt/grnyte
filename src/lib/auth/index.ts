@@ -29,13 +29,6 @@ export interface SupabaseToken extends JwtPayload {
   user_role?: (typeof appRole.enumValues)[number]
 }
 
-export function checkAppPermission(
-  userPermissions: App.Locals['userPermissions'],
-  requiredPermissions: AppPermission[],
-): boolean {
-  return requiredPermissions.some((permission) => userPermissions?.includes(permission))
-}
-
 export function checkRegionPermission(
   userRegions: UserRegion[],
   requiredPermissions: RegionPermission[],

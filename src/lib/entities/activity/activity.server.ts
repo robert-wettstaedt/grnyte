@@ -146,7 +146,9 @@ export const insertActivity = async (
  *  possible but negligible right after a delete. Upgrade = scope by id/createdAt. */
 export const deleteActivity = async (
   db: PostgresJsDatabase<typeof schema>,
-  filter: Partial<Pick<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'type' | 'userFk'>>,
+  filter: Partial<
+    Pick<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'regionFk' | 'type' | 'userFk'>
+  >,
 ) => {
   const conditions = Object.entries(filter)
     .filter(([, value]) => value != null)

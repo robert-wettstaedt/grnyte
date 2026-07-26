@@ -2,30 +2,28 @@ import type { PullRow, Query, ReadonlyJSONValue } from '@rocicorp/zero'
 import { defineQuery } from '@rocicorp/zero'
 import type { Schema } from './zero-schema'
 
-type RegionPreloadTable =
-  | 'areas'
-  | 'ascents'
-  | 'blocks'
-  | 'files'
-  | 'firstAscensionists'
-  | 'geolocations'
-  | 'routeExternalResource8a'
-  | 'routeExternalResource27crags'
-  | 'routeExternalResources'
-  | 'routeExternalResourceTheCrag'
-  | 'routes'
-  | 'routesToFirstAscensionists'
-  | 'routesToTags'
-  | 'topoRoutes'
-  | 'topos'
-
-export const regionPreloadTables: RegionPreloadTable[] = [
+/**
+ * Every table whose rows belong to a region. `regionMemberCan` and `relatedRegion` filter queries
+ * over these down to the caller's memberships, so a new region-scoped table has to be listed here
+ * before any query over it is safe to expose.
+ *
+ * "Belongs to a region" means "carries a `regionFk`", and `tenancy.test.ts` asserts exactly that
+ * against the generated schema, so the list cannot silently fall behind a migration. `regions`
+ * itself is the one region-scoped table that is not on it: it keys on `id` rather than `regionFk`,
+ * and `queries.region` spells its membership check out by hand.
+ */
+export const regionTables = [
+  'activities',
   'areas',
   'ascents',
   'blocks',
+  'bunnyStreams',
+  'favorites',
   'files',
   'firstAscensionists',
   'geolocations',
+  'regionInvitations',
+  'regionMembers',
   'routeExternalResource27crags',
   'routeExternalResource8a',
   'routeExternalResources',
@@ -35,7 +33,7 @@ export const regionPreloadTables: RegionPreloadTable[] = [
   'routesToTags',
   'topoRoutes',
   'topos',
-]
+] as const satisfies readonly (keyof Schema['tables'])[]
 
 export type QueryContext = {
   authUserId: string | undefined
@@ -44,7 +42,7 @@ export type QueryContext = {
 
 type RegionQuery<TReturn> = Query<RegionTable, Schema, TReturn>
 
-type RegionTable = 'activities' | 'favorites' | 'regionMembers' | RegionPreloadTable
+type RegionTable = (typeof regionTables)[number]
 
 const addRegionCheck = <
   TContext extends null | QueryContext | undefined,
@@ -54,6 +52,12 @@ const addRegionCheck = <
   ctx: TContext,
   q: TReturnQuery,
 ): TReturnQuery => {
+  // Two callers, and only one of them is a trust boundary. On the client these same definitions
+  // run against the local replica, whose contents the server already filtered, and the context
+  // there is `{ authUserId }` with no memberships - so returning the query unfiltered can only
+  // ever reach rows this device was already allowed to have. On the server, `get-queries` is what
+  // decides access, and it refuses to serve a context without memberships rather than reaching
+  // this branch. Do not "harden" this into a throw: it breaks every region query in the browser.
   if (ctx?.pageState?.userRegions == null) {
     return q
   }

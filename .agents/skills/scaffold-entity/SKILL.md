@@ -28,8 +28,9 @@ because concrete code drifts and the live module is the source of truth.
 2. Permission wrappers live in `src/lib/zero/permissions.ts`:
    - `regionMemberCan(({ args, ctx }) => zql.<table>.where(...))` for region-scoped reads.
    - `relatedRegion(ctx)` → `r`, used to region-filter `.related(...)` sub-queries.
-3. If the table should be eagerly preloaded per region, add it to **both** `RegionPreloadTable`
-   (the type) and `regionPreloadTables` (the array) in `src/lib/zero/permissions.ts`.
+3. If the table carries a `regionFk`, add it to `regionTables` in `src/lib/zero/permissions.ts`.
+   That one list is both the array and the `RegionTable` union, and being on it is what makes
+   `regionMemberCan` / `relatedRegion` accept the table at all.
 4. `npm run check` until clean.
 
 ## Gotchas (these are the ones that cost time)

@@ -17,7 +17,8 @@
     enterkeyhint?: HTMLInputAttributes['enterkeyhint']
     field: RemoteFormField<string>
     label: string
-    placeholder: string
+    /** Omit on pre-filled fields, where it only ever repeats the label. */
+    placeholder?: string
     required?: boolean
     type: 'email' | 'password' | 'text'
   }

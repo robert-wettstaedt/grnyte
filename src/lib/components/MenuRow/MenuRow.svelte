@@ -13,9 +13,22 @@
     icon: IconName
     label: string
     onclick?: () => void
+    /** The current choice in a menu of options: accent tile plus a trailing check, so it does
+     *  not read as selected by colour alone. Announced as `aria-pressed` on a button row and
+     *  `aria-current` on a link one, so the check is never visual-only. */
+    selected?: boolean
   }
 
-  const { accent = false, description, destructive = false, href, icon, label, onclick }: Props = $props()
+  const {
+    accent = false,
+    description,
+    destructive = false,
+    href,
+    icon,
+    label,
+    onclick,
+    selected = false,
+  }: Props = $props()
 </script>
 
 {#snippet body()}
@@ -24,7 +37,7 @@
       'flex size-10 flex-none items-center justify-center rounded-xl',
       destructive
         ? 'bg-error-500/15 text-error-500'
-        : accent
+        : accent || selected
           ? 'bg-primary-500/15 text-primary-500'
           : 'bg-surface-200-800 text-surface-600-400',
     ]}
@@ -37,11 +50,16 @@
       <span class="text-surface-600-400 text-xs font-normal">{description}</span>
     {/if}
   </span>
+
+  {#if selected}
+    <Icon name="check" class="text-primary-500 ms-auto flex-none" size={18} />
+  {/if}
 {/snippet}
 
 {#if href != null}
   <!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass a resolve()'d href -->
   <a
+    aria-current={selected ? true : undefined}
     class={[
       'hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-1 py-2 transition-colors',
       destructive && 'text-error-500',
@@ -55,6 +73,7 @@
 {:else}
   <button
     type="button"
+    aria-pressed={selected ? true : undefined}
     class={[
       'hover:bg-surface-200-800 flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors',
       destructive && 'text-error-500',

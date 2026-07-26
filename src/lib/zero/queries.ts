@@ -11,10 +11,7 @@ import { rolePermissionsQueryDefs } from '$lib/entities/rolePermission/queries'
 import { routesQueryDefs } from '$lib/entities/route/queries'
 import { tagsQueryDefs } from '$lib/entities/tag/queries'
 import { usersQueryDefs } from '$lib/entities/user/queries'
-import { defineQueries, defineQuery } from '@rocicorp/zero'
-import z from 'zod'
-import { regionMemberCan, regionPreloadTables } from './permissions'
-import { zql } from './zero-schema.gen'
+import { defineQueries } from '@rocicorp/zero'
 
 export const queries = defineQueries({
   ...areasQueryDefs,
@@ -30,17 +27,4 @@ export const queries = defineQueries({
   ...routesQueryDefs,
   ...tagsQueryDefs,
   ...usersQueryDefs,
-
-  ...regionPreloadTables.reduce((obj, table) => {
-    const capitalizedTable = table.charAt(0).toUpperCase() + table.slice(1)
-    const name = `listAll${capitalizedTable}`
-
-    return {
-      ...obj,
-      [name]: defineQuery(
-        z.undefined(),
-        regionMemberCan<undefined, undefined>(() => zql[table]),
-      ),
-    }
-  }, {}),
 })
