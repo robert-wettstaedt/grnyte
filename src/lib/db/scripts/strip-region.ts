@@ -62,7 +62,9 @@ try {
 
     console.table(before)
     const total = before.reduce((a, b) => a + b.rows, 0)
-    console.log(`region ${REGION_ID}: ${total} rows across ${before.length} tables${DROP_REGION ? ' (+ region row)' : ''}`)
+    console.log(
+      `region ${REGION_ID}: ${total} rows across ${before.length} tables${DROP_REGION ? ' (+ region row)' : ''}`,
+    )
 
     if (!CONFIRM) {
       console.log('DRY RUN - rolling back. Re-run with CONFIRM=true to commit.')

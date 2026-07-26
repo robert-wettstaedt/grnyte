@@ -33,7 +33,8 @@ const users = await sql<{ authUserFk: string; email: string; id: number }[]>`
   where au.email = any(${emails})`
 const byEmail = new Map(users.map((u) => [u.email, u]))
 for (const email of emails) {
-  if (!byEmail.has(email)) throw new Error(`seed-dev-region: test user ${email} not found - create it / log in once first`)
+  if (!byEmail.has(email))
+    throw new Error(`seed-dev-region: test user ${email} not found - create it / log in once first`)
 }
 const owner = byEmail.get(OWNER_EMAIL)!
 
@@ -51,7 +52,8 @@ console.log(`region "${REGION_NAME}" -> id ${regionId}`)
 // Memberships (insert if absent).
 for (const { email, role } of MEMBERS) {
   const u = byEmail.get(email)!
-  const has = await sql`select 1 from public.region_members where region_fk = ${regionId} and auth_user_fk = ${u.authUserFk} limit 1`
+  const has =
+    await sql`select 1 from public.region_members where region_fk = ${regionId} and auth_user_fk = ${u.authUserFk} limit 1`
   if (has.length === 0) {
     await sql`
       insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk, invited_by)

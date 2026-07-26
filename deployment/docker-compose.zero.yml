@@ -13,7 +13,7 @@ services:
       - ZERO_UPSTREAM_MAX_CONNS=10
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
-      - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
+      - ../src/lib/zero/zero-schema.ts:/app/zero-schema.ts:ro
       - zero_data_prod:/data
     restart: unless-stopped
     healthcheck:
@@ -39,7 +39,7 @@ services:
       - ZERO_UPSTREAM_MAX_CONNS=10
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
-      - ../src/lib/db/zero/zero-schema.ts:/app/zero-schema.ts:ro
+      - ../src/lib/zero/zero-schema.ts:/app/zero-schema.ts:ro
       - zero_data_demo:/data
     restart: unless-stopped
     healthcheck:

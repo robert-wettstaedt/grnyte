@@ -10,7 +10,7 @@ services:
       # Zero server configuration
       - ZERO_UPSTREAM_DB=${ZERO_UPSTREAM_DB}
       - ZERO_REPLICA_FILE=${ZERO_REPLICA_FILE:-/data/sync-replica.db}
-      - ZERO_SCHEMA_PATH=${ZERO_SCHEMA_PATH:-src/lib/db/zero/zero-schema.ts}
+      - ZERO_SCHEMA_PATH=${ZERO_SCHEMA_PATH:-src/lib/zero/zero-schema.ts}
       - ZERO_AUTH_SECRET=${ZERO_AUTH_SECRET}
       - ZERO_ADMIN_PASSWORD=${ZERO_ADMIN_PASSWORD}
       - ZERO_GET_QUERIES_URL=${ZERO_GET_QUERIES_URL:-http://localhost:3000/api/zero/get-queries}
@@ -24,7 +24,7 @@ services:
       - 'localhost:host-gateway'
     volumes:
       # Mount your local schema file into the container
-      - ./src/lib/db/zero:/app/src/lib/db/zero:ro
+      - ./src/lib/zero:/app/src/lib/zero:ro
       # Persist the replica database
       - zero_data:/data
     restart: unless-stopped
