@@ -9,7 +9,8 @@
 
 - `npm run dev`: serves the app on :3000 (also hosts the Zero get-queries endpoint)
 - `npm run check`: svelte-check + tsc. `npm run lint` and `npm run format` for prettier/eslint
-- `npm run generate`: regenerate Drizzle + Zero schemas. `npm run migrate` applies migrations
+- `npm run generate`: regenerate Drizzle + Zero schemas and the GoTrue email templates.
+  `npm run migrate` applies migrations
 - `npm test`: vitest. `npm run storybook` to eyeball primitives
 - `npm run machine-translate`: fill missing i18n locales from the English source
 

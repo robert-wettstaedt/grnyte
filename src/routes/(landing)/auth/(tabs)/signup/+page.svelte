@@ -1,10 +1,18 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { signUp } from './signup.remote'
+
+  // An invitation is keyed on the address, so signing up with a different one silently orphans it.
+  // The accept screen sends `?email=` for exactly this.
+  const invited = page.url.searchParams.get('email')
+  if (invited != null) {
+    signUp.fields.set({ email: invited })
+  }
 </script>
 
 <svelte:head>
@@ -15,7 +23,11 @@
   <div class="card preset-tonal-success px-4 py-6 text-center text-sm" role="status">
     <p class="font-bold">{m.auth_accountCreated()}</p>
     <p class="text-surface-600-400 mt-1">{m.auth_accountCreatedBody()}</p>
-    <a href={resolve('/auth/signin')} class="text-primary-400 mt-3 inline-block font-bold">{m.auth_goToSignIn()}</a>
+    <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+    <a href={resolve('/auth/signin') + page.url.search} class="text-primary-400 mt-3 inline-block font-bold">
+      {m.auth_goToSignIn()}
+    </a>
   </div>
 {:else}
   <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.auth_signUpTitle()}</h1>
@@ -73,6 +85,8 @@
 
   <p class="text-surface-600-400 mt-6 text-center text-[13.5px]">
     {m.auth_haveAccount()}
-    <a href={resolve('/auth/signin')} class="text-primary-400 font-bold">{m.auth_signIn()}</a>
+    <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+    <a href={resolve('/auth/signin') + page.url.search} class="text-primary-400 font-bold">{m.auth_signIn()}</a>
   </p>
 {/if}

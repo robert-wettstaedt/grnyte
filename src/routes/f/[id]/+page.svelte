@@ -19,7 +19,7 @@
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast'
   import { bunnyThumbnail } from '$lib/videos/bunny'
   import { untrack } from 'svelte'
 
@@ -83,7 +83,7 @@
       toaster.create({ title: m.media_deleted(), type: 'info' })
       await goto(parentHref(data.controls?.parent))
     } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     }
   }
 

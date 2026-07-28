@@ -25,6 +25,7 @@ import {
   pgTable as table,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   type AnyPgColumn as AnyColumn,
   type PgPolicyConfig,
@@ -184,6 +185,11 @@ export const userSettings = table(
       .notNull()
       .references((): AnyColumn => authUsers.id),
 
+    // The language we write TO this account in (email now, push later). Deliberately not named
+    // `locale`: the UI language stays per device (the paraglide cookie), so one shared field would
+    // weld somebody's phone and their laptop together. null = no signal, fall back to the sender's
+    // ambient locale. Written from explicit picks only, never from an auto-detected browser language.
+    contactLocale: text('contact_locale'),
     cookie8a: text('cookie_8a'),
     cookie27crags: text('cookie_27crags'),
 
@@ -328,6 +334,10 @@ export const regionMembers = table(
     index('region_members_region_fk_idx').on(table.regionFk),
     index('region_members_user_fk_idx').on(table.userFk),
     index('region_members_region_auth_user_idx').on(table.regionFk, table.authUserFk),
+    // Two tabs accepting the same invitation both pass the "already a member" read (postgres runs
+    // read committed) and both insert. This is what closes that, and what `resolveRestore`'s
+    // `alreadyMember` guard was standing in for. Reverses the call documented below it.
+    uniqueIndex('region_members_region_user_unique').on(table.regionFk, table.userFk),
 
     policy(
       `${APP_PERMISSION_ADMIN} can fully access region_members`,
@@ -379,6 +389,10 @@ export const regionInvitations = table(
     invitedByFk: integer('invited_by')
       .notNull()
       .references((): AnyColumn => users.id),
+    /** When the mail last went out. Feeds the resend throttle and the "sent 3 days ago" line.
+     *  `baseFields` has no `updatedAt`, and inferring recency from a refreshed `expiresAt` is the
+     *  kind of cleverness that reads as a bug later. */
+    lastSentAt: timestamp('last_sent_at', { withTimezone: true }),
     status: invitationStatusEnum('status').notNull().default('pending'),
     token: uuid('token').notNull().unique(),
   },

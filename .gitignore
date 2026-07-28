@@ -182,4 +182,5 @@ storybook-static
 # rule (intended for the macOS "Icon\r" file) that also matches this folder.
 !src/lib/components/Icon/
 
-dev-dist
+dev-distemails
+

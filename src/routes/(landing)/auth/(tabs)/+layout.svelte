@@ -11,18 +11,25 @@
   // Drives the sliding indicator; the <a> triggers do the actual navigation.
   const mode = $derived(page.url.pathname.endsWith('/signup') ? 'signup' : 'signin')
 
+  // Carried across the tab switch: the invite flow arrives with ?email= (the invited address) and
+  // ?next= (the invitation to come back to). Dropping the address is the expensive one, signing up
+  // with a different one silently orphans the invitation.
+  const search = $derived(page.url.search)
+
   const tab =
     'flex h-10 flex-1 items-center justify-center text-sm font-semibold text-surface-600-400 data-[state=checked]:text-primary-contrast-500'
 </script>
 
 <!-- segmented toggle: Skeleton SegmentedControl with <a> triggers (navigation, not state) -->
+<!-- eslint-disable svelte/no-navigation-without-resolve -- resolve()'d path plus a query string,
+     which resolve() itself does not take -->
 <SegmentedControl value={mode} class="mb-7">
   <SegmentedControl.Control class="w-full">
     <SegmentedControl.Indicator class="preset-filled-primary-500" />
     <SegmentedControl.Item value="signin">
       {#snippet element(attributes)}
         <!-- attrs are typed for the default <label>; spread onto <a> works at runtime -->
-        <a {...attributes as unknown as HTMLAnchorAttributes} href={resolve('/auth/signin')} class={tab}>
+        <a {...attributes as unknown as HTMLAnchorAttributes} href={resolve('/auth/signin') + search} class={tab}>
           {m.auth_signIn()}
         </a>
       {/snippet}
@@ -30,7 +37,7 @@
     <SegmentedControl.Item value="signup">
       {#snippet element(attributes)}
         <!-- attrs are typed for the default <label>; spread onto <a> works at runtime -->
-        <a {...attributes as unknown as HTMLAnchorAttributes} href={resolve('/auth/signup')} class={tab}>
+        <a {...attributes as unknown as HTMLAnchorAttributes} href={resolve('/auth/signup') + search} class={tab}>
           {m.auth_signUp()}
         </a>
       {/snippet}

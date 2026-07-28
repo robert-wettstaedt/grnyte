@@ -1,3 +1,4 @@
+import { resolveErrorMessage } from '$lib/forms/issue'
 import { m } from '$lib/paraglide/messages'
 import { runCommand, type MutationResult } from '$lib/remote/mutation'
 import { createToaster } from '@skeletonlabs/skeleton-svelte'
@@ -17,6 +18,19 @@ export interface UndoToastData {
   duration?: number
   message: string
   onUndo: () => unknown
+}
+
+/**
+ * Toast a failed action, the one thing every `catch` in the app does, so it lives here
+ * instead of being spelled out at each call site. {@link resolveErrorMessage} resolves a
+ * server-sent message key and falls back to the generic copy, which makes this correct for
+ * a bare `catch {}` (no cause) too.
+ *
+ * Longer than the toaster's default: a failure is unexpected and names what went wrong, so
+ * it needs more reading time than a confirmation the user was already waiting for.
+ */
+export function notifyError(cause?: unknown): void {
+  toaster.create({ duration: 8000, title: resolveErrorMessage(cause), type: 'error' })
 }
 
 /**

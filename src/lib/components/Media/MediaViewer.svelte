@@ -18,7 +18,7 @@
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { notifyError, toaster } from '$lib/state/toast'
   import { bunnyThumbnail } from '$lib/videos/bunny'
   import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte'
   import { onDestroy } from 'svelte'
@@ -94,7 +94,7 @@
     try {
       await deleteFile({ id: currentFile.id })
     } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
       return
     }
     toaster.create({ title: m.media_deleted(), type: 'info' })

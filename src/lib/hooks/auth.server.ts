@@ -1,6 +1,8 @@
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
+import { acceptPath } from '$lib/entities/region/dto'
+import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'
 import { createServerClient } from '@supabase/ssr'
 import { redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -163,7 +165,11 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   if (
     event.locals.session == null &&
     event.url.pathname !== '/' &&
-    !['/legal', '/auth', '/f/', '/image/', '/api/', '/offline'].some((path) => event.url.pathname.startsWith(path))
+    // '/invite' is public: the emailed link is opened by someone who may have no account yet, and
+    // bouncing them to /auth would drop the token.
+    !['/legal', '/auth', '/f/', '/image/', '/api/', '/invite', '/offline'].some((path) =>
+      event.url.pathname.startsWith(path),
+    )
   ) {
     redirect(303, '/auth')
   }
@@ -182,21 +188,26 @@ export const authGuard: Handle = async ({ event, resolve }) => {
     redirect(303, '/')
   }
 
-  // Handle users without regions (potential invites)
+  // A signed-in user with no regions whose address has a live invitation goes straight to it.
+  // '/explore' as well as '/', because `signIn` redirects to /explore - without it this could
+  // never fire after a fresh sign in. That plus the email-keyed lookup is what makes "sign up,
+  // then immediately join" work without threading the token through signup and its confirmation
+  // mail. Same validity predicate as everywhere else: pending AND not expired.
   const email = event.locals.session?.user.email
   if (email != null && event.locals.userRegions.length === 0) {
-    if (event.url.pathname === '/') {
+    if (event.url.pathname === '/' || event.url.pathname === '/explore') {
+      // The lookup is what may fail (a dropped connection on a hook that runs for every request);
+      // the redirect itself throws by design, so it stays OUTSIDE the catch - swallowing it left
+      // the invitee on an empty page with the invitation unmentioned.
+      let token: string | undefined
       try {
-        const invitation = await db.query.regionInvitations.findFirst({
-          where: (table, { and, eq, gt }) =>
-            and(eq(table.email, email), eq(table.status, 'pending'), gt(table.expiresAt, new Date())),
-        })
-
-        if (invitation != null) {
-          redirect(303, '/invite/accept?token=' + invitation.token)
-        }
+        token = (await findLiveInvitationByEmail(email))?.token
       } catch (error) {
         console.log(error)
+      }
+
+      if (token != null) {
+        redirect(303, acceptPath(token))
       }
     }
   }

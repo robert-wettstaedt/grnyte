@@ -16,7 +16,7 @@
   import { setFileVisibility } from '$lib/entities/file/files.remote'
   import { m } from '$lib/paraglide/messages'
   import { createCopyButton } from '$lib/state/clipboard.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast'
   import { Switch } from '@skeletonlabs/skeleton-svelte'
 
   interface Props {
@@ -59,7 +59,7 @@
       await setFileVisibility({ fileId: file.id, visibility })
       onVisibilityChange?.(visibility)
     } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     } finally {
       saving = false
     }

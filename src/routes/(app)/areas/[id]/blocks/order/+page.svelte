@@ -177,7 +177,7 @@
                   <span class="min-w-0 flex-1">
                     <span class="block truncate font-semibold">{block.name}</span>
                     {#if block.geolocation == null}
-                      <span class="text-warning-800-500 flex items-center gap-1 text-xs">
+                      <span class="text-warning-800-200 flex items-center gap-1 text-xs">
                         <Icon name="alert-triangle" size={12} />
                         {m.blocks_noLocation()}
                       </span>

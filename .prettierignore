@@ -11,6 +11,9 @@ bun.lockb
 
 # Generated
 /src/lib/paraglide/
+# `npm run generate:emails` output. Reformatting it would fight the generator on every run,
+# and the whitespace is load-bearing: mail clients collapse and re-wrap markup differently.
+/emails/
 
 # Installed agent skills
 /.agents/

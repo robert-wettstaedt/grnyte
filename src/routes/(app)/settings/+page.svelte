@@ -5,6 +5,8 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import type { UserInvitationItem } from '$lib/entities/region/dto'
+  import { acceptMyInvitation, listMyInvitations } from '$lib/entities/region/regions.remote'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import type { GradingScale, UnitSystem } from '$lib/entities/user/dto'
   import { updateUserSettings } from '$lib/entities/user/users.remote'
@@ -12,7 +14,7 @@
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { toaster } from '$lib/state/toast'
+  import { notifyError } from '$lib/state/toast'
   import { legalLinks } from '../../(landing)/legal/links'
   import SettingLink from './SettingLink.svelte'
   import SettingSection from './SettingSection.svelte'
@@ -31,6 +33,31 @@
 
   const legalPages = legalLinks()
 
+  // Invitations addressed to this account, so the emailed link is never the only way in. An
+  // invitee who already belongs to some other region never trips the authGuard bounce (it only
+  // fires on zero regions), and until this list existed their only route was the mail.
+  // Created once, outside the $derived: a remote query built inside one belongs to that derived's
+  // effect, and reading `current` back out of it once the response lands warns `derived_inert` and
+  // renders nothing. This query takes no arguments, so there is nothing for it to react to anyway.
+  const myInvitations = listMyInvitations()
+  const invitations = $derived(myInvitations.current ?? [])
+
+  let joining = $state<number | undefined>(undefined)
+
+  const onJoin = async (invitation: UserInvitationItem) => {
+    joining = invitation.id
+
+    try {
+      await acceptMyInvitation({ invitationFk: invitation.id })
+      // A full page navigation, not `goto`: the Zero client is session scoped and preloads
+      // userRegions at init, so a client-side navigation would sync nothing of the new region.
+      location.href = resolve('/explore')
+    } catch (cause) {
+      joining = undefined
+      notifyError(cause)
+    }
+  }
+
   // Optimistic write of a single field: the command is RLS-gated with no Zero optimism, so on
   // failure we revert the select and toast. Writing one field at a time means a change never
   // clobbers the other with a stale value.
@@ -41,8 +68,22 @@
       await updateUserSettings({ gradingScale: value })
     } catch {
       gradingScale = previous
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     }
+  }
+
+  // Two settings with different scopes. The UI language stays per device (the paraglide cookie),
+  // because that is the one people expect to follow the machine they are on. `contactLocale` is
+  // per account, because an email has to pick exactly one language and the account is the only
+  // thing the sender can see. This picker is an explicit choice, so it writes both.
+  const onLanguage = async (value: Locale) => {
+    // Persisted BEFORE setLocale, which reloads the page and would abort the request in flight.
+    try {
+      await updateUserSettings({ contactLocale: value })
+    } catch {
+      // The UI language is device local and must switch anyway; only the mail preference is lost.
+    }
+    setLocale(value)
   }
 
   const onUnitSystem = async (value: 'auto' | UnitSystem) => {
@@ -52,7 +93,7 @@
       await updateUserSettings({ unitSystem: value === 'auto' ? null : value })
     } catch {
       unitSystem = previous
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     }
   }
 
@@ -65,7 +106,7 @@
     // surface it instead of navigating to the landing page as if it worked.
     const { error } = await supabase.auth.signOut()
     if (error != null) {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
       return
     }
 
@@ -94,13 +135,16 @@
     <SettingSection title={m.settings_app()}>
       <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
         <label for="setting-language" class="flex items-center justify-between gap-4 p-4">
-          <span>{m.settings_language()}</span>
+          <span>
+            {m.settings_language()}
+            <span class="text-surface-600-400 block text-xs">{m.settings_languageHint()}</span>
+          </span>
           <!-- Endonyms: each language is labelled in its own name (picker convention). setLocale
              sets the cookie and reloads to apply. -->
           <SettingSelect
             id="setting-language"
             value={getLocale()}
-            onchange={(value) => setLocale(value)}
+            onchange={onLanguage}
             options={[
               { label: 'English', value: 'en' satisfies Locale },
               { label: 'Deutsch', value: 'de' satisfies Locale },
@@ -141,6 +185,36 @@
         </label>
       </div>
     </SettingSection>
+
+    <!-- Invitations. Sits above Regions because it is the one section here that is waiting on the
+         reader, and it is the only place an invitation can be found once the mail is gone. -->
+    {#if invitations.length > 0}
+      <SettingSection title={m.settings_invitations()}>
+        <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+          {#each invitations as invitation (invitation.id)}
+            <div class="flex items-center justify-between gap-4 p-4">
+              <span class="min-w-0">
+                <span class="block truncate">{invitation.regionName}</span>
+                {#if invitation.invitedBy != null}
+                  <span class="text-surface-600-400 block truncate text-xs">
+                    {m.region_invitedBy({ name: invitation.invitedBy })}
+                  </span>
+                {/if}
+              </span>
+
+              <button
+                type="button"
+                class="btn btn-sm preset-filled-primary-500 flex-none"
+                disabled={joining === invitation.id}
+                onclick={() => onJoin(invitation)}
+              >
+                {m.invite_accept()}
+              </button>
+            </div>
+          {/each}
+        </div>
+      </SettingSection>
+    {/if}
 
     <!-- Regions -->
     {#if global.userRegions.length > 0}

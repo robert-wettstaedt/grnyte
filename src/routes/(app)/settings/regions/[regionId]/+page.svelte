@@ -5,19 +5,23 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { RegionMemberItem } from '$lib/entities/region/dto'
+  import type { RegionInvitationItem, RegionMemberItem } from '$lib/entities/region/dto'
   import { seatState } from '$lib/entities/region/mapper'
   import { canEditRegion, isLastAdmin } from '$lib/entities/region/permissions'
   import {
+    inviteRegionMember,
     leaveRegion,
     listRegionInvitations,
     removeRegionMember,
+    resendRegionInvitation,
+    restoreRegionInvitation,
     restoreRegionMember,
+    revokeRegionInvitation,
     updateRegionMemberRole,
   } from '$lib/entities/region/regions.remote'
   import { regionDetail, regionMemberList } from '$lib/entities/region/resources.svelte'
   import type { AppRole, AssignableRole } from '$lib/entities/rolePermission/dto'
-  import { resolveErrorMessage } from '$lib/forms/issue'
+  import { resolveIssueMessage } from '$lib/forms/issue'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -25,9 +29,10 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
-  import { toaster, withUndo } from '$lib/state/toast'
+  import { notifyError, toaster, withUndo } from '$lib/state/toast'
   import SettingLink from '../../SettingLink.svelte'
   import SettingSection from '../../SettingSection.svelte'
+  import InvitationRow from './InvitationRow.svelte'
   import MemberRow from './MemberRow.svelte'
 
   const global = getGlobalState()
@@ -60,7 +65,7 @@
       toaster.create({ title: m.region_roleUpdated(), type: 'success' })
     } catch (cause) {
       roleOverrides[member.userId] = previous
-      toaster.create({ title: resolveErrorMessage(cause), type: 'error' })
+      notifyError(cause)
     }
   }
 
@@ -71,7 +76,7 @@
         onUndo: (snapshot) => restoreRegionMember(snapshot),
       })
     } catch (cause) {
-      toaster.create({ title: resolveErrorMessage(cause), type: 'error' })
+      notifyError(cause)
     }
   }
 
@@ -82,11 +87,65 @@
       await runCommand(leaveRegion({ regionFk: regionId }))
       toaster.create({ title: m.region_left({ name }), type: 'info' })
     } catch (cause) {
-      toaster.create({ title: resolveErrorMessage(cause), type: 'error' })
+      notifyError(cause)
     }
   }
 
   const displayRole = (member: RegionMemberItem): AppRole => roleOverrides[member.userId] ?? member.role
+
+  // The pending list is a server query, so every invite mutation has to ask for it again; Zero
+  // does not carry these rows (they hold the join token).
+  const refreshInvitations = () => listRegionInvitations({ regionFk: regionId }).refresh()
+
+  /** Shared by invite and resend: `sendEmail` never throws, so "saved but not sent" is its own
+   *  outcome rather than a lost row. */
+  const toastSend = (sent: boolean, title: string) =>
+    toaster.create({
+      title: sent ? title : m.region_inviteSentNoMail(),
+      type: sent ? 'success' : 'warning',
+    })
+
+  const invite = inviteRegionMember.enhance(async ({ submit }) => {
+    try {
+      await submit()
+      const result = inviteRegionMember.result?.data
+      if (result == null) return
+
+      await refreshInvitations()
+      toastSend(result.sent, m.region_inviteSent({ email: result.email }))
+      inviteRegionMember.fields.set({ email: '' })
+    } catch (cause) {
+      // A refusal the schema cannot express (seats full, already a member, role lost since load)
+      // comes back as an HttpError, which the form has no field to attach to.
+      notifyError(cause)
+    }
+  })
+
+  const onResend = async (invitation: RegionInvitationItem) => {
+    try {
+      const result = await resendRegionInvitation({ invitationFk: invitation.id })
+      await refreshInvitations()
+      toastSend(result?.data?.sent ?? false, m.region_inviteResent({ email: invitation.email }))
+    } catch (cause) {
+      notifyError(cause)
+    }
+  }
+
+  const onRevoke = async (invitation: RegionInvitationItem) => {
+    try {
+      await withUndo(revokeRegionInvitation({ invitationFk: invitation.id }), {
+        message: m.region_inviteRevoked({ email: invitation.email }),
+        onUndo: async (snapshot) => {
+          const result = await restoreRegionInvitation(snapshot)
+          await refreshInvitations()
+          return result
+        },
+      })
+      await refreshInvitations()
+    } catch (cause) {
+      notifyError(cause)
+    }
+  }
 
   // Leaving must not orphan the region, so the sole remaining admin cannot. The server refuses
   // it too; this only keeps the button from offering something that always fails, and it asks
@@ -151,7 +210,7 @@
                     seats === 'full'
                       ? 'text-error-600-400'
                       : seats === 'oneLeft'
-                        ? 'text-warning-800-500'
+                        ? 'text-warning-800-200'
                         : 'text-surface-600-400',
                   ]}
                 >
@@ -200,48 +259,51 @@
               {#if pending.length > 0}
                 <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
                   {#each pending as invitation (invitation.id)}
-                    <div class="flex items-center justify-between gap-4 p-4">
-                      <span class="min-w-0">
-                        <span class="block truncate">{invitation.email}</span>
-                        {#if invitation.invitedBy != null}
-                          <span class="text-surface-600-400 block truncate text-xs">
-                            {m.region_invitedBy({ name: invitation.invitedBy })}
-                          </span>
-                        {/if}
-                      </span>
-                      <span class="text-surface-600-400 shrink-0 text-sm">{m.region_invitePending()}</span>
-                    </div>
+                    <InvitationRow
+                      {invitation}
+                      onResend={() => onResend(invitation)}
+                      onRevoke={() => onRevoke(invitation)}
+                    />
                   {/each}
                 </div>
               {/if}
 
-              <!-- The invite itself lands in the next step; the form is here so the screen reads
-                   complete and the copy/layout are settled.
-                   One joined input-group at every width rather than stacked-then-inline: a
+              <!-- One joined input-group at every width rather than stacked-then-inline: a
                    full-width filled button under a full-width field read as a page-level CTA that
                    happened to sit below an input, not as the field's action. The section heading is
                    the group's visible label, so the input carries an aria-label instead of its own.
                    min-h-11 keeps both halves at the 44px touch minimum. -->
-              <form
-                class="input-group min-h-11 grid-cols-[1fr_auto]"
-                onsubmit={(event) => {
-                  event.preventDefault()
-                  toaster.create({ title: m.common_comingSoon(), type: 'info' })
-                }}
-              >
-                <input
-                  type="email"
-                  class="ig-input"
-                  aria-label={m.region_inviteEmail()}
-                  autocomplete="email"
-                  placeholder={m.region_inviteEmail()}
-                  required
-                  disabled={seats === 'full'}
-                />
-                <button type="submit" class="ig-btn preset-filled-primary-500" disabled={seats === 'full'}>
-                  {m.region_invite()}
-                </button>
+              <form {...invite}>
+                <!-- The hidden field sits outside the group: input-group rounds its :first-child,
+                     and a hidden input still counts as one, which left the email field square and
+                     with a stray divider border. -->
+                <input type="hidden" name="regionFk" value={regionId} />
+
+                <div class="input-group min-h-11 grid-cols-[1fr_auto]">
+                  <input
+                    {...inviteRegionMember.fields.email.as('email')}
+                    class="ig-input"
+                    aria-label={m.region_inviteEmail()}
+                    autocomplete="email"
+                    placeholder={m.region_inviteEmail()}
+                    required
+                    disabled={seats === 'full' || inviteRegionMember.pending > 0}
+                  />
+                  <button
+                    type="submit"
+                    class="ig-btn preset-filled-primary-500"
+                    disabled={seats === 'full' || inviteRegionMember.pending > 0}
+                  >
+                    {m.region_invite()}
+                  </button>
+                </div>
               </form>
+
+              <!-- The address stays in the field when the server refuses (seats full, already a
+                   member), so a rejected invite never costs the admin the typing. -->
+              {#each inviteRegionMember.fields.email.issues() as issue (issue.message)}
+                <p class="text-error-600-400 text-sm" role="alert">{resolveIssueMessage(issue.message)}</p>
+              {/each}
             </SettingSection>
           {/if}
         </div>

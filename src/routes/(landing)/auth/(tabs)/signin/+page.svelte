@@ -1,14 +1,26 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME, PUBLIC_DEMO_MODE } from '$env/static/public'
   import AuthField from '$lib/forms/AuthField.svelte'
   import FormError from '$lib/forms/FormError.svelte'
   import { m } from '$lib/paraglide/messages'
   import { signIn } from './signin.remote'
 
+  // The invited address, when the accept screen sent them here. The invitation is keyed on it, so
+  // signing in as somebody else just lands them back on the wrong-account state.
+  const invited = page.url.searchParams.get('email')
+
+  // Where to go after signing in, carried in from whatever sent them here (the invitation accept
+  // screen). Without it an invitee lands on /explore and has to dig the link out of their inbox
+  // again. Validated server-side, see `signIn`.
+  const next = $derived(page.url.searchParams.get('next'))
+
   // Prefill demo credentials so the demo deploy logs in with one click.
   if (PUBLIC_DEMO_MODE) {
     signIn.fields.set({ email: 'demo@demo.com', password: 'demo' })
+  } else if (invited != null) {
+    signIn.fields.set({ email: invited })
   }
 </script>
 
@@ -21,6 +33,10 @@
 
 <form {...signIn} class="flex flex-col gap-4">
   <FormError form={signIn} />
+
+  {#if next != null}
+    <input type="hidden" name="next" value={next} />
+  {/if}
 
   <AuthField
     field={signIn.fields.email}
@@ -59,5 +75,7 @@
 
 <p class="text-surface-600-400 mt-6 text-center text-[13.5px]">
   {m.auth_noAccount()}
-  <a href={resolve('/auth/signup')} class="text-primary-400 font-bold">{m.auth_signUp()}</a>
+  <!-- resolve()'d path plus a query string, which resolve() itself does not take -->
+  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+  <a href={resolve('/auth/signup') + page.url.search} class="text-primary-400 font-bold">{m.auth_signUp()}</a>
 </p>

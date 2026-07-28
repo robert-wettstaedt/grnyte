@@ -1,6 +1,7 @@
 import type { InsertActivity } from '$lib/db/schema'
 import { regionMembers, users, userSettings } from '$lib/db/schema'
 import { formError, usernameSchema } from '$lib/forms/schemas'
+import { locales } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
@@ -79,6 +80,10 @@ export const updateUsername = authedForm(
  */
 export const updateUserSettings = authedCommand(
   z.object({
+    // Written from EXPLICIT picks only (the settings language row), never from an auto-detected
+    // browser language: one visit on a colleague's German laptop must not silently switch which
+    // language we mail somebody in.
+    contactLocale: z.enum(locales).optional(),
     gradingScale: z.enum(['FB', 'V']).optional(),
     unitSystem: z.enum(['metric', 'imperial']).nullable().optional(),
   }),

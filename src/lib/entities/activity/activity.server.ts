@@ -147,7 +147,7 @@ export const insertActivity = async (
 export const deleteActivity = async (
   db: PostgresJsDatabase<typeof schema>,
   filter: Partial<
-    Pick<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'regionFk' | 'type' | 'userFk'>
+    Pick<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'newValue' | 'regionFk' | 'type' | 'userFk'>
   >,
 ) => {
   const conditions = Object.entries(filter)

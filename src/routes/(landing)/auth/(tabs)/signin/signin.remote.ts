@@ -9,10 +9,16 @@ const signInSchema = z.object({
     .string({ error: formError('form_required') })
     .trim()
     .min(1, { error: formError('form_required') }),
+  /**
+   * Where to land afterwards, when something sent them here mid-flow. The invitation accept
+   * screen is what this exists for: without it the emailed token dies at sign-in and the invitee
+   * has to go back to their inbox to find the link again.
+   */
+  next: z.string().optional(),
   password: z.string({ error: formError('form_required') }).min(1, { error: formError('form_required') }),
 })
 
-export const signIn = form(signInSchema, async ({ email, password }) => {
+export const signIn = form(signInSchema, async ({ email, next, password }) => {
   const {
     locals: { supabase },
   } = getRequestEvent()
@@ -25,5 +31,7 @@ export const signIn = form(signInSchema, async ({ email, password }) => {
     invalid(authError(error))
   }
 
-  redirect(303, resolve('/explore'))
+  // Same-origin relative paths only. `//evil.com` and `/\evil.com` are protocol-relative URLs that
+  // a browser happily follows off-site, so the second character has to be an ordinary one.
+  redirect(303, next != null && /^\/[^/\\]/.test(next) ? next : resolve('/explore'))
 })

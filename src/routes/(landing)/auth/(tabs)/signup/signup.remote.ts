@@ -2,6 +2,7 @@ import { form, getRequestEvent } from '$app/server'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { authError, formError, usernameSchema } from '$lib/forms/schemas'
+import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
@@ -40,9 +41,11 @@ export const signUp = form(signUpSchema, async ({ email, password, username }) =
   // Create the app-level user + settings rows and link them. Uses the base (non-RLS)
   // client because there is no authenticated session yet at sign-up.
   const [createdUser] = await db.insert(schema.users).values({ authUserFk: data.user.id, username }).returning()
+  // `contactLocale` is seeded from the request locale: the best guess on the device the account
+  // was made on, and the only signal we have until they pick a language in settings.
   const [createdSettings] = await db
     .insert(schema.userSettings)
-    .values({ authUserFk: data.user.id, userFk: createdUser.id })
+    .values({ authUserFk: data.user.id, contactLocale: getLocale(), userFk: createdUser.id })
     .returning()
   await db.update(schema.users).set({ userSettingsFk: createdSettings.id }).where(eq(schema.users.id, createdUser.id))
 

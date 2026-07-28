@@ -33,7 +33,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { notifyUndo, toaster } from '$lib/state/toast'
+  import { notifyError, notifyUndo } from '$lib/state/toast'
   import exifr from 'exifr'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
@@ -211,7 +211,7 @@
         notifyUndo({ message: m.routes_deleted(), onUndo: () => restoreRoute(snapshot) })
       }
     } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     }
   }
 
@@ -246,7 +246,7 @@
             if (result?.data != null) editor.topoId = result.data.id
           }
         } catch {
-          toaster.create({ title: m.error_generic_title(), type: 'error' })
+          notifyError()
         }
       }
       // Backfill an estimated pin from the photo's GPS when the block has none yet. Best-effort:
@@ -293,7 +293,7 @@
       editor.forget(id)
       editor.topoId = remaining?.id
     } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     }
   }
 
@@ -302,7 +302,7 @@
     try {
       await reorderTopos({ blockId: block.data.id, orderedIds })
     } catch {
-      toaster.create({ title: m.error_generic_title(), type: 'error' })
+      notifyError()
     }
   }
 
@@ -332,7 +332,7 @@
       }
     }
     saving = false
-    if (failed > 0) toaster.create({ title: m.error_generic_title(), type: 'error' })
+    if (failed > 0) notifyError()
   }
 
   $effect(() => {
