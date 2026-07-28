@@ -6,7 +6,7 @@ import { getLocale } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm, authedQuery, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
@@ -24,6 +24,7 @@ import {
   sendInvitationEmail,
   type MailContext,
 } from './invite.server'
+import { mapLayerSchema } from './mapLayers'
 import { canEditRegion } from './permissions'
 
 const assignableRoleSchema = z.enum(assignableRoles)
@@ -57,6 +58,31 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
 
   // No activity row: `activities.entity_type` has no 'region' member, and the feed renders
   // content changes rather than settings ones.
+
+  return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
+})
+
+const regionMapLayersSchema = z.object({
+  id: stringToInt,
+  mapLayers: z.array(mapLayerSchema).optional().default([]),
+})
+
+/** Replace a region's WMS map overlays. An empty list is a valid submission: it removes them all. */
+export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ id, mapLayers }, ctx) => {
+  const { db } = ctx
+
+  if (!canEditRegion(ctx.userRegions, id)) {
+    invalid(formError('form_noPermission'))
+  }
+
+  // Merged rather than assigned: `settings` is one jsonb blob and this form owns a single key of
+  // it, so a key added to `RegionSettings` later cannot be wiped by saving this screen.
+  await db
+    .update(regions)
+    .set({
+      settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify({ mapLayers })}::jsonb`,
+    })
+    .where(eq(regions.id, id))
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })

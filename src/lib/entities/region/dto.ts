@@ -1,5 +1,5 @@
 import type { AppRole, Permission } from '$lib/entities/rolePermission/dto'
-import type { RegionSettings } from '$lib/forms/schemas'
+import type { RegionSettings } from './mapLayers'
 
 /** A region's own record, as shown on its settings screen. */
 export interface RegionDetail {

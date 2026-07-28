@@ -5,7 +5,7 @@ import {
   REGION_PERMISSION_EDIT,
   REGION_PERMISSION_READ,
 } from '$lib/auth'
-import type { RegionSettings } from '$lib/forms/schemas'
+import type { RegionSettings } from '$lib/entities/region/mapLayers'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
 import { relations, sql } from 'drizzle-orm'

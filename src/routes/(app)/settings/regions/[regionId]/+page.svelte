@@ -46,6 +46,12 @@
   // admins, because a pending invitation holds a seat - so leaving it out would show a member a
   // lower seat count than the admin sitting next to them. Only the list below is admin-only.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
+
+  // From the membership rather than `regionDetail`: settings ride along on the synced region row
+  // the shell already holds, so the row needs nothing added to the detail query.
+  const mapLayerCount = $derived(
+    global.userRegions.find((region) => region.regionFk === regionId)?.settings?.mapLayers.length ?? 0,
+  )
   const invitations = $derived(listRegionInvitations({ regionFk: regionId }))
 
   const pending = $derived(invitations.current ?? [])
@@ -162,8 +168,7 @@
   <title>{region.data?.name ?? m.region_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<main class="relative min-w-0 flex-1 overflow-y-auto">
-  <PageHeader onback={() => back(resolve('/settings'))} title={region.data?.name ?? m.region_title()} />
+<PageHeader onback={() => back(resolve('/settings'))} title={region.data?.name ?? m.region_title()} />
 
   <div class="container mx-auto max-w-2xl px-4 py-8 pb-24 md:pb-8">
     <QueryState resource={region}>
@@ -194,6 +199,16 @@
 
               {#if detail.createdBy != null}
                 <SettingLink label={m.region_createdBy()} value={detail.createdBy} />
+              {/if}
+
+              <!-- Admin-only rather than read-only like the name row above: a layer count is not
+                   information a member can do anything with. -->
+              {#if isAdmin}
+                <SettingLink
+                  href={resolve('/(app)/settings/regions/[regionId]/map-layers', { regionId: String(regionId) })}
+                  label={m.region_mapLayers()}
+                  value={String(mapLayerCount)}
+                />
               {/if}
             </div>
           </SettingSection>
@@ -310,4 +325,3 @@
       {/snippet}
     </QueryState>
   </div>
-</main>

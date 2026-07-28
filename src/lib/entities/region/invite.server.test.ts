@@ -199,11 +199,12 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
       select status, accepted_by as "acceptedBy" from public.region_invitations where id = ${id}`
     expect(invitation).toMatchObject({ acceptedBy: users.invitee.userId, status: 'accepted' })
 
-    // The join shows up in the region's audit log, the mirror of what a removal logs.
+    // The join shows up in the region's audit log, on the invitation the admin sent rather than
+    // on the role: an accept closes out that invitation, it is not a role change.
     const [{ count }] = await sql<{ count: string }[]>`
       select count(*) from public.activities
-      where region_fk = ${regionId} and type = 'created' and entity_type = 'user'
-        and entity_id = ${String(users.invitee.userId)} and column_name = 'role'`
+      where region_fk = ${regionId} and type = 'updated' and entity_type = 'user'
+        and entity_id = ${String(users.invitee.userId)} and column_name = 'invitation'`
     expect(Number(count)).toBe(1)
   })
 

@@ -118,8 +118,7 @@
   <title>{m.settings_title()} – {PUBLIC_APPLICATION_NAME}</title>
 </svelte:head>
 
-<main class="relative min-w-0 flex-1 overflow-y-auto">
-  <PageHeader onback={() => back(resolve('/profile'))} title={m.settings_title()} />
+<PageHeader onback={() => back(resolve('/profile'))} title={m.settings_title()} />
 
   <div class="container mx-auto max-w-2xl space-y-8 px-4 py-8 pb-24 md:pb-8">
     <!-- Account -->
@@ -245,4 +244,3 @@
       {m.settings_signOut()}
     </button>
   </div>
-</main>
