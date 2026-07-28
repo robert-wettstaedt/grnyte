@@ -1,5 +1,6 @@
 import { formError, nameSchema, stringToIntOptional, stringToNumberOptional } from '$lib/forms/schemas'
 import z from 'zod'
+import { DEFAULT_TAGS } from './tagVocabulary'
 
 /**
  * A WMS overlay as it is stored: a bare endpoint plus the request parameters that select the layer.
@@ -21,6 +22,10 @@ const storedMapLayerSchema = z.object({
  */
 export const regionSettingsSchema = z.object({
   mapLayers: z.array(storedMapLayerSchema).default([]),
+  // Deliberately `z.string()` rather than `tagNameSchema`: stored values were validated on the way
+  // in, and re-validating on read would let one over-long tag fail the whole blob and take the
+  // region's map layers down with it.
+  tags: z.array(z.string()).default(DEFAULT_TAGS),
 })
 
 export type MapLayer = RegionSettings['mapLayers'][number]

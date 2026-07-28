@@ -1,21 +1,26 @@
 <script lang="ts">
-  import type { Tag } from '$lib/entities/tag/dto'
   import { m } from '$lib/paraglide/messages'
 
-  // Toggleable chip set over the global tag list, submitting through hidden
+  // Toggleable chip set over the region's tag vocabulary, submitting through hidden
   // `<name>[i]` inputs.
   interface Props {
-    /** Hidden-input name the selected ids submit under (as `<name>[i]`). */
+    /** Hidden-input name the selected tags submit under (as `<name>[i]`). */
     name?: string
-    tags: Tag[]
-    /** Selected tag ids. */
+    /** The vocabulary of the region this route belongs to, in stored order. */
+    tags: string[]
+    /** Selected tags. */
     value?: string[]
   }
 
   let { name, tags, value = $bindable([]) }: Props = $props()
 
-  const toggle = (id: string) => {
-    value = value.includes(id) ? value.filter((tag) => tag !== id) : [...value, id]
+  // A tag the region retired between this device's last sync and now is still in `value`, so it
+  // stays visible and removable on the route that carries it rather than vanishing from the chips
+  // while silently staying selected.
+  const options = $derived([...new Set([...tags, ...value])])
+
+  const toggle = (tag: string) => {
+    value = value.includes(tag) ? value.filter((selected) => selected !== tag) : [...value, tag]
   }
 </script>
 
@@ -30,8 +35,8 @@
 </p>
 
 <div class="mt-2 flex flex-wrap gap-2">
-  {#each tags as tag (tag.id)}
-    {@const selected = value.includes(tag.id)}
+  {#each options as tag (tag)}
+    {@const selected = value.includes(tag)}
     <button
       aria-pressed={selected}
       class={[
@@ -40,10 +45,10 @@
           ? 'border-primary-500/40 bg-primary-500/20 text-primary-400'
           : 'border-surface-300-700 bg-surface-100-900 text-surface-600-400 hover:bg-surface-200-800',
       ]}
-      onclick={() => toggle(tag.id)}
+      onclick={() => toggle(tag)}
       type="button"
     >
-      {tag.id}
+      {tag}
     </button>
   {/each}
 </div>

@@ -5,6 +5,7 @@
   import type { BlockDetail } from '$lib/entities/block/dto'
   import GradeSlider from '$lib/entities/grade/GradeSlider.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { regionTags } from '$lib/entities/region/tagVocabulary'
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { createRoute } from '$lib/entities/route/routes.remote'
   import RouteTagsInput from '$lib/entities/route/RouteTagsInput.svelte'
@@ -183,7 +184,7 @@
 
       <div class="space-y-2.5">
         <span class="text-surface-700-300 block text-sm font-semibold">{m.routes_form_tagsLabel()}</span>
-        <RouteTagsInput tags={global.tags} name="tags" bind:value={tags} />
+        <RouteTagsInput tags={regionTags(global.userRegions, block.regionFk)} name="tags" bind:value={tags} />
       </div>
     </form>
   {:else}

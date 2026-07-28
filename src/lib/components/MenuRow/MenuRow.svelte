@@ -9,6 +9,10 @@
     description?: string
     /** Destructive (error) styling — for delete. */
     destructive?: boolean
+    /** Button rows only. For a destructive row whose consequence is not known yet (e.g. still
+     *  counting what it would delete), so the wait is a non-destructive state rather than a
+     *  deletion of an unknown quantity. */
+    disabled?: boolean
     href?: string
     icon: IconName
     label: string
@@ -23,6 +27,7 @@
     accent = false,
     description,
     destructive = false,
+    disabled = false,
     href,
     icon,
     label,
@@ -77,7 +82,9 @@
     class={[
       'hover:bg-surface-200-800 flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors',
       destructive && 'text-error-500',
+      disabled && 'pointer-events-none opacity-50',
     ]}
+    {disabled}
     {onclick}
   >
     {@render body()}

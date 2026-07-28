@@ -9,7 +9,6 @@ import { gradesQueryDefs } from '$lib/entities/grade/queries'
 import { regionsQueryDefs } from '$lib/entities/region/queries'
 import { rolePermissionsQueryDefs } from '$lib/entities/rolePermission/queries'
 import { routesQueryDefs } from '$lib/entities/route/queries'
-import { tagsQueryDefs } from '$lib/entities/tag/queries'
 import { usersQueryDefs } from '$lib/entities/user/queries'
 import { defineQueries } from '@rocicorp/zero'
 
@@ -25,6 +24,5 @@ export const queries = defineQueries({
   ...regionsQueryDefs,
   ...rolePermissionsQueryDefs,
   ...routesQueryDefs,
-  ...tagsQueryDefs,
   ...usersQueryDefs,
 })

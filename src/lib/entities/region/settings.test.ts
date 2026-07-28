@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { mapLayerSchema, regionSettingsSchema, toLayerForm, wmsUrl, type MapLayer } from './mapLayers'
+import { mapLayerSchema, regionSettingsSchema, toLayerForm, wmsUrl, type MapLayer } from './settings'
+import { DEFAULT_TAGS } from './tagVocabulary'
 
 const FULL: MapLayer = {
   attributions: ['Data: Survey Office', 'Imagery: Region'],
@@ -98,6 +99,15 @@ describe('regionSettingsSchema', () => {
   })
 
   it('keeps a stored layer intact', () => {
-    expect(regionSettingsSchema.parse({ mapLayers: [FULL] })).toEqual({ mapLayers: [FULL] })
+    expect(regionSettingsSchema.parse({ mapLayers: [FULL] })).toEqual({ mapLayers: [FULL], tags: DEFAULT_TAGS })
+  })
+
+  it('reads a blob that predates region tags as having the defaults, without losing its layers', () => {
+    expect(regionSettingsSchema.parse({}).tags).toEqual(DEFAULT_TAGS)
+    expect(regionSettingsSchema.parse({ mapLayers: [FULL] })).toEqual({ mapLayers: [FULL], tags: DEFAULT_TAGS })
+  })
+
+  it('keeps an emptied vocabulary empty, since only an absent key means the defaults', () => {
+    expect(regionSettingsSchema.parse({ tags: [] }).tags).toEqual([])
   })
 })

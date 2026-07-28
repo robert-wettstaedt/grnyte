@@ -60,7 +60,6 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
     // render immediately rather than flashing a loading state.
     Promise.all([
       z.preload(queries.listGrades()).complete,
-      z.preload(queries.listTags()).complete,
       z.preload(queries.currentUser()).complete,
       z.preload(queries.currentUserRole()).complete,
       z.preload(queries.listRolePermissions()).complete,

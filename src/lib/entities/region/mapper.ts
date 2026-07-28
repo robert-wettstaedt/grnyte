@@ -1,7 +1,7 @@
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
 import type { RegionDetail, RegionMemberItem, RegionMembership, SeatState } from './dto'
-import { regionSettingsSchema } from './mapLayers'
+import { regionSettingsSchema } from './settings'
 
 export type RegionDetailRow = NonNullable<QueryRow<typeof queries.region>>
 export type RegionMemberListRow = QueryRow<typeof queries.listRegionMembers>
@@ -52,9 +52,11 @@ export function toRegionMembership(row: RegionMemberRow): RegionMembership {
     regionFk: row.regionFk,
     role: row.role,
     // Checked rather than cast: the column is untyped jsonb, so a blob that does not match would
-    // otherwise surface as a crash inside the map. Every reader of `settings` (the map's overlays
-    // and both settings screens) comes through here, so this is the only gate they need.
-    // `locals.userRegions` carries the column too, but nothing reads it off that path.
-    settings: regionSettingsSchema.safeParse(row.region?.settings).data,
+    // otherwise surface as a crash inside the map. Every client reader of `settings` (the map's
+    // overlays, the tag vocabulary, the settings screens) comes through here. The server reads the
+    // same column off `locals.userRegions` and parses it the same way, see `getUserPermissions`.
+    // `?? {}` because a region whose settings were never written has a null column, and that should
+    // read as "nothing configured" rather than as an unparseable blob.
+    settings: regionSettingsSchema.safeParse(row.region?.settings ?? {}).data,
   }
 }

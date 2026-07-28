@@ -120,127 +120,127 @@
 
 <PageHeader onback={() => back(resolve('/profile'))} title={m.settings_title()} />
 
-  <div class="container mx-auto max-w-2xl space-y-8 px-4 py-8 pb-24 md:pb-8">
-    <!-- Account -->
-    <SettingSection title={m.settings_account()}>
-      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-        <SettingLink href={resolve('/settings/username')} label={m.auth_username()} value={global.user?.username} />
-        <SettingLink href={resolve('/settings/email')} label={m.auth_email()} value={email} />
-        <SettingLink href={resolve('/settings/password')} label={m.auth_password()} value="••••••••" />
-      </div>
-    </SettingSection>
+<div class="container mx-auto max-w-2xl space-y-8 px-4 py-8 pb-24 md:pb-8">
+  <!-- Account -->
+  <SettingSection title={m.settings_account()}>
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+      <SettingLink href={resolve('/settings/username')} label={m.auth_username()} value={global.user?.username} />
+      <SettingLink href={resolve('/settings/email')} label={m.auth_email()} value={email} />
+      <SettingLink href={resolve('/settings/password')} label={m.auth_password()} value="••••••••" />
+    </div>
+  </SettingSection>
 
-    <!-- Preferences -->
-    <SettingSection title={m.settings_app()}>
-      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-        <label for="setting-language" class="flex items-center justify-between gap-4 p-4">
-          <span>
-            {m.settings_language()}
-            <span class="text-surface-600-400 block text-xs">{m.settings_languageHint()}</span>
-          </span>
-          <!-- Endonyms: each language is labelled in its own name (picker convention). setLocale
+  <!-- Preferences -->
+  <SettingSection title={m.settings_app()}>
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+      <label for="setting-language" class="flex items-center justify-between gap-4 p-4">
+        <span>
+          {m.settings_language()}
+          <span class="text-surface-600-400 block text-xs">{m.settings_languageHint()}</span>
+        </span>
+        <!-- Endonyms: each language is labelled in its own name (picker convention). setLocale
              sets the cookie and reloads to apply. -->
-          <SettingSelect
-            id="setting-language"
-            value={getLocale()}
-            onchange={onLanguage}
-            options={[
-              { label: 'English', value: 'en' satisfies Locale },
-              { label: 'Deutsch', value: 'de' satisfies Locale },
-            ]}
-          />
-        </label>
+        <SettingSelect
+          id="setting-language"
+          value={getLocale()}
+          onchange={onLanguage}
+          options={[
+            { label: 'English', value: 'en' satisfies Locale },
+            { label: 'Deutsch', value: 'de' satisfies Locale },
+          ]}
+        />
+      </label>
 
-        <label for="setting-theme" class="flex items-center justify-between gap-4 p-4">
-          <span>{m.theme_label()}</span>
-          <ThemeSwitch id="setting-theme" />
-        </label>
+      <label for="setting-theme" class="flex items-center justify-between gap-4 p-4">
+        <span>{m.theme_label()}</span>
+        <ThemeSwitch id="setting-theme" />
+      </label>
 
-        <label for="setting-gradeScale" class="flex items-center justify-between gap-4 p-4">
-          <span>{m.settings_gradeScale()}</span>
-          <SettingSelect
-            id="setting-gradeScale"
-            value={gradingScale}
-            onchange={onGradingScale}
-            options={[
-              { label: m.settings_gradeScaleFB(), value: 'FB' },
-              { label: m.settings_gradeScaleV(), value: 'V' },
-            ]}
-          />
-        </label>
+      <label for="setting-gradeScale" class="flex items-center justify-between gap-4 p-4">
+        <span>{m.settings_gradeScale()}</span>
+        <SettingSelect
+          id="setting-gradeScale"
+          value={gradingScale}
+          onchange={onGradingScale}
+          options={[
+            { label: m.settings_gradeScaleFB(), value: 'FB' },
+            { label: m.settings_gradeScaleV(), value: 'V' },
+          ]}
+        />
+      </label>
 
-        <label for="setting-units" class="flex items-center justify-between gap-4 p-4">
-          <span>{m.settings_units()}</span>
-          <SettingSelect
-            id="setting-units"
-            value={unitSystem}
-            onchange={onUnitSystem}
-            options={[
-              { label: m.settings_unitsAuto(), value: 'auto' },
-              { label: m.settings_unitsMetric(), value: 'metric' },
-              { label: m.settings_unitsImperial(), value: 'imperial' },
-            ]}
-          />
-        </label>
-      </div>
-    </SettingSection>
+      <label for="setting-units" class="flex items-center justify-between gap-4 p-4">
+        <span>{m.settings_units()}</span>
+        <SettingSelect
+          id="setting-units"
+          value={unitSystem}
+          onchange={onUnitSystem}
+          options={[
+            { label: m.settings_unitsAuto(), value: 'auto' },
+            { label: m.settings_unitsMetric(), value: 'metric' },
+            { label: m.settings_unitsImperial(), value: 'imperial' },
+          ]}
+        />
+      </label>
+    </div>
+  </SettingSection>
 
-    <!-- Invitations. Sits above Regions because it is the one section here that is waiting on the
+  <!-- Invitations. Sits above Regions because it is the one section here that is waiting on the
          reader, and it is the only place an invitation can be found once the mail is gone. -->
-    {#if invitations.length > 0}
-      <SettingSection title={m.settings_invitations()}>
-        <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-          {#each invitations as invitation (invitation.id)}
-            <div class="flex items-center justify-between gap-4 p-4">
-              <span class="min-w-0">
-                <span class="block truncate">{invitation.regionName}</span>
-                {#if invitation.invitedBy != null}
-                  <span class="text-surface-600-400 block truncate text-xs">
-                    {m.region_invitedBy({ name: invitation.invitedBy })}
-                  </span>
-                {/if}
-              </span>
-
-              <button
-                type="button"
-                class="btn btn-sm preset-filled-primary-500 flex-none"
-                disabled={joining === invitation.id}
-                onclick={() => onJoin(invitation)}
-              >
-                {m.invite_accept()}
-              </button>
-            </div>
-          {/each}
-        </div>
-      </SettingSection>
-    {/if}
-
-    <!-- Regions -->
-    {#if global.userRegions.length > 0}
-      <SettingSection title={m.settings_regions()}>
-        <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-          {#each global.userRegions as region (region.regionFk)}
-            <SettingLink
-              href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.regionFk) })}
-              label={region.name}
-              value={roleLabel(region.role)}
-            />
-          {/each}
-        </div>
-      </SettingSection>
-    {/if}
-
-    <!-- Legal -->
-    <SettingSection title={m.settings_legal()}>
+  {#if invitations.length > 0}
+    <SettingSection title={m.settings_invitations()}>
       <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-        {#each legalPages as link (link.href)}
-          <SettingLink href={link.href} label={link.label} />
+        {#each invitations as invitation (invitation.id)}
+          <div class="flex items-center justify-between gap-4 p-4">
+            <span class="min-w-0">
+              <span class="block truncate">{invitation.regionName}</span>
+              {#if invitation.invitedBy != null}
+                <span class="text-surface-600-400 block truncate text-xs">
+                  {m.region_invitedBy({ name: invitation.invitedBy })}
+                </span>
+              {/if}
+            </span>
+
+            <button
+              type="button"
+              class="btn btn-sm preset-filled-primary-500 flex-none"
+              disabled={joining === invitation.id}
+              onclick={() => onJoin(invitation)}
+            >
+              {m.invite_accept()}
+            </button>
+          </div>
         {/each}
       </div>
     </SettingSection>
+  {/if}
 
-    <button type="button" class="btn preset-tonal-error w-full gap-2" onclick={signOut}>
-      <Icon name="log-out" size={18} />
-      {m.settings_signOut()}
-    </button>
-  </div>
+  <!-- Regions -->
+  {#if global.userRegions.length > 0}
+    <SettingSection title={m.settings_regions()}>
+      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+        {#each global.userRegions as region (region.regionFk)}
+          <SettingLink
+            href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.regionFk) })}
+            label={region.name}
+            value={roleLabel(region.role)}
+          />
+        {/each}
+      </div>
+    </SettingSection>
+  {/if}
+
+  <!-- Legal -->
+  <SettingSection title={m.settings_legal()}>
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+      {#each legalPages as link (link.href)}
+        <SettingLink href={link.href} label={link.label} />
+      {/each}
+    </div>
+  </SettingSection>
+
+  <button type="button" class="btn preset-tonal-error w-full gap-2" onclick={signOut}>
+    <Icon name="log-out" size={18} />
+    {m.settings_signOut()}
+  </button>
+</div>

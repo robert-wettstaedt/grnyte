@@ -4,6 +4,7 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { firstAscensionistList } from '$lib/entities/firstAscensionist/resources.svelte'
+  import { allRegionTags } from '$lib/entities/region/tagVocabulary'
   import type { RouteMapItem } from '$lib/entities/route/dto'
   import type { AscentStatus } from '$lib/entities/route/resources.svelte'
   import { FILTER_PARAM_KEYS, isAscentStatus, isFilterActive } from '$lib/map/filter'
@@ -135,6 +136,12 @@
   const tagsSummary = $derived(
     selectedTags.length > 0 ? m.filter_selectedCount({ count: selectedTags.length }) : m.common_any(),
   )
+
+  // Every region the user belongs to, because the route queries this filter drives span all of them
+  // (there is no current-region selector in the app). The dedup `allRegionTags` does is load-bearing
+  // here: two regions using the same word would make `TagSelect`'s keyed each throw
+  // `each_key_duplicate`.
+  const tagOptions = $derived(allRegionTags(global.userRegions))
 
   const mediaSummary = $derived.by(() => {
     if (mediaFilters.length === 0) {
@@ -380,9 +387,9 @@
       </FilterSection>
     {/if}
 
-    {#if global.tags.length > 0}
+    {#if tagOptions.length > 0}
       <FilterSection label={m.filter_tags()} summary={tagsSummary} active={selectedTags.length > 0}>
-        <TagSelect tags={global.tags} bind:value={selectedTags} />
+        <TagSelect tags={tagOptions} bind:value={selectedTags} />
       </FilterSection>
     {/if}
 

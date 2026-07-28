@@ -20,6 +20,7 @@
     updateRegionMemberRole,
   } from '$lib/entities/region/regions.remote'
   import { regionDetail, regionMemberList } from '$lib/entities/region/resources.svelte'
+  import { regionTags } from '$lib/entities/region/tagVocabulary'
   import type { AppRole, AssignableRole } from '$lib/entities/rolePermission/dto'
   import { resolveIssueMessage } from '$lib/forms/issue'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -52,6 +53,7 @@
   const mapLayerCount = $derived(
     global.userRegions.find((region) => region.regionFk === regionId)?.settings?.mapLayers.length ?? 0,
   )
+  const tagCount = $derived(regionTags(global.userRegions, regionId).length)
   const invitations = $derived(listRegionInvitations({ regionFk: regionId }))
 
   const pending = $derived(invitations.current ?? [])
@@ -170,158 +172,166 @@
 
 <PageHeader onback={() => back(resolve('/settings'))} title={region.data?.name ?? m.region_title()} />
 
-  <div class="container mx-auto max-w-2xl px-4 py-8 pb-24 md:pb-8">
-    <QueryState resource={region}>
-      {#snippet ready(detail)}
-        <!-- space-y-8 lives here, not on the container: QueryState is a single child there, so the
+<div class="container mx-auto max-w-2xl px-4 py-8 pb-24 md:pb-8">
+  <QueryState resource={region}>
+    {#snippet ready(detail)}
+      <!-- space-y-8 lives here, not on the container: QueryState is a single child there, so the
              sections it renders would get no spacing between them. -->
-        <div class="space-y-8">
-          <!-- Region -->
-          <SettingSection title={m.region_title()}>
-            <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-              <!-- Without an href the row is read-only rather than a disabled control: a
+      <div class="space-y-8">
+        <!-- Region -->
+        <SettingSection title={m.region_title()}>
+          <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+            <!-- Without an href the row is read-only rather than a disabled control: a
                    greyed-out field reads as "temporarily unavailable" instead of "not yours
                    to change". -->
+            <SettingLink
+              href={isAdmin
+                ? resolve('/(app)/settings/regions/[regionId]/name', { regionId: String(regionId) })
+                : undefined}
+              label={m.settings_regionName()}
+              value={detail.name}
+            />
+
+            {#if detail.createdAt != null}
               <SettingLink
-                href={isAdmin
-                  ? resolve('/(app)/settings/regions/[regionId]/name', { regionId: String(regionId) })
-                  : undefined}
-                label={m.settings_regionName()}
-                value={detail.name}
+                label={m.region_createdAt()}
+                value={formatUploadedAt(detail.createdAt.getTime(), now(), getLocale())}
+              />
+            {/if}
+
+            {#if detail.createdBy != null}
+              <SettingLink label={m.region_createdBy()} value={detail.createdBy} />
+            {/if}
+
+            <!-- Admin-only rather than read-only like the name row above: a layer count is not
+                   information a member can do anything with. -->
+            {#if isAdmin}
+              <SettingLink
+                href={resolve('/(app)/settings/regions/[regionId]/map-layers', { regionId: String(regionId) })}
+                label={m.region_mapLayers()}
+                value={String(mapLayerCount)}
               />
 
-              {#if detail.createdAt != null}
-                <SettingLink
-                  label={m.region_createdAt()}
-                  value={formatUploadedAt(detail.createdAt.getTime(), now(), getLocale())}
-                />
-              {/if}
+              <!-- Admin-only like the row above, though applying a tag to a route only needs
+                     edit: deciding what the community's vocabulary is, is an admin call. -->
+              <SettingLink
+                href={resolve('/(app)/settings/regions/[regionId]/tags', { regionId: String(regionId) })}
+                label={m.region_tags()}
+                value={String(tagCount)}
+              />
+            {/if}
+          </div>
+        </SettingSection>
 
-              {#if detail.createdBy != null}
-                <SettingLink label={m.region_createdBy()} value={detail.createdBy} />
-              {/if}
-
-              <!-- Admin-only rather than read-only like the name row above: a layer count is not
-                   information a member can do anything with. -->
-              {#if isAdmin}
-                <SettingLink
-                  href={resolve('/(app)/settings/regions/[regionId]/map-layers', { regionId: String(regionId) })}
-                  label={m.region_mapLayers()}
-                  value={String(mapLayerCount)}
-                />
-              {/if}
-            </div>
-          </SettingSection>
-
-          <!-- Members -->
-          <SettingSection title={m.region_members()}>
-            {#snippet aside()}
-              {#if detail.maxMembers > 0}
-                <!-- The state is spelled out in the copy as well as the tint, so it does not
+        <!-- Members -->
+        <SettingSection title={m.region_members()}>
+          {#snippet aside()}
+            {#if detail.maxMembers > 0}
+              <!-- The state is spelled out in the copy as well as the tint, so it does not
                    depend on colour alone. -->
-                <span
-                  class={[
-                    'flex items-center gap-1.5 text-xs',
-                    seats === 'full'
-                      ? 'text-error-600-400'
-                      : seats === 'oneLeft'
-                        ? 'text-warning-800-200'
-                        : 'text-surface-600-400',
-                  ]}
-                >
-                  {#if seats !== 'ok'}
-                    <Icon name="alert-triangle" size={14} />
-                  {/if}
-                  {#if seats === 'full'}
-                    {m.region_seatsFull({ total: detail.maxMembers })}
-                  {:else if seats === 'oneLeft'}
-                    {m.region_seatsOneLeft({ total: detail.maxMembers, used })}
-                  {:else}
-                    {m.region_seatsUsed({ total: detail.maxMembers, used })}
-                  {/if}
-                </span>
-              {/if}
-            {/snippet}
+              <span
+                class={[
+                  'flex items-center gap-1.5 text-xs',
+                  seats === 'full'
+                    ? 'text-error-600-400'
+                    : seats === 'oneLeft'
+                      ? 'text-warning-800-200'
+                      : 'text-surface-600-400',
+                ]}
+              >
+                {#if seats !== 'ok'}
+                  <Icon name="alert-triangle" size={14} />
+                {/if}
+                {#if seats === 'full'}
+                  {m.region_seatsFull({ total: detail.maxMembers })}
+                {:else if seats === 'oneLeft'}
+                  {m.region_seatsOneLeft({ total: detail.maxMembers, used })}
+                {:else}
+                  {m.region_seatsUsed({ total: detail.maxMembers, used })}
+                {/if}
+              </span>
+            {/if}
+          {/snippet}
 
-            <!-- Settings rows rather than EntityRow cards: this screen is a settings list, so a
+          <!-- Settings rows rather than EntityRow cards: this screen is a settings list, so a
                  member reads as a row with a value and a chevron like every other one. -->
-            <QueryState resource={members}>
-              {#snippet ready(list)}
-                <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-                  {#each list as member (member.id)}
-                    {@const self = member.userId === global.user?.id}
+          <QueryState resource={members}>
+            {#snippet ready(list)}
+              <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+                {#each list as member (member.id)}
+                  {@const self = member.userId === global.user?.id}
 
-                    <MemberRow
-                      canLeave={!isSoleAdmin}
-                      canManage={isAdmin && !self}
-                      {member}
-                      {onLeave}
-                      onRemove={() => onRemove(member)}
-                      onRole={(role) => onRole(member, role)}
-                      regionName={detail.name}
-                      role={displayRole(member)}
-                      {self}
-                    />
-                  {/each}
-                </div>
-              {/snippet}
-            </QueryState>
-          </SettingSection>
+                  <MemberRow
+                    canLeave={!isSoleAdmin}
+                    canManage={isAdmin && !self}
+                    {member}
+                    {onLeave}
+                    onRemove={() => onRemove(member)}
+                    onRole={(role) => onRole(member, role)}
+                    regionName={detail.name}
+                    role={displayRole(member)}
+                    {self}
+                  />
+                {/each}
+              </div>
+            {/snippet}
+          </QueryState>
+        </SettingSection>
 
-          <!-- Invitations -->
-          {#if isAdmin}
-            <SettingSection title={m.region_inviteMember()}>
-              {#if pending.length > 0}
-                <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-                  {#each pending as invitation (invitation.id)}
-                    <InvitationRow
-                      {invitation}
-                      onResend={() => onResend(invitation)}
-                      onRevoke={() => onRevoke(invitation)}
-                    />
-                  {/each}
-                </div>
-              {/if}
+        <!-- Invitations -->
+        {#if isAdmin}
+          <SettingSection title={m.region_inviteMember()}>
+            {#if pending.length > 0}
+              <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+                {#each pending as invitation (invitation.id)}
+                  <InvitationRow
+                    {invitation}
+                    onResend={() => onResend(invitation)}
+                    onRevoke={() => onRevoke(invitation)}
+                  />
+                {/each}
+              </div>
+            {/if}
 
-              <!-- One joined input-group at every width rather than stacked-then-inline: a
+            <!-- One joined input-group at every width rather than stacked-then-inline: a
                    full-width filled button under a full-width field read as a page-level CTA that
                    happened to sit below an input, not as the field's action. The section heading is
                    the group's visible label, so the input carries an aria-label instead of its own.
                    min-h-11 keeps both halves at the 44px touch minimum. -->
-              <form {...invite}>
-                <!-- The hidden field sits outside the group: input-group rounds its :first-child,
+            <form {...invite}>
+              <!-- The hidden field sits outside the group: input-group rounds its :first-child,
                      and a hidden input still counts as one, which left the email field square and
                      with a stray divider border. -->
-                <input type="hidden" name="regionFk" value={regionId} />
+              <input type="hidden" name="regionFk" value={regionId} />
 
-                <div class="input-group min-h-11 grid-cols-[1fr_auto]">
-                  <input
-                    {...inviteRegionMember.fields.email.as('email')}
-                    class="ig-input"
-                    aria-label={m.region_inviteEmail()}
-                    autocomplete="email"
-                    placeholder={m.region_inviteEmail()}
-                    required
-                    disabled={seats === 'full' || inviteRegionMember.pending > 0}
-                  />
-                  <button
-                    type="submit"
-                    class="ig-btn preset-filled-primary-500"
-                    disabled={seats === 'full' || inviteRegionMember.pending > 0}
-                  >
-                    {m.region_invite()}
-                  </button>
-                </div>
-              </form>
+              <div class="input-group min-h-11 grid-cols-[1fr_auto]">
+                <input
+                  {...inviteRegionMember.fields.email.as('email')}
+                  class="ig-input"
+                  aria-label={m.region_inviteEmail()}
+                  autocomplete="email"
+                  placeholder={m.region_inviteEmail()}
+                  required
+                  disabled={seats === 'full' || inviteRegionMember.pending > 0}
+                />
+                <button
+                  type="submit"
+                  class="ig-btn preset-filled-primary-500"
+                  disabled={seats === 'full' || inviteRegionMember.pending > 0}
+                >
+                  {m.region_invite()}
+                </button>
+              </div>
+            </form>
 
-              <!-- The address stays in the field when the server refuses (seats full, already a
+            <!-- The address stays in the field when the server refuses (seats full, already a
                    member), so a rejected invite never costs the admin the typing. -->
-              {#each inviteRegionMember.fields.email.issues() as issue (issue.message)}
-                <p class="text-error-600-400 text-sm" role="alert">{resolveIssueMessage(issue.message)}</p>
-              {/each}
-            </SettingSection>
-          {/if}
-        </div>
-      {/snippet}
-    </QueryState>
-  </div>
+            {#each inviteRegionMember.fields.email.issues() as issue (issue.message)}
+              <p class="text-error-600-400 text-sm" role="alert">{resolveIssueMessage(issue.message)}</p>
+            {/each}
+          </SettingSection>
+        {/if}
+      </div>
+    {/snippet}
+  </QueryState>
+</div>

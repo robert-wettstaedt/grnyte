@@ -568,6 +568,42 @@
   "region_seatsOneLeft": "{used} of {total} seats used, 1 left",
   "region_seatsUsed": "{used} of {total} seats used",
   "region_select": "Select a region",
+  "region_tagAdd": "Add tag",
+  "region_tagAdded": "Added \"{name}\"",
+  "region_tagComma": "A tag cannot contain a comma",
+  "region_tagDuplicate": "Each tag can only appear once",
+  "region_tagGone": "That tag is no longer in this region's list",
+  "region_tagName": "Tag name",
+  "region_tagRemove": "Remove tag",
+  "region_tagRemoveConfirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Remove \"{name}\"? It comes off {count} route, and that cannot be undone.",
+        "countPlural=other": "Remove \"{name}\"? It comes off {count} routes, and that cannot be undone."
+      }
+    }
+  ],
+  "region_tagRemoveUnused": "Remove \"{name}\"? No route carries it.",
+  "region_tagRemoved": "Removed \"{name}\"",
+  "region_tagRename": "Rename",
+  "region_tagRenameHint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Stays on {count} route.",
+        "countPlural=other": "Stays on all {count} routes."
+      }
+    }
+  ],
+  "region_tagRenamed": "Renamed \"{from}\" to \"{to}\"",
+  "region_tags": "Tags",
+  "region_tagsCount": "{count} of {max}",
+  "region_tagsEmpty": "No tags yet. Add the ones your community uses to describe routes.",
+  "region_tagsHint": "Renaming a tag keeps it on every route that already carries it.",
+  "region_tagsTooMany": "At most {count} tags",
   "region_title": "Region",
   "region_viewProfile": "View profile",
   "roles_admin": "Admin",

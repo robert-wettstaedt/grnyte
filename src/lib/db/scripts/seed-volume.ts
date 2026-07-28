@@ -84,7 +84,14 @@ const members = await sql<{ id: number }[]>`
 const creators = members.length ? members.map((m) => m.id) : [region.createdBy]
 const author = () => pick(creators)
 
-const tags = (await sql<{ id: string }[]>`select id from public.tags`).map((t) => t.id)
+// The region's own vocabulary, since tags stopped being global. Empty rather than a copy of
+// `DEFAULT_TAGS`: migration 0089 wrote the key onto every region, and the tag seeding below is
+// already guarded on this being non-empty.
+const tags =
+  (
+    await sql<{ tags: null | string[] }[]>`
+  select settings -> 'tags' as tags from public.regions where id = ${region.id}`
+  )[0]?.tags ?? []
 
 // RESET=true wipes this region's existing content first (FK-safe order; blocks
 // <-> geolocations is a cycle, so null the block link before deleting geos).

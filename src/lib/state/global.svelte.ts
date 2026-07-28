@@ -5,8 +5,6 @@ import type { RegionMembership, UserRegion } from '$lib/entities/region/dto'
 import { userRegionList } from '$lib/entities/region/resources.svelte'
 import type { AppRole, Permission, RolePermission } from '$lib/entities/rolePermission/dto'
 import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelte'
-import type { Tag } from '$lib/entities/tag/dto'
-import { tagList } from '$lib/entities/tag/resources.svelte'
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
@@ -29,9 +27,6 @@ export interface GlobalState {
   /** True while app-shell prerequisites are still loading. */
   readonly isLoading: boolean
   readonly rolePermissionsResource: QueryResource<RolePermission[]>
-  /** All available route tags, ordered by id. */
-  readonly tags: Tag[]
-  readonly tagsResource: QueryResource<Tag[]>
   /** The signed-in user with their settings, or `undefined` while loading. */
   readonly user: undefined | User
 
@@ -76,7 +71,6 @@ export function setGlobalState(): GlobalState | undefined {
   }
 
   const gradesResource = gradeList()
-  const tagsResource = tagList()
   const userResource = currentUser()
   const userRoleResource = currentUserRole()
   const rolePermissionsResource = rolePermissionList()
@@ -95,7 +89,6 @@ export function setGlobalState(): GlobalState | undefined {
     get isLoading() {
       return (
         gradesResource.status === 'loading' ||
-        tagsResource.status === 'loading' ||
         userResource.status === 'loading' ||
         userRoleResource.status === 'loading' ||
         rolePermissionsResource.status === 'loading' ||
@@ -104,12 +97,6 @@ export function setGlobalState(): GlobalState | undefined {
     },
     get rolePermissionsResource() {
       return rolePermissionsResource
-    },
-    get tags() {
-      return tagsResource.data
-    },
-    get tagsResource() {
-      return tagsResource
     },
     get user() {
       return userResource.data
@@ -160,7 +147,6 @@ export function staticGlobalState(
   data: {
     grades?: Grade[]
     gradingScale?: GradingScale
-    tags?: Tag[]
     user?: User
     userPermissions?: Permission[]
     userRegions?: UserRegion[]
@@ -176,7 +162,6 @@ export function staticGlobalState(
   })
 
   const grades = data.grades ?? []
-  const tags = data.tags ?? []
   const userRegions = data.userRegions ?? []
 
   return {
@@ -185,8 +170,6 @@ export function staticGlobalState(
     gradingScale: data.gradingScale ?? data.user?.userSettings?.gradingScale ?? 'FB',
     isLoading: false,
     rolePermissionsResource: ready([]),
-    tags,
-    tagsResource: ready(tags),
     user: data.user,
     userPermissions: data.userPermissions,
     userRegions,

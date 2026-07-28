@@ -7,6 +7,7 @@
   import type { MediaUpload } from '$lib/entities/file/upload-manager.svelte'
   import FirstAscentField, { type FaClimber } from '$lib/entities/firstAscensionist/FirstAscentField.svelte'
   import GradeSlider from '$lib/entities/grade/GradeSlider.svelte'
+  import { regionTags } from '$lib/entities/region/tagVocabulary'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -156,7 +157,7 @@
   label={m.routes_form_tagsLabel()}
   required
 >
-  <RouteTagsInput name="tags" tags={global.tags} bind:value={tags} />
+  <RouteTagsInput name="tags" tags={regionTags(global.userRegions, block.regionFk)} bind:value={tags} />
 </RemoteFormInputWrapper>
 
 <RemoteFormInputWrapper

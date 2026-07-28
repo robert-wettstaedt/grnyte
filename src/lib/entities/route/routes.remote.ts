@@ -22,6 +22,7 @@ import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
+import { regionTags } from '../region/tagVocabulary'
 import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
@@ -44,6 +45,15 @@ const routeActionSchema = z.object({
   rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
   tags: z.array(z.string()).optional().default([]),
 })
+
+/**
+ * Drop tags a submission may not write. `routes_to_tags.tag_fk` has no foreign key any more (a
+ * region owns its own vocabulary, see `regions.settings.tags`) and `routeActionSchema.tags` is free
+ * text, so this is the only thing standing between a forged submission and an unknown string on a
+ * route. Callers decide what `allowed` is, because the edit path also has to let through whatever
+ * the route already carries.
+ */
+const allowedTags = (allowed: string[], submitted: string[]) => submitted.filter((tag) => allowed.includes(tag))
 
 /** Field shape the shared add/edit-route form binds to, `id` is set only when editing. */
 export type RouteFormInput = z.input<typeof routeActionSchema>
@@ -165,10 +175,9 @@ export const createRoute = authedForm(routeActionSchema, async (value, { db, use
   // through the same SQL every other write path uses.
   await recalcUserGradeAndRating(db, route.id)
 
-  if (value.tags.length > 0) {
-    await db
-      .insert(routesToTags)
-      .values(value.tags.map((tagFk) => ({ regionFk: block.regionFk, routeFk: route.id, tagFk })))
+  const tags = allowedTags(regionTags(userRegions, block.regionFk), value.tags)
+  if (tags.length > 0) {
+    await db.insert(routesToTags).values(tags.map((tagFk) => ({ regionFk: block.regionFk, routeFk: route.id, tagFk })))
   }
 
   const resolvedFa = await resolveFirstAscensionists(db, value.firstAscensionists, block.regionFk)
@@ -212,7 +221,9 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
 
   const oldTagRows = await db.query.routesToTags.findMany({ where: eq(routesToTags.routeFk, route.id) })
   const oldTags = oldTagRows.map((row) => row.tagFk).sort()
-  const newTags = [...new Set(value.tags)].sort()
+  // `oldTags` joins the allowlist so an edit cannot strip a tag the region retired mid-session.
+  const allowed = [...regionTags(userRegions, route.regionFk), ...oldTags]
+  const newTags = [...new Set(allowedTags(allowed, value.tags))].sort()
   const tagsChanged = oldTags.join(',') !== newTags.join(',')
 
   await db
@@ -460,10 +471,14 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     const [created] = await db.insert(routes).values(snapshot.route).returning()
     await recalcUserGradeAndRating(db, created.id)
 
-    if (snapshot.tags.length > 0) {
+    // The vocabulary alone, unlike the edit path above: this snapshot went out to the client and
+    // came back, so a route restored after its region retired one of its tags comes back without
+    // that tag rather than carrying a string in no vocabulary.
+    const restoredTags = allowedTags(regionTags(userRegions, created.regionFk), snapshot.tags)
+    if (restoredTags.length > 0) {
       await db
         .insert(routesToTags)
-        .values(snapshot.tags.map((tagFk) => ({ regionFk: created.regionFk, routeFk: created.id, tagFk })))
+        .values(restoredTags.map((tagFk) => ({ regionFk: created.regionFk, routeFk: created.id, tagFk })))
     }
     if (snapshot.firstAscensionistFks.length > 0) {
       await db.insert(routesToFirstAscensionists).values(

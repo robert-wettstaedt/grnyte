@@ -5,7 +5,7 @@ import {
   REGION_PERMISSION_EDIT,
   REGION_PERMISSION_READ,
 } from '$lib/auth'
-import type { RegionSettings } from '$lib/entities/region/mapLayers'
+import type { RegionSettings } from '$lib/entities/region/settings'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
 import { relations, sql } from 'drizzle-orm'
@@ -449,23 +449,6 @@ export type InsertGrade = InferInsertModel<typeof grades>
 export const gradesRelations = relations(grades, ({ many }) => ({
   ascents: many(ascents),
   routes: many(routes),
-}))
-
-export const tags = table(
-  'tags',
-  {
-    id: text('id').primaryKey(),
-  },
-  () => [
-    policy(`${APP_PERMISSION_ADMIN} can fully access tags`, getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN)),
-    policy('authenticated users can read tags', getPolicyConfig('select', sql`true`)),
-  ],
-).enableRLS()
-export type InsertTag = InferInsertModel<typeof tags>
-export type Tag = InferSelectModel<typeof tags>
-
-export const tagsRelations = relations(tags, ({ many }) => ({
-  routes: many(routesToTags),
 }))
 
 /**
@@ -1206,9 +1189,10 @@ export const routesToTags = table(
     routeFk: integer('route_fk')
       .notNull()
       .references((): AnyColumn => routes.id),
-    tagFk: text('tag_fk')
-      .notNull()
-      .references((): AnyColumn => tags.id),
+    // Free text rather than a foreign key: the vocabulary lives in `regions.settings.tags`, so each
+    // region's admins own it and two regions may use the same word for different things. What may
+    // be written here is checked against the target region's list in `routes.remote.ts`.
+    tagFk: text('tag_fk').notNull(),
   },
   (table) => [
     index('routes_to_tags_region_fk_idx').on(table.regionFk),
@@ -1228,7 +1212,6 @@ export const routesToTags = table(
 export const routesToTagsRelations = relations(routesToTags, ({ one }) => ({
   region: one(regions, { fields: [routesToTags.regionFk], references: [regions.id] }),
   route: one(routes, { fields: [routesToTags.routeFk], references: [routes.id] }),
-  tag: one(tags, { fields: [routesToTags.tagFk], references: [tags.id] }),
 }))
 
 export const geolocations = table(

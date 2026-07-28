@@ -3,6 +3,7 @@ import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { acceptPath } from '$lib/entities/region/dto'
 import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'
+import { regionSettingsSchema } from '$lib/entities/region/settings'
 import { createServerClient } from '@supabase/ssr'
 import { redirect, type Handle } from '@sveltejs/kit'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
@@ -50,7 +51,10 @@ export async function getUserPermissions(
     ...member,
     name: member.region.name,
     permissions: permissions.filter(({ role }) => role === member.role).map(({ permission }) => permission),
-    settings: member.region.settings ?? undefined,
+    // Checked rather than cast, the way `toRegionMembership` does it on the client side: the column
+    // is untyped jsonb, and `regionTags` reads the vocabulary off here to decide what a route write
+    // may store. An unparsed blob would make that allowlist whatever the column happened to hold.
+    settings: regionSettingsSchema.safeParse(member.region.settings ?? {}).data,
   }))
 
   return {

@@ -568,6 +568,42 @@
   "region_seatsOneLeft": "{used} von {total} Plätzen belegt, 1 frei",
   "region_seatsUsed": "{used} von {total} Plätzen belegt",
   "region_select": "Region auswählen",
+  "region_tagAdd": "Tag hinzufügen",
+  "region_tagAdded": "\"{name}\" hinzugefügt",
+  "region_tagComma": "Ein Tag darf kein Komma enthalten",
+  "region_tagDuplicate": "Jedes Tag darf nur einmal vorkommen",
+  "region_tagGone": "Dieses Tag steht nicht mehr in der Liste dieser Region",
+  "region_tagName": "Tag-Name",
+  "region_tagRemove": "Tag entfernen",
+  "region_tagRemoveConfirm": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "\"{name}\" entfernen? Es verschwindet von {count} Route, und das lässt sich nicht rückgängig machen.",
+        "countPlural=other": "\"{name}\" entfernen? Es verschwindet von {count} Routen, und das lässt sich nicht rückgängig machen."
+      }
+    }
+  ],
+  "region_tagRemoveUnused": "\"{name}\" entfernen? Keine Route trägt es.",
+  "region_tagRemoved": "\"{name}\" entfernt",
+  "region_tagRename": "Umbenennen",
+  "region_tagRenameHint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Bleibt auf {count} Route erhalten.",
+        "countPlural=other": "Bleibt auf allen {count} Routen erhalten."
+      }
+    }
+  ],
+  "region_tagRenamed": "\"{from}\" in \"{to}\" umbenannt",
+  "region_tags": "Tags",
+  "region_tagsCount": "{count} von {max}",
+  "region_tagsEmpty": "Noch keine Tags. Füge die hinzu, mit denen eure Community Routen beschreibt.",
+  "region_tagsHint": "Wenn du ein Tag umbenennst, bleibt es auf allen Routen erhalten, die es bereits tragen.",
+  "region_tagsTooMany": "Höchstens {count} Tags",
   "region_title": "Region",
   "region_viewProfile": "Profil ansehen",
   "roles_admin": "Admin",

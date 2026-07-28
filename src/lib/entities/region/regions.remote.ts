@@ -24,8 +24,10 @@ import {
   sendInvitationEmail,
   type MailContext,
 } from './invite.server'
-import { mapLayerSchema } from './mapLayers'
 import { canEditRegion } from './permissions'
+import { mapLayerSchema, type RegionSettings } from './settings'
+import { addTag, removeTag, renameTag, tagUsage } from './tags.server'
+import { MAX_TAGS, regionTags, tagNameSchema } from './tagVocabulary'
 
 const assignableRoleSchema = z.enum(assignableRoles)
 
@@ -62,6 +64,17 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })
 
+/**
+ * Write one key of a region's `settings`. Merged rather than assigned: `settings` is one jsonb blob
+ * and each settings screen owns a single key of it, so a key added to `RegionSettings` later cannot
+ * be wiped by saving an older screen.
+ */
+const mergeSettings = (db: Context['db'], id: number, patch: Partial<RegionSettings>) =>
+  db
+    .update(regions)
+    .set({ settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb` })
+    .where(eq(regions.id, id))
+
 const regionMapLayersSchema = z.object({
   id: stringToInt,
   mapLayers: z.array(mapLayerSchema).optional().default([]),
@@ -75,17 +88,83 @@ export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ 
     invalid(formError('form_noPermission'))
   }
 
-  // Merged rather than assigned: `settings` is one jsonb blob and this form owns a single key of
-  // it, so a key added to `RegionSettings` later cannot be wiped by saving this screen.
-  await db
-    .update(regions)
-    .set({
-      settings: sql`coalesce(${regions.settings}, '{}'::jsonb) || ${JSON.stringify({ mapLayers })}::jsonb`,
-    })
-    .where(eq(regions.id, id))
+  await mergeSettings(db, id, { mapLayers })
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
 })
+
+/**
+ * How many routes carry each of a region's tags, for the settings screen: one grouped read for the
+ * whole list rather than one per tag. Until it lands, that screen's remove control stays disabled
+ * rather than offering to destroy an unknown quantity.
+ */
+export const regionTagUsage = authedQuery(
+  z.object({ regionFk: z.number() }),
+  ({ regionFk }, { db }): Promise<Record<string, number>> => tagUsage(db, regionFk),
+)
+
+/**
+ * The region's vocabulary as it stands right now, having checked the caller may rewrite it.
+ *
+ * Read per request from `ctx.userRegions`, never from anything the client submitted. That is what
+ * keeps the three mutations below additive: each one touches the tag it was handed by name and
+ * leaves the rest of the list alone, so a tag another admin adds while this screen is open cannot
+ * be deleted by a stale snapshot.
+ */
+function editableTags(ctx: Context, regionFk: number): string[] {
+  assertCanEdit(ctx, regionFk)
+  return regionTags(ctx.userRegions, regionFk)
+}
+
+/** Add a word to a region's route-tag vocabulary. Tagged on nothing until somebody applies it. */
+export const addRegionTag = authedCommand(
+  z.object({ name: tagNameSchema, regionFk: z.number() }),
+  async ({ name, regionFk }, ctx) => {
+    const stored = editableTags(ctx, regionFk)
+
+    // Nothing else catches this: the vocabulary is a jsonb array, so there is no unique constraint,
+    // and a duplicated name would render as two identical chips forever.
+    if (stored.includes(name)) {
+      error(409, formError('region_tagDuplicate'))
+    }
+
+    if (stored.length >= MAX_TAGS) {
+      error(409, formError('region_tagsTooMany', { count: MAX_TAGS }))
+    }
+
+    await addTag(ctx.db, regionFk, stored, name)
+  },
+)
+
+/** Rename a tag, carrying it onto every route already tagged with it. See {@link renameTag}. */
+export const renameRegionTag = authedCommand(
+  z.object({ from: z.string(), regionFk: z.number(), to: tagNameSchema }),
+  async ({ from, regionFk, to }, ctx) => {
+    const stored = editableTags(ctx, regionFk)
+
+    if (!stored.includes(from)) {
+      error(404, formError('region_tagGone'))
+    }
+
+    if (from === to) {
+      return
+    }
+
+    if (stored.includes(to)) {
+      error(409, formError('region_tagDuplicate'))
+    }
+
+    await renameTag(ctx.db, regionFk, stored, from, to)
+  },
+)
+
+/** Retire a tag, deleting it from every route that carries it. See {@link removeTag}. */
+export const removeRegionTag = authedCommand(
+  z.object({ name: z.string(), regionFk: z.number() }),
+  async ({ name, regionFk }, ctx) => {
+    await removeTag(ctx.db, regionFk, editableTags(ctx, regionFk), name)
+  },
+)
 
 /**
  * Pending invitations for a region.

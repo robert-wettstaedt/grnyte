@@ -1,6 +1,6 @@
 <script lang="ts">
   interface Props {
-    /** Tag ids as stored (`SD`, `trav-l-r`, …) — rendered verbatim. */
+    /** The region's own tag strings, rendered verbatim. */
     tags: string[]
   }
 
