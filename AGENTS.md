@@ -11,7 +11,10 @@
 - `npm run check`: svelte-check + tsc. `npm run lint` and `npm run format` for prettier/eslint
 - `npm run generate`: regenerate Drizzle + Zero schemas and the GoTrue email templates.
   `npm run migrate` applies migrations
+- `npm run check:prod`: assert a deployed environment's signup/mail config (reads only, no writes)
 - `npm test`: vitest. `npm run storybook` to eyeball primitives
+- `npm run test:e2e`: Playwright. Needs the local Supabase stack, `npm run dev`, `npm run dev:zero`,
+  a live `RESEND_API_KEY` and `E2E_PASSWORD` in `.env`; the spec names whatever is missing
 - `npm run machine-translate`: fill missing i18n locales from the English source
 
 ## Tech Stack

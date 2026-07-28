@@ -5,7 +5,7 @@ import { svelteTesting } from '@testing-library/svelte/vite'
 import { SvelteKitPWA } from '@vite-pwa/sveltekit'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 const file = fileURLToPath(new URL('package.json', import.meta.url))
 const json = readFileSync(file, 'utf8')
@@ -91,6 +91,9 @@ export default defineConfig({
     // runner would format 2026-04-21T12:00Z as Apr 22 and fail).
     env: { TZ: 'UTC' },
     environment: 'jsdom',
+    // Vitest picks up `**/*.spec.ts` by default, which would otherwise try to run the Playwright
+    // spec (`npm run test:e2e` owns that one).
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     setupFiles: ['./vitest-setup.js'],
   },
 })

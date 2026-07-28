@@ -182,5 +182,12 @@ storybook-static
 # rule (intended for the macOS "Icon\r" file) that also matches this folder.
 !src/lib/components/Icon/
 
-dev-distemails
+dev-dist
+emails
 
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

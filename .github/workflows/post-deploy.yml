@@ -1,0 +1,67 @@
+# Checks that only production can answer.
+#
+# `ci.yml` runs against a database that was created seconds ago, so it proves the code and nothing
+# about the environment: GoTrue's toggles, the Resend key, SITE_URL, and whether the deployed schema
+# still matches the code. Sign-up is where that hurts most, because somebody who cannot create an
+# account has no way to tell you.
+#
+# The canary creates ONE real account per run and deletes it again in teardown. Nothing else writes.
+name: Post-deploy
+
+on:
+  schedule:
+    # Daily, off the hour: nothing here needs to race the rest of GitHub's cron traffic.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+# One at a time, so two runs can never have an account in flight at once.
+concurrency: post-deploy
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://grnyte.rocks' }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_SENDER_EMAIL: ${{ secrets.RESEND_SENDER_EMAIL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: npm
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Only chromium, and only here: the app is never built in this job, because the thing under
+      # test is the deployment rather than this checkout.
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Check deployed configuration
+        run: npm run check:prod
+
+      # Runs even when the check above failed, because the two answer different questions and a
+      # rotated Resend key says nothing about whether sign-up still works.
+      - name: Sign-up canary
+        if: ${{ !cancelled() }}
+        run: npm run test:e2e prod-signup
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
