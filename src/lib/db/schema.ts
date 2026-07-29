@@ -1361,12 +1361,15 @@ export const favoritesRelations = relations(favorites, ({ one }) => ({
   user: one(users, { fields: [favorites.userFk], references: [users.id] }),
 }))
 
+// Named for its original client-only purpose; it holds server errors too. Left as
+// is because the whole table is disposable the day a real error tracker shows up.
 export const clientErrorLogs = table('client_error_logs', {
   ...baseFields,
   createdBy: integer('created_by').references((): AnyColumn => users.id),
   error: text(),
   navigator: jsonb().$type<z.infer<ReturnType<typeof z.json>>>(),
   pathname: text(),
+  source: text().$type<'client' | 'server'>().notNull().default('client'),
 }).enableRLS()
 
 export type ClientErrorLogs = InferSelectModel<typeof clientErrorLogs>

@@ -1,4 +1,5 @@
-import { logClientError } from './clientError.remote'
+import { logClientError } from './errors.remote'
+import { stringifyError } from './stringify'
 
 /**
  * Best-effort client-error reporter: logs to the console and persists to
@@ -20,17 +21,5 @@ export function reportClientError(error: unknown): void {
     }).catch(() => {})
   } catch {
     // reporting is best-effort; swallow everything
-  }
-}
-
-function stringifyError(error: unknown): string {
-  if (error instanceof Error) {
-    return [error.name, error.message, error.stack].filter(Boolean).join('\n')
-  }
-
-  try {
-    return JSON.stringify(error)
-  } catch {
-    return String(error)
   }
 }

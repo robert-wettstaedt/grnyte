@@ -3,6 +3,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { APP_PERMISSION_ADMIN } from '$lib/auth'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import type { UserInvitationItem } from '$lib/entities/region/dto'
@@ -226,6 +227,15 @@
             value={roleLabel(region.role)}
           />
         {/each}
+      </div>
+    </SettingSection>
+  {/if}
+
+  <!-- Admin. Hidden for everyone else; the query behind the page rejects them regardless. -->
+  {#if global.userPermissions?.includes(APP_PERMISSION_ADMIN)}
+    <SettingSection title={m.settings_admin()}>
+      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+        <SettingLink href={resolve('/settings/errors')} label={m.settings_errorLogs()} />
       </div>
     </SettingSection>
   {/if}
