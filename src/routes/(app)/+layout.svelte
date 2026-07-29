@@ -5,6 +5,7 @@
   import Logo from '$lib/assets/logo.svg'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
+  import StatusBar from '$lib/components/StatusBar/StatusBar.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError } from '$lib/logging/report'
@@ -73,18 +74,28 @@
 {:else}
   <!-- Shared viewport frame. Nested layouts fill it: (shell) adds the nav rail and
        tab bar around the main scroll area; the /areas editors deliberately omit them. -->
-  <div class="fixed inset-0 flex">
-    <!-- Walls off client render/effect crashes so one broken page doesn't blank the
-         whole app. Does NOT catch event-handler or async errors — see hooks.client. -->
-    <svelte:boundary onerror={(error) => reportClientError(error)}>
-      {@render children()}
+  <div class="fixed inset-0 flex flex-col">
+    <!-- Pushes content down rather than overlaying it: nothing occluded, no z-index
+         against the sheet/modal stack. Every (app) route gets it, including the
+         chromeless editors, which hide navigation and not warnings. -->
+    <StatusBar />
 
-      {#snippet failed()}
-        <main class="relative min-w-0 flex-1 overflow-y-auto">
-          <ErrorState type="generic" />
-        </main>
-      {/snippet}
-    </svelte:boundary>
+    <!-- transform-gpu makes this row the containing block for the app's `fixed` chrome
+         (nav rail, tab bar, map overlays), so they sit below the bar instead of under
+         it. Dialogs portal to <body> and stay viewport-fixed, which is what they want. -->
+    <div class="flex min-h-0 flex-1 transform-gpu">
+      <!-- Walls off client render/effect crashes so one broken page doesn't blank the
+           whole app. Does NOT catch event-handler or async errors — see hooks.client. -->
+      <svelte:boundary onerror={(error) => reportClientError(error)}>
+        {@render children()}
+
+        {#snippet failed()}
+          <main class="relative min-w-0 flex-1 overflow-y-auto">
+            <ErrorState type="generic" />
+          </main>
+        {/snippet}
+      </svelte:boundary>
+    </div>
   </div>
 {/if}
 
