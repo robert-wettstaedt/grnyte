@@ -1239,7 +1239,7 @@ export const geolocations = table(
     ),
     policy(
       `${REGION_PERMISSION_EDIT} can delete geolocations`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
     ),
   ],
 ).enableRLS()

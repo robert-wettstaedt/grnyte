@@ -1,0 +1,2 @@
+DROP POLICY "region.edit can delete geolocations" ON "geolocations" CASCADE;--> statement-breakpoint
+CREATE POLICY "region.edit can delete geolocations" ON "geolocations" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize_in_region('region.edit', region_fk)));

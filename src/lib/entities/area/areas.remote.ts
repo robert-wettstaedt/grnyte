@@ -4,13 +4,15 @@ import { coordinate, formError, stringToInt } from '$lib/forms/schemas'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { requireRow } from '$lib/remote/require.server'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
 import { refreshAreaType } from './area.server'
-import { canAddArea, canAddParking, canDeleteArea, canDeleteParking, canEditArea } from './permissions'
+import { requireEditableArea } from './guards.server'
+import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
 
 const areaActionSchema = z.object({
   description: z.string().optional().default(''),
@@ -38,6 +40,12 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
     !canAddArea(userRegions, { ...value, type: null }) ||
     (parentArea != null && !canAddArea(userRegions, parentArea))
   ) {
+    invalid(formError('form_noPermission'))
+  }
+
+  // A child must live in its parent's region; otherwise it could be created in region A
+  // under a parent in region B, where B can neither see nor moderate it.
+  if (parentArea != null && value.regionFk !== parentArea.regionFk) {
     invalid(formError('form_noPermission'))
   }
 
@@ -75,15 +83,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
 })
 
 export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, { db, user, userRegions }, issue) => {
-  const area = id == null ? undefined : await db.query.areas.findFirst({ where: eq(areas.id, id) })
-
-  if (area == null) {
-    invalid(formError('area_parentNotFound'))
-  }
-
-  if (!canEditArea(userRegions, { ...value, type: null })) {
-    invalid(formError('form_noPermission'))
-  }
+  const area = await requireEditableArea(db, userRegions, id)
 
   const existingAreasResult = await db.query.areas.findMany({
     where: and(
@@ -200,15 +200,11 @@ async function softDeleteArea(db: Context['db'], area: Area): Promise<DeleteArea
 export const deleteArea = authedCommand(
   z.object({ id: z.number() }),
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteAreaSnapshot>> => {
-    const area = await db.query.areas.findFirst({ where: eq(areas.id, id) })
-
-    if (area == null) {
-      error(404, 'Area not found')
-    }
-
-    if (!canDeleteArea(userRegions, area)) {
-      error(403, formError('form_noPermission'))
-    }
+    const area = await requireRow(
+      () => db.query.areas.findFirst({ where: eq(areas.id, id) }),
+      (row) => canDeleteArea(userRegions, user.id, row),
+      'Area not found',
+    )
 
     // Sub-areas and blocks are the spec's "children"; files are folded in because they
     // FK-reference the area and can't be recreated on undo — an area with files is
@@ -301,7 +297,7 @@ async function softRestoreArea(
  *  'deleted' activity the delete logged so the timeline reads as if it never happened. */
 export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
-    if (!canDeleteArea(userRegions, { regionFk: snapshot.area.regionFk, type: snapshot.area.type ?? null })) {
+    if (!canDeleteArea(userRegions, user.id, { regionFk: snapshot.area.regionFk })) {
       error(403, formError('form_noPermission'))
     }
 
@@ -318,7 +314,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
 
   const area = await db.query.areas.findFirst({ where: eq(areas.id, snapshot.areaId) })
 
-  if (area == null || !canDeleteArea(userRegions, area)) {
+  if (area == null || !canDeleteArea(userRegions, user.id, area)) {
     error(403, formError('form_noPermission'))
   }
 

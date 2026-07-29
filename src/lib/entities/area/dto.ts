@@ -2,6 +2,7 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 
 export interface AreaDetail extends AreaListItem {
   createdAt: Date | undefined
+  createdBy: number
   description: string | undefined
   geoPaths: string[]
   parkingLocations: Geolocation[]

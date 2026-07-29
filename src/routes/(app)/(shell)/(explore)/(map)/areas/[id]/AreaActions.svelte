@@ -24,7 +24,7 @@
   const global = getGlobalState()
 
   const canEdit = $derived(canEditArea(global.userRegions, area))
-  const canDelete = $derived(canDeleteArea(global.userRegions, area))
+  const canDelete = $derived(canDeleteArea(global.userRegions, global.user?.id, area))
   const canAdmin = $derived(checkRegionPermission(global.userRegions, [REGION_PERMISSION_ADMIN], area.regionFk))
   const canAddAreaHere = $derived(canAddArea(global.userRegions, area))
   const canAddBlockHere = $derived(canAddBlock(global.userRegions, area))
@@ -69,12 +69,7 @@
     {/if}
   {/if}
 
-  <SaveButton
-    class={area.type === 'area' ? 'flex-1' : undefined}
-    entityId={String(area.id)}
-    entityType="area"
-    regionFk={area.regionFk}
-  />
+  <SaveButton class={area.type === 'area' ? 'flex-1' : undefined} entityId={String(area.id)} entityType="area" />
 
   <ShareButton text={area.name} />
 

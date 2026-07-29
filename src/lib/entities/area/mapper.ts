@@ -16,6 +16,7 @@ export interface AreaAncestor {
 /** What `toAreaDetail` reads — satisfied by both the list and the single-area query. */
 export interface AreaDetailRow extends AreaAncestor {
   readonly createdAt: null | number
+  readonly createdBy: number
   readonly description: null | string
   readonly geoPaths: null | readonly string[]
   readonly parkingLocations: readonly Row<'geolocations'>[]
@@ -43,6 +44,7 @@ export function toAreaDetail(row: AreaDetailRow): AreaDetail {
   return {
     ...toAreaListItem(row),
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
+    createdBy: row.createdBy,
     description: row.description ?? undefined,
     geoPaths: row.geoPaths == null ? [] : [...row.geoPaths],
     parkingLocations: row.parkingLocations.map(toGeolocation),

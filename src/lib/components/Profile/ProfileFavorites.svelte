@@ -46,13 +46,13 @@
   const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: string): Promise<void> => {
     const favorite = favorites.data.find((f) => f.entityType === entityType && f.entityId === entityId)
     if (favorite != null) {
-      await toggleFavorite({ entityId, entityType, regionFk: favorite.regionFk })
+      await toggleFavorite({ entityId, entityType })
     }
   }
   const removeAllFavorites = async (): Promise<void> => {
     await Promise.all(
       favorites.data.map((f) =>
-        toggleFavorite({ entityId: f.entityId, entityType: f.entityType, regionFk: f.regionFk }),
+        toggleFavorite({ entityId: f.entityId, entityType: f.entityType }),
       ),
     )
   }

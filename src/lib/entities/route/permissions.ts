@@ -12,7 +12,11 @@ export function canDeleteRoute(userRegions: UserRegion[], route: RoutePermission
   return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], route.regionFk)
 }
 
-/** Any region member may edit a route, the community fills the gaps (RLS: READ can update routes). */
+/**
+ * Editing a route's own fields requires EDIT. The routes UPDATE policy additionally grants
+ * READ, but only so a member logging an ascent can have their grade/rating opinion folded
+ * into the route's community values (see recalcUserGradeAndRating) - not to edit route content.
+ */
 export function canEditRoute(userRegions: UserRegion[], route: RoutePermissionTarget): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], route.regionFk)
 }

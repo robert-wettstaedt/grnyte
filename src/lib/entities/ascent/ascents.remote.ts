@@ -4,6 +4,7 @@ import { ascents, ascentTypeEnum, files, routes } from '$lib/db/schema'
 import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { authedForm } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
@@ -79,15 +80,11 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { db, u
 
 /** Edit an ascent. Reuses the create form (with `id` set). Owner-only (RLS mirrors this). */
 export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value }, { db, user, userRegions }) => {
-  const ascent = id == null ? undefined : await db.query.ascents.findFirst({ where: eq(ascents.id, id) })
-
-  if (ascent == null) {
-    invalid(formError('ascents_notFound'))
-  }
-
-  if (!canEditAscent(userRegions, user.id, ascent)) {
-    invalid(formError('form_noPermission'))
-  }
+  const ascent = await requireRowForm(
+    () => (id == null ? Promise.resolve(undefined) : db.query.ascents.findFirst({ where: eq(ascents.id, id) })),
+    (row) => canEditAscent(userRegions, user.id, row),
+    formError('ascents_notFound'),
+  )
 
   await db
     .update(ascents)
@@ -154,15 +151,11 @@ export const deleteAscent = command(
     const rls = await createDrizzleSupabaseClient(supabase)
 
     const { routeFk, storage } = await rls(async (db) => {
-      const ascent = await db.query.ascents.findFirst({ where: eq(ascents.id, id) })
-
-      if (ascent == null) {
-        error(404, 'Ascent not found')
-      }
-
-      if (!canEditAscent(userRegions, user.id, ascent)) {
-        error(403, formError('form_noPermission'))
-      }
+      const ascent = await requireRow(
+        () => db.query.ascents.findFirst({ where: eq(ascents.id, id) }),
+        (row) => canEditAscent(userRegions, user.id, row),
+        'Ascent not found',
+      )
 
       const fileRows = await db.query.files.findMany({
         columns: { bunnyStreamFk: true, id: true, path: true },

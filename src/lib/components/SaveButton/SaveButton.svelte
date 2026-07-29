@@ -10,10 +10,9 @@
     class?: string
     entityId: string
     entityType: 'area' | 'block' | 'route'
-    regionFk: number
   }
 
-  const { class: className, entityId, entityType, regionFk }: Props = $props()
+  const { class: className, entityId, entityType }: Props = $props()
   const global = getGlobalState()
 
   // Saved state is read reactively from Zero, but the write goes through a
@@ -38,7 +37,7 @@
     const next = !saved
     savedOverride = next
     try {
-      await toggleFavorite({ entityId, entityType, regionFk })
+      await toggleFavorite({ entityId, entityType })
     } catch {
       savedOverride = !next
     }

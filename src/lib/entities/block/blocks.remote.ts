@@ -3,6 +3,7 @@ import { areas, blocks, files, geolocations, routes, topos, type Block } from '$
 import { formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
 import z from 'zod'
@@ -104,15 +105,11 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
 /** Edit a block's name and/or location. Reuses the create form (with `id` set). The location
  *  field is three-way: update the existing pin, attach a new one, or drop it entirely. */
 export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }, { db, user, userRegions }, issue) => {
-  const block = id == null ? undefined : await db.query.blocks.findFirst({ where: eq(blocks.id, id) })
-
-  if (block == null) {
-    invalid(formError('blocks_notFound'))
-  }
-
-  if (!canEditBlock(userRegions, block)) {
-    invalid(formError('form_noPermission'))
-  }
+  const block = await requireRowForm(
+    () => (id == null ? Promise.resolve(undefined) : db.query.blocks.findFirst({ where: eq(blocks.id, id) })),
+    (row) => canEditBlock(userRegions, row),
+    formError('blocks_notFound'),
+  )
 
   // Reject a duplicate name in the same area, excluding this block. Blank names are fine
   // (they render as "Block {order}"), so skip the check when the name is cleared.
@@ -202,15 +199,11 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
 export const setBlockLocation = authedCommand(
   z.object({ id: z.number(), lat: z.number(), long: z.number() }),
   async (value, { db, user, userRegions }) => {
-    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, value.id) })
-
-    if (block == null) {
-      error(404, 'Block not found')
-    }
-
-    if (!canEditBlock(userRegions, block)) {
-      error(403, formError('form_noPermission'))
-    }
+    const block = await requireRow(
+      () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
+      (row) => canEditBlock(userRegions, row),
+      'Block not found',
+    )
 
     if (block.geolocationFk == null) {
       const [geolocation] = await db
@@ -250,15 +243,11 @@ export const estimateBlockLocationFromPhoto = authedCommand(
     long: z.number().min(-180).max(180),
   }),
   async (value, { db, user, userRegions }) => {
-    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, value.id) })
-
-    if (block == null) {
-      error(404, 'Block not found')
-    }
-
-    if (!canEditBlock(userRegions, block)) {
-      error(403, formError('form_noPermission'))
-    }
+    const block = await requireRow(
+      () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
+      (row) => canEditBlock(userRegions, row),
+      'Block not found',
+    )
 
     if (block.geolocationFk != null) return
 
@@ -366,15 +355,11 @@ async function softDeleteBlock(db: Context['db'], block: Block): Promise<DeleteB
 export const deleteBlock = authedCommand(
   z.object({ id: z.number() }),
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteBlockSnapshot>> => {
-    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, id) })
-
-    if (block == null) {
-      error(404, 'Block not found')
-    }
-
-    if (!canDeleteBlock(userRegions, block)) {
-      error(403, formError('form_noPermission'))
-    }
+    const block = await requireRow(
+      () => db.query.blocks.findFirst({ where: eq(blocks.id, id) }),
+      (row) => canDeleteBlock(userRegions, user.id, row),
+      'Block not found',
+    )
 
     // Routes/topos/files FK-reference the block; a block with any of them is soft-deleted so
     // undo restores them cleanly (and so the hard delete never hits a FK constraint).
@@ -461,7 +446,7 @@ async function softRestoreBlock(
  *  removing the 'deleted' activity so the timeline reads as if it never happened. */
 export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
-    if (!canDeleteBlock(userRegions, snapshot.block)) {
+    if (!canDeleteBlock(userRegions, user.id, { regionFk: snapshot.block.regionFk })) {
       error(403, formError('form_noPermission'))
     }
 
@@ -478,7 +463,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
 
   const block = await db.query.blocks.findFirst({ where: eq(blocks.id, snapshot.blockId) })
 
-  if (block == null || !canDeleteBlock(userRegions, block)) {
+  if (block == null || !canDeleteBlock(userRegions, user.id, block)) {
     error(403, formError('form_noPermission'))
   }
 

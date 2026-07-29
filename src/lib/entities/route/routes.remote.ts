@@ -18,6 +18,7 @@ import {
 import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import z from 'zod'
@@ -204,15 +205,11 @@ export const createRoute = authedForm(routeActionSchema, async (value, { db, use
 /** Edit a route. Reuses the create form (with `id` set). Any region member may edit the
  *  route itself; tag changes additionally need EDIT (their RLS is stricter). */
 export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }, { db, user, userRegions }, issue) => {
-  const route = id == null ? undefined : await db.query.routes.findFirst({ where: eq(routes.id, id) })
-
-  if (route == null) {
-    invalid(formError('routes_notFound'))
-  }
-
-  if (!canEditRoute(userRegions, route)) {
-    invalid(formError('form_noPermission'))
-  }
+  const route = await requireRowForm(
+    () => (id == null ? Promise.resolve(undefined) : db.query.routes.findFirst({ where: eq(routes.id, id) })),
+    (row) => canEditRoute(userRegions, row),
+    formError('routes_notFound'),
+  )
 
   const duplicate = await findDuplicateName(db, value, route.blockFk, route.id)
   if (duplicate != null) {
@@ -339,15 +336,11 @@ type DeleteRouteSnapshot =
 export const deleteRoute = authedCommand(
   z.object({ id: z.number() }),
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteRouteSnapshot>> => {
-    const route = await db.query.routes.findFirst({ where: eq(routes.id, id) })
-
-    if (route == null) {
-      error(404, 'Route not found')
-    }
-
-    if (!canDeleteRoute(userRegions, route)) {
-      error(403, formError('form_noPermission'))
-    }
+    const route = await requireRow(
+      () => db.query.routes.findFirst({ where: eq(routes.id, id) }),
+      (row) => canDeleteRoute(userRegions, row),
+      'Route not found',
+    )
 
     // Ascents/files/topo lines FK-reference the route; with any of them present the route
     // is soft-deleted (and the hard delete never hits a FK constraint).

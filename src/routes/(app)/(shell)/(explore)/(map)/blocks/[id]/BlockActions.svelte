@@ -24,7 +24,7 @@
   const global = getGlobalState()
 
   const canEdit = $derived(canEditBlock(global.userRegions, block))
-  const canDelete = $derived(canDeleteBlock(global.userRegions, block))
+  const canDelete = $derived(canDeleteBlock(global.userRegions, global.user?.id, block))
   const canAddRouteHere = $derived(canAddRoute(global.userRegions, block))
   const canEditTopos = $derived(canEditTopo(global.userRegions, block))
 
@@ -86,7 +86,7 @@
       </div>
     {/if}
 
-    <SaveButton entityId={String(block.id)} entityType="block" regionFk={block.regionFk} />
+    <SaveButton entityId={String(block.id)} entityType="block" />
 
     <ShareButton text={block.name} />
 

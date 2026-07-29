@@ -7,6 +7,7 @@ import type { BlockDetail, BlockListItem } from './dto'
 /** What `toBlockDetail` reads — satisfied by both the list and the single-block query. */
 interface BlockDetailRow extends BlockRow {
   readonly createdAt: null | number
+  readonly createdBy: number
   readonly geolocation?: Row<'geolocations'> | undefined
   readonly topos?: readonly {
     readonly file?:
@@ -33,6 +34,7 @@ export function toBlockDetail(row: BlockDetailRow): BlockDetail {
   return {
     ...toBlockListItem(row),
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
+    createdBy: row.createdBy,
     geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
     rawName: row.name,
     topoImages: (row.topos ?? []).flatMap((topo) =>

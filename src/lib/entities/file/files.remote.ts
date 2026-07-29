@@ -1,11 +1,10 @@
 import { command, getRequestEvent } from '$app/server'
-import { checkRegionPermission, REGION_PERMISSION_EDIT } from '$lib/auth'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { insertActivity } from '$lib/entities/activity/activity.server'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
-import { authedCommand, type Context } from '$lib/remote/authed.server'
+import { authedCommand } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
@@ -14,39 +13,10 @@ import { eq } from 'drizzle-orm'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
 import z from 'zod'
+import { requireEditableFile, resolveAttachRegion } from './guards.server'
 import { deleteFileRows, removeFileStorage } from './cleanup.server'
 import { canDeleteFile } from './permissions'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
-
-/**
- * Region of the target entity. 403s when someone else's ascent is targeted —
- * ascent media is personal, and the files INSERT policy is only region-scoped
- * (unlike the owner-scoped update/delete policies), so RLS won't catch it.
- */
-const regionOf = async (
-  db: Context['db'],
-  user: Context['user'],
-  type: FileEntityType,
-  id: number,
-): Promise<number | undefined> => {
-  if (type === 'ascent') {
-    const ascent = await db.query.ascents.findFirst({
-      columns: { createdBy: true, regionFk: true },
-      where: (ascents) => eq(ascents.id, id),
-    })
-    if (ascent != null && ascent.createdBy !== user.id) {
-      error(403, 'Only the ascent author can attach media to it')
-    }
-    return ascent?.regionFk
-  }
-  const columns = { regionFk: true } as const
-  const entity = await (type === 'area'
-    ? db.query.areas.findFirst({ columns, where: (areas) => eq(areas.id, id) })
-    : type === 'block'
-      ? db.query.blocks.findFirst({ columns, where: (blocks) => eq(blocks.id, id) })
-      : db.query.routes.findFirst({ columns, where: (routes) => eq(routes.id, id) }))
-  return entity?.regionFk
-}
 
 /** The FK column linking a `files` row to its target entity — mirrors the columns on `files`. */
 const entityFks = (type: FileEntityType, id: number) => ({
@@ -82,7 +52,7 @@ export const finalizeImage = command(
     // PUTs), which must not run inside authedCommand's handler-wide transaction
     // holding a pooled connection — DB access happens in the two short `rls`
     // transactions below instead.
-    const { supabase, user } = getRequestEvent().locals
+    const { supabase, user, userRegions } = getRequestEvent().locals
     if (user == null) {
       error(401, 'Not authenticated')
     }
@@ -92,10 +62,7 @@ export const finalizeImage = command(
       error(400, 'Unsupported image format')
     }
 
-    const regionFk = await rls((db) => regionOf(db, user, entityType, entityId))
-    if (regionFk == null) {
-      error(404, `${entityType} not found`)
-    }
+    const regionFk = await rls((db) => resolveAttachRegion(db, user.id, userRegions, entityType, entityId))
 
     const download = await supabase.storage.from(STAGING_BUCKET).download(stagingPath)
     if (download.error != null) {
@@ -216,7 +183,9 @@ export const createBunnyVideo = command(async () => {
  */
 export const setFileVisibility = authedCommand(
   z.object({ fileId: z.string().min(1), visibility: z.enum(['public', 'private']) }),
-  async ({ fileId, visibility }, { db }): Promise<MutationResult<File>> => {
+  async ({ fileId, visibility }, { db, user, userRegions }): Promise<MutationResult<File>> => {
+    await requireEditableFile(db, userRegions, user.id, fileId)
+
     const [updated] = await db.update(files).set({ visibility }).where(eq(files.id, fileId)).returning()
     if (updated == null) {
       error(403, 'Not allowed to change this file')
@@ -323,16 +292,9 @@ export const finalizeVideo = authedCommand(
       error(403, 'Unknown video')
     }
 
-    const regionFk = await regionOf(db, user, entityType, entityId)
-    if (regionFk == null) {
-      error(404, `${entityType} not found`)
-    }
-    // The files UPDATE below passes for own ascents or EDIT — pre-check the
-    // non-ascent case so it fails with a real message instead of an opaque
-    // rollback after two inserts.
-    if (entityType !== 'ascent' && !checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], regionFk)) {
-      error(403, `Attaching videos to a ${entityType} requires edit permission`)
-    }
+    // Same gate as finalizeImage: pre-check so it fails with a real message instead of an
+    // opaque RLS rollback after two inserts.
+    const regionFk = await resolveAttachRegion(db, user.id, userRegions, entityType, entityId)
 
     // files.bunnyStreamFk and bunnyStreams.fileFk are circular, and the
     // bunny_streams UPDATE policy can never pass a NULL -> value file_fk
