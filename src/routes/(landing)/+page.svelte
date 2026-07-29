@@ -490,7 +490,9 @@
             {m.landing_footerDesc()}
           </p>
           <a
-            href={resolve('/status')}
+            href="https://status.grnyte.rocks"
+            target="_blank"
+            rel="noopener"
             class="text-surface-600-400 hover:text-surface-950-50 text-[13px] font-semibold no-underline transition-colors"
           >
             {m.landing_footerStatus()}

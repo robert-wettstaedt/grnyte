@@ -66,6 +66,14 @@
       </a>
 
       {@render children()}
+      <a
+        href="https://status.grnyte.rocks"
+        target="_blank"
+        rel="noopener"
+        class="text-surface-500 hover:text-surface-950-50 mt-8 self-center text-[13px] no-underline transition-colors"
+      >
+        {m.landing_footerStatus()}
+      </a>
     </div>
   </div>
 </div>
