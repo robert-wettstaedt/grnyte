@@ -12,6 +12,22 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # Plain Postgres, not the full Supabase stack: our migrations only reference Supabase-managed
+    # objects (auth schema, the anon/authenticated roles, auth.uid/jwt, a storage bucket), which
+    # ci/shim.sql recreates in ~50 lines. See ci/shim.sql for the why.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       NEXTCLOUD_URL: http://foobar
       PUBLIC_TOPO_EMAIL: foobar
@@ -22,7 +38,7 @@ jobs:
       PUBLIC_SUPABASE_URL: foobar
       PUBLIC_SUPABASE_ANON_KEY: foobar
       SUPABASE_SERVICE_ROLE_KEY: foobar
-      DATABASE_URL: postgres://foobar
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       NEXTCLOUD_USER_NAME: foobar
       NEXTCLOUD_USER_PASSWORD: foobar
       BUNNY_STREAM_API_KEY: foobar
@@ -44,6 +60,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      # Recreate the Supabase surface, then migrate + seed so the DB-backed suites run instead of
+      # self-skipping. NEXTCLOUD_* are the dummy values above; the two Nextcloud backfills need them
+      # set (else they throw), then no-op on the empty DB. psql ships on the ubuntu runner.
+      - name: Prepare test database
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ci/shim.sql
+          npm run migrate
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ci/seed.sql
 
       - name: Run tests
         run: npm test
