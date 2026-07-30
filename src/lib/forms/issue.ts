@@ -1,3 +1,4 @@
+import { resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
 
 /**
@@ -28,6 +29,5 @@ export function resolveIssueMessage(message: string): string {
     // not JSON — treat the raw string as the key
   }
 
-  const fn = (m as unknown as Record<string, (i?: Record<string, unknown>) => string>)[key]
-  return fn ? fn(params) : key // ponytail: unknown key falls back to the raw string
+  return resolveMessage(key, params) // unknown key falls back to the raw string
 }
