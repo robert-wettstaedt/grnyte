@@ -446,6 +446,17 @@ async function softRestoreBlock(
  *  removing the 'deleted' activity so the timeline reads as if it never happened. */
 export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
+    // The snapshot is client-supplied, so re-validate placement the way createBlock does: the target
+    // area must exist and be in the region the caller claims DELETE on - otherwise a block could be
+    // restored into another region's area (and shiftBlockOrdersUp would renumber that area's order).
+    const area = await db.query.areas.findFirst({ where: eq(areas.id, snapshot.areaFk) })
+
+    if (area == null) {
+      error(404, formError('area_parentNotFound'))
+    }
+    if (area.regionFk !== snapshot.block.regionFk) {
+      error(403, formError('form_noPermission'))
+    }
     if (!canDeleteBlock(userRegions, user.id, { regionFk: snapshot.block.regionFk })) {
       error(403, formError('form_noPermission'))
     }

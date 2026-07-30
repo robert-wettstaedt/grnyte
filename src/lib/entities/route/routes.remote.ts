@@ -4,7 +4,6 @@ import {
   ascents,
   blocks,
   files,
-  firstAscensionists,
   routeExternalResource27crags,
   routeExternalResource8a,
   routeExternalResources,
@@ -24,6 +23,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
 import { regionTags } from '../region/tagVocabulary'
+import { resolveFirstAscensionists } from './firstAscensionist.server'
 import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
@@ -99,40 +99,6 @@ async function findDuplicateName(
   })
 }
 
-/** Resolve each submitted climber to a `firstAscensionists` row, matching an existing
- *  row by linked user or (case-insensitive) name within the region, creating missing ones.
- *  Duplicate submissions of the same climber collapse to one row. */
-async function resolveFirstAscensionists(
-  db: Context['db'],
-  climbers: RouteFormValue['firstAscensionists'],
-  regionFk: number,
-): Promise<{ id: number; name: string }[]> {
-  const existing = await db.query.firstAscensionists.findMany({
-    where: eq(firstAscensionists.regionFk, regionFk),
-  })
-
-  const resolved: { id: number; name: string }[] = []
-  for (const climber of climbers) {
-    const match =
-      (climber.userFk == null ? undefined : existing.find((row) => row.userFk === climber.userFk)) ??
-      existing.find((row) => row.name.toLowerCase() === climber.name.toLowerCase())
-
-    if (match != null) {
-      if (!resolved.some((row) => row.id === match.id)) {
-        resolved.push(match)
-      }
-      continue
-    }
-
-    const [created] = await db
-      .insert(firstAscensionists)
-      .values({ name: climber.name, regionFk, userFk: climber.userFk })
-      .returning()
-    existing.push(created)
-    resolved.push(created)
-  }
-  return resolved
-}
 
 const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
 
@@ -181,7 +147,7 @@ export const createRoute = authedForm(routeActionSchema, async (value, { db, use
     await db.insert(routesToTags).values(tags.map((tagFk) => ({ regionFk: block.regionFk, routeFk: route.id, tagFk })))
   }
 
-  const resolvedFa = await resolveFirstAscensionists(db, value.firstAscensionists, block.regionFk)
+  const resolvedFa = await resolveFirstAscensionists(db, value.firstAscensionists, block.regionFk, user.id)
   if (resolvedFa.length > 0) {
     await db
       .insert(routesToFirstAscensionists)
@@ -254,7 +220,7 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
     where: eq(routesToFirstAscensionists.routeFk, route.id),
     with: { firstAscensionist: true },
   })
-  const newFaRows = await resolveFirstAscensionists(db, value.firstAscensionists, route.regionFk)
+  const newFaRows = await resolveFirstAscensionists(db, value.firstAscensionists, route.regionFk, user.id)
   const removedFa = oldFaRows.filter((row) => !newFaRows.some((fa) => fa.id === row.firstAscensionistFk))
   const addedFa = newFaRows.filter((fa) => !oldFaRows.some((row) => row.firstAscensionistFk === fa.id))
   if (removedFa.length > 0) {
@@ -455,13 +421,37 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
 
 /** Undo a {@link deleteRoute}: recreate the hard-deleted route (with its tag and first-ascent
  *  links) or clear the soft delete's `deletedAt`, and remove the 'deleted' activity. */
-export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, { db, userRegions }) => {
+export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
-    if (!canDeleteRoute(userRegions, snapshot.route)) {
+    // The snapshot is client-supplied, so mirror createRoute rather than inserting it verbatim:
+    // derive the region and area chain from the actual block, override authorship, and recompute the
+    // areaFks/areaIds filter tokens. Otherwise a DELETE holder could restore a route with forged
+    // createdBy into another region's block, with poisoned search tokens.
+    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, snapshot.route.blockFk) })
+    if (block == null) {
+      error(404, formError('blocks_notFound'))
+    }
+    if (!canDeleteRoute(userRegions, block)) {
       error(403, formError('form_noPermission'))
     }
 
-    const [created] = await db.insert(routes).values(snapshot.route).returning()
+    const areaFks = await areaAncestry(db, block.areaFk)
+
+    const [created] = await db
+      .insert(routes)
+      .values({
+        areaFks,
+        areaIds: areaFks.map((id) => `^${id}$`).join(','),
+        blockFk: block.id,
+        createdBy: user.id,
+        description: snapshot.route.description,
+        firstAscentYear: snapshot.route.firstAscentYear,
+        gradeFk: snapshot.route.gradeFk,
+        name: snapshot.route.name,
+        rating: snapshot.route.rating,
+        regionFk: block.regionFk,
+      })
+      .returning()
     await recalcUserGradeAndRating(db, created.id)
 
     // The vocabulary alone, unlike the edit path above: this snapshot went out to the client and

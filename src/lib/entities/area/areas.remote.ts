@@ -11,7 +11,7 @@ import { and, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
 import { refreshAreaType } from './area.server'
-import { requireEditableArea } from './guards.server'
+import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
 
 const areaActionSchema = z.object({
@@ -29,10 +29,9 @@ const areaActionSchema = z.object({
 export type AreaFormInput = StandardSchemaV1.InferInput<typeof areaActionSchema>
 
 export const createArea = authedForm(areaActionSchema, async (value, { db, user, userRegions }, issue) => {
-  const parentArea =
-    value.parentFk == null ? undefined : await db.query.areas.findFirst({ where: eq(areas.id, value.parentFk) })
+  const { parent: parentArea, status } = await loadParentArea(db, value.parentFk, value.regionFk)
 
-  if (value.parentFk != null && parentArea == null) {
+  if (status === 'missing') {
     invalid(formError('area_parentNotFound'))
   }
 
@@ -45,7 +44,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
 
   // A child must live in its parent's region; otherwise it could be created in region A
   // under a parent in region B, where B can neither see nor moderate it.
-  if (parentArea != null && value.regionFk !== parentArea.regionFk) {
+  if (status === 'wrongRegion') {
     invalid(formError('form_noPermission'))
   }
 
@@ -297,6 +296,17 @@ async function softRestoreArea(
  *  'deleted' activity the delete logged so the timeline reads as if it never happened. */
 export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
+    // The snapshot came from the client, so re-validate its structural placement the way createArea
+    // does - otherwise a DELETE holder could restore an area claiming their region but nested under a
+    // parent in another region, which that region can neither see nor moderate.
+    const { status } = await loadParentArea(db, snapshot.area.parentFk, snapshot.area.regionFk)
+
+    if (status === 'missing') {
+      error(404, formError('area_parentNotFound'))
+    }
+    if (status === 'wrongRegion') {
+      error(403, formError('form_noPermission'))
+    }
     if (!canDeleteArea(userRegions, user.id, { regionFk: snapshot.area.regionFk })) {
       error(403, formError('form_noPermission'))
     }

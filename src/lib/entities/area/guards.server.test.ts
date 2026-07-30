@@ -16,7 +16,7 @@ import { db } from '$lib/db/db.server'
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import type { UserRegion } from '$lib/entities/region/dto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { requireEditableArea } from './guards.server'
+import { loadParentArea, requireEditableArea } from './guards.server'
 
 const REGION = '__area_guards_region__'
 
@@ -76,5 +76,35 @@ describe.skipIf(!reachable)('requireEditableArea', () => {
 
   it('refuses when the id is missing', async () => {
     await expect(requireEditableArea(db, [membership(regionId, 'region.edit')], undefined)).rejects.toThrow()
+  })
+})
+
+/**
+ * `loadParentArea` is the shared cross-region check createArea and restoreArea both run: a child area
+ * must live in its parent's region. The escalation it prevents is a child created (or restored from a
+ * client snapshot) in region A under a parent in region B, where B can neither see nor moderate it.
+ */
+describe.skipIf(!reachable)('loadParentArea', () => {
+  it('is ok with no parent (a top-level area)', async () => {
+    const { parent, status } = await loadParentArea(db, null, regionId)
+    expect(status).toBe('ok')
+    expect(parent).toBeUndefined()
+  })
+
+  it('is ok, and returns the parent, when the parent is in the claimed region', async () => {
+    const { parent, status } = await loadParentArea(db, areaId, regionId)
+    expect(status).toBe('ok')
+    expect(parent?.id).toBe(areaId)
+  })
+
+  it('flags a parent in a DIFFERENT region than the child claims', async () => {
+    // The parent (areaId) lives in `regionId`; a child claiming some other region must not attach.
+    const { status } = await loadParentArea(db, areaId, regionId + 987654)
+    expect(status).toBe('wrongRegion')
+  })
+
+  it('flags a parent id that does not exist', async () => {
+    const { status } = await loadParentArea(db, 987654321, regionId)
+    expect(status).toBe('missing')
   })
 })
