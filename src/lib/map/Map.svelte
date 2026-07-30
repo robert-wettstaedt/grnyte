@@ -6,6 +6,7 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { toaster } from '$lib/state/toast'
   import { Attribution, defaults as defaultControls } from 'ol/control.js'
   import { boundingExtent } from 'ol/extent'
   import 'ol/ol.css'
@@ -61,7 +62,7 @@
   let map = $state<OlMap>()
   let mapHasSize = $state(false)
   let isTrackingGeolocation = $state(false)
-  let isGeolocationError = $state(false)
+  let geolocationErrorCode = $state<number>()
   let isLayersSheetOpen = $state(false)
   let layerEntries = $state<LayerEntry[]>([])
   let hasAutoFitted = $state(false)
@@ -247,10 +248,20 @@
     return () => mapInstance.removeLayer(layer)
   })
 
+  // `GeolocationPositionError.code`: 1 = permission denied, 2 = position unavailable, 3 = timeout.
+  // Denied is the one worth distinguishing, since no amount of retrying fixes it.
+  const locationErrorMessage = (code: number) =>
+    code === 1 ? m.map_locationBlocked() : code === 3 ? m.map_locationTimeout() : m.map_locationUnavailable()
+
+  // Plain, not reactive: gates the toast to attempts the user actually asked for, so a
+  // device that silently can't get a fix doesn't toast on every map load.
+  let didRequestLocation = false
+
   const handleGeolocate = () => {
     if (map == null) return
     const geolocation = map.get('geolocation') as OlGeolocation | undefined
     if (geolocation == null) return
+    didRequestLocation = true
     isTrackingGeolocation = true
     geolocation.setTracking(true)
   }
@@ -445,7 +456,14 @@
     const cleanupGeolocation = setupGeolocation(mapInstance, {
       getHasFocus: () => props.focus != null,
       getIsTracking: () => isTrackingGeolocation,
-      setIsError: (v) => (isGeolocationError = v),
+      setError: (code) => {
+        geolocationErrorCode = code
+        const wasRequested = didRequestLocation
+        didRequestLocation = false
+        if (code != null && wasRequested) {
+          toaster.create({ duration: 8000, title: locationErrorMessage(code), type: 'error' })
+        }
+      },
       setIsTracking: (v) => (isTrackingGeolocation = v),
     })
 
@@ -496,11 +514,12 @@
           'btn-icon',
           isTrackingGeolocation
             ? 'preset-filled-primary-500'
-            : isGeolocationError
+            : geolocationErrorCode != null
               ? 'preset-filled-error-500'
               : 'preset-filled-surface-100-900',
         ]}
         onclick={handleGeolocate}
+        title={geolocationErrorCode == null ? undefined : locationErrorMessage(geolocationErrorCode)}
       >
         <Icon name="locate" size={16} />
       </button>

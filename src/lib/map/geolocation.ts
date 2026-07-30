@@ -5,14 +5,18 @@ import Overlay from 'ol/Overlay.js'
 interface GeolocationCallbacks {
   getHasFocus: () => boolean
   getIsTracking: () => boolean
-  setIsError: (value: boolean) => void
+  /** `GeolocationPositionError.code` while failing, `undefined` once a fix arrives. */
+  setError: (code: number | undefined) => void
   setIsTracking: (value: boolean) => void
 }
 
 export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallbacks): () => void {
   const geolocation = new OlGeolocation({
     projection: mapInstance.getView().getProjection(),
-    trackingOptions: { enableHighAccuracy: true },
+    // ponytail: 10s timeout so a device that can never get a high-accuracy fix (indoors,
+    // desktop without wifi positioning) errors out instead of hanging forever on the spec
+    // default of Infinity. Tune if real devices need longer.
+    trackingOptions: { enableHighAccuracy: true, timeout: 10_000 },
   })
   mapInstance.set('geolocation', geolocation)
 
@@ -35,16 +39,19 @@ export function setupGeolocation(mapInstance: OlMap, callbacks: GeolocationCallb
     }
 
     geolocationOverlay.setPosition(position)
-    callbacks.setIsError(false)
+    callbacks.setError(undefined)
 
     if (callbacks.getIsTracking()) {
       mapInstance.getView().animate({ center: position, duration: 200 })
     }
   })
 
-  geolocation.on('error', () => {
-    callbacks.setIsError(true)
+  geolocation.on('error', (event) => {
+    callbacks.setError(event.code)
     callbacks.setIsTracking(false)
+    // Required, not redundant: OL only re-arms watchPosition when TRACKING actually
+    // changes value. Left true, the retry click's setTracking(true) is a silent no-op.
+    geolocation.setTracking(false)
   })
 
   mapInstance.on('pointerdrag', () => {
