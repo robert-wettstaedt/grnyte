@@ -17,6 +17,7 @@
   import ShareSheet from '$lib/components/Media/ShareSheet.svelte'
   import { deleteFile } from '$lib/entities/file/files.remote'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
+  import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { provideGlobalState, staticGlobalState } from '$lib/state/global.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
@@ -55,7 +56,7 @@
   const ogImage = $derived(
     data.file.bunnyStreamFk != null
       ? bunnyThumbnail(data.file.bunnyStreamFk)
-      : `${page.url.origin}/image/${data.file.path.replace(/^\/+/, '')}?w=1024`,
+      : `${page.url.origin}${imageSrc(data.file.path, 1024)}`,
   )
 
   let shareOpen = $state(false)

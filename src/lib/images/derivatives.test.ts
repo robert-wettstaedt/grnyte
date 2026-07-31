@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { derivativePath, isDerivableImage, isDerivativeRequest, pickDerivativeSize } from './derivatives'
+import {
+  DERIVATIVE_SIZES,
+  derivativePath,
+  imageSrc,
+  isDerivableImage,
+  isDerivativeRequest,
+  pickDerivativeSize,
+} from './derivatives'
 
 describe('derivativePath', () => {
   it('inserts the size before the extension', () => {
@@ -17,6 +24,29 @@ describe('pickDerivativeSize', () => {
 
   it('falls back to the largest for oversized requests', () => {
     expect(pickDerivativeSize(2048)).toBe(1024)
+  })
+})
+
+describe('imageSrc', () => {
+  it('normalises the leading slash exactly once', () => {
+    expect(imageSrc('/topos/138.jpg', 256)).toBe('/image/topos/138.jpg?w=256')
+    expect(imageSrc('topos/138.jpg', 256)).toBe('/image/topos/138.jpg?w=256')
+    expect(imageSrc('///topos/138.jpg', 256)).toBe('/image/topos/138.jpg?w=256')
+  })
+
+  it('asks for the untouched original when no size is given', () => {
+    expect(imageSrc('/topos/138.jpg')).toBe('/image/topos/138.jpg')
+  })
+
+  it('only ever emits a width that has a derivative behind it', () => {
+    // The regression: `?w=512` used to typecheck, then the server rounded it up to the 1024
+    // file, so three call sites shipped 4x the pixels they displayed. @ts-expect-error is the
+    // guard now - if DerivativeSize ever widens to `number`, this line stops erroring and fails.
+    // @ts-expect-error -- 512 is not a DerivativeSize
+    expect(imageSrc('/topos/138.jpg', 512)).toBe('/image/topos/138.jpg?w=512')
+    for (const size of DERIVATIVE_SIZES) {
+      expect(imageSrc('/topos/138.jpg', size)).toBe(`/image/topos/138.jpg?w=${size}`)
+    }
   })
 })
 

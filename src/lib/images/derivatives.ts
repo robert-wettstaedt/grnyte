@@ -39,14 +39,29 @@ export const imageStoragePaths = (path: string): string[] => {
 export const pickDerivativeSize = (requestedWidth: number): DerivativeSize =>
   DERIVATIVE_SIZES.find((size) => size >= requestedWidth) ?? DERIVATIVE_SIZES.at(-1)!
 
+/** The route that serves stored images. Only {@link imageSrc} builds these URLs. */
+const IMAGE_ROUTE = '/image/'
+
 /**
- * Whether `url` is a request for a generated derivative, i.e. what `Image.svelte` builds as
- * `/image/<path>?w=<size>`. Lives here next to the naming rules so the service worker's cache
- * matcher cannot drift from the route that serves them - it silently pointed at a path nothing
- * served for months, and a matcher that never fires looks exactly like one that always misses.
+ * The URL serving `path`: the `size` derivative, or the untouched original when `size` is
+ * omitted (several MB, so ask for it only where the user zooms in).
+ *
+ * The single place a served image URL is built. `size` is a {@link DerivativeSize} rather than
+ * a number on purpose: a width with no derivative behind it used to typecheck happily and then
+ * get silently rounded UP by {@link pickDerivativeSize} at the server, so `?w=512` quietly
+ * shipped the 1024 file. That cannot be written any more.
+ */
+export const imageSrc = (path: string, size?: DerivativeSize): string =>
+  `${IMAGE_ROUTE}${path.replace(/^\/+/, '')}${size == null ? '' : `?w=${size}`}`
+
+/**
+ * Whether `url` is a request for a generated derivative, i.e. what {@link imageSrc} builds with
+ * a `size`. Lives next to it so the service worker's cache matcher cannot drift from the route
+ * that serves them - it silently pointed at a path nothing served for months, and a matcher that
+ * never fires looks exactly like one that always misses.
  */
 export const isDerivativeRequest = (url: URL): boolean =>
-  url.pathname.startsWith('/image/') && url.searchParams.has('w')
+  url.pathname.startsWith(IMAGE_ROUTE) && url.searchParams.has('w')
 
 /** Whether `path` is an image we generate derivatives for (also skips existing derivatives). */
 export const isDerivableImage = (path: string): boolean =>

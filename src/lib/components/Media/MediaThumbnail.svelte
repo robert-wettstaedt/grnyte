@@ -3,6 +3,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
+  import type { DerivativeSize } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { openMedia } from '$lib/state/navigation.svelte'
   import { bunnyPreview, bunnyThumbnail } from '$lib/videos/bunny'
@@ -16,9 +17,9 @@
     /** Extra tile classes: the grid sets the tile's height here; width follows the aspect ratio. */
     class?: ClassValue
     file: MediaFile
-    /** Display width in CSS px, rounded up to a real derivative (256 or 1024). Defaults to the
-     *  small one: pass 1024 only for tiles big enough that 256 would look soft on a retina screen. */
-    previewWidth?: number
+    /** Which derivative to load. Defaults to the small one: pass 1024 only for tiles big
+     *  enough that 256 would look soft on a retina screen. */
+    previewWidth?: DerivativeSize
   }
 
   const { badged = false, class: className, file, previewWidth = 256 }: Props = $props()

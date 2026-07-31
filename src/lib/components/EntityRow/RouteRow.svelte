@@ -165,7 +165,7 @@
         path={route.topoImagePath}
         alt=""
         class="h-full w-full"
-        previewWidth={160}
+        previewWidth={256}
         bind:naturalWidth
         bind:naturalHeight
       />

@@ -15,7 +15,7 @@
 
 <span class="thumb bg-surface-200-800">
   {#if imagePath != null}
-    <Image path={imagePath} alt="" class="h-full w-full object-cover" previewWidth={160} />
+    <Image path={imagePath} alt="" class="h-full w-full object-cover" previewWidth={256} />
   {:else}
     <span class="text-surface-500 absolute inset-0 grid place-items-center" aria-hidden="true">
       <Icon name={fallback} size={24} />

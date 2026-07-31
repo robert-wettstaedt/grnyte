@@ -73,8 +73,9 @@
     />
   {/each}
   {#each items as file (file.id)}
-    <!-- h-40 tiles are wide enough that the 256 derivative upscales visibly on a retina screen. -->
-    <MediaThumbnail {file} badged class="h-40 snap-start" previewWidth={1024} />
+    <!-- Stays on the 256 default: the viewer's first paint reuses this exact cache entry
+         (MediaStage/MediaViewer), and 1024 per tile is a lot to spend on a crag connection. -->
+    <MediaThumbnail {file} badged class="h-40 snap-start" />
   {/each}
 </div>
 

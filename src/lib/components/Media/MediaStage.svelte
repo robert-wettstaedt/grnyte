@@ -19,6 +19,7 @@
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
   import { formatConditions } from '$lib/i18n/units.svelte'
+  import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -84,17 +85,19 @@
     return w > 0 && h > 0 ? w / h : undefined
   })
 
-  // Image, thumbnail-first: the grid already fetched (and cached) the 512px preview,
-  // so it paints instantly while the 1024 derivative streams in behind the spinner
-  // and cross-fades over it. The untouched original (often several MB on a crag
-  // connection) only streams once the user actually zooms in.
+  // Image, thumbnail-first: the grid already fetched (and cached) the 256 derivative, so it
+  // paints instantly while the 1024 one streams in behind the spinner and cross-fades over it.
+  // The untouched original (often several MB on a crag connection) only streams once the user
+  // actually zooms in. Both layers must name real derivative sizes for this to work at all -
+  // they used to be ?w=512 and ?w=1024, which the server rounds to the SAME 1024 file, so the
+  // "progressive" load fetched one image twice and cross-faded it with itself.
   const cleanPath = $derived(file.path.replace(/^\/+/, ''))
   let wantFull = $state(false)
-  const fullSrc = $derived(`/image/${cleanPath}${wantFull ? '' : '?w=1024'}`)
+  const fullSrc = $derived(wantFull ? imageSrc(cleanPath) : imageSrc(cleanPath, 1024))
   let fullLoaded = $state(false)
   let fullFailed = $state(false)
   // A failed original drops back to the 1024 derivative; a failed derivative
-  // leaves the 512 layer standing and stops the spinner (no endless "loading").
+  // leaves the thumbnail layer standing and stops the spinner (no endless "loading").
   const onFullError = () => {
     if (wantFull) {
       wantFull = false
@@ -198,7 +201,7 @@
       <!-- Both layers ride the same panzoom child so they zoom/pan together. -->
       <div class="relative h-full w-full">
         <img
-          src={`/image/${cleanPath}?w=512`}
+          src={imageSrc(cleanPath, 256)}
           alt=""
           class="pointer-events-none absolute inset-0 h-full w-full object-contain select-none"
         />

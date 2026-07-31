@@ -175,7 +175,7 @@
           <div class="flex items-center gap-2">
             {#each block.topoImages as image (image.id)}
               <span class="size-13 flex-none overflow-hidden rounded-xl">
-                <Image path={image.path} alt={m.topo_alt()} class="h-full w-full" previewWidth={160} />
+                <Image path={image.path} alt={m.topo_alt()} class="h-full w-full" previewWidth={256} />
               </span>
             {/each}
 

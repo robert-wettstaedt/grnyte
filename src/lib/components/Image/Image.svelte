@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import { imageSrc, type DerivativeSize } from '$lib/images/derivatives'
   import type { Snippet } from 'svelte'
   import type { ClassValue, HTMLImgAttributes } from 'svelte/elements'
 
@@ -30,10 +31,11 @@
     /** Path of the file as stored on the `files` record (leading slash optional). */
     path: string
     /**
-     * Request a resized, cacheable thumbnail this many px wide instead of the
-     * full-res image — for list tiles and other small renders. Aspect-preserving.
+     * Request a resized, cacheable derivative instead of the full-res image — for list
+     * tiles and other small renders. Aspect-preserving. 256 for thumbnails, 1024 for
+     * anything filling a viewport; omit only where the untouched original is wanted.
      */
-    previewWidth?: number
+    previewWidth?: DerivativeSize
   }
 
   let {
@@ -51,7 +53,7 @@
 
   type Status = 'error' | 'loaded' | 'loading' | 'offline'
 
-  const src = $derived(`/image/${path.replace(/^\/+/, '')}${previewWidth == null ? '' : `?w=${previewWidth}`}`)
+  const src = $derived(imageSrc(path, previewWidth))
   let status = $state<Status>('loading')
   const failed = $derived(status === 'error' || status === 'offline')
   // Remount key for the <img>: bumping it re-issues the request after a failure.

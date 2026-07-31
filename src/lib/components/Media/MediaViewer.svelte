@@ -16,6 +16,7 @@
   import type { MediaFile } from '$lib/entities/file/dto'
   import { deleteFile } from '$lib/entities/file/files.remote'
   import { canDeleteFile, canEditFile } from '$lib/entities/file/permissions'
+  import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { notifyError, toaster } from '$lib/state/toast'
@@ -264,8 +265,10 @@
     }
   }
 
+  // The peeking neighbour during a swipe, replaced by MediaStage's own progressive load once
+  // it lands. 256 is the tile the grid already cached, so paging never waits on a fetch.
   const previewSrc = (f: MediaFile) =>
-    f.bunnyStreamFk != null ? bunnyThumbnail(f.bunnyStreamFk) : `/image/${f.path.replace(/^\/+/, '')}?w=512`
+    f.bunnyStreamFk != null ? bunnyThumbnail(f.bunnyStreamFk) : imageSrc(f.path, 256)
 
   const btn = 'btn preset-glass-neutral btn-lg h-12 w-12 shrink-0 px-0'
   const arrow = `${btn} absolute top-1/2 z-20 -translate-y-1/2`
