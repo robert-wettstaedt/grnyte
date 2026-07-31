@@ -482,13 +482,12 @@ export const areas = table(
     index('areas_deleted_at_idx').on(table.deletedAt),
 
     ...createBasicTablePolicies('areas'),
+    // DELETE at edit (not delete): an area is only ever hard-deleted while bare, and the
+    // gate that decides that is canDeleteArea. UPDATE stays at edit from the basic policies -
+    // unlike `routes`, nothing writes an area on behalf of a read-only member.
     policy(
       `${REGION_PERMISSION_EDIT} can delete areas`,
       getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
-    ),
-    policy(
-      `${REGION_PERMISSION_READ} can update areas`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -527,13 +526,10 @@ export const blocks = table(
     index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
     ...createBasicTablePolicies('blocks'),
+    // Same as `areas`: delete at edit, update left at edit. No read-level writer exists.
     policy(
       `${REGION_PERMISSION_EDIT} can delete blocks`,
       getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
-    ),
-    policy(
-      `${REGION_PERMISSION_READ} can update blocks`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -591,6 +587,9 @@ export const routes = table(
       `${REGION_PERMISSION_EDIT} can delete routes`,
       getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
     ),
+    // The one table where UPDATE really is looser than its TS gate, and it has to be: logging an
+    // ascent folds the member's grade/rating into the route (recalcUserGradeAndRating), and a plain
+    // member holds only read. Editing route CONTENT still requires edit - see canEditRoute.
     policy(
       `${REGION_PERMISSION_READ} can update routes`,
       getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),

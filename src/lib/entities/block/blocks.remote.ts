@@ -447,8 +447,8 @@ async function softRestoreBlock(
 export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
     // The snapshot is client-supplied, so re-validate placement the way createBlock does: the target
-    // area must exist and be in the region the caller claims DELETE on - otherwise a block could be
-    // restored into another region's area (and shiftBlockOrdersUp would renumber that area's order).
+    // area must exist and be in the region the caller claims - otherwise a block could be restored
+    // into another region's area (and shiftBlockOrdersUp would renumber that area's order).
     const area = await db.query.areas.findFirst({ where: eq(areas.id, snapshot.areaFk) })
 
     if (area == null) {
@@ -457,7 +457,10 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     if (area.regionFk !== snapshot.block.regionFk) {
       error(403, formError('form_noPermission'))
     }
-    if (!canDeleteBlock(userRegions, user.id, { regionFk: snapshot.block.regionFk })) {
+    // A hard restore inserts a brand new row, so it is a create and gates like one. Gating on
+    // canDeleteBlock instead would deny the undo to the EDITor who just deleted their own block:
+    // the snapshot carries no `createdBy`, so that predicate's own-created branch can never fire.
+    if (!canAddBlock(userRegions, area)) {
       error(403, formError('form_noPermission'))
     }
 

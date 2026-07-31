@@ -99,7 +99,6 @@ async function findDuplicateName(
   })
 }
 
-
 const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
 
 /** Create a route under a block. Returns `{ id }` instead of redirecting so the form can
@@ -304,7 +303,7 @@ export const deleteRoute = authedCommand(
   async ({ id }, { db, user, userRegions }): Promise<MutationResult<DeleteRouteSnapshot>> => {
     const route = await requireRow(
       () => db.query.routes.findFirst({ where: eq(routes.id, id) }),
-      (row) => canDeleteRoute(userRegions, row),
+      (row) => canDeleteRoute(userRegions, user.id, row),
       'Route not found',
     )
 
@@ -431,7 +430,10 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     if (block == null) {
       error(404, formError('blocks_notFound'))
     }
-    if (!canDeleteRoute(userRegions, block)) {
+    // A hard restore inserts a brand new row, so it is a create and gates like one (see createRoute).
+    // Gating on canDeleteRoute instead would deny the undo to the EDITor who just deleted their own
+    // route: the snapshot carries no `createdBy`, so that predicate's own-created branch can't fire.
+    if (!canAddRoute(userRegions, block)) {
       error(403, formError('form_noPermission'))
     }
 
@@ -480,7 +482,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
 
   const route = await db.query.routes.findFirst({ where: eq(routes.id, snapshot.routeId) })
 
-  if (route == null || !canDeleteRoute(userRegions, route)) {
+  if (route == null || !canDeleteRoute(userRegions, user.id, route)) {
     error(403, formError('form_noPermission'))
   }
 

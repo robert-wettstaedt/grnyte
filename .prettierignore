@@ -17,3 +17,6 @@ bun.lockb
 
 # Installed agent skills
 /.agents/
+
+# Agent worktrees: whole checkouts of this repo, so every file in them shows up twice.
+/.claude/

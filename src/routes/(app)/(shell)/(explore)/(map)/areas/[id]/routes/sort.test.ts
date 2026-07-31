@@ -5,12 +5,14 @@ import { sortRoutes } from './sort'
 const route = (over: Partial<RouteListItem>): RouteListItem => ({
   blockFk: 0,
   createdAt: undefined,
+  createdBy: 0,
   description: '',
   firstAscentYear: undefined,
   gradeFk: undefined,
   id: 0,
   name: '',
   rating: 0,
+  regionFk: 0,
   tags: [],
   ...over,
 })

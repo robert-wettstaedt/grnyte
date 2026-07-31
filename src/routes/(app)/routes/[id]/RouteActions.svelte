@@ -25,7 +25,7 @@
   const global = getGlobalState()
 
   const canEdit = $derived(canEditRoute(global.userRegions, route))
-  const canDelete = $derived(canDeleteRoute(global.userRegions, route))
+  const canDelete = $derived(canDeleteRoute(global.userRegions, global.user?.id, route))
   const canEditTopos = $derived(canEditTopo(global.userRegions, route))
 
   // Opens the topo editor with this route's line selected (or a fresh line armed if it

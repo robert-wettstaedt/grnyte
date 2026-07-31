@@ -33,6 +33,7 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
           ? `${m.common_block()} ${row.block.order + 1}`
           : row.block.name,
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
+    createdBy: row.createdBy,
     description: row.description ?? '',
     firstAscentYear: row.firstAscentYear ?? undefined,
     gradeFk: row.userGradeFk ?? undefined,

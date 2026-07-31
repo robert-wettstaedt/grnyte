@@ -20,6 +20,7 @@ export interface RouteListItem {
   /** Name of the route's block, for a breadcrumb (search results). */
   blockName?: string
   createdAt: Date | undefined
+  createdBy: number
   description: string
   firstAscentYear: number | undefined
   /** Community grade (`userGradeFk`): the route's own grade averaged with one vote per
@@ -34,8 +35,9 @@ export interface RouteListItem {
    *  display fallback). Search scores against this so an unnamed route can't match
    *  the placeholder text. */
   rawName?: string
-  /** The route's region, for a region breadcrumb when a search spans more than one. */
-  regionFk?: number
+  /** The route's region: drives the permission gates, and a region breadcrumb when a
+   *  search spans more than one. */
+  regionFk: number
   tags: string[]
   /** `files.path` of the route's best topo image, if it's drawn on one. */
   topoImagePath?: string

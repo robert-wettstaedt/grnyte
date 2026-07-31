@@ -166,8 +166,10 @@
     new Set(editor.currentLines.filter((line) => line.points.length > 0).map((line) => line.routeFk)),
   )
   const candidates = $derived(routes.data.filter((route) => !drawnFks.has(route.id)))
+  // Gate on the selected route itself, not just its region: canDeleteRoute also grants an EDITor
+  // the routes they created, and that branch needs the row's `createdBy`.
   const canDeleteSelectedRoute = $derived(
-    block.data != null && canDeleteRoute(global.userRegions, { regionFk: block.data.regionFk }),
+    selectedRoute != null && canDeleteRoute(global.userRegions, global.user?.id, selectedRoute),
   )
 
   let routesOpen = $state(false)

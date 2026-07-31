@@ -17,7 +17,12 @@ const ownsAscentMedia = (userRegions: UserRegion[], userId: number | undefined, 
   file.ascentCreatedBy === userId &&
   checkRegionPermission(userRegions, [REGION_PERMISSION_READ], file.regionFk)
 
-/** Mirrors the files DELETE RLS (region DELETE, or READ on media of your own ascent). */
+/**
+ * Region DELETE, or READ on media of your own ascent. STRICTER than the files DELETE RLS,
+ * which grants the region branch at EDIT (schema.ts, "region.edit can delete files") - same
+ * deliberate divergence as {@link canEditFile}: a maintainer must not remove someone else's
+ * media. The own-ascent branch does mirror its RLS half.
+ */
 export function canDeleteFile(
   userRegions: UserRegion[],
   userId: number | undefined,

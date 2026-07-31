@@ -5,6 +5,7 @@
 
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { imageCache } from 'workbox-recipes'
+import { isDerivativeRequest } from './lib/images/derivatives'
 import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
@@ -53,7 +54,25 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-imageCache({ matchCallback: ({ url }) => url.pathname.startsWith('/nextcloud/topos/') })
+/**
+ * Keep browsed images available offline. The HTTP `max-age` the /image route sends is not
+ * enough on its own: it makes a repeat view cheap, but the offline fallback above boots the
+ * app from Zero's local store, and a topo whose bytes only live in the HTTP cache is not
+ * guaranteed to be there. CacheFirst puts them somewhere we control.
+ *
+ * Matches only same-origin `?w=` requests, i.e. the generated derivatives, which the route
+ * serves as `immutable` because they are stable per (path, width) - exactly what CacheFirst
+ * needs to be correct. A bare `/image/<path>` is the full-res original the viewer loads;
+ * caching those would evict the whole bucket for one photo. Bunny video thumbnails are
+ * cross-origin (opaque responses, charged at full padded size), so they stay out too.
+ *
+ * ponytail: 200 entries, roughly 5MB of 256px webp. Raise it if browsing one big area
+ * evicts the previous one.
+ */
+imageCache({
+  matchCallback: ({ sameOrigin, url }) => sameOrigin && isDerivativeRequest(url),
+  maxEntries: 200,
+})
 
 self.addEventListener('push', (event) => {
   if (!event.data) return

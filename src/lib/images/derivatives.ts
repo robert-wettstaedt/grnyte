@@ -39,6 +39,15 @@ export const imageStoragePaths = (path: string): string[] => {
 export const pickDerivativeSize = (requestedWidth: number): DerivativeSize =>
   DERIVATIVE_SIZES.find((size) => size >= requestedWidth) ?? DERIVATIVE_SIZES.at(-1)!
 
+/**
+ * Whether `url` is a request for a generated derivative, i.e. what `Image.svelte` builds as
+ * `/image/<path>?w=<size>`. Lives here next to the naming rules so the service worker's cache
+ * matcher cannot drift from the route that serves them - it silently pointed at a path nothing
+ * served for months, and a matcher that never fires looks exactly like one that always misses.
+ */
+export const isDerivativeRequest = (url: URL): boolean =>
+  url.pathname.startsWith('/image/') && url.searchParams.has('w')
+
 /** Whether `path` is an image we generate derivatives for (also skips existing derivatives). */
 export const isDerivableImage = (path: string): boolean =>
   /\.(jpe?g|png|webp|gif)$/i.test(path) && !/\.\d+\.webp$/i.test(path) && !/\.orig\.[^./]+$/i.test(path)

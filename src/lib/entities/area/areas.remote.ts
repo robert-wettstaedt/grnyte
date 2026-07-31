@@ -299,7 +299,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     // The snapshot came from the client, so re-validate its structural placement the way createArea
     // does - otherwise a DELETE holder could restore an area claiming their region but nested under a
     // parent in another region, which that region can neither see nor moderate.
-    const { status } = await loadParentArea(db, snapshot.area.parentFk, snapshot.area.regionFk)
+    const { parent: parentArea, status } = await loadParentArea(db, snapshot.area.parentFk, snapshot.area.regionFk)
 
     if (status === 'missing') {
       error(404, formError('area_parentNotFound'))
@@ -307,7 +307,13 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     if (status === 'wrongRegion') {
       error(403, formError('form_noPermission'))
     }
-    if (!canDeleteArea(userRegions, user.id, { regionFk: snapshot.area.regionFk })) {
+    // A hard restore inserts a brand new row, so it is a create and gates like one. Gating on
+    // canDeleteArea instead would deny the undo to the EDITor who just deleted their own area:
+    // the snapshot carries no `createdBy`, so that predicate's own-created branch can never fire.
+    if (
+      !canAddArea(userRegions, { regionFk: snapshot.area.regionFk, type: null }) ||
+      (parentArea != null && !canAddArea(userRegions, parentArea))
+    ) {
       error(403, formError('form_noPermission'))
     }
 
@@ -384,7 +390,8 @@ export const addParking = authedForm(
   },
 )
 
-/** Remove a parking location. Needs edit permission in the parking's region. */
+/** Remove a parking location. Needs delete permission in the parking's region (adding one
+ *  takes edit, but removing one is destructive - see canDeleteParking). */
 export const deleteParking = authedCommand(z.object({ id: z.number() }), async ({ id }, { db, user, userRegions }) => {
   const parking = await db.query.geolocations.findFirst({ where: eq(geolocations.id, id) })
 

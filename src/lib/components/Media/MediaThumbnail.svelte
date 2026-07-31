@@ -16,9 +16,12 @@
     /** Extra tile classes: the grid sets the tile's height here; width follows the aspect ratio. */
     class?: ClassValue
     file: MediaFile
+    /** Display width in CSS px, rounded up to a real derivative (256 or 1024). Defaults to the
+     *  small one: pass 1024 only for tiles big enough that 256 would look soft on a retina screen. */
+    previewWidth?: number
   }
 
-  const { badged = false, class: className, file }: Props = $props()
+  const { badged = false, class: className, file, previewWidth = 256 }: Props = $props()
 
   const guid = $derived(file.bunnyStreamFk)
   const isVideo = $derived(guid != null)
@@ -104,13 +107,7 @@
       />
     {/if}
   {:else}
-    <Image
-      path={file.path}
-      alt=""
-      class="h-full w-full"
-      imgClass="pointer-events-none select-none"
-      previewWidth={512}
-    />
+    <Image path={file.path} alt="" class="h-full w-full" imgClass="pointer-events-none select-none" {previewWidth} />
   {/if}
 
   <!-- Ascent-owned media carries the climber's avatar, so the grid itself shows

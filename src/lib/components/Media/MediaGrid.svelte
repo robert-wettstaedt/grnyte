@@ -73,7 +73,8 @@
     />
   {/each}
   {#each items as file (file.id)}
-    <MediaThumbnail {file} badged class="h-40 snap-start" />
+    <!-- h-40 tiles are wide enough that the 256 derivative upscales visibly on a retina screen. -->
+    <MediaThumbnail {file} badged class="h-40 snap-start" previewWidth={1024} />
   {/each}
 </div>
 

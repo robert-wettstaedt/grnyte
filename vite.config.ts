@@ -92,8 +92,9 @@ export default defineConfig({
     env: { TZ: 'UTC' },
     environment: 'jsdom',
     // Vitest picks up `**/*.spec.ts` by default, which would otherwise try to run the Playwright
-    // spec (`npm run test:e2e` owns that one).
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    // spec (`npm run test:e2e` owns that one). `.claude/` holds agent worktrees - whole checkouts
+    // of this repo, whose tests would run again against a stale copy of the source.
+    exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
     setupFiles: ['./vitest-setup.js'],
   },
 })

@@ -8,8 +8,19 @@ export function canAddRoute(userRegions: UserRegion[], block: RoutePermissionTar
   return checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], block.regionFk)
 }
 
-export function canDeleteRoute(userRegions: UserRegion[], route: RoutePermissionTarget): boolean {
-  return checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], route.regionFk)
+/** Region DELETE, or an EDITor removing what they themselves created (mirrors v1, and matches
+ *  {@link canDeleteArea} / {@link canDeleteBlock} - all three hard-delete only a bare row). */
+export function canDeleteRoute(
+  userRegions: UserRegion[],
+  userId: number | undefined,
+  route: { createdBy?: null | number; regionFk: number },
+): boolean {
+  return (
+    checkRegionPermission(userRegions, [REGION_PERMISSION_DELETE], route.regionFk) ||
+    (userId != null &&
+      route.createdBy === userId &&
+      checkRegionPermission(userRegions, [REGION_PERMISSION_EDIT], route.regionFk))
+  )
 }
 
 /**

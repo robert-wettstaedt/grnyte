@@ -37,11 +37,14 @@ export function blockRouteList(id: () => number) {
     () => queries.block({ blockId: id() }),
     (row) =>
       (row?.routes ?? []).map((route) => ({
+        // createdBy + regionFk carry the permission gates (canDeleteRoute's own-created branch).
+        createdBy: route.createdBy,
         description: route.description ?? '',
         gradeFk: route.userGradeFk ?? undefined,
         id: route.id,
         name: route.name.length === 0 ? m.common_unnamed() : route.name,
         rating: route.userRating ?? 0,
+        regionFk: route.regionFk,
         tags: route.tags.map((tag) => tag.tagFk),
       })),
   )
