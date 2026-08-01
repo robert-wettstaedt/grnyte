@@ -95,7 +95,7 @@
     return parts.join(' · ')
   })
 
-  // A new ascent stores its tick type in `newValue`; every other row has no status glyph.
+  // A new ascent stores its ascent type in `newValue`; every other row has no status glyph.
   const status = $derived(
     newest.entityType === 'ascent' && newest.type === 'created'
       ? (newest.newValue as AscentType | undefined)

@@ -103,7 +103,7 @@ function joins(oldest: ActivityDto, activity: ActivityDto, kind: ActivityGroupKi
 }
 
 function kindOf(activity: ActivityDto): ActivityGroupKind {
-  // A photo added to or pulled off an ascent is media housekeeping, not a tick: keeping it
+  // A photo added to or pulled off an ascent is media housekeeping, not an ascent: keeping it
   // out of the session card stops it inflating "sent 4 routes today".
   if (activity.entityType === 'ascent' && activity.columnName !== 'file') {
     return 'session'

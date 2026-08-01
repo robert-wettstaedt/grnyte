@@ -52,7 +52,7 @@ describe('activityVerbKeys', () => {
     expect(activityVerbKeys(activity({ type: 'deleted' }))).toEqual(['activity_routeDeleted'])
   })
 
-  it('reads a new ascent s verb from its tick type rather than a column', () => {
+  it('reads a new ascent s verb from its ascent type rather than a column', () => {
     expect(activityVerbKeys(activity({ entityType: 'ascent', newValue: 'flash', type: 'created' }))).toEqual([
       'activity_ascentCreatedFlash',
       'activity_ascentCreated',

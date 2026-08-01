@@ -44,7 +44,7 @@ export function activityVerbKey(activity: ActivityDto): string {
 export function activityVerbKeys(activity: ActivityDto): string[] {
   const base = `activity_${activity.entityType}${capitalize(activity.type)}`
 
-  // `ascent` created rows carry the tick type in `newValue` rather than a column name.
+  // `ascent` created rows carry the ascent type in `newValue` rather than a column name.
   const suffix =
     activity.entityType === 'ascent' && activity.type === 'created' ? activity.newValue : activity.columnName
 

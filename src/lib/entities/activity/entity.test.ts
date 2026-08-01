@@ -81,7 +81,7 @@ describe('activityEntityName', () => {
     )
   })
 
-  it('never reads an ascent row, whose values are tick types', () => {
+  it('never reads an ascent row, whose values are ascent types', () => {
     expect(
       activityEntityName(activity({ entityType: 'ascent', newValue: 'flash', type: 'created' }), undefined),
     ).toBeUndefined()

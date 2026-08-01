@@ -10,7 +10,7 @@ import type { ActivityDto, ActivityEntityType } from './dto'
  * different list resources into it without four different mappers.
  */
 export interface ActivityEntity {
-  /** Tick type when the row stands for an ascent, so its route row shows the status glyph. */
+  /** Ascent type when the row stands for an ascent, so its route row shows the status glyph. */
   ascentType?: AscentType
   /**
    * Whose ascent it is (`ascents.createdBy`). A region admin may edit anyone's, so the
@@ -83,7 +83,7 @@ export function activityEntityName(
     return entity.name
   }
 
-  // An ascent's value columns hold its tick type, never a name.
+  // An ascent's value columns hold its ascent type, never a name.
   if (activity.entityType === 'ascent') {
     return undefined
   }

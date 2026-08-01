@@ -42,3 +42,42 @@ label stays "Durchstieg"; the enum value does not oblige the copy.
 
 **community**
 The people in a region. Never crew, team or squad.
+
+## Activity feed
+
+**activity row**
+One entry in the `activities` audit log. Identified by the triple
+`(entityType, type, columnName)`, which is what selects a verb, an icon and a diff
+renderer. `written.ts` lists every triple the mutation layer writes today.
+
+**actor** / **climber**
+The actor did the thing (`activities.userFk`). The climber is whose ascent it is
+(`ascents.createdBy`). A region maintainer may edit anyone's ascent, so a card has to say
+which of the two it means: "Jonas edited Mara's ascent", never "Jonas edited an ascent".
+
+**group**
+Activity rows folded into one card. Four kinds, first match wins: **session** (one
+climber's ascents in one sitting), **burst** (one editor's crag edits in one place, close
+in time), **entity** (anyone's edits to the same entity, close in time) and **single**.
+None of them is a stored entity, they exist only for the feed.
+
+**verb**
+The message key a group's headline resolves to. Each key holds a _whole sentence_ with
+`{actor}` and `{name}` placeholders, never a verb fragment: German puts the participle
+after the object ("hat die Route Rampe hinzugefügt"), which a fixed markup order cannot
+express. `Message.svelte` splits the resolved sentence to render the placeholders.
+
+**card view**
+What a card says, computed before any markup: the headline key and its parts, the summary,
+the rows and their state. Pure, and it returns message keys rather than resolved copy, so
+it can be asserted against without asserting against a translation.
+
+**entity ref**
+The polymorphic `(entityType, entityId)` pair an activity points at. `entityId` is `text`
+and the type varies, so Zero cannot join it to the entity it names.
+
+**hydration**
+Resolving entity refs to the entities themselves, client-side, in a second pass: collect
+the ids per type off the synced activity rows, fetch them through the per-entity list
+resources, join in memory. A ref that resolves to nothing is a tombstone (deleted); a ref
+not yet in the map is a skeleton (still syncing).

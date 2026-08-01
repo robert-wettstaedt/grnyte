@@ -99,7 +99,7 @@ describe('groupActivities', () => {
     const groups = groupActivities([
       ascent({ createdAt: day(1, 12), entityId: '10' }),
       ascent({ createdAt: day(1, 11), entityId: '11' }),
-      // Written against the ascent, but it is media housekeeping, not a tick.
+      // Written against the ascent, but it is media housekeeping, not an ascent.
       activity({ columnName: 'file', createdAt: day(1, 10), entityId: '12', entityType: 'ascent', type: 'deleted' }),
     ])
 
