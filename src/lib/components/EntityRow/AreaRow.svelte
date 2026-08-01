@@ -20,9 +20,12 @@
     name: string
     /** Total routes, shown in the donut centre. */
     total?: number
+    /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
+     *  for nesting inside another card (e.g. an activity card). */
+    variant?: 'card' | 'option'
   }
 
-  let { action, countByGrade, crumbs, description, href, name, total }: Props = $props()
+  let { action, countByGrade, crumbs, description, href, name, total, variant }: Props = $props()
 </script>
 
 {#snippet body()}
@@ -31,7 +34,7 @@
   {/if}
 {/snippet}
 
-<Row title={name} {action} {crumbs} description={body} {href}>
+<Row title={name} {action} {crumbs} description={body} {href} {variant}>
   {#if countByGrade != null && total != null}
     <GradeDonut {countByGrade} {total} size={52} />
   {:else}

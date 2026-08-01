@@ -1,10 +1,35 @@
 import { hasMessage, resolveMessage } from '$lib/i18n/message'
 import type { ActivityDto } from './dto'
+import type { ActivityGroup } from './grouping'
+
+/**
+ * The headline key for a whole card. A single-activity card speaks its own verb; a
+ * grouped one summarises, because "sent Rampe" would name one of four ascents. The
+ * count lives in the card's sub line, so these stay one sentence per key.
+ */
+export function activityGroupVerbKey(group: ActivityGroup): string {
+  if (group.kind === 'single') {
+    return activityVerbKey(group.activities[0])
+  }
+
+  if (group.kind === 'session') {
+    return 'activity_groupSession'
+  }
+
+  // Only `entity` groups can mix actors, and then no single person "edited" it.
+  const actors = new Set(group.activities.map((activity) => activity.userFk))
+  return actors.size > 1 ? 'activity_groupEditsMultiple' : 'activity_groupEdits'
+}
 
 /** The headline verb for an activity, e.g. "added the route" or "flashed". */
 export function activityVerb(activity: ActivityDto, params?: Record<string, unknown>): string {
+  return resolveMessage(activityVerbKey(activity), params)
+}
+
+/** The most specific verb key paraglide actually has for this activity. */
+export function activityVerbKey(activity: ActivityDto): string {
   const keys = activityVerbKeys(activity)
-  return resolveMessage(keys.find(hasMessage) ?? keys[keys.length - 1], params)
+  return keys.find(hasMessage) ?? keys[keys.length - 1]
 }
 
 /**
