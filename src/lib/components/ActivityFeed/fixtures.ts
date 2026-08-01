@@ -3,8 +3,14 @@
  * `(entityType, type, columnName)` triples the mutation layer actually writes, then folded
  * by the real `groupActivities`. Storybook only — nothing in the app imports this.
  */
+import { activityCard, type ActivityCardView, type ActivityChange } from '$lib/entities/activity/card'
 import type { ActivityDto } from '$lib/entities/activity/dto'
-import { activityEntityKey, type ActivityEntity, type ActivityEntityRef } from '$lib/entities/activity/entity'
+import {
+  activityEntityKey,
+  type ActivityEntity,
+  type ActivityEntityMap,
+  type ActivityEntityRef,
+} from '$lib/entities/activity/entity'
 import { groupActivities, type ActivityGroup } from '$lib/entities/activity/grouping'
 import type { MediaFile } from '$lib/entities/file/dto'
 
@@ -46,6 +52,15 @@ export function activity(minutesAgo: number, partial: Partial<ActivityDto> & Pic
   }
 }
 
+/**
+ * The changes an expanded card would show, one activity at a time so a story can hand in a
+ * set that grouping would otherwise split. Runs the real `activityCard`, so a story cannot
+ * drift from what a card actually renders.
+ */
+export function changes(activities: ActivityDto[]): ActivityChange[] {
+  return activities.flatMap((activity) => view(groupActivities([activity])[0]).changes)
+}
+
 /** The map the feed hands cards: an absent key is still syncing, an explicit null is gone. */
 export function entityMap(entries: [ActivityEntityRef, ActivityEntity | null][]): Map<string, ActivityEntity | null> {
   return new Map(entries.map(([ref, entity]) => [activityEntityKey(ref), entity]))
@@ -70,6 +85,11 @@ export function photo(id: string): MediaFile {
     visibility: 'public',
     width: 1200,
   }
+}
+
+/** What a card says about a group, decided by the same function the feed calls. */
+export function view(group: ActivityGroup, entities?: ActivityEntityMap, currentUserFk?: number): ActivityCardView {
+  return activityCard(group, entities, currentUserFk)
 }
 
 /** An ascent's route row, plus whose ascent it is (so the headline can say). */

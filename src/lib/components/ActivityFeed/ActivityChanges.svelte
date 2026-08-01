@@ -5,8 +5,8 @@
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import type { ActivityChange } from '$lib/entities/activity/card'
   import type { ActivityDto } from '$lib/entities/activity/dto'
-  import { activityField } from '$lib/entities/activity/fields'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
@@ -16,20 +16,13 @@
   import { getGlobalState } from '$lib/state/global.svelte'
 
   interface Props {
-    /** The card's activities. Rows whose column has no registry entry are skipped. */
-    activities: readonly ActivityDto[]
+    /** The card's changed columns, already paired with their registry entry by `activityCard`. */
+    changes: readonly ActivityChange[]
   }
 
-  const { activities }: Props = $props()
+  const { changes }: Props = $props()
 
   const global = getGlobalState()
-
-  const changes = $derived(
-    activities.flatMap((activity) => {
-      const field = activityField(activity.columnName)
-      return field == null ? [] : [{ activity, field }]
-    }),
-  )
 
   /** `tags` and `firstAscensionists` are stored comma-joined on the activity row. */
   const list = (value: string | undefined) =>

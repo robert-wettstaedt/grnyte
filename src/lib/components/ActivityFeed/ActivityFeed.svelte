@@ -7,7 +7,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
-  import { activityEntityKey, activityEntityRefs, type ActivityEntityMap } from '$lib/entities/activity/entity'
+  import { activityCard } from '$lib/entities/activity/card'
+  import type { ActivityEntityMap } from '$lib/entities/activity/entity'
   import type { ActivityGroup } from '$lib/entities/activity/grouping'
   import { formatDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
@@ -43,22 +44,22 @@
     return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
   }
 
+  // Decided once per group and handed down, so a card is markup and the lightbox below
+  // reads the same files the cards show rather than walking the hydration map again.
+  const views = $derived(groups.map((group) => activityCard(group, entities, currentUserFk)))
+
   // A divider goes above the first card of each day, so the list stays one flat sequence
   // rather than nested per-day arrays (which would break the "N new" merge at a boundary).
   const rows = $derived(
-    groups.map((group, index) => {
-      const day = dayOf(group.createdAt)
-      return { day, group, startsDay: index === 0 || dayOf(groups[index - 1].createdAt) !== day }
+    views.map((view, index) => {
+      const day = dayOf(view.createdAt)
+      return { day, startsDay: index === 0 || dayOf(views[index - 1].createdAt) !== day, view }
     }),
   )
 
   // One viewer for the whole list: mounting a lightbox per card would open several at
   // once on the same `?media` param (see MediaLightbox).
-  const files = $derived(
-    groups.flatMap((group) =>
-      activityEntityRefs(group.activities).flatMap((ref) => entities?.get(activityEntityKey(ref))?.files ?? []),
-    ),
-  )
+  const files = $derived(views.flatMap((view) => view.files))
 </script>
 
 <div class="space-y-3">
@@ -71,14 +72,14 @@
     </div>
   {/if}
 
-  {#each rows as { day, group, startsDay } (group.id)}
+  {#each rows as { day, startsDay, view } (view.id)}
     {#if startsDay}
       <h2 class="text-surface-600-400 px-1 pt-1 text-xs font-bold tracking-wide uppercase">
         {formatDay(day, now(), getLocale())}
       </h2>
     {/if}
 
-    <ActivityCard {currentUserFk} {entities} {group} />
+    <ActivityCard {view} />
   {/each}
 
   {#if hasMore}

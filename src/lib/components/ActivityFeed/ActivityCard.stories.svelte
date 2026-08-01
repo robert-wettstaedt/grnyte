@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import ActivityCard from './ActivityCard.svelte'
-  import { activity, entityMap, groups, ME, photo, sampleWeek } from './fixtures'
+  import { activity, entityMap, groups, ME, photo, sampleWeek, view } from './fixtures'
 
   const { Story } = defineMeta({
     component: ActivityCard,
@@ -28,7 +28,8 @@
   const roleGrant = pick((group) => group.activities[0].entityType === 'user')
   const unsynced = pick((group) => group.activities[0].entityId === '9099')
 
-  const base = { currentUserFk: ME, entities } satisfies Partial<ComponentProps<typeof ActivityCard>>
+  /** The card view for a group of the sample week, seen as the signed-in climber. */
+  const mine = (group: (typeof week)[number]) => view(group, entities, ME)
 </script>
 
 {#snippet template(args: ComponentProps<typeof ActivityCard>)}
@@ -38,48 +39,50 @@
 {/snippet}
 
 <!-- An ascent with the ascent's photos and notes: the fullest single card there is. -->
-<Story name="Flash with photos" args={{ ...base, group: flash }} {template} />
+<Story name="Flash with photos" args={{ view: mine(flash) }} {template} />
 
 <!-- Four ascents logged in one sitting fold into one session card. -->
-<Story name="Session" args={{ ...base, group: session }} {template} />
+<Story name="Session" args={{ view: mine(session) }} {template} />
 
 <!-- Twelve edits across six routes of one block, capped at four rows. Expand for the diff. -->
-<Story name="Edit burst" args={{ ...base, group: burst }} {template} />
+<Story name="Edit burst" args={{ view: mine(burst) }} {template} />
 
-<Story name="Topo redraw" args={{ ...base, group: topo }} {template} />
+<Story name="Topo redraw" args={{ view: mine(topo) }} {template} />
 
-<Story name="New area" args={{ ...base, group: newArea }} {template} />
+<Story name="New area" args={{ view: mine(newArea) }} {template} />
 
 <!-- Your own row: solid avatar and the "You …" variant of the same message. -->
-<Story name="Yours (grade change)" args={{ ...base, group: gradeChange }} {template} />
+<Story name="Yours (grade change)" args={{ view: mine(gradeChange) }} {template} />
 
-<Story name="Photo removed" args={{ ...base, group: photoRemoved }} {template} />
+<Story name="Photo removed" args={{ view: mine(photoRemoved) }} {template} />
 
 <!-- Hydration finished without the route: a tombstone, named from the delete row itself. -->
-<Story name="Deleted entity" args={{ ...base, group: deletedRoute }} {template} />
+<Story name="Deleted entity" args={{ view: mine(deletedRoute) }} {template} />
 
-<Story name="Role change" args={{ ...base, group: roleGrant }} {template} />
+<Story name="Role change" args={{ view: mine(roleGrant) }} {template} />
 
 <!-- The entity has not synced yet: a skeleton row and a placeholder in the headline. -->
-<Story name="Not yet synced" args={{ ...base, group: unsynced }} {template} />
+<Story name="Not yet synced" args={{ view: mine(unsynced) }} {template} />
 
 <!-- Nobody signed in (the share/logged-out case): every card speaks in the third person. -->
-<Story name="Someone else" args={{ entities, group: gradeChange }} {template} />
+<Story name="Someone else" args={{ view: view(gradeChange, entities) }} {template} />
 
 <!-- The actor's user row has not synced either: a pulsing avatar rather than "?". -->
 <Story
   name="Unknown actor"
   args={{
-    ...base,
-    entities: entityMap([
-      [
-        { id: '9001', type: 'ascent' },
-        { ascentType: 'redpoint', files: [photo('f9')], href: '#', name: 'Rampe', row: 'none' },
-      ],
-    ]),
-    group: groups([
-      activity(4, { entityId: '9001', entityType: 'ascent', newValue: 'redpoint', type: 'created', userFk: 99 }),
-    ])[0],
+    view: view(
+      groups([
+        activity(4, { entityId: '9001', entityType: 'ascent', newValue: 'redpoint', type: 'created', userFk: 99 }),
+      ])[0],
+      entityMap([
+        [
+          { id: '9001', type: 'ascent' },
+          { ascentType: 'redpoint', files: [photo('f9')], href: '#', name: 'Rampe', row: 'none' },
+        ],
+      ]),
+      ME,
+    ),
   }}
   {template}
 />

@@ -2,12 +2,11 @@
   import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { activityEntityKey, type ActivityEntity } from '$lib/entities/activity/entity'
   import { groupActivities } from '$lib/entities/activity/grouping'
-  import { activityVerbKey } from '$lib/entities/activity/verbs'
   import { WRITTEN_ACTIVITIES } from '$lib/entities/activity/written'
   import { overwriteGetLocale } from '$lib/paraglide/runtime'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import ActivityCard from './ActivityCard.svelte'
-  import { activity } from './fixtures'
+  import { activity, view } from './fixtures'
 
   type Locale = 'de' | 'en'
 
@@ -43,7 +42,7 @@
   // One basic card per written triple: no photos, no notes, and `row: 'none'` so nothing
   // renders below the headline. The list is the same catalogue verbs.test.ts asserts
   // against, so a new activity kind shows up here the moment a mutation starts writing it.
-  const cardsFor = (owner: 'other' | 'self') =>
+  const cardsFor = (owner: 'other' | 'self', currentUserFk: number | undefined) =>
     WRITTEN_ACTIVITIES.map((partial, index) => {
       // An invitation names the invitee, who has no user row yet, only the address the
       // inviter typed. Anything else here would flatter the copy.
@@ -59,7 +58,7 @@
       }
       const key = activityEntityKey({ id: row.entityId, type: row.entityType })
 
-      return { entities: new Map([[key, entity]]), group: groupActivities([row])[0], verbKey: activityVerbKey(row) }
+      return view(groupActivities([row])[0], new Map([[key, entity]]), currentUserFk)
     })
 </script>
 
@@ -67,13 +66,15 @@
   <!-- Paraglide compiles messages to plain functions, so switching locale is switching what
        getLocale() returns before the cards render. Story-scoped: each render re-applies it. -->
   {@const localeApplied = overwriteGetLocale(() => args.locale)}
-  {@const cards = cardsFor(args.owner)}
+  {@const cards = cardsFor(args.owner, args.currentUserFk)}
 
   <div style="max-width: 560px; margin: 0 auto;" class="space-y-4" data-locale-applied={localeApplied === undefined}>
-    {#each cards as card (card.group.id)}
+    {#each cards as card (card.id)}
       <div class="space-y-1">
-        <p class="text-surface-600-400 font-mono text-[11px]">{card.verbKey}</p>
-        <ActivityCard currentUserFk={args.currentUserFk} entities={card.entities} group={card.group} />
+        <!-- The whole candidate chain, not just the winner: a key that quietly degraded to
+             a less specific verb is exactly what this catalogue exists to catch. -->
+        <p class="text-surface-600-400 font-mono text-[11px]">{card.headline.keys.join(' -> ')}</p>
+        <ActivityCard view={card} />
       </div>
     {/each}
   </div>

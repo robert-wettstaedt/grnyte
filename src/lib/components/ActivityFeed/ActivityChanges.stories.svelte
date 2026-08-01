@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import ActivityChanges from './ActivityChanges.svelte'
-  import { activity } from './fixtures'
+  import { activity, changes } from './fixtures'
 
   const { Story } = defineMeta({
     component: ActivityChanges,
@@ -49,20 +49,20 @@
 {/snippet}
 
 <!-- Every renderer the field registry knows, in one list. -->
-<Story name="Every renderer" args={{ activities: everyRenderer }} {template} />
+<Story name="Every renderer" args={{ changes: changes(everyRenderer) }} {template} />
 
-<Story name="Ascent edit" args={{ activities: ascentEdit }} {template} />
+<Story name="Ascent edit" args={{ changes: changes(ascentEdit) }} {template} />
 
 <!-- A column with no old value falls back to the "Not set" chip rather than a blank. -->
 <Story
   name="Missing values"
-  args={{ activities: [activity(1, { columnName: 'gradeFk', newValue: '9', userFk: 1 })] }}
+  args={{ changes: changes([activity(1, { columnName: 'gradeFk', newValue: '9', userFk: 1 })]) }}
   {template}
 />
 
 <!-- Rows whose column has no registry entry render nothing at all. -->
 <Story
   name="Nothing renderable"
-  args={{ activities: [activity(1, { entityType: 'area', type: 'created', userFk: 1 })] }}
+  args={{ changes: changes([activity(1, { entityType: 'area', type: 'created', userFk: 1 })]) }}
   {template}
 />

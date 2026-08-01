@@ -4,6 +4,15 @@ import type { RouteListItem } from '$lib/entities/route/dto'
 import type { ActivityDto, ActivityEntityType } from './dto'
 
 /**
+ * The hydration contract: what the feed has to fetch, and the shape it hands back.
+ *
+ * `activities.entityId` is `text` and `entityType` is polymorphic, so Zero cannot join a
+ * row to the entity it describes. The ids are collected here, fetched through the
+ * per-entity list resources, and joined in memory. What a card then *says* about those
+ * entities lives in `card.ts`.
+ */
+
+/**
  * One hydrated entity, flattened into exactly what a card renders. Deliberately one
  * flat shape rather than a union per entity kind: the card picks a row component from
  * `row` and every other field is optional, so the feed's hydration pass maps four
@@ -13,7 +22,7 @@ export interface ActivityEntity {
   /** Ascent type when the row stands for an ascent, so its route row shows the status glyph. */
   ascentType?: AscentType
   /**
-   * Whose ascent it is (`ascents.createdBy`). A region admin may edit anyone's, so the
+   * Whose ascent it is (`ascents.createdBy`). A region maintainer may edit anyone's, so the
    * headline has to say whether the actor edited their own or somebody else's; without
    * this it can only say "an ascent", which is what nobody could read.
    */
@@ -63,43 +72,6 @@ export function activityEntityKey(ref: ActivityEntityRef): string {
   return `${ref.type}:${ref.id}`
 }
 
-/**
- * The name to put in a headline. The hydrated entity's when it is there, otherwise the
- * one the row itself stashed: a create row carries the added name in `newValue`, a
- * delete row the removed one in `oldValue`.
- */
-export function activityEntityName(
-  activity: ActivityDto,
-  entity: ActivityEntity | null | undefined,
-): string | undefined {
-  // An invitation names the invitee, who has no user row yet: `regions.remote.ts` stores
-  // their address in the value column and points `entityId` at the *inviter*. Hydrating
-  // that would render "Jonas invited Jonas", so the stored address wins here.
-  if (activity.columnName === 'invitation') {
-    return activity.newValue ?? activity.oldValue
-  }
-
-  if (entity != null) {
-    return entity.name
-  }
-
-  // An ascent's value columns hold its ascent type, never a name.
-  if (activity.entityType === 'ascent') {
-    return undefined
-  }
-
-  if (activity.columnName == null) {
-    return activity.type === 'deleted' ? activity.oldValue : activity.newValue
-  }
-
-  // Every other column stores its own value (a grade id, a rating), which would read as
-  // a nonsense name. Only the naming columns, and the `user` rows whose value *is* the
-  // person (an email, a role target), are safe to borrow from.
-  return activity.columnName === 'name' || activity.columnName === 'username' || activity.entityType === 'user'
-    ? (activity.newValue ?? activity.oldValue)
-    : undefined
-}
-
 /** The entities a card has to hydrate, newest first, each listed once. */
 export function activityEntityRefs(activities: readonly ActivityDto[]): ActivityEntityRef[] {
   const seen = new Set<string>()
@@ -115,23 +87,4 @@ export function activityEntityRefs(activities: readonly ActivityDto[]): Activity
 
     return refs
   }, [])
-}
-
-/**
- * The place a group of edits happened in, when every row agrees on one parent. That is
- * what a burst headline names ("made 12 edits in Nordblock"); a group spanning two
- * parents has no such place and falls back to its first entity.
- */
-export function activityParentRef(activities: readonly ActivityDto[]): ActivityEntityRef | undefined {
-  const first = activities[0]
-  if (first?.parentEntityId == null || first.parentEntityType == null) {
-    return undefined
-  }
-
-  const shared = activities.every(
-    (activity) =>
-      activity.parentEntityId === first.parentEntityId && activity.parentEntityType === first.parentEntityType,
-  )
-
-  return shared ? { id: first.parentEntityId, type: first.parentEntityType } : undefined
 }
