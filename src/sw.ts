@@ -5,10 +5,36 @@
 
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { imageCache } from 'workbox-recipes'
+import { z } from 'zod'
 import { isDerivativeRequest } from './lib/images/derivatives'
-import { NotificationDataSchema, NotificationSchema } from './lib/notifications'
 
 declare let self: ServiceWorkerGlobalScope
+
+/**
+ * Shape of a push payload, narrowed to the fields the handlers below actually read.
+ *
+ * These used to live in `src/lib/notifications/`, which the 2.0 rework deleted (d4180a2c)
+ * without updating this import - so the service worker stopped building entirely, and the
+ * failure was invisible because the PWA plugin's own error fires first and buries it.
+ *
+ * Nothing sends a push on 2.0 yet: `web-push` is still a dependency but unimported, nothing
+ * calls `pushManager.subscribe`, and no app code reads `push_subscriptions` (the table and
+ * the `notify_*` user settings survived the rework, the delivery path did not). The handlers
+ * are kept because that plumbing is clearly meant to come back; the old server-side routing
+ * fields (`userId`, `type`) are not, since only a sender ever read them. Delete this whole
+ * section instead if push is not coming back.
+ */
+const NotificationDataSchema = z.object({
+  pathname: z.string().optional(),
+})
+
+const NotificationSchema = z.object({
+  body: z.string().optional(),
+  data: NotificationDataSchema.optional(),
+  icon: z.string().optional(),
+  tag: z.string().optional(),
+  title: z.string().optional(),
+})
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {

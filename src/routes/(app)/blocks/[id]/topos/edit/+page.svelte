@@ -12,6 +12,8 @@
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
   import { estimateBlockLocationFromPhoto } from '$lib/entities/block/blocks.remote'
   import { blockDetail, blockRouteList } from '$lib/entities/block/resources.svelte'
+  import { imageRejectionMessage } from '$lib/entities/file/rejection'
+  import { imageRejection } from '$lib/entities/file/upload'
   import { ImageUpload } from '$lib/entities/file/upload-manager.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -33,7 +35,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { notifyError, notifyUndo } from '$lib/state/toast'
+  import { notifyError, notifyUndo, toaster } from '$lib/state/toast'
   import exifr from 'exifr'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
@@ -233,12 +235,25 @@
     input.value = ''
     if (files.length === 0 || block.data == null) return
 
+    // Same gate the drop zone applies. Without it an 80MB file or a PDF uploads its whole
+    // body before the staging bucket refuses it, and comes back as a bare `upload_failed`.
+    const accepted: File[] = []
+    for (const file of files) {
+      const rejection = imageRejection(file)
+      if (rejection == null) {
+        accepted.push(file)
+      } else {
+        toaster.create({ duration: 5000, title: `${file.name}: ${imageRejectionMessage(rejection)}`, type: 'error' })
+      }
+    }
+    if (accepted.length === 0) return
+
     photoBusy = true
     try {
-      for (const file of files) {
+      for (const file of accepted) {
         // Per-file: one failed upload must not silently drop the rest of the batch.
+        const upload = new ImageUpload(file)
         try {
-          const upload = new ImageUpload(file)
           upload.start()
           const row = await upload.finalize({ id: block.data.id, type: 'block' })
           if (replaceTargetId != null) {
@@ -249,12 +264,18 @@
           }
         } catch {
           notifyError()
+        } finally {
+          // These uploads are headless: no tile ever renders the preview, and nothing
+          // registers them in pendingUploads, so nothing else would ever revoke the blob
+          // the ImageUpload constructor creates. Without this every picked photo pins its
+          // full bytes in memory for the rest of the session.
+          URL.revokeObjectURL(upload.previewUrl)
         }
       }
       // Backfill an estimated pin from the photo's GPS when the block has none yet. Best-effort:
       // the topo upload is the real action, so a missing or unreadable EXIF must stay silent.
       if (block.data.geolocation == null) {
-        await estimateLocationFromPhotos(files)
+        await estimateLocationFromPhotos(accepted)
       }
     } finally {
       photoBusy = false
@@ -516,6 +537,8 @@
       onReorder={persistReorder}
     />
 
-    <input bind:this={fileInput} type="file" accept="image/*" class="hidden" onchange={onFilePicked} />
+    <!-- Matches MediaDropZone: desktop platforms often register no MIME type for HEIC, so
+         image/* alone hides iPhone photos from the picker on those. -->
+    <input bind:this={fileInput} type="file" accept="image/*,.heic,.heif" class="hidden" onchange={onFilePicked} />
   </div>
 {/if}

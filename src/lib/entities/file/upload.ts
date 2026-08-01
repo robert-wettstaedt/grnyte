@@ -17,6 +17,10 @@ export const MAX_IMAGE_SIZE = 50 * 1024 * 1024
  *  the heaviest sane beta clip (2min 4K120 H.264 ≈ 1.6GB) still fits. */
 export const MAX_VIDEO_SIZE = 2 * 1024 ** 3
 
+/** Human file size, for the picker's constraint copy and its rejection messages. */
+export const formatFileSize = (bytes: number): string =>
+  bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1)} GB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
 /** Entities an image can be attached to — mirrors the FK columns on `files`. */
 export const fileEntityTypes = ['area', 'ascent', 'block', 'route'] as const
 export type FileEntityType = (typeof fileEntityTypes)[number]
@@ -34,6 +38,22 @@ export const extensionOf = (name: string): null | string => /\.([^./]+)$/.exec(n
 
 export const isImageFileName = (name: string): boolean =>
   (IMAGE_EXTENSIONS as readonly string[]).includes(extensionOf(name) ?? '')
+
+/** Why an image may not be staged. Callers map these to copy; the rule itself lives here. */
+export type ImageRejection = 'invalidType' | 'tooLarge'
+
+/**
+ * Why `file` may not be staged as an image, or `null` when it may. The single gate every
+ * entry point shares (the drop zone and the topo editor), so a picker cannot start an upload
+ * the staging bucket will refuse: it caps at 50MB and admits `image/*` only, and a rejection
+ * there costs the whole body before it fails.
+ */
+export const imageRejection = (file: File): ImageRejection | null => {
+  if (!isImageFileName(file.name)) {
+    return 'invalidType'
+  }
+  return file.size > MAX_IMAGE_SIZE ? 'tooLarge' : null
+}
 
 /** Container formats routed to the video pipeline. Bunny transcodes almost
  *  anything, so the list only backstops files whose MIME type the browser

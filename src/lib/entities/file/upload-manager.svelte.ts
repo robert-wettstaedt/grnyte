@@ -148,11 +148,18 @@ abstract class MediaUploadBase {
         throw new Error(m.upload_failed())
       }
       this.status = 'finalizing'
-      this.fileRow = await this.attach(target)
+      // `attach` is typed optional because a remote function's result is; a finalize that
+      // resolves without a row is a failure, not a done upload. Checked rather than
+      // asserted with `!`, or callers get `status: 'done'` and a TypeError on `row.id`.
+      const row = await this.attach(target)
+      if (row == null) {
+        throw new Error(m.upload_failed())
+      }
+      this.fileRow = row
       this.status = 'done'
       // The preview blob stays alive until the synced `files` row takes over the tile
       // (dropPending revokes it then), so the media never blinks out mid-handoff.
-      return this.fileRow!
+      return row
     } catch (error) {
       this.status = 'failed'
       this.error ??= error instanceof Error ? error.message : m.upload_failed()

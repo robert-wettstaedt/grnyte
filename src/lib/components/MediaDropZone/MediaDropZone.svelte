@@ -1,7 +1,10 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
+  import { imageRejectionMessage } from '$lib/entities/file/rejection'
   import {
+    formatFileSize,
+    imageRejection,
     isImageFileName,
     isVideoFile,
     MAX_IMAGE_SIZE,
@@ -110,12 +113,11 @@
     const ok: File[] = []
     const rejected: string[] = []
     for (const file of list) {
-      if (!isImageFileName(file.name)) {
-        rejected.push(`${file.name}: ${m.upload_invalidType()}`)
-      } else if (file.size > MAX_IMAGE_SIZE) {
-        rejected.push(`${file.name}: ${m.upload_tooLarge({ size: sizeLabel(MAX_IMAGE_SIZE) })}`)
-      } else {
+      const rejection = imageRejection(file)
+      if (rejection == null) {
         ok.push(file)
+      } else {
+        rejected.push(`${file.name}: ${imageRejectionMessage(rejection)}`)
       }
     }
     // zag only enforces maxFiles for the plain dropzone; this picker caps itself, or
@@ -138,7 +140,7 @@
     if (!isVideoFile(file)) {
       sheetError = m.upload_invalidType()
     } else if (file.size > MAX_VIDEO_SIZE) {
-      sheetError = m.upload_tooLarge({ size: sizeLabel(MAX_VIDEO_SIZE) })
+      sheetError = m.upload_tooLarge({ size: formatFileSize(MAX_VIDEO_SIZE) })
     } else {
       sheetError = null
       sheetVideo = file
@@ -165,7 +167,7 @@
     errors.includes('FILE_INVALID_TYPE')
       ? m.upload_invalidType()
       : errors.includes('FILE_TOO_LARGE')
-        ? m.upload_tooLarge({ size: sizeLabel(isVideoFile(file) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE) })
+        ? m.upload_tooLarge({ size: formatFileSize(isVideoFile(file) ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE) })
         : errors.includes('TOO_MANY_FILES')
           ? m.upload_tooMany({ count: MAX_FILES })
           : m.upload_invalidType()
@@ -237,9 +239,6 @@
     upload.remove()
     uploads.splice(uploads.indexOf(upload), 1)
   }
-
-  const sizeLabel = (bytes: number): string =>
-    bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1)} GB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
   const dropPrompt = $derived(
     accept.includes('image')
@@ -385,7 +384,7 @@
             </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate text-sm font-semibold">{sheetVideo.name}</span>
-              <span class="text-surface-600-400 block text-xs">{sizeLabel(sheetVideo.size)}</span>
+              <span class="text-surface-600-400 block text-xs">{formatFileSize(sheetVideo.size)}</span>
             </span>
             <button type="button" class="btn btn-sm preset-tonal-surface flex-none" onclick={() => videoInput?.click()}>
               {m.upload_change()}
@@ -469,8 +468,8 @@
 
     <p class="text-surface-600-400 text-xs">
       {[
-        ...(accept.includes('image') ? [m.upload_constraints({ size: sizeLabel(MAX_IMAGE_SIZE) })] : []),
-        ...(accept.includes('video') ? [m.upload_constraintsVideo({ size: sizeLabel(MAX_VIDEO_SIZE) })] : []),
+        ...(accept.includes('image') ? [m.upload_constraints({ size: formatFileSize(MAX_IMAGE_SIZE) })] : []),
+        ...(accept.includes('video') ? [m.upload_constraintsVideo({ size: formatFileSize(MAX_VIDEO_SIZE) })] : []),
       ].join(' · ')}
     </p>
   </div>

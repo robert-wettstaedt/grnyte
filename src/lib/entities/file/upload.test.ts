@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { extensionOf, imageMimeOf, isHeic, isImageFileName, isVideoFile, stagingPath } from './upload'
+import {
+  extensionOf,
+  formatFileSize,
+  imageMimeOf,
+  imageRejection,
+  isHeic,
+  isImageFileName,
+  isVideoFile,
+  MAX_IMAGE_SIZE,
+  stagingPath,
+} from './upload'
 
 describe('extensionOf', () => {
   it('lowercases and strips the dot', () => {
@@ -52,5 +62,31 @@ describe('stagingPath', () => {
 
   it('generates distinct names for the same input', () => {
     expect(stagingPath('uid', 'a.png')).not.toBe(stagingPath('uid', 'a.png'))
+  })
+})
+
+describe('formatFileSize', () => {
+  it('switches to GB at the gigabyte boundary', () => {
+    expect(formatFileSize(MAX_IMAGE_SIZE)).toBe('50.0 MB')
+    expect(formatFileSize(2 * 1024 ** 3)).toBe('2.0 GB')
+  })
+})
+
+describe('imageRejection', () => {
+  // Only name and size are read, and a real File big enough to test the cap would be 50MB.
+  const file = (name: string, size: number) => ({ name, size }) as File
+
+  it('accepts a supported image within the size cap', () => {
+    expect(imageRejection(file('IMG_2041.HEIC', 1024))).toBeNull()
+    expect(imageRejection(file('a.jpg', MAX_IMAGE_SIZE))).toBeNull()
+  })
+
+  it('rejects an unsupported type before complaining about size', () => {
+    // Type wins: a 90MB PDF is refused for being a PDF, which is the actionable reason.
+    expect(imageRejection(file('notes.pdf', MAX_IMAGE_SIZE * 2))).toBe('invalidType')
+  })
+
+  it('rejects an oversized image', () => {
+    expect(imageRejection(file('huge.jpg', MAX_IMAGE_SIZE + 1))).toBe('tooLarge')
   })
 })
