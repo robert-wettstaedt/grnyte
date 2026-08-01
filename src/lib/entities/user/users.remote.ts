@@ -51,9 +51,9 @@ export const updateUsername = authedForm(
     await db.update(users).set({ username }).where(eq(users.id, user.id))
 
     // One activity per region the user belongs to: a rename is only news to the people who see
-    // that name in their lists, and the feed is region-scoped. `insertActivity` debounces on the
-    // whole row until it has been notified, so repeating the same rename replaces the pending
-    // entry rather than adding a second one.
+    // that name in their lists, and the feed is region-scoped. `insertActivity` collapses on the
+    // whole row until it has been notified, so renaming back to a name used before replaces that
+    // earlier entry rather than adding a second one.
     await insertActivity(
       db,
       regionFks.map(

@@ -87,8 +87,8 @@ export const createUpdateActivity = async ({
   }
 }
 
-// Columns that define an activity's identity for debounce. Excludes id/createdAt (auto) and
-// notified (the flag we filter on).
+// Columns that define an activity's identity for the collapse below. Excludes id/createdAt
+// (auto) and notified (see the note on `insertActivity`).
 const activityValueColumns = [
   'type',
   'userFk',
@@ -113,8 +113,20 @@ export const insertActivity = async (
     return
   }
 
-  // Debounce until notified: drop not-yet-notified rows carrying the same values first, so
-  // repeated saves (e.g. topo edits) collapse into one instead of piling up duplicates.
+  // Collapse repeats until notified: drop any earlier row carrying identical values, so a
+  // repeated save (a topo redrawn twice, a block nudged again) replaces its predecessor
+  // instead of piling up duplicates.
+  //
+  // `notified` is the intended bound, and NOTHING SETS IT YET - the consumer that will is
+  // still to be written. Until it lands, the filter matches every earlier row however old, so
+  // the valueless activities (topo, location) keep one entry per person and entity for good.
+  // That resolves itself when the consumer ships: a notified row stops being collapsible and
+  // the window closes behind it.
+  //
+  // So do not replace the flag with a time bound. It would read like a fix for the unbounded
+  // window and would instead fight the consumer this is waiting for. `createUpdateActivity`
+  // is the one that uses 15 minutes, because its rows carry old/new values worth keeping apart.
+  //
   // ponytail: one delete per item; callers pass a single activity today. Upgrade = batch if
   // an array ever gets large.
   for (const item of arr) {
