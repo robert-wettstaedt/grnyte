@@ -260,7 +260,7 @@
 
   /* Ascent status accents. sent/proj reuse the semantic ramp; flash/repeat are
      bespoke (no semantic equivalent). */
-  --st-sent: var(--color-success-500);
+  --st-redpoint: var(--color-success-500);
   --st-flash: oklch(0.81 0.14 85);
   --st-proj: var(--color-tertiary-500);
   --st-repeat: oklch(0.74 0.11 195);

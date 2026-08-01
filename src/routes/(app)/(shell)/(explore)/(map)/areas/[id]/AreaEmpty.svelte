@@ -74,8 +74,10 @@
   </div>
 
   {#if canAddBlockHere || canAddAreaHere}
-    <h2 class="text-surface-950-50 mb-2 text-xl font-bold tracking-tight">{m.area_empty_title({ name: area.name })}</h2>
-    <p class="text-surface-600-400 mb-7 max-w-70 text-pretty">{m.area_empty_body()}</p>
+    <h2 class="text-surface-950-50 mb-2 text-xl font-bold tracking-tight">
+      {m.areas_empty_title({ name: area.name })}
+    </h2>
+    <p class="text-surface-600-400 mb-7 max-w-70 text-pretty">{m.areas_empty_body()}</p>
 
     <div class="flex w-full max-w-xs flex-col gap-3">
       <!-- Block is the primary CTA (filled); sub-area the secondary (outline). -->
@@ -101,7 +103,7 @@
     </div>
 
     {#if canAddBlockHere && canAddAreaHere}
-      <p class="text-surface-500 mt-4 max-w-70 text-xs">{m.area_empty_hint()}</p>
+      <p class="text-surface-500 mt-4 max-w-70 text-xs">{m.areas_empty_hint()}</p>
     {/if}
   {:else}
     <p class="text-surface-600-400 max-w-xs text-pretty">{m.queryState_empty()}</p>

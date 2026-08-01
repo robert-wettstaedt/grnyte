@@ -6,7 +6,7 @@ export interface ProfileStats {
   daysOut: number
   /** Highest community grade among sent routes, or undefined when nothing is sent. */
   hardestGradeFk: number | undefined
-  /** Distinct routes with a non-attempt tick. */
+  /** Distinct routes sent, i.e. flashed, redpointed or repeated. Anything but an attempt. */
   sends: number
 }
 

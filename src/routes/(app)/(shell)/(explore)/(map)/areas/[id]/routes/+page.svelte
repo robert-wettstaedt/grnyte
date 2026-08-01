@@ -122,7 +122,7 @@
   // and pin the filter/sort controls there (the sheet's scroll wrapper breaks
   // `position: sticky`, so an in-list toolbar would scroll away).
   $effect(() => {
-    sheetState.title = m.area_allRoutes()
+    sheetState.title = m.areas_allRoutes()
     sheetState.subtitle = area.data?.name ?? null
     sheetState.headerLeft = headerLeft
     sheetState.toolbar = toolbar
@@ -131,7 +131,7 @@
 
 <svelte:head>
   <title>
-    {area.data == null ? m.area_allRoutes() : `${m.area_allRoutes()} · ${area.data.name}`} – {PUBLIC_APPLICATION_NAME}
+    {area.data == null ? m.areas_allRoutes() : `${m.areas_allRoutes()} · ${area.data.name}`} – {PUBLIC_APPLICATION_NAME}
   </title>
 </svelte:head>
 

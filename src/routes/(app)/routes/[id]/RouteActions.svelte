@@ -57,7 +57,7 @@
   {#if canEdit || canDelete || canEditTopos}
     <MoreMenu panel={false} title={route.name}>
       {#snippet children(close)}
-        <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.area_manage()}</h3>
+        <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
 
         {#if canEdit}
           <MenuRow

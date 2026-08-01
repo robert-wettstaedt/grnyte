@@ -8,10 +8,10 @@ const ascent = (routeFk: number, type: AscentType, dateTime: number, routeGradeF
 
 const sample: UserAscentDetail[] = [
   ascent(1, 'attempt', 100, 5),
-  ascent(1, 'send', 100, 5), // route 1 sent at grade 5, same day
+  ascent(1, 'redpoint', 100, 5), // route 1 sent at grade 5, same day
   ascent(2, 'flash', 200, 8), // route 2 flashed at grade 8, another day
   ascent(3, 'attempt', 200, 3), // route 3 only attempted (not a send)
-  ascent(4, 'send', 300), // route 4 sent but ungraded
+  ascent(4, 'redpoint', 300), // route 4 sent but ungraded
 ]
 
 describe('deriveStats', () => {

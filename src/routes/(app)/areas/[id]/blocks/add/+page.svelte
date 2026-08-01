@@ -35,11 +35,11 @@
         title={m.blocks_addBlock()}
       />
     {:else}
-      <ErrorState type="notfound" title={m.area_notFound()} />
+      <ErrorState type="notfound" title={m.areas_notFound()} />
     {/if}
   {/snippet}
 
   {#snippet empty()}
-    <ErrorState type="notfound" title={m.area_notFound()} />
+    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

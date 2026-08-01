@@ -51,7 +51,7 @@
 
   const onDelete = () =>
     withUndo(deleteArea({ id: area.id }), {
-      message: m.area_deleted(),
+      message: m.areas_deleted(),
       onUndo: restoreArea,
       waitFor: (data) => waitForArea(data.areaId),
     })
@@ -110,7 +110,7 @@
       {/if}
 
       {#if showManage}
-        <h3 class="text-surface-500 px-1 pt-4 pb-1 text-xs font-bold tracking-wider uppercase">{m.area_manage()}</h3>
+        <h3 class="text-surface-500 px-1 pt-4 pb-1 text-xs font-bold tracking-wider uppercase">{m.areas_manage()}</h3>
 
         {#if canEdit}
           <MenuRow
@@ -152,7 +152,7 @@
           <MenuRow
             destructive
             icon="map-pin-x"
-            label={m.area_delete()}
+            label={m.areas_delete()}
             onclick={() => {
               close()
               onDelete()

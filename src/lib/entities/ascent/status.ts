@@ -1,12 +1,12 @@
 import type { AscentType, UserAscent } from './dto'
 
 /**
- * Display priority when a route has several ascents: a repeat outranks the
- * original send, and having sent outranks a later attempt on the same route.
+ * Display priority when a route has several ascents: a repeat outranks the redpoint
+ * that earned it, and any send outranks a later attempt on the same route.
  */
-const PRIORITY: Record<AscentType, number> = { attempt: 1, flash: 3, repeat: 4, send: 2 }
+const PRIORITY: Record<AscentType, number> = { attempt: 1, flash: 3, redpoint: 2, repeat: 4 }
 
-/** The highest-priority ascent type per route — the tick a route row shows. */
+/** The highest-priority ascent type per route: the status a route row shows. */
 export function ascentStatusByRoute(ascents: readonly UserAscent[]): Map<number, AscentType> {
   const byRoute = new Map<number, AscentType>()
   for (const ascent of ascents) {

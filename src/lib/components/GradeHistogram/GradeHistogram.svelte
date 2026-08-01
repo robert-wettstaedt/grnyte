@@ -126,7 +126,7 @@
 
 {#if useHistogram}
   <!-- Count labels overhang the tallest bar, so give them headroom. -->
-  <div role="group" aria-label={m.area_grades()} class:pt-4={showCounts}>
+  <div role="group" aria-label={m.areas_grades()} class:pt-4={showCounts}>
     <!-- Each grade is a full-height column button rising from a shared baseline,
          scaled against the busiest grade in the range; clicking one toggles a
          persistent selection the caller can react to. Full-height keeps the tap
@@ -202,7 +202,7 @@
 {#if ungraded > 0}
   <div class="mt-2 flex justify-end">
     <span class="text-surface-500 text-[11px] font-semibold tabular-nums">
-      {m.area_ungradedCount({ count: ungraded })}
+      {m.areas_ungradedCount({ count: ungraded })}
     </span>
   </div>
 {/if}

@@ -5,7 +5,7 @@ export interface AscentDetail extends Omit<RouteAscent, 'authorName'> {
   routeFk: number
 }
 
-export type AscentType = 'attempt' | 'flash' | 'repeat' | 'send'
+export type AscentType = 'attempt' | 'flash' | 'redpoint' | 'repeat'
 
 /** One ascent of a route: the climber's take on it and any attached media. */
 export interface RouteAscent {
@@ -25,7 +25,7 @@ export interface RouteAscent {
   type: AscentType
 }
 
-/** Minimal ascent shape used to derive a user's tick status per route. */
+/** Minimal ascent shape used to derive a user's ascent status per route. */
 export interface UserAscent {
   routeFk: number
   type: AscentType

@@ -267,7 +267,7 @@ if (tags.length) {
 }
 
 // --- Ascents (0-3 per route, weighted low) ----------------------------------
-const ASCENT_TYPES = ['flash', 'send', 'send', 'send', 'repeat', 'attempt'] as const
+const ASCENT_TYPES = ['flash', 'redpoint', 'redpoint', 'redpoint', 'repeat', 'attempt'] as const
 const dayMs = 86_400_000
 const now = Date.now()
 const ascentRows = routeIds.flatMap((routeId) => {

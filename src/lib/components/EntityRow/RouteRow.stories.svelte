@@ -9,7 +9,7 @@
       status: {
         control: 'select',
         description: "The user's logged ascent state, if any.",
-        options: [undefined, 'flash', 'send', 'attempt', 'repeat'],
+        options: [undefined, 'flash', 'redpoint', 'attempt', 'repeat'],
       },
     },
     component: RouteRow,
@@ -29,7 +29,7 @@
     crumbs: 'Roadside · The Arch',
     grade: '7a+',
     route: { description: 'Sit start on crimps', gradeFk: 12, name: 'Arch Nemesis', rating: 3, tags: [] },
-    status: 'send',
+    status: 'redpoint',
   } satisfies ComponentProps<typeof RouteRow>
 </script>
 

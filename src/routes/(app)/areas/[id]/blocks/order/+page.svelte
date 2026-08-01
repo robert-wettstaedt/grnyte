@@ -108,7 +108,7 @@
 <QueryState resource={area}>
   {#snippet ready(detail)}
     {#if !canEditBlock(global.userRegions, detail)}
-      <ErrorState type="notfound" title={m.area_notFound()} />
+      <ErrorState type="notfound" title={m.areas_notFound()} />
     {:else}
       <div class="flex h-full flex-col">
         <header
@@ -203,6 +203,6 @@
   {/snippet}
 
   {#snippet empty()}
-    <ErrorState type="notfound" title={m.area_notFound()} />
+    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

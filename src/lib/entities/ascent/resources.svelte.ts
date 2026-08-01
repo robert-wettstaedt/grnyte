@@ -51,7 +51,7 @@ export function userAscentList(userId: () => number | undefined, enabled: () => 
 }
 
 /**
- * The signed-in user's tick per route (repeat > flash > send > attempt) — the
+ * The signed-in user's status per route (repeat > flash > redpoint > attempt): the
  * status every `RouteRow` shows. Pages sharing it reuse the same underlying
  * `listUserAscents` query, which Zero dedupes.
  */

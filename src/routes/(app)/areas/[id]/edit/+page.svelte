@@ -49,11 +49,11 @@
         <AreaFormFields area={data} form={updateArea} />
       </Form>
     {:else}
-      <ErrorState type="notfound" title={m.area_notFound()} />
+      <ErrorState type="notfound" title={m.areas_notFound()} />
     {/if}
   {/snippet}
 
   {#snippet empty()}
-    <ErrorState type="notfound" title={m.area_notFound()} />
+    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>

@@ -155,6 +155,13 @@
       "when": 1785446740005,
       "tag": "0092_cooing_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1785606650000,
+      "tag": "0093_ascent_type_redpoint",
+      "breakpoints": true
     }
   ]
 }

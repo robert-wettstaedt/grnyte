@@ -34,7 +34,7 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
   const area = await db.query.areas.findFirst({ where: eq(areas.id, value.areaId) })
 
   if (area == null) {
-    invalid(formError('area_parentNotFound'))
+    invalid(formError('areas_parentNotFound'))
   }
 
   if (!canAddBlock(userRegions, area)) {
@@ -452,7 +452,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     const area = await db.query.areas.findFirst({ where: eq(areas.id, snapshot.areaFk) })
 
     if (area == null) {
-      error(404, formError('area_parentNotFound'))
+      error(404, formError('areas_parentNotFound'))
     }
     if (area.regionFk !== snapshot.block.regionFk) {
       error(403, formError('form_noPermission'))

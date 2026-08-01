@@ -1,7 +1,10 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "area_allRoutes": "All routes",
-  "area_allRoutesCount": [
+  "areas_addArea": "Add area",
+  "areas_addParkingLocation": "Add parking",
+  "areas_addSubArea": "Add sub-area",
+  "areas_allRoutes": "All routes",
+  "areas_allRoutesCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -11,35 +14,7 @@
       }
     }
   ],
-  "area_allRoutesHint": "Browse, sort & filter",
-  "area_createdBy": "Created by {username}",
-  "area_delete": "Delete area",
-  "area_deleted": "Area deleted",
-  "area_distanceAway": "{distance} away",
-  "area_empty_body": "Group routes into a sub-area, or drop a block to start logging routes right here.",
-  "area_empty_hint": "Not sure? A block is the quickest way to add routes.",
-  "area_empty_title": "Start building {name}",
-  "area_gradedCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} route graded",
-        "countPlural=other": "{count} routes graded"
-      }
-    }
-  ],
-  "area_grades": "Grades",
-  "area_manage": "Manage",
-  "area_notFound": "Area not found.",
-  "area_parentNotFound": "The parent area no longer exists.",
-  "area_parkingLocations": "Parking",
-  "area_ungraded": "Ungraded",
-  "area_ungradedCount": "+{count} ungraded",
-  "area_youAreHere": "You're here",
-  "areas_addArea": "Add area",
-  "areas_addParkingLocation": "Add parking",
-  "areas_addSubArea": "Add sub-area",
+  "areas_allRoutesHint": "Browse, sort & filter",
   "areas_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -52,13 +27,38 @@
   ],
   "areas_createArea": "Create area",
   "areas_createAreaError": "Could not create the area. Please try again.",
+  "areas_createdBy": "Created by {username}",
+  "areas_delete": "Delete area",
+  "areas_deleted": "Area deleted",
+  "areas_distanceAway": "{distance} away",
   "areas_editArea": "Edit area",
+  "areas_empty_body": "Group routes into a sub-area, or drop a block to start logging routes right here.",
+  "areas_empty_hint": "Not sure? A block is the quickest way to add routes.",
+  "areas_empty_title": "Start building {name}",
+  "areas_gradedCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route graded",
+        "countPlural=other": "{count} routes graded"
+      }
+    }
+  ],
+  "areas_grades": "Grades",
+  "areas_manage": "Manage",
   "areas_nameExists": "An area named \"{name}\" already exists here",
   "areas_nameHint": "You can rename it anytime",
   "areas_namePlaceholder": "Area name",
   "areas_nameQuestion": "What should we call this area?",
   "areas_newArea": "New area",
+  "areas_notFound": "Area not found.",
+  "areas_parentNotFound": "The parent area no longer exists.",
+  "areas_parkingLocations": "Parking",
   "areas_title": "Areas",
+  "areas_ungraded": "Ungraded",
+  "areas_ungradedCount": "+{count} ungraded",
+  "areas_youAreHere": "You're here",
   "ascents_community": "Community",
   "ascents_count": [
     {
@@ -94,10 +94,14 @@
   "ascents_form_typeAttempt": "Attempt",
   "ascents_form_typeFlash": "Flash",
   "ascents_form_typeLabel": "How did it go?",
+  "ascents_form_typeRedpoint": "Redpoint",
   "ascents_form_typeRepeat": "Repeat",
-  "ascents_form_typeSend": "Send",
   "ascents_notFound": "Ascent not found",
   "ascents_seeAll": "See all {count} ascents",
+  "ascents_statusFlashed": "Flashed",
+  "ascents_statusRedpointed": "Redpointed",
+  "ascents_statusRepeated": "Repeated",
+  "ascents_statusTried": "Tried",
   "ascents_title": "Ascents",
   "ascents_viewAscent": "View ascent",
   "ascents_yourLogbook": "Your logbook",
@@ -292,7 +296,7 @@
   "feed_title": "Activity",
   "files_sharedFile": "Shared file",
   "filter_ascent": "Ascents",
-  "filter_ascentDone": "Ticked",
+  "filter_ascentDone": "Sent",
   "filter_ascentProject": "Projects",
   "filter_ascentTodo": "To do",
   "filter_favorites": "Favorites",

@@ -1,7 +1,10 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "area_allRoutes": "Alle Routen",
-  "area_allRoutesCount": [
+  "areas_addArea": "Gebiet hinzufügen",
+  "areas_addParkingLocation": "Parkplatz hinzufügen",
+  "areas_addSubArea": "Untergebiet hinzufügen",
+  "areas_allRoutes": "Alle Routen",
+  "areas_allRoutesCount": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -11,35 +14,7 @@
       }
     }
   ],
-  "area_allRoutesHint": "Durchsuchen, sortieren & filtern",
-  "area_createdBy": "Erstellt von {username}",
-  "area_delete": "Gebiet löschen",
-  "area_deleted": "Gebiet gelöscht",
-  "area_distanceAway": "{distance} entfernt",
-  "area_empty_body": "Fasse Routen in einem Untergebiet zusammen oder lege direkt hier einen Block an, um Routen zu erfassen.",
-  "area_empty_hint": "Unsicher? Mit einem Block erfasst du Routen am schnellsten.",
-  "area_empty_title": "{name} aufbauen",
-  "area_gradedCount": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} Route bewertet",
-        "countPlural=other": "{count} Routen bewertet"
-      }
-    }
-  ],
-  "area_grades": "Schwierigkeiten",
-  "area_manage": "Verwalten",
-  "area_notFound": "Gebiet nicht gefunden.",
-  "area_parentNotFound": "Das übergeordnete Gebiet existiert nicht mehr.",
-  "area_parkingLocations": "Parkplätze",
-  "area_ungraded": "Unbewertet",
-  "area_ungradedCount": "+{count} unbewertet",
-  "area_youAreHere": "Du bist hier",
-  "areas_addArea": "Gebiet hinzufügen",
-  "areas_addParkingLocation": "Parkplatz hinzufügen",
-  "areas_addSubArea": "Untergebiet hinzufügen",
+  "areas_allRoutesHint": "Durchsuchen, sortieren & filtern",
   "areas_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -52,13 +27,38 @@
   ],
   "areas_createArea": "Gebiet erstellen",
   "areas_createAreaError": "Das Gebiet konnte nicht erstellt werden. Bitte versuche es erneut.",
+  "areas_createdBy": "Erstellt von {username}",
+  "areas_delete": "Gebiet löschen",
+  "areas_deleted": "Gebiet gelöscht",
+  "areas_distanceAway": "{distance} entfernt",
   "areas_editArea": "Gebiet bearbeiten",
+  "areas_empty_body": "Fasse Routen in einem Untergebiet zusammen oder lege direkt hier einen Block an, um Routen zu erfassen.",
+  "areas_empty_hint": "Unsicher? Mit einem Block erfasst du Routen am schnellsten.",
+  "areas_empty_title": "{name} aufbauen",
+  "areas_gradedCount": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Route bewertet",
+        "countPlural=other": "{count} Routen bewertet"
+      }
+    }
+  ],
+  "areas_grades": "Schwierigkeiten",
+  "areas_manage": "Verwalten",
   "areas_nameExists": "Ein Gebiet mit dem Namen „{name}“ existiert hier bereits",
   "areas_nameHint": "Du kannst es jederzeit umbenennen",
   "areas_namePlaceholder": "Gebietsname",
   "areas_nameQuestion": "Wie sollen wir dieses Gebiet nennen?",
   "areas_newArea": "Neues Gebiet",
+  "areas_notFound": "Gebiet nicht gefunden.",
+  "areas_parentNotFound": "Das übergeordnete Gebiet existiert nicht mehr.",
+  "areas_parkingLocations": "Parkplätze",
   "areas_title": "Gebiete",
+  "areas_ungraded": "Unbewertet",
+  "areas_ungradedCount": "+{count} unbewertet",
+  "areas_youAreHere": "Du bist hier",
   "ascents_community": "Community",
   "ascents_count": [
     {
@@ -94,10 +94,14 @@
   "ascents_form_typeAttempt": "Versuch",
   "ascents_form_typeFlash": "Flash",
   "ascents_form_typeLabel": "Wie ist es gelaufen?",
+  "ascents_form_typeRedpoint": "Durchstieg",
   "ascents_form_typeRepeat": "Wiederholung",
-  "ascents_form_typeSend": "Durchstieg",
   "ascents_notFound": "Begehung nicht gefunden",
   "ascents_seeAll": "Alle {count} Begehungen ansehen",
+  "ascents_statusFlashed": "Geflasht",
+  "ascents_statusRedpointed": "Durchstiegen",
+  "ascents_statusRepeated": "Wiederholt",
+  "ascents_statusTried": "Versucht",
   "ascents_title": "Begehungen",
   "ascents_viewAscent": "Begehung ansehen",
   "ascents_yourLogbook": "Dein Logbuch",

@@ -34,7 +34,7 @@
   >
     <Icon name={isHere ? 'map-pin' : 'navigation'} size={18} />
     {#if isHere}
-      <span class="text-sm leading-none">{m.area_youAreHere()}</span>
+      <span class="text-sm leading-none">{m.areas_youAreHere()}</span>
     {:else}
       <!-- Tight leading keeps the stacked label + distance within the button's text-base line
            height, so the distance fills that line rather than growing the row (no shift), while
@@ -42,7 +42,7 @@
       <span class="flex flex-col items-start leading-none">
         <span class="text-sm leading-none font-bold">{m.common_directions()}</span>
         {#if distance != null}
-          <span class="text-[10px] leading-none font-normal opacity-80">{m.area_distanceAway({ distance })}</span>
+          <span class="text-[10px] leading-none font-normal opacity-80">{m.areas_distanceAway({ distance })}</span>
         {/if}
       </span>
     {/if}

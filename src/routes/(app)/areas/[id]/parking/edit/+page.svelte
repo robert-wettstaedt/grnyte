@@ -86,7 +86,7 @@
 <QueryState resource={area}>
   {#snippet ready(data)}
     {#if !canAddParking(global.userRegions, data)}
-      <ErrorState type="notfound" title={m.area_notFound()} />
+      <ErrorState type="notfound" title={m.areas_notFound()} />
     {:else}
       <Form
         fill
@@ -109,7 +109,7 @@
   {/snippet}
 
   {#snippet empty()}
-    <ErrorState type="notfound" title={m.area_notFound()} />
+    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>
 

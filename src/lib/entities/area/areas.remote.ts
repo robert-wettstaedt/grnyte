@@ -32,7 +32,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
   const { parent: parentArea, status } = await loadParentArea(db, value.parentFk, value.regionFk)
 
   if (status === 'missing') {
-    invalid(formError('area_parentNotFound'))
+    invalid(formError('areas_parentNotFound'))
   }
 
   if (
@@ -302,7 +302,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     const { parent: parentArea, status } = await loadParentArea(db, snapshot.area.parentFk, snapshot.area.regionFk)
 
     if (status === 'missing') {
-      error(404, formError('area_parentNotFound'))
+      error(404, formError('areas_parentNotFound'))
     }
     if (status === 'wrongRegion') {
       error(403, formError('form_noPermission'))

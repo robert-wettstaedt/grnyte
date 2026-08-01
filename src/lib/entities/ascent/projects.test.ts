@@ -15,7 +15,7 @@ describe('deriveProjects', () => {
       // Completed: >1 attempt plus a non-attempt.
       ascent(2, 'attempt', 100),
       ascent(2, 'attempt', 150),
-      ascent(2, 'send', 200),
+      ascent(2, 'redpoint', 200),
       // Not a project: sent with a single attempt.
       ascent(3, 'attempt', 100),
       ascent(3, 'flash', 100),
@@ -33,7 +33,7 @@ describe('deriveProjects', () => {
   })
 
   it('is neither open nor completed when sent with a single attempt', () => {
-    const { completed, open } = deriveProjects([ascent(1, 'attempt', 100), ascent(1, 'send', 200)])
+    const { completed, open } = deriveProjects([ascent(1, 'attempt', 100), ascent(1, 'redpoint', 200)])
 
     expect(open).toEqual([])
     expect(completed).toEqual([])
@@ -43,20 +43,24 @@ describe('deriveProjects', () => {
     const { completed, open } = deriveProjects([
       ascent(1, 'attempt', 100),
       ascent(1, 'attempt', 200),
-      ascent(1, 'send', 300),
+      ascent(1, 'redpoint', 300),
       // Two years later: a failed session, then a repeat. Ignored for this project.
       ascent(1, 'attempt', 1000),
       ascent(1, 'repeat', 1100),
     ])
 
     expect(open).toEqual([])
-    // sessions = attempt + attempt + send = 3; dated by the first send (300), not the repeat.
+    // sessions = attempt + attempt + redpoint = 3; dated by the first send (300), not the repeat.
     expect(completed).toEqual([{ lastSession: 300, routeFk: 1, sessions: 3 }])
   })
 
   it('orders ascents chronologically before classifying', () => {
-    // Input out of order: the send is listed first but dated last.
-    const { completed } = deriveProjects([ascent(1, 'send', 300), ascent(1, 'attempt', 100), ascent(1, 'attempt', 200)])
+    // Input out of order: the redpoint is listed first but dated last.
+    const { completed } = deriveProjects([
+      ascent(1, 'redpoint', 300),
+      ascent(1, 'attempt', 100),
+      ascent(1, 'attempt', 200),
+    ])
 
     expect(completed).toEqual([{ lastSession: 300, routeFk: 1, sessions: 3 }])
   })

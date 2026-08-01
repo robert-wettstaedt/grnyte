@@ -834,7 +834,11 @@ export const routesToFirstAscensionistsRelations = relations(routesToFirstAscens
   route: one(routes, { fields: [routesToFirstAscensionists.routeFk], references: [routes.id] }),
 }))
 
-export const ascentTypeEnum: ['flash', 'send', 'repeat', 'attempt'] = ['flash', 'send', 'repeat', 'attempt']
+/**
+ * `redpoint` is the strict "sent it after working it" type, next to `flash` and `repeat`.
+ * "Send" is the umbrella for all three (see CONTEXT.md); it is deliberately not a value here.
+ */
+export const ascentTypeEnum: ['flash', 'redpoint', 'repeat', 'attempt'] = ['flash', 'redpoint', 'repeat', 'attempt']
 export const ascents = table(
   'ascents',
   {

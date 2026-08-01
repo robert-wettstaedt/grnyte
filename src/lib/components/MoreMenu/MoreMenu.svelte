@@ -24,7 +24,7 @@
   {panel}
   panelClass={panel ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]' : undefined}
   contentClass="max-h-[calc(100dvh-6rem)] w-80"
-  subtitle={m.area_manage()}
+  subtitle={m.areas_manage()}
   {title}
 >
   {#snippet trigger(props)}

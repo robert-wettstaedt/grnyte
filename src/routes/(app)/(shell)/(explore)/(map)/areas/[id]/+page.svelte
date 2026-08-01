@@ -103,12 +103,12 @@
       {#if routes.data.length > 0}
         <section class="space-y-2">
           <div class="flex items-baseline justify-between">
-            <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.area_grades()}</h2>
+            <h2 class="text-surface-600-400 text-sm font-bold tracking-wider uppercase">{m.areas_grades()}</h2>
             <span class="text-surface-600-400 text-xs tabular-nums">
               {#if selected != null}
                 {selected.label} · {m.routes_routesCount({ count: selected.count })}
               {:else}
-                {m.area_gradedCount({ count: gradedCount })}
+                {m.areas_gradedCount({ count: gradedCount })}
               {/if}
             </span>
           </div>
@@ -132,8 +132,8 @@
             <Icon name="list" size={22} />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block font-semibold">{m.area_allRoutesCount({ count: routes.data.length })}</span>
-            <span class="text-surface-600-400 block text-xs">{m.area_allRoutesHint()}</span>
+            <span class="block font-semibold">{m.areas_allRoutesCount({ count: routes.data.length })}</span>
+            <span class="text-surface-600-400 block text-xs">{m.areas_allRoutesHint()}</span>
           </span>
           <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
         </a>
@@ -152,7 +152,7 @@
   {/snippet}
 
   {#snippet empty()}
-    <ErrorState type="notfound" title={m.area_notFound()} />
+    <ErrorState type="notfound" title={m.areas_notFound()} />
   {/snippet}
 </QueryState>
 

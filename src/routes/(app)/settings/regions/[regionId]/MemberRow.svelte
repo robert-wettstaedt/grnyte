@@ -44,7 +44,7 @@
   const close = () => (open = false)
 
   // "Manage" would promise something the sheet does not offer when all it holds is a profile link.
-  const subtitle = $derived(canManage || (self && canLeave) ? m.area_manage() : roleLabel(role))
+  const subtitle = $derived(canManage || (self && canLeave) ? m.areas_manage() : roleLabel(role))
 </script>
 
 <!-- panel={false}: a trigger-anchored popover on desktop (this is a page, not the map sheet),
