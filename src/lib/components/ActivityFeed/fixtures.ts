@@ -100,12 +100,12 @@ export const sampleWeek: { activities: ActivityDto[]; entities: Map<string, Acti
     // Flash, with the ascent's photos and notes.
     activity(12, { entityId: '9001', entityType: 'ascent', newValue: 'flash', type: 'created', userFk: 2 }),
 
-    // One climber's session: four ticks logged in one sitting.
-    ...['send', 'send', 'flash', 'attempt'].map((tick, index) =>
+    // One climber's session: four ascents logged in one sitting.
+    ...['redpoint', 'redpoint', 'flash', 'attempt'].map((ascentType, index) =>
       activity(180 + index * 5, {
         entityId: String(9002 + index),
         entityType: 'ascent',
-        newValue: tick,
+        newValue: ascentType,
         type: 'created',
         userFk: 3,
       }),
@@ -172,7 +172,7 @@ export const sampleWeek: { activities: ActivityDto[]; entities: Map<string, Acti
       userFk: 3,
     }),
     // Not hydrated: renders as a skeleton row while its ascent syncs.
-    activity(52 * 60, { entityId: '9099', entityType: 'ascent', newValue: 'send', type: 'created', userFk: 2 }),
+    activity(52 * 60, { entityId: '9099', entityType: 'ascent', newValue: 'redpoint', type: 'created', userFk: 2 }),
   ]
 
   const entities = entityMap([
@@ -180,8 +180,8 @@ export const sampleWeek: { activities: ActivityDto[]; entities: Map<string, Acti
       { id: '9001', type: 'ascent' },
       ascent('Rampe', 12, 2, { ascentType: 'flash', files: [photo('f1'), photo('f2')], note: NOTES }),
     ],
-    [{ id: '9002', type: 'ascent' }, ascent('Kante', 9, 3, { ascentType: 'send' })],
-    [{ id: '9003', type: 'ascent' }, ascent('Verschneidung', 11, 3, { ascentType: 'send' })],
+    [{ id: '9002', type: 'ascent' }, ascent('Kante', 9, 3, { ascentType: 'redpoint' })],
+    [{ id: '9003', type: 'ascent' }, ascent('Verschneidung', 11, 3, { ascentType: 'redpoint' })],
     [{ id: '9004', type: 'ascent' }, ascent('Traverse', 6, 3, { ascentType: 'flash' })],
     [{ id: '9005', type: 'ascent' }, ascent('Sitzstart', 16, 3, { ascentType: 'attempt' })],
     ...Array.from({ length: 6 }, (_, index): [ActivityEntityRef, ActivityEntity] => [

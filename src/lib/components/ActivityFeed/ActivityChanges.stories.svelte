@@ -33,9 +33,9 @@
     activity(11, { columnName: 'role', entityType: 'user', newValue: 'maintainer', oldValue: 'user', userFk: 1 }),
   ]
 
-  // What an ascent edit looks like: conditions and the tick type, not crag data.
+  // What an ascent edit looks like: conditions and the ascent type, not crag data.
   const ascentEdit = [
-    activity(1, { columnName: 'type', entityType: 'ascent', newValue: 'send', oldValue: 'attempt', userFk: 1 }),
+    activity(1, { columnName: 'type', entityType: 'ascent', newValue: 'redpoint', oldValue: 'attempt', userFk: 1 }),
     activity(2, { columnName: 'temperature', entityType: 'ascent', newValue: '4', oldValue: '11', userFk: 1 }),
     activity(3, { columnName: 'humidity', entityType: 'ascent', newValue: '45', userFk: 1 }),
     activity(4, { columnName: 'notes', entityType: 'ascent', newValue: LOREM, userFk: 1 }),

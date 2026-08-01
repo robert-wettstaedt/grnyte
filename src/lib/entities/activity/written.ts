@@ -24,7 +24,7 @@ export const WRITTEN_ACTIVITIES: Partial<ActivityDto>[] = [
     (columnName) => ({ columnName, entityType: 'route' }) as Partial<ActivityDto>,
   ),
   { entityType: 'route', type: 'deleted' },
-  ...['attempt', 'flash', 'repeat', 'send'].map(
+  ...['attempt', 'flash', 'redpoint', 'repeat'].map(
     (newValue) => ({ entityType: 'ascent', newValue, type: 'created' }) as Partial<ActivityDto>,
   ),
   ...['dateTime', 'gradeFk', 'humidity', 'notes', 'rating', 'temperature', 'type'].map(

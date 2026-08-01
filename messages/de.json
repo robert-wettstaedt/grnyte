@@ -110,6 +110,16 @@
       }
     }
   ],
+  "activity_ascentCreatedRedpoint": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast {name} durchstiegen",
+        "person=*": "{actor} hat {name} durchstiegen"
+      }
+    }
+  ],
   "activity_ascentCreatedRepeat": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -117,16 +127,6 @@
       "match": {
         "person=self": "Du hast {name} wiederholt",
         "person=*": "{actor} hat {name} wiederholt"
-      }
-    }
-  ],
-  "activity_ascentCreatedSend": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "Du hast {name} begangen",
-        "person=*": "{actor} hat {name} begangen"
       }
     }
   ],

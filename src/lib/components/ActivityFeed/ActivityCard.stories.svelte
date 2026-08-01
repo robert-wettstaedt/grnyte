@@ -37,10 +37,10 @@
   </div>
 {/snippet}
 
-<!-- A tick with the ascent's photos and notes: the fullest single card there is. -->
+<!-- An ascent with the ascent's photos and notes: the fullest single card there is. -->
 <Story name="Flash with photos" args={{ ...base, group: flash }} {template} />
 
-<!-- Four ticks logged in one sitting fold into one session card. -->
+<!-- Four ascents logged in one sitting fold into one session card. -->
 <Story name="Session" args={{ ...base, group: session }} {template} />
 
 <!-- Twelve edits across six routes of one block, capped at four rows. Expand for the diff. -->
@@ -74,11 +74,11 @@
     entities: entityMap([
       [
         { id: '9001', type: 'ascent' },
-        { ascentType: 'send', files: [photo('f9')], href: '#', name: 'Rampe', row: 'none' },
+        { ascentType: 'redpoint', files: [photo('f9')], href: '#', name: 'Rampe', row: 'none' },
       ],
     ]),
     group: groups([
-      activity(4, { entityId: '9001', entityType: 'ascent', newValue: 'send', type: 'created', userFk: 99 }),
+      activity(4, { entityId: '9001', entityType: 'ascent', newValue: 'redpoint', type: 'created', userFk: 99 }),
     ])[0],
   }}
   {template}

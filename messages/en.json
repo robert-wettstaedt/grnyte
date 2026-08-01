@@ -110,6 +110,16 @@
       }
     }
   ],
+  "activity_ascentCreatedRedpoint": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You redpointed {name}",
+        "person=*": "{actor} redpointed {name}"
+      }
+    }
+  ],
   "activity_ascentCreatedRepeat": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -117,16 +127,6 @@
       "match": {
         "person=self": "You repeated {name}",
         "person=*": "{actor} repeated {name}"
-      }
-    }
-  ],
-  "activity_ascentCreatedSend": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You sent {name}",
-        "person=*": "{actor} sent {name}"
       }
     }
   ],
