@@ -309,6 +309,63 @@ describe('person and owner', () => {
   })
 })
 
+describe('uploads', () => {
+  const upload = (partial: Partial<ActivityDto>) =>
+    activity({
+      entityType: 'file',
+      parentEntityId: '400',
+      parentEntityType: 'block',
+      type: 'uploaded',
+      userFk: 3,
+      ...partial,
+    })
+
+  const block = entityMap([
+    [
+      { id: '400', type: 'block' },
+      { name: 'Nordblock', row: 'block' },
+    ],
+    [
+      { id: 'f1', type: 'file' },
+      { name: 'Nordblock', row: 'none' },
+    ],
+  ])
+
+  it('names what the photo landed on, never the file', () => {
+    // A file's own id is a cuid, so borrowing it for the headline would read as noise.
+    const view = card([upload({ entityId: 'f1', id: 1 })], block)
+
+    expect(view.headline.keys).toEqual(['activity_fileUploaded'])
+    expect(view.entityName).toBe('Nordblock')
+  })
+
+  it('summarises a submit rather than naming one of its photos', () => {
+    const rows = [1, 2, 3].map((n) => upload({ createdAt: 60_000 * n, entityId: `f${n}`, id: n }))
+    const view = card(rows, block)
+
+    expect(view.headline.keys).toEqual(['activity_groupUploads'])
+    expect(view.summary).toEqual([{ key: 'activity_summaryFiles', params: { count: 3 } }])
+    expect(view.entityName).toBe('Nordblock')
+  })
+
+  it('renders no entity row for a file, only its media', () => {
+    const entities = entityMap([
+      [
+        { id: '400', type: 'block' },
+        { name: 'Nordblock', row: 'block' },
+      ],
+      [
+        { id: 'f1', type: 'file' },
+        { files: [{ id: 'f1' } as never], name: 'Nordblock', row: 'none' },
+      ],
+    ])
+    const view = card([upload({ entityId: 'f1', id: 1 })], entities)
+
+    expect(view.rows.map((row) => row.entity?.row)).toEqual(['none'])
+    expect(view.files).toHaveLength(1)
+  })
+})
+
 describe('changes', () => {
   it('keeps only the columns the field registry knows', () => {
     const rows = [

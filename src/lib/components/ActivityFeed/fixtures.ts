@@ -131,6 +131,19 @@ export const sampleWeek: { activities: ActivityDto[]; entities: Map<string, Acti
       }),
     ),
 
+    // Five photos from one submit. Each is its own row pointing at its own file, and they
+    // fold into one card because they agree on the block they landed on.
+    ...Array.from({ length: 5 }, (_, index) =>
+      activity(240 + index, {
+        entityId: `f-up-${index}`,
+        entityType: 'file',
+        parentEntityId: '400',
+        parentEntityType: 'block',
+        type: 'uploaded',
+        userFk: 3,
+      }),
+    ),
+
     // A twelve-edit burst across six routes of one block: two edits each, and never the
     // same value twice, so the expanded diff reads like a real afternoon of tidying up.
     ...Array.from({ length: 12 }, (_, index) =>
@@ -212,6 +225,12 @@ export const sampleWeek: { activities: ActivityDto[]; entities: Map<string, Acti
       { id: '400', type: 'block' },
       { crumbs: ['Westwand'], href: '#', name: 'Nordblock', row: 'block' },
     ],
+    // A hydrated upload: the card names the block it landed on, renders the photo in the
+    // media strip, and shows no row of its own, since a file has nothing to link to.
+    ...Array.from({ length: 5 }, (_, index): [ActivityEntityRef, ActivityEntity] => [
+      { id: `f-up-${index}`, type: 'file' },
+      { files: [photo(`up-${index}`)], name: 'Nordblock', row: 'none' },
+    ]),
     [
       { id: '300', type: 'area' },
       { description: 'Old quarry, shady until noon.', href: '#', name: 'Steinbruch', row: 'area' },

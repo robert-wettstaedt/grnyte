@@ -265,6 +265,7 @@
   "activity_fieldDateTime": "Date",
   "activity_fieldDescription": "Description",
   "activity_fieldFile": "Photo",
+  "activity_fieldFirstAscensionist": "First ascensionist",
   "activity_fieldFirstAscensionists": "First ascensionists",
   "activity_fieldFirstAscentYear": "First ascent year",
   "activity_fieldGrade": "Grade",
@@ -281,6 +282,16 @@
   "activity_fieldTopo": "Topo",
   "activity_fieldType": "Type",
   "activity_fieldUsername": "Username",
+  "activity_fileUploaded": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added a photo to {name}",
+        "person=*": "{actor} added a photo to {name}"
+      }
+    }
+  ],
   "activity_groupEdits": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -308,6 +319,16 @@
       "match": {
         "person=self": "You logged a session",
         "person=*": "{actor} logged a session"
+      }
+    }
+  ],
+  "activity_groupUploads": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added photos to {name}",
+        "person=*": "{actor} added photos to {name}"
       }
     }
   ],
@@ -445,6 +466,16 @@
       }
     }
   ],
+  "activity_summaryFiles": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} photo",
+        "countPlural=other": "{count} photos"
+      }
+    }
+  ],
   "activity_summaryPeople": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -482,6 +513,16 @@
       "match": {
         "person=self": "You removed {name} from the region",
         "person=*": "{actor} removed {name} from the region"
+      }
+    }
+  ],
+  "activity_userUpdatedFirstAscensionist": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You linked yourself to the first ascensionist {name}",
+        "person=*": "{actor} linked themselves to the first ascensionist {name}"
       }
     }
   ],

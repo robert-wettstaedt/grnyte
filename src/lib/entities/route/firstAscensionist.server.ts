@@ -5,6 +5,7 @@
  */
 import * as schema from '$lib/db/schema'
 import { firstAscensionists } from '$lib/db/schema'
+import { insertActivity } from '$lib/entities/activity/activity.server'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
@@ -55,6 +56,23 @@ export async function resolveFirstAscensionists(
       .insert(firstAscensionists)
       .values({ name: climber.name, regionFk, userFk: claimedUserFk })
       .returning()
+
+    // A claim binds an account to a climbing identity: it shows on the profile and feeds the
+    // stats, and it happens once ever, since every later edit matches the row that exists now.
+    // Worth its own row despite the route activity alongside it, which records a different
+    // thing (the route's history changed, not who somebody is).
+    if (claimedUserFk != null) {
+      await insertActivity(db, {
+        columnName: 'first ascensionist',
+        entityId: String(claimedUserFk),
+        entityType: 'user',
+        newValue: created.name,
+        regionFk,
+        type: 'updated',
+        userFk: claimedUserFk,
+      })
+    }
+
     existing.push(created)
     resolved.push(created)
   }

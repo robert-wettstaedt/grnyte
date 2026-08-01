@@ -28,6 +28,7 @@ export const activityFields: Record<string, ActivityField> = {
   dateTime: { icon: 'history', labelKey: 'activity_fieldDateTime', renderer: 'text' },
   description: { icon: 'file-text', labelKey: 'activity_fieldDescription', renderer: 'prose' },
   file: { icon: 'image', labelKey: 'activity_fieldFile', renderer: 'file' },
+  'first ascensionist': { icon: 'user', labelKey: 'activity_fieldFirstAscensionist', renderer: 'user' },
   firstAscensionists: { icon: 'users', labelKey: 'activity_fieldFirstAscensionists', renderer: 'chips' },
   firstAscentYear: { icon: 'history', labelKey: 'activity_fieldFirstAscentYear', renderer: 'text' },
   gradeFk: { icon: 'trending-up', labelKey: 'activity_fieldGrade', renderer: 'grade' },

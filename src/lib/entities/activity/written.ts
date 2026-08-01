@@ -31,10 +31,13 @@ export const WRITTEN_ACTIVITIES: Partial<ActivityDto>[] = [
     (columnName) => ({ columnName, entityType: 'ascent' }) as Partial<ActivityDto>,
   ),
   { entityType: 'ascent', type: 'deleted' },
-  // `deleteFile` writes the parent's type, never `file`.
+  // Uploads point at the file and name what it was attached to as the parent; deletes are the
+  // other way round, because by then the file is gone and only the parent is left to name.
+  { entityType: 'file', type: 'uploaded' },
   ...['area', 'ascent', 'block', 'route'].map(
     (entityType) => ({ columnName: 'file', entityType, type: 'deleted' }) as Partial<ActivityDto>,
   ),
+  { columnName: 'first ascensionist', entityType: 'user' },
   { columnName: 'invitation', entityType: 'user', type: 'created' },
   { columnName: 'invitation', entityType: 'user' },
   { columnName: 'invitation', entityType: 'user', type: 'deleted' },

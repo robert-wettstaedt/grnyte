@@ -21,10 +21,11 @@ export interface ActivityGroup {
  * How a card presents its activities:
  * - `session` one climber's ascents logged in one sitting
  * - `burst`   one editor's crag edits around the same place, close in time
+ * - `upload`  one uploader's media landing on the same entity, close in time
  * - `entity`  anyone's edits to the same entity, close in time
  * - `single`  a group that ended up with one activity
  */
-export type ActivityGroupKind = 'burst' | 'entity' | 'session' | 'single'
+export type ActivityGroupKind = 'burst' | 'entity' | 'session' | 'single' | 'upload'
 
 /** How far apart two activities can be and still share a burst or entity card. */
 const BURST_MS = 30 * 60 * 1000
@@ -88,8 +89,12 @@ function groupKey(activity: ActivityDto, kind: ActivityGroupKind): string {
     case 'session':
       return `session:${activity.userFk}`
 
+    // Both key on the actor plus the place. Kept apart so a submit of five photos does not
+    // land inside "made 12 edits in Nordblock", which is what the reader would then have to
+    // unpick to notice the photos at all.
     case 'burst':
-      return `burst:${activity.userFk}:${localityKey(activity)}`
+    case 'upload':
+      return `${kind}:${activity.userFk}:${localityKey(activity)}`
 
     default:
       return `entity:${activity.entityType}:${activity.entityId}`
@@ -103,6 +108,13 @@ function joins(oldest: ActivityDto, activity: ActivityDto, kind: ActivityGroupKi
 }
 
 function kindOf(activity: ActivityDto): ActivityGroupKind {
+  // An upload row points at the FILE and names what it was attached to as its parent, so it
+  // groups on that parent. Without this it would key on the file's own id, which is unique
+  // per file, and a submit of five photos would render as five cards.
+  if (activity.entityType === 'file') {
+    return 'upload'
+  }
+
   // A photo added to or pulled off an ascent is media housekeeping, not an ascent: keeping it
   // out of the session card stops it inflating "sent 4 routes today".
   if (activity.entityType === 'ascent' && activity.columnName !== 'file') {

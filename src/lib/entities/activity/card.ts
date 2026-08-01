@@ -107,9 +107,13 @@ export function activityCard(
   const placeName = entityOf(parentRef(group.activities))?.name
 
   const entityName =
-    group.kind === 'single'
-      ? headlineEntityName(newest, entityOf(refs[0]))
-      : (placeName ?? entityOf(refs[0])?.name ?? headlineEntityName(newest, undefined))
+    // An upload names what it was attached to, never the file: a file's own name is a cuid.
+    // This holds for a lone photo as much as for five, so it is decided before `single`.
+    newest.entityType === 'file'
+      ? (placeName ?? entityOf(refs[0])?.name)
+      : group.kind === 'single'
+        ? headlineEntityName(newest, entityOf(refs[0]))
+        : (placeName ?? entityOf(refs[0])?.name ?? headlineEntityName(newest, undefined))
 
   // Whose ascent the card is about. A region maintainer may edit anyone's, so "an ascent"
   // would leave the reader guessing. Unknown counts as somebody else's: claiming it was
@@ -181,6 +185,10 @@ function groupVerbKey(group: ActivityGroup): string {
     return 'activity_groupSession'
   }
 
+  if (group.kind === 'upload') {
+    return 'activity_groupUploads'
+  }
+
   // Only `entity` groups can mix actors, and then no single person "edited" it.
   const actors = new Set(group.activities.map((activity) => activity.userFk))
   return actors.size > 1 ? 'activity_groupEditsMultiple' : 'activity_groupEdits'
@@ -249,7 +257,9 @@ function summaryParts(group: ActivityGroup, placeName: string | undefined): Acti
   const parts: ActivityMessagePart[] = [
     group.kind === 'session'
       ? { key: 'activity_summaryAscents', params: { count } }
-      : { key: 'activity_summaryEdits', params: { count } },
+      : group.kind === 'upload'
+        ? { key: 'activity_summaryFiles', params: { count } }
+        : { key: 'activity_summaryEdits', params: { count } },
   ]
 
   // The edits headline already names the place; a session's does not.

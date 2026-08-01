@@ -1,5 +1,6 @@
 import { command, getRequestEvent } from '$app/server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type File } from '$lib/db/schema'
 import { insertActivity } from '$lib/entities/activity/activity.server'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
@@ -10,11 +11,12 @@ import { getVideoProvider } from '$lib/videos/provider.server'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
 import z from 'zod'
-import { requireEditableFile, resolveAttachRegion } from './guards.server'
 import { deleteFileRows, removeFileStorage } from './cleanup.server'
+import { requireEditableFile, resolveAttachRegion } from './guards.server'
 import { canDeleteFile } from './permissions'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
 
@@ -25,6 +27,39 @@ const entityFks = (type: FileEntityType, id: number) => ({
   blockFk: type === 'block' ? id : undefined,
   routeFk: type === 'route' ? id : undefined,
 })
+
+/**
+ * Log an upload. The row points at the FILE (`entityType: 'file'`) and names the entity it
+ * was attached to as its parent, which is the opposite way round from the delete below,
+ * where the file is gone by the time the feed reads it and only the parent is left to name.
+ *
+ * The parent is what the feed groups and titles on ("added photos to Nordblock"), so several
+ * images from one submit fold into a single card rather than one card each.
+ *
+ * ponytail: one row per file. A submit finalizes each image separately anyway, so there is no
+ * batch to collapse here. Upgrade = a count in `metadata` if the row volume ever bites.
+ */
+const insertUploadActivity = (
+  db: PostgresJsDatabase<typeof schema>,
+  { entityId, entityType, fileId, regionFk, userFk }: UploadActivity,
+) =>
+  insertActivity(db, {
+    entityId: fileId,
+    entityType: 'file',
+    parentEntityId: String(entityId),
+    parentEntityType: entityType,
+    regionFk,
+    type: 'uploaded',
+    userFk,
+  })
+
+interface UploadActivity {
+  entityId: number
+  entityType: FileEntityType
+  fileId: string
+  regionFk: number
+  userFk: number
+}
 
 const finalizeImageSchema = z.object({
   entityId: z.number(),
@@ -125,8 +160,8 @@ export const finalizeImage = command(
 
       // A short RLS transaction of its own — the storage work above must not
       // hold a pooled connection (a submit finalizes several images at once).
-      const [inserted] = await rls((db) =>
-        db
+      const [inserted] = await rls(async (db) => {
+        const rows = await db
           .insert(files)
           .values({
             createdBy: user.id,
@@ -137,8 +172,12 @@ export const finalizeImage = command(
             width: dimensions.width,
             ...entityFks(entityType, entityId),
           })
-          .returning(),
-      )
+          .returning()
+
+        await insertUploadActivity(db, { entityId, entityType, fileId: id, regionFk, userFk: user.id })
+
+        return rows
+      })
       file = inserted
     } catch (cause) {
       // Best-effort: unwind whatever landed in image storage so retries (which
@@ -309,6 +348,9 @@ export const finalizeVideo = authedCommand(
       .returning()
     await db.insert(bunnyStreams).values({ fileFk: file.id, id: videoId, regionFk, source })
     const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
+
+    await insertUploadActivity(db, { entityId, entityType, fileId: file.id, regionFk, userFk: user.id })
+
     if (linked == null) {
       // Safety net — the checks above should make this unreachable; if RLS
       // still swallows the update, roll the whole attach back rather than

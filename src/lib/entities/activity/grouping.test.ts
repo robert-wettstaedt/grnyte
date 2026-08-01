@@ -29,6 +29,13 @@ function activity(partial: Partial<ActivityDto>): ActivityDto {
 const ascent = (partial: Partial<ActivityDto> = {}) =>
   activity({ entityType: 'ascent', parentEntityType: 'route', type: 'created', ...partial })
 
+/** Crag edits under one block, the locality a burst keys on. */
+const underBlock = { parentEntityId: '400', parentEntityType: 'block' } as const
+
+/** An upload: the row points at the file, and names what it landed on as its parent. */
+const upload = (partial: Partial<ActivityDto> = {}) =>
+  activity({ entityType: 'file', type: 'uploaded', ...underBlock, ...partial })
+
 describe('groupActivities', () => {
   it('groups one climber s ascents from the same day into a session', () => {
     const groups = groupActivities([
@@ -121,6 +128,42 @@ describe('groupActivities', () => {
 
     expect(after[0].activities).toHaveLength(2)
     expect(after[0].id).toBe(before[0].id)
+  })
+
+  it('folds one submit s uploads into a single card, on the entity they landed on', () => {
+    // Every row points at its own file id, so without grouping on the parent this is five
+    // cards. That is the whole reason `upload` is a kind of its own.
+    const groups = groupActivities(
+      Array.from({ length: 5 }, (_, index) =>
+        upload({ createdAt: day(1, 12) - index * MINUTE, entityId: `file-${index}` }),
+      ),
+    )
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('upload')
+    expect(groups[0].activities).toHaveLength(5)
+  })
+
+  it('keeps uploads out of the editor s crag burst', () => {
+    // Same actor, same block, same minute. Folding them together would title five photos
+    // as "made 7 edits" and bury them.
+    const groups = groupActivities([
+      upload({ createdAt: day(1, 12), entityId: 'file-1' }),
+      upload({ createdAt: day(1, 12) - MINUTE, entityId: 'file-2' }),
+      activity({ columnName: 'name', createdAt: day(1, 12) - 2 * MINUTE, entityId: '1', ...underBlock }),
+      activity({ columnName: 'rating', createdAt: day(1, 12) - 3 * MINUTE, entityId: '2', ...underBlock }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['upload', 'burst'])
+  })
+
+  it('separates uploads by the entity they landed on', () => {
+    const groups = groupActivities([
+      upload({ createdAt: day(1, 12), entityId: 'file-1' }),
+      upload({ createdAt: day(1, 12) - MINUTE, entityId: 'file-2', parentEntityId: '401' }),
+    ])
+
+    expect(groups).toHaveLength(2)
   })
 
   it('returns nothing for no activities', () => {

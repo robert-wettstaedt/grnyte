@@ -21,6 +21,7 @@
   const session = pick((group) => group.kind === 'session' && group.activities.length > 1)
   const burst = pick((group) => group.kind === 'burst')
   const topo = pick((group) => group.activities[0].columnName === 'topo')
+  const uploads = pick((group) => group.kind === 'upload')
   const newArea = pick((group) => group.activities[0].entityType === 'area')
   const gradeChange = pick((group) => group.activities[0].columnName === 'gradeFk' && group.kind === 'single')
   const photoRemoved = pick((group) => group.activities[0].columnName === 'file')
@@ -46,6 +47,9 @@
 
 <!-- Twelve edits across six routes of one block, capped at four rows. Expand for the diff. -->
 <Story name="Edit burst" args={{ view: mine(burst) }} {template} />
+
+<!-- Five photos from one submit as one card, not five: the rows agree on the block. -->
+<Story name="Photo upload" args={{ view: mine(uploads) }} {template} />
 
 <Story name="Topo redraw" args={{ view: mine(topo) }} {template} />
 
