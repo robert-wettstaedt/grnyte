@@ -1,7 +1,8 @@
+import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { acceptPath } from '$lib/entities/region/dto'
+import { acceptPath, REGION_CREATE_PATH, REGIONLESS_PATHS } from '$lib/entities/region/dto'
 import { findLiveInvitationByEmail } from '$lib/entities/region/invite.server'
 import { regionSettingsSchema } from '$lib/entities/region/settings'
 import { createServerClient } from '@supabase/ssr'
@@ -157,6 +158,26 @@ export const supabase: Handle = async ({ event, resolve }) => {
   })
 }
 
+/**
+ * The single paths this hook redirects to or matches exactly. Typed as {@link Pathname}, the union
+ * SvelteKit generates from the route tree, so renaming or moving one of these routes fails the
+ * build here instead of turning into a redirect loop at runtime. `resolve()` would do the same job,
+ * but it collides with the `resolve` every `Handle` is handed, and nothing here prefixes `base`.
+ */
+const HOME_PATH: Pathname = '/'
+const AUTH_PATH: Pathname = '/auth'
+
+/** Opened while already signed in, so the "authenticated users leave /auth" rule cannot have them:
+ *  a settings-initiated email change confirms through /auth/confirm, and bouncing these would drop
+ *  the token unprocessed. /auth/error is where an expired one of those lands. */
+const EMAILED_LINK_PATHS: Pathname[] = ['/auth/confirm', '/auth/error', '/auth/reset-password']
+
+/** Prefixes rather than pathnames, deliberately: each stands for a whole subtree (`/f/abc`,
+ *  `/image/a/b/c`, every `/api` endpoint), which is not a thing `Pathname` can express. '/invite'
+ *  is public because the emailed link is opened by somebody who may have no account yet, and
+ *  bouncing them to /auth would drop the token. */
+const PUBLIC_PREFIXES = ['/legal', AUTH_PATH, '/f/', '/image/', '/api/', '/invite', '/offline']
+
 export const authGuard: Handle = async ({ event, resolve }) => {
   const { session, user, userPermissions, userRegions, userRole } = await event.locals.safeGetSession()
 
@@ -168,28 +189,19 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 
   if (
     event.locals.session == null &&
-    event.url.pathname !== '/' &&
-    // '/invite' is public: the emailed link is opened by someone who may have no account yet, and
-    // bouncing them to /auth would drop the token.
-    !['/legal', '/auth', '/f/', '/image/', '/api/', '/invite', '/offline'].some((path) =>
-      event.url.pathname.startsWith(path),
-    )
+    event.url.pathname !== HOME_PATH &&
+    !PUBLIC_PREFIXES.some((path) => event.url.pathname.startsWith(path))
   ) {
-    redirect(303, '/auth')
+    redirect(303, AUTH_PATH)
   }
 
-  // Redirect authenticated users away from auth pages. The emailed-link routes are exempt:
-  // reset-password and confirm are both opened while already signed in (a settings-initiated
-  // email change confirms through /auth/confirm), so bouncing them would drop the token
-  // unprocessed, and /auth/error is where an expired one of those lands.
-  const emailedLinkRoutes = ['/auth/confirm', '/auth/error', '/auth/reset-password']
-
+  // Redirect authenticated users away from auth pages, minus the emailed-link ones.
   if (
     event.locals.session != null &&
-    event.url.pathname.startsWith('/auth') &&
-    !emailedLinkRoutes.some((path) => event.url.pathname.startsWith(path))
+    event.url.pathname.startsWith(AUTH_PATH) &&
+    !EMAILED_LINK_PATHS.some((path) => event.url.pathname.startsWith(path))
   ) {
-    redirect(303, '/')
+    redirect(303, HOME_PATH)
   }
 
   // A signed-in user with no regions whose address has a live invitation goes straight to it.
@@ -199,7 +211,13 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   // mail. Same validity predicate as everywhere else: pending AND not expired.
   const email = event.locals.session?.user.email
   if (email != null && event.locals.userRegions.length === 0) {
-    if (event.url.pathname === '/' || event.url.pathname === '/explore') {
+    const path = event.url.pathname
+
+    // The create screen on top of the shared list so an invitation still wins once somebody is
+    // standing on it. The (app) group is `ssr = false` with no server loads, so an in-app
+    // navigation never reaches this hook at all and the layout has to do its own bounce - and the
+    // client cannot see invitations. Landing here is what gives this the chance to correct that.
+    if (REGIONLESS_PATHS.some((regionless) => regionless === path) || path === REGION_CREATE_PATH) {
       // The lookup is what may fail (a dropped connection on a hook that runs for every request);
       // the redirect itself throws by design, so it stays OUTSIDE the catch - swallowing it left
       // the invitee on an empty page with the invitation unmentioned.
@@ -212,6 +230,13 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 
       if (token != null) {
         redirect(303, acceptPath(token))
+      }
+
+      // Nothing to accept, so the only thing left to offer is starting a region. Deliberately not
+      // every path: /settings has to stay reachable, because "I signed up with the wrong address"
+      // is the likeliest reason somebody with no invitation is standing here.
+      if (path !== REGION_CREATE_PATH) {
+        redirect(303, REGION_CREATE_PATH)
       }
     }
   }

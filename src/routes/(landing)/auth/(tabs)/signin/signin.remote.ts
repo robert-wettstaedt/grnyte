@@ -1,5 +1,6 @@
 import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
+import { isSameOriginPath } from '$lib/auth'
 import { authError, formError } from '$lib/forms/schemas'
 import { invalid, redirect } from '@sveltejs/kit'
 import { z } from 'zod'
@@ -31,7 +32,8 @@ export const signIn = form(signInSchema, async ({ email, next, password }) => {
     invalid(authError(error))
   }
 
-  // Same-origin relative paths only. `//evil.com` and `/\evil.com` are protocol-relative URLs that
-  // a browser happily follows off-site, so the second character has to be an ordinary one.
-  redirect(303, next != null && /^\/[^/\\]/.test(next) ? next : resolve('/explore'))
+  // Same-origin paths only, checked the way the browser will read the header. See
+  // {@link isSameOriginPath}: the regex this used to be waved through `/<tab>/evil.com`, which
+  // strips down to `//evil.com` before the browser parses it.
+  redirect(303, next != null && isSameOriginPath(next) ? next : resolve('/explore'))
 })

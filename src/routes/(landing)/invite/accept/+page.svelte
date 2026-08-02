@@ -3,6 +3,7 @@
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
+  import { signOut } from '$lib/auth/session.remote'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { acceptPath } from '$lib/entities/region/dto'
@@ -10,7 +11,6 @@
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
   import type { PageProps } from './$types'
-  import { signOut } from './signout.remote'
 
   // The one screen every invite path lands on: the emailed link, the signed-in bounce from
   // authGuard, and a reopened link. It localizes itself from the invitee's own browser
@@ -163,7 +163,9 @@
       </p>
 
       <form class="flex flex-col" {...signOut}>
-        <input {...signOut.fields.token.as('hidden', token)} />
+        <!-- Back to this same invitation, not to /auth: signing out of a tokenless page leaves the
+             invitee looking at one that reads as invalid. -->
+        <input {...signOut.fields.redirectTo.as('hidden', returnTo ?? resolve('/(landing)/invite/accept'))} />
         <button type="submit" class="{ctaClass} disabled:opacity-60" disabled={signOut.pending > 0}>
           {m.invite_signOutCta()}
         </button>

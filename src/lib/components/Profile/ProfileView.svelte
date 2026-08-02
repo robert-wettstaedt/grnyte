@@ -182,6 +182,28 @@
 <div class="container mx-auto max-w-3xl space-y-8 px-4 py-8 pb-24 md:pb-8">
   <ProfileHeader {username} {faName} {stats} {hardestGrade} {isSelf} {onBack} contributions={contributions.current} />
 
+  <!-- First run: every number above reads zero and every section below is missing, so the page
+       needs one thing to do. Outside the QueryState on purpose - with no ascents it renders its
+       `empty` branch, so anything nested in `ready` would never show on the one profile that
+       needs this. Own profile only, and gone the moment anything is logged. -->
+  {#if isSelf && ascents.isEmpty}
+    <a
+      class="border-primary-500/30 bg-primary-500/10 hover:bg-primary-500/15 flex items-center gap-3 rounded-2xl border p-3.5 transition-colors"
+      href={resolve('/(app)/(shell)/(explore)/(map)/search')}
+    >
+      <span class="bg-primary-500/20 text-primary-400 flex size-9 flex-none items-center justify-center rounded-xl">
+        <Icon name="trending-up" size={19} />
+      </span>
+
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-semibold">{m.profile_firstAscentNudge()}</span>
+        <span class="text-surface-600-400 block text-xs text-pretty">{m.profile_firstAscentNudgeBody()}</span>
+      </span>
+
+      <Icon name="chevron-right" size={18} class="text-surface-500 flex-none" />
+    </a>
+  {/if}
+
   <QueryState resource={ascents}>
     {#snippet ready()}
       <div class="space-y-8">

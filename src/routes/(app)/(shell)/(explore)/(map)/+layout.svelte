@@ -2,6 +2,7 @@
   import { afterNavigate, beforeNavigate, goto, replaceState } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
+  import type { RouteId } from '$app/types'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
@@ -29,7 +30,12 @@
   // keyboard can't scroll this `fixed` layer up behind the status bar.
   const vv = visualViewport()
 
-  let open = $state(!(page.route.id?.endsWith('/explore') ?? false))
+  // Matched by route id rather than by a path suffix: `endsWith('/explore')` reads as a guess, and
+  // a route moved out of this group would silently stop matching. These are compile errors instead.
+  const EXPLORE_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/explore'
+  const SEARCH_ROUTE: RouteId = '/(app)/(shell)/(explore)/(map)/search'
+
+  let open = $state(page.route.id !== EXPLORE_ROUTE)
   let mapViewState = $state<null | { center: [number, number]; zoom: number }>(null)
   let restoredFocus = $state<MapFocus | null>(null)
 
@@ -56,7 +62,7 @@
   // The modal is open on detail routes (e.g. areas/[id]) and closed on the
   // /explore index — keep `open` in sync as the user navigates.
   afterNavigate((navigation) => {
-    open = !(navigation.to?.route.id?.endsWith('/explore') ?? false)
+    open = navigation.to?.route.id !== EXPLORE_ROUTE
 
     // On back/forward, restore the map view we saved into history state
     // (see beforeNavigate). `focus` wins when a detail item is open.
@@ -107,8 +113,8 @@
   // intermediate detail-to-detail hops), but this URL literally carries the filters back.
   let exploreReturn = resolve('/explore')
   $effect(() => {
-    const id = page.route.id ?? ''
-    if (id.endsWith('/explore') || id.endsWith('/search')) {
+    const id = page.route.id
+    if (id === EXPLORE_ROUTE || id === SEARCH_ROUTE) {
       // eslint-disable-next-line svelte/prefer-svelte-reactivity -- throwaway parse to build a return-URL string, not reactive state
       const params = new URLSearchParams(page.url.search)
       params.delete('q')
@@ -187,12 +193,11 @@
   bind:this={createOnMap}
   bind:placing
   center={mapViewState?.center ?? null}
-  zoom={mapViewState?.zoom ?? null}
   visible={!open}
   onrequestcenter={(center) => (createFocus = { center, zoom: Math.max(mapViewState?.zoom ?? 0, BLOCK_LABEL_ZOOM) })}
 />
 
-{#if (!open || page.route.id?.includes('/search')) && placing == null}
+{#if (!open || page.route.id === SEARCH_ROUTE) && placing == null}
   <div
     class="fixed top-2 left-0 z-10 flex w-full items-center justify-center gap-2 px-1 md:left-27 md:w-sm md:px-0 lg:w-md"
     style:top="calc(0.5rem + {vv.offsetTop}px)"

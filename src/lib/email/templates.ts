@@ -1,3 +1,4 @@
+import type { Pathname } from '$app/types'
 import type { EmailContent } from './shell'
 
 /**
@@ -23,13 +24,15 @@ const SITE = '{{ .SiteURL }}'
  * back in the URL *fragment*, which never reaches the server, so SSR cannot see it.
  *
  * `next` must be a path, never `{{ .RedirectTo }}` (an absolute URL), because the handler
- * assigns it straight to `redirectTo.pathname`.
+ * assigns it straight to `redirectTo.pathname`. Typed as a {@link Pathname} for that reason: these
+ * links sit in mail that has already been delivered, so a route renamed here has to fail the build
+ * rather than 404 somebody a week later.
  */
-const confirmUrl = (type: string, next: string) =>
+const confirmUrl = (type: string, next: Pathname) =>
   `${SITE}/auth/confirm?token_hash={{ .TokenHash }}&type=${type}&next=${next}`
 
 /** Where an unauthenticated recipient lands to pick a password. Exempt from the signed-in bounce. */
-const SET_PASSWORD = '/auth/reset-password'
+const SET_PASSWORD: Pathname = '/auth/reset-password'
 
 // The link and OTP lifetime GoTrue is configured with (MAILER_OTP_EXP, 86400s by default).
 // It appears in the meta line, the preheader and the footnote of five templates, so it lives

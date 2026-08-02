@@ -1,5 +1,35 @@
+import type { Pathname } from '$app/types'
 import type { AppRole, Permission } from '$lib/entities/rolePermission/dto'
 import type { RegionSettings } from './settings'
+
+/** The invitation screen, without its `token`. Typed as a {@link Pathname} so a moved route is a
+ *  compile error rather than a dead link in an email that has already gone out. */
+const INVITE_ACCEPT_PATH: Pathname = '/invite/accept'
+
+/** How many regions one account may found. Anyone may start a region (the `regions` insert policy
+ *  is open to authenticated users), so this is what keeps that from being unbounded. Counted over
+ *  `regions.created_by`, which does not shrink when the founder leaves. */
+export const MAX_OWNED_REGIONS = 3
+
+/**
+ * Where a user with no region is bounced from: the post-sign-in landing page and the map, the two
+ * places the app puts somebody who has nowhere to go.
+ *
+ * Shared because the bounce is enforced twice and the two halves must not drift: `authGuard` has
+ * it for document loads, the `(app)` layout for in-app navigation (that group is `ssr = false`
+ * with no server loads, so the hook never sees one). '/' is the (landing) group's, which is why
+ * only the hook ever matches it.
+ */
+export const REGIONLESS_PATHS: Pathname[] = ['/', '/explore']
+
+/** Where {@link REGIONLESS_PATHS} bounces to, and the one path the bounce must not fire on. */
+export const REGION_CREATE_PATH: Pathname = '/regions/new'
+
+/** A region the signed-in user founded, for the create screen's cap state. */
+export interface OwnedRegion {
+  id: number
+  name: string
+}
 
 /** A region's own record, as shown on its settings screen. */
 export interface RegionDetail {
@@ -69,5 +99,5 @@ export interface UserRegion extends RegionMembership {
  * origin, since it is the only one that leaves the app.
  */
 export function acceptPath(token: string): string {
-  return `/invite/accept?token=${encodeURIComponent(token)}`
+  return `${INVITE_ACCEPT_PATH}?token=${encodeURIComponent(token)}`
 }

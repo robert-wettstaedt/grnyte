@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
@@ -10,7 +11,7 @@
     // side — the (app) routes are CSR-only and read their data from Zero's local
     // store, so they render without a network round-trip. (Runtime path from the
     // service worker, not a static route; goto rejects external URLs.)
-    const target = page.url.searchParams.get('redirect') ?? '/explore'
+    const target = page.url.searchParams.get('redirect') ?? resolve('/(app)/(shell)/(explore)/(map)/explore')
     void replaceUrl(target)
   })
 </script>

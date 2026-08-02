@@ -17,6 +17,8 @@ export interface RouteListFilter {
   pageSize?: number
   /** Find routes whose description references the given `!type:id!` token (backlinks). */
   references?: string
+  /** Scope to one region, for the counts that are only meaningful per region. */
+  regionFk?: number
   /** Server-side ordering (pairs with `sortOrder`); unsorted otherwise. */
   sort?: 'firstAscentYear' | 'grade' | 'rating'
   sortOrder?: 'asc' | 'desc'

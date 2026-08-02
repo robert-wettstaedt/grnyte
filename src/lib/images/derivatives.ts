@@ -39,7 +39,9 @@ export const imageStoragePaths = (path: string): string[] => {
 export const pickDerivativeSize = (requestedWidth: number): DerivativeSize =>
   DERIVATIVE_SIZES.find((size) => size >= requestedWidth) ?? DERIVATIVE_SIZES.at(-1)!
 
-/** The route that serves stored images. Only {@link imageSrc} builds these URLs. */
+/** The route that serves stored images. Only {@link imageSrc} builds these URLs. Deliberately not
+ *  typed as a `Pathname`: this module stays importable from the standalone migration scripts, which
+ *  do not run through SvelteKit's generated types. */
 const IMAGE_ROUTE = '/image/'
 
 /**

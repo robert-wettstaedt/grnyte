@@ -7,29 +7,27 @@
   import { canAddBlock, canAddParking } from '$lib/entities/area/permissions'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
-  import { BLOCK_LABEL_ZOOM } from '$lib/map/types'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { findNearestCrag } from './cragLocator'
 
-  // The quick-create entry point on the /explore map: a FAB (shown only for editors,
-  // zoomed in past the block-label level) opens a block/parking choice; picking one
-  // enters placement mode — a fixed centre pin over the pannable map plus a confirm
-  // card with the nearest crag prefilled. Confirming hands off to the existing add
-  // pages with `?lat&long`, so all validation and persistence stays there.
+  // The create entry point on the /explore map: a FAB (editors only) opens the region's create
+  // menu. An area is made straight away; a block or a parking spot enters placement mode, a fixed
+  // centre pin over the pannable map plus a confirm card with the nearest crag prefilled.
+  // Confirming hands off to the existing add pages with `?lat&long`, so all validation and
+  // persistence stays there.
   interface Props {
     /** Live map centre `[lat, lng]` from the layout's view tracking. */
     center: [number, number] | null
-    /** Ask the layout to frame the map on a point (the long-press handoff). */
+    /** Ask the layout to frame the map on a point (the long-press handoff, and entering placement). */
     onrequestcenter: (center: [number, number]) => void
     /** Placement mode, bound so the layout can flip the map's pickMode and hide the search bar. */
     placing: 'block' | 'parking' | null
     /** False while a detail sheet is open — hides the FAB. */
     visible: boolean
-    zoom: null | number
   }
 
-  let { center, onrequestcenter, placing = $bindable(), visible, zoom }: Props = $props()
+  let { center, onrequestcenter, placing = $bindable(), visible }: Props = $props()
 
   const global = getGlobalState()
   const areas = areaList()
@@ -42,7 +40,18 @@
   let chosenCragId = $state<null | number>(null)
 
   const canCreate = $derived(global.userRegions.some((region) => region.permissions.includes(REGION_PERMISSION_EDIT)))
-  const showFab = $derived(visible && canCreate && (zoom ?? 0) >= BLOCK_LABEL_ZOOM && placing == null)
+
+  // No zoom condition any more. It used to hide the button outright below BLOCK_LABEL_ZOOM, which
+  // made the app's primary create affordance invisible at most zoom levels - including for the
+  // founder whose region has no blocks to zoom toward, who needs it most. What it was really
+  // protecting against is confirming a pin while a pixel covers kilometres, and `startPlacing`
+  // handles that by framing the map instead. A rough pin is a first-class thing here anyway:
+  // `geolocations.estimated` exists, and photo EXIF writes one on purpose.
+  const showFab = $derived(visible && canCreate && placing == null)
+
+  // Names the parent the way the area-level menu does, so "area" here cannot be mistaken for a
+  // sub-area or a crag. Areas cannot be re-parented, which makes that mistake expensive.
+  const soleRegion = $derived(global.userRegions.length === 1 ? global.userRegions[0] : undefined)
 
   // Only blocks the user could have placed themselves anchor the proximity match.
   const editableBlocks = $derived(
@@ -77,9 +86,16 @@
     return candidateCrags.find((area) => area.id === id) ?? null
   })
 
+  /** The point a long press asked for, until placement uses it. Not `center`: that only catches up
+   *  when the map reports the move back, and the options sheet opens long before the fly-to
+   *  settles, so re-framing on `center` yanked the map back to wherever they were looking before
+   *  the press and dropped the pin there. */
+  let pressed = $state<[number, number] | null>(null)
+
   /** Long-press handoff from the layout: frame the pressed point, then offer the options. */
   export function openAt(point: [number, number]) {
     if (!canCreate) return
+    pressed = point
     onrequestcenter(point)
     optionsOpen = true
   }
@@ -88,6 +104,13 @@
     optionsOpen = false
     chosenCragId = null
     search = ''
+    // Frame the map at pin-dropping zoom before handing over the centre pin. Zoomed out the pin
+    // means nothing and `findNearestCrag` would match something continents away; the long-press
+    // path has always done this, so placement now starts usable however it was entered.
+    const target = pressed ?? center
+    if (target != null) {
+      onrequestcenter(target)
+    }
     placing = type
   }
 
@@ -112,7 +135,7 @@
   <Modal
     bind:open={optionsOpen}
     popoverProps={{ positioning: { placement: 'right-end' } }}
-    snapPoints={[0.3]}
+    snapPoints={[0.45]}
     title={m.map_create_title()}
   >
     {#snippet trigger(triggerProps)}
@@ -125,13 +148,40 @@
           'preset-filled-primary-500 fixed bottom-20.5 left-2 z-20 flex h-12 w-12 items-center justify-center rounded-xl shadow-lg transition-opacity md:bottom-2 md:left-22',
           !showFab && 'pointer-events-none opacity-0',
         ]}
-        onclick={() => (optionsOpen = !optionsOpen)}
+        onclick={() => {
+          // Opened from the button, so there is no pressed point: placement frames on the map's
+          // own centre, not on a long press from earlier in the session.
+          pressed = null
+          optionsOpen = !optionsOpen
+        }}
       >
         <Icon name="plus" size={24} />
       </button>
     {/snippet}
 
+    <!-- Sectioned the way the area-level MoreMenu is: an area joins the region and needs no pin,
+         a block and a parking spot are placed on the map. Without the split, "area" here reads as
+         "sub-area" and quietly makes a top-level one. -->
     <div class="flex flex-col gap-1 py-2">
+      <h3 class="text-surface-500 px-1 pt-1 pb-1 text-xs font-bold tracking-wider uppercase">
+        {m.map_create_regionSection()}
+      </h3>
+
+      <a
+        class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3"
+        href={resolve('/(app)/areas/add')}
+        onclick={() => (optionsOpen = false)}
+      >
+        <Icon name="area" size={20} class="text-primary-500" />
+        <span class="font-medium">
+          {soleRegion == null ? m.areas_newTopLevelArea() : m.map_create_areaIn({ name: soleRegion.name })}
+        </span>
+      </a>
+
+      <h3 class="text-surface-500 px-1 pt-3 pb-1 text-xs font-bold tracking-wider uppercase">
+        {m.map_create_mapSection()}
+      </h3>
+
       <button
         class="hover:bg-surface-200-800 flex items-center gap-3 rounded-lg px-3 py-3"
         onclick={() => startPlacing('block')}

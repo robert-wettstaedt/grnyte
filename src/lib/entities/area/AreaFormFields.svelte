@@ -11,17 +11,26 @@
 
   // Shared field set for the create and edit area forms; the surrounding chrome lives in FormScaffold.
   interface Props {
-    /** The location context: the parent (when creating a child) or the area itself (when editing). */
-    area: AreaDetail
+    /** The location context: the parent (when creating a child) or the area itself (when editing).
+     *  Absent when creating a top-level area, which has no parent to sit under, so the region
+     *  select below is the whole of its placement. */
+    area?: AreaDetail
     form: RemoteForm<AreaFormInput, unknown>
   }
 
   const { area, form }: Props = $props()
   const global = getGlobalState()
+
+  // Scopes the description editor's entity references. Falls back to the region picked in the
+  // select, which is the only source a top-level area has; 0 until something is picked, which
+  // just means the reference search finds nothing yet.
+  const regionFk = $derived(area?.regionFk ?? Number(form.fields.regionFk.value() ?? 0))
 </script>
 
-<!-- Location trail for the area (or, when creating, the parent it will live under). -->
-<Breadcrumb {area} includeSelf userRegions={global.userRegions} />
+{#if area != null}
+  <!-- Location trail for the parent the new area will live under (or the area being edited). -->
+  <Breadcrumb {area} includeSelf userRegions={global.userRegions} />
+{/if}
 
 {#if form.fields.id.value() != null}
   <input type="hidden" {...form.fields.id.as('text')} />
@@ -50,10 +59,27 @@
 </RemoteFormInputWrapper>
 
 {#if form.fields.parentFk.value() == null}
-  <RemoteFormInputWrapper class="space-y-2" field={form.fields.regionFk} id="area-region" label={m.region_title()}>
+  <!-- `required`, or the wrapper badges it "optional": a top-level area has no parent to inherit a
+       region from, so this select is the whole of its placement. -->
+  <RemoteFormInputWrapper
+    class="space-y-2"
+    field={form.fields.regionFk}
+    id="area-region"
+    label={m.region_title()}
+    required
+  >
     {#snippet children(props)}
-      <select class="select" {...form.fields.regionFk.as('select')} {...props}>
-        <option disabled value="">{m.region_select()}</option>
+      <!-- Sized to match the name input above it, not the default `select` metrics: on the
+           top-level form these two sit directly under each other and the mismatch shows. -->
+      <select
+        class="select border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-4 py-3 text-base focus:ring-0 focus:outline-none"
+        {...form.fields.regionFk.as('select')}
+        {...props}
+      >
+        <!-- Not `disabled`: a disabled option cannot be selected, so with nothing preselected the
+             browser showed an empty box instead of the prompt. Submitting it blank is still
+             refused, by the schema rather than by hiding the option. -->
+        <option value="">{m.region_select()}</option>
         {#each global.userRegions as region (region.regionFk)}
           <option
             disabled={!canAddArea(global.userRegions, { regionFk: region.regionFk, type: 'area' })}
@@ -82,7 +108,7 @@
       {...form.fields.description.as('text')}
       {...props}
       placeholder={m.editor_placeholder()}
-      regionFk={area.regionFk}
+      {regionFk}
     />
   {/snippet}
 </RemoteFormInputWrapper>

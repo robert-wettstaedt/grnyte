@@ -3,6 +3,7 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="esnext" />
 
+import type { Pathname } from '$app/types'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { imageCache } from 'workbox-recipes'
 import { z } from 'zod'
@@ -47,7 +48,7 @@ cleanupOutdatedCaches()
 
 // Prerendered static shell (see src/routes/offline) cached at install so a cold
 // offline start has an HTML document to boot the client app from.
-const OFFLINE_SHELL = '/offline'
+const OFFLINE_SHELL: Pathname = '/offline'
 const OFFLINE_CACHE = 'offline-shell'
 
 self.addEventListener('install', (event) => {

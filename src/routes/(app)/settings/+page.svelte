@@ -216,20 +216,21 @@
     </SettingSection>
   {/if}
 
-  <!-- Regions -->
-  {#if global.userRegions.length > 0}
-    <SettingSection title={m.settings_regions()}>
-      <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
-        {#each global.userRegions as region (region.regionFk)}
-          <SettingLink
-            href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.regionFk) })}
-            label={region.name}
-            value={roleLabel(region.role)}
-          />
-        {/each}
-      </div>
-    </SettingSection>
-  {/if}
+  <!-- Regions. The section shows even with none, because the only way to start a second one (or a
+       first, for somebody who left theirs) is the link at the bottom of it. -->
+  <SettingSection title={m.settings_regions()}>
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+      {#each global.userRegions as region (region.regionFk)}
+        <SettingLink
+          href={resolve('/(app)/settings/regions/[regionId]', { regionId: String(region.regionFk) })}
+          label={region.name}
+          value={roleLabel(region.role)}
+        />
+      {/each}
+
+      <SettingLink href={resolve('/(app)/regions/new')} label={m.region_new()} />
+    </div>
+  </SettingSection>
 
   <!-- Admin. Hidden for everyone else; the query behind the page rejects them regardless. -->
   {#if global.userPermissions?.includes(APP_PERMISSION_ADMIN)}

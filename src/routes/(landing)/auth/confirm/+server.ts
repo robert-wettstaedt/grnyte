@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { redirect } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
@@ -38,6 +39,6 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     }
   }
 
-  redirectTo.pathname = '/auth/error'
+  redirectTo.pathname = resolve('/(landing)/auth/error')
   redirect(303, redirectTo)
 }

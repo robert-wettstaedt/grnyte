@@ -14,6 +14,7 @@ interface RouteFilterArgs {
   minGrade?: number
   minRating?: number
   references?: string
+  regionFk?: number
   tags?: string[]
 }
 
@@ -31,6 +32,10 @@ function applyRouteFilters<Q extends RoutesQuery>(
   r: ReturnType<typeof relatedRegion>,
 ): Q {
   let q: RoutesQuery = query
+
+  if (args.regionFk != null) {
+    q = q.where('regionFk', args.regionFk)
+  }
 
   if (args.areaId != null) {
     q = q.where('areaIds', 'ILIKE', `%^${args.areaId}$%`)
@@ -97,6 +102,7 @@ export const routesQueryDefs = {
       minRating: z.number().optional(),
       pageSize: z.number().optional(),
       references: z.string().optional(),
+      regionFk: z.number().optional(),
       routeId: z.union([z.number(), z.array(z.number())]).optional(),
       sort: z.enum(['rating', 'grade', 'firstAscentYear']).optional(),
       sortOrder: z.enum(['asc', 'desc']).optional(),
@@ -165,12 +171,19 @@ export const routesQueryDefs = {
       maxGrade: z.number().optional(),
       minGrade: z.number().optional(),
       minRating: z.number().optional(),
+      pageSize: z.number().optional(),
       references: z.string().optional(),
+      regionFk: z.number().optional(),
       tags: z.array(z.string()).optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
-      return applyRouteFilters(zql.routes.where('deletedAt', 'IS', null), args, r)
+      const q = applyRouteFilters(zql.routes.where('deletedAt', 'IS', null), args, r)
+
+      // The map itself never passes one. It is here for the callers that only need to know
+      // whether a region holds none, one, or more than one route, which would otherwise sync
+      // every row in the region to count them.
+      return args.pageSize == null ? q : q.limit(args.pageSize)
     }),
   ),
 }

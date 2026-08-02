@@ -23,6 +23,7 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import BlockActions from './BlockActions.svelte'
+  import BlockEmpty from './BlockEmpty.svelte'
 
   const global = getGlobalState()
 
@@ -127,6 +128,8 @@
             {/each}
           </nav>
         </section>
+      {:else if routes.status === 'ready'}
+        <BlockEmpty block={detail} />
       {/if}
 
       <ReferencedBy type="blocks" id={detail.id} />

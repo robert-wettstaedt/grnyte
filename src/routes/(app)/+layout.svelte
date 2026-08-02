@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invalidate } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Logo from '$lib/assets/logo.svg'
@@ -7,6 +8,7 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import StatusBar from '$lib/components/StatusBar/StatusBar.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
+  import { REGIONLESS_PATHS } from '$lib/entities/region/dto'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError } from '$lib/logging/report'
   import { setGlobalState } from '$lib/state/global.svelte'
@@ -39,6 +41,29 @@
     })
 
     return () => auth.subscription.unsubscribe()
+  })
+
+  // The client-side twin of authGuard's region-less bounce. That hook only ever sees document
+  // loads: this group is `ssr = false` with (almost) no server loads, so navigating to /explore
+  // from inside the app never reaches it, and signing in used to land on a blank map.
+  //
+  // A document navigation rather than `goto`, because the hook is the only thing that can see a
+  // live invitation, and on arrival it redirects to that instead. /explore keeps its own
+  // region-less empty state for the case this cannot cover: a replica that never completes
+  // (offline, dead sync socket) leaves this effect silent.
+  $effect(() => {
+    // `isComplete`, not `isLoading`: a freshly loaded Zero replica reports ready-with-nothing
+    // before the server has confirmed anything, and bouncing on that throws a member with regions
+    // onto the create screen. This only fires once the server has actually said "no memberships".
+    const regions = globalState?.userRegionsResource
+
+    if (regions == null || !regions.isComplete || regions.data.length > 0) {
+      return
+    }
+
+    if (REGIONLESS_PATHS.some((regionless) => regionless === page.url.pathname)) {
+      location.href = resolve('/(app)/regions/new')
+    }
   })
 
   // Track same-origin history depth app-wide so back buttons (and the media viewer's

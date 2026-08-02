@@ -38,7 +38,11 @@ export function createMapData(props: BlocksMapProps) {
     const grouped = new Map<number, { area: BlockDetail['areas'][0]; blocks: BlockDetail[] }>()
 
     for (const block of geoBlocks) {
-      const area = block.areas.find((area) => area.type === 'area')
+      // Falls back to the outermost ancestor whatever its type. A crag sitting at the root of a
+      // region has no 'area' above it, and without this its blocks were in no group at all below
+      // CRAG_ZOOM - so they simply vanished when zoomed out. A root crag is its own outermost
+      // grouping; the two tiers then draw the same rect at different zooms, never together.
+      const area = block.areas.find((area) => area.type === 'area') ?? block.areas[0]
       if (area == null) continue
 
       const existing = grouped.get(area.id)

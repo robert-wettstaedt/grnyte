@@ -10,7 +10,8 @@ import { and, eq, sql } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
-import type { RegionInvitationItem, UserInvitationItem } from './dto'
+import { createRegionForUser, listOwnedRegions } from './create.server'
+import { MAX_OWNED_REGIONS, type RegionInvitationItem, type UserInvitationItem } from './dto'
 import { assertMemberChangeAllowed, assertNotLastAdmin, findActiveMember, resolveRestore } from './guards.server'
 import {
   acceptInvitation,
@@ -37,6 +38,36 @@ function assertCanEdit({ userRegions }: Context, regionFk: number) {
     error(403, formError('form_noPermission'))
   }
 }
+
+const regionCreateSchema = z.object({ name: nameSchema })
+
+export type RegionCreateInput = z.input<typeof regionCreateSchema>
+
+/**
+ * Found a region, with its creator as `region_admin`.
+ *
+ * The one write in this file open to a caller who administers nothing yet: it is what the
+ * zero-region onboarding screen submits, and the same form serves the settings entry point for
+ * somebody starting a second one.
+ */
+export const createRegion = authedForm(
+  regionCreateSchema,
+  async ({ name }, { user }): Promise<MutationResult<{ regionId: number }>> => {
+    // The friendly, bannered version of the cap. `createRegionForUser` re-checks it inside its own
+    // transaction, and that check is the one that actually enforces it.
+    if ((await listOwnedRegions(user.id)).length >= MAX_OWNED_REGIONS) {
+      invalid(formError('region_capReached', { count: MAX_OWNED_REGIONS }))
+    }
+
+    const region = await createRegionForUser({ authUserId: user.authUserFk, name, userId: user.id })
+
+    // Deliberately no `redirectTo`: that navigates client-side, and the Zero client is session
+    // scoped with `userRegions` preloaded at init, so the new membership would sync nowhere and
+    // the destination would render as if the region did not exist. The page reloads the document
+    // instead, the same way accepting an invitation does.
+    return { data: { regionId: region.id } }
+  },
+)
 
 const regionActionSchema = z.object({
   id: stringToInt,
