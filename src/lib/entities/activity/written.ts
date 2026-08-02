@@ -1,4 +1,4 @@
-import type { ActivityDto } from './dto'
+import type { ActivityListItem } from './dto'
 
 /**
  * Every `(entityType, type, columnName)` triple the mutation layer writes today, read off
@@ -6,7 +6,7 @@ import type { ActivityDto } from './dto'
  * starts writing a new one: `verbs.test.ts` then names the missing message key, and the
  * wording story grows a card for it.
  */
-export const WRITTEN_ACTIVITIES: Partial<ActivityDto>[] = [
+export const WRITTEN_ACTIVITIES: Partial<ActivityListItem>[] = [
   { entityType: 'area', type: 'created' },
   { columnName: 'description', entityType: 'area' },
   { columnName: 'name', entityType: 'area' },
@@ -21,21 +21,21 @@ export const WRITTEN_ACTIVITIES: Partial<ActivityDto>[] = [
   { entityType: 'block', type: 'deleted' },
   { entityType: 'route', type: 'created' },
   ...['description', 'firstAscensionists', 'firstAscentYear', 'gradeFk', 'name', 'rating', 'tags'].map(
-    (columnName) => ({ columnName, entityType: 'route' }) as Partial<ActivityDto>,
+    (columnName) => ({ columnName, entityType: 'route' }) as Partial<ActivityListItem>,
   ),
   { entityType: 'route', type: 'deleted' },
   ...['attempt', 'flash', 'redpoint', 'repeat'].map(
-    (newValue) => ({ entityType: 'ascent', newValue, type: 'created' }) as Partial<ActivityDto>,
+    (newValue) => ({ entityType: 'ascent', newValue, type: 'created' }) as Partial<ActivityListItem>,
   ),
   ...['dateTime', 'gradeFk', 'humidity', 'notes', 'rating', 'temperature', 'type'].map(
-    (columnName) => ({ columnName, entityType: 'ascent' }) as Partial<ActivityDto>,
+    (columnName) => ({ columnName, entityType: 'ascent' }) as Partial<ActivityListItem>,
   ),
   { entityType: 'ascent', type: 'deleted' },
   // Uploads point at the file and name what it was attached to as the parent; deletes are the
   // other way round, because by then the file is gone and only the parent is left to name.
   { entityType: 'file', type: 'uploaded' },
   ...['area', 'ascent', 'block', 'route'].map(
-    (entityType) => ({ columnName: 'file', entityType, type: 'deleted' }) as Partial<ActivityDto>,
+    (entityType) => ({ columnName: 'file', entityType, type: 'deleted' }) as Partial<ActivityListItem>,
   ),
   { columnName: 'first ascensionist', entityType: 'user' },
   { columnName: 'invitation', entityType: 'user', type: 'created' },

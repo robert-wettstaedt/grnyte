@@ -13,6 +13,7 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import UserRow from '$lib/components/EntityRow/UserRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MediaThumbnail from '$lib/components/Media/MediaThumbnail.svelte'
   import Message from '$lib/components/Message/Message.svelte'
   import type { ActivityCardRow, ActivityCardView } from '$lib/entities/activity/card'
@@ -170,7 +171,9 @@
   {/if}
 
   {#if view.note}
-    <blockquote class="border-surface-300-700 text-surface-600-400 border-s-2 ps-2.5 text-sm">{view.note}</blockquote>
+    <blockquote class="border-surface-300-700 text-surface-600-400 border-s-2 ps-2.5 text-sm">
+      <Markdown markdown={view.note} />
+    </blockquote>
   {/if}
 
   {#if view.changes.length > 0}

@@ -1,6 +1,6 @@
 /**
  * `written.ts` mirrors the mutation layer by hand, so it can only drift silently. TypeScript
- * covers `entityType` and `type` (both come off `ActivityDto`), but not the two string fields
+ * covers `entityType` and `type` (both come off `ActivityListItem`), but not the two string fields
  * that carry meaning: the ascent type an `ascent created` row stores in `newValue`, and
  * `columnName`. These are the guards for those.
  *

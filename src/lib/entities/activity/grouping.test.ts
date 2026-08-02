@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { ActivityDto } from './dto'
+import type { ActivityListItem } from './dto'
 import { groupActivities } from './grouping'
 
 const MINUTE = 60 * 1000
 const day = (n: number, hour = 12) => new Date(2026, 0, n, hour).getTime()
 
 let nextId = 0
-function activity(partial: Partial<ActivityDto>): ActivityDto {
+function activity(partial: Partial<ActivityListItem>): ActivityListItem {
   return {
     columnName: undefined,
     createdAt: day(1),
@@ -26,14 +26,14 @@ function activity(partial: Partial<ActivityDto>): ActivityDto {
   }
 }
 
-const ascent = (partial: Partial<ActivityDto> = {}) =>
+const ascent = (partial: Partial<ActivityListItem> = {}) =>
   activity({ entityType: 'ascent', parentEntityType: 'route', type: 'created', ...partial })
 
 /** Crag edits under one block, the locality a burst keys on. */
 const underBlock = { parentEntityId: '400', parentEntityType: 'block' } as const
 
 /** An upload: the row points at the file, and names what it landed on as its parent. */
-const upload = (partial: Partial<ActivityDto> = {}) =>
+const upload = (partial: Partial<ActivityListItem> = {}) =>
   activity({ entityType: 'file', type: 'uploaded', ...underBlock, ...partial })
 
 describe('groupActivities', () => {

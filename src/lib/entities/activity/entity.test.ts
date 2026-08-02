@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { ActivityDto } from './dto'
+import type { ActivityListItem } from './dto'
 import { activityEntityRefs } from './entity'
 
-function activity(partial: Partial<ActivityDto>): ActivityDto {
+function activity(partial: Partial<ActivityListItem>): ActivityListItem {
   return {
     columnName: undefined,
     createdAt: 0,

@@ -1,4 +1,4 @@
-import { resolveMessage } from '$lib/i18n/message'
+import { hasMessage, resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
 
 /**
@@ -26,8 +26,9 @@ export function resolveIssueMessage(message: string): string {
       params = parsed.params
     }
   } catch {
-    // not JSON — treat the raw string as the key
+    // not JSON, treat the raw string as the key
   }
 
-  return resolveMessage(key, params) // unknown key falls back to the raw string
+  // A key nothing compiled shows as itself: the server can emit a plain sentence too.
+  return hasMessage(key) ? resolveMessage(key, params) : key
 }

@@ -1,9 +1,10 @@
 import type { IconName } from '$lib/components/Icon/icons'
+import type { MessageKey } from '$lib/i18n/message'
 
 export interface ActivityField {
   icon: IconName
-  /** Paraglide key for the column's label. Resolve with `activityMessage`. */
-  labelKey: string
+  /** Paraglide key for the column's label. Every entry below is checked against the catalogue. */
+  labelKey: MessageKey
   renderer: ChangeRenderer
 }
 

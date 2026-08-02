@@ -1,7 +1,7 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
 import type { RouteListItem } from '$lib/entities/route/dto'
-import type { ActivityDto, ActivityEntityType } from './dto'
+import type { ActivityEntityType, ActivityListItem } from './dto'
 
 /**
  * The hydration contract: what the feed has to fetch, and the shape it hands back.
@@ -73,7 +73,7 @@ export function activityEntityKey(ref: ActivityEntityRef): string {
 }
 
 /** The entities a card has to hydrate, newest first, each listed once. */
-export function activityEntityRefs(activities: readonly ActivityDto[]): ActivityEntityRef[] {
+export function activityEntityRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
   const seen = new Set<string>()
 
   return activities.reduce<ActivityEntityRef[]>((refs, activity) => {

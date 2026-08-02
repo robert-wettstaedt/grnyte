@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import type { ActivityCardView } from '$lib/entities/activity/card'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import ActivityCard from './ActivityCard.svelte'
@@ -31,6 +32,42 @@
 
   /** The card view for a group of the sample week, seen as the signed-in climber. */
   const mine = (group: (typeof week)[number]) => view(group, entities, ME)
+
+  /**
+   * Every field of {@link ActivityCardView} and the part of the card it comes out as. A
+   * `Record` rather than a list, so a field added to the view is a type error here: the
+   * anatomy cannot quietly go out of date.
+   */
+  const FIELDS: Record<keyof ActivityCardView, string> = {
+    actorName: 'The avatar initials and the bold {actor} in the headline. Pulses while the user row syncs.',
+    changes: 'The rows behind the "Show changes" toggle, one per changed column.',
+    climberName: "The bold {climber}. Only the messages about somebody else's ascent have that slot.",
+    createdAt: 'The relative clock, top right. The view carries the timestamp, the component formats it.',
+    entityName: "The bold {name} in the headline. A grouped card borrows its shared parent's name.",
+    files: 'The scrollable thumbnail strip under the header.',
+    headline: 'The message key the sentence renders from, plus its person/owner params.',
+    id: 'The {#each} key in the feed, so a card keeps its expand state. Never rendered.',
+    mine: 'Swaps the avatar for "Me" and picks the "You ..." wording of the same message.',
+    note: 'The quoted block under the rows.',
+    overflowCount: 'The "and N more" line under the rows.',
+    rows: 'The entity rows, capped at four. Each is an entity, a skeleton or a tombstone.',
+    status: 'The ascent type badge left of the clock.',
+    summary: 'The sub line under the headline, joined with " · ". Grouped cards only.',
+  }
+
+  /** A field's value, short enough for a table cell. */
+  const show = (value: unknown): string => {
+    if (value == null) {
+      return 'not set'
+    }
+
+    if (Array.isArray(value)) {
+      return `${value.length} item${value.length === 1 ? '' : 's'}`
+    }
+
+    const text = typeof value === 'object' ? JSON.stringify(value) : String(value)
+    return text.length > 64 ? `${text.slice(0, 64)}…` : text
+  }
 </script>
 
 {#snippet template(args: ComponentProps<typeof ActivityCard>)}
@@ -38,6 +75,42 @@
     <ActivityCard {...args} />
   </div>
 {/snippet}
+
+{#snippet anatomy(args: ComponentProps<typeof ActivityCard>)}
+  <div class="flex flex-wrap items-start gap-6">
+    <div style="width: 420px; max-width: 100%;">
+      <ActivityCard {...args} />
+    </div>
+
+    <table class="min-w-80 flex-1 text-left text-xs">
+      <thead class="text-surface-950-50">
+        <tr>
+          <th class="py-1 pe-3 font-semibold">Field</th>
+          <th class="py-1 pe-3 font-semibold">On this card</th>
+          <th class="py-1 font-semibold">Where it lands</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each Object.entries(FIELDS) as [field, hint] (field)}
+          <tr class="border-surface-200-800 border-t align-top">
+            <td class="text-surface-950-50 py-1.5 pe-3 font-mono">{field}</td>
+            <td class="text-surface-600-400 py-1.5 pe-3 font-mono">
+              {show(args.view[field as keyof ActivityCardView])}
+            </td>
+            <td class="text-surface-600-400 py-1.5">{hint}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+{/snippet}
+
+<!-- What each field of `ActivityCardView` turns into, read off a real card. One single and
+     one grouped card, because each fills what the other leaves unset: the status, note and
+     photos here, the summary, overflow count and changes there. -->
+<Story name="Anatomy (single)" args={{ view: mine(flash) }} parameters={{ layout: 'padded' }} template={anatomy} />
+
+<Story name="Anatomy (grouped)" args={{ view: mine(burst) }} parameters={{ layout: 'padded' }} template={anatomy} />
 
 <!-- An ascent with the ascent's photos and notes: the fullest single card there is. -->
 <Story name="Flash with photos" args={{ view: mine(flash) }} {template} />

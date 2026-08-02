@@ -1,7 +1,7 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
-import { hasMessage } from '$lib/i18n/message'
-import type { ActivityDto } from './dto'
+import { hasMessage, type MessageKey } from '$lib/i18n/message'
+import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
   activityEntityRefs,
@@ -62,7 +62,7 @@ export interface ActivityCardView {
 
 /** One changed column the expanded half renders, paired with its registry entry. */
 export interface ActivityChange {
-  activity: ActivityDto
+  activity: ActivityListItem
   field: ActivityField
 }
 
@@ -71,11 +71,13 @@ export interface ActivityHeadline {
    * The key to render: the first of {@link keys} paraglide actually has, or the least
    * specific one, which then renders as itself and so fails loudly rather than blankly.
    */
-  key: string
+  key: MessageKey
   /**
    * Candidates, most specific first. Exposed rather than hidden because the fallback is
    * a correctness rule, not an implementation detail: a column-scoped delete must never
    * degrade to the whole-entity verb, and that is only assertable on the chain.
+   *
+   * Plain strings: a candidate is a guess until {@link hasMessage} confirms it.
    */
   keys: string[]
   params: { owner: 'other' | 'self'; person: 'other' | 'self' }
@@ -83,7 +85,7 @@ export interface ActivityHeadline {
 
 /** A piece of a composed line: a message to resolve, or text that is already a name. */
 export type ActivityMessagePart =
-  | { key: string; params?: Record<string, unknown>; text?: never }
+  | { key: MessageKey; params?: Record<string, unknown>; text?: never }
   | { key?: never; text: string }
 
 /**
@@ -136,7 +138,9 @@ export function activityCard(
     entityName,
     files: refs.flatMap((ref) => entityOf(ref)?.files ?? []),
     headline: {
-      key: keys.find(hasMessage) ?? keys[keys.length - 1],
+      // The cast is the one place a key escapes checking, and deliberately: a chain that
+      // matched nothing renders as its own last candidate, which is the loud failure.
+      key: keys.find(hasMessage) ?? (keys[keys.length - 1] as MessageKey),
       keys,
       params: { owner, person: mine ? 'self' : 'other' },
     },
@@ -165,7 +169,7 @@ export function activityCard(
 }
 
 /** The activity in `activities` that points at `ref`, which is where its name is stashed. */
-function activityFor(activities: readonly ActivityDto[], ref: ActivityEntityRef): ActivityDto {
+function activityFor(activities: readonly ActivityListItem[], ref: ActivityEntityRef): ActivityListItem {
   return (
     activities.find((activity) => activity.entityId === ref.id && activity.entityType === ref.type) ?? activities[0]
   )
@@ -180,7 +184,7 @@ function capitalize(value: string): string {
  * one summarises, because "redpointed Rampe" would name one of four ascents. The count
  * lives in the summary, so these stay one sentence per key.
  */
-function groupVerbKey(group: ActivityGroup): string {
+function groupVerbKey(group: ActivityGroup): MessageKey {
   if (group.kind === 'session') {
     return 'activity_groupSession'
   }
@@ -199,7 +203,7 @@ function groupVerbKey(group: ActivityGroup): string {
  * the row itself stashed: a create row carries the added name in `newValue`, a delete row
  * the removed one in `oldValue`.
  */
-function headlineEntityName(activity: ActivityDto, entity: ActivityEntity | null | undefined): string | undefined {
+function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity | null | undefined): string | undefined {
   // An invitation names the invitee, who has no user row yet: `regions.remote.ts` stores
   // their address in the value column and points `entityId` at the *inviter*. Hydrating
   // that would render "Jonas invited Jonas", so the stored address wins here.
@@ -233,7 +237,7 @@ function headlineEntityName(activity: ActivityDto, entity: ActivityEntity | null
  * a burst headline names ("made 12 edits in Nordblock"); a group spanning two parents has
  * no such place and falls back to its first entity.
  */
-function parentRef(activities: readonly ActivityDto[]): ActivityEntityRef | undefined {
+function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef | undefined {
   const first = activities[0]
   if (first?.parentEntityId == null || first.parentEntityType == null) {
     return undefined
@@ -289,7 +293,7 @@ function toCamelCase(value: string): string {
  * gone, so degrading a removed photo to `activity_routeDeleted` would claim a live route
  * was deleted. A missing key renders as the key, the louder failure of the two.
  */
-function verbKeys(activity: ActivityDto): string[] {
+function verbKeys(activity: ActivityListItem): string[] {
   const base = `activity_${activity.entityType}${capitalize(activity.type)}`
 
   // `ascent` created rows carry the ascent type in `newValue` rather than a column name.

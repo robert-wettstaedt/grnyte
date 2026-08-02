@@ -1,6 +1,6 @@
 import { overwriteGetLocale } from '$lib/paraglide/runtime'
 import { afterEach, describe, expect, it } from 'vitest'
-import { splitMessage } from './message'
+import { splitMessage, type MessageKey } from './message'
 
 afterEach(() => overwriteGetLocale(() => 'en'))
 
@@ -40,6 +40,8 @@ describe('splitMessage', () => {
   })
 
   it('renders an unknown key as the key rather than blank copy', () => {
-    expect(splitMessage('activity_nope', {}, ['actor'])).toEqual([{ text: 'activity_nope' }])
+    // The cast is the point: `MessageKey` makes this unreachable except where a caller casts
+    // deliberately, which `card.ts` does for a verb chain that matched nothing.
+    expect(splitMessage('activity_nope' as MessageKey, {}, ['actor'])).toEqual([{ text: 'activity_nope' }])
   })
 })

@@ -6,7 +6,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { ActivityChange } from '$lib/entities/activity/card'
-  import type { ActivityDto } from '$lib/entities/activity/dto'
+  import type { ActivityListItem } from '$lib/entities/activity/dto'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
@@ -63,7 +63,7 @@
   {/if}
 {/snippet}
 
-{#snippet value(activity: ActivityDto, renderer: string)}
+{#snippet value(activity: ActivityListItem, renderer: string)}
   {#if renderer === 'grade'}
     {@render gradeChip(activity.oldValue)}
     {@render arrow()}

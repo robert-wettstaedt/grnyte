@@ -4,7 +4,7 @@
  * by the real `groupActivities`. Storybook only — nothing in the app imports this.
  */
 import { activityCard, type ActivityCardView, type ActivityChange } from '$lib/entities/activity/card'
-import type { ActivityDto } from '$lib/entities/activity/dto'
+import type { ActivityListItem } from '$lib/entities/activity/dto'
 import {
   activityEntityKey,
   type ActivityEntity,
@@ -33,7 +33,10 @@ let nextId = 1
 /** Wall-clock base. Read once so every card in a story dates off the same moment. */
 const base = Date.now()
 
-export function activity(minutesAgo: number, partial: Partial<ActivityDto> & Pick<ActivityDto, 'userFk'>): ActivityDto {
+export function activity(
+  minutesAgo: number,
+  partial: Partial<ActivityListItem> & Pick<ActivityListItem, 'userFk'>,
+): ActivityListItem {
   return {
     columnName: undefined,
     createdAt: base - minutesAgo * MINUTE,
@@ -57,7 +60,7 @@ export function activity(minutesAgo: number, partial: Partial<ActivityDto> & Pic
  * set that grouping would otherwise split. Runs the real `activityCard`, so a story cannot
  * drift from what a card actually renders.
  */
-export function changes(activities: ActivityDto[]): ActivityChange[] {
+export function changes(activities: ActivityListItem[]): ActivityChange[] {
   return activities.flatMap((activity) => view(groupActivities([activity])[0]).changes)
 }
 
@@ -67,7 +70,7 @@ export function entityMap(entries: [ActivityEntityRef, ActivityEntity | null][])
 }
 
 /** Groups a story's activities exactly as the feed page will. */
-export function groups(activities: ActivityDto[]): ActivityGroup[] {
+export function groups(activities: ActivityListItem[]): ActivityGroup[] {
   return groupActivities(activities)
 }
 
@@ -115,8 +118,8 @@ const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try
  * burst, a topo redraw, a new area, a grade change, a removed photo, a deleted route
  * (tombstone), a role grant and an ascent that has not hydrated yet (skeleton).
  */
-export const sampleWeek: { activities: ActivityDto[]; entities: Map<string, ActivityEntity | null> } = (() => {
-  const activities: ActivityDto[] = [
+export const sampleWeek: { activities: ActivityListItem[]; entities: Map<string, ActivityEntity | null> } = (() => {
+  const activities: ActivityListItem[] = [
     // Flash, with the ascent's photos and notes.
     activity(12, { entityId: '9001', entityType: 'ascent', newValue: 'flash', type: 'created', userFk: 2 }),
 

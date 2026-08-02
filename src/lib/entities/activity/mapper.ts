@@ -1,10 +1,10 @@
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import type { ActivityDto } from './dto'
+import type { ActivityListItem } from './dto'
 
 export type ActivityRow = QueryRow<typeof queries.listActivities>
 
-export function toActivity(row: ActivityRow): ActivityDto {
+export function toActivity(row: ActivityRow): ActivityListItem {
   return {
     columnName: row.columnName ?? undefined,
     createdAt: row.createdAt ?? 0,

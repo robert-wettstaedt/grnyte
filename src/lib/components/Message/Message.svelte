@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { splitMessage } from '$lib/i18n/message'
+  import { splitMessage, type MessageKey } from '$lib/i18n/message'
   import type { Snippet } from 'svelte'
 
   interface Props {
     /** Paraglide key. Computed at runtime by callers like the activity feed's verbs. */
-    key: string
+    key: MessageKey
     /** Plain-text params, plus any variant selector (`person: 'self'` for your own row). */
     params?: Record<string, unknown>
     /** Placeholder name in the message to what renders in its place, e.g. `{ actor, name }`. */

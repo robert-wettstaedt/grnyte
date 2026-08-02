@@ -1,9 +1,9 @@
 import { isSameDay } from 'date-fns'
-import type { ActivityDto } from './dto'
+import type { ActivityListItem } from './dto'
 
 export interface ActivityGroup {
   /** Newest first, like the input. Never empty. */
-  activities: ActivityDto[]
+  activities: ActivityListItem[]
   /** Epoch millis of the group's newest activity: what the feed sorts and dates by. */
   createdAt: number
   /**
@@ -46,7 +46,7 @@ const CRAG_ENTITY_TYPES = new Set(['area', 'block', 'route'])
  * date, so a Saturday session logged on Sunday dates as Sunday. Upgrade = write the climb
  * date into the activity row, rather than another client-side join.
  */
-export function groupActivities(activities: readonly ActivityDto[]): ActivityGroup[] {
+export function groupActivities(activities: readonly ActivityListItem[]): ActivityGroup[] {
   const sorted = [...activities].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
   const groups: { group: ActivityGroup; key: string }[] = []
   // Only the newest group per key is still open; an older one is already out of window.
@@ -82,7 +82,7 @@ export function groupActivities(activities: readonly ActivityDto[]): ActivityGro
   }))
 }
 
-function groupKey(activity: ActivityDto, kind: ActivityGroupKind): string {
+function groupKey(activity: ActivityListItem, kind: ActivityGroupKind): string {
   switch (kind) {
     // No day in the key: `joins` decides, so a log running past local midnight stays one
     // session instead of splitting in two.
@@ -102,12 +102,12 @@ function groupKey(activity: ActivityDto, kind: ActivityGroupKind): string {
 }
 
 /** Whether `activity` still belongs to the open group whose oldest member is `oldest`. */
-function joins(oldest: ActivityDto, activity: ActivityDto, kind: ActivityGroupKind): boolean {
+function joins(oldest: ActivityListItem, activity: ActivityListItem, kind: ActivityGroupKind): boolean {
   const withinWindow = oldest.createdAt - activity.createdAt <= BURST_MS
   return kind === 'session' ? withinWindow || isSameDay(oldest.createdAt, activity.createdAt) : withinWindow
 }
 
-function kindOf(activity: ActivityDto): ActivityGroupKind {
+function kindOf(activity: ActivityListItem): ActivityGroupKind {
   // An upload row points at the FILE and names what it was attached to as its parent, so it
   // groups on that parent. Without this it would key on the file's own id, which is unique
   // per file, and a submit of five photos would render as five cards.
@@ -125,7 +125,7 @@ function kindOf(activity: ActivityDto): ActivityGroupKind {
 }
 
 /** The closest thing to "same place" an activity row carries: its parent, or itself. */
-function localityKey(activity: ActivityDto): string {
+function localityKey(activity: ActivityListItem): string {
   return activity.parentEntityId == null
     ? `${activity.entityType}:${activity.entityId}`
     : `${activity.parentEntityType}:${activity.parentEntityId}`

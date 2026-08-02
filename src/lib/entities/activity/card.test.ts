@@ -1,12 +1,12 @@
 import { hasMessage } from '$lib/i18n/message'
 import { describe, expect, it } from 'vitest'
 import { activityCard } from './card'
-import type { ActivityDto } from './dto'
+import type { ActivityListItem } from './dto'
 import { activityEntityKey, type ActivityEntity, type ActivityEntityMap } from './entity'
 import { groupActivities } from './grouping'
 import { WRITTEN_ACTIVITIES } from './written'
 
-function activity(partial: Partial<ActivityDto>): ActivityDto {
+function activity(partial: Partial<ActivityListItem>): ActivityListItem {
   return {
     columnName: undefined,
     createdAt: 0,
@@ -27,18 +27,18 @@ function activity(partial: Partial<ActivityDto>): ActivityDto {
 }
 
 /** The card for a set of activities, folded exactly as the feed folds them. */
-function card(activities: ActivityDto[], entities?: ActivityEntityMap, currentUserFk?: number) {
+function card(activities: ActivityListItem[], entities?: ActivityEntityMap, currentUserFk?: number) {
   return activityCard(groupActivities(activities)[0], entities, currentUserFk)
 }
 
-function entityMap(entries: [{ id: string; type: ActivityDto['entityType'] }, ActivityEntity | null][]) {
+function entityMap(entries: [{ id: string; type: ActivityListItem['entityType'] }, ActivityEntity | null][]) {
   return new Map(entries.map(([ref, entity]) => [activityEntityKey(ref), entity]))
 }
 
 const route = (name: string): ActivityEntity => ({ name, row: 'route' })
 
 /** One logged ascent, which groups into a session keyed on the climber alone. */
-function ascentRow(partial: Partial<ActivityDto>): ActivityDto {
+function ascentRow(partial: Partial<ActivityListItem>): ActivityListItem {
   return activity({
     entityType: 'ascent',
     newValue: 'flash',
@@ -53,7 +53,7 @@ function ascentRow(partial: Partial<ActivityDto>): ActivityDto {
  * Crag edits under one block, which is what makes them one burst: the key is the actor plus
  * the parent, so rows without a shared parent would each get their own card.
  */
-function burstRows(count: number, partial: (index: number) => Partial<ActivityDto>): ActivityDto[] {
+function burstRows(count: number, partial: (index: number) => Partial<ActivityListItem>): ActivityListItem[] {
   return Array.from({ length: count }, (_, index) =>
     activity({ parentEntityId: '400', parentEntityType: 'block', ...partial(index) }),
   )
@@ -310,7 +310,7 @@ describe('person and owner', () => {
 })
 
 describe('uploads', () => {
-  const upload = (partial: Partial<ActivityDto>) =>
+  const upload = (partial: Partial<ActivityListItem>) =>
     activity({
       entityType: 'file',
       parentEntityId: '400',
