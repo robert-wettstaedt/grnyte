@@ -292,6 +292,16 @@
       }
     }
   ],
+  "activity_genericChange": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You made a change to {name}",
+        "person=*": "{actor} made a change to {name}"
+      }
+    }
+  ],
   "activity_groupEdits": [
     {
       "declarations": ["input actor", "input name", "input person"],

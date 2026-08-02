@@ -64,7 +64,7 @@ export async function resolveFirstAscensionists(
     if (claimedUserFk != null) {
       await insertActivity(db, {
         columnName: 'first ascensionist',
-        entityId: String(claimedUserFk),
+        entityId: claimedUserFk,
         entityType: 'user',
         newValue: created.name,
         regionFk,

@@ -22,9 +22,9 @@ const insertTopoActivity = (
   if (blockId != null) {
     return insertActivity(db, {
       columnName: 'topo',
-      entityId: String(blockId),
+      entityId: blockId,
       entityType: 'block',
-      parentEntityId: areaId == null ? undefined : String(areaId),
+      parentEntityId: areaId,
       parentEntityType: areaId == null ? undefined : 'area',
       regionFk: regionId,
       type: 'updated',

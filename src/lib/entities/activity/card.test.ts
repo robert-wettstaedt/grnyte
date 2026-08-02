@@ -1,10 +1,9 @@
-import { hasMessage } from '$lib/i18n/message'
 import { describe, expect, it } from 'vitest'
 import { activityCard } from './card'
 import type { ActivityListItem } from './dto'
 import { activityEntityKey, type ActivityEntity, type ActivityEntityMap } from './entity'
 import { groupActivities } from './grouping'
-import { WRITTEN_ACTIVITIES } from './written'
+import { WRITTEN_ACTIVITIES } from './verbs'
 
 function activity(partial: Partial<ActivityListItem>): ActivityListItem {
   return {
@@ -60,53 +59,34 @@ function burstRows(count: number, partial: (index: number) => Partial<ActivityLi
 }
 
 describe('headline keys', () => {
-  it('degrades a column-scoped update to the column-less verb', () => {
-    expect(card([activity({ columnName: 'gradeFk' })]).headline.keys).toEqual([
-      'activity_routeUpdatedGradeFk',
-      'activity_routeUpdated',
-    ])
-  })
-
-  it('camel cases a spaced column name', () => {
-    expect(card([activity({ columnName: 'parking location', entityType: 'area' })]).headline.keys).toEqual([
-      'activity_areaUpdatedParkingLocation',
-      'activity_areaUpdated',
-    ])
-  })
-
-  it('never degrades a column-scoped delete to "deleted the entity"', () => {
-    // A removed photo must not fall back to `activity_routeDeleted`: the route is still there.
-    expect(card([activity({ columnName: 'file', type: 'deleted' })]).headline.keys).toEqual([
-      'activity_routeDeletedFile',
-    ])
-    expect(
-      card([activity({ columnName: 'parking location', entityType: 'area', type: 'deleted' })]).headline.keys,
-    ).toEqual(['activity_areaDeletedParkingLocation'])
-  })
-
-  it('uses the whole-entity verb when nothing scopes the change', () => {
-    expect(card([activity({ type: 'deleted' })]).headline.keys).toEqual(['activity_routeDeleted'])
+  it('takes a single card s verb from the column that changed', () => {
+    expect(card([activity({ columnName: 'gradeFk' })]).headline.key).toBe('activity_routeUpdatedGradeFk')
   })
 
   it('reads a new ascent s verb from its ascent type rather than a column', () => {
-    expect(card([activity({ entityType: 'ascent', newValue: 'redpoint', type: 'created' })]).headline.keys).toEqual([
+    expect(card([activity({ entityType: 'ascent', newValue: 'redpoint', type: 'created' })]).headline.key).toBe(
       'activity_ascentCreatedRedpoint',
-      'activity_ascentCreated',
-    ])
+    )
   })
 
-  it('picks the most specific key paraglide actually has', () => {
-    const view = card([activity({ columnName: 'gradeFk' })])
-    expect(view.headline.key).toBe('activity_routeUpdatedGradeFk')
-    expect(hasMessage(view.headline.key)).toBe(true)
+  it('uses the whole-entity verb when nothing scopes the change', () => {
+    expect(card([activity({ type: 'deleted' })]).headline.key).toBe('activity_routeDeleted')
   })
 
-  it('has a message for every activity the mutation layer writes', () => {
-    const missing = WRITTEN_ACTIVITIES.map((partial) => card([activity(partial)]).headline)
-      .filter((headline) => !headline.keys.some(hasMessage))
-      .map((headline) => headline.keys)
+  it('summarises a group rather than speaking one of its rows verbs', () => {
+    const rows = burstRows(2, (index) => ({ columnName: 'name', entityId: String(index) }))
+    expect(card(rows).headline.key).toBe('activity_groupEdits')
+  })
 
-    expect(missing).toEqual([])
+  // The catalogue is type-checked against paraglide, so this is about the lookup rather than
+  // the keys: a row the mutation layer writes must find its own entry, not degrade past it.
+  it('resolves every activity the mutation layer writes to its catalogue entry', () => {
+    const degraded = WRITTEN_ACTIVITIES.map((partial) => ({
+      key: card([activity(partial)]).headline.key,
+      partial,
+    })).filter(({ key }) => key === 'activity_genericChange')
+
+    expect(degraded).toEqual([])
   })
 })
 
@@ -276,7 +256,7 @@ describe('summary', () => {
     ]
     const view = card(rows)
 
-    expect(view.headline.keys).toEqual(['activity_groupEditsMultiple'])
+    expect(view.headline.key).toBe('activity_groupEditsMultiple')
     expect(view.summary).toContainEqual({ key: 'activity_summaryPeople', params: { count: 2 } })
   })
 })
@@ -335,7 +315,7 @@ describe('uploads', () => {
     // A file's own id is a cuid, so borrowing it for the headline would read as noise.
     const view = card([upload({ entityId: 'f1', id: 1 })], block)
 
-    expect(view.headline.keys).toEqual(['activity_fileUploaded'])
+    expect(view.headline.key).toBe('activity_fileUploaded')
     expect(view.entityName).toBe('Nordblock')
   })
 
@@ -343,7 +323,7 @@ describe('uploads', () => {
     const rows = [1, 2, 3].map((n) => upload({ createdAt: 60_000 * n, entityId: `f${n}`, id: n }))
     const view = card(rows, block)
 
-    expect(view.headline.keys).toEqual(['activity_groupUploads'])
+    expect(view.headline.key).toBe('activity_groupUploads')
     expect(view.summary).toEqual([{ key: 'activity_summaryFiles', params: { count: 3 } }])
     expect(view.entityName).toBe('Nordblock')
   })

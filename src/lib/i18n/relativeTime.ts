@@ -26,7 +26,11 @@ export function formatDay(timestamp: number, now: number, locale: string): strin
  * callers pass `Date.now()`.
  */
 export function formatUploadedAt(timestamp: number, now: number, locale: string): string {
-  const ms = timestamp - now // negative in the past
+  // Clamped to the past: these timestamps are all things that have already happened, so a
+  // positive difference means the clock the caller passed is behind (`now()` ticks once a
+  // minute, and a client's clock can trail the server's outright), not that a photo will be
+  // uploaded in eight seconds.
+  const ms = Math.min(0, timestamp - now)
   const abs = Math.abs(ms)
   const DAY = 86_400_000
 

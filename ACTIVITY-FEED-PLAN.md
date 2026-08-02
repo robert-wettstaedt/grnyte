@@ -42,6 +42,8 @@ per-entity list resources, join in memory.
 | Realtime            | "N new" pill holds the scroll; merging is explicit                                                                                            |
 | Surfaces            | Global `/feed` **and** a per-entity activity section on area/block/route detail                                                               |
 | Verb copy           | One **full sentence** per key with `{actor}` and `{name}` placeholders, plus a `person` variant for your own rows. Not verb fragments, see §3 |
+| Your own activity   | Renders inline in the global feed, reading "You …" with a "Me" avatar. "Just me" then narrows to only your rows                               |
+| Region chip         | Hidden for a user who belongs to one region, who has nothing to narrow to                                                                     |
 
 Grouping rules in full:
 
@@ -145,16 +147,25 @@ resources.svelte.ts    activityList(filter)
 grouping.ts            pure group(activities) -> ActivityGroup[]   <- unit tested
 grouping.test.ts       the one runnable check
 fields.ts              the field registry from §3
-verbs.ts               (entityType, type, columnName) -> i18n message
+entity.ts              the refs a window has to hydrate
+card.ts                what a card says about a group (keys, not copy)
+hydrate.svelte.ts      the six by-id fetches + the pure join onto the refs
 ```
 
 `listActivities` args: `{ limit, regionFk?, userFk?, category?, entityId?, entityType? }`.
 Category maps to a Zero `where`: `ascent` = `entityType = 'ascent'`, `update` = everything else.
 Per-entity scope matches `entityId+entityType` OR `parentEntityId+parentEntityType`.
 
-**Entity hydration.** `areaList` already takes `id: number | number[]`. `routeList`,
-`blockList` and the ascent list do not — add the same `id` filter to each. The feed collects
-ids per type from the grouped output and hydrates in four list resources.
+**Entity hydration.** Every list resource now takes an id set (`areaList`, `blockList`,
+`routesByIds`, `ascentsByIds`, `usersByIds`, and `filesByIds`, added for the upload cards,
+whose rows point at the file itself). `hydrate.svelte.ts` collects the ids per type — the
+entities the cards point at **plus the parents a grouped headline names** — fetches them and
+joins them onto the refs.
+
+The join decides, per ref, between "still syncing" (absent, a skeleton) and "hydration
+finished without it" (an explicit `null`, a tombstone), which is why it is a pure function
+with its own test. An ascent depends on two waves (its route arrives after it), so it only
+counts as answered once the routes have answered too; otherwise it flashes a tombstone.
 
 ### Components — `src/lib/components/ActivityFeed/`
 
@@ -198,6 +209,8 @@ grade change, deleted route, role grant, tombstone, skeleton).
 
 Phases 1–3 are independent of each other's UI and can land as separate commits.
 
+**Done: 1–4.** `/feed` runs on real data, unfiltered. 5–7 are open.
+
 ---
 
 ## 6. Reuse checklist
@@ -222,9 +235,9 @@ Nothing on this list gets hand-rolled:
 **Gaps in the data, discovered while reading the write sites.** All are "later phase", none
 block phases 1–6.
 
-1. **File uploads write no activity row.** `files.remote.ts` logs deletes only. The design's
-   "Sofia added 5 photos to Nordblock" card cannot exist yet. Ascent cards can still show
-   photos, because the ascent's own `files` are reachable through Zero.
+1. ~~**File uploads write no activity row.**~~ Closed: `files.remote.ts` now logs an
+   `entityType: 'file'` row per upload, naming what it landed on as the parent, and the feed
+   fetches those files by id.
 2. **Location changes store no old/new value.** `insertActivity` is called with only
    `columnName: 'location'`, so "Moved 18 m north" is unrenderable. Needs the coordinates in
    `oldValue`/`newValue` (or `metadata`).
@@ -253,11 +266,10 @@ block phases 1–6.
 - 1c's date-range facet and per-area grouping.
 - Import/volume policy: capping a several-hundred-row burst into one group.
 
-**Needs a call before phase 4**
+**Settled before phase 4** (both now in §2)
 
-- Does a card for _your own_ activity belong in the global feed at all, or only under
-  "Just me"? The design shows both (`mine: true` cards render inline with a solid avatar).
-- Region chip when the user belongs to exactly one region: the design hides it. Confirmed?
+- Your own activity renders inline in the global feed, the way the design shows it.
+- The region chip stays hidden for a single-region user.
 
 ---
 

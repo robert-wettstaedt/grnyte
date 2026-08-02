@@ -72,19 +72,38 @@ export function activityEntityKey(ref: ActivityEntityRef): string {
   return `${ref.type}:${ref.id}`
 }
 
-/** The entities a card has to hydrate, newest first, each listed once. */
+/** The entities a card renders as rows, newest first, each listed once. */
 export function activityEntityRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
+  return dedupe(activities.map((activity) => ({ id: activity.entityId, type: activity.entityType })))
+}
+
+/**
+ * Everything a window of activities has to fetch: the entities the cards point at, plus
+ * the parents a headline names. "Made 12 edits in Nordblock" needs the block, and none of
+ * those twelve rows is *about* the block, so the parents have to be collected separately.
+ */
+export function activityHydrationRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
+  return dedupe(
+    activities.flatMap((activity) => [
+      { id: activity.entityId, type: activity.entityType },
+      ...(activity.parentEntityId == null || activity.parentEntityType == null
+        ? []
+        : [{ id: activity.parentEntityId, type: activity.parentEntityType }]),
+    ]),
+  )
+}
+
+function dedupe(refs: readonly ActivityEntityRef[]): ActivityEntityRef[] {
   const seen = new Set<string>()
 
-  return activities.reduce<ActivityEntityRef[]>((refs, activity) => {
-    const ref = { id: activity.entityId, type: activity.entityType }
+  return refs.reduce<ActivityEntityRef[]>((unique, ref) => {
     const key = activityEntityKey(ref)
 
     if (!seen.has(key)) {
       seen.add(key)
-      refs.push(ref)
+      unique.push(ref)
     }
 
-    return refs
+    return unique
   }, [])
 }

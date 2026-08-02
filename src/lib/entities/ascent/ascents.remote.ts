@@ -65,10 +65,10 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { db, u
   await recalcUserGradeAndRating(db, route.id)
 
   await insertActivity(db, {
-    entityId: String(ascent.id),
+    entityId: ascent.id,
     entityType: 'ascent',
     newValue: value.type,
-    parentEntityId: String(route.id),
+    parentEntityId: route.id,
     parentEntityType: 'route',
     regionFk: route.regionFk,
     type: 'created',
@@ -103,7 +103,7 @@ export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value
 
   await createUpdateActivity({
     db,
-    entityId: String(ascent.id),
+    entityId: ascent.id,
     entityType: 'ascent',
     newEntity: {
       dateTime: value.dateTime,
@@ -123,7 +123,7 @@ export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value
       temperature: ascent.temperature,
       type: ascent.type,
     },
-    parentEntityId: String(ascent.routeFk),
+    parentEntityId: ascent.routeFk,
     parentEntityType: 'route',
     regionFk: ascent.regionFk,
     userFk: user.id,
@@ -168,10 +168,10 @@ export const deleteAscent = command(
       await recalcUserGradeAndRating(db, ascent.routeFk)
 
       await insertActivity(db, {
-        entityId: String(ascent.id),
+        entityId: ascent.id,
         entityType: 'ascent',
         oldValue: ascent.type,
-        parentEntityId: String(ascent.routeFk),
+        parentEntityId: ascent.routeFk,
         parentEntityType: 'route',
         regionFk: ascent.regionFk,
         type: 'deleted',

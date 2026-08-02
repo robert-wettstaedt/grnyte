@@ -9,9 +9,14 @@ export interface User {
 
 /** A user surfaced by search: the display name plus the regions it shares with
  *  the searcher (for a region breadcrumb). */
-export interface UserListItem {
-  id: number
+export interface UserListItem extends UserRef {
   regionFks: number[]
+}
+
+/** A user reduced to what naming and linking to one needs: the profile header, a
+ *  `!users:id!` token, an activity row that is about a person. */
+export interface UserRef {
+  id: number
   username: string
 }
 

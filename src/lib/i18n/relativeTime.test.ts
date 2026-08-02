@@ -10,6 +10,11 @@ describe('formatUploadedAt', () => {
   it('yesterday (numeric auto)', () => expect(formatUploadedAt(now - 26 * 3_600_000, now, 'en')).toBe('yesterday'))
   it('days', () => expect(formatUploadedAt(now - 3 * 86_400_000, now, 'en')).toBe('3 days ago'))
   it('absolute beyond a week', () => expect(formatUploadedAt(now - 30 * 86_400_000, now, 'en')).toBe('Apr 21, 2026'))
+
+  // The feed's clock ticks once a minute, so a row that just landed is routinely "newer"
+  // than the `now` it renders against. "in 8 seconds" for something already logged is a
+  // clock artefact, never a fact.
+  it('never reads as the future', () => expect(formatUploadedAt(now + 8_000, now, 'en')).toBe('now'))
 })
 
 describe('formatDay', () => {

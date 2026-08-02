@@ -2,7 +2,7 @@
   import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { activityEntityKey, type ActivityEntity } from '$lib/entities/activity/entity'
   import { groupActivities } from '$lib/entities/activity/grouping'
-  import { WRITTEN_ACTIVITIES } from '$lib/entities/activity/written'
+  import { WRITTEN_ACTIVITIES } from '$lib/entities/activity/verbs'
   import { overwriteGetLocale } from '$lib/paraglide/runtime'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import ActivityCard from './ActivityCard.svelte'
@@ -71,9 +71,9 @@
   <div style="max-width: 560px; margin: 0 auto;" class="space-y-4" data-locale-applied={localeApplied === undefined}>
     {#each cards as card (card.id)}
       <div class="space-y-1">
-        <!-- The whole candidate chain, not just the winner: a key that quietly degraded to
-             a less specific verb is exactly what this catalogue exists to catch. -->
-        <p class="text-surface-600-400 font-mono text-[11px]">{card.headline.keys.join(' -> ')}</p>
+        <!-- The key above the card it renders: a row that degraded past its own catalogue
+             entry to a vaguer verb is exactly what this catalogue exists to catch. -->
+        <p class="text-surface-600-400 font-mono text-[11px]">{card.headline.key}</p>
         <ActivityCard view={card} />
       </div>
     {/each}

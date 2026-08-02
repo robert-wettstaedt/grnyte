@@ -40,12 +40,16 @@ export const activitiesQueryDefs = {
    */
   listActivities: defineQuery(
     z.object({
+      /** Only rows newer than this id, which is how the feed counts what queued while reading. */
+      afterId: z.number().optional(),
       category: z.enum(['ascent', 'update']).optional(),
       limit: z.number().optional(),
       regionFk: z.number().optional(),
       // One object rather than two loose fields: an id without its type would silently
       // widen the query back to the global feed.
       scope: z.object({ id: z.string(), type: z.enum(activityEntityTypes) }).optional(),
+      /** Only rows at or older than this id: the window the reader has acknowledged. */
+      upToId: z.number().optional(),
       userFk: z.number().optional(),
     }),
     regionMemberCan(({ args }) => {
@@ -59,6 +63,18 @@ export const activitiesQueryDefs = {
 
       if (args.userFk != null) {
         q = q.where('userFk', args.userFk)
+      }
+
+      // The feed reads in two windows either side of the id the reader acknowledged, so that
+      // rows waiting behind the "N new" pill don't count against the window on screen and
+      // push an equal number of old ones off its bottom. Ids are serial, which is what makes
+      // one id a cut through a list ordered by `createdAt`.
+      if (args.upToId != null) {
+        q = q.where('id', '<=', args.upToId)
+      }
+
+      if (args.afterId != null) {
+        q = q.where('id', '>', args.afterId)
       }
 
       // The feed's two segments. Everything that isn't an ascent is a crag or people edit,

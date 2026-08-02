@@ -1,4 +1,3 @@
-import type { InsertActivity } from '$lib/db/schema'
 import { regionMembers, users, userSettings } from '$lib/db/schema'
 import { formError, usernameSchema } from '$lib/forms/schemas'
 import { locales } from '$lib/paraglide/runtime'
@@ -6,7 +5,7 @@ import { authedCommand, authedForm } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import z from 'zod'
-import { insertActivity } from '../activity/activity.server'
+import { insertActivity, type ActivityInput } from '../activity/activity.server'
 
 /**
  * Rename the signed-in user. RLS scopes the write to their own row (`auth.uid() = auth_user_fk`),
@@ -57,9 +56,9 @@ export const updateUsername = authedForm(
     await insertActivity(
       db,
       regionFks.map(
-        (regionFk): InsertActivity => ({
+        (regionFk): ActivityInput => ({
           columnName: 'username',
-          entityId: String(user.id),
+          entityId: user.id,
           entityType: 'user',
           newValue: username,
           oldValue: user.username,

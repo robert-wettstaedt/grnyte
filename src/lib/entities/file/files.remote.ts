@@ -46,7 +46,7 @@ const insertUploadActivity = (
   insertActivity(db, {
     entityId: fileId,
     entityType: 'file',
-    parentEntityId: String(entityId),
+    parentEntityId: entityId,
     parentEntityType: entityType,
     regionFk,
     type: 'uploaded',
@@ -284,8 +284,8 @@ export const deleteFile = command(
       if (entityId != null) {
         await insertActivity(db, {
           columnName: 'file',
-          entityId: String(entityId),
-          entityType: entityType,
+          entityId,
+          entityType,
           regionFk: file.regionFk,
           type: 'deleted',
           userFk: user.id,

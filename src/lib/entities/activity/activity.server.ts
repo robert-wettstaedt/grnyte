@@ -3,26 +3,51 @@ import { sub } from 'date-fns'
 import { and, Column, eq, gt, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
-interface HandleOpts extends Pick<
-  schema.InsertActivity,
-  'entityId' | 'entityType' | 'parentEntityId' | 'parentEntityType' | 'regionFk' | 'userFk'
-> {
+/** What a mutation passes in: real ids. What reaches the table: text ids. */
+export interface ActivityInput extends Omit<schema.InsertActivity, 'entityId' | 'parentEntityId'> {
+  entityId: ActivityId
+  parentEntityId?: ActivityId | null
+}
+
+/**
+ * An id as a mutation holds it. `activities.entity_id` is text because the column is
+ * polymorphic, but every table it points at except `files` keys on a number, so writers
+ * used to spell the cast themselves at every call site. They did not spell it the same way:
+ * some guarded the nullable parent, some did not, and the ones that did not wrote the
+ * literal string "null", which `mapper.ts` still has to read back as absent. The cast lives
+ * here now, so a caller states the id it has and nothing else.
+ */
+type ActivityId = number | string
+
+const parentIdOf = (id: ActivityId | null | undefined) => (id == null ? null : String(id))
+
+const toRow = ({ entityId, parentEntityId, ...rest }: ActivityInput): schema.InsertActivity => ({
+  ...rest,
+  entityId: String(entityId),
+  parentEntityId: parentIdOf(parentEntityId),
+})
+
+interface HandleOpts extends Pick<schema.InsertActivity, 'entityType' | 'parentEntityType' | 'regionFk' | 'userFk'> {
   db: PostgresJsDatabase<typeof schema>
+  entityId: ActivityId
   newEntity: Record<string, unknown>
   oldEntity: Record<string, unknown>
+  parentEntityId?: ActivityId | null
 }
 
 export const createUpdateActivity = async ({
   db,
-  entityId,
+  entityId: rawEntityId,
   entityType,
   newEntity,
   oldEntity,
-  parentEntityId,
+  parentEntityId: rawParentEntityId,
   parentEntityType,
   regionFk,
   userFk,
 }: HandleOpts) => {
+  const entityId = String(rawEntityId)
+  const parentEntityId = parentIdOf(rawParentEntityId)
   const changes: Pick<schema.InsertActivity, 'columnName' | 'newValue' | 'oldValue'>[] = []
 
   Object.keys(newEntity).forEach((key) => {
@@ -105,9 +130,9 @@ const activityValueColumns = [
 
 export const insertActivity = async (
   db: PostgresJsDatabase<typeof schema>,
-  activity: schema.InsertActivity | schema.InsertActivity[],
+  activity: ActivityInput | ActivityInput[],
 ) => {
-  const arr = Array.isArray(activity) ? activity : [activity]
+  const arr = (Array.isArray(activity) ? activity : [activity]).map(toRow)
 
   if (arr.length === 0) {
     return
@@ -159,10 +184,11 @@ export const insertActivity = async (
 export const deleteActivity = async (
   db: PostgresJsDatabase<typeof schema>,
   filter: Partial<
-    Pick<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'newValue' | 'regionFk' | 'type' | 'userFk'>
-  >,
+    Pick<schema.InsertActivity, 'columnName' | 'entityType' | 'newValue' | 'regionFk' | 'type' | 'userFk'>
+  > & { entityId?: ActivityId },
 ) => {
-  const conditions = Object.entries(filter)
+  const { entityId, ...rest } = filter
+  const conditions = Object.entries(entityId == null ? rest : { ...rest, entityId: String(entityId) })
     .filter(([, value]) => value != null)
     .map(([key, value]) => eq(schema.activities[key as keyof typeof filter] as Column, value))
 

@@ -1,6 +1,6 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
-import { hasMessage, type MessageKey } from '$lib/i18n/message'
+import type { MessageKey } from '$lib/i18n/message'
 import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
@@ -11,6 +11,7 @@ import {
 } from './entity'
 import { activityField, type ActivityField } from './fields'
 import type { ActivityGroup } from './grouping'
+import { activityVerb } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
@@ -67,19 +68,8 @@ export interface ActivityChange {
 }
 
 export interface ActivityHeadline {
-  /**
-   * The key to render: the first of {@link keys} paraglide actually has, or the least
-   * specific one, which then renders as itself and so fails loudly rather than blankly.
-   */
+  /** The sentence to render, straight out of the verb catalogue. */
   key: MessageKey
-  /**
-   * Candidates, most specific first. Exposed rather than hidden because the fallback is
-   * a correctness rule, not an implementation detail: a column-scoped delete must never
-   * degrade to the whole-entity verb, and that is only assertable on the chain.
-   *
-   * Plain strings: a candidate is a guess until {@link hasMessage} confirms it.
-   */
-  keys: string[]
   params: { owner: 'other' | 'self'; person: 'other' | 'self' }
 }
 
@@ -125,8 +115,6 @@ export function activityCard(
   const owner = climber?.climberFk != null && climber.climberFk === newest.userFk ? 'self' : 'other'
   const mine = currentUserFk != null && group.userFk === currentUserFk
 
-  const keys = group.kind === 'single' ? verbKeys(newest) : [groupVerbKey(group)]
-
   return {
     actorName: newest.userName,
     changes: group.activities.flatMap((activity) => {
@@ -138,10 +126,7 @@ export function activityCard(
     entityName,
     files: refs.flatMap((ref) => entityOf(ref)?.files ?? []),
     headline: {
-      // The cast is the one place a key escapes checking, and deliberately: a chain that
-      // matched nothing renders as its own last candidate, which is the loud failure.
-      key: keys.find(hasMessage) ?? (keys[keys.length - 1] as MessageKey),
-      keys,
+      key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group),
       params: { owner, person: mine ? 'self' : 'other' },
     },
     id: group.id,
@@ -173,10 +158,6 @@ function activityFor(activities: readonly ActivityListItem[], ref: ActivityEntit
   return (
     activities.find((activity) => activity.entityId === ref.id && activity.entityType === ref.type) ?? activities[0]
   )
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 /**
@@ -277,33 +258,4 @@ function summaryParts(group: ActivityGroup, placeName: string | undefined): Acti
   }
 
   return parts
-}
-
-/** `parking location` -> `parkingLocation`; every other column name is already camel case. */
-function toCamelCase(value: string): string {
-  return value.replace(/[\s_-](\w)/g, (_, char: string) => char.toUpperCase())
-}
-
-/**
- * Verb keys from most to least specific: the entity, its change type and the column that
- * changed, falling back to the column-less verb. So `activity_routeUpdatedGradeFk` degrades
- * to `activity_routeUpdated` rather than needing all 30 combinations spelled out.
- *
- * `deleted` gets no such fallback: there the column-less verb says the entity itself is
- * gone, so degrading a removed photo to `activity_routeDeleted` would claim a live route
- * was deleted. A missing key renders as the key, the louder failure of the two.
- */
-function verbKeys(activity: ActivityListItem): string[] {
-  const base = `activity_${activity.entityType}${capitalize(activity.type)}`
-
-  // `ascent` created rows carry the ascent type in `newValue` rather than a column name.
-  const suffix =
-    activity.entityType === 'ascent' && activity.type === 'created' ? activity.newValue : activity.columnName
-
-  if (suffix == null || suffix.length === 0) {
-    return [base]
-  }
-
-  const specific = `${base}${capitalize(toCamelCase(suffix))}`
-  return activity.type === 'deleted' ? [specific] : [specific, base]
 }

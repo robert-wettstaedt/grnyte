@@ -179,7 +179,7 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
       // So the join shows up in the region's audit log, the same shape `removeRegionMember` logs.
       await insertActivity(tx, {
         columnName: 'invitation',
-        entityId: String(user.id),
+        entityId: user.id,
         entityType: 'user',
         regionFk: invitation.regionFk,
         type: 'updated',
