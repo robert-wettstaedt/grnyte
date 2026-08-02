@@ -320,7 +320,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     const created = await hardRestoreArea(db, snapshot, user.id)
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
-    await deleteActivity(db, { entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
+    await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
 
     return {
       data: { areaId: created.id },
@@ -337,7 +337,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
   await softRestoreArea(db, snapshot)
 
   if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
-  await deleteActivity(db, { entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
+  await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
 
   return {
     data: { areaId: snapshot.areaId },

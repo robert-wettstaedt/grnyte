@@ -477,8 +477,10 @@ export const leaveRegion = authedCommand(z.object({ regionFk: z.number() }), asy
   // gated on authorize_in_region('region.edit'), which reads region_members and so is already
   // false inside this transaction once your own row is deleted. Both statements share the
   // transaction, so a failed delete still rolls the activity back.
+  // `membership`, not `role`: being removed and choosing to leave are two events, and sharing
+  // one triple made the feed render a member who left as "Mara removed Mara from the region".
   await insertActivity(db, {
-    columnName: 'role',
+    columnName: 'membership',
     entityId: user.id,
     entityType: 'user',
     regionFk,

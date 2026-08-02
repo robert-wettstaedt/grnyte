@@ -9,9 +9,8 @@ import {
   type ActivityEntityMap,
   type ActivityEntityRef,
 } from './entity'
-import { activityField, type ActivityField } from './fields'
 import type { ActivityGroup } from './grouping'
-import { activityVerb } from './verbs'
+import { activityEntry, activityVerb, type ActivityField } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
@@ -101,7 +100,7 @@ export function activityCard(
   const entityName =
     // An upload names what it was attached to, never the file: a file's own name is a cuid.
     // This holds for a lone photo as much as for five, so it is decided before `single`.
-    newest.entityType === 'file'
+    activityEntry(newest)?.names === 'parent'
       ? (placeName ?? entityOf(refs[0])?.name)
       : group.kind === 'single'
         ? headlineEntityName(newest, entityOf(refs[0]))
@@ -118,7 +117,7 @@ export function activityCard(
   return {
     actorName: newest.userName,
     changes: group.activities.flatMap((activity) => {
-      const field = activityField(activity.columnName)
+      const field = activityEntry(activity)?.field
       return field == null ? [] : [{ activity, field }]
     }),
     climberName: climber?.climberName,
@@ -144,11 +143,9 @@ export function activityCard(
         state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
       }
     }),
-    // A new ascent stores its ascent type in `newValue`; no other row has a status glyph.
-    status:
-      newest.entityType === 'ascent' && newest.type === 'created'
-        ? (newest.newValue as AscentType | undefined)
-        : undefined,
+    // Declared on the entry, so the cast is reachable only for the four rows that really do
+    // store an ascent type in `newValue`.
+    status: activityEntry(newest)?.status === 'ascentType' ? (newest.newValue as AscentType | undefined) : undefined,
     summary: summaryParts(group, placeName),
   }
 }
@@ -185,10 +182,12 @@ function groupVerbKey(group: ActivityGroup): MessageKey {
  * the removed one in `oldValue`.
  */
 function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity | null | undefined): string | undefined {
-  // An invitation names the invitee, who has no user row yet: `regions.remote.ts` stores
-  // their address in the value column and points `entityId` at the *inviter*. Hydrating
-  // that would render "Jonas invited Jonas", so the stored address wins here.
-  if (activity.columnName === 'invitation') {
+  const entry = activityEntry(activity)
+
+  // A stored subject is never the hydrated one: an invitation names an address the invitee
+  // has no account for, and points `entityId` at the inviter, so hydrating it would render
+  // "Jonas invited Jonas".
+  if (entry?.names === 'stored') {
     return activity.newValue ?? activity.oldValue
   }
 
@@ -196,21 +195,10 @@ function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity |
     return entity.name
   }
 
-  // An ascent's value columns hold its ascent type, never a name.
-  if (activity.entityType === 'ascent') {
-    return undefined
-  }
-
-  if (activity.columnName == null) {
-    return activity.type === 'deleted' ? activity.oldValue : activity.newValue
-  }
-
-  // Every other column stores its own value (a grade id, a rating), which would read as a
-  // nonsense name. Only the naming columns, and the `user` rows whose value *is* the person
-  // (an email, a role target), are safe to borrow from.
-  return activity.columnName === 'name' || activity.columnName === 'username' || activity.entityType === 'user'
-    ? (activity.newValue ?? activity.oldValue)
-    : undefined
+  // Nothing hydrated, so fall back to the value column the entry says carries the name. An
+  // entry with no `tombstone` has none: every other column stores its own value (a grade id,
+  // a rating, an ascent type), which would read as a nonsense name.
+  return entry?.tombstone == null ? undefined : (activity[entry.tombstone] ?? undefined)
 }
 
 /**

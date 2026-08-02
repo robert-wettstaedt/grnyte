@@ -2,6 +2,7 @@ import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
 import type { RouteListItem } from '$lib/entities/route/dto'
 import type { ActivityEntityType, ActivityListItem } from './dto'
+import { activityEntry } from './verbs'
 
 /**
  * The hydration contract: what the feed has to fetch, and the shape it hands back.
@@ -72,9 +73,19 @@ export function activityEntityKey(ref: ActivityEntityRef): string {
   return `${ref.type}:${ref.id}`
 }
 
-/** The entities a card renders as rows, newest first, each listed once. */
+/**
+ * The entities a card renders as rows, newest first, each listed once.
+ *
+ * A row whose entry declares `names: 'stored'` contributes nothing: its `entityId` does not
+ * point at what the card is about. An invitation points at the inviter, so fetching it put
+ * the inviter's row under a headline naming the invitee.
+ */
 export function activityEntityRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
-  return dedupe(activities.map((activity) => ({ id: activity.entityId, type: activity.entityType })))
+  return dedupe(
+    activities.flatMap((activity) =>
+      activityEntry(activity)?.names === 'stored' ? [] : [{ id: activity.entityId, type: activity.entityType }],
+    ),
+  )
 }
 
 /**
@@ -85,7 +96,7 @@ export function activityEntityRefs(activities: readonly ActivityListItem[]): Act
 export function activityHydrationRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
   return dedupe(
     activities.flatMap((activity) => [
-      { id: activity.entityId, type: activity.entityType },
+      ...activityEntityRefs([activity]),
       ...(activity.parentEntityId == null || activity.parentEntityType == null
         ? []
         : [{ id: activity.parentEntityId, type: activity.parentEntityType }]),

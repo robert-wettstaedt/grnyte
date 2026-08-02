@@ -247,6 +247,7 @@
     }
   ],
   "activity_changeFileRemoved": "Photo removed",
+  "activity_changeLocationRemoved": "Location removed",
   "activity_changeLocationUpdated": "Location updated",
   "activity_changeTagAdded": "Added {tag}",
   "activity_changeTagRemoved": "Removed {tag}",
@@ -454,7 +455,6 @@
       }
     }
   ],
-  "activity_sectionTitle": "Recent activity",
   "activity_showChanges": "Show changes",
   "activity_summaryAscents": [
     {
@@ -513,6 +513,16 @@
       "match": {
         "person=self": "You revoked the invite for {name}",
         "person=*": "{actor} revoked the invite for {name}"
+      }
+    }
+  ],
+  "activity_userDeletedMembership": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You left the region",
+        "person=*": "{actor} left the region"
       }
     }
   ],

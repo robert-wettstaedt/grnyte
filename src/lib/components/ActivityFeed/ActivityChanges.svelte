@@ -1,7 +1,7 @@
 <!--
   The expanded half of an activity card: one line per changed column, rendered by the
-  type `fields.ts` assigns it rather than by a per-column component. Columns nothing
-  writes yet (or that carry no old/new pair) simply do not appear.
+  renderer its catalogue entry assigns it rather than by a per-column component. An entry
+  that declares no `field` carries no old/new pair, so it simply does not appear.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -100,6 +100,8 @@
     <!-- ponytail: the writers store no coordinates (see the plan's gap 2), so this can
          only say that it moved. Upgrade = put the pair in oldValue/newValue, then a map thumb. -->
     <span class="text-surface-600-400 text-xs">{m.activity_changeLocationUpdated()}</span>
+  {:else if renderer === 'locationRemoved'}
+    <span class="text-surface-600-400 text-xs">{m.activity_changeLocationRemoved()}</span>
   {:else if renderer === 'topo'}
     <span class="text-surface-600-400 text-xs">{m.activity_changeTopoUpdated()}</span>
   {:else if renderer === 'file'}

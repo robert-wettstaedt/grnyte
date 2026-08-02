@@ -10,13 +10,16 @@
  * `activity_ascentCreatedSend`, a key that no longer exists.
  */
 import { ascentTypeEnum } from '$lib/db/schema'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { activityFields } from './fields'
-import { ACTIVITY_VERBS, activityVerb, type ActivityVerb } from './verbs'
+import { ACTIVITY_VERBS, activityVerb, WRITTEN_ACTIVITIES, type ActivityVerb } from './verbs'
 
+// The catalogue is `as const`, so its element type is a union in which only some members
+// declare `columnName` or `newValue`. Reads of those two go through `WRITTEN_ACTIVITIES`,
+// which is the same rows widened to `Partial<ActivityListItem>`.
 describe('ACTIVITY_VERBS', () => {
   it('lists exactly the ascent types the enum defines', () => {
-    const written = ACTIVITY_VERBS.filter((verb) => verb.entityType === 'ascent' && verb.type === 'created').map(
+    const written = WRITTEN_ACTIVITIES.filter((verb) => verb.entityType === 'ascent' && verb.type === 'created').map(
       (verb) => verb.newValue,
     )
 
@@ -25,21 +28,16 @@ describe('ACTIVITY_VERBS', () => {
     expect([...written].sort()).toEqual([...ascentTypeEnum].sort())
   })
 
-  it('has a field registry entry for every column it writes', () => {
-    const missing = [...new Set(ACTIVITY_VERBS.map((verb) => verb.columnName))]
-      .filter((columnName) => columnName != null)
-      .filter((columnName) => activityFields[columnName] == null)
+  // Read off the component rather than restated here, so this cannot become the second place
+  // that knows which renderers exist. `'user'` was declared by four entries for months with
+  // no branch implementing it, and every one of them silently rendered as plain text.
+  it('declares only renderers ActivityChanges implements', () => {
+    const source = readFileSync('src/lib/components/ActivityFeed/ActivityChanges.svelte', 'utf8')
+    // The `{:else}` arm is the plain old/new pair, so `text` needs no branch of its own.
+    const implemented = new Set(['text', ...[...source.matchAll(/renderer === '(\w+)'/g)].map(([, name]) => name)])
+    const declared = [...new Set(ACTIVITY_VERBS.flatMap((verb) => ('field' in verb ? [verb.field.renderer] : [])))]
 
-    expect(missing).toEqual([])
-  })
-
-  it('writes every column the field registry knows about', () => {
-    // The other direction: a registry entry nothing writes is a label, an icon and a diff
-    // renderer maintained in two locales for a card that can never appear.
-    const written = new Set(ACTIVITY_VERBS.map((verb) => verb.columnName))
-    const unused = Object.keys(activityFields).filter((columnName) => !written.has(columnName))
-
-    expect(unused).toEqual([])
+    expect(declared.filter((renderer) => !implemented.has(renderer))).toEqual([])
   })
 
   it('resolves every entry to its own key', () => {

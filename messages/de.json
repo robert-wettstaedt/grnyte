@@ -247,6 +247,7 @@
     }
   ],
   "activity_changeFileRemoved": "Foto entfernt",
+  "activity_changeLocationRemoved": "Standort entfernt",
   "activity_changeLocationUpdated": "Standort aktualisiert",
   "activity_changeTagAdded": "{tag} hinzugefügt",
   "activity_changeTagRemoved": "{tag} entfernt",
@@ -454,7 +455,6 @@
       }
     }
   ],
-  "activity_sectionTitle": "Letzte Aktivität",
   "activity_showChanges": "Änderungen anzeigen",
   "activity_summaryAscents": [
     {
@@ -513,6 +513,16 @@
       "match": {
         "person=self": "Du hast die Einladung für {name} zurückgezogen",
         "person=*": "{actor} hat die Einladung für {name} zurückgezogen"
+      }
+    }
+  ],
+  "activity_userDeletedMembership": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast die Region verlassen",
+        "person=*": "{actor} hat die Region verlassen"
       }
     }
   ],

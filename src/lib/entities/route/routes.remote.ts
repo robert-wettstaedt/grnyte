@@ -475,7 +475,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
       )
     }
 
-    await deleteActivity(db, { entityId: snapshot.routeId, entityType: 'route', type: 'deleted' })
+    await deleteActivity(db, { columnName: null, entityId: snapshot.routeId, entityType: 'route', type: 'deleted' })
 
     return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
   }
@@ -487,7 +487,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
   }
 
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
-  await deleteActivity(db, { entityId: route.id, entityType: 'route', type: 'deleted' })
+  await deleteActivity(db, { columnName: null, entityId: route.id, entityType: 'route', type: 'deleted' })
 
   return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
 })

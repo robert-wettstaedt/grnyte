@@ -467,7 +467,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     const blockId = await hardRestoreBlock(db, snapshot, user.id)
 
     await refreshAreaType(db, snapshot.areaFk)
-    await deleteActivity(db, { entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
+    await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
 
     return {
       data: { blockId },
@@ -484,7 +484,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   await softRestoreBlock(db, snapshot, block)
 
   await refreshAreaType(db, block.areaFk)
-  await deleteActivity(db, { entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
+  await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
 
   return {
     data: { blockId: snapshot.blockId },

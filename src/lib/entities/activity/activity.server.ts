@@ -2,12 +2,22 @@ import * as schema from '$lib/db/schema'
 import { sub } from 'date-fns'
 import { and, Column, eq, gt, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type { ActivityEntityType } from './dto'
+import type { DeclaredActivity, DeclaredColumn } from './verbs'
 
-/** What a mutation passes in: real ids. What reaches the table: text ids. */
-export interface ActivityInput extends Omit<schema.InsertActivity, 'entityId' | 'parentEntityId'> {
-  entityId: ActivityId
-  parentEntityId?: ActivityId | null
-}
+/**
+ * What a mutation passes in: real ids, and a triple the catalogue declares.
+ *
+ * The triple half comes from `ACTIVITY_VERBS`, so the catalogue is the one declaration of
+ * what an activity can be. A writer cannot invent a triple, and deleting a catalogue entry
+ * stops its writer compiling. What it still cannot check is a writer picking the wrong
+ * declared triple, which is why `leaveRegion` needs a column of its own rather than a type.
+ */
+export type ActivityInput = DeclaredActivity &
+  Omit<schema.InsertActivity, 'columnName' | 'entityId' | 'entityType' | 'parentEntityId' | 'type'> & {
+    entityId: ActivityId
+    parentEntityId?: ActivityId | null
+  }
 
 /**
  * An id as a mutation holds it. `activities.entity_id` is text because the column is
@@ -27,15 +37,33 @@ const toRow = ({ entityId, parentEntityId, ...rest }: ActivityInput): schema.Ins
   parentEntityId: parentIdOf(parentEntityId),
 })
 
-interface HandleOpts extends Pick<schema.InsertActivity, 'entityType' | 'parentEntityType' | 'regionFk' | 'userFk'> {
+/**
+ * The columns a diff on `E` may emit. `Partial<Record<never, unknown>>` is `{}`, which
+ * accepts anything, so an entity with no declared update columns has to reject outright
+ * rather than wave every key through.
+ */
+type DiffEntity<E extends ActivityEntityType> = [DeclaredColumn<E>] extends [never]
+  ? Record<string, never>
+  : Partial<Record<DeclaredColumn<E>, unknown>>
+
+interface HandleOpts<E extends ActivityEntityType> extends Pick<
+  schema.InsertActivity,
+  'parentEntityType' | 'regionFk' | 'userFk'
+> {
   db: PostgresJsDatabase<typeof schema>
   entityId: ActivityId
-  newEntity: Record<string, unknown>
-  oldEntity: Record<string, unknown>
+  entityType: E
+  /**
+   * Keys held against the catalogue. This only bites on a fresh object literal (excess
+   * property checking), and all five call sites pass one inline; hoisting it into a variable
+   * would silently lose the check.
+   */
+  newEntity: DiffEntity<E>
+  oldEntity: DiffEntity<E>
   parentEntityId?: ActivityId | null
 }
 
-export const createUpdateActivity = async ({
+export const createUpdateActivity = async <E extends ActivityEntityType>({
   db,
   entityId: rawEntityId,
   entityType,
@@ -45,17 +73,23 @@ export const createUpdateActivity = async ({
   parentEntityType,
   regionFk,
   userFk,
-}: HandleOpts) => {
+}: HandleOpts<E>) => {
   const entityId = String(rawEntityId)
   const parentEntityId = parentIdOf(rawParentEntityId)
   const changes: Pick<schema.InsertActivity, 'columnName' | 'newValue' | 'oldValue'>[] = []
 
-  Object.keys(newEntity).forEach((key) => {
-    if (String(oldEntity[key] ?? null) !== String(newEntity[key] ?? null)) {
+  // Widened to iterate. The keys were already held against the catalogue at the call site,
+  // where the object literal is fresh; `DiffEntity<E>` is a conditional type, so TypeScript
+  // cannot prove `DeclaredColumn<E>` indexes it from in here.
+  const next = newEntity as Record<string, unknown>
+  const prev = oldEntity as Record<string, unknown>
+
+  Object.keys(next).forEach((key) => {
+    if (String(prev[key] ?? null) !== String(next[key] ?? null)) {
       changes.push({
         columnName: key,
-        newValue: newEntity[key] == null ? null : String(newEntity[key]),
-        oldValue: oldEntity[key] == null ? null : String(oldEntity[key]),
+        newValue: next[key] == null ? null : String(next[key]),
+        oldValue: prev[key] == null ? null : String(prev[key]),
       })
     }
   })
@@ -179,6 +213,13 @@ export const insertActivity = async (
 
 /** Delete activities matching the given fields. Used by undo flows to erase the activity a
  *  mutation logged, leaving the timeline as if it never happened.
+ *
+ *  An omitted field is unconstrained; an explicit `null` requires the column to BE null. The
+ *  two are not the same and the difference is the whole point: `{ entityType: 'route',
+ *  type: 'deleted' }` also matches the `route:deleted:file` rows a photo removal logged, so
+ *  restoring a route erased its photo history along with its own delete. An undo of a
+ *  whole-entity delete passes `columnName: null` and erases only the row it wrote.
+ *
  *  ponytail: deletes all rows matching the filter; a same-entity history collision is
  *  possible but negligible right after a delete. Upgrade = scope by id/createdAt. */
 export const deleteActivity = async (
@@ -187,12 +228,22 @@ export const deleteActivity = async (
     Pick<schema.InsertActivity, 'columnName' | 'entityType' | 'newValue' | 'regionFk' | 'type' | 'userFk'>
   > & { entityId?: ActivityId },
 ) => {
-  const { entityId, ...rest } = filter
-  const conditions = Object.entries(entityId == null ? rest : { ...rest, entityId: String(entityId) })
-    .filter(([, value]) => value != null)
-    .map(([key, value]) => eq(schema.activities[key as keyof typeof filter] as Column, value))
+  const conditions = activityFilterConditions(filter)
 
   if (conditions.length > 0) {
     await db.delete(schema.activities).where(and(...conditions))
   }
+}
+
+/** Exported for the test: an omitted field must contribute nothing and an explicit `null`
+ *  must contribute an `IS NULL`, which is the difference the six whole-entity undos rely on. */
+export function activityFilterConditions(filter: Parameters<typeof deleteActivity>[1]) {
+  const { entityId, ...rest } = filter
+
+  return Object.entries(entityId == null ? rest : { ...rest, entityId: String(entityId) })
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => {
+      const column = schema.activities[key as keyof typeof filter] as Column
+      return value === null ? isNull(column) : eq(column, value)
+    })
 }
