@@ -16,11 +16,14 @@
     /** `files.path` of the block's first topo image — shown instead of the
      *  decorative default when present. */
     topoImagePath?: string
+    /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
+     *  for nesting inside another card (e.g. an activity card). */
+    variant?: 'card' | 'option'
   }
 
-  let { action, crumbs, href, name, topoImagePath }: Props = $props()
+  let { action, crumbs, href, name, topoImagePath, variant }: Props = $props()
 </script>
 
-<Row title={name} {action} {crumbs} {href}>
+<Row title={name} {action} {crumbs} {href} {variant}>
   <Thumb imagePath={topoImagePath} fallback={ENTITY_TYPE_ICON.blocks} />
 </Row>

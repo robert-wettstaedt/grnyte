@@ -250,7 +250,7 @@ export const inviteRegionMember = authedForm(
     // address as the value. Same shape the revoke below erases.
     await insertActivity(db, {
       columnName: 'invitation',
-      entityId: String(user.id),
+      entityId: user.id,
       entityType: 'user',
       newValue: address,
       regionFk,
@@ -295,7 +295,7 @@ export const revokeRegionInvitation = authedCommand(
 
     await insertActivity(db, {
       columnName: 'invitation',
-      entityId: String(user.id),
+      entityId: user.id,
       entityType: 'user',
       newValue: email,
       regionFk,
@@ -402,7 +402,7 @@ export const updateRegionMemberRole = authedCommand(
 
     await createUpdateActivity({
       db,
-      entityId: String(userFk),
+      entityId: userFk,
       entityType: 'user',
       newEntity: { role },
       oldEntity: { role: member.role },
@@ -436,7 +436,7 @@ export const removeRegionMember = authedCommand(
 
     await insertActivity(db, {
       columnName: 'role',
-      entityId: String(userFk),
+      entityId: userFk,
       entityType: 'user',
       regionFk,
       type: 'deleted',
@@ -486,7 +486,7 @@ export const restoreRegionMember = authedCommand(
     // and undoing one of those must not erase the record of the others.
     await deleteActivity(db, {
       columnName: 'role',
-      entityId: String(snapshot.userFk),
+      entityId: snapshot.userFk,
       entityType: 'user',
       regionFk: snapshot.regionFk,
       type: 'deleted',
@@ -508,9 +508,11 @@ export const leaveRegion = authedCommand(z.object({ regionFk: z.number() }), asy
   // gated on authorize_in_region('region.edit'), which reads region_members and so is already
   // false inside this transaction once your own row is deleted. Both statements share the
   // transaction, so a failed delete still rolls the activity back.
+  // `membership`, not `role`: being removed and choosing to leave are two events, and sharing
+  // one triple made the feed render a member who left as "Mara removed Mara from the region".
   await insertActivity(db, {
-    columnName: 'role',
-    entityId: String(user.id),
+    columnName: 'membership',
+    entityId: user.id,
     entityType: 'user',
     regionFk,
     type: 'deleted',

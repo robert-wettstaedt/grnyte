@@ -1,7 +1,7 @@
 <script module lang="ts">
-  import type { Grade } from '$lib/entities/grade/dto'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
+  import { GRADES as grades } from '../../../../.storybook/grades'
   import GradeHistogram from './GradeHistogram.svelte'
 
   const { Story } = defineMeta({
@@ -11,35 +11,6 @@
     tags: ['autodocs'],
     title: 'Components/GradeHistogram',
   })
-
-  // The seeded Font/V grade table (5A … 9A), ids 0–21 — mirrors production, so the
-  // bars pick up the same 4-tier colours as the live app.
-  const grades: Grade[] = (
-    [
-      ['5A', 'V1'],
-      ['5B', 'V1'],
-      ['5C', 'V2'],
-      ['6A', 'V3'],
-      ['6A+', 'V3'],
-      ['6B', 'V4'],
-      ['6B+', 'V4'],
-      ['6C', 'V5'],
-      ['6C+', 'V5'],
-      ['7A', 'V6'],
-      ['7A+', 'V7'],
-      ['7B', 'V8'],
-      ['7B+', 'V8'],
-      ['7C', 'V9'],
-      ['7C+', 'V10'],
-      ['8A', 'V11'],
-      ['8A+', 'V12'],
-      ['8B', 'V13'],
-      ['8B+', 'V14'],
-      ['8C', 'V15'],
-      ['8C+', 'V16'],
-      ['9A', 'V17'],
-    ] as const
-  ).map(([FB, V], id) => ({ FB: `FB ${FB}`, id, V }))
 
   const counts = (entries: [number, number][]) => new Map(entries)
 

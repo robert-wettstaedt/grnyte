@@ -51,9 +51,10 @@
   }
 
   /**
-   * The four types in display order with their translated form labels (as functions:
-   * this module evaluates before the locale settles). Drives the form's type picker
-   * and the ascent list's filter chips.
+   * The four types in display order. Drives the form's type picker, the ascent list's
+   * filter chips and the badge's accessible name, so what a screen reader hears is the
+   * same word the picker shows (and in the reader's language, which the hardcoded
+   * English labels this replaced were not).
    */
   export const ASCENT_TYPES: { label: () => string; type: AscentType }[] = [
     { label: m.ascents_form_typeFlash, type: 'flash' },
@@ -76,12 +77,15 @@
   const info = $derived(status == null ? null : STATUS[status])
 </script>
 
-{#if info != null}
+{#if info != null && status != null}
   <!-- `.route-tag` pair up: when a RouteGrade directly follows,
-       the corners at the seam flatten so the two read as one segmented chip. -->
+       the corners at the seam flatten so the two read as one segmented chip.
+       `role="img"`: aria-label is prohibited on a bare span (implicit `generic` role), so
+       the tile has to declare itself a graphic for its name to be exposed at all. -->
   <span
     class="route-tag flex size-6.25 flex-none items-center justify-center rounded-lg has-[+.route-tag]:rounded-e-none"
     style:background="color-mix(in oklab, {info.color} 20%, transparent)"
+    role="img"
     aria-label={info.label()}
   >
     <AscentTypeGlyph {info} />

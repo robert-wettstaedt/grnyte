@@ -140,9 +140,9 @@
         onmousedown={keepFocus}
         type="button"
       >
-        <Avatar solid>{m.routes_form_faMe()}</Avatar>
+        <Avatar solid>{m.common_me()}</Avatar>
         <span class="min-w-0">
-          <span class="block truncate text-sm font-semibold">{m.routes_form_faMe()}</span>
+          <span class="block truncate text-sm font-semibold">{m.common_me()}</span>
           <span class="text-surface-600-400 block text-xs">{m.routes_form_faMeHint({ name: me.username })}</span>
         </span>
       </button>

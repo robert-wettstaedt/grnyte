@@ -44,6 +44,9 @@
     route: RouteRowData
     /** The user's logged ascent state, if any. */
     status?: AscentStatus
+    /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
+     *  for nesting inside another card (e.g. an activity card). */
+    variant?: 'card' | 'option'
   }
 
   let {
@@ -58,6 +61,7 @@
     onclick,
     route,
     status,
+    variant = 'card',
   }: Props = $props()
 
   // The selected card grows an extra line (tags + actions) — only when there's
@@ -146,9 +150,9 @@
   {onclick}
   {rightContent}
   {title}
+  {variant}
   description={body}
   footer={expanded ? footer : undefined}
-  variant="card"
 >
   <span class="thumb bg-surface-200-800">
     {#if number != null}

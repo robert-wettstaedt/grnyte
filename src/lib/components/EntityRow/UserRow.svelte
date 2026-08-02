@@ -9,11 +9,14 @@
     href?: string
     /** Display name. */
     name: string
+    /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
+     *  for nesting inside another card (e.g. an activity card). */
+    variant?: 'card' | 'option'
   }
 
-  let { crumbs, href, name }: Props = $props()
+  let { crumbs, href, name, variant }: Props = $props()
 </script>
 
-<Row title={name} {crumbs} {href}>
+<Row title={name} {crumbs} {href} {variant}>
   <Avatar {name} size={52} />
 </Row>

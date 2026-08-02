@@ -1,6 +1,6 @@
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
-import { toUser, toUserListItem } from './mapper'
+import { toUser, toUserListItem, toUserRef } from './mapper'
 
 export interface UserListFilter {
   content?: string
@@ -28,7 +28,7 @@ export function currentUserRole() {
 export function userById(id: () => number) {
   return createResource(
     () => queries.usersByIds({ id: [id()] }),
-    (rows) => (rows[0] == null ? undefined : { id: rows[0].id, username: rows[0].username }),
+    (rows) => (rows[0] == null ? undefined : toUserRef(rows[0])),
   )
 }
 
@@ -38,5 +38,13 @@ export function userList(filter: () => UserListFilter, opts?: { enabled?: () => 
     () => queries.listUsers(filter()),
     (rows) => rows.map(toUserListItem),
     opts,
+  )
+}
+
+/** Several users by id — the activity feed's rows that name a person (a role grant, a rename). */
+export function usersByIds(ids: () => number[]) {
+  return createResource(
+    () => queries.usersByIds({ id: ids() }),
+    (rows) => rows.map(toUserRef),
   )
 }

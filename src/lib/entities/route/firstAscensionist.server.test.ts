@@ -31,6 +31,8 @@ async function climbersInRegion() {
 
 async function removeFixtures() {
   const inRegion = sql`(select id from public.regions where name = ${REGION})`
+  // A self-claim logs an activity, which references the region: it has to go first.
+  await sql`delete from public.activities where region_fk in ${inRegion}`
   await sql`delete from public.first_ascensionists where region_fk in ${inRegion}`
   await sql`delete from public.regions where name = ${REGION}`
 }
@@ -50,7 +52,12 @@ afterAll(async () => {
 
 describe.skipIf(!reachable)('resolveFirstAscensionists self-claim', () => {
   it('drops a userFk that is not the caller: the created climber is name-only', async () => {
-    await resolveFirstAscensionists(db, [{ name: 'Ghost', userFk: users.stranger.userId }], regionId, users.caller.userId)
+    await resolveFirstAscensionists(
+      db,
+      [{ name: 'Ghost', userFk: users.stranger.userId }],
+      regionId,
+      users.caller.userId,
+    )
     const [row] = (await climbersInRegion()).filter((c) => c.name === 'Ghost')
     expect(row.userFk).toBeNull()
   })

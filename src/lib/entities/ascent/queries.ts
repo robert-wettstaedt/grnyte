@@ -3,6 +3,19 @@ import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
 
+/**
+ * The enriched ascent tree behind `toUserAscentDetail`: author, media, and the route's name
+ * and community grade with its block and area. Shared by the profile's list and the
+ * activity feed's id lookup so the two can't drift into different DTO shapes.
+ */
+const detailedAscents = (ctx: Parameters<typeof relatedRegion>[0]) => {
+  const r = relatedRegion(ctx)
+  return zql.ascents
+    .related('author')
+    .related('files', (q) => r(q).related('bunnyStream').related('author'))
+    .related('route', (q) => r(q).related('block', (q) => r(q).related('area', r)))
+}
+
 export const ascentsQueryDefs = {
   // One ascent with its media, for the edit-ascent form.
   ascent: defineQuery(
@@ -13,6 +26,14 @@ export const ascentsQueryDefs = {
         .where('id', args.ascentId)
         .related('files', (q) => r(q).related('bunnyStream').related('author'))
     }),
+  ),
+
+  // Ascents for a set of ids, on the same tree as listUserAscentsDetailed. The activity
+  // feed hydrates them this way: `activities.entityId` is polymorphic text, so Zero cannot
+  // join an activity row to its ascent and the ids have to be collected and re-queried.
+  listAscentsByIds: defineQuery(
+    z.object({ ascentId: z.array(z.number()) }),
+    regionMemberCan(({ args, ctx }) => detailedAscents(ctx).where('id', 'IN', args.ascentId)),
   ),
 
   // All ascents of one route, with their media and author: feeds the route detail
@@ -41,13 +62,6 @@ export const ascentsQueryDefs = {
   // doesn't drag these related trees into everyone's cold-load sync.
   listUserAscentsDetailed: defineQuery(
     z.object({ userId: z.number() }),
-    regionMemberCan(({ args, ctx }) => {
-      const r = relatedRegion(ctx)
-      return zql.ascents
-        .where('createdBy', args.userId)
-        .related('author')
-        .related('files', (q) => r(q).related('bunnyStream').related('author'))
-        .related('route', (q) => r(q).related('block', (q) => r(q).related('area', r)))
-    }),
+    regionMemberCan(({ args, ctx }) => detailedAscents(ctx).where('createdBy', args.userId)),
   ),
 }

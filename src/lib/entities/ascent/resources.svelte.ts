@@ -13,6 +13,21 @@ export function ascentDetail(id: () => number) {
 }
 
 /**
+ * Ascents for a set of ids, enriched with route name, community grade and media. The
+ * activity feed hydrates the ascent ids its rows point at; callers reorder the result by
+ * their own list. An empty id set is a normal terminal state here (a feed window with no
+ * ascents in it), so it queries `IN []` and settles as ready-and-empty rather than gating
+ * the resource off and reporting `loading` forever.
+ */
+export function ascentsByIds(ids: () => number[], opts?: { enabled?: () => boolean }) {
+  return createResource(
+    () => queries.listAscentsByIds({ ascentId: ids() }),
+    (rows) => rows.map(toUserAscentDetail),
+    opts,
+  )
+}
+
+/**
  * All ascents of one route, with their media — the route detail page's
  * grade-opinion chart and ascent beta videos.
  */

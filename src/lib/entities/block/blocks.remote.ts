@@ -90,9 +90,9 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
   await refreshAreaType(db, value.areaId)
 
   await insertActivity(db, {
-    entityId: String(block.id),
+    entityId: block.id,
     entityType: 'block',
-    parentEntityId: String(value.areaId),
+    parentEntityId: value.areaId,
     parentEntityType: 'area',
     regionFk: block.regionFk,
     type: 'created',
@@ -149,9 +149,9 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
 
     await insertActivity(db, {
       columnName: 'location',
-      entityId: String(block.id),
+      entityId: block.id,
       entityType: 'block',
-      parentEntityId: String(block.areaFk),
+      parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
       type: 'updated',
@@ -165,9 +165,9 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
 
     await insertActivity(db, {
       columnName: 'location',
-      entityId: String(block.id),
+      entityId: block.id,
       entityType: 'block',
-      parentEntityId: String(block.areaFk),
+      parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
       type: 'deleted',
@@ -180,11 +180,11 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
   if (block.name !== value.name) {
     await createUpdateActivity({
       db,
-      entityId: String(block.id),
+      entityId: block.id,
       entityType: 'block',
       newEntity: { name: value.name },
       oldEntity: { name: block.name },
-      parentEntityId: String(block.areaFk),
+      parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
       userFk: user.id,
@@ -220,9 +220,9 @@ export const setBlockLocation = authedCommand(
 
     await insertActivity(db, {
       columnName: 'location',
-      entityId: String(block.id),
+      entityId: block.id,
       entityType: 'block',
-      parentEntityId: String(block.areaFk),
+      parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
       type: 'updated',
@@ -265,9 +265,9 @@ export const estimateBlockLocationFromPhoto = authedCommand(
 
     await insertActivity(db, {
       columnName: 'location',
-      entityId: String(block.id),
+      entityId: block.id,
       entityType: 'block',
-      parentEntityId: String(block.areaFk),
+      parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
       type: 'updated',
@@ -378,10 +378,10 @@ export const deleteBlock = authedCommand(
     await shiftBlockOrdersDown(db, block.areaFk, block.order)
 
     await insertActivity(db, {
-      entityId: String(block.id),
+      entityId: block.id,
       entityType: 'block',
       oldValue: block.name,
-      parentEntityId: String(block.areaFk),
+      parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
       type: 'deleted',
@@ -467,7 +467,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     const blockId = await hardRestoreBlock(db, snapshot, user.id)
 
     await refreshAreaType(db, snapshot.areaFk)
-    await deleteActivity(db, { entityId: String(snapshot.blockId), entityType: 'block', type: 'deleted' })
+    await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
 
     return {
       data: { blockId },
@@ -484,7 +484,7 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   await softRestoreBlock(db, snapshot, block)
 
   await refreshAreaType(db, block.areaFk)
-  await deleteActivity(db, { entityId: String(snapshot.blockId), entityType: 'block', type: 'deleted' })
+  await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
 
   return {
     data: { blockId: snapshot.blockId },

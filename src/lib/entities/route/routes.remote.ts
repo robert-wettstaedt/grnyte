@@ -154,10 +154,10 @@ export const createRoute = authedForm(routeActionSchema, async (value, { db, use
   }
 
   await insertActivity(db, {
-    entityId: String(route.id),
+    entityId: route.id,
     entityType: 'route',
     newValue: route.name,
-    parentEntityId: String(block.id),
+    parentEntityId: block.id,
     parentEntityType: 'block',
     regionFk: block.regionFk,
     type: 'created',
@@ -238,7 +238,7 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
 
   await createUpdateActivity({
     db,
-    entityId: String(route.id),
+    entityId: route.id,
     entityType: 'route',
     newEntity: {
       description: value.description,
@@ -264,7 +264,7 @@ export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }
       rating: route.rating,
       tags: oldTags.join(','),
     },
-    parentEntityId: String(route.blockFk),
+    parentEntityId: route.blockFk,
     parentEntityType: 'block',
     regionFk: route.regionFk,
     userFk: user.id,
@@ -379,10 +379,10 @@ export const deleteRoute = authedCommand(
     }
 
     await insertActivity(db, {
-      entityId: String(route.id),
+      entityId: route.id,
       entityType: 'route',
       oldValue: route.name,
-      parentEntityId: String(route.blockFk),
+      parentEntityId: route.blockFk,
       parentEntityType: 'block',
       regionFk: route.regionFk,
       type: 'deleted',
@@ -475,7 +475,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
       )
     }
 
-    await deleteActivity(db, { entityId: String(snapshot.routeId), entityType: 'route', type: 'deleted' })
+    await deleteActivity(db, { columnName: null, entityId: snapshot.routeId, entityType: 'route', type: 'deleted' })
 
     return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
   }
@@ -487,7 +487,7 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
   }
 
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
-  await deleteActivity(db, { entityId: String(route.id), entityType: 'route', type: 'deleted' })
+  await deleteActivity(db, { columnName: null, entityId: route.id, entityType: 'route', type: 'deleted' })
 
   return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
 })

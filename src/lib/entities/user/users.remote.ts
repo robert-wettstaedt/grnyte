@@ -1,4 +1,3 @@
-import type { InsertActivity } from '$lib/db/schema'
 import { regionMembers, users, userSettings } from '$lib/db/schema'
 import { formError, usernameSchema } from '$lib/forms/schemas'
 import { locales } from '$lib/paraglide/runtime'
@@ -6,7 +5,7 @@ import { authedCommand, authedForm } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import z from 'zod'
-import { insertActivity } from '../activity/activity.server'
+import { insertActivity, type ActivityInput } from '../activity/activity.server'
 
 /**
  * Rename the signed-in user. RLS scopes the write to their own row (`auth.uid() = auth_user_fk`),
@@ -51,15 +50,15 @@ export const updateUsername = authedForm(
     await db.update(users).set({ username }).where(eq(users.id, user.id))
 
     // One activity per region the user belongs to: a rename is only news to the people who see
-    // that name in their lists, and the feed is region-scoped. `insertActivity` debounces on the
-    // whole row until it has been notified, so repeating the same rename replaces the pending
-    // entry rather than adding a second one.
+    // that name in their lists, and the feed is region-scoped. `insertActivity` collapses on the
+    // whole row until it has been notified, so renaming back to a name used before replaces that
+    // earlier entry rather than adding a second one.
     await insertActivity(
       db,
       regionFks.map(
-        (regionFk): InsertActivity => ({
+        (regionFk): ActivityInput => ({
           columnName: 'username',
-          entityId: String(user.id),
+          entityId: user.id,
           entityType: 'user',
           newValue: username,
           oldValue: user.username,

@@ -1,9 +1,10 @@
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import type { User, UserListItem, UserSettings } from './dto'
+import type { User, UserListItem, UserRef, UserSettings } from './dto'
 
 export type CurrentUserRow = QueryRow<typeof queries.currentUser>
 export type UserListRow = QueryRow<typeof queries.listUsers>
+export type UserRefRow = QueryRow<typeof queries.usersByIds>
 type UserSettingsRow = CurrentUserRow['userSettings']
 
 export function toUser(row: CurrentUserRow): User {
@@ -20,6 +21,10 @@ export function toUserListItem(row: UserListRow): UserListItem {
     regionFks: (row.regionMemberships ?? []).map((membership) => membership.regionFk),
     username: row.username,
   }
+}
+
+export function toUserRef(row: UserRefRow): UserRef {
+  return { id: row.id, username: row.username }
 }
 
 export function toUserSettings(row: UserSettingsRow): undefined | UserSettings {

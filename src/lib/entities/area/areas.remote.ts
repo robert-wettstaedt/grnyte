@@ -69,9 +69,9 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
   }
 
   await insertActivity(db, {
-    entityId: String(createdArea.id),
+    entityId: createdArea.id,
     entityType: 'area',
-    parentEntityId: createdArea.parentFk == null ? null : String(createdArea.parentFk),
+    parentEntityId: createdArea.parentFk,
     parentEntityType: 'area',
     regionFk: createdArea.regionFk,
     type: 'created',
@@ -103,11 +103,11 @@ export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, 
 
   await createUpdateActivity({
     db,
-    entityId: String(area.id),
+    entityId: area.id,
     entityType: 'area',
     newEntity: { description: value.description, name: value.name },
     oldEntity: { description: area.description, name: area.name },
-    parentEntityId: String(area.parentFk),
+    parentEntityId: area.parentFk,
     parentEntityType: 'area',
     regionFk: area.regionFk,
     userFk: user.id,
@@ -218,9 +218,9 @@ export const deleteArea = authedCommand(
       subArea == null && block == null && file == null ? await hardDeleteArea(db, area) : await softDeleteArea(db, area)
 
     await insertActivity(db, {
-      entityId: String(area.id),
+      entityId: area.id,
       entityType: 'area',
-      parentEntityId: area.parentFk == null ? null : String(area.parentFk),
+      parentEntityId: area.parentFk,
       parentEntityType: 'area',
       regionFk: area.regionFk,
       type: 'deleted',
@@ -320,7 +320,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     const created = await hardRestoreArea(db, snapshot, user.id)
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
-    await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
+    await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
 
     return {
       data: { areaId: created.id },
@@ -337,7 +337,7 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
   await softRestoreArea(db, snapshot)
 
   if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
-  await deleteActivity(db, { entityId: String(snapshot.areaId), entityType: 'area', type: 'deleted' })
+  await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
 
   return {
     data: { areaId: snapshot.areaId },
@@ -377,9 +377,9 @@ export const addParking = authedForm(
 
     await insertActivity(db, {
       columnName: 'parking location',
-      entityId: String(area.id),
+      entityId: area.id,
       entityType: 'area',
-      parentEntityId: String(area.parentFk),
+      parentEntityId: area.parentFk,
       parentEntityType: 'area',
       regionFk: area.regionFk,
       type: 'updated',
@@ -433,9 +433,9 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
   if (area != null) {
     await insertActivity(db, {
       columnName: 'parking location',
-      entityId: String(area.id),
+      entityId: area.id,
       entityType: 'area',
-      parentEntityId: String(area.parentFk),
+      parentEntityId: area.parentFk,
       parentEntityType: 'area',
       regionFk: area.regionFk,
       type: 'deleted',
@@ -469,7 +469,7 @@ export const restoreParking = authedCommand(
 
     await deleteActivity(db, {
       columnName: 'parking location',
-      entityId: String(areaId),
+      entityId: areaId,
       entityType: 'area',
       type: 'deleted',
     })
