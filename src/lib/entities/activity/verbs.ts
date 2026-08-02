@@ -138,7 +138,11 @@ export const ACTIVITY_VERBS = [
   { entityType: 'area', key: 'activity_areaDeleted', tombstone: 'oldValue', type: 'deleted' },
 
   {
-     entityType: 'block', key: 'activity_blockCreated', tombstone: 'newValue', type: 'created' },
+    entityType: 'block',
+    key: 'activity_blockCreated',
+    tombstone: 'newValue',
+    type: 'created',
+  },
   {
     columnName: 'location',
     entityType: 'block',

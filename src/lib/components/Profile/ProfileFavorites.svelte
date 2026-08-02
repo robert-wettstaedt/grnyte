@@ -50,11 +50,7 @@
     }
   }
   const removeAllFavorites = async (): Promise<void> => {
-    await Promise.all(
-      favorites.data.map((f) =>
-        toggleFavorite({ entityId: f.entityId, entityType: f.entityType }),
-      ),
-    )
+    await Promise.all(favorites.data.map((f) => toggleFavorite({ entityId: f.entityId, entityType: f.entityType })))
   }
 
   const FAV_LIMIT = 6

@@ -21,20 +21,34 @@ const SOMEBODY_ELSE = 8
  */
 describe('canDeleteArea', () => {
   it('lets a region DELETE holder remove anyone’s area', () => {
-    expect(canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_DELETE)], ME, { createdBy: SOMEBODY_ELSE, regionFk: 1 })).toBe(true)
+    expect(
+      canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_DELETE)], ME, {
+        createdBy: SOMEBODY_ELSE,
+        regionFk: 1,
+      }),
+    ).toBe(true)
   })
 
   it('lets an editor remove an area they created', () => {
-    expect(canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)], ME, { createdBy: ME, regionFk: 1 })).toBe(true)
+    expect(
+      canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)], ME, { createdBy: ME, regionFk: 1 }),
+    ).toBe(true)
   })
 
   it('does not let an editor remove an area somebody else created', () => {
-    expect(canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)], ME, { createdBy: SOMEBODY_ELSE, regionFk: 1 })).toBe(false)
+    expect(
+      canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)], ME, {
+        createdBy: SOMEBODY_ELSE,
+        regionFk: 1,
+      }),
+    ).toBe(false)
   })
 
   it('does not carry the own-created grant across regions', () => {
     // Editor of region 1 created this area, but it lives in region 2 where they have no edit.
-    expect(canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)], ME, { createdBy: ME, regionFk: 2 })).toBe(false)
+    expect(
+      canDeleteArea([region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT)], ME, { createdBy: ME, regionFk: 2 }),
+    ).toBe(false)
   })
 
   it('refuses a plain reader even of their own area', () => {

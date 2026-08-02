@@ -91,12 +91,24 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
   })
 
   it('allows an EDIT member attaching to a non-ascent entity', async () => {
-    const region = await resolveAttachRegion(db, users.stranger.userId, [membership(regionId, 'region.edit')], 'area', areaId)
+    const region = await resolveAttachRegion(
+      db,
+      users.stranger.userId,
+      [membership(regionId, 'region.edit')],
+      'area',
+      areaId,
+    )
     expect(region).toBe(regionId)
   })
 
   it('lets the ascent owner attach to their own ascent, without needing EDIT', async () => {
-    const region = await resolveAttachRegion(db, users.owner.userId, [membership(regionId, 'region.read')], 'ascent', ascentId)
+    const region = await resolveAttachRegion(
+      db,
+      users.owner.userId,
+      [membership(regionId, 'region.read')],
+      'ascent',
+      ascentId,
+    )
     expect(region).toBe(regionId)
   })
 

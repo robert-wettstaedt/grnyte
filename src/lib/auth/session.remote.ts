@@ -9,10 +9,7 @@ import { z } from 'zod'
  * arrives in a form body, and an unchecked one turns this into an open redirect. See
  * {@link isSameOriginPath} for why that check is not a `startsWith`.
  */
-const returnPath = z
-  .string()
-  .refine(isSameOriginPath, 'must be a same-origin path')
-  .default(resolve('/(landing)/auth'))
+const returnPath = z.string().refine(isSameOriginPath, 'must be a same-origin path').default(resolve('/(landing)/auth'))
 
 /**
  * Sign out and land on `redirectTo`.

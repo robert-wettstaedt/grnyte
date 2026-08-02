@@ -23,7 +23,12 @@ type Db = PostgresJsDatabase<typeof schema>
  * than the files UPDATE RLS for ascent media (publishing an ascent file exposes the whole ascent, so
  * a maintainer must not flip someone else's public). 404/403 via `error`.
  */
-export async function requireEditableFile(db: Db, userRegions: UserRegion[], userId: number | undefined, fileId: string) {
+export async function requireEditableFile(
+  db: Db,
+  userRegions: UserRegion[],
+  userId: number | undefined,
+  fileId: string,
+) {
   const file = await db.query.files.findFirst({
     where: eq(files.id, fileId),
     with: { ascent: { columns: { createdBy: true } } },
