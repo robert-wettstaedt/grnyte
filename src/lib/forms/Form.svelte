@@ -168,7 +168,7 @@
           aria-label={submitLabel}
         >
           {#if form.pending > 0}
-            <LoadingIndicator />
+            <LoadingIndicator class="items-center justify-center" />
           {:else}
             <Icon name="check" size={18} />
           {/if}

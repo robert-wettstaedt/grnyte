@@ -5,6 +5,7 @@
   import { fade } from 'svelte/transition'
 
   let {
+    class: className = '',
     empty,
     error,
     forceState,
@@ -12,6 +13,12 @@
     ready,
     resource,
   }: {
+    /**
+     * Extra classes for the ready wrapper. `min-h-full` only chains height while the parent
+     * has a definite one, so a QueryState nested inside another one needs `flex-1` here to
+     * keep filling. Without it a full-height child (the map picker) collapses to nothing.
+     */
+    class?: string
     /** Rendered when the result is `ready` but empty (`[]` or `undefined`). */
     empty?: Snippet
     error?: Snippet
@@ -60,7 +67,7 @@
   <!-- Fade the loaded content in as it replaces the skeleton. `in` only (no `out`): an out
        transition would keep the leaving skeleton in flow and jump the layout. The wrapper is
        `min-h-full flex-col` so full-height pages (sticky footers) still chain their height. -->
-  <div class="flex min-h-full flex-col" in:fade={{ duration: 150 }}>
+  <div class="flex min-h-full flex-col {className}" in:fade={{ duration: 150 }}>
     {@render ready(resource.data as NonNullable<TOut>)}
   </div>
 {/if}

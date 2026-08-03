@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths'
 import { areas, areaTypeEnum, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
 import { coordinate, formError, stringToInt } from '$lib/forms/schemas'
+import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -383,6 +384,7 @@ export const addParking = authedForm(
       columnName: 'parking location',
       entityId: area.id,
       entityType: 'area',
+      newValue: stringifyCoords({ lat, long }),
       parentEntityId: area.parentFk,
       parentEntityType: 'area',
       regionFk: area.regionFk,
@@ -439,6 +441,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
       columnName: 'parking location',
       entityId: area.id,
       entityType: 'area',
+      oldValue: stringifyCoords(parking),
       parentEntityId: area.parentFk,
       parentEntityType: 'area',
       regionFk: area.regionFk,

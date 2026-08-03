@@ -221,8 +221,8 @@
       "declarations": ["input actor", "input name", "input person"],
       "selectors": ["person"],
       "match": {
-        "person=self": "You set the location of {name}",
-        "person=*": "{actor} set the location of {name}"
+        "person=self": "You updated the location of {name}",
+        "person=*": "{actor} updated the location of {name}"
       }
     }
   ],
@@ -247,7 +247,11 @@
     }
   ],
   "activity_changeFileRemoved": "Photo removed",
+  "activity_changeLocationApproximate": "Approximate",
+  "activity_changeLocationConfirmed": "Approximate pin confirmed",
+  "activity_changeLocationMoved": "Moved {distance}",
   "activity_changeLocationRemoved": "Location removed",
+  "activity_changeLocationSet": "Pin added",
   "activity_changeLocationUpdated": "Location updated",
   "activity_changeTagAdded": "Added {tag}",
   "activity_changeTagRemoved": "Removed {tag}",
@@ -1071,6 +1075,7 @@
   "map_locationUnavailable": "Your location is unavailable. Check that location services are switched on, then try again.",
   "map_markers": "Markers",
   "map_showMyLocation": "Show my location",
+  "map_thumbnailLabel": "Map of the location",
   "map_toggleLayers": "Toggle layers",
   "map_zoomIn": "Zoom in",
   "map_zoomOut": "Zoom out",

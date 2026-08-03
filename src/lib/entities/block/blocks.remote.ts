@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, topos, type Block } from '$lib/db/schema'
 import { formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
+import { stringifyCoords } from '$lib/map/coords'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
@@ -130,7 +131,12 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
   // Sync the optional location: move the existing pin, attach a new one, or remove it.
   let geolocationFk = block.geolocationFk
   if (value.lat != null && value.long != null) {
-    if (geolocationFk == null) {
+    const existing =
+      geolocationFk == null
+        ? null
+        : await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+
+    if (existing == null) {
       const [geolocation] = await db
         .insert(geolocations)
         .values({
@@ -146,20 +152,29 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
       await db
         .update(geolocations)
         .set({ estimated: value.estimated, lat: value.lat, long: value.long })
-        .where(eq(geolocations.id, geolocationFk))
+        .where(eq(geolocations.id, existing.id))
     }
 
-    await insertActivity(db, {
-      columnName: 'location',
+    // The form resubmits the current pin on every save, so a name-only edit arrives here with
+    // unchanged coordinates. `createUpdateActivity` compares before it writes, so that is a
+    // no-op rather than a lie in the feed, and a burst of nudges collapses into one row that
+    // keeps the original `oldValue`.
+    await createUpdateActivity({
+      db,
       entityId: block.id,
       entityType: 'block',
+      newEntity: { location: stringifyCoords({ lat: value.lat, long: value.long }, value.estimated) },
+      oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
       parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
-      type: 'updated',
       userFk: user.id,
     })
   } else if (geolocationFk != null) {
+    // Read the pin before dropping it: `oldValue` is the only place the feed can learn where
+    // the block used to be, since the row it points at is about to be gone.
+    const removed = await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+
     // Removed: break the block→geo link first so the row can be deleted.
     await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
     await db.delete(geolocations).where(eq(geolocations.id, geolocationFk))
@@ -169,6 +184,7 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
       columnName: 'location',
       entityId: block.id,
       entityType: 'block',
+      oldValue: removed == null ? null : stringifyCoords(removed, removed.estimated),
       parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
@@ -207,27 +223,32 @@ export const setBlockLocation = authedCommand(
       'Block not found',
     )
 
-    if (block.geolocationFk == null) {
+    const existing =
+      block.geolocationFk == null
+        ? null
+        : await db.query.geolocations.findFirst({ where: eq(geolocations.id, block.geolocationFk) })
+
+    if (existing == null) {
       const [geolocation] = await db
         .insert(geolocations)
         .values({ blockFk: block.id, lat: value.lat, long: value.long, regionFk: block.regionFk })
         .returning()
       await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
     } else {
-      await db
-        .update(geolocations)
-        .set({ lat: value.lat, long: value.long })
-        .where(eq(geolocations.id, block.geolocationFk))
+      await db.update(geolocations).set({ lat: value.lat, long: value.long }).where(eq(geolocations.id, existing.id))
     }
 
-    await insertActivity(db, {
-      columnName: 'location',
+    // The pin dragged on the map keeps whatever `estimated` flag it had: this move confirms
+    // nothing, it only relocates. Clearing the flag is the edit form's job.
+    await createUpdateActivity({
+      db,
       entityId: block.id,
       entityType: 'block',
+      newEntity: { location: stringifyCoords(value, existing?.estimated) },
+      oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
       parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,
-      type: 'updated',
       userFk: user.id,
     })
 
@@ -265,10 +286,12 @@ export const estimateBlockLocationFromPhoto = authedCommand(
       .returning()
     await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
 
+    // Always the first pin (the guard above returns when the block has one), so no old value.
     await insertActivity(db, {
       columnName: 'location',
       entityId: block.id,
       entityType: 'block',
+      newValue: stringifyCoords(value, true),
       parentEntityId: block.areaFk,
       parentEntityType: 'area',
       regionFk: block.regionFk,

@@ -221,8 +221,8 @@
       "declarations": ["input actor", "input name", "input person"],
       "selectors": ["person"],
       "match": {
-        "person=self": "Du hast den Standort von {name} gesetzt",
-        "person=*": "{actor} hat den Standort von {name} gesetzt"
+        "person=self": "Du hast den Standort von {name} aktualisiert",
+        "person=*": "{actor} hat den Standort von {name} aktualisiert"
       }
     }
   ],
@@ -247,7 +247,11 @@
     }
   ],
   "activity_changeFileRemoved": "Foto entfernt",
+  "activity_changeLocationApproximate": "Ungefähr",
+  "activity_changeLocationConfirmed": "Ungefährer Pin bestätigt",
+  "activity_changeLocationMoved": "Um {distance} verschoben",
   "activity_changeLocationRemoved": "Standort entfernt",
+  "activity_changeLocationSet": "Pin gesetzt",
   "activity_changeLocationUpdated": "Standort aktualisiert",
   "activity_changeTagAdded": "{tag} hinzugefügt",
   "activity_changeTagRemoved": "{tag} entfernt",
@@ -1071,6 +1075,7 @@
   "map_locationUnavailable": "Dein Standort ist nicht verfügbar. Prüfe, ob die Standortdienste aktiviert sind, und versuche es erneut.",
   "map_markers": "Markierungen",
   "map_showMyLocation": "Meinen Standort anzeigen",
+  "map_thumbnailLabel": "Karte des Standorts",
   "map_toggleLayers": "Ebenen umschalten",
   "map_zoomIn": "Vergrößern",
   "map_zoomOut": "Verkleinern",

@@ -12,6 +12,9 @@
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { resolveMessage } from '$lib/i18n/message'
+  import { parseCoords, type StoredCoords } from '$lib/map/coords'
+  import { formatDistance } from '$lib/map/map'
+  import StaticMap, { type StaticMapPoint } from '$lib/map/StaticMap.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
 
@@ -34,6 +37,35 @@
   const grade = (value: string | undefined) => {
     const gradeFk = value == null || value.length === 0 ? undefined : Number(value)
     return Number.isFinite(gradeFk) ? gradeFk : undefined
+  }
+
+  /** Whether the pin actually moved. It can stay put and still be a change: confirming an
+   *  estimated pin rewrites the flag alone, and "Moved 0 m" would be a silly way to say so. */
+  const relocated = (from: null | StoredCoords, to: null | StoredCoords) =>
+    from != null && to != null && (from.lat !== to.lat || from.long !== to.long)
+
+  /** What the pins on the thumbnail are: where it was, where it is, or where it used to be. */
+  const locationPoints = (from: null | StoredCoords, to: null | StoredCoords): StaticMapPoint[] => [
+    ...(from == null ? [] : [{ ...from, variant: to == null ? ('gone' as const) : ('from' as const) }]),
+    ...(to == null ? [] : [{ ...to, variant: 'pin' as const }]),
+  ]
+
+  /** The line under the map, and the whole row for the rows that stored no coordinates. */
+  const locationCaption = (renderer: string, from: null | StoredCoords, to: null | StoredCoords) => {
+    if (renderer === 'locationRemoved') {
+      return m.activity_changeLocationRemoved()
+    }
+    // A location row written before the writers stored coordinates. Still true, just as vague
+    // as it always was.
+    if (to == null) {
+      return m.activity_changeLocationUpdated()
+    }
+    if (from == null) {
+      return m.activity_changeLocationSet()
+    }
+    return relocated(from, to)
+      ? m.activity_changeLocationMoved({ distance: formatDistance(from, to) })
+      : m.activity_changeLocationConfirmed()
   }
 </script>
 
@@ -96,12 +128,29 @@
         <p class="text-surface-950-50 whitespace-pre-wrap">{activity.newValue || m.activity_valueNotSet()}</p>
       </div>
     </details>
-  {:else if renderer === 'location'}
-    <!-- ponytail: the writers store no coordinates (see the plan's gap 2), so this can
-         only say that it moved. Upgrade = put the pair in oldValue/newValue, then a map thumb. -->
-    <span class="text-surface-600-400 text-xs">{m.activity_changeLocationUpdated()}</span>
-  {:else if renderer === 'locationRemoved'}
-    <span class="text-surface-600-400 text-xs">{m.activity_changeLocationRemoved()}</span>
+  {:else if renderer === 'location' || renderer === 'locationRemoved'}
+    {@const from = parseCoords(activity.oldValue)}
+    {@const to = parseCoords(activity.newValue)}
+    {@const points = locationPoints(from, to)}
+    <!-- ponytail: the thumbnail is a fixed 200px, so a very narrow card crops its right edge.
+         Upgrade = measure the container and pass the width in. -->
+    <div class="flex min-w-0 flex-col gap-1.5">
+      {#if points.length > 0}
+        <StaticMap height={120} {points} width={200} />
+      {/if}
+
+      <span class="flex flex-wrap items-center gap-1.5">
+        <span class="text-surface-600-400 text-xs">{locationCaption(renderer, from, to)}</span>
+        <!-- A pin that stays approximate says so. One that stops being approximate does not
+             need a second line: the caption already reads "confirmed", or the ring on the
+             thumbnail simply went solid. -->
+        {#if to?.estimated}
+          <span class="bg-surface-200-800 text-surface-950-50 rounded-lg px-2 py-0.5 text-xs">
+            {m.activity_changeLocationApproximate()}
+          </span>
+        {/if}
+      </span>
+    </div>
   {:else if renderer === 'topo'}
     <span class="text-surface-600-400 text-xs">{m.activity_changeTopoUpdated()}</span>
   {:else if renderer === 'file'}

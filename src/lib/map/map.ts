@@ -41,15 +41,20 @@ export const haversineMetres = (a: Coords, b: Coords): number => {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-/** Display value + Intl unit, switching to the smaller unit (metres/feet) up close. */
+/** Display value + Intl unit, switching to the smaller unit (metres/feet) up close.
+ *
+ *  Rounded to the nearest 10 at approach distances, where the extra digit is noise, but to
+ *  the metre below 100: the activity feed reports how far a pin moved, and a 4 m nudge
+ *  rounded to the nearest 10 reads as "0 m". */
 export const pickDistanceUnit = (metres: number, imperial: boolean): { unit: string; value: number } => {
   if (imperial) {
+    const feet = metres / 0.3048
     return metres < 1609.344
-      ? { unit: 'foot', value: Math.round(metres / 0.3048 / 10) * 10 }
+      ? { unit: 'foot', value: feet < 300 ? Math.round(feet) : Math.round(feet / 10) * 10 }
       : { unit: 'mile', value: metres / 1609.344 }
   }
   return metres < 1000
-    ? { unit: 'meter', value: Math.round(metres / 10) * 10 }
+    ? { unit: 'meter', value: metres < 100 ? Math.round(metres) : Math.round(metres / 10) * 10 }
     : { unit: 'kilometer', value: metres / 1000 }
 }
 

@@ -46,7 +46,9 @@
 
 <QueryState resource={block}>
   {#snippet ready(detail)}
-    <QueryState resource={area}>
+    <!-- flex-1: nested inside the block QueryState, whose wrapper has no definite height for
+         this one's `min-h-full` to resolve against. Without it the map picker collapses. -->
+    <QueryState resource={area} class="flex-1">
       {#snippet ready(crag)}
         {#if canEditBlock(global.userRegions, detail)}
           <BlockForm
