@@ -44,6 +44,7 @@
     climberName: "The bold {climber}. Only the messages about somebody else's ascent have that slot.",
     createdAt: 'The relative clock, top right. The view carries the timestamp, the component formats it.',
     entityName: "The bold {name} in the headline. A grouped card borrows its shared parent's name.",
+    entityUnnamed: 'Swaps that bold slot for the "<no name>" placeholder once no name is coming.',
     files: 'The scrollable thumbnail strip under the header.',
     headline: 'The message key the sentence renders from, plus its person/owner params.',
     id: 'The {#each} key in the feed, so a card keeps its expand state. Never rendered.',

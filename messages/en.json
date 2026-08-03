@@ -323,6 +323,16 @@
       }
     }
   ],
+  "activity_groupRemovals": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted entries",
+        "person=*": "{actor} deleted entries"
+      }
+    }
+  ],
   "activity_groupSession": [
     {
       "declarations": ["input actor", "input person"],
@@ -493,6 +503,16 @@
       "match": {
         "countPlural=one": "{count} person",
         "countPlural=other": "{count} people"
+      }
+    }
+  ],
+  "activity_summaryRemovals": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} deletion",
+        "countPlural=other": "{count} deletions"
       }
     }
   ],
@@ -787,7 +807,9 @@
   "common_adjust": "Adjust",
   "common_any": "Any",
   "common_apply": "Apply",
+  "common_area": "Area",
   "common_areas": "Areas",
+  "common_ascent": "Ascent",
   "common_back": "Back",
   "common_block": "Block",
   "common_blocks": "Blocks",
@@ -806,6 +828,8 @@
   "common_more": "More",
   "common_next": "Next",
   "common_ok": "OK",
+  "common_person": "Person",
+  "common_photo": "Photo",
   "common_playVideo": "Play video",
   "common_recommended": "Recommended",
   "common_remove": "Remove",

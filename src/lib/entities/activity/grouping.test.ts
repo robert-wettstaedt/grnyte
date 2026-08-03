@@ -70,6 +70,21 @@ describe('groupActivities', () => {
     expect(groups[1].activities.map((a) => a.entityId)).toEqual(['4'])
   })
 
+  it('keeps whole entity deletions out of the burst they would read as edits in', () => {
+    const noon = day(1, 12)
+    const groups = groupActivities([
+      activity({ createdAt: noon, entityId: '1', type: 'deleted', ...underBlock }),
+      activity({ createdAt: noon - MINUTE, entityId: '2', type: 'deleted', ...underBlock }),
+      activity({ createdAt: noon - 2 * MINUTE, entityId: '1', ...underBlock }),
+      // A column scoped delete really is an edit: the entity is still there, its photo is not.
+      activity({ columnName: 'file', createdAt: noon - 3 * MINUTE, entityId: '2', type: 'deleted', ...underBlock }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['removal', 'burst'])
+    expect(groups[0].activities.map((a) => a.entityId)).toEqual(['1', '2'])
+    expect(groups[1].activities.map((a) => a.entityId)).toEqual(['1', '2'])
+  })
+
   it('groups anyone s edits to the same non crag entity by entity', () => {
     const groups = groupActivities([
       activity({ columnName: 'role', createdAt: day(1, 12), entityId: '5', entityType: 'user', userFk: 1 }),

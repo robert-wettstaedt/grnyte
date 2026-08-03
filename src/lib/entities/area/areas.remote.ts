@@ -71,6 +71,8 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
   await insertActivity(db, {
     entityId: createdArea.id,
     entityType: 'area',
+    // The name the feed falls back to once the area itself is gone (`tombstone` in `verbs.ts`).
+    newValue: createdArea.name,
     parentEntityId: createdArea.parentFk,
     parentEntityType: 'area',
     regionFk: createdArea.regionFk,
@@ -220,6 +222,8 @@ export const deleteArea = authedCommand(
     await insertActivity(db, {
       entityId: area.id,
       entityType: 'area',
+      // The only name the feed will ever have for it: the row is about to be unreachable.
+      oldValue: area.name,
       parentEntityId: area.parentFk,
       parentEntityType: 'area',
       regionFk: area.regionFk,

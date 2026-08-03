@@ -45,6 +45,13 @@ export interface ActivityCardView {
   createdAt: number
   /** The entity the headline names, which a group borrows from its shared parent. */
   entityName: string | undefined
+  /**
+   * Whether {@link entityName} is missing for good rather than still syncing: everything it
+   * could come from has answered, and none of it held a name. Without this the headline
+   * pulses as a skeleton forever for an entity that was deleted without its name ever being
+   * stored, or one that was added without a name at all.
+   */
+  entityUnnamed: boolean
   files: MediaFile[]
   headline: ActivityHeadline
   /** `{#each}` key. Carried through from the group so a card keeps its expand state. */
@@ -95,16 +102,25 @@ export function activityCard(
 
   // The place a burst happened in, when its rows agree on one. Its own row is not rendered
   // (the edits below it are), only its name, in the headline and the session summary.
-  const placeName = entityOf(parentRef(group.activities))?.name
+  const place = parentRef(group.activities)
+  const placeName = named(entityOf(place)?.name)
+  const firstName = named(entityOf(refs[0])?.name)
 
   const entityName =
     // An upload names what it was attached to, never the file: a file's own name is a cuid.
     // This holds for a lone photo as much as for five, so it is decided before `single`.
     activityEntry(newest)?.names === 'parent'
-      ? (placeName ?? entityOf(refs[0])?.name)
+      ? (placeName ?? firstName)
       : group.kind === 'single'
         ? headlineEntityName(newest, entityOf(refs[0]))
-        : (placeName ?? entityOf(refs[0])?.name ?? headlineEntityName(newest, undefined))
+        : (placeName ?? firstName ?? headlineEntityName(newest, undefined))
+
+  // A missing name is only worth waiting for while something might still answer. Once every
+  // ref it could come from has answered (with a row that has no name, or with nothing at
+  // all), no name is coming and the slot has to say so rather than pulse.
+  const nameRefs = [place, refs[0]].filter((ref): ref is ActivityEntityRef => ref != null)
+  const entityUnnamed =
+    entityName == null && nameRefs.length > 0 && nameRefs.every((ref) => entityOf(ref) !== undefined)
 
   // Whose ascent the card is about. A region maintainer may edit anyone's, so "an ascent"
   // would leave the reader guessing. Unknown counts as somebody else's: claiming it was
@@ -123,6 +139,7 @@ export function activityCard(
     climberName: climber?.climberName,
     createdAt: group.createdAt,
     entityName,
+    entityUnnamed,
     files: refs.flatMap((ref) => entityOf(ref)?.files ?? []),
     headline: {
       key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group),
@@ -171,6 +188,12 @@ function groupVerbKey(group: ActivityGroup): MessageKey {
     return 'activity_groupUploads'
   }
 
+  // No `{name}`: what a removal card would name is exactly what it just deleted, so the slot
+  // would be the "<no name>" placeholder on every card that did not stash a name.
+  if (group.kind === 'removal') {
+    return 'activity_groupRemovals'
+  }
+
   // Only `entity` groups can mix actors, and then no single person "edited" it.
   const actors = new Set(group.activities.map((activity) => activity.userFk))
   return actors.size > 1 ? 'activity_groupEditsMultiple' : 'activity_groupEdits'
@@ -188,17 +211,26 @@ function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity |
   // has no account for, and points `entityId` at the inviter, so hydrating it would render
   // "Jonas invited Jonas".
   if (entry?.names === 'stored') {
-    return activity.newValue ?? activity.oldValue
+    return named(activity.newValue ?? activity.oldValue)
   }
 
   if (entity != null) {
-    return entity.name
+    return named(entity.name)
   }
 
   // Nothing hydrated, so fall back to the value column the entry says carries the name. An
   // entry with no `tombstone` has none: every other column stores its own value (a grade id,
   // a rating, an ascent type), which would read as a nonsense name.
-  return entry?.tombstone == null ? undefined : (activity[entry.tombstone] ?? undefined)
+  return entry?.tombstone == null ? undefined : named(activity[entry.tombstone])
+}
+
+/**
+ * A name that is actually one. A name column holds `''` as readily as `null` (a route added
+ * without a name stores an empty `newValue`), and an empty string reaches the screen as a
+ * blank slot rather than falling through to the next candidate or to a tombstone label.
+ */
+function named(value: null | string | undefined): string | undefined {
+  return value == null || value.length === 0 ? undefined : value
 }
 
 /**
@@ -227,16 +259,19 @@ function summaryParts(group: ActivityGroup, placeName: string | undefined): Acti
   }
 
   const count = group.activities.length
-  const parts: ActivityMessagePart[] = [
+  const countKey: MessageKey =
     group.kind === 'session'
-      ? { key: 'activity_summaryAscents', params: { count } }
+      ? 'activity_summaryAscents'
       : group.kind === 'upload'
-        ? { key: 'activity_summaryFiles', params: { count } }
-        : { key: 'activity_summaryEdits', params: { count } },
-  ]
+        ? 'activity_summaryFiles'
+        : group.kind === 'removal'
+          ? 'activity_summaryRemovals'
+          : 'activity_summaryEdits'
 
-  // The edits headline already names the place; a session's does not.
-  if (group.kind === 'session' && placeName != null) {
+  const parts: ActivityMessagePart[] = [{ key: countKey, params: { count } }]
+
+  // The edits headline already names the place; a session's and a removal's do not.
+  if ((group.kind === 'session' || group.kind === 'removal') && placeName != null) {
     parts.push({ text: placeName })
   }
 

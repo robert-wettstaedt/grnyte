@@ -17,10 +17,11 @@
   import MediaThumbnail from '$lib/components/Media/MediaThumbnail.svelte'
   import Message from '$lib/components/Message/Message.svelte'
   import type { ActivityCardRow, ActivityCardView } from '$lib/entities/activity/card'
+  import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { activityEntityKey } from '$lib/entities/activity/entity'
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
   import { gradeLabel } from '$lib/entities/grade/label'
-  import { resolveMessage } from '$lib/i18n/message'
+  import { resolveMessage, type MessageKey } from '$lib/i18n/message'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -35,6 +36,16 @@
   const { view }: Props = $props()
 
   const global = getGlobalState()
+
+  /** What a tombstone was, since the entity is no longer there to say so itself. */
+  const ENTITY_LABEL: Record<ActivityEntityType, MessageKey> = {
+    area: 'common_area',
+    ascent: 'common_ascent',
+    block: 'common_block',
+    file: 'common_photo',
+    route: 'common_route',
+    user: 'common_person',
+  }
 
   const summary = $derived(
     view.summary?.map((part) => (part.key == null ? part.text : resolveMessage(part.key, part.params))).join(' · '),
@@ -56,7 +67,15 @@
 
 {#snippet climberName()}{@render strong(view.climberName)}{/snippet}
 
-{#snippet entityName()}{@render strong(view.entityName)}{/snippet}
+<!-- Nothing is coming for this slot (see `entityUnnamed`), so it says so instead of pulsing.
+     Same placeholder the route rows use for a route saved without a name. -->
+{#snippet entityName()}
+  {#if view.entityUnnamed}
+    <span class="text-surface-600-400 italic">{m.common_unnamed()}</span>
+  {:else}
+    {@render strong(view.entityName)}
+  {/if}
+{/snippet}
 
 {#snippet skeletonRow()}
   <div class="flex items-center gap-2.5 px-1 py-2" aria-busy="true">
@@ -65,13 +84,18 @@
   </div>
 {/snippet}
 
+<!-- What it was is all that is left of it, so the row leads with that rather than hiding the
+     type in an `sr-only` span: without it a card of tombstones says nothing at all. -->
 {#snippet tombstoneRow(row: ActivityCardRow)}
-  <div class="text-surface-600-400 flex items-center gap-2.5 px-1 py-2 text-sm italic">
+  <div class="text-surface-600-400 flex items-center gap-2.5 px-1 py-2 text-sm">
     <span class="bg-surface-200-800/60 grid size-13 flex-none place-items-center rounded-xl">
       <Icon name="trash" size={20} />
     </span>
-    <span>{row.name ?? m.activity_entityDeleted()}</span>
-    <span class="sr-only">{row.ref.type}</span>
+
+    <span class="min-w-0">
+      <span class="text-surface-500 block text-[11px] font-semibold">{resolveMessage(ENTITY_LABEL[row.ref.type])}</span>
+      <span class="block truncate italic">{row.name ?? m.activity_entityDeleted()}</span>
+    </span>
   </div>
 {/snippet}
 
@@ -114,7 +138,9 @@
 {/snippet}
 
 <article class="bg-surface-100-900 border-surface-200-800 space-y-2.5 rounded-2xl border p-3">
-  <header class="flex items-start gap-2.5">
+  <!-- A summary makes the middle column as tall as the avatar; without one it is a single
+       line, which top-aligned would sit above the avatar's and the clock's centre. -->
+  <header class="flex gap-2.5 {summary ? 'items-start' : 'items-center'}">
     <!-- `solid` already means "a registered user rather than a typed-in name" (see Avatar) and
          every actor here is registered, so it cannot also mark your own row. Your rows say
          "Me" in place of the initials, the same way the first-ascensionist picker does. -->

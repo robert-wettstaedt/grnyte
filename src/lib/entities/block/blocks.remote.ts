@@ -92,6 +92,8 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
   await insertActivity(db, {
     entityId: block.id,
     entityType: 'block',
+    // The name the feed falls back to once the block itself is gone (`tombstone` in `verbs.ts`).
+    newValue: block.name,
     parentEntityId: value.areaId,
     parentEntityType: 'area',
     regionFk: block.regionFk,

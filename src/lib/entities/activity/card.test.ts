@@ -78,6 +78,12 @@ describe('headline keys', () => {
     expect(card(rows).headline.key).toBe('activity_groupEdits')
   })
 
+  it('says a group of deletions deleted rather than edited', () => {
+    const rows = burstRows(2, (index) => ({ entityId: String(index), type: 'deleted' as const }))
+    expect(card(rows).headline.key).toBe('activity_groupRemovals')
+    expect(card(rows).summary).toEqual([{ key: 'activity_summaryRemovals', params: { count: 2 } }])
+  })
+
   // The catalogue is type-checked against paraglide, so this is about the lookup rather than
   // the keys: a row the mutation layer writes must find its own entry, not degrade past it.
   it('resolves every activity the mutation layer writes to its catalogue entry', () => {
@@ -117,6 +123,18 @@ describe('headline name', () => {
       card([activity({ columnName: 'invitation', entityType: 'user', newValue: 'sofia@example.com', type: 'created' })])
         .entityName,
     ).toBe('sofia@example.com')
+  })
+
+  it('treats an empty name column as no name at all', () => {
+    // A route added without a name stores `''`, which reached the screen as a blank slot.
+    expect(card([activity({ newValue: '', type: 'created' })]).entityName).toBeUndefined()
+  })
+
+  it('waits for a name only while one might still arrive', () => {
+    const rows = [activity({ oldValue: '', type: 'deleted' })]
+    expect(card(rows).entityUnnamed).toBe(false)
+    expect(card(rows, entityMap([[{ id: '1', type: 'route' }, null]])).entityUnnamed).toBe(true)
+    expect(card(rows, entityMap([[{ id: '1', type: 'route' }, route('Rampe')]])).entityUnnamed).toBe(false)
   })
 
   it('names the place a burst agrees on', () => {

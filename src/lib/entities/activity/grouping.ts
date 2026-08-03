@@ -21,11 +21,12 @@ export interface ActivityGroup {
  * How a card presents its activities:
  * - `session` one climber's ascents logged in one sitting
  * - `burst`   one editor's crag edits around the same place, close in time
+ * - `removal` one editor's whole-entity deletions around the same place, close in time
  * - `upload`  one uploader's media landing on the same entity, close in time
  * - `entity`  anyone's edits to the same entity, close in time
  * - `single`  a group that ended up with one activity
  */
-export type ActivityGroupKind = 'burst' | 'entity' | 'session' | 'single' | 'upload'
+export type ActivityGroupKind = 'burst' | 'entity' | 'removal' | 'session' | 'single' | 'upload'
 
 /** How far apart two activities can be and still share a burst or entity card. */
 const BURST_MS = 30 * 60 * 1000
@@ -89,10 +90,11 @@ function groupKey(activity: ActivityListItem, kind: ActivityGroupKind): string {
     case 'session':
       return `session:${activity.userFk}`
 
-    // Both key on the actor plus the place. Kept apart so a submit of five photos does not
-    // land inside "made 12 edits in Nordblock", which is what the reader would then have to
-    // unpick to notice the photos at all.
+    // All three key on the actor plus the place, and are kept apart so neither a submit of
+    // five photos nor a deletion lands inside "made 12 edits in Nordblock": the reader would
+    // then have to unpick the card to notice either.
     case 'burst':
+    case 'removal':
     case 'upload':
       return `${kind}:${activity.userFk}:${localityKey(activity)}`
 
@@ -108,6 +110,14 @@ function joins(oldest: ActivityListItem, activity: ActivityListItem, kind: Activ
 }
 
 function kindOf(activity: ActivityListItem): ActivityGroupKind {
+  // A row with no column is about the entity itself, so a `deleted` one is the entity being
+  // gone. Folded in with the edits it renders as "edited", and a deletion is the one thing on
+  // a card nobody may have to infer from a tombstone row. A column-scoped delete (a photo, a
+  // parking pin) really is an edit and stays with them.
+  if (activity.type === 'deleted' && activity.columnName == null) {
+    return 'removal'
+  }
+
   // An upload row points at the FILE and names what it was attached to as its parent, so it
   // groups on that parent. Without this it would key on the file's own id, which is unique
   // per file, and a submit of five photos would render as five cards.
