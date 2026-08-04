@@ -10,6 +10,8 @@
     band: GradeBand | undefined
     bracket: string
     d: string
+    /** A line as it used to be, drawn dashed under the current one. */
+    ghost?: boolean
     number?: number
     starts: { x: number; y: number }[]
     top: undefined | { x: number; y: number }
@@ -29,7 +31,8 @@
   let { badgeAttrs, boxHeight, line, unit }: Props = $props()
 </script>
 
-<!-- A cased grade-coloured stroke (dark halo + colour), shared by line, bracket and end marker. -->
+<!-- A cased grade-coloured stroke (dark halo + colour), shared by line, bracket and end marker.
+     A ghost keeps the halo (it has to stay legible over pale rock) and dashes the colour. -->
 {#snippet stroke(d: string, band: GradeBand | undefined)}
   <path
     class="pointer-events-none"
@@ -38,6 +41,7 @@
     stroke-width="6"
     stroke-linecap="round"
     stroke-linejoin="round"
+    stroke-dasharray={line.ghost ? '9 7' : undefined}
     vector-effect="non-scaling-stroke"
   />
   <path
@@ -47,6 +51,7 @@
     stroke-width="3"
     stroke-linecap="round"
     stroke-linejoin="round"
+    stroke-dasharray={line.ghost ? '9 7' : undefined}
     vector-effect="non-scaling-stroke"
   />
 {/snippet}

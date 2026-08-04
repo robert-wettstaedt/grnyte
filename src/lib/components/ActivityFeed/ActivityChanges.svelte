@@ -5,12 +5,16 @@
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import type { ActivityChange } from '$lib/entities/activity/card'
-  import type { ActivityListItem } from '$lib/entities/activity/dto'
+  import Topo from '$lib/components/Topo/Topo.svelte'
+  import { storedMedia, type ActivityChange, type ActivityTopoChange } from '$lib/entities/activity/card'
+  import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
+  import type { TopoAction, TopoLineState } from '$lib/entities/topo/change'
+  import type { TopoView } from '$lib/entities/topo/dto'
+  import { convertPathToPoints } from '$lib/entities/topo/mapper'
   import { resolveMessage } from '$lib/i18n/message'
   import { parseCoords, type StoredCoords } from '$lib/map/coords'
   import { formatDistance } from '$lib/map/map'
@@ -67,6 +71,62 @@
       ? m.activity_changeLocationMoved({ distance: formatDistance(from, to) })
       : m.activity_changeLocationConfirmed()
   }
+
+  /** What the topo change was. The four photo actions each say their own thing; a redraw
+   *  lets the line chips below speak, and only says "Lines updated" when it has no chips
+   *  to show (a row from before the lines were stored, or one whose routes are gone). */
+  const topoCaption = (action: TopoAction, hasLines: boolean) => {
+    switch (action) {
+      case 'lines':
+        return hasLines ? undefined : m.activity_changeTopoLinesUpdated()
+      case 'photoAdded':
+        return m.activity_changeTopoPhotoAdded()
+      case 'photoRemoved':
+        // Same sentence a removed route photo gets: it is the same event to a reader. Always
+        // a photo here, since a topo is an image.
+        return m.activity_changeFileRemoved({ media: 'photo' })
+      case 'photoReplaced':
+        return m.activity_changeTopoPhotoReplaced()
+      case 'reordered':
+        return m.activity_changeTopoReordered()
+    }
+  }
+
+  /** A line's route, or the placeholder a route saved without a name renders as everywhere else. */
+  const lineName = (line: TopoLineState) => (line.name.length === 0 ? m.common_unnamed() : line.name)
+
+  /** The grade colour a line had. Off the photo as it stands today, which is the only place
+   *  a grade lives: an erased line falls back to the neutral band, and it is a ghost anyway. */
+  const lineBand = (topo: TopoView | undefined, routeFk: number) =>
+    getGradeBand(topo?.lines.find((line) => line.routeId === routeFk)?.gradeFk)
+
+  /**
+   * Both ends of a redraw on one photo: the lines the save left behind, and under them,
+   * dashed, the ones it moved or erased.
+   *
+   * Drawn from the row rather than from the photo's lines today, so a card keeps saying what
+   * that edit did however much the topo has moved on since. Ghost ids are negated to keep
+   * them apart from the live line for the same route, which sits right on top of them.
+   */
+  const topoLines = ({ lines, view }: ActivityTopoChange) => {
+    const draw = (states: TopoLineState[], ghost: boolean) =>
+      states.flatMap((line) => {
+        const points = convertPathToPoints(line.path)
+        return points.length === 0
+          ? []
+          : [
+              {
+                band: ghost ? undefined : lineBand(view, line.routeFk),
+                ghost,
+                id: ghost ? -line.routeFk : line.routeFk,
+                points,
+                topType: line.topType === 'topout' ? ('topout' as const) : ('top' as const),
+              },
+            ]
+      })
+
+    return [...draw(lines.previous, true), ...draw(lines.current, false)]
+  }
 </script>
 
 {#snippet chip(value: string | undefined)}
@@ -95,7 +155,8 @@
   {/if}
 {/snippet}
 
-{#snippet value(activity: ActivityListItem, renderer: string)}
+{#snippet value({ activity, field, topo }: ActivityChange)}
+  {@const renderer = field.renderer}
   {#if renderer === 'grade'}
     {@render gradeChip(activity.oldValue)}
     {@render arrow()}
@@ -152,9 +213,77 @@
       </span>
     </div>
   {:else if renderer === 'topo'}
-    <span class="text-surface-600-400 text-xs">{m.activity_changeTopoUpdated()}</span>
+    {#if topo == null}
+      <!-- A topo row from before the writers said which of the five topo edits they were.
+           Still true, just as vague as it always was. -->
+      <span class="text-surface-600-400 text-xs">{m.activity_changeTopoUpdated()}</span>
+    {:else}
+      {@const lines = topo.lines}
+      {@const view = topo.view}
+      {@const caption = topoCaption(
+        topo.change.action,
+        lines.added.length + lines.redrawn.length + lines.removed.length > 0,
+      )}
+      <div class="flex min-w-0 flex-col gap-1.5">
+        <!-- A redraw draws its own before and after; the photo actions have no pair to show,
+             so they draw the photo as it stands. A removed photo has no image left either
+             way, and a reorder is about the strip rather than any one photo in it. -->
+        {#if view != null}
+          <!-- `self-start`: the column stretches its children, which would hold the box at the
+               card's width while the photo contains itself inside it, in a frame of dark bars. -->
+          <Topo
+            alt={m.topo_alt()}
+            class="h-40 w-auto self-start"
+            height={view.imageHeight}
+            imagePath={view.imagePath}
+            lines={topo.change.action === 'lines'
+              ? topoLines(topo)
+              : view.lines.map((line) => ({
+                  band: getGradeBand(line.gradeFk),
+                  id: line.id,
+                  points: line.points,
+                  topType: line.topType,
+                }))}
+            width={view.imageWidth}
+          />
+        {/if}
+
+        <span class="flex flex-wrap items-center gap-1.5">
+          {#if caption != null}
+            <span class="text-surface-600-400 text-xs">{caption}</span>
+          {/if}
+
+          {#each lines.added as line (line.routeFk)}
+            <span class="preset-tonal-success rounded-lg px-2 py-0.5 text-xs">
+              {m.activity_changeTopoLineAdded({ route: lineName(line) })}
+            </span>
+          {/each}
+
+          {#each lines.redrawn as line (line.routeFk)}
+            <span class="bg-surface-200-800 text-surface-950-50 rounded-lg px-2 py-0.5 text-xs">
+              {m.activity_changeTopoLineRedrawn({ route: lineName(line) })}
+            </span>
+          {/each}
+
+          {#each lines.removed as line (line.routeFk)}
+            <span class="preset-tonal-error rounded-lg px-2 py-0.5 text-xs">
+              {m.activity_changeTopoLineRemoved({ route: lineName(line) })}
+            </span>
+          {/each}
+        </span>
+      </div>
+    {/if}
+  {:else if renderer === 'source'}
+    <!-- The host, not the URL: a reposted clip's credit is "youtube.com", and the full link
+         would be a line of query string in a chip. A legacy free-text source has no host to
+         reduce to, so it stands as it was stored. -->
+    {@render chip(sourceHost(activity.oldValue) ?? activity.oldValue)}
+    {@render arrow()}
+    {@render chip(sourceHost(activity.newValue) ?? activity.newValue)}
   {:else if renderer === 'file'}
-    <span class="text-surface-600-400 text-xs">{m.activity_changeFileRemoved()}</span>
+    <span class="text-surface-600-400 text-xs">
+      {m.activity_changeFileRemoved({ media: storedMedia(activity.oldValue) })}
+    </span>
   {:else}
     {@render chip(activity.oldValue)}
     {@render arrow()}
@@ -164,16 +293,18 @@
 
 {#if changes.length > 0}
   <ul class="border-surface-200-800 space-y-2 border-t pt-2.5">
-    {#each changes as { activity, field } (activity.id)}
+    {#each changes as change (change.activity.id)}
       <li class="flex items-start gap-2">
-        <span class="text-surface-600-400 mt-0.5 flex-none"><Icon name={field.icon} size={14} /></span>
+        <span class="text-surface-600-400 mt-0.5 flex-none"><Icon name={change.field.icon} size={14} /></span>
 
         <span class="text-surface-600-400 mt-0.5 w-24 flex-none text-xs font-semibold">
-          {resolveMessage(field.labelKey)}
+          <!-- Only the file label reads `media`; every other one ignores it, the way the
+               headline params already work. -->
+          {resolveMessage(change.field.labelKey, { media: storedMedia(change.activity.oldValue) })}
         </span>
 
         <span class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          {@render value(activity, field.renderer)}
+          {@render value(change)}
         </span>
       </li>
     {/each}

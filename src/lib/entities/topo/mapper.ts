@@ -7,55 +7,68 @@ import type { TopoLine, TopoPoint, TopoView } from './dto'
  * `Z` is a marker meaning "the last point is the top-out", not a real segment,
  * so it's dropped and that last point is tagged `top`. Coordinates are kept in
  * whatever space they were stored in (0–1 fractions or legacy pixels).
+ *
+ * A path it cannot read is no line rather than an exception: every caller already
+ * drops empty ones, and one of them is the feed, which parses paths decoded off an
+ * activity row. There a throw takes down the whole card, and the row is broadcast to
+ * everyone in the region rather than shown only on the block that owns it.
  */
 export const convertPathToPoints = (path: string): TopoPoint[] => {
   if (path.trim() === '') {
     return []
   }
 
-  return path
-    .toUpperCase()
-    .split(' ')
-    .flatMap((point, index, points) => {
-      const typeRaw = point[0]
-      if (typeRaw === 'Z') {
-        return []
-      }
-
-      const type = (() => {
-        const nextTypeRaw = points[index + 1]?.[0]
-        if (nextTypeRaw === 'Z') {
-          return 'top' as const
+  try {
+    return path
+      .toUpperCase()
+      .split(' ')
+      .flatMap((point, index, points) => {
+        const typeRaw = point[0]
+        if (typeRaw === 'Z') {
+          return []
         }
 
-        switch (typeRaw) {
-          case 'M':
-            return 'start' as const
-          case 'L':
-            return 'middle' as const
-          default:
-            throw new Error(`Unsupported point type: ${point}`)
+        const type = (() => {
+          const nextTypeRaw = points[index + 1]?.[0]
+          if (nextTypeRaw === 'Z') {
+            return 'top' as const
+          }
+
+          switch (typeRaw) {
+            case 'M':
+              return 'start' as const
+            case 'L':
+              return 'middle' as const
+            default:
+              throw new Error(`Unsupported point type: ${point}`)
+          }
+        })()
+
+        const [xRaw, yRaw] = point.substring(1).split(',')
+        const x = Number(xRaw)
+        const y = Number(yRaw)
+
+        if (Number.isNaN(x) || Number.isNaN(y)) {
+          throw new Error(`Invalid point: ${point}`)
         }
-      })()
 
-      const [xRaw, yRaw] = point.substring(1).split(',')
-      const x = Number(xRaw)
-      const y = Number(yRaw)
-
-      if (Number.isNaN(x) || Number.isNaN(y)) {
-        throw new Error(`Invalid point: ${point}`)
-      }
-
-      return [{ id: crypto.randomUUID?.() ?? String(Math.random()), type, x, y }]
-    })
+        return [{ id: crypto.randomUUID?.() ?? String(Math.random()), type, x, y }]
+      })
+  } catch {
+    return []
+  }
 }
 
 /**
- * The `queries.block` row `toTopoViews` maps — derived from the query's own
- * `.related(...)` chain (topos → routes + file, plus the block's own routes) so
- * the mapper's input can never drift from the query that feeds it.
+ * The row `toTopoViews` maps — derived from the query's own `.related(...)` chain (topos →
+ * routes + file, plus the block's own routes) so the mapper's input can never drift from
+ * the query that feeds it.
+ *
+ * Taken off `blockTopos` rather than `block`, because it is the narrower of the two: a
+ * `queries.block` row satisfies it with room to spare, while pinning to `block` would make
+ * every other caller fetch that query's extra relations to typecheck.
  */
-type BlockRow = QueryRow<typeof queries.block>
+type BlockRow = QueryRow<typeof queries.blockTopos>
 
 /**
  * Find which topo to show for a single route. A route can be drawn on several
@@ -97,7 +110,7 @@ export function selectTopoForRoute(views: TopoView[], routeId: number): undefine
   return best
 }
 
-export function toTopoViews(block: BlockRow): TopoView[] {
+export function toTopoViews(block: Pick<BlockRow, 'routes' | 'topos'>): TopoView[] {
   const routesById = new Map((block.routes ?? []).map((route) => [route.id, route]))
 
   return (block.topos ?? []).flatMap((topo) => {

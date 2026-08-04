@@ -17,6 +17,7 @@
     currentUserFk: ME,
     entities: sampleWeek.entities,
     groups: week,
+    topos: sampleWeek.topos,
   } satisfies ComponentProps<typeof ActivityFeed>
 </script>
 

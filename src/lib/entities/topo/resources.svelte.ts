@@ -13,3 +13,17 @@ export function blockTopoList(id: () => number) {
     (row) => (row == null ? [] : toTopoViews(row)),
   )
 }
+
+/**
+ * Every topo of several blocks at once, keyed by its own id: what the feed needs to draw the
+ * photo an activity row points at, for a window of rows that may span many blocks.
+ */
+export function toposByBlockIds(blockIds: () => number[]) {
+  return createResource(
+    () => queries.blockTopos({ blockId: blockIds() }),
+    // Rebuilt wholesale on every query result (the new reference is the reactivity) and
+    // never mutated afterwards, so a SvelteMap would buy nothing.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    (rows) => new Map(rows.flatMap(toTopoViews).map((view) => [view.id, view])),
+  )
+}

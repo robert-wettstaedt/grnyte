@@ -2,7 +2,7 @@ import { command, getRequestEvent } from '$app/server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { blocks, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
-import { insertActivity } from '$lib/entities/activity/activity.server'
+import { createUpdateActivity, insertActivity } from '$lib/entities/activity/activity.server'
 import { authedCommand } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
@@ -10,27 +10,51 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import z from 'zod'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
+import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
 import { canEditTopo } from './permissions'
 
+/** Where a topo change lands in the feed: on the block, under its area. All five mutations
+ *  here write against the block, since a topo has no page or row of its own. */
+interface TopoActivityTarget {
+  areaId?: null | number
+  blockId?: null | number
+  regionId: number
+  /** Absent for a reorder: it is the strip that changed, not a photo. */
+  topoId?: number
+}
+
+/**
+ * Log a topo change that has no before/after pair: a photo added, swapped, removed, or the
+ * strip reordered. What happened is in the metadata, because the row has nothing else to
+ * say it with - all five of these used to write the same valueless row, and the feed could
+ * only report the union of them ("Topo redrawn").
+ */
 const insertTopoActivity = (
   db: PostgresJsDatabase<typeof schema>,
   user: NonNullable<App.Locals['user']>,
-  regionId: number,
-  blockId?: null | number,
-  areaId?: null | number,
+  action: Exclude<TopoAction, 'lines'>,
+  { areaId, blockId, regionId, topoId }: TopoActivityTarget,
 ) => {
-  if (blockId != null) {
-    return insertActivity(db, {
-      columnName: 'topo',
-      entityId: blockId,
-      entityType: 'block',
-      parentEntityId: areaId,
-      parentEntityType: areaId == null ? undefined : 'area',
-      regionFk: regionId,
-      type: 'updated',
-      userFk: user.id,
-    })
+  if (blockId == null) {
+    return
   }
+
+  const row = {
+    columnName: 'topo' as const,
+    entityId: blockId,
+    entityType: 'block' as const,
+    metadata: stringifyTopoChange({ action, topoId }),
+    parentEntityId: areaId,
+    parentEntityType: areaId == null ? undefined : ('area' as const),
+    regionFk: regionId,
+    userFk: user.id,
+  }
+
+  // Spelled out per branch rather than a computed `type`: the catalogue is a union of
+  // literal triples, and `'deleted' | 'updated'` is assignable to neither member.
+  return action === 'photoRemoved'
+    ? insertActivity(db, { ...row, type: 'deleted' })
+    : insertActivity(db, { ...row, type: 'updated' })
 }
 
 /**
@@ -59,8 +83,16 @@ export const createTopo = authedCommand(
       .insert(topos)
       .values({ blockFk: blockId, fileFk: fileId, order: nextOrder, regionFk: block.regionFk })
       .returning()
+    if (created == null) {
+      error(500, 'Failed to create topo')
+    }
 
-    await insertTopoActivity(db, user, block.regionFk, block.id, block.areaFk)
+    await insertTopoActivity(db, user, 'photoAdded', {
+      areaId: block.areaFk,
+      blockId: block.id,
+      regionId: block.regionFk,
+      topoId: created.id,
+    })
 
     return { data: created }
   },
@@ -99,7 +131,12 @@ export const deleteTopo = command(
       await db.delete(topos).where(eq(topos.id, id))
       const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
 
-      await insertTopoActivity(db, user, topo.regionFk, topo.blockFk, topo.block?.areaFk)
+      await insertTopoActivity(db, user, 'photoRemoved', {
+        areaId: topo.block?.areaFk,
+        blockId: topo.blockFk,
+        regionId: topo.regionFk,
+        topoId: id,
+      })
 
       return targets
     })
@@ -141,7 +178,12 @@ export const replaceTopoImage = command(
       await db.update(topos).set({ fileFk: fileId }).where(eq(topos.id, topoId))
       const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
 
-      await insertTopoActivity(db, user, topo.regionFk, topo.blockFk, topo.block?.areaFk)
+      await insertTopoActivity(db, user, 'photoReplaced', {
+        areaId: topo.block?.areaFk,
+        blockId: topo.blockFk,
+        regionId: topo.regionFk,
+        topoId,
+      })
 
       return targets
     })
@@ -184,12 +226,19 @@ export const reorderTopos = authedCommand(
       await db.update(topos).set({ order: index }).where(eq(topos.id, id))
     }
 
-    await insertTopoActivity(db, user, block.regionFk, block.id, block.areaFk)
+    await insertTopoActivity(db, user, 'reordered', {
+      areaId: block.areaFk,
+      blockId: block.id,
+      regionId: block.regionFk,
+    })
   },
 )
 
 const topoLineSchema = z.object({
-  path: z.string(),
+  // `M x,y L x,y … Z`, and nothing else. The feed encodes a set of these into one string
+  // and slices it back apart on the separators, so a path holding one would re-slice the
+  // entry it sits in; `convertPathToPoints` reads no other notation either.
+  path: z.string().regex(/^[mlz0-9.,\- ]*$/i, 'Unsupported path notation'),
   routeFk: z.number(),
   topType: z.enum(topoRouteTopTypeEnum),
 })
@@ -219,7 +268,9 @@ export const saveTopoLines = authedCommand(
       topo.blockFk == null
         ? []
         : await db.query.routes.findMany({
-            columns: { deletedAt: true, id: true },
+            // `name` is only for the feed: the change line names the routes whose lines were
+            // drawn, erased or moved, which no id would tell the reader.
+            columns: { deletedAt: true, id: true, name: true },
             where: eq(routes.blockFk, topo.blockFk),
           })
     const liveRouteIds = new Set(blockRoutes.filter((route) => route.deletedAt == null).map((route) => route.id))
@@ -254,13 +305,53 @@ export const saveTopoLines = authedCommand(
     // on a live route that is no longer in the set. Path-less association rows and rows for
     // soft-deleted routes are invisible in the editor, so leave them (a path-less row would be
     // hard-deleted out from under `deleteRoute`; a deleted route's line must survive for restore).
+    const erased = (row: { path: null | string; routeFk: null | number }) =>
+      row.routeFk != null &&
+      liveRouteIds.has(row.routeFk) &&
+      row.path != null &&
+      row.path.trim() !== '' &&
+      !desiredRoutes.has(row.routeFk)
+
     for (const row of existing) {
-      const hasPath = row.path != null && row.path.trim() !== ''
-      if (row.routeFk != null && liveRouteIds.has(row.routeFk) && hasPath && !desiredRoutes.has(row.routeFk)) {
+      if (erased(row)) {
         await db.delete(topoRoutes).where(eq(topoRoutes.id, row.id))
       }
     }
 
-    await insertTopoActivity(db, user, topo.regionFk, topo.blockFk, topo.block?.areaFk)
+    // The lines this photo carried before and after, which is the one topo change that has a
+    // real before/after pair. `createUpdateActivity` writes only when the two differ (so a
+    // Save that moved nothing logs nothing) and folds a second save within the window into
+    // the first row, keeping its original `oldValue`: draw, save, redraw, save reads as one
+    // change from where the photo started to where it ended up.
+    //
+    // The after side is the rows this call LEAVES BEHIND rather than the payload it was
+    // handed, and neither side is filtered by what is live. A route soft-deleted between two
+    // saves drops out of the editor and out of the second payload, but its line row survives
+    // (the loop above skips it), so reading the payload would report it as erased. Under the
+    // fold that reaches a reader: the first row keeps an `oldValue` that still names the
+    // route, and the card grows a red "Erased X" chip for an erase nobody performed.
+    const routeNames = new Map(blockRoutes.map((route) => [route.id, route.name]))
+    const drawn = (line: { path: null | string; routeFk: null | number; topType: string }) =>
+      line.routeFk != null && line.path != null && line.path.trim() !== ''
+        ? [{ name: routeNames.get(line.routeFk) ?? '', path: line.path, routeFk: line.routeFk, topType: line.topType }]
+        : []
+
+    // The upserted lines speak for the rows they replaced, so those are dropped from the kept set.
+    const kept = existing.filter((row) => !erased(row) && !(row.routeFk != null && desiredRoutes.has(row.routeFk)))
+
+    if (topo.blockFk != null) {
+      await createUpdateActivity({
+        db,
+        entityId: topo.blockFk,
+        entityType: 'block',
+        metadata: stringifyTopoChange({ action: 'lines', topoId }),
+        newEntity: { topo: stringifyTopoLines([...kept, ...linesByRoute.values()].flatMap(drawn)) },
+        oldEntity: { topo: stringifyTopoLines(existing.flatMap(drawn)) },
+        parentEntityId: topo.block?.areaFk,
+        parentEntityType: topo.block?.areaFk == null ? undefined : 'area',
+        regionFk: topo.regionFk,
+        userFk: user.id,
+      })
+    }
   },
 )

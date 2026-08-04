@@ -27,6 +27,7 @@
   import { MediaQuery } from 'svelte/reactivity'
   import MediaStage from './MediaStage.svelte'
   import ShareSheet from './ShareSheet.svelte'
+  import SourceSheet from './SourceSheet.svelte'
 
   interface Props {
     file: MediaFile
@@ -77,6 +78,9 @@
   // on their own beta media (region EDIT/DELETE alone would hide their controls).
   const canEdit = $derived(canEditFile(global.userRegions, global.user?.id, currentFile))
   const canDelete = $derived(canDeleteFile(global.userRegions, global.user?.id, currentFile))
+  // Only route videos carry a source (ascent clips are your own footage, and their picker
+  // never asks for one). An unset `ascentCreatedBy` is what says "not ascent media".
+  const canEditSource = $derived(canEdit && currentFile.bunnyStreamFk != null && currentFile.ascentCreatedBy == null)
 
   // The viewer dialog's own open state, controlled so a delete can close it through its
   // machine (restoring aria-hidden) instead of a bare host unmount.
@@ -191,12 +195,13 @@
 
   const canHover = new MediaQuery('(hover: hover)')
 
-  // While the share sheet is open, j/l must not page the deck underneath it: the
-  // sheet would silently retarget its link and visibility switch to another file.
+  // While the share or source sheet is open, j/l must not page the deck underneath it:
+  // the sheet would silently retarget its controls at another file.
   let shareOpen = $state(false)
+  let sourceOpen = $state(false)
 
   const onKeydown = (event: KeyboardEvent) => {
-    if (shareOpen || confirmOpen || !canPage || isNavKeyExempt(event)) return
+    if (shareOpen || sourceOpen || confirmOpen || !canPage || isNavKeyExempt(event)) return
     const key = event.key.toLowerCase()
     if (key === 'j') {
       event.preventDefault()
@@ -283,7 +288,15 @@
 
 <!-- closeOnInteractOutside is off: the fullscreen viewer dismisses via the close button,
      Escape or a vertical drag, never an outside tap. Left on, a tap on the portaled Share
-     sheet (a body-level sibling, so "outside" to zag) would close the whole viewer. -->
+     sheet (a body-level sibling, so "outside" to zag) would close the whole viewer.
+
+     trapFocus is off for the same reason, and it is the other half of the same fix as the
+     pointer-events rule in Modal.mobile: the sheets this viewer opens (share, source) are
+     portaled to the body, so the trap reads their fields as "outside" and yanks focus back
+     to the toolbar the instant one is tapped, making the source input impossible to type in.
+     The prop is read once when the dialog opens, so this cannot be toggled per sheet.
+     Screen readers still don't see those sheets (zag aria-hides everything outside a modal
+     dialog's content, with no way to exempt a portal); that predates the source editor. -->
 <Dialog
   {open}
   onOpenChange={(event) => {
@@ -291,6 +304,7 @@
     if (!event.open) onClose()
   }}
   closeOnInteractOutside={false}
+  trapFocus={false}
 >
   <Portal>
     <Dialog.Positioner class="fixed inset-0 z-50">
@@ -345,6 +359,10 @@
           </Dialog.CloseTrigger>
 
           <div class="flex items-center gap-2">
+            {#if canEditSource}
+              <SourceSheet file={currentFile} bind:open={sourceOpen} />
+            {/if}
+
             <ShareSheet file={currentFile} {canEdit} {shareText} bind:open={shareOpen} />
 
             {#if canDelete}

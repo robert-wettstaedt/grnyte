@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import ActivityChanges from './ActivityChanges.svelte'
-  import { activity, changes } from './fixtures'
+  import { activity, changes, topoLines, topoMetadata, topos } from './fixtures'
 
   const { Story } = defineMeta({
     component: ActivityChanges,
@@ -31,6 +31,48 @@
     activity(9, { columnName: 'topo', entityType: 'block', userFk: 1 }),
     activity(10, { columnName: 'file', type: 'deleted', userFk: 1 }),
     activity(11, { columnName: 'role', entityType: 'user', newValue: 'maintainer', oldValue: 'user', userFk: 1 }),
+    activity(12, {
+      columnName: 'source',
+      entityType: 'file',
+      newValue: 'https://vimeo.com/912345',
+      oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      userFk: 1,
+    }),
+  ]
+
+  const KANTE = { name: 'Kante direkt', routeFk: 501 }
+  const RAMPE = { name: 'Rampe', routeFk: 502 }
+
+  // The five topo edits, which wrote one indistinguishable "Topo redrawn" row between them
+  // until they started naming themselves in `metadata`.
+  const topoEdits = [
+    activity(1, {
+      columnName: 'topo',
+      entityType: 'block',
+      metadata: topoMetadata('lines', 700),
+      newValue: topoLines([KANTE, RAMPE]),
+      oldValue: topoLines([KANTE, { name: 'Altweg', routeFk: 503 }]),
+      userFk: 1,
+    }),
+    activity(2, {
+      columnName: 'topo',
+      entityType: 'block',
+      metadata: topoMetadata('lines', 700),
+      newValue: topoLines([KANTE], true),
+      oldValue: topoLines([KANTE]),
+      userFk: 1,
+    }),
+    activity(3, { columnName: 'topo', entityType: 'block', metadata: topoMetadata('photoAdded', 700), userFk: 1 }),
+    activity(4, {
+      columnName: 'topo',
+      entityType: 'block',
+      metadata: topoMetadata('photoRemoved', 701),
+      type: 'deleted',
+      userFk: 1,
+    }),
+    activity(5, { columnName: 'topo', entityType: 'block', metadata: topoMetadata('reordered'), userFk: 1 }),
+    // A row from before any of that: no metadata, so it degrades to the vaguer sentence.
+    activity(6, { columnName: 'topo', entityType: 'block', userFk: 1 }),
   ]
 
   // What an ascent edit looks like: conditions and the ascent type, not crag data.
@@ -53,10 +95,25 @@
 
 <Story name="Ascent edit" args={{ changes: changes(ascentEdit) }} {template} />
 
-<!-- A column with no old value falls back to the "Not set" chip rather than a blank. -->
+<!-- Each topo edit saying what it did, and the photo it did it to. The removed photo has
+     no image left to draw, and the reorder is about the strip rather than one photo. -->
+<Story name="Topo edits" args={{ changes: changes(topoEdits, topos()) }} {template} />
+
+<!-- A column with no old value falls back to the "Not set" chip rather than a blank, and so
+     does a value that was cleared: a source dropped back to "own footage". -->
 <Story
   name="Missing values"
-  args={{ changes: changes([activity(1, { columnName: 'gradeFk', newValue: '9', userFk: 1 })]) }}
+  args={{
+    changes: changes([
+      activity(1, { columnName: 'gradeFk', newValue: '9', userFk: 1 }),
+      activity(2, {
+        columnName: 'source',
+        entityType: 'file',
+        oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        userFk: 1,
+      }),
+    ]),
+  }}
   {template}
 />
 

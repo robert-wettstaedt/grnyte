@@ -63,6 +63,47 @@ export const VIDEO_EXTENSIONS = ['mp4', 'mov', 'm4v', 'webm'] as const
 export const isVideoFile = (file: File): boolean =>
   file.type.startsWith('video/') || (VIDEO_EXTENSIONS as readonly string[]).includes(extensionOf(file.name) ?? '')
 
+/**
+ * A video's origin URL as typed: a bare host gets an `https://` prefix, blank means
+ * "no source". Shared by the upload sheet and the after-the-fact editor so both send
+ * the server the same shape.
+ */
+export const normalizeSource = (raw: string): string | undefined => {
+  const trimmed = raw.trim()
+  if (trimmed === '') {
+    return undefined
+  }
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+/**
+ * The host to credit a clip to ("youtube.com"), or `undefined` when the stored value is not a
+ * URL at all. Legacy rows predate the `z.url()` validation and hold free text, so every screen
+ * that shows a source has to cope with one.
+ */
+export const sourceHost = (source: string | undefined): string | undefined => {
+  if (!source) {
+    return undefined
+  }
+  try {
+    return new URL(source).hostname
+  } catch {
+    return undefined
+  }
+}
+
+/** Whether a normalized source is something the server's `z.url()` will take. Empty is fine. */
+export const isValidSource = (source: string | undefined): boolean => {
+  if (source == null) {
+    return true
+  }
+  try {
+    return new URL(source).hostname.includes('.')
+  } catch {
+    return false
+  }
+}
+
 /** The staging bucket only admits image/* content types, but browsers often
  *  report an empty `File.type` for HEIC — this is the by-extension fallback. */
 const IMAGE_MIME_TYPES: Record<string, string> = {

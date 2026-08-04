@@ -18,6 +18,7 @@ export type ChangeRenderer =
   | 'locationRemoved'
   | 'prose'
   | 'rating'
+  | 'source'
   | 'tags'
   | 'text'
   | 'topo'
@@ -47,6 +48,9 @@ const FIELD = {
   parkingLocationGone: { icon: 'parking', labelKey: 'activity_fieldParkingLocation', renderer: 'locationRemoved' },
   rating: { icon: 'star', labelKey: 'activity_fieldRating', renderer: 'rating' },
   role: { icon: 'users-round', labelKey: 'activity_fieldRole', renderer: 'text' },
+  /** A video's origin URL. Its own renderer because the stored value is a whole URL and a
+   *  reader only wants the host it was reposted from. */
+  source: { icon: 'link', labelKey: 'activity_fieldSource', renderer: 'source' },
   tags: { icon: 'bookmark', labelKey: 'activity_fieldTags', renderer: 'tags' },
   temperature: { icon: 'info', labelKey: 'activity_fieldTemperature', renderer: 'text' },
   topo: { icon: 'route', labelKey: 'activity_fieldTopo', renderer: 'topo' },
@@ -166,6 +170,9 @@ export const ACTIVITY_VERBS = [
     type: 'updated',
   },
   { columnName: 'topo', entityType: 'block', field: FIELD.topo, key: 'activity_blockUpdatedTopo', type: 'updated' },
+  // A pulled photo is its own sentence, the way a cleared pin is: "updated the topo" for a
+  // deletion is true only in the sense that everything is an update.
+  { columnName: 'topo', entityType: 'block', field: FIELD.topo, key: 'activity_blockDeletedTopo', type: 'deleted' },
   { entityType: 'block', key: 'activity_blockDeleted', tombstone: 'oldValue', type: 'deleted' },
 
   { entityType: 'route', key: 'activity_routeCreated', tombstone: 'newValue', type: 'created' },
@@ -277,6 +284,16 @@ export const ACTIVITY_VERBS = [
   // Uploads point at the file and name what it was attached to as the parent; deletes are the
   // other way round, because by then the file is gone and only the parent is left to name.
   { entityType: 'file', key: 'activity_fileUploaded', names: 'parent', type: 'uploaded' },
+  // A source edit points at the file too, so the card can draw the clip it is about, and
+  // borrows the same parent name: the file's own is a cuid either way.
+  {
+    columnName: 'source',
+    entityType: 'file',
+    field: FIELD.source,
+    key: 'activity_fileUpdatedSource',
+    names: 'parent',
+    type: 'updated',
+  },
   {
     columnName: 'file',
     entityType: 'area',

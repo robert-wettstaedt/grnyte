@@ -6,8 +6,10 @@ import {
   imageRejection,
   isHeic,
   isImageFileName,
+  isValidSource,
   isVideoFile,
   MAX_IMAGE_SIZE,
+  normalizeSource,
   stagingPath,
 } from './upload'
 
@@ -69,6 +71,24 @@ describe('formatFileSize', () => {
   it('switches to GB at the gigabyte boundary', () => {
     expect(formatFileSize(MAX_IMAGE_SIZE)).toBe('50.0 MB')
     expect(formatFileSize(2 * 1024 ** 3)).toBe('2.0 GB')
+  })
+})
+
+describe('normalizeSource / isValidSource', () => {
+  it('prefixes a bare host and leaves an explicit scheme alone', () => {
+    expect(normalizeSource(' youtube.com/watch?v=x ')).toBe('https://youtube.com/watch?v=x')
+    expect(normalizeSource('http://vimeo.com/1')).toBe('http://vimeo.com/1')
+  })
+
+  it('treats blank input as no source, which is valid', () => {
+    expect(normalizeSource('   ')).toBeUndefined()
+    expect(isValidSource(undefined)).toBe(true)
+  })
+
+  it('rejects what the server z.url() would refuse', () => {
+    // A dotless host parses as a URL but is never a real origin, so it must not pass.
+    expect(isValidSource(normalizeSource('youtube'))).toBe(false)
+    expect(isValidSource(normalizeSource('instagram.com/reel/1'))).toBe(true)
   })
 })
 

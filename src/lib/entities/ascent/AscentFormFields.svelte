@@ -307,7 +307,7 @@
   {#if ascent == null}
     <MediaDropZone accept={['image', 'video']} bind:uploads />
   {:else}
-    <MediaGrid canEdit items={ascent.files} shareText={route.name} target={{ id: ascent.id, type: 'ascent' }} />
+    <MediaGrid canEdit compact items={ascent.files} shareText={route.name} target={{ id: ascent.id, type: 'ascent' }} />
   {/if}
   <p class="text-surface-600-400 text-sm">{m.ascents_form_mediaHint()}</p>
 </div>

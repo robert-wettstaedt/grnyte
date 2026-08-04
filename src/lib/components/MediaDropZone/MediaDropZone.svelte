@@ -1,14 +1,17 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import SourceField from '$lib/components/Media/SourceField.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { imageRejectionMessage } from '$lib/entities/file/rejection'
   import {
     formatFileSize,
     imageRejection,
     isImageFileName,
+    isValidSource,
     isVideoFile,
     MAX_IMAGE_SIZE,
     MAX_VIDEO_SIZE,
+    normalizeSource,
     type MediaKind,
   } from '$lib/entities/file/upload'
   import {
@@ -29,6 +32,9 @@
   interface Props {
     /** What this field takes: images only (topos) or images + videos (ascents). */
     accept?: MediaKind[]
+    /** Tile mode only: size the Add tile like a form field (a form's strip is smaller
+     *  than a page's), so it doesn't tower over the same control on the sibling screens. */
+    compact?: boolean
     disabled?: boolean
     /** When set, the entity already exists: each pick finalizes against it right away
      *  (no form submit to wait for) and its tile shows on the target page from the
@@ -41,7 +47,14 @@
     videoSource?: boolean
   }
 
-  let { accept = ['image'], disabled = false, target, uploads = $bindable([]), videoSource = false }: Props = $props()
+  let {
+    accept = ['image'],
+    compact = false,
+    disabled = false,
+    target,
+    uploads = $bindable([]),
+    videoSource = false,
+  }: Props = $props()
   const id = $props.id()
 
   // Tile mode (has a target): render just the Add tile, sized to sit in a media strip.
@@ -80,23 +93,8 @@
   let photoInput: HTMLInputElement | undefined = $state()
   let videoInput: HTMLInputElement | undefined = $state()
 
-  const normalizedSource = $derived.by(() => {
-    const raw = sourceRaw.trim()
-    if (raw === '') {
-      return undefined
-    }
-    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
-  })
-  const sourceValid = $derived.by(() => {
-    if (normalizedSource == null) {
-      return true
-    }
-    try {
-      return new URL(normalizedSource).hostname.includes('.')
-    } catch {
-      return false
-    }
-  })
+  const normalizedSource = $derived(normalizeSource(sourceRaw))
+  const sourceValid = $derived(isValidSource(normalizedSource))
 
   const openSheet = () => {
     sheetStep = 'choose'
@@ -395,23 +393,7 @@
           <p class="text-error-500 text-sm">{sheetError}</p>
         {/if}
 
-        <div class="space-y-1.5">
-          <label class="text-surface-700-300 block text-sm font-semibold" for="{id}-video-source">
-            {m.upload_sourceLabel()}
-          </label>
-          <input
-            autocomplete="off"
-            bind:value={sourceRaw}
-            class="border-surface-300-700 bg-surface-100-900 focus:border-primary-500 w-full rounded-xl border px-3 py-2.5 font-mono text-sm focus:ring-0 focus:outline-none"
-            id="{id}-video-source"
-            inputmode="url"
-            placeholder={m.upload_sourcePlaceholder()}
-            type="text"
-          />
-          <p class={['text-sm', sourceValid ? 'text-surface-600-400' : 'text-error-500']}>
-            {sourceValid ? m.upload_sourceHint() : m.upload_sourceInvalid()}
-          </p>
-        </div>
+        <SourceField bind:value={sourceRaw} valid={sourceValid} />
       </div>
     {/if}
   </Modal>
@@ -436,11 +418,14 @@
 
 {#if tile}
   <!-- Tile mode: just the Add tile, sized to sit as the leading item of a media strip. -->
+  {@const tileClass = `${compact ? 'h-26 w-26' : 'h-40 w-40'} flex-none snap-start`}
   {#if split}
-    {@render splitPicker('h-40 w-40 flex-none snap-start')}
+    {@render splitPicker(tileClass)}
   {:else}
-    <FileUpload.Provider value={fileUpload}>
-      {@render plainPicker('h-40 w-40 flex-none snap-start')}
+    <!-- `contents`: zag's root is a real div that fills its flex line, which would push the
+         rest of the strip to the far edge. Take it out of the layout so the tile is the item. -->
+    <FileUpload.Provider class="contents" value={fileUpload}>
+      {@render plainPicker(tileClass)}
     </FileUpload.Provider>
   {/if}
 {:else}

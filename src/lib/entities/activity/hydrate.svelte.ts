@@ -23,6 +23,9 @@ import type { RegionMembership } from '$lib/entities/region/dto'
 import { regionCrumb } from '$lib/entities/region/mapper'
 import type { RouteListItem } from '$lib/entities/route/dto'
 import { routesByIds } from '$lib/entities/route/resources.svelte'
+import { parseTopoChange } from '$lib/entities/topo/change'
+import type { TopoView } from '$lib/entities/topo/dto'
+import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import type { UserRef } from '$lib/entities/user/dto'
 import { usersByIds } from '$lib/entities/user/resources.svelte'
 import { getGlobalState } from '$lib/state/global.svelte'
@@ -57,6 +60,14 @@ export interface ActivityHydration {
 export interface ActivityHydrationResult {
   /** Hydrated entities keyed by {@link activityEntityKey}, ready to hand to `ActivityFeed`. */
   readonly entities: ActivityEntityMap
+  /**
+   * The topo photos those rows changed, keyed by `topos.id`.
+   *
+   * Kept apart from {@link entities} because a topo is not an entity a row points at: the
+   * row points at the block and names the photo in its metadata, and only the change line
+   * (never a card row) renders one.
+   */
+  readonly topos: ReadonlyMap<number, TopoView>
 }
 
 /**
@@ -65,14 +76,23 @@ export interface ActivityHydrationResult {
  * Reads `userRegions` off the global state, so call it during component initialisation
  * like any other resource factory.
  */
-export function activityEntities(activities: () => readonly ActivityListItem[]): ActivityHydrationResult {
+export function activityEntities(
+  activities: () => readonly ActivityListItem[],
+  /**
+   * The rows whose cards are open. Only those pull topo photos: a photo is drawn by the
+   * change list alone, which lives behind the card's own toggle, so syncing the whole topo
+   * tree of every block in the window would charge a reader who never expands anything, and
+   * charge them again on each "load older".
+   */
+  expanded: () => readonly ActivityListItem[] = () => [],
+): ActivityHydrationResult {
   const global = getGlobalState()
 
   const refs = $derived(activityHydrationRefs(activities()))
   // `entityId` is text for every kind; the numeric tables get the ids that survive parsing,
   // so a malformed row can't widen a query with a NaN.
-  const numericIds = (type: ActivityEntityType) =>
-    refs.flatMap((ref) => (ref.type === type ? [Number(ref.id)] : [])).filter(Number.isInteger)
+  const uniqueIds = (ids: readonly string[]) => [...new Set(ids.map(Number))].filter(Number.isInteger)
+  const numericIds = (type: ActivityEntityType) => uniqueIds(refs.flatMap((ref) => (ref.type === type ? [ref.id] : [])))
 
   const areaIds = $derived(numericIds('area'))
   const ascentIds = $derived(numericIds('ascent'))
@@ -91,6 +111,18 @@ export function activityEntities(activities: () => readonly ActivityListItem[]):
   // handles: the re-targeted query reads as loading until it answers.
   const routeIds = $derived([...new Set([...numericIds('route'), ...ascents.data.map((ascent) => ascent.routeFk)])])
   const routes = routesByIds(() => routeIds)
+
+  // The blocks whose open rows say a topo photo changed. Their lines are a second query
+  // rather than a wider `blockList`, so the screens that only need a block's thumbnail keep
+  // paying for a thumbnail.
+  const topoBlockIds = $derived(
+    uniqueIds(
+      expanded().flatMap((activity) =>
+        activity.entityType === 'block' && parseTopoChange(activity.metadata) != null ? [activity.entityId] : [],
+      ),
+    ),
+  )
+  const topos = toposByBlockIds(() => topoBlockIds)
 
   const ready = $derived(
     new Set(
@@ -124,6 +156,9 @@ export function activityEntities(activities: () => readonly ActivityListItem[]):
   return {
     get entities() {
       return entities
+    },
+    get topos() {
+      return topos.data
     },
   }
 }

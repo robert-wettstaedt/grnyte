@@ -15,6 +15,9 @@
   interface Props {
     /** Show the Add tile at the head of the strip (permission-gated by the caller). */
     canEdit?: boolean
+    /** Form-sized tiles instead of page-sized ones, so a strip embedded in a form field
+     *  matches the picker on the sibling (create) form rather than dwarfing it. */
+    compact?: boolean
     items: MediaFile[]
     /** Passed through to the viewer as the share text (the route name). */
     shareText?: string
@@ -23,7 +26,9 @@
     target?: MediaUploadTarget
   }
 
-  const { canEdit = false, items, shareText = '', target }: Props = $props()
+  const { canEdit = false, compact = false, items, shareText = '', target }: Props = $props()
+
+  const tileHeight = $derived(compact ? 'h-26' : 'h-40')
 
   const syncedIds = $derived(new Set(items.map((file) => file.id)))
 
@@ -62,12 +67,14 @@
      by its own aspect ratio. -->
 <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2">
   {#if canEdit && target != null}
-    <MediaDropZone accept={['image', 'video']} videoSource {target} />
+    <!-- Only route uploads credit a source, so only they get the photos-or-video split
+         picker; everywhere else the plain picker takes both kinds with no extra step. -->
+    <MediaDropZone accept={['image', 'video']} {compact} videoSource={target.type === 'route'} {target} />
   {/if}
   {#each pending as { upload } (upload)}
     <MediaUploadTile
       {upload}
-      class="h-40 w-40 flex-none snap-start"
+      class="{tileHeight} {compact ? 'w-26' : 'w-40'} flex-none snap-start"
       onRetry={() => void retryPending(upload)}
       onRemove={() => removePending(upload)}
     />
@@ -75,7 +82,7 @@
   {#each items as file (file.id)}
     <!-- Stays on the 256 default: the viewer's first paint reuses this exact cache entry
          (MediaStage/MediaViewer), and 1024 per tile is a lot to spend on a crag connection. -->
-    <MediaThumbnail {file} badged class="h-40 snap-start" />
+    <MediaThumbnail {file} badged class="{tileHeight} snap-start" />
   {/each}
 </div>
 

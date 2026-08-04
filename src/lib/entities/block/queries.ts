@@ -32,6 +32,26 @@ export const blocksQueryDefs = {
         .one()
     }),
   ),
+  // The topo photos and their drawn lines for a set of blocks. `listBlocks` carries the
+  // photos but not the lines, and every one of its callers (search, area lists) would pay
+  // for them; the feed is the only screen that renders a line it did not navigate to.
+  //
+  // No `tags`: `toTopoViews` reads a route's name and grade and nothing else, and this is
+  // the query its input type is derived from, so what it does not read it does not sync.
+  blockTopos: defineQuery(
+    z.object({ blockId: z.array(z.number()) }),
+    regionMemberCan(({ args, ctx }) => {
+      const r = relatedRegion(ctx)
+
+      return zql.blocks
+        .where('deletedAt', 'IS', null)
+        .where('id', 'IN', args.blockId)
+        .related('routes', (q) => r(q).where('deletedAt', 'IS', null))
+        .related('topos', (q) =>
+          r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('routes', r).related('file', r),
+        )
+    }),
+  ),
   listBlocks: defineQuery(
     z.object({
       areaId: z.number().optional().nullable(),

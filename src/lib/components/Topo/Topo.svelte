@@ -10,6 +10,9 @@
   interface LineInput {
     /** Grade heat band, or `undefined` for an ungraded route (neutral line). */
     band: GradeBand | undefined
+    /** Where this line USED to be: drawn dashed and faded, under the current ones. The feed
+     *  draws a redraw that way, so one photo carries both ends of the change. */
+    ghost?: boolean
     id: number
     /** Guidebook-style number badged at the base of the line. */
     number?: number
@@ -77,12 +80,27 @@
   const rendered = $derived(
     lines.map((line) => {
       const { bracket, d, starts, top } = buildLine(line.points, curved, boxWidth, boxHeight)
-      return { band: line.band, bracket, d, id: line.id, number: line.number, starts, top, topType: line.topType }
+      return {
+        band: line.band,
+        bracket,
+        d,
+        ghost: line.ghost,
+        id: line.id,
+        number: line.number,
+        starts,
+        top,
+        topType: line.topType,
+      }
     }),
   )
 
-  // Draw the highlighted line last so it sits above the dimmed ones.
-  const ordered = $derived([...rendered].sort((a, b) => Number(a.id === highlightId) - Number(b.id === highlightId)))
+  // Ghosts first, then the rest, then the highlighted line last, so what a line is now
+  // always sits above what it was, and above the dimmed ones.
+  const ordered = $derived(
+    [...rendered].sort(
+      (a, b) => Number(!a.ghost) - Number(!b.ghost) || Number(a.id === highlightId) - Number(b.id === highlightId),
+    ),
+  )
 
   // Start holds: dedupe across all lines and draw once. A shared hold records every
   // line through it (for highlight dimming) and takes the band of the last line —
@@ -90,6 +108,11 @@
   const holds = $derived.by(() => {
     const seen: Record<string, { band: GradeBand | undefined; ids: number[]; key: string; x: number; y: number }> = {}
     for (const line of rendered) {
+      // A ghost contributes no hold: a solid marker is the one thing on the overlay that
+      // cannot be read as "this used to be here".
+      if (line.ghost) {
+        continue
+      }
       for (const start of line.starts) {
         const key = `${Math.round(start.x)},${Math.round(start.y)}`
         const entry = (seen[key] ??= { band: undefined, ids: [], key, x: start.x, y: start.y })
@@ -159,8 +182,12 @@
       >
         {#each ordered as line (line.id)}
           {@const dimmed = highlightId != null && line.id !== highlightId}
-          <g opacity={dimmed ? 0.33 : 1}>
-            {#if interactive}
+          <!-- A ghost is never the hit target, for the same reason it contributes no start
+               hold: highlighting one would dim every real line to emphasise something that is
+               drawn at half opacity to say it is not there any more. -->
+          {@const pressable = interactive && !line.ghost}
+          <g opacity={line.ghost ? 0.5 : dimmed ? 0.33 : 1}>
+            {#if pressable}
               <path
                 d={line.d}
                 stroke="transparent"
@@ -179,7 +206,7 @@
               {line}
               {unit}
               {boxHeight}
-              badgeAttrs={interactive
+              badgeAttrs={pressable
                 ? {
                     class: 'select-none',
                     ...press(() => toggle(line.id)),

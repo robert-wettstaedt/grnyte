@@ -22,11 +22,15 @@
   ],
   "activity_areaDeletedFile": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
-        "person=self": "Du hast ein Foto von {name} entfernt",
-        "person=*": "{actor} hat ein Foto von {name} entfernt"
+        "person=self,media=photo": "Du hast ein Foto von {name} entfernt",
+        "person=self,media=video": "Du hast ein Video von {name} entfernt",
+        "person=self,media=*": "Du hast Medien von {name} entfernt",
+        "person=*,media=photo": "{actor} hat ein Foto von {name} entfernt",
+        "person=*,media=video": "{actor} hat ein Video von {name} entfernt",
+        "person=*,media=*": "{actor} hat Medien von {name} entfernt"
       }
     }
   ],
@@ -144,13 +148,21 @@
   ],
   "activity_ascentDeletedFile": [
     {
-      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner"],
+      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
-        "person=self,owner=self": "Du hast ein Foto von deiner Begehung von {name} entfernt",
-        "person=self,owner=*": "Du hast ein Foto von der Begehung von {climber} an {name} entfernt",
-        "person=*,owner=self": "{actor} hat ein Foto von der eigenen Begehung von {name} entfernt",
-        "person=*,owner=*": "{actor} hat ein Foto von der Begehung von {climber} an {name} entfernt"
+        "person=self,owner=self,media=photo": "Du hast ein Foto von deiner Begehung von {name} entfernt",
+        "person=self,owner=self,media=video": "Du hast ein Video von deiner Begehung von {name} entfernt",
+        "person=self,owner=self,media=*": "Du hast Medien von deiner Begehung von {name} entfernt",
+        "person=self,owner=*,media=photo": "Du hast ein Foto von der Begehung von {climber} an {name} entfernt",
+        "person=self,owner=*,media=video": "Du hast ein Video von der Begehung von {climber} an {name} entfernt",
+        "person=self,owner=*,media=*": "Du hast Medien von der Begehung von {climber} an {name} entfernt",
+        "person=*,owner=self,media=photo": "{actor} hat ein Foto von der eigenen Begehung von {name} entfernt",
+        "person=*,owner=self,media=video": "{actor} hat ein Video von der eigenen Begehung von {name} entfernt",
+        "person=*,owner=self,media=*": "{actor} hat Medien von der eigenen Begehung von {name} entfernt",
+        "person=*,owner=*,media=photo": "{actor} hat ein Foto von der Begehung von {climber} an {name} entfernt",
+        "person=*,owner=*,media=video": "{actor} hat ein Video von der Begehung von {climber} an {name} entfernt",
+        "person=*,owner=*,media=*": "{actor} hat Medien von der Begehung von {climber} an {name} entfernt"
       }
     }
   ],
@@ -188,11 +200,15 @@
   ],
   "activity_blockDeletedFile": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
-        "person=self": "Du hast ein Foto von {name} entfernt",
-        "person=*": "{actor} hat ein Foto von {name} entfernt"
+        "person=self,media=photo": "Du hast ein Foto von {name} entfernt",
+        "person=self,media=video": "Du hast ein Video von {name} entfernt",
+        "person=self,media=*": "Du hast Medien von {name} entfernt",
+        "person=*,media=photo": "{actor} hat ein Foto von {name} entfernt",
+        "person=*,media=video": "{actor} hat ein Video von {name} entfernt",
+        "person=*,media=*": "{actor} hat Medien von {name} entfernt"
       }
     }
   ],
@@ -203,6 +219,16 @@
       "match": {
         "person=self": "Du hast den Standort von {name} entfernt",
         "person=*": "{actor} hat den Standort von {name} entfernt"
+      }
+    }
+  ],
+  "activity_blockDeletedTopo": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "Du hast ein Topo-Foto von {name} entfernt",
+        "person=*": "{actor} hat ein Topo-Foto von {name} entfernt"
       }
     }
   ],
@@ -246,7 +272,17 @@
       }
     }
   ],
-  "activity_changeFileRemoved": "Foto entfernt",
+  "activity_changeFileRemoved": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Foto entfernt",
+        "media=video": "Video entfernt",
+        "media=*": "Medien entfernt"
+      }
+    }
+  ],
   "activity_changeLocationApproximate": "Ungefähr",
   "activity_changeLocationConfirmed": "Ungefährer Pin bestätigt",
   "activity_changeLocationMoved": "Um {distance} verschoben",
@@ -255,6 +291,13 @@
   "activity_changeLocationUpdated": "Standort aktualisiert",
   "activity_changeTagAdded": "{tag} hinzugefügt",
   "activity_changeTagRemoved": "{tag} entfernt",
+  "activity_changeTopoLineAdded": "{route} gezeichnet",
+  "activity_changeTopoLineRedrawn": "{route} neu gezeichnet",
+  "activity_changeTopoLineRemoved": "{route} gelöscht",
+  "activity_changeTopoLinesUpdated": "Linien aktualisiert",
+  "activity_changeTopoPhotoAdded": "Foto hinzugefügt",
+  "activity_changeTopoPhotoReplaced": "Foto ersetzt",
+  "activity_changeTopoReordered": "Fotos neu sortiert",
   "activity_changeTopoUpdated": "Topo neu gezeichnet",
   "activity_compareCharacters": [
     {
@@ -269,7 +312,17 @@
   "activity_entityDeleted": "Dieser Eintrag wurde gelöscht",
   "activity_fieldDateTime": "Datum",
   "activity_fieldDescription": "Beschreibung",
-  "activity_fieldFile": "Foto",
+  "activity_fieldFile": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Foto",
+        "media=video": "Video",
+        "media=*": "Medien"
+      }
+    }
+  ],
   "activity_fieldFirstAscensionist": "Erstbegeher",
   "activity_fieldFirstAscensionists": "Erstbegeher",
   "activity_fieldFirstAscentYear": "Jahr der Erstbegehung",
@@ -282,18 +335,39 @@
   "activity_fieldParkingLocation": "Parkplatz",
   "activity_fieldRating": "Bewertung",
   "activity_fieldRole": "Rolle",
+  "activity_fieldSource": "Quelle",
   "activity_fieldTags": "Tags",
   "activity_fieldTemperature": "Temperatur",
   "activity_fieldTopo": "Topo",
   "activity_fieldType": "Art",
   "activity_fieldUsername": "Benutzername",
-  "activity_fileUploaded": [
+  "activity_fileUpdatedSource": [
     {
       "declarations": ["input actor", "input name", "input person"],
       "selectors": ["person"],
       "match": {
-        "person=self": "Du hast ein Foto zu {name} hinzugefügt",
-        "person=*": "{actor} hat ein Foto zu {name} hinzugefügt"
+        "person=self": "Du hast die Videoquelle bei {name} aktualisiert",
+        "person=*": "{actor} hat die Videoquelle bei {name} aktualisiert"
+      }
+    }
+  ],
+  "activity_fileUploaded": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "Du hast ein Foto zu deiner Begehung von {name} hinzugefügt",
+        "person=self,owner=self,media=video": "Du hast ein Video zu deiner Begehung von {name} hinzugefügt",
+        "person=self,owner=self,media=*": "Du hast Medien zu deiner Begehung von {name} hinzugefügt",
+        "person=self,owner=*,media=photo": "Du hast ein Foto zu {name} hinzugefügt",
+        "person=self,owner=*,media=video": "Du hast ein Video zu {name} hinzugefügt",
+        "person=self,owner=*,media=*": "Du hast Medien zu {name} hinzugefügt",
+        "person=*,owner=self,media=photo": "{actor} hat ein Foto zur eigenen Begehung von {name} hinzugefügt",
+        "person=*,owner=self,media=video": "{actor} hat ein Video zur eigenen Begehung von {name} hinzugefügt",
+        "person=*,owner=self,media=*": "{actor} hat Medien zur eigenen Begehung von {name} hinzugefügt",
+        "person=*,owner=*,media=photo": "{actor} hat ein Foto zu {name} hinzugefügt",
+        "person=*,owner=*,media=video": "{actor} hat ein Video zu {name} hinzugefügt",
+        "person=*,owner=*,media=*": "{actor} hat Medien zu {name} hinzugefügt"
       }
     }
   ],
@@ -349,11 +423,21 @@
   ],
   "activity_groupUploads": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
-        "person=self": "Du hast Fotos zu {name} hinzugefügt",
-        "person=*": "{actor} hat Fotos zu {name} hinzugefügt"
+        "person=self,owner=self,media=photo": "Du hast Fotos zu deiner Begehung von {name} hinzugefügt",
+        "person=self,owner=self,media=video": "Du hast Videos zu deiner Begehung von {name} hinzugefügt",
+        "person=self,owner=self,media=*": "Du hast Medien zu deiner Begehung von {name} hinzugefügt",
+        "person=self,owner=*,media=photo": "Du hast Fotos zu {name} hinzugefügt",
+        "person=self,owner=*,media=video": "Du hast Videos zu {name} hinzugefügt",
+        "person=self,owner=*,media=*": "Du hast Medien zu {name} hinzugefügt",
+        "person=*,owner=self,media=photo": "{actor} hat Fotos zur eigenen Begehung von {name} hinzugefügt",
+        "person=*,owner=self,media=video": "{actor} hat Videos zur eigenen Begehung von {name} hinzugefügt",
+        "person=*,owner=self,media=*": "{actor} hat Medien zur eigenen Begehung von {name} hinzugefügt",
+        "person=*,owner=*,media=photo": "{actor} hat Fotos zu {name} hinzugefügt",
+        "person=*,owner=*,media=video": "{actor} hat Videos zu {name} hinzugefügt",
+        "person=*,owner=*,media=*": "{actor} hat Medien zu {name} hinzugefügt"
       }
     }
   ],
@@ -381,11 +465,15 @@
   ],
   "activity_routeDeletedFile": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
-        "person=self": "Du hast ein Foto von {name} entfernt",
-        "person=*": "{actor} hat ein Foto von {name} entfernt"
+        "person=self,media=photo": "Du hast ein Foto von {name} entfernt",
+        "person=self,media=video": "Du hast ein Video von {name} entfernt",
+        "person=self,media=*": "Du hast Medien von {name} entfernt",
+        "person=*,media=photo": "{actor} hat ein Foto von {name} entfernt",
+        "person=*,media=video": "{actor} hat ein Video von {name} entfernt",
+        "person=*,media=*": "{actor} hat Medien von {name} entfernt"
       }
     }
   ],
@@ -492,11 +580,15 @@
   ],
   "activity_summaryFiles": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": ["input count", "input media", "local countPlural = count: plural"],
+      "selectors": ["media", "countPlural"],
       "match": {
-        "countPlural=one": "{count} Foto",
-        "countPlural=other": "{count} Fotos"
+        "media=photo,countPlural=one": "{count} Foto",
+        "media=photo,countPlural=other": "{count} Fotos",
+        "media=video,countPlural=one": "{count} Video",
+        "media=video,countPlural=other": "{count} Videos",
+        "media=*,countPlural=one": "{count} Datei",
+        "media=*,countPlural=other": "{count} Dateien"
       }
     }
   ],
@@ -829,11 +921,11 @@
   "common_filter": "Filter",
   "common_location": "Standort",
   "common_me": "Ich",
+  "common_media": "Medien",
   "common_more": "Mehr",
   "common_next": "Weiter",
   "common_ok": "OK",
   "common_person": "Person",
-  "common_photo": "Foto",
   "common_playVideo": "Video abspielen",
   "common_recommended": "Empfohlen",
   "common_remove": "Entfernen",
@@ -1082,6 +1174,7 @@
   "media_delete": "Medien löschen",
   "media_deleteConfirm": "Die Datei wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.",
   "media_deleted": "Medien gelöscht",
+  "media_editSource": "Quelle bearbeiten",
   "media_loading": "Wird geladen",
   "media_mute": "Stummschalten",
   "media_next": "Nächstes",

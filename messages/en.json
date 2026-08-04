@@ -22,11 +22,15 @@
   ],
   "activity_areaDeletedFile": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
-        "person=self": "You removed a photo from {name}",
-        "person=*": "{actor} removed a photo from {name}"
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
       }
     }
   ],
@@ -144,13 +148,21 @@
   ],
   "activity_ascentDeletedFile": [
     {
-      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner"],
+      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
-        "person=self,owner=self": "You removed a photo from your ascent of {name}",
-        "person=self,owner=*": "You removed a photo from the ascent of {climber} on {name}",
-        "person=*,owner=self": "{actor} removed a photo from their own ascent of {name}",
-        "person=*,owner=*": "{actor} removed a photo from the ascent of {climber} on {name}"
+        "person=self,owner=self,media=photo": "You removed a photo from your ascent of {name}",
+        "person=self,owner=self,media=video": "You removed a video from your ascent of {name}",
+        "person=self,owner=self,media=*": "You removed media from your ascent of {name}",
+        "person=self,owner=*,media=photo": "You removed a photo from the ascent of {climber} on {name}",
+        "person=self,owner=*,media=video": "You removed a video from the ascent of {climber} on {name}",
+        "person=self,owner=*,media=*": "You removed media from the ascent of {climber} on {name}",
+        "person=*,owner=self,media=photo": "{actor} removed a photo from their own ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} removed a video from their own ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} removed media from their own ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} removed a photo from the ascent of {climber} on {name}",
+        "person=*,owner=*,media=video": "{actor} removed a video from the ascent of {climber} on {name}",
+        "person=*,owner=*,media=*": "{actor} removed media from the ascent of {climber} on {name}"
       }
     }
   ],
@@ -188,11 +200,15 @@
   ],
   "activity_blockDeletedFile": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
-        "person=self": "You removed a photo from {name}",
-        "person=*": "{actor} removed a photo from {name}"
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
       }
     }
   ],
@@ -203,6 +219,16 @@
       "match": {
         "person=self": "You removed the location of {name}",
         "person=*": "{actor} removed the location of {name}"
+      }
+    }
+  ],
+  "activity_blockDeletedTopo": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed a topo photo from {name}",
+        "person=*": "{actor} removed a topo photo from {name}"
       }
     }
   ],
@@ -246,7 +272,17 @@
       }
     }
   ],
-  "activity_changeFileRemoved": "Photo removed",
+  "activity_changeFileRemoved": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Photo removed",
+        "media=video": "Video removed",
+        "media=*": "Media removed"
+      }
+    }
+  ],
   "activity_changeLocationApproximate": "Approximate",
   "activity_changeLocationConfirmed": "Approximate pin confirmed",
   "activity_changeLocationMoved": "Moved {distance}",
@@ -255,6 +291,13 @@
   "activity_changeLocationUpdated": "Location updated",
   "activity_changeTagAdded": "Added {tag}",
   "activity_changeTagRemoved": "Removed {tag}",
+  "activity_changeTopoLineAdded": "Drew {route}",
+  "activity_changeTopoLineRedrawn": "Redrew {route}",
+  "activity_changeTopoLineRemoved": "Erased {route}",
+  "activity_changeTopoLinesUpdated": "Lines updated",
+  "activity_changeTopoPhotoAdded": "Photo added",
+  "activity_changeTopoPhotoReplaced": "Photo replaced",
+  "activity_changeTopoReordered": "Photos reordered",
   "activity_changeTopoUpdated": "Topo redrawn",
   "activity_compareCharacters": [
     {
@@ -269,7 +312,17 @@
   "activity_entityDeleted": "This entry was deleted",
   "activity_fieldDateTime": "Date",
   "activity_fieldDescription": "Description",
-  "activity_fieldFile": "Photo",
+  "activity_fieldFile": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Photo",
+        "media=video": "Video",
+        "media=*": "Media"
+      }
+    }
+  ],
   "activity_fieldFirstAscensionist": "First ascensionist",
   "activity_fieldFirstAscensionists": "First ascensionists",
   "activity_fieldFirstAscentYear": "First ascent year",
@@ -282,18 +335,39 @@
   "activity_fieldParkingLocation": "Parking",
   "activity_fieldRating": "Rating",
   "activity_fieldRole": "Role",
+  "activity_fieldSource": "Source",
   "activity_fieldTags": "Tags",
   "activity_fieldTemperature": "Temperature",
   "activity_fieldTopo": "Topo",
   "activity_fieldType": "Type",
   "activity_fieldUsername": "Username",
-  "activity_fileUploaded": [
+  "activity_fileUpdatedSource": [
     {
       "declarations": ["input actor", "input name", "input person"],
       "selectors": ["person"],
       "match": {
-        "person=self": "You added a photo to {name}",
-        "person=*": "{actor} added a photo to {name}"
+        "person=self": "You updated the video source on {name}",
+        "person=*": "{actor} updated the video source on {name}"
+      }
+    }
+  ],
+  "activity_fileUploaded": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You added a photo to your ascent of {name}",
+        "person=self,owner=self,media=video": "You added a video to your ascent of {name}",
+        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
+        "person=self,owner=*,media=photo": "You added a photo to {name}",
+        "person=self,owner=*,media=video": "You added a video to {name}",
+        "person=self,owner=*,media=*": "You added media to {name}",
+        "person=*,owner=self,media=photo": "{actor} added a photo to their ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} added a video to their ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} added a photo to {name}",
+        "person=*,owner=*,media=video": "{actor} added a video to {name}",
+        "person=*,owner=*,media=*": "{actor} added media to {name}"
       }
     }
   ],
@@ -349,11 +423,21 @@
   ],
   "activity_groupUploads": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
       "match": {
-        "person=self": "You added photos to {name}",
-        "person=*": "{actor} added photos to {name}"
+        "person=self,owner=self,media=photo": "You added photos to your ascent of {name}",
+        "person=self,owner=self,media=video": "You added videos to your ascent of {name}",
+        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
+        "person=self,owner=*,media=photo": "You added photos to {name}",
+        "person=self,owner=*,media=video": "You added videos to {name}",
+        "person=self,owner=*,media=*": "You added media to {name}",
+        "person=*,owner=self,media=photo": "{actor} added photos to their ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} added videos to their ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} added photos to {name}",
+        "person=*,owner=*,media=video": "{actor} added videos to {name}",
+        "person=*,owner=*,media=*": "{actor} added media to {name}"
       }
     }
   ],
@@ -381,11 +465,15 @@
   ],
   "activity_routeDeletedFile": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
       "match": {
-        "person=self": "You removed a photo from {name}",
-        "person=*": "{actor} removed a photo from {name}"
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
       }
     }
   ],
@@ -492,11 +580,15 @@
   ],
   "activity_summaryFiles": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": ["input count", "input media", "local countPlural = count: plural"],
+      "selectors": ["media", "countPlural"],
       "match": {
-        "countPlural=one": "{count} photo",
-        "countPlural=other": "{count} photos"
+        "media=photo,countPlural=one": "{count} photo",
+        "media=photo,countPlural=other": "{count} photos",
+        "media=video,countPlural=one": "{count} video",
+        "media=video,countPlural=other": "{count} videos",
+        "media=*,countPlural=one": "{count} file",
+        "media=*,countPlural=other": "{count} files"
       }
     }
   ],
@@ -829,11 +921,11 @@
   "common_filter": "Filter",
   "common_location": "Location",
   "common_me": "Me",
+  "common_media": "Media",
   "common_more": "More",
   "common_next": "Next",
   "common_ok": "OK",
   "common_person": "Person",
-  "common_photo": "Photo",
   "common_playVideo": "Play video",
   "common_recommended": "Recommended",
   "common_remove": "Remove",
@@ -1082,6 +1174,7 @@
   "media_delete": "Delete media",
   "media_deleteConfirm": "This permanently deletes the file. This cannot be undone.",
   "media_deleted": "Media deleted",
+  "media_editSource": "Edit source",
   "media_loading": "Loading",
   "media_mute": "Mute",
   "media_next": "Next",

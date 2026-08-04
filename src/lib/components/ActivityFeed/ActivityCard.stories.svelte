@@ -23,6 +23,7 @@
   const burst = pick((group) => group.kind === 'burst')
   const topo = pick((group) => group.activities[0].columnName === 'topo')
   const uploads = pick((group) => group.kind === 'upload')
+  const videoSource = pick((group) => group.activities[0].columnName === 'source')
   const newArea = pick((group) => group.activities[0].entityType === 'area')
   const gradeChange = pick((group) => group.activities[0].columnName === 'gradeFk' && group.kind === 'single')
   const photoRemoved = pick((group) => group.activities[0].columnName === 'file')
@@ -31,7 +32,7 @@
   const unsynced = pick((group) => group.activities[0].entityId === '9099')
 
   /** The card view for a group of the sample week, seen as the signed-in climber. */
-  const mine = (group: (typeof week)[number]) => view(group, entities, ME)
+  const mine = (group: (typeof week)[number]) => view(group, entities, ME, sampleWeek.topos)
 
   /**
    * Every field of {@link ActivityCardView} and the part of the card it comes out as. A
@@ -124,6 +125,11 @@
 
 <!-- Five photos from one submit as one card, not five: the rows agree on the block. -->
 <Story name="Photo upload" args={{ view: mine(uploads) }} {template} />
+
+<!-- A reposted clip's credit corrected. Points at the file like an upload does, so the card
+     draws the clip and names the route, but stays its own card instead of joining one.
+     Expand for the old and new host. -->
+<Story name="Video source" args={{ view: mine(videoSource) }} {template} />
 
 <Story name="Topo redraw" args={{ view: mine(topo) }} {template} />
 

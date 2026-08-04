@@ -1,5 +1,7 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
+import { diffTopoLines, parseTopoChange, type TopoChange, type TopoLineDiff } from '$lib/entities/topo/change'
+import type { TopoView } from '$lib/entities/topo/dto'
 import type { MessageKey } from '$lib/i18n/message'
 import type { ActivityListItem } from './dto'
 import {
@@ -71,18 +73,39 @@ export interface ActivityCardView {
 export interface ActivityChange {
   activity: ActivityListItem
   field: ActivityField
+  /** What a topo row changed, decoded once here so the change list stays markup over a
+   *  decided view, like every other renderer. Absent for a row that named no topo change:
+   *  every one written before `metadata` existed, which renders as vaguely as it always did. */
+  topo?: ActivityTopoChange
 }
 
 export interface ActivityHeadline {
   /** The sentence to render, straight out of the verb catalogue. */
   key: MessageKey
-  params: { owner: 'other' | 'self'; person: 'other' | 'self' }
+  params: { media: ActivityMedia; owner: 'none' | 'other' | 'self'; person: 'other' | 'self' }
 }
+
+/**
+ * Which word a sentence about media uses. `none` covers three cases that all have to read
+ * the same way: nothing has synced yet, the file is gone, and a submit that mixed the two,
+ * where neither "photo" nor "video" is true of the card.
+ */
+export type ActivityMedia = 'none' | 'photo' | 'video'
 
 /** A piece of a composed line: a message to resolve, or text that is already a name. */
 export type ActivityMessagePart =
   | { key: MessageKey; params?: Record<string, unknown>; text?: never }
   | { key?: never; text: string }
+
+export interface ActivityTopoChange {
+  /** Which of the five topo edits it was, and which photo it happened on. */
+  change: TopoChange
+  /** What the redraw drew, moved and erased, plus the state it left behind. Empty on the
+   *  four photo actions, which carry no before/after pair. */
+  lines: TopoLineDiff
+  /** The photo itself, when it is still there to draw. */
+  view: TopoView | undefined
+}
 
 /**
  * Fold a group into what its card renders.
@@ -94,6 +117,7 @@ export function activityCard(
   group: ActivityGroup,
   entities: ActivityEntityMap | undefined,
   currentUserFk: number | undefined,
+  topos?: ReadonlyMap<number, TopoView>,
 ): ActivityCardView {
   const newest = group.activities[0]
   const refs = activityEntityRefs(group.activities)
@@ -123,27 +147,60 @@ export function activityCard(
     entityName == null && nameRefs.length > 0 && nameRefs.every((ref) => entityOf(ref) !== undefined)
 
   // Whose ascent the card is about. A region maintainer may edit anyone's, so "an ascent"
-  // would leave the reader guessing. Unknown counts as somebody else's: claiming it was
-  // their own would be a lie, while an unresolved name renders as the same placeholder
-  // every other slot uses.
-  const climber = entityOf(refs[0])
-  const owner = climber?.climberFk != null && climber.climberFk === newest.userFk ? 'self' : 'other'
+  // would leave the reader guessing. The parent is a candidate as well as the subject: an
+  // upload points at the file, so the ascent it landed on is only ever the parent, and
+  // without it the card says "added a video to Karma" for something added to an ascent.
+  //
+  // `none` where no ascent is in play at all, which is what lets one sentence cover both
+  // ("added a photo to your ascent of X" / "added a photo to X"). An ascent that has not
+  // hydrated is `none` too, and reads as the same somebody-else's wording it always did,
+  // since every ascent sentence catches the rest with `owner=*`.
+  const climber = [refs[0], place].map(entityOf).find((entity) => entity?.climberFk != null)
+  const owner = climber == null ? 'none' : climber.climberFk === newest.userFk ? 'self' : 'other'
   const mine = currentUserFk != null && group.userFk === currentUserFk
+
+  const files = refs.flatMap((ref) => entityOf(ref)?.files ?? [])
+  // Photo or video. An upload reads it off the hydrated file rather than the row, which only
+  // records that a file was added: reading the row would leave every upload logged before
+  // this saying "photo". The word settles when the file syncs, alongside the name beside it.
+  // A removal has no file left to read and so carries the word itself (see `deleteFile`).
+  const kinds = new Set(files.map((file): ActivityMedia => (file.bunnyStreamFk == null ? 'photo' : 'video')))
+  const media = newest.columnName === 'file' ? storedMedia(newest.oldValue) : kinds.size === 1 ? [...kinds][0] : 'none'
 
   return {
     actorName: newest.userName,
     changes: group.activities.flatMap((activity) => {
       const field = activityEntry(activity)?.field
-      return field == null ? [] : [{ activity, field }]
+      if (field == null) {
+        return []
+      }
+
+      // A removed photo resolves to no view on purpose: the row it points at is gone, and
+      // so is the image behind it. The change line says so instead of drawing it.
+      const change = parseTopoChange(activity.metadata)
+      return [
+        {
+          activity,
+          field,
+          topo:
+            change == null
+              ? undefined
+              : {
+                  change,
+                  lines: diffTopoLines(activity.oldValue, activity.newValue),
+                  view: change.topoId == null ? undefined : topos?.get(change.topoId),
+                },
+        },
+      ]
     }),
     climberName: climber?.climberName,
     createdAt: group.createdAt,
     entityName,
     entityUnnamed,
-    files: refs.flatMap((ref) => entityOf(ref)?.files ?? []),
+    files,
     headline: {
       key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group),
-      params: { owner, person: mine ? 'self' : 'other' },
+      params: { media, owner, person: mine ? 'self' : 'other' },
     },
     id: group.id,
     mine,
@@ -163,8 +220,16 @@ export function activityCard(
     // Declared on the entry, so the cast is reachable only for the four rows that really do
     // store an ascent type in `newValue`.
     status: activityEntry(newest)?.status === 'ascentType' ? (newest.newValue as AscentType | undefined) : undefined,
-    summary: summaryParts(group, placeName),
+    summary: summaryParts(group, placeName, media),
   }
+}
+
+/**
+ * The word a removal row stored for the file it removed, or `none` for one written before
+ * they did. Exported for the change list, which says the same thing under the headline.
+ */
+export function storedMedia(value: null | string | undefined): ActivityMedia {
+  return value === 'photo' || value === 'video' ? value : 'none'
 }
 
 /** The activity in `activities` that points at `ref`, which is where its name is stashed. */
@@ -253,7 +318,11 @@ function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef |
 }
 
 /** The sub line under a grouped card's headline. A single card has none. */
-function summaryParts(group: ActivityGroup, placeName: string | undefined): ActivityMessagePart[] | undefined {
+function summaryParts(
+  group: ActivityGroup,
+  placeName: string | undefined,
+  media: ActivityMedia,
+): ActivityMessagePart[] | undefined {
   if (group.kind === 'single') {
     return undefined
   }
@@ -268,7 +337,10 @@ function summaryParts(group: ActivityGroup, placeName: string | undefined): Acti
           ? 'activity_summaryRemovals'
           : 'activity_summaryEdits'
 
-  const parts: ActivityMessagePart[] = [{ key: countKey, params: { count } }]
+  // Only the file count says what it counted; the other three count one thing each.
+  const parts: ActivityMessagePart[] = [
+    { key: countKey, params: group.kind === 'upload' ? { count, media } : { count } },
+  ]
 
   // The edits headline already names the place; a session's and a removal's do not.
   if ((group.kind === 'session' || group.kind === 'removal') && placeName != null) {

@@ -286,7 +286,7 @@ describe('person and owner', () => {
     expect(card([activity({ userFk: 7 })]).headline.params.person).toBe('other')
   })
 
-  it('says whose ascent it is, and treats unknown as somebody else s', () => {
+  it('says whose ascent it is, and says nothing about one it cannot resolve', () => {
     const rows = [activity({ entityId: '9', entityType: 'ascent', userFk: 7 })]
     const own = entityMap([
       [
@@ -303,7 +303,36 @@ describe('person and owner', () => {
 
     expect(card(rows, own).headline.params.owner).toBe('self')
     expect(card(rows, theirs).headline.params.owner).toBe('other')
-    expect(card(rows).headline.params.owner).toBe('other')
+    // Every ascent sentence catches this with `owner=*`, the same arm `other` reads.
+    expect(card(rows).headline.params.owner).toBe('none')
+  })
+
+  it('reads whose ascent an upload landed on off the parent', () => {
+    // The row points at the file, so the ascent is only ever the parent. Without it the card
+    // says "added a video to Karma" for something added to a climber's own ascent of it.
+    const rows = [
+      activity({
+        entityId: 'f1',
+        entityType: 'file',
+        parentEntityId: '9',
+        parentEntityType: 'ascent',
+        type: 'uploaded',
+        userFk: 7,
+      }),
+    ]
+    const entities = entityMap([
+      [
+        { id: '9', type: 'ascent' },
+        { climberFk: 7, name: 'Karma', row: 'route' },
+      ],
+      [
+        { id: 'f1', type: 'file' },
+        { files: [{ bunnyStreamFk: 'guid', id: 'f1' } as never], name: '', row: 'none' },
+      ],
+    ])
+
+    expect(card(rows, entities).headline.params.owner).toBe('self')
+    expect(card(rows, entities).entityName).toBe('Karma')
   })
 })
 
@@ -342,8 +371,35 @@ describe('uploads', () => {
     const view = card(rows, block)
 
     expect(view.headline.key).toBe('activity_groupUploads')
-    expect(view.summary).toEqual([{ key: 'activity_summaryFiles', params: { count: 3 } }])
+    expect(view.summary).toEqual([{ key: 'activity_summaryFiles', params: { count: 3, media: 'none' } }])
     expect(view.entityName).toBe('Nordblock')
+  })
+
+  it('says which kind of media landed, and neither word for a mixed submit', () => {
+    // Off the hydrated file rather than the row: the row records that a file was added and
+    // nothing about what it was, so every upload logged before this would read as a photo.
+    const file = (id: string, video: boolean): [{ id: string; type: 'file' }, ActivityEntity] => [
+      { id, type: 'file' },
+      { files: [{ bunnyStreamFk: video ? 'guid' : undefined, id } as never], name: '', row: 'none' },
+    ]
+    const rows = [1, 2].map((n) => upload({ createdAt: 60_000 * n, entityId: `f${n}`, id: n }))
+    const mediaOf = (entries: Parameters<typeof entityMap>[0]) => card(rows, entityMap(entries)).headline.params.media
+
+    expect(mediaOf([file('f1', true), file('f2', true)])).toBe('video')
+    expect(mediaOf([file('f1', false), file('f2', false)])).toBe('photo')
+    expect(mediaOf([file('f1', true), file('f2', false)])).toBe('none')
+    expect(mediaOf([])).toBe('none')
+  })
+
+  it('takes a removal s word off the row, since the file it named is gone', () => {
+    const removal = (oldValue: string | undefined) =>
+      card([activity({ columnName: 'file', entityId: '9', entityType: 'ascent', oldValue, type: 'deleted' })]).headline
+        .params.media
+
+    expect(removal('video')).toBe('video')
+    expect(removal('photo')).toBe('photo')
+    // Written before the word was stored. Still true, just vaguer.
+    expect(removal(undefined)).toBe('none')
   })
 
   it('renders no entity row for a file, only its media', () => {

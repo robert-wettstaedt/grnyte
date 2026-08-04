@@ -1,17 +1,31 @@
 import type * as schema from '$lib/db/schema'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it } from 'vitest'
-import { activityFilterConditions, insertActivity, type ActivityInput } from './activity.server'
+import { activityFilterConditions, createUpdateActivity, insertActivity, type ActivityInput } from './activity.server'
 
-/** Fake db capturing delete/insert calls — debounce deletes duplicates before inserting. */
-const fakeDb = () => {
-  const calls = { deletes: 0, inserted: null as null | schema.InsertActivity[] }
+/**
+ * Fake db capturing delete/insert/update calls. The debounce deletes duplicates before
+ * inserting, and `createUpdateActivity` folds into whatever `existing` hands back.
+ *
+ * Deletes are counted rather than identified: only the fold-back branch deletes, so a count
+ * says which branch ran without the fake having to read drizzle's `where`.
+ */
+const fakeDb = (existing: Partial<schema.Activity>[] = []) => {
+  const calls = {
+    deletes: 0,
+    inserted: null as null | schema.InsertActivity[],
+    updates: [] as Record<string, unknown>[],
+  }
   const db = {
     delete: () => ({ where: async () => void calls.deletes++ }),
     insert: () => ({
       values: async (v: schema.InsertActivity[]) => {
         calls.inserted = v
       },
+    }),
+    query: { activities: { findMany: async () => existing } },
+    update: () => ({
+      set: (values: Record<string, unknown>) => ({ where: async () => void calls.updates.push(values) }),
     }),
   } as unknown as PostgresJsDatabase<typeof schema>
   return { calls, db }
@@ -90,6 +104,72 @@ describe('insertActivity', () => {
       row({ entityId: 'cuid' }),
       row({ entityId: '8' }),
     ])
+  })
+})
+
+describe('createUpdateActivity', () => {
+  /** A row the same user wrote minutes ago, which is what a second save folds into. */
+  const open = (over: Partial<schema.Activity> = {}): Partial<schema.Activity> => ({
+    columnName: 'location',
+    id: 1,
+    metadata: null,
+    oldValue: 'A',
+    type: 'updated',
+    ...over,
+  })
+
+  const move = (db: PostgresJsDatabase<typeof schema>, from: string, to: string, metadata?: string) =>
+    createUpdateActivity({
+      db,
+      entityId: 42,
+      entityType: 'block',
+      metadata,
+      newEntity: { location: to },
+      oldEntity: { location: from },
+      regionFk: 1,
+      userFk: 1,
+    })
+
+  it('folds a second edit into the row the first one wrote', async () => {
+    const { calls, db } = fakeDb([open()])
+    // A→B is already logged; B→C has to leave one row reading A→C, not a second card for a
+    // state the crag was never left in.
+    await move(db, 'B', 'C')
+
+    expect(calls.updates).toEqual([{ createdAt: expect.any(Date), newValue: 'C' }])
+    expect(calls.inserted).toBeNull()
+  })
+
+  it('deletes the row when the edit folds back to where it started', async () => {
+    const { calls, db } = fakeDb([open()])
+    await move(db, 'B', 'A')
+
+    // "A → A" is not a change, and the location renderer would read it as a confirmed pin.
+    expect(calls.deletes).toBe(1)
+    expect(calls.updates).toEqual([])
+    expect(calls.inserted).toBeNull()
+  })
+
+  const PHOTO_1 = '{"action":"lines","topoId":1}'
+  const PHOTO_2 = '{"action":"lines","topoId":2}'
+
+  it('keeps rows about different things apart', async () => {
+    const { calls, db } = fakeDb([open({ metadata: PHOTO_1 })])
+    // Same block, same column, same minute, other photo: two changes, not one. Only the
+    // metadata differs, so dropping that half of the predicate fails here rather than
+    // quietly folding two unrelated photo edits into one A→C row.
+    await move(db, 'B', 'C', PHOTO_2)
+
+    expect(calls.updates).toEqual([])
+    expect(calls.inserted).toEqual([row({ columnName: 'location', metadata: PHOTO_2, newValue: 'C', oldValue: 'B' })])
+  })
+
+  it('folds two saves on one photo', async () => {
+    const { calls, db } = fakeDb([open({ metadata: PHOTO_1 })])
+    await move(db, 'B', 'C', PHOTO_1)
+
+    expect(calls.updates).toEqual([{ createdAt: expect.any(Date), newValue: 'C' }])
+    expect(calls.inserted).toBeNull()
   })
 })
 

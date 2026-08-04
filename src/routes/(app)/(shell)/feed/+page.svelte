@@ -14,6 +14,7 @@
   import { activityList } from '$lib/entities/activity/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { SvelteSet } from 'svelte/reactivity'
 
   const global = getGlobalState()
 
@@ -34,7 +35,18 @@
   const newCount = $derived(incoming.data.length)
 
   const groups = $derived(groupActivities(activities.data))
-  const hydration = activityEntities(() => activities.data)
+
+  // Which cards are open, and with them the only rows worth fetching a topo photo for: the
+  // change list behind the toggle is the one thing that draws one.
+  const expandedIds = new SvelteSet<string>()
+  const expandedActivities = $derived(
+    groups.filter((group) => expandedIds.has(group.id)).flatMap((group) => group.activities),
+  )
+
+  const hydration = activityEntities(
+    () => activities.data,
+    () => expandedActivities,
+  )
 
   // Zero hands back at most `limit` rows, so a full window is the only signal that there
   // are older ones. A window that comes back short is the end of the log.
@@ -64,11 +76,13 @@
       <ActivityFeed
         currentUserFk={global.user?.id}
         entities={hydration.entities}
+        {expandedIds}
         {groups}
         {hasMore}
         {newCount}
         onLoadOlder={() => (limit += PAGE_SIZE)}
         onMergeNew={acknowledge}
+        topos={hydration.topos}
       />
     {/snippet}
 

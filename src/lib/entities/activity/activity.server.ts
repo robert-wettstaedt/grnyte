@@ -48,7 +48,7 @@ type DiffEntity<E extends ActivityEntityType> = [DeclaredColumn<E>] extends [nev
 
 interface HandleOpts<E extends ActivityEntityType> extends Pick<
   schema.InsertActivity,
-  'parentEntityType' | 'regionFk' | 'userFk'
+  'metadata' | 'parentEntityType' | 'regionFk' | 'userFk'
 > {
   db: PostgresJsDatabase<typeof schema>
   entityId: ActivityId
@@ -67,6 +67,7 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
   db,
   entityId: rawEntityId,
   entityType,
+  metadata,
   newEntity,
   oldEntity,
   parentEntityId: rawParentEntityId,
@@ -103,9 +104,15 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
     ),
   })
 
+  // A second edit of the same column folds into the row the first one wrote: its `oldValue`
+  // stays and the newer `newValue` lands on it, so A→B followed by B→C reads as A→C. The
+  // intermediate B is nobody's business - it was never a state the crag was left in.
+  //
+  // `metadata` scopes the fold. It holds what a change is ABOUT rather than what it changed
+  // (a topo row names the photo there), and two photos of one block are two changes, not one.
   await Promise.all(
     existingActivities
-      .filter((activity) => activity.type === 'updated')
+      .filter((activity) => activity.type === 'updated' && (activity.metadata ?? null) === (metadata ?? null))
       .map(async (activity) => {
         const change = changes.find((change) => change.columnName === activity.columnName)
 
@@ -114,6 +121,13 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
         }
 
         changes.splice(changes.indexOf(change), 1)
+
+        // Folded back to where it started: a pin nudged and nudged back, a line redrawn and
+        // undone. There is no change left to report, and a row that kept its own start and
+        // end would report one ("A → A", which the location renderer reads as "confirmed").
+        if (change.newValue === activity.oldValue) {
+          return db.delete(schema.activities).where(eq(schema.activities.id, activity.id))
+        }
 
         return db
           .update(schema.activities)
@@ -133,6 +147,7 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
           columnName: change.columnName,
           entityId,
           entityType,
+          metadata,
           newValue: change.newValue,
           oldValue: change.oldValue,
           parentEntityId,

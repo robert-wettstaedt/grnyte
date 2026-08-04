@@ -172,6 +172,25 @@ describe('groupActivities', () => {
     expect(groups.map((group) => group.kind)).toEqual(['upload', 'burst'])
   })
 
+  it('keeps a video source edit out of the upload card it shares a parent with', () => {
+    // Same actor, same route, same minute, and the source row points at a file like the
+    // uploads do. Folded in, an edited credit would read as "added 3 photos" and vanish.
+    const groups = groupActivities([
+      upload({ createdAt: day(1, 12), entityId: 'file-1' }),
+      upload({ createdAt: day(1, 12) - MINUTE, entityId: 'file-2' }),
+      activity({
+        columnName: 'source',
+        createdAt: day(1, 12) - 2 * MINUTE,
+        entityId: 'file-1',
+        entityType: 'file',
+        ...underBlock,
+      }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['upload', 'single'])
+    expect(groups[1].activities.map((a) => a.columnName)).toEqual(['source'])
+  })
+
   it('separates uploads by the entity they landed on', () => {
     const groups = groupActivities([
       upload({ createdAt: day(1, 12), entityId: 'file-1' }),

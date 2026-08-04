@@ -27,13 +27,16 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { now } from '$lib/state/now.svelte'
+  import { slide } from 'svelte/transition'
   import ActivityChanges from './ActivityChanges.svelte'
 
   interface Props {
+    /** Told when the changes open or close, so the page can sync what only they render. */
+    onToggle?: (expanded: boolean) => void
     view: ActivityCardView
   }
 
-  const { view }: Props = $props()
+  const { onToggle, view }: Props = $props()
 
   const global = getGlobalState()
 
@@ -42,7 +45,9 @@
     area: 'common_area',
     ascent: 'common_ascent',
     block: 'common_block',
-    file: 'common_photo',
+    // Neutral: the row is a tombstone because the file is gone, so nothing is left to say
+    // whether it was a photo or a video.
+    file: 'common_media',
     route: 'common_route',
     user: 'common_person',
   }
@@ -207,14 +212,16 @@
       type="button"
       class="text-surface-600-400 hover:text-surface-950-50 flex items-center gap-1 text-xs font-semibold"
       aria-expanded={expanded}
-      onclick={() => (expanded = !expanded)}
+      onclick={() => onToggle?.((expanded = !expanded))}
     >
       <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} />
       {expanded ? m.activity_hideChanges() : m.activity_showChanges()}
     </button>
 
     {#if expanded}
-      <ActivityChanges changes={view.changes} />
+      <div transition:slide={{ duration: 150 }}>
+        <ActivityChanges changes={view.changes} />
+      </div>
     {/if}
   {/if}
 </article>

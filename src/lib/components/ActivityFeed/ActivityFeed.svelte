@@ -10,10 +10,12 @@
   import { activityCard } from '$lib/entities/activity/card'
   import type { ActivityEntityMap } from '$lib/entities/activity/entity'
   import type { ActivityGroup } from '$lib/entities/activity/grouping'
+  import type { TopoView } from '$lib/entities/topo/dto'
   import { formatDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
+  import { SvelteSet } from 'svelte/reactivity'
   import ActivityCard from './ActivityCard.svelte'
 
   interface Props {
@@ -21,6 +23,12 @@
     currentUserFk?: number
     /** Hydrated entities keyed by `activityEntityKey`, shared by every card. */
     entities?: ActivityEntityMap
+    /**
+     * Ids of the cards whose changes are open. Passed in (and mutated in place) rather than
+     * kept per card, because the page fetches what only an open card renders. A caller that
+     * does not care leaves it alone and gets a set of its own.
+     */
+    expandedIds?: SvelteSet<string>
     /** Newest first, already folded by `groupActivities`. */
     groups: readonly ActivityGroup[]
     /** Whether the sync window can still grow. */
@@ -30,9 +38,21 @@
     newCount?: number
     onLoadOlder?: () => void
     onMergeNew?: () => void
+    /** Topo photos by `topos.id`, for the rows that changed one. */
+    topos?: ReadonlyMap<number, TopoView>
   }
 
-  const { currentUserFk, entities, groups, hasMore = false, newCount = 0, onLoadOlder, onMergeNew }: Props = $props()
+  const {
+    currentUserFk,
+    entities,
+    expandedIds = new SvelteSet<string>(),
+    groups,
+    hasMore = false,
+    newCount = 0,
+    onLoadOlder,
+    onMergeNew,
+    topos,
+  }: Props = $props()
 
   /**
    * `createdAt` is a moment, but a divider labels a calendar day. Take the local
@@ -46,7 +66,7 @@
 
   // Decided once per group and handed down, so a card is markup and the lightbox below
   // reads the same files the cards show rather than walking the hydration map again.
-  const views = $derived(groups.map((group) => activityCard(group, entities, currentUserFk)))
+  const views = $derived(groups.map((group) => activityCard(group, entities, currentUserFk, topos)))
 
   // A divider goes above the first card of each day, so the list stays one flat sequence
   // rather than nested per-day arrays (which would break the "N new" merge at a boundary).
@@ -79,7 +99,7 @@
       </h2>
     {/if}
 
-    <ActivityCard {view} />
+    <ActivityCard {view} onToggle={(open) => (open ? expandedIds.add(view.id) : expandedIds.delete(view.id))} />
   {/each}
 
   {#if hasMore}

@@ -121,8 +121,12 @@ function kindOf(activity: ActivityListItem): ActivityGroupKind {
   // An upload row points at the FILE and names what it was attached to as its parent, so it
   // groups on that parent. Without this it would key on the file's own id, which is unique
   // per file, and a submit of five photos would render as five cards.
+  //
+  // Only the uploads: a file row that edits a column (a video's source) is housekeeping on one
+  // clip, and grouping it by parent would fold it into "added 5 photos to Nordblock", where a
+  // reader would have to unpick the card to notice it at all.
   if (activity.entityType === 'file') {
-    return 'upload'
+    return activity.type === 'uploaded' ? 'upload' : 'entity'
   }
 
   // A photo added to or pulled off an ascent is media housekeeping, not an ascent: keeping it

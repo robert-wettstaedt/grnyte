@@ -13,6 +13,8 @@ import {
 } from '$lib/entities/activity/entity'
 import { groupActivities, type ActivityGroup } from '$lib/entities/activity/grouping'
 import type { MediaFile } from '$lib/entities/file/dto'
+import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from '$lib/entities/topo/change'
+import type { TopoView } from '$lib/entities/topo/dto'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -60,8 +62,8 @@ export function activity(
  * set that grouping would otherwise split. Runs the real `activityCard`, so a story cannot
  * drift from what a card actually renders.
  */
-export function changes(activities: ActivityListItem[]): ActivityChange[] {
-  return activities.flatMap((activity) => view(groupActivities([activity])[0]).changes)
+export function changes(activities: ActivityListItem[], topos?: ReadonlyMap<number, TopoView>): ActivityChange[] {
+  return activities.flatMap((activity) => view(groupActivities([activity])[0], undefined, undefined, topos).changes)
 }
 
 /** The map the feed hands cards: an absent key is still syncing, an explicit null is gone. */
@@ -90,9 +92,63 @@ export function photo(id: string): MediaFile {
   }
 }
 
+/** The lines on a topo, as the writers encode them onto the row's old/new pair. */
+export function topoLines(lines: readonly { name: string; routeFk: number }[], moved = false): string {
+  return stringifyTopoLines(
+    lines.map((line) => ({ ...line, path: moved ? 'M0.4,0.9 L0.5,0.2' : 'M0.2,0.9 L0.3,0.2', topType: 'top' })),
+  )
+}
+
+/** What a topo row says about itself: which of the five edits it was, and on which photo. */
+export function topoMetadata(action: TopoAction, topoId?: number): string {
+  return stringifyTopoChange({ action, topoId })
+}
+
+/** The photo a topo change row renders, with two lines drawn on it. */
+export function topos(id = 700): Map<number, TopoView> {
+  const line = (lineId: number, name: string, gradeFk: number, x: number) => ({
+    gradeFk,
+    id: lineId,
+    name,
+    points: [
+      { id: `${lineId}-start`, type: 'start' as const, x, y: 0.88 },
+      { id: `${lineId}-mid`, type: 'middle' as const, x: x + 0.04, y: 0.5 },
+      { id: `${lineId}-top`, type: 'top' as const, x: x + 0.02, y: 0.12 },
+    ],
+    routeId: lineId,
+    topType: 'top' as const,
+  })
+
+  return new Map([
+    [
+      id,
+      {
+        id,
+        imageHeight: 900,
+        imagePath: 'topo-sample.svg',
+        imageWidth: 1200,
+        lines: [line(501, 'Kante direkt', 11, 0.3), line(502, 'Rampe', 15, 0.6)],
+      },
+    ],
+  ])
+}
+
+/**
+ * A beta clip. Storybook has no Bunny to fetch a still from, so the tile renders the same
+ * play placeholder a video still encoding does, which is what the card shows there too.
+ */
+export function video(id: string, source?: string): MediaFile {
+  return { ...photo(id), bunnyStreamFk: `bunny-${id}`, path: '', source }
+}
+
 /** What a card says about a group, decided by the same function the feed calls. */
-export function view(group: ActivityGroup, entities?: ActivityEntityMap, currentUserFk?: number): ActivityCardView {
-  return activityCard(group, entities, currentUserFk)
+export function view(
+  group: ActivityGroup,
+  entities?: ActivityEntityMap,
+  currentUserFk?: number,
+  topoViews?: ReadonlyMap<number, TopoView>,
+): ActivityCardView {
+  return activityCard(group, entities, currentUserFk, topoViews)
 }
 
 /** An ascent's route row, plus whose ascent it is (so the headline can say). */
@@ -118,7 +174,11 @@ const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try
  * burst, a topo redraw, a new area, a grade change, a removed photo, a deleted route
  * (tombstone), a role grant and an ascent that has not hydrated yet (skeleton).
  */
-export const sampleWeek: { activities: ActivityListItem[]; entities: Map<string, ActivityEntity | null> } = (() => {
+export const sampleWeek: {
+  activities: ActivityListItem[]
+  entities: Map<string, ActivityEntity | null>
+  topos: Map<number, TopoView>
+} = (() => {
   const activities: ActivityListItem[] = [
     // Flash, with the ascent's photos and notes.
     activity(12, { entityId: '9001', entityType: 'ascent', newValue: 'flash', type: 'created', userFk: 2 }),
@@ -172,9 +232,29 @@ export const sampleWeek: { activities: ActivityListItem[]; entities: Map<string,
       columnName: 'topo',
       entityId: '400',
       entityType: 'block',
+      metadata: topoMetadata('lines', 700),
+      newValue: topoLines([
+        { name: 'Kante direkt', routeFk: 501 },
+        { name: 'Rampe', routeFk: 502 },
+      ]),
+      oldValue: topoLines([{ name: 'Kante direkt', routeFk: 501 }]),
       parentEntityId: '300',
       parentEntityType: 'area',
       userFk: 5,
+    }),
+
+    // A reposted beta clip credited to the wrong site, fixed after the fact. Points at the
+    // file (so the card draws the clip) and names the route it hangs on as its parent, the
+    // way an upload does, but stays its own card rather than joining one.
+    activity(400, {
+      columnName: 'source',
+      entityId: 'f-vid-1',
+      entityType: 'file',
+      newValue: 'https://vimeo.com/912345',
+      oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      parentEntityId: '501',
+      parentEntityType: 'route',
+      userFk: 2,
     }),
 
     // Yesterday.
@@ -238,6 +318,12 @@ export const sampleWeek: { activities: ActivityListItem[]; entities: Map<string,
       { id: '300', type: 'area' },
       { description: 'Old quarry, shady until noon.', href: '#', name: 'Steinbruch', row: 'area' },
     ],
+    // The clip whose credit was fixed. Like an upload it contributes the media and no row of
+    // its own; the headline names the route, hydrated as its parent.
+    [
+      { id: 'f-vid-1', type: 'file' },
+      { files: [video('vid-1', 'https://vimeo.com/912345')], name: 'Riss', row: 'none' },
+    ],
     [{ id: '501', type: 'route' }, route('Riss', 15)],
     [{ id: '502', type: 'route' }, route('Dach', 14)],
     // Hydration finished without it: the route is gone.
@@ -248,5 +334,5 @@ export const sampleWeek: { activities: ActivityListItem[]; entities: Map<string,
     ],
   ])
 
-  return { activities, entities }
+  return { activities, entities, topos: topos() }
 })()

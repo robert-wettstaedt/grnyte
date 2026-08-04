@@ -13,6 +13,7 @@
   import { panzoom } from '$lib/components/Topo/panzoom'
   import AscentType from '$lib/entities/ascent/AscentType.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
+  import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
@@ -148,14 +149,7 @@
 
   // Legacy rows can hold a non-URL source (the z.url() validation arrived later);
   // render the credit only when it parses instead of crashing the whole stage.
-  const sourceHost = $derived.by(() => {
-    if (!file.source) return undefined
-    try {
-      return new URL(file.source).hostname
-    } catch {
-      return undefined
-    }
-  })
+  const host = $derived(sourceHost(file.source))
 
   const btn = 'btn preset-glass-neutral btn-lg h-12 w-12 shrink-0 px-0'
 </script>
@@ -357,10 +351,10 @@
         </Modal>
       {/if}
 
-      {#if sourceHost != null}
+      {#if host != null}
         <!-- eslint-disable svelte/no-navigation-without-resolve -- external origin URL, not an app route -->
         <a href={file.source} target="_blank" rel="noopener noreferrer" class="self-start text-sm underline opacity-80">
-          {m.media_source()}: {sourceHost}
+          {m.media_source()}: {host}
         </a>
         <!-- eslint-enable svelte/no-navigation-without-resolve -->
       {/if}

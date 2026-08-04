@@ -1,8 +1,8 @@
 import { command, getRequestEvent } from '$app/server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { bunnyStreams, files, type File } from '$lib/db/schema'
-import { insertActivity } from '$lib/entities/activity/activity.server'
+import { bunnyStreams, files, type BunnyStream, type File } from '$lib/db/schema'
+import { createUpdateActivity, insertActivity } from '$lib/entities/activity/activity.server'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
 import { authedCommand } from '$lib/remote/authed.server'
@@ -29,12 +29,38 @@ const entityFks = (type: FileEntityType, id: number) => ({
 })
 
 /**
+ * The entity a stored file hangs on: the inverse of {@link entityFks}, read back off the row.
+ * Every activity about a file names it, because the file's own id is a cuid and says nothing.
+ * `undefined` for an orphan row (all four FKs null), which the feed then simply cannot place.
+ */
+const fileParent = (
+  file: Pick<File, 'areaFk' | 'ascentFk' | 'blockFk' | 'routeFk'>,
+): undefined | { entityId: number; entityType: FileEntityType } =>
+  file.routeFk != null
+    ? { entityId: file.routeFk, entityType: 'route' }
+    : file.ascentFk != null
+      ? { entityId: file.ascentFk, entityType: 'ascent' }
+      : file.blockFk != null
+        ? { entityId: file.blockFk, entityType: 'block' }
+        : file.areaFk != null
+          ? { entityId: file.areaFk, entityType: 'area' }
+          : undefined
+
+/**
  * Log an upload. The row points at the FILE (`entityType: 'file'`) and names the entity it
  * was attached to as its parent, which is the opposite way round from the delete below,
  * where the file is gone by the time the feed reads it and only the parent is left to name.
  *
  * The parent is what the feed groups and titles on ("added photos to Nordblock"), so several
  * images from one submit fold into a single card rather than one card each.
+ *
+ * Blocks are the exception, and log nothing here: every image attached to a block is a topo
+ * image (the topo editor is the only caller that finalizes one), and the `createTopo` or
+ * `replaceTopoImage` that follows logs a row saying strictly more, naming the photo and the
+ * topo action and drawing the image with its lines. Both would otherwise reach the feed as
+ * two cards for one upload, and they cannot even merge: the file row groups on the block,
+ * the topo row on the block's area. Give a block a photo that is NOT a topo and this is what
+ * has to change.
  *
  * ponytail: one row per file. A submit finalizes each image separately anyway, so there is no
  * batch to collapse here. Upgrade = a count in `metadata` if the row volume ever bites.
@@ -43,15 +69,17 @@ const insertUploadActivity = (
   db: PostgresJsDatabase<typeof schema>,
   { entityId, entityType, fileId, regionFk, userFk }: UploadActivity,
 ) =>
-  insertActivity(db, {
-    entityId: fileId,
-    entityType: 'file',
-    parentEntityId: entityId,
-    parentEntityType: entityType,
-    regionFk,
-    type: 'uploaded',
-    userFk,
-  })
+  entityType === 'block'
+    ? undefined
+    : insertActivity(db, {
+        entityId: fileId,
+        entityType: 'file',
+        parentEntityId: entityId,
+        parentEntityType: entityType,
+        regionFk,
+        type: 'uploaded',
+        userFk,
+      })
 
 interface UploadActivity {
   entityId: number
@@ -234,6 +262,57 @@ export const setFileVisibility = authedCommand(
 )
 
 /**
+ * Change the origin URL credited on a video after the fact. It used to be fixed at
+ * finalize, so a typo or a missing credit was unfixable. Same gate as the visibility
+ * flip (`requireEditableFile`, stricter than the bunny_streams UPDATE RLS for ascent
+ * media); RLS is still the enforcement, so a swallowed update surfaces as a 403.
+ *
+ * The activity row points at the FILE and names the entity it hangs on as its parent, the
+ * same way an upload does: the card then draws the clip the credit is about, and the
+ * headline names something a reader recognises rather than a cuid.
+ */
+export const setVideoSource = authedCommand(
+  z.object({ fileId: z.string().min(1), source: z.url().max(500).nullable() }),
+  async ({ fileId, source }, { db, user, userRegions }): Promise<MutationResult<BunnyStream>> => {
+    const file = await requireEditableFile(db, userRegions, user.id, fileId)
+    if (file.bunnyStreamFk == null) {
+      error(400, 'Only videos carry a source')
+    }
+
+    // Read before writing: the diff needs the value being replaced, and `returning()` can
+    // only hand back the one that lands.
+    const before = await db.query.bunnyStreams.findFirst({
+      columns: { source: true },
+      where: eq(bunnyStreams.id, file.bunnyStreamFk),
+    })
+
+    const [updated] = await db
+      .update(bunnyStreams)
+      .set({ source })
+      .where(eq(bunnyStreams.id, file.bunnyStreamFk))
+      .returning()
+    if (updated == null) {
+      error(403, 'Not allowed to change this video')
+    }
+
+    const parent = fileParent(file)
+    await createUpdateActivity({
+      db,
+      entityId: file.id,
+      entityType: 'file',
+      newEntity: { source },
+      oldEntity: { source: before?.source ?? null },
+      parentEntityId: parent?.entityId,
+      parentEntityType: parent?.entityType,
+      regionFk: file.regionFk,
+      userFk: user.id,
+    })
+
+    return { data: updated }
+  },
+)
+
+/**
  * Delete one file (its DB row, its Nextcloud images, its Bunny video) from the media
  * viewer. Hand-wired like finalizeImage rather than authedCommand: the irreversible
  * storage removal must run only AFTER the DB delete commits, so a mid-transaction
@@ -277,15 +356,15 @@ export const deleteFile = command(
         error(403, 'Not allowed to delete this file')
       }
 
-      const entityId = file.routeFk ?? file.ascentFk ?? file.blockFk ?? file.areaFk
-      const entityType =
-        file.routeFk != null ? 'route' : file.ascentFk != null ? 'ascent' : file.blockFk != null ? 'block' : 'area'
-
-      if (entityId != null) {
+      const parent = fileParent(file)
+      if (parent != null) {
         await insertActivity(db, {
+          ...parent,
           columnName: 'file',
-          entityId,
-          entityType,
+          // Photo or video, stored because the row is all that will be left: an upload card
+          // reads the word off the file it points at, and by the time this one renders there
+          // is no file to read. A row from before this says "media", which is still true.
+          oldValue: file.bunnyStreamFk == null ? 'photo' : 'video',
           regionFk: file.regionFk,
           type: 'deleted',
           userFk: user.id,
