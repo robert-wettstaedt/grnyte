@@ -18,6 +18,7 @@ export type ChangeRenderer =
   | 'locationRemoved'
   | 'prose'
   | 'rating'
+  | 'role'
   | 'source'
   | 'tags'
   | 'text'
@@ -47,7 +48,9 @@ const FIELD = {
   parkingLocation: { icon: 'parking', labelKey: 'activity_fieldParkingLocation', renderer: 'location' },
   parkingLocationGone: { icon: 'parking', labelKey: 'activity_fieldParkingLocation', renderer: 'locationRemoved' },
   rating: { icon: 'star', labelKey: 'activity_fieldRating', renderer: 'rating' },
-  role: { icon: 'users-round', labelKey: 'activity_fieldRole', renderer: 'text' },
+  /** The stored value is the `region_*` enum member, which is a database detail. Its own
+   *  renderer so the chips read Admin, Maintainer and User like the member list does. */
+  role: { icon: 'users-round', labelKey: 'activity_fieldRole', renderer: 'role' },
   /** A video's origin URL. Its own renderer because the stored value is a whole URL and a
    *  reader only wants the host it was reposted from. */
   source: { icon: 'link', labelKey: 'activity_fieldSource', renderer: 'source' },

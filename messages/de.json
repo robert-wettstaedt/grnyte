@@ -140,9 +140,11 @@
       "selectors": ["person", "owner"],
       "match": {
         "person=self,owner=self": "Du hast deine Begehung von {name} entfernt",
-        "person=self,owner=*": "Du hast die Begehung von {climber} an {name} entfernt",
+        "person=self,owner=none": "Du hast eine Begehung von {name} entfernt",
+        "person=self,owner=*": "Du hast {climber}s Begehung von {name} entfernt",
         "person=*,owner=self": "{actor} hat die eigene Begehung von {name} entfernt",
-        "person=*,owner=*": "{actor} hat die Begehung von {climber} an {name} entfernt"
+        "person=*,owner=none": "{actor} hat eine Begehung von {name} entfernt",
+        "person=*,owner=*": "{actor} hat {climber}s Begehung von {name} entfernt"
       }
     }
   ],
@@ -151,18 +153,24 @@
       "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
       "selectors": ["person", "owner", "media"],
       "match": {
-        "person=self,owner=self,media=photo": "Du hast ein Foto von deiner Begehung von {name} entfernt",
-        "person=self,owner=self,media=video": "Du hast ein Video von deiner Begehung von {name} entfernt",
-        "person=self,owner=self,media=*": "Du hast Medien von deiner Begehung von {name} entfernt",
-        "person=self,owner=*,media=photo": "Du hast ein Foto von der Begehung von {climber} an {name} entfernt",
-        "person=self,owner=*,media=video": "Du hast ein Video von der Begehung von {climber} an {name} entfernt",
-        "person=self,owner=*,media=*": "Du hast Medien von der Begehung von {climber} an {name} entfernt",
-        "person=*,owner=self,media=photo": "{actor} hat ein Foto von der eigenen Begehung von {name} entfernt",
-        "person=*,owner=self,media=video": "{actor} hat ein Video von der eigenen Begehung von {name} entfernt",
-        "person=*,owner=self,media=*": "{actor} hat Medien von der eigenen Begehung von {name} entfernt",
-        "person=*,owner=*,media=photo": "{actor} hat ein Foto von der Begehung von {climber} an {name} entfernt",
-        "person=*,owner=*,media=video": "{actor} hat ein Video von der Begehung von {climber} an {name} entfernt",
-        "person=*,owner=*,media=*": "{actor} hat Medien von der Begehung von {climber} an {name} entfernt"
+        "person=self,owner=self,media=photo": "Du hast ein Foto aus deiner Begehung von {name} entfernt",
+        "person=self,owner=self,media=video": "Du hast ein Video aus deiner Begehung von {name} entfernt",
+        "person=self,owner=self,media=*": "Du hast Medien aus deiner Begehung von {name} entfernt",
+        "person=self,owner=none,media=photo": "Du hast ein Foto aus einer Begehung von {name} entfernt",
+        "person=self,owner=none,media=video": "Du hast ein Video aus einer Begehung von {name} entfernt",
+        "person=self,owner=none,media=*": "Du hast Medien aus einer Begehung von {name} entfernt",
+        "person=self,owner=*,media=photo": "Du hast ein Foto aus {climber}s Begehung von {name} entfernt",
+        "person=self,owner=*,media=video": "Du hast ein Video aus {climber}s Begehung von {name} entfernt",
+        "person=self,owner=*,media=*": "Du hast Medien aus {climber}s Begehung von {name} entfernt",
+        "person=*,owner=self,media=photo": "{actor} hat ein Foto aus der eigenen Begehung von {name} entfernt",
+        "person=*,owner=self,media=video": "{actor} hat ein Video aus der eigenen Begehung von {name} entfernt",
+        "person=*,owner=self,media=*": "{actor} hat Medien aus der eigenen Begehung von {name} entfernt",
+        "person=*,owner=none,media=photo": "{actor} hat ein Foto aus einer Begehung von {name} entfernt",
+        "person=*,owner=none,media=video": "{actor} hat ein Video aus einer Begehung von {name} entfernt",
+        "person=*,owner=none,media=*": "{actor} hat Medien aus einer Begehung von {name} entfernt",
+        "person=*,owner=*,media=photo": "{actor} hat ein Foto aus {climber}s Begehung von {name} entfernt",
+        "person=*,owner=*,media=video": "{actor} hat ein Video aus {climber}s Begehung von {name} entfernt",
+        "person=*,owner=*,media=*": "{actor} hat Medien aus {climber}s Begehung von {name} entfernt"
       }
     }
   ],
@@ -172,9 +180,11 @@
       "selectors": ["person", "owner"],
       "match": {
         "person=self,owner=self": "Du hast deine Begehung von {name} bearbeitet",
-        "person=self,owner=*": "Du hast die Begehung von {climber} an {name} bearbeitet",
+        "person=self,owner=none": "Du hast eine Begehung von {name} bearbeitet",
+        "person=self,owner=*": "Du hast {climber}s Begehung von {name} bearbeitet",
         "person=*,owner=self": "{actor} hat die eigene Begehung von {name} bearbeitet",
-        "person=*,owner=*": "{actor} hat die Begehung von {climber} an {name} bearbeitet"
+        "person=*,owner=none": "{actor} hat eine Begehung von {name} bearbeitet",
+        "person=*,owner=*": "{actor} hat {climber}s Begehung von {name} bearbeitet"
       }
     }
   ],

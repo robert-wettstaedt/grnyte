@@ -2062,7 +2062,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'route',
     expected:
-      'One burst card, "2 edits": oldValue differs, so neither row collapses the other. Two file lines, labelled Video and Photo.',
+      'One burst card, "2 edits": oldValue differs, so neither row collapses the other. Both rows are the same kind of change, so the headline speaks that verb rather than "edited", and the two rows disagree on the media word, so it reads "removed media from". Two file lines, labelled Video and Photo.',
     id: 'ROUTE-13d',
   },
   {
@@ -2715,7 +2715,7 @@ export const CASES: ActivityCase[] = [
     domain: 'ascent',
     entities: worldWith([[{ id: '9002', type: 'ascent' }, null]]),
     expected:
-      'Identical removal row, single card. The ascent is gone so hydration cannot resolve climberFk, owner degrades to none, and the headline renders the owner=* arm with a pulsing climber slot. No change line.',
+      'Identical removal row, single card. The ascent is gone so hydration cannot resolve climberFk and owner degrades to none, which now has its own arm naming nobody, and the name falls back to the parent route. No change line.',
     id: 'ASC-10b',
   },
   {
@@ -3357,7 +3357,7 @@ export const CASES: ActivityCase[] = [
     ),
     domain: 'topo',
     expected:
-      'One burst card, "4 edits". Four rows with different topoIds collapse into nothing, so the expanded half draws four topo lines.',
+      'One burst card, "4 edits". All four rows are the same kind of change and point at the one block, so the headline reads like TOPO-01a and names Nordblock rather than the area it hangs under. Four rows with different topoIds collapse into nothing, so the expanded half draws four topo lines.',
     id: 'TOPO-01b',
     topos: new Map([...topos(700), ...topos(701), ...topos(702), ...topos(703)]),
   },
@@ -3991,7 +3991,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'region',
     expected:
-      'single card, "You changed Mara Lindqvist\'s role". text renderer, label Role, showing the raw enum strings region_user -> region_maintainer (roleLabel is never applied).',
+      'single card, "You changed Mara Lindqvist\'s role". role renderer, label Role, showing User -> Maintainer rather than the stored enum members.',
     id: 'REG-04a',
   },
   {
@@ -4008,7 +4008,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'region',
     expected:
-      'One folded row, so one single card: user to maintainer to admin reads as region_user -> region_admin. text renderer, the intermediate role is erased.',
+      'One folded row, so one single card: user to maintainer to admin reads as User -> Admin. role renderer, the intermediate role is erased.',
     id: 'REG-04b',
   },
   {

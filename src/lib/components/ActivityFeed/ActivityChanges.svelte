@@ -10,6 +10,8 @@
   import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import { assignableRoles, type AppRole } from '$lib/entities/rolePermission/dto'
+  import { roleLabel } from '$lib/entities/rolePermission/mapper'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import type { TopoAction, TopoLineState } from '$lib/entities/topo/change'
@@ -37,6 +39,12 @@
       .split(',')
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0)
+
+  /** The member list's label for a stored role, or the raw value when it is not one of the
+   *  three the app assigns. `roleLabel` answers "Admin" for anything it does not recognise, so
+   *  the membership check has to happen out here. */
+  const roleName = (value: string | undefined) =>
+    assignableRoles.includes(value as (typeof assignableRoles)[number]) ? roleLabel(value as AppRole) : value
 
   const grade = (value: string | undefined) => {
     const gradeFk = value == null || value.length === 0 ? undefined : Number(value)
@@ -273,6 +281,13 @@
         </span>
       </div>
     {/if}
+  {:else if renderer === 'role'}
+    <!-- `region_maintainer` is what the column stores, not what anybody should read. Anything
+         outside the enum (a legacy or hand-inserted row) stands as stored rather than being
+         mislabelled as one of the three. -->
+    {@render chip(roleName(activity.oldValue))}
+    {@render arrow()}
+    {@render chip(roleName(activity.newValue))}
   {:else if renderer === 'source'}
     <!-- The host, not the URL: a reposted clip's credit is "youtube.com", and the full link
          would be a line of query string in a chip. A legacy free-text source has no host to

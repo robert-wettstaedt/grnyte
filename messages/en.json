@@ -140,9 +140,11 @@
       "selectors": ["person", "owner"],
       "match": {
         "person=self,owner=self": "You removed your ascent of {name}",
-        "person=self,owner=*": "You removed the ascent of {climber} on {name}",
+        "person=self,owner=none": "You removed an ascent of {name}",
+        "person=self,owner=*": "You removed {climber}'s ascent of {name}",
         "person=*,owner=self": "{actor} removed their own ascent of {name}",
-        "person=*,owner=*": "{actor} removed the ascent of {climber} on {name}"
+        "person=*,owner=none": "{actor} removed an ascent of {name}",
+        "person=*,owner=*": "{actor} removed {climber}'s ascent of {name}"
       }
     }
   ],
@@ -154,15 +156,21 @@
         "person=self,owner=self,media=photo": "You removed a photo from your ascent of {name}",
         "person=self,owner=self,media=video": "You removed a video from your ascent of {name}",
         "person=self,owner=self,media=*": "You removed media from your ascent of {name}",
-        "person=self,owner=*,media=photo": "You removed a photo from the ascent of {climber} on {name}",
-        "person=self,owner=*,media=video": "You removed a video from the ascent of {climber} on {name}",
-        "person=self,owner=*,media=*": "You removed media from the ascent of {climber} on {name}",
+        "person=self,owner=none,media=photo": "You removed a photo from an ascent of {name}",
+        "person=self,owner=none,media=video": "You removed a video from an ascent of {name}",
+        "person=self,owner=none,media=*": "You removed media from an ascent of {name}",
+        "person=self,owner=*,media=photo": "You removed a photo from {climber}'s ascent of {name}",
+        "person=self,owner=*,media=video": "You removed a video from {climber}'s ascent of {name}",
+        "person=self,owner=*,media=*": "You removed media from {climber}'s ascent of {name}",
         "person=*,owner=self,media=photo": "{actor} removed a photo from their own ascent of {name}",
         "person=*,owner=self,media=video": "{actor} removed a video from their own ascent of {name}",
         "person=*,owner=self,media=*": "{actor} removed media from their own ascent of {name}",
-        "person=*,owner=*,media=photo": "{actor} removed a photo from the ascent of {climber} on {name}",
-        "person=*,owner=*,media=video": "{actor} removed a video from the ascent of {climber} on {name}",
-        "person=*,owner=*,media=*": "{actor} removed media from the ascent of {climber} on {name}"
+        "person=*,owner=none,media=photo": "{actor} removed a photo from an ascent of {name}",
+        "person=*,owner=none,media=video": "{actor} removed a video from an ascent of {name}",
+        "person=*,owner=none,media=*": "{actor} removed media from an ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} removed a photo from {climber}'s ascent of {name}",
+        "person=*,owner=*,media=video": "{actor} removed a video from {climber}'s ascent of {name}",
+        "person=*,owner=*,media=*": "{actor} removed media from {climber}'s ascent of {name}"
       }
     }
   ],
@@ -172,9 +180,11 @@
       "selectors": ["person", "owner"],
       "match": {
         "person=self,owner=self": "You edited your ascent of {name}",
-        "person=self,owner=*": "You edited the ascent of {climber} on {name}",
+        "person=self,owner=none": "You edited an ascent of {name}",
+        "person=self,owner=*": "You edited {climber}'s ascent of {name}",
         "person=*,owner=self": "{actor} edited their own ascent of {name}",
-        "person=*,owner=*": "{actor} edited the ascent of {climber} on {name}"
+        "person=*,owner=none": "{actor} edited an ascent of {name}",
+        "person=*,owner=*": "{actor} edited {climber}'s ascent of {name}"
       }
     }
   ],

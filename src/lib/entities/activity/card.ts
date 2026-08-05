@@ -136,8 +136,20 @@ export function activityCard(
     activityEntry(newest)?.names === 'parent'
       ? (placeName ?? firstName)
       : group.kind === 'single'
-        ? headlineEntityName(newest, entityOf(refs[0]))
-        : (placeName ?? firstName ?? headlineEntityName(newest, undefined))
+        ? // An entry with no `tombstone` stores no name to fall back on, by design: an ascent's
+          // value column holds its ascent type. Once the ascent is gone there is nothing left
+          // on the row, and the parent route is the only true name for it. Entries that DO
+          // declare a tombstone are left alone, so a route deleted without a name still says
+          // so rather than borrowing the block it hung on.
+          (headlineEntityName(newest, entityOf(refs[0])) ??
+          (activityEntry(newest)?.tombstone == null ? placeName : undefined))
+        : // A group whose rows all point at ONE entity is about that entity, so it names it.
+          // Falling to the parent here is what made four topo saves on Nordblock read as
+          // "edited Steinbruch", the area the block hangs under. The parent is still the right
+          // answer for a burst spanning several routes, where no single one is the subject.
+          refs.length === 1
+          ? (firstName ?? placeName ?? headlineEntityName(newest, undefined))
+          : (placeName ?? firstName ?? headlineEntityName(newest, undefined))
 
   // A missing name is only worth waiting for while something might still answer. Once every
   // ref it could come from has answered (with a row that has no name, or with nothing at
@@ -165,7 +177,21 @@ export function activityCard(
   // this saying "photo". The word settles when the file syncs, alongside the name beside it.
   // A removal has no file left to read and so carries the word itself (see `deleteFile`).
   const kinds = new Set(files.map((file): ActivityMedia => (file.bunnyStreamFk == null ? 'photo' : 'video')))
-  const media = newest.columnName === 'file' ? storedMedia(newest.oldValue) : kinds.size === 1 ? [...kinds][0] : 'none'
+  // A removal card reads its word off every row it holds, not just the newest: a submit that
+  // pulled a photo and a video is neither, and `none` is the arm that says "media".
+  const removed = new Set(
+    group.activities
+      .filter((activity) => activity.columnName === 'file')
+      .map((activity) => storedMedia(activity.oldValue)),
+  )
+  const media =
+    newest.columnName === 'file'
+      ? removed.size === 1
+        ? [...removed][0]
+        : 'none'
+      : kinds.size === 1
+        ? [...kinds][0]
+        : 'none'
 
   return {
     actorName: newest.userName,
@@ -199,7 +225,7 @@ export function activityCard(
     entityUnnamed,
     files,
     headline: {
-      key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group),
+      key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group, refs.length),
       params: { media, owner, person: mine ? 'self' : 'other' },
     },
     id: group.id,
@@ -244,7 +270,7 @@ function activityFor(activities: readonly ActivityListItem[], ref: ActivityEntit
  * one summarises, because "redpointed Rampe" would name one of four ascents. The count
  * lives in the summary, so these stay one sentence per key.
  */
-function groupVerbKey(group: ActivityGroup): MessageKey {
+function groupVerbKey(group: ActivityGroup, subjects: number): MessageKey {
   if (group.kind === 'session') {
     return 'activity_groupSession'
   }
@@ -261,7 +287,23 @@ function groupVerbKey(group: ActivityGroup): MessageKey {
 
   // Only `entity` groups can mix actors, and then no single person "edited" it.
   const actors = new Set(group.activities.map((activity) => activity.userFk))
-  return actors.size > 1 ? 'activity_groupEditsMultiple' : 'activity_groupEdits'
+  if (actors.size > 1) {
+    return 'activity_groupEditsMultiple'
+  }
+
+  // One person, one entity, one kind of change: the card can say which change instead of
+  // falling back to "edited". Four topo saves are about the topo and three photo removals are
+  // about the photos, and "edited" is true of both while telling the reader neither.
+  //
+  // `subjects` is the guard, not a nicety. A row's own sentence puts the entity in `{name}`,
+  // and a group spanning two routes has no single entity to put there: it borrows its parent's
+  // name, so "renamed" would come out as "You renamed Nordblock" for two renamed routes.
+  if (subjects !== 1) {
+    return 'activity_groupEdits'
+  }
+
+  const [first, ...rest] = group.activities.map((activity) => activityEntry(activity)?.key)
+  return first != null && rest.every((key) => key === first) ? first : 'activity_groupEdits'
 }
 
 /**

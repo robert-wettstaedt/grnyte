@@ -78,6 +78,35 @@ describe('headline keys', () => {
     expect(card(rows).headline.key).toBe('activity_groupEdits')
   })
 
+  // One person, one entity, one kind of change. "Edited" is true of four topo saves and of
+  // three photo removals alike, and says nothing about either.
+  it('speaks the shared verb when a group is one kind of change on one entity', () => {
+    const rows = burstRows(4, () => ({ columnName: 'topo', entityId: '400', entityType: 'block' as const }))
+    expect(card(rows).headline.key).toBe('activity_blockUpdatedTopo')
+  })
+
+  // The guard on the above: a row's own sentence puts its entity in `{name}`, and a group over
+  // two routes has none to put there, so it would borrow the block's and rename the block.
+  it('falls back to the summary verb when one kind of change spans two entities', () => {
+    const rows = burstRows(2, (index) => ({
+      columnName: 'topo',
+      entityId: String(400 + index),
+      entityType: 'block' as const,
+    }))
+    expect(card(rows).headline.key).toBe('activity_groupEdits')
+  })
+
+  it('says media when a grouped removal took both a photo and a video', () => {
+    const rows = burstRows(2, (index) => ({
+      columnName: 'file',
+      entityId: '500',
+      oldValue: index === 0 ? 'video' : 'photo',
+      type: 'deleted' as const,
+    }))
+
+    expect(card(rows).headline).toMatchObject({ key: 'activity_routeDeletedFile', params: { media: 'none' } })
+  })
+
   it('says a group of deletions deleted rather than edited', () => {
     const rows = burstRows(2, (index) => ({ entityId: String(index), type: 'deleted' as const }))
     expect(card(rows).headline.key).toBe('activity_groupRemovals')
@@ -116,6 +145,42 @@ describe('headline name', () => {
 
   it('never reads an ascent row, whose values are ascent types', () => {
     expect(card([activity({ entityType: 'ascent', newValue: 'flash', type: 'created' })]).entityName).toBeUndefined()
+  })
+
+  // A deleted ascent stores no name of its own, so the route it hung on is the only true name
+  // left. Without this the card said "<no name>" for an ascent whose route is right there.
+  it('borrows the parent when the entry stores no name to fall back on', () => {
+    const rows = [
+      activity({
+        entityId: '9001',
+        entityType: 'ascent',
+        parentEntityId: '501',
+        parentEntityType: 'route',
+        type: 'deleted',
+      }),
+    ]
+    const entities = entityMap([
+      [{ id: '9001', type: 'ascent' }, null],
+      [{ id: '501', type: 'route' }, route('Riss')],
+    ])
+
+    expect(card(rows, entities).entityName).toBe('Riss')
+  })
+
+  // The guard on the above: a route DOES stash its name, so a missing one is genuinely missing
+  // and must not be filled in with the block it hung on.
+  it('never borrows the parent for an entry that does stash a name', () => {
+    const rows = [activity({ oldValue: '', parentEntityId: '400', parentEntityType: 'block', type: 'deleted' })]
+    const entities = entityMap([
+      [{ id: '1', type: 'route' }, null],
+      [
+        { id: '400', type: 'block' },
+        { name: 'Nordblock', row: 'block' },
+      ],
+    ])
+
+    expect(card(rows, entities).entityName).toBeUndefined()
+    expect(card(rows, entities).entityUnnamed).toBe(true)
   })
 
   it('borrows a user row s value, which is the person', () => {
