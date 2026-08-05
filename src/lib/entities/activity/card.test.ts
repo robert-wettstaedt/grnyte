@@ -107,6 +107,58 @@ describe('headline keys', () => {
     expect(card(rows).headline).toMatchObject({ key: 'activity_routeDeletedFile', params: { media: 'none' } })
   })
 
+  // A route added with two photos is one event: its own verb, and a summary counting the media
+  // rather than calling the create itself an edit.
+  it('speaks the create s verb and counts the media when a create picked up files', () => {
+    const created = activity({
+      createdAt: 100,
+      entityId: '9',
+      id: 1,
+      newValue: 'Kante',
+      parentEntityId: '400',
+      parentEntityType: 'block',
+      type: 'created',
+    })
+    const files = [1, 2].map((index) =>
+      activity({
+        createdAt: 100 + index,
+        entityId: `f${index}`,
+        entityType: 'file',
+        id: index + 1,
+        parentEntityId: '9',
+        parentEntityType: 'route',
+        type: 'uploaded',
+      }),
+    )
+    const view = card([...files, created])
+
+    expect(view.headline.key).toBe('activity_routeCreated')
+    expect(view.summary).toEqual([{ key: 'activity_summaryFiles', params: { count: 2, media: 'none' } }])
+  })
+
+  // Three edits to one ascent are not a session and are not three ascents. Once the headline
+  // says what actually happened, the count is of edits.
+  it('speaks the change and counts edits when a session is really edits to one ascent', () => {
+    const rows = ['type', 'gradeFk', 'notes'].map((columnName, index) =>
+      activity({ columnName, createdAt: 100 - index, entityId: '9001', entityType: 'ascent', id: index + 1 }),
+    )
+    const view = card(rows)
+
+    expect(view.headline.key).toBe('activity_ascentUpdated')
+    expect(view.summary).toEqual([{ key: 'activity_summaryEdits', params: { count: 3 } }])
+  })
+
+  // A real session still counts ascents, and an ascent edited as well as logged is one ascent.
+  it('counts ascents rather than rows in a genuine session', () => {
+    const rows = [
+      activity({ createdAt: 100, entityId: '9001', entityType: 'ascent', id: 1, newValue: 'flash', type: 'created' }),
+      activity({ columnName: 'gradeFk', createdAt: 99, entityId: '9001', entityType: 'ascent', id: 2 }),
+      activity({ createdAt: 98, entityId: '9002', entityType: 'ascent', id: 3, newValue: 'redpoint', type: 'created' }),
+    ]
+
+    expect(card(rows).summary).toEqual([{ key: 'activity_summaryAscents', params: { count: 2 } }])
+  })
+
   it('says a group of deletions deleted rather than edited', () => {
     const rows = burstRows(2, (index) => ({ entityId: String(index), type: 'deleted' as const }))
     expect(card(rows).headline.key).toBe('activity_groupRemovals')

@@ -48,7 +48,7 @@ const CRAG_ENTITY_TYPES = new Set(['area', 'block', 'route'])
  * date into the activity row, rather than another client-side join.
  */
 export function groupActivities(activities: readonly ActivityListItem[]): ActivityGroup[] {
-  const sorted = [...activities].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
+  const sorted = withoutRedundantSource([...activities].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id))
   const groups: { group: ActivityGroup; key: string }[] = []
   // Only the newest group per key is still open; an older one is already out of window.
   const open = new Map<string, ActivityGroup>()
@@ -76,19 +76,29 @@ export function groupActivities(activities: readonly ActivityListItem[]): Activi
     open.set(key, group)
   }
 
-  return groups.map(({ group, key }) => ({
+  return mergeCreatedWithMedia(groups).map(({ group, key }) => ({
     ...group,
     id: `${key}#${group.activities[group.activities.length - 1].id}`,
     kind: group.activities.length === 1 ? ('single' as const) : group.kind,
   }))
 }
 
+/**
+ * Every key carries the region.
+ *
+ * Two regions are two places, and the same person doing the same thing in each is two events.
+ * It bites hardest on a user row, whose id is the same person in every region they belong to:
+ * without this, granting somebody a role in one region and another role in a second folded
+ * into one card that reported neither correctly.
+ */
 function groupKey(activity: ActivityListItem, kind: ActivityGroupKind): string {
+  const region = activity.regionFk
+
   switch (kind) {
     // No day in the key: `joins` decides, so a log running past local midnight stays one
     // session instead of splitting in two.
     case 'session':
-      return `session:${activity.userFk}`
+      return `session:${region}:${activity.userFk}`
 
     // All three key on the actor plus the place, and are kept apart so neither a submit of
     // five photos nor a deletion lands inside "made 12 edits in Nordblock": the reader would
@@ -96,10 +106,10 @@ function groupKey(activity: ActivityListItem, kind: ActivityGroupKind): string {
     case 'burst':
     case 'removal':
     case 'upload':
-      return `${kind}:${activity.userFk}:${localityKey(activity)}`
+      return `${kind}:${region}:${activity.userFk}:${localityKey(activity)}`
 
     default:
-      return `entity:${activity.entityType}:${activity.entityId}`
+      return `entity:${region}:${activity.entityType}:${activity.entityId}`
   }
 }
 
@@ -143,4 +153,98 @@ function localityKey(activity: ActivityListItem): string {
   return activity.parentEntityId == null
     ? `${activity.entityType}:${activity.entityId}`
     : `${activity.parentEntityType}:${activity.parentEntityId}`
+}
+
+/**
+ * Fold an upload group into the group that created the thing it landed on.
+ *
+ * Adding a route with two photos, or logging an ascent with a clip, is one event. Nothing in
+ * the keys can bring the two halves together: the create keys on the block it sits under and
+ * the uploads key on the route they hang off, so they agree on neither subject nor parent. The
+ * link is that one group's subject is the other group's parent, which only shows up once the
+ * groups exist.
+ *
+ * The create moves to the front of the merged group. It is the older row (the files are
+ * finalized after the entity exists) and the card speaks for whatever comes first, so leaving
+ * the order alone would turn "You added the route Kante direkt" into "You added photos to it".
+ *
+ * Only a `created` target, deliberately. Folding uploads into an edit burst would hide a
+ * submit of five photos inside "made 12 edits in Nordblock", which is the exact thing the
+ * separate `upload` kind exists to prevent.
+ */
+function mergeCreatedWithMedia(
+  groups: { group: ActivityGroup; key: string }[],
+): { group: ActivityGroup; key: string }[] {
+  const merged = new Set<ActivityGroup>()
+
+  for (const { group } of groups) {
+    if (group.kind !== 'upload') {
+      continue
+    }
+
+    const parent = parentOf(group.activities[0])
+    if (parent == null || !group.activities.every((activity) => sameParent(activity, parent))) {
+      continue
+    }
+
+    const target = groups.find(
+      ({ group: candidate }) =>
+        candidate !== group &&
+        !merged.has(candidate) &&
+        candidate.userFk === group.userFk &&
+        candidate.activities.some(
+          (activity) =>
+            activity.type === 'created' && activity.entityId === parent.id && activity.entityType === parent.type,
+        ) &&
+        withinBurst(candidate, group),
+    )
+
+    if (target != null) {
+      const created = target.group.activities.filter((activity) => activity.type === 'created')
+      const rest = target.group.activities.filter((activity) => activity.type !== 'created')
+      target.group.activities = [...created, ...group.activities, ...rest]
+      merged.add(group)
+    }
+  }
+
+  return groups.filter(({ group }) => !merged.has(group))
+}
+
+function parentOf(activity: ActivityListItem): undefined | { id: string; type: string } {
+  return activity.parentEntityId == null || activity.parentEntityType == null
+    ? undefined
+    : { id: activity.parentEntityId, type: activity.parentEntityType }
+}
+
+function sameParent(activity: ActivityListItem, parent: { id: string; type: string }): boolean {
+  return activity.parentEntityId === parent.id && activity.parentEntityType === parent.type
+}
+
+/** Whether two groups overlap closely enough in time to be one event. */
+function withinBurst(a: ActivityGroup, b: ActivityGroup): boolean {
+  return Math.abs(a.createdAt - b.createdAt) <= BURST_MS
+}
+
+/**
+ * Drop a source edit that landed with the upload it is about.
+ *
+ * Pasting a link while adding a clip writes two rows, and the second one says nothing the first
+ * does not: the card already draws the clip and names where it went. Setting the source during
+ * the upload itself writes only the upload row, so this keeps the two paths reading the same.
+ * A source corrected later still gets its own card, which is the case worth seeing.
+ */
+function withoutRedundantSource(sorted: ActivityListItem[]): ActivityListItem[] {
+  const uploads = sorted.filter((activity) => activity.entityType === 'file' && activity.type === 'uploaded')
+
+  return sorted.filter(
+    (activity) =>
+      activity.entityType !== 'file' ||
+      activity.columnName !== 'source' ||
+      !uploads.some(
+        (upload) =>
+          upload.entityId === activity.entityId &&
+          upload.userFk === activity.userFk &&
+          Math.abs(upload.createdAt - activity.createdAt) <= BURST_MS,
+      ),
+  )
 }

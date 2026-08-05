@@ -430,7 +430,7 @@ export type DeclaredColumn<E extends ActivityEntityType> = Extract<
  * `createAscent` passes the whole `AscentType` union, which is assignable to none of them
  * individually. The enum stays guarded by the round trip in `verbs.test.ts` instead.
  */
-type Presentation = 'field' | 'key' | 'names' | 'newValue' | 'status' | 'tombstone'
+type Presentation = 'field' | 'key' | 'names' | 'newValue' | 'row' | 'status' | 'tombstone'
 
 /**
  * Distributes over the union, and gives an entry that declares no column an explicit

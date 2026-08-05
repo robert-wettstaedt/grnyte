@@ -251,7 +251,7 @@ export function activityCard(
     // Declared on the entry, so the cast is reachable only for the four rows that really do
     // store an ascent type in `newValue`.
     status: activityEntry(newest)?.status === 'ascentType' ? (newest.newValue as AscentType | undefined) : undefined,
-    summary: summaryParts(group, placeName, media),
+    summary: summaryParts(group, placeName, media, refs.length),
   }
 }
 
@@ -271,11 +271,39 @@ function activityFor(activities: readonly ActivityListItem[], ref: ActivityEntit
 }
 
 /**
+ * The file rows on a group whose leading row created the thing they landed on, or `undefined`
+ * when that is not what the group is. `mergeCreatedWithMedia` builds these; both the headline
+ * and the summary have to recognise one, so the test lives in one place.
+ */
+function createdWithMedia(group: ActivityGroup): ActivityListItem[] | undefined {
+  if (group.activities[0]?.type !== 'created') {
+    return undefined
+  }
+
+  const files = group.activities.filter((activity) => activity.entityType === 'file')
+  return files.length > 0 ? files : undefined
+}
+
+/**
  * The headline key for a whole card. A single-activity card speaks its own verb; a grouped
  * one summarises, because "redpointed Rampe" would name one of four ascents. The count
  * lives in the summary, so these stay one sentence per key.
  */
 function groupVerbKey(group: ActivityGroup, subjects: number): MessageKey {
+  // Ahead of every kind rule: a create that picked up media is one event with one sentence,
+  // "You flashed Rampe" or "You added the route Kante direkt", the photos below it.
+  // `mergeCreatedWithMedia` put the create first for exactly this. Deciding by kind instead
+  // would answer "session" for the ascent and "edits" for the route, neither of which is what
+  // the reader just did.
+  if (createdWithMedia(group) != null) {
+    return activityVerb(group.activities[0])
+  }
+
+  const shared = sharedVerbKey(group, subjects)
+  if (shared != null) {
+    return shared
+  }
+
   if (group.kind === 'session') {
     return 'activity_groupSession'
   }
@@ -291,24 +319,9 @@ function groupVerbKey(group: ActivityGroup, subjects: number): MessageKey {
   }
 
   // Only `entity` groups can mix actors, and then no single person "edited" it.
-  const actors = new Set(group.activities.map((activity) => activity.userFk))
-  if (actors.size > 1) {
-    return 'activity_groupEditsMultiple'
-  }
-
-  // One person, one entity, one kind of change: the card can say which change instead of
-  // falling back to "edited". Four topo saves are about the topo and three photo removals are
-  // about the photos, and "edited" is true of both while telling the reader neither.
-  //
-  // `subjects` is the guard, not a nicety. A row's own sentence puts the entity in `{name}`,
-  // and a group spanning two routes has no single entity to put there: it borrows its parent's
-  // name, so "renamed" would come out as "You renamed Nordblock" for two renamed routes.
-  if (subjects !== 1) {
-    return 'activity_groupEdits'
-  }
-
-  const [first, ...rest] = group.activities.map((activity) => activityEntry(activity)?.key)
-  return first != null && rest.every((key) => key === first) ? first : 'activity_groupEdits'
+  return new Set(group.activities.map((activity) => activity.userFk)).size > 1
+    ? 'activity_groupEditsMultiple'
+    : 'activity_groupEdits'
 }
 
 /**
@@ -364,19 +377,56 @@ function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef |
   return shared ? { id: first.parentEntityId, type: first.parentEntityType } : undefined
 }
 
+/**
+ * The verb for a group that is one person making one kind of change to one entity, or
+ * `undefined` when it is anything else.
+ *
+ * Ahead of the kind rules, because the kind answers a coarser question. Three edits to one
+ * ascent are a `session` by kind and read as "You logged a session", which is not what
+ * happened; four topo saves are a `burst` and read as "edited", which is true of everything.
+ *
+ * All three guards are load-bearing. Mixed actors have no single person to name. More than one
+ * subject has no single entity for the sentence's `{name}`, so it would borrow the parent's and
+ * report "You renamed Nordblock" for two renamed routes. Mixed keys have no one verb to speak.
+ */
+function sharedVerbKey(group: ActivityGroup, subjects: number): MessageKey | undefined {
+  if (subjects !== 1 || new Set(group.activities.map((activity) => activity.userFk)).size > 1) {
+    return undefined
+  }
+
+  const [first, ...rest] = group.activities.map((activity) => activityEntry(activity)?.key)
+  return first != null && rest.every((key) => key === first) ? first : undefined
+}
+
 /** The sub line under a grouped card's headline. A single card has none. */
 function summaryParts(
   group: ActivityGroup,
   placeName: string | undefined,
   media: ActivityMedia,
+  subjects: number,
 ): ActivityMessagePart[] | undefined {
   if (group.kind === 'single') {
     return undefined
   }
 
-  const count = group.activities.length
-  const countKey: MessageKey =
-    group.kind === 'session'
+  // A create that picked up media counts the media, not the rows. "3 edits" for one route and
+  // two photos counts the create as an edit and says nothing about what is on the card.
+  const withMedia = createdWithMedia(group)
+  if (withMedia != null) {
+    return [{ key: 'activity_summaryFiles', params: { count: withMedia.length, media } }]
+  }
+
+  // Once the headline speaks the change itself ("You edited your ascent of Rampe"), the count
+  // is of edits, whatever kind the group is. "1 ascent" under that sentence counts something
+  // the reader was not asking about.
+  const spoken = sharedVerbKey(group, subjects) != null
+
+  // A session counts ascents, and three edits to one ascent are one ascent, not three. Every
+  // other kind counts rows, which is what it says it counts: edits, files, removals.
+  const count = !spoken && group.kind === 'session' ? subjects : group.activities.length
+  const countKey: MessageKey = spoken
+    ? 'activity_summaryEdits'
+    : group.kind === 'session'
       ? 'activity_summaryAscents'
       : group.kind === 'upload'
         ? 'activity_summaryFiles'

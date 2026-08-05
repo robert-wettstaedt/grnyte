@@ -2604,7 +2604,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'ascent',
     expected:
-      'One session card of 3 rows sharing a createdAt. The summary counts rows, not ascents, so it reads "3 ascents". Three change lines: text, grade, prose.',
+      'One card of 3 rows sharing a createdAt. One actor, one ascent and one kind of change, so the headline speaks that change rather than "logged a session", and the summary counts edits. Three change lines: text, grade, prose.',
     id: 'ASC-09a',
   },
   {
@@ -3305,7 +3305,7 @@ export const CASES: ActivityCase[] = [
       ],
     ]),
     expected:
-      'Two cards minutes apart on the same file: an upload card and an entity card for the source. The created suppression only fires on type created, and an upload row is type uploaded, so the source row survives; the entity key prefix keeps it out of the upload card.',
+      'One card. A source pasted with the upload says nothing the upload row does not, so it is dropped rather than given a card of its own, which matches setting the source during the upload (FILE-02c) writing only one row. A source corrected later still gets its own card.',
     id: 'FILE-03h',
   },
   {
@@ -4026,14 +4026,24 @@ export const CASES: ActivityCase[] = [
         columnName: 'role',
         entityId: '5',
         entityType: 'user',
+        newValue: 'region_maintainer',
+        oldValue: 'region_user',
+        regionFk: 2,
+        userFk: ME,
+      }),
+      activity(8, {
+        columnName: 'role',
+        entityId: '5',
+        entityType: 'user',
         newValue: 'region_admin',
         oldValue: 'region_user',
+        regionFk: 1,
         userFk: ME,
       }),
     ],
     domain: 'region',
     expected:
-      "One single card, text renderer, with the wrong pairing: the fold lookup ignores regionFk, so region B writes no row and region A's card shows region B's new role.",
+      'Two single cards, one per region. The fold scopes on regionFk so the second region writes its own row instead of overwriting the first, and the group key does too so the two never share a card. role renderer on each.',
     id: 'REG-04d',
   },
   {
@@ -4181,7 +4191,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'user',
     expected:
-      'One entity card: all three rows share entity:user:5 and grouping ignores regionFk. text renderer, label Username, so a reader who shares two regions sees the same change line twice.',
+      'Three single cards, one per region, since the group key now carries the region. A reader who shares two of those regions sees two cards that read identically, because nothing on a card says which region it belongs to yet. Worth deciding: this is the case that argues for a region label.',
     id: 'USER-01a',
   },
   {

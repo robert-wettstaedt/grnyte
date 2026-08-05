@@ -95,10 +95,15 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
     }
   })
 
+  // `regionFk` scopes the fold as much as the entity does. A user row is the same id in every
+  // region that person belongs to, so without it a role change in one region folded into the
+  // row another region had just written: the second region logged nothing at all, and the
+  // first one's card reported a role from somewhere the reader cannot see.
   const existingActivities = await db.query.activities.findMany({
     where: and(
       eq(schema.activities.entityId, entityId),
       eq(schema.activities.entityType, entityType),
+      eq(schema.activities.regionFk, regionFk),
       eq(schema.activities.userFk, userFk),
       gt(schema.activities.createdAt, sub(new Date(), { minutes: 15 })),
     ),

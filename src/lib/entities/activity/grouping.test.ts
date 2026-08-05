@@ -172,9 +172,9 @@ describe('groupActivities', () => {
     expect(groups.map((group) => group.kind)).toEqual(['upload', 'burst'])
   })
 
-  it('keeps a video source edit out of the upload card it shares a parent with', () => {
-    // Same actor, same route, same minute, and the source row points at a file like the
-    // uploads do. Folded in, an edited credit would read as "added 3 photos" and vanish.
+  // Pasting the link while adding the clip writes a source row that says nothing the upload
+  // row does not, and setting the source during the upload itself writes no second row at all.
+  it('drops a source edit that landed with the upload it is about', () => {
     const groups = groupActivities([
       upload({ createdAt: day(1, 12), entityId: 'file-1' }),
       upload({ createdAt: day(1, 12) - MINUTE, entityId: 'file-2' }),
@@ -187,8 +187,68 @@ describe('groupActivities', () => {
       }),
     ])
 
-    expect(groups.map((group) => group.kind)).toEqual(['upload', 'single'])
-    expect(groups[1].activities.map((a) => a.columnName)).toEqual(['source'])
+    expect(groups.map((group) => group.kind)).toEqual(['upload'])
+    expect(groups[0].activities).toHaveLength(2)
+  })
+
+  // A credit corrected later is its own event, and must not fold into the upload card either:
+  // "added 3 photos" would swallow it.
+  it('keeps a source edit made after the upload window as its own card', () => {
+    const groups = groupActivities([
+      activity({
+        columnName: 'source',
+        createdAt: day(1, 12),
+        entityId: 'file-1',
+        entityType: 'file',
+        ...underBlock,
+      }),
+      upload({ createdAt: day(1, 12) - 45 * MINUTE, entityId: 'file-1' }),
+      upload({ createdAt: day(1, 12) - 46 * MINUTE, entityId: 'file-2' }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['single', 'upload'])
+    expect(groups[0].activities.map((a) => a.columnName)).toEqual(['source'])
+  })
+
+  // Adding a route with photos is one event. Nothing in the keys can join the halves: the
+  // create keys on the block, the uploads key on the route.
+  it('folds an upload into the create of the thing it landed on', () => {
+    const groups = groupActivities([
+      upload({ createdAt: day(1, 12), entityId: 'file-1', parentEntityId: '9', parentEntityType: 'route' }),
+      upload({ createdAt: day(1, 12) - MINUTE, entityId: 'file-2', parentEntityId: '9', parentEntityType: 'route' }),
+      activity({
+        createdAt: day(1, 12) - 2 * MINUTE,
+        entityId: '9',
+        newValue: 'Kante',
+        type: 'created',
+        ...underBlock,
+      }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].activities).toHaveLength(3)
+    // The create leads, so the card speaks its verb rather than the newer uploads'.
+    expect(groups[0].activities[0].type).toBe('created')
+  })
+
+  it('leaves uploads alone when nothing created their parent nearby', () => {
+    const groups = groupActivities([
+      upload({ createdAt: day(1, 12), entityId: 'file-1', parentEntityId: '9', parentEntityType: 'route' }),
+      activity({ columnName: 'name', createdAt: day(1, 12) - MINUTE, entityId: '9', ...underBlock }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['single', 'single'])
+  })
+
+  // The same person is the same id in every region they belong to, so a user row without the
+  // region folded two unrelated role changes into one card that reported neither.
+  it('never folds two regions into one card', () => {
+    const groups = groupActivities([
+      activity({ columnName: 'role', createdAt: day(1, 12), entityId: '5', entityType: 'user', regionFk: 1 }),
+      activity({ columnName: 'role', createdAt: day(1, 12) - MINUTE, entityId: '5', entityType: 'user', regionFk: 2 }),
+    ])
+
+    expect(groups).toHaveLength(2)
   })
 
   it('separates uploads by the entity they landed on', () => {
