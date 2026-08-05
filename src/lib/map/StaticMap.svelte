@@ -78,19 +78,24 @@
       </svg>
     {/if}
 
+    <!-- An estimated pin carries a "?", the same way the interactive map marks a block whose
+         location is a guess (see `layers.svelte.ts`). The dashed ring alone was too quiet to
+         read at thumbnail size, and it is the one thing about the pin worth noticing. -->
     {#each placed as point, index (index)}
       <span
         class={[
-          'absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-sm',
-          point.estimated ? 'border-dashed' : 'border-solid',
+          'absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 shadow-sm',
+          point.estimated ? 'size-4 border-dashed text-[9px] leading-none font-bold' : 'size-3.5 border-solid',
           point.variant === 'from'
-            ? 'bg-surface-50-950 border-surface-500'
+            ? 'bg-surface-50-950 border-surface-500 text-surface-950-50'
             : point.variant === 'gone'
-              ? 'bg-error-500 border-white'
-              : 'bg-primary-500 border-white',
+              ? 'bg-error-500 border-white text-white'
+              : 'bg-primary-500 border-white text-white',
         ]}
         style="left: {point.left}px; top: {point.top}px"
-      ></span>
+      >
+        {#if point.estimated}?{/if}
+      </span>
     {/each}
 
     <a

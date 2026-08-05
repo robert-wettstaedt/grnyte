@@ -92,10 +92,18 @@ export function photo(id: string): MediaFile {
   }
 }
 
-/** The lines on a topo, as the writers encode them onto the row's old/new pair. */
+/**
+ * The lines on a topo, as the writers encode them onto the row's old/new pair.
+ *
+ * One path per line rather than one for all of them. Sharing a path drew every ghost exactly
+ * underneath a live line, so an erased line looked like it rendered nothing at all.
+ */
 export function topoLines(lines: readonly { name: string; routeFk: number }[], moved = false): string {
   return stringifyTopoLines(
-    lines.map((line) => ({ ...line, path: moved ? 'M0.4,0.9 L0.5,0.2' : 'M0.2,0.9 L0.3,0.2', topType: 'top' })),
+    lines.map((line, index) => {
+      const x = 0.2 + index * 0.22 + (moved ? 0.1 : 0)
+      return { ...line, path: `M${x.toFixed(2)},0.9 L${(x + 0.08).toFixed(2)},0.2`, topType: 'top' }
+    }),
   )
 }
 

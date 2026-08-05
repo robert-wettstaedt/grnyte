@@ -2444,7 +2444,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'ascent',
     expected:
-      'session kind, single card. text renderer, label Date with the history icon, raw YYYY-MM-DD chips that are not localised.',
+      'session kind, single card. date renderer, label Date with the history icon, both chips localised off the stored YYYY-MM-DD.',
     id: 'ASC-05a',
   },
   {
@@ -2468,7 +2468,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'ascent',
     expected:
-      'A spurious session card nobody asked for: the form seeds from the UTC slice while today is the local calendar day. text renderer, two date chips.',
+      'A spurious session card nobody asked for: the form seeds from the UTC slice while today is the local calendar day. date renderer, two localised date chips.',
     id: 'ASC-05c',
   },
   {
@@ -2485,7 +2485,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'ascent',
     expected:
-      'session kind, single card. text renderer, label Temperature, raw number chips with no degree sign and no imperial conversion.',
+      'session kind, single card. temperature renderer, label Temperature, both chips through formatCelsius so they follow the unit preference of whoever is reading.',
     id: 'ASC-06a',
   },
   {
@@ -2494,7 +2494,7 @@ export const CASES: ActivityCase[] = [
       activity(5, { columnName: 'temperature', entityId: '9001', entityType: 'ascent', oldValue: '12', userFk: ME }),
     ],
     domain: 'ascent',
-    expected: 'session kind, single card. text renderer, number chip to Not set.',
+    expected: 'session kind, single card. temperature renderer, chip to Not set.',
     id: 'ASC-06b',
   },
   {
@@ -2510,7 +2510,8 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'ascent',
-    expected: 'session kind, single card. text renderer, label Humidity, raw integers with no percent sign.',
+    expected:
+      'session kind, single card. humidity renderer, label Humidity, both chips carrying the percent sign like the ascent row does.',
     id: 'ASC-07a',
   },
   {
@@ -2519,7 +2520,7 @@ export const CASES: ActivityCase[] = [
       activity(5, { columnName: 'humidity', entityId: '9001', entityType: 'ascent', oldValue: '55', userFk: ME }),
     ],
     domain: 'ascent',
-    expected: 'session kind, single card. text renderer, integer chip to Not set.',
+    expected: 'session kind, single card. humidity renderer, chip to Not set.',
     id: 'ASC-07b',
   },
   {
@@ -2570,7 +2571,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'ascent',
     expected:
-      'session kind, single card. prose renderer shows the raw !type:id! ref while the card blockquote renders the same mention as a link.',
+      'session kind, single card. prose renderer renders both sides as markdown, links disabled, the way the card blockquote renders the note itself.',
     id: 'ASC-08c',
   },
   {

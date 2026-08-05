@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { storedMedia, type ActivityChange, type ActivityTopoChange } from '$lib/entities/activity/card'
   import { sourceHost } from '$lib/entities/file/upload'
@@ -18,10 +19,12 @@
   import type { TopoView } from '$lib/entities/topo/dto'
   import { convertPathToPoints } from '$lib/entities/topo/mapper'
   import { resolveMessage } from '$lib/i18n/message'
+  import { formatCelsius } from '$lib/i18n/units.svelte'
   import { parseCoords, type StoredCoords } from '$lib/map/coords'
   import { formatDistance } from '$lib/map/map'
   import StaticMap, { type StaticMapPoint } from '$lib/map/StaticMap.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
 
   interface Props {
@@ -51,12 +54,36 @@
     return Number.isFinite(gradeFk) ? gradeFk : undefined
   }
 
+  /** A stored number, or undefined for the rows that cleared the field. */
+  const numeric = (value: string | undefined) => {
+    const parsed = value == null || value.length === 0 ? NaN : Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+
+  /** The ascent date, stored as `YYYY-MM-DD`. Reading it back raw put an ISO string on a card
+   *  in a feed where every other date is localised. Anything unparseable stands as stored. */
+  const dateName = (value: string | undefined) => {
+    const parsed = value == null || value.length === 0 ? NaN : Date.parse(`${value}T00:00:00`)
+    return Number.isFinite(parsed)
+      ? new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium' }).format(parsed)
+      : value
+  }
+
+  const temperatureName = (value: string | undefined) => {
+    const celsius = numeric(value)
+    return celsius == null ? value : formatCelsius(celsius)
+  }
+
+  /** Matches `formatConditions`, which is what the ascent row and the media stage show. */
+  const humidityName = (value: string | undefined) => (numeric(value) == null ? value : `${numeric(value)} %`)
+
   /** Whether the pin actually moved. It can stay put and still be a change: confirming an
    *  estimated pin rewrites the flag alone, and "Moved 0 m" would be a silly way to say so. */
   const relocated = (from: null | StoredCoords, to: null | StoredCoords) =>
     from != null && to != null && (from.lat !== to.lat || from.long !== to.long)
 
-  /** What the pins on the thumbnail are: where it was, where it is, or where it used to be. */
+  /** What the pins on the thumbnail are: where it was, where it is, or where it used to be.
+   *  `estimated` rides along so a guessed pin is marked here the way it is on the real map. */
   const locationPoints = (from: null | StoredCoords, to: null | StoredCoords): StaticMapPoint[] => [
     ...(from == null ? [] : [{ ...from, variant: to == null ? ('gone' as const) : ('from' as const) }]),
     ...(to == null ? [] : [{ ...to, variant: 'pin' as const }]),
@@ -137,6 +164,9 @@
   }
 </script>
 
+<!-- eslint-disable svelte/no-navigation-without-resolve -- the one href in this file is a
+     stored video source, which is off-site by definition and has no route to resolve. -->
+
 {#snippet chip(value: string | undefined)}
   <span
     class={[
@@ -152,6 +182,27 @@
 
 {#snippet arrow()}
   <Icon name="arrow-right" size={13} class="text-surface-600-400 flex-none" />
+{/snippet}
+
+<!-- The host stands for the URL, and the URL is worth following: a reader looking at "who
+     reposted this" usually wants the clip. Only a value that parsed as a URL becomes a link,
+     so a legacy free-text source stays a plain chip. -->
+{#snippet sourceChip(value: string | undefined)}
+  {@const host = sourceHost(value)}
+  {#if host == null}
+    {@render chip(value)}
+  {:else}
+    <!-- No icon in the chip: the row's own label already carries the link glyph. -->
+    <a
+      class="bg-surface-200-800 text-surface-950-50 inline-flex max-w-full items-center truncate rounded-lg px-2 py-0.5 text-xs underline decoration-dotted underline-offset-2"
+      href={value}
+      rel="noreferrer noopener"
+      target="_blank"
+      title={value}
+    >
+      {host}
+    </a>
+  {/if}
 {/snippet}
 
 {#snippet gradeChip(value: string | undefined)}
@@ -192,9 +243,26 @@
       <summary class="text-surface-600-400 cursor-pointer text-xs">
         {m.activity_compareCharacters({ count: (activity.newValue ?? '').length })}
       </summary>
+      <!-- Descriptions and notes are markdown everywhere else they are shown, so the diff
+           renders them rather than printing the source. The old side keeps its strike-through
+           on the wrapper, which carries through whatever the markdown renders to. -->
       <div class="mt-1.5 space-y-1.5 text-xs">
-        <p class="text-surface-600-400 line-through">{activity.oldValue || m.activity_valueNotSet()}</p>
-        <p class="text-surface-950-50 whitespace-pre-wrap">{activity.newValue || m.activity_valueNotSet()}</p>
+        <div class="text-surface-600-400 line-through">
+          {#if activity.oldValue}
+            <Markdown className="short" disableLinks markdown={activity.oldValue} />
+          {:else}
+            <p>{m.activity_valueNotSet()}</p>
+          {/if}
+        </div>
+        <div class="text-surface-950-50">
+          {#if activity.newValue}
+            <!-- Links off on both sides: a diff is for reading what changed, and the live text
+                 is one tap away on the entity itself. -->
+            <Markdown className="short" disableLinks markdown={activity.newValue} />
+          {:else}
+            <p>{m.activity_valueNotSet()}</p>
+          {/if}
+        </div>
       </div>
     </details>
   {:else if renderer === 'location' || renderer === 'locationRemoved'}
@@ -281,6 +349,18 @@
         </span>
       </div>
     {/if}
+  {:else if renderer === 'date'}
+    {@render chip(dateName(activity.oldValue))}
+    {@render arrow()}
+    {@render chip(dateName(activity.newValue))}
+  {:else if renderer === 'temperature'}
+    {@render chip(temperatureName(activity.oldValue))}
+    {@render arrow()}
+    {@render chip(temperatureName(activity.newValue))}
+  {:else if renderer === 'humidity'}
+    {@render chip(humidityName(activity.oldValue))}
+    {@render arrow()}
+    {@render chip(humidityName(activity.newValue))}
   {:else if renderer === 'role'}
     <!-- `region_maintainer` is what the column stores, not what anybody should read. Anything
          outside the enum (a legacy or hand-inserted row) stands as stored rather than being
@@ -292,9 +372,9 @@
     <!-- The host, not the URL: a reposted clip's credit is "youtube.com", and the full link
          would be a line of query string in a chip. A legacy free-text source has no host to
          reduce to, so it stands as it was stored. -->
-    {@render chip(sourceHost(activity.oldValue) ?? activity.oldValue)}
+    {@render sourceChip(activity.oldValue)}
     {@render arrow()}
-    {@render chip(sourceHost(activity.newValue) ?? activity.newValue)}
+    {@render sourceChip(activity.newValue)}
   {:else if renderer === 'file'}
     <span class="text-surface-600-400 text-xs">
       {m.activity_changeFileRemoved({ media: storedMedia(activity.oldValue) })}

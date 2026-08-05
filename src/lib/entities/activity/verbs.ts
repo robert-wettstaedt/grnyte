@@ -12,8 +12,10 @@ export interface ActivityField {
 /** How the expanded change list renders a column's old/new pair. */
 export type ChangeRenderer =
   | 'chips'
+  | 'date'
   | 'file'
   | 'grade'
+  | 'humidity'
   | 'location'
   | 'locationRemoved'
   | 'prose'
@@ -21,6 +23,7 @@ export type ChangeRenderer =
   | 'role'
   | 'source'
   | 'tags'
+  | 'temperature'
   | 'text'
   | 'topo'
 
@@ -32,14 +35,14 @@ export type ChangeRenderer =
  * gave `role` one entry across every entity and change type that names that column.
  */
 const FIELD = {
-  dateTime: { icon: 'history', labelKey: 'activity_fieldDateTime', renderer: 'text' },
+  dateTime: { icon: 'history', labelKey: 'activity_fieldDateTime', renderer: 'date' },
   description: { icon: 'file-text', labelKey: 'activity_fieldDescription', renderer: 'prose' },
   file: { icon: 'image', labelKey: 'activity_fieldFile', renderer: 'file' },
   firstAscensionist: { icon: 'user', labelKey: 'activity_fieldFirstAscensionist', renderer: 'text' },
   firstAscensionists: { icon: 'users', labelKey: 'activity_fieldFirstAscensionists', renderer: 'chips' },
   firstAscentYear: { icon: 'history', labelKey: 'activity_fieldFirstAscentYear', renderer: 'text' },
   grade: { icon: 'trending-up', labelKey: 'activity_fieldGrade', renderer: 'grade' },
-  humidity: { icon: 'info', labelKey: 'activity_fieldHumidity', renderer: 'text' },
+  humidity: { icon: 'info', labelKey: 'activity_fieldHumidity', renderer: 'humidity' },
   location: { icon: 'map-pin', labelKey: 'activity_fieldLocation', renderer: 'location' },
   /** A cleared pin, which the shared `location` renderer would announce as an update. */
   locationGone: { icon: 'map-pin', labelKey: 'activity_fieldLocation', renderer: 'locationRemoved' },
@@ -55,7 +58,7 @@ const FIELD = {
    *  reader only wants the host it was reposted from. */
   source: { icon: 'link', labelKey: 'activity_fieldSource', renderer: 'source' },
   tags: { icon: 'bookmark', labelKey: 'activity_fieldTags', renderer: 'tags' },
-  temperature: { icon: 'info', labelKey: 'activity_fieldTemperature', renderer: 'text' },
+  temperature: { icon: 'info', labelKey: 'activity_fieldTemperature', renderer: 'temperature' },
   topo: { icon: 'route', labelKey: 'activity_fieldTopo', renderer: 'topo' },
   type: { icon: 'pickaxe', labelKey: 'activity_fieldType', renderer: 'text' },
   username: { icon: 'user', labelKey: 'activity_fieldUsername', renderer: 'text' },
