@@ -8,7 +8,12 @@ import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
 import z from 'zod'
-import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
+import {
+  createUpdateActivity,
+  deleteActivity,
+  insertActivity,
+  reassignActivityEntity,
+} from '../activity/activity.server'
 import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canDeleteBlock, canEditBlock } from './permissions'
@@ -493,6 +498,9 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
 
     await refreshAreaType(db, snapshot.areaFk)
     await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
+    // The row is new, so the history has to follow it, or the restored block's own create card
+    // and every edit ever made to it render as tombstones next to the live block.
+    await reassignActivityEntity(db, { entityType: 'block', fromId: snapshot.blockId, toId: blockId })
 
     return {
       data: { blockId },

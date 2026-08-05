@@ -31,7 +31,7 @@
     "generate:paraglide": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy globalVariable cookie preferredLanguage baseLocale --silent",
     "generate:pwa": "pwa-assets-generator",
     "machine-translate": "inlang machine translate --project project.inlang",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "dependencies": {

@@ -1,7 +1,13 @@
 import type * as schema from '$lib/db/schema'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it } from 'vitest'
-import { activityFilterConditions, createUpdateActivity, insertActivity, type ActivityInput } from './activity.server'
+import {
+  activityFilterConditions,
+  createUpdateActivity,
+  insertActivity,
+  reassignActivityEntity,
+  type ActivityInput,
+} from './activity.server'
 
 /**
  * Fake db capturing delete/insert/update calls. The debounce deletes duplicates before
@@ -188,5 +194,17 @@ describe('deleteActivity filters', () => {
     expect(unscoped).toHaveLength(3)
     // The fourth condition is the `IS NULL` that keeps `route:deleted:file` rows out of it.
     expect(scoped).toHaveLength(4)
+  })
+})
+
+describe('reassignActivityEntity', () => {
+  // A hard restore brings the entity back under a new id. Moving only `entityId` leaves the
+  // route's own uploads and ascent rows naming a parent that no longer exists, so both columns
+  // have to move, and the ids have to arrive as text.
+  it('moves both the subject and the parent onto the new id', async () => {
+    const { calls, db } = fakeDb()
+    await reassignActivityEntity(db, { entityType: 'route', fromId: 599, toId: 600 })
+
+    expect(calls.updates).toEqual([{ entityId: '600' }, { parentEntityId: '600' }])
   })
 })

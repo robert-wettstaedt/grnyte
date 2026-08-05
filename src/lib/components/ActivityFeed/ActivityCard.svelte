@@ -95,7 +95,11 @@
 {/snippet}
 
 <!-- What it was is all that is left of it, so the row leads with that rather than hiding the
-     type in an `sr-only` span: without it a card of tombstones says nothing at all. -->
+     type in an `sr-only` span: without it a card of tombstones says nothing at all.
+
+     The name slot falls back to the same placeholder the headline uses. It used to read "this
+     entry was deleted", which said a third time what the trash icon and the type label above it
+     already say, and left the one thing the reader wanted (which route?) unanswered. -->
 {#snippet tombstoneRow(row: ActivityCardRow)}
   <div class="text-surface-600-400 flex items-center gap-2.5 px-1 py-2 text-sm">
     <span class="bg-surface-200-800/60 grid size-13 flex-none place-items-center rounded-xl">
@@ -104,7 +108,7 @@
 
     <span class="min-w-0">
       <span class="text-surface-500 block text-[11px] font-semibold">{resolveMessage(ENTITY_LABEL[row.ref.type])}</span>
-      <span class="block truncate italic">{row.name ?? m.activity_entityDeleted()}</span>
+      <span class="block truncate italic">{row.name ?? m.common_unnamed()}</span>
     </span>
   </div>
 {/snippet}

@@ -10,7 +10,12 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
-import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
+import {
+  createUpdateActivity,
+  deleteActivity,
+  insertActivity,
+  reassignActivityEntity,
+} from '../activity/activity.server'
 import { refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
@@ -326,6 +331,9 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
     await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
+    // The row is new, so the history has to follow it, or the restored area's own create card
+    // and every edit ever made to it render as tombstones next to the live area.
+    await reassignActivityEntity(db, { entityType: 'area', fromId: snapshot.areaId, toId: created.id })
 
     return {
       data: { areaId: created.id },

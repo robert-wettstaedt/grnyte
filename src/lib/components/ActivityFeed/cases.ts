@@ -13,6 +13,7 @@
 import type { ActivityListItem } from '$lib/entities/activity/dto'
 import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
 import type { TopoView } from '$lib/entities/topo/dto'
+import { m } from '$lib/paraglide/messages'
 import { activity, entityMap, photo, topoLines, topoMetadata, topos, video } from './fixtures'
 
 /** One row of the protocol's action matrix, ready to render. */
@@ -107,7 +108,16 @@ function ascentEntity(
   }
 }
 
-function routeEntity(name: string, gradeFk: number): ActivityEntity {
+/**
+ * A hydrated route, named the way the feed really gets one.
+ *
+ * `hydrate.svelte.ts` builds its route entity from a `RouteListItem`, and `toRouteListItem`
+ * has already swapped a blank name for `common_unnamed`. So a nameless route reaches the card
+ * carrying the placeholder as its name, not as an empty string, and a fixture that passes `''`
+ * is testing a state the app cannot produce.
+ */
+function routeEntity(rawName: string, gradeFk: number): ActivityEntity {
+  const name = rawName.length === 0 ? m.common_unnamed() : rawName
   return {
     crumbs: ['Steinbruch', 'Westwand', 'Nordblock'],
     href: '#',
@@ -118,7 +128,7 @@ function routeEntity(name: string, gradeFk: number): ActivityEntity {
 }
 
 // Re-exported so a case chunk needs one import.
-export { activity, photo, topoLines, topoMetadata, topos, video }
+export { activity, photo, routeEntity, topoLines, topoMetadata, topos, video }
 
 export const CASES: ActivityCase[] = [
   // ==== AREA ====
@@ -448,7 +458,7 @@ export const CASES: ActivityCase[] = [
     activities: [],
     domain: 'area',
     expected:
-      'No card: deleteActivity erases the area/deleted row (the filter pins columnName null) and writes nothing. The area returns with a new id, so its old created and updated cards now render as tombstones.',
+      'No card: deleteActivity erases the area/deleted row (the filter pins columnName null) and writes nothing. The area returns with a new id, and reassignActivityEntity moves its history onto that id, so its old created and updated cards stay live.',
     id: 'AREA-04a',
   },
   {
@@ -1158,6 +1168,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'block',
+    entities: worldWith([[{ id: '400', type: 'block' }, null]]),
     expected:
       'single card of the removal kind (predicate 1 fires: a delete with no columnName). No change line: delete verbs declare no field.',
     id: 'BLOCK-07a',
@@ -1176,6 +1187,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'block',
+    entities: worldWith([[{ id: '400', type: 'block' }, null]]),
     expected:
       'Exactly one removal card, identical to BLOCK-07a. The soft-delete cascade writes no route:deleted rows, so nothing else appears.',
     id: 'BLOCK-07b',
@@ -1204,7 +1216,7 @@ export const CASES: ActivityCase[] = [
     activities: [],
     domain: 'block',
     expected:
-      'No card. The delete row is erased, and the columnName: null filter spares deleted:location, deleted:topo and deleted:file. The block returns with a new id, so its old rows now render as tombstones.',
+      'No card. The delete row is erased, and the columnName: null filter spares deleted:location, deleted:topo and deleted:file. The block returns with a new id, and reassignActivityEntity moves its history onto that id, so its old rows stay live.',
     id: 'BLOCK-08a',
   },
   {
@@ -1266,20 +1278,9 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
-    entities: worldWith([
-      [
-        { id: '503', type: 'route' },
-        {
-          crumbs: ['Steinbruch', 'Westwand', 'Nordblock'],
-          href: '#',
-          name: '',
-          route: { description: '', gradeFk: 8, name: '', rating: 2, tags: [] },
-          row: 'route',
-        },
-      ],
-    ]),
+    entities: worldWith([[{ id: '503', type: 'route' }, routeEntity('', 8)]]),
     expected:
-      'single card whose headline name slot is empty on both sides (stored name and hydrated name), so the card renders the unnamed fallback rather than a pulsing skeleton. No change line.',
+      'single card. toRouteListItem already swapped the blank name for the placeholder, so both the headline and the row carry it as an ordinary name and render it in the same weight. No change line.',
     id: 'ROUTE-01b',
   },
   {
@@ -1366,20 +1367,9 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
-    entities: worldWith([
-      [
-        { id: '503', type: 'route' },
-        {
-          crumbs: ['Steinbruch', 'Westwand', 'Nordblock'],
-          href: '#',
-          name: '',
-          route: { description: '', gradeFk: 8, name: '', rating: 2, tags: [] },
-          row: 'route',
-        },
-      ],
-    ]),
+    entities: worldWith([[{ id: '503', type: 'route' }, routeEntity('', 8)]]),
     expected:
-      'single card for a nameless quick line: same shape as ROUTE-01a with an empty name slot and an ungraded row. No change line.',
+      'single card for a nameless quick line: same shape as ROUTE-01b, the placeholder arriving as the mapped name. No change line.',
     id: 'ROUTE-01f',
   },
   {
@@ -1434,8 +1424,11 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
+    // The name was just cleared, so the route is still there and has none. Hydrating it under
+    // its old name is what made this read as "renders the old name" next to ROUTE-02a.
+    entities: worldWith([[{ id: '500', type: 'route' }, routeEntity('', 11)]]),
     expected:
-      'single card. text renderer, the new chip is the italic Not set (the zod field defaults to empty string, never null).',
+      'single card. The headline slot has no name to show, so it falls to the unnamed placeholder. text renderer, the new chip is the italic Not set (the zod field defaults to empty string, never null).',
     id: 'ROUTE-02b',
   },
   {
@@ -1918,6 +1911,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
+    entities: worldWith([[{ id: '500', type: 'route' }, null]]),
     expected:
       'single card in the removal family, "You removed Kante direkt", the name read off oldValue. No change line: whole-entity delete verbs declare no field.',
     id: 'ROUTE-11a',
@@ -1936,6 +1930,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
+    entities: worldWith([[{ id: '501', type: 'route' }, null]]),
     expected:
       'single card, identical to ROUTE-11a. The feed cannot tell a hard delete from a soft one. No change line.',
     id: 'ROUTE-11b',
@@ -1954,6 +1949,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
+    entities: worldWith([[{ id: '502', type: 'route' }, null]]),
     expected:
       'single card, identical row to ROUTE-11a. The editor stays on the page (redirectTo is not applied here). No change line.',
     id: 'ROUTE-11c',
@@ -1972,38 +1968,17 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
-    entities: worldWith([
-      [
-        { id: '503', type: 'route' },
-        {
-          crumbs: ['Steinbruch', 'Westwand', 'Nordblock'],
-          href: '#',
-          name: '',
-          route: { description: '', gradeFk: 8, name: '', rating: 2, tags: [] },
-          row: 'route',
-        },
-      ],
-    ]),
+    entities: worldWith([[{ id: '503', type: 'route' }, null]]),
     expected:
-      'single removal card whose name slot is empty on both the stored oldValue and the hydrated row, so the headline shows the unnamed fallback. No change line.',
+      'single removal card. The route is gone and the stored oldValue is empty, so no name is coming from anywhere and the headline shows the unnamed fallback. No change line.',
     id: 'ROUTE-11d',
   },
   {
     action: 'ROUTE-11a, then tap Undo on the Route deleted snackbar (hard restore, new route id)',
-    activities: [
-      activity(5, {
-        entityId: '599',
-        entityType: 'route',
-        newValue: 'Altweg',
-        parentEntityId: '400',
-        parentEntityType: 'block',
-        type: 'created',
-        userFk: ME,
-      }),
-    ],
+    activities: [],
     domain: 'route',
     expected:
-      'The delete row is erased and nothing new is written, so only the older create row is left. It points at a dead id, so its row renders as a tombstone falling back to the stored newValue. No change line.',
+      'No card. deleteActivity erases the route/deleted row and the restore writes none of its own, so the undo adds nothing. The route returns with a new id and reassignActivityEntity moves its history onto that id, so whatever timeline it already had stays live, exactly as in the soft case.',
     id: 'ROUTE-12a',
   },
   {
@@ -2719,6 +2694,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'ascent',
+    entities: worldWith([[{ id: '9001', type: 'ascent' }, null]]),
     expected:
       'removal kind (predicate 1 fires before the ascent predicate), one row so it renders single. No change line.',
     id: 'ASC-10a',
@@ -2756,6 +2732,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'ascent',
+    entities: worldWith([[{ id: '9001', type: 'ascent' }, null]]),
     expected:
       'One removal row total, single card. The files and their bytes go silently, and earlier upload cards stay but lose their thumbnails. No change line.',
     id: 'ASC-10c',

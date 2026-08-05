@@ -309,7 +309,6 @@
       }
     }
   ],
-  "activity_entityDeleted": "Dieser Eintrag wurde gelöscht",
   "activity_fieldDateTime": "Datum",
   "activity_fieldDescription": "Beschreibung",
   "activity_fieldFile": [

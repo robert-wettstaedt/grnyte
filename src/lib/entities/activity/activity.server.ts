@@ -2,7 +2,7 @@ import * as schema from '$lib/db/schema'
 import { sub } from 'date-fns'
 import { and, Column, eq, gt, isNull, or } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { ActivityEntityType } from './dto'
+import type { ActivityEntityType, ActivityParentEntityType } from './dto'
 import type { DeclaredActivity, DeclaredColumn } from './verbs'
 
 /**
@@ -248,6 +248,38 @@ export const deleteActivity = async (
   if (conditions.length > 0) {
     await db.delete(schema.activities).where(and(...conditions))
   }
+}
+
+/**
+ * Move an entity's activity history onto a new id.
+ *
+ * A hard restore inserts a brand new row, so the entity comes back under an id nothing in the
+ * timeline names. Erasing the delete row is only half of "as if it never happened": its create
+ * row and every edit still point at the id that is now dead, so the feed renders them as
+ * tombstones of something standing right there, and the undo reads as a second deletion.
+ *
+ * `parentEntityId` moves too. A route is the parent of its own uploads and ascent rows, and
+ * leaving those behind puts a dead parent's name on a live card.
+ *
+ * Call this AFTER {@link deleteActivity} has erased the delete row, which still matches on the
+ * old id. Only the three entities with a hard-restore path can reach it, which is why the
+ * parameter takes the narrower parent enum.
+ */
+export const reassignActivityEntity = async (
+  db: PostgresJsDatabase<typeof schema>,
+  { entityType, fromId, toId }: { entityType: ActivityParentEntityType; fromId: ActivityId; toId: ActivityId },
+) => {
+  await db
+    .update(schema.activities)
+    .set({ entityId: String(toId) })
+    .where(and(eq(schema.activities.entityId, String(fromId)), eq(schema.activities.entityType, entityType)))
+
+  await db
+    .update(schema.activities)
+    .set({ parentEntityId: String(toId) })
+    .where(
+      and(eq(schema.activities.parentEntityId, String(fromId)), eq(schema.activities.parentEntityType, entityType)),
+    )
 }
 
 /** Exported for the test: an omitted field must contribute nothing and an explicit `null`
