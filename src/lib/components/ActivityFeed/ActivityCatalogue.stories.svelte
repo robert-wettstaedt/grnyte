@@ -1,0 +1,90 @@
+<!--
+  The card wall: every case in `docs/activity-feed-test-protocol.md` rendered at once.
+
+  It exists to answer one question by eye instead of by clicking: does the feed say what a
+  reader expects for each action the app can perform. Each case runs through the real
+  `groupActivities` and `activityCard`, so what is on screen is what the app renders, and a
+  case that folds into two cards shows two.
+
+  Read a domain's story top to bottom, compare each card against the action above it, and
+  note the ids that are wrong. Those ids are then the work list, and once they are settled
+  the same `CASES` array becomes the snapshot fixture for the unit tests.
+-->
+<script module lang="ts">
+  import type { ActivityCase, ActivityCaseDomain } from '$lib/components/ActivityFeed/cases'
+  import { groupActivities } from '$lib/entities/activity/grouping'
+  import { defineMeta } from '@storybook/addon-svelte-csf'
+  import ActivityCard from './ActivityCard.svelte'
+  import { CASES, ME, world } from './cases'
+  import { view } from './fixtures'
+
+  const { Story } = defineMeta({
+    parameters: { backgrounds: { value: 'root' }, layout: 'padded' },
+    title: 'Components/ActivityFeed/Catalogue',
+  })
+
+  const byDomain = (domain: ActivityCaseDomain) => CASES.filter((entry) => entry.domain === domain)
+
+  /** The cards one case renders. More than one means grouping split it, which is often the
+   *  point of the case; none means the action writes no activity row at all. */
+  const cards = (entry: ActivityCase) =>
+    groupActivities(entry.activities).map((group) => view(group, entry.entities ?? world, ME, entry.topos))
+</script>
+
+{#snippet wall(cases: ActivityCase[])}
+  <div class="mx-auto flex max-w-[560px] flex-col gap-10">
+    {#each cases as entry (entry.id)}
+      {@const views = cards(entry)}
+
+      <section id={entry.id} class="flex flex-col gap-2">
+        <header class="flex flex-col gap-1">
+          <div class="flex items-baseline gap-2">
+            <span class="text-primary-400 font-mono text-sm font-semibold">{entry.id}</span>
+            {#if views.length !== 1}
+              <span class="preset-tonal-warning rounded px-1.5 py-0.5 text-xs">
+                {views.length === 0 ? 'no card' : `${views.length} cards`}
+              </span>
+            {/if}
+          </div>
+
+          <p class="text-surface-600-400 font-mono text-xs">{entry.action}</p>
+          <p class="text-surface-500 text-xs italic">{entry.expected}</p>
+        </header>
+
+        {#each views as cardView (cardView.id)}
+          <ActivityCard initiallyExpanded view={cardView} />
+        {:else}
+          <p class="border-surface-700 text-surface-500 rounded border border-dashed px-3 py-4 text-xs">
+            This action writes no activity row, so the feed stays silent.
+          </p>
+        {/each}
+      </section>
+    {/each}
+  </div>
+{/snippet}
+
+{#snippet template(args: { cases: ActivityCase[] })}
+  {@render wall(args.cases)}
+{/snippet}
+
+<Story name="All cases" args={{ cases: CASES }} {template} />
+
+<Story name="Area" args={{ cases: byDomain('area') }} {template} />
+
+<Story name="Block" args={{ cases: byDomain('block') }} {template} />
+
+<Story name="Route" args={{ cases: byDomain('route') }} {template} />
+
+<Story name="Ascent" args={{ cases: byDomain('ascent') }} {template} />
+
+<Story name="File" args={{ cases: byDomain('file') }} {template} />
+
+<Story name="Topo" args={{ cases: byDomain('topo') }} {template} />
+
+<Story name="Region" args={{ cases: byDomain('region') }} {template} />
+
+<Story name="User" args={{ cases: byDomain('user') }} {template} />
+
+<!-- The cases that write nothing, on their own: the ones most likely to be a real bug, since
+     a reader performed an action and the feed said nothing. -->
+<Story name="Silent actions" args={{ cases: CASES.filter((entry) => entry.activities.length === 0) }} {template} />

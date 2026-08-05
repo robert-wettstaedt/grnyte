@@ -27,16 +27,20 @@
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { now } from '$lib/state/now.svelte'
+  import { untrack } from 'svelte'
   import { slide } from 'svelte/transition'
   import ActivityChanges from './ActivityChanges.svelte'
 
   interface Props {
+    /** Whether the changes start open. The feed leaves them closed; the catalogue story opens
+     *  every card at once, since the change lines are half of what it exists to show. */
+    initiallyExpanded?: boolean
     /** Told when the changes open or close, so the page can sync what only they render. */
     onToggle?: (expanded: boolean) => void
     view: ActivityCardView
   }
 
-  const { onToggle, view }: Props = $props()
+  const { initiallyExpanded = false, onToggle, view }: Props = $props()
 
   const global = getGlobalState()
 
@@ -56,7 +60,8 @@
     view.summary?.map((part) => (part.key == null ? part.text : resolveMessage(part.key, part.params))).join(' · '),
   )
 
-  let expanded = $state(false)
+  // The prop seeds the toggle and then stops mattering, which is what `untrack` states.
+  let expanded = $state(untrack(() => initiallyExpanded))
 </script>
 
 {#snippet strong(value: string | undefined)}
