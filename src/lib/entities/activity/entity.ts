@@ -104,6 +104,37 @@ export function activityHydrationRefs(activities: readonly ActivityListItem[]): 
   )
 }
 
+/**
+ * The entities a card renders as ROWS, which is not always what its activities point at.
+ *
+ * An upload points at a file, whose name is a cuid and whose only page is the media viewer, so
+ * the row worth showing under the headline is the thing it was attached to. That is exactly
+ * what the row already names as its parent, which is why the same entries that borrow the
+ * parent's name also borrow its row.
+ *
+ * An entry that declares `row: 'none'` renders none at all: a removed member is out of the
+ * region, so the row would be a dead end even when the person still hydrates.
+ */
+export function activityRowRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
+  return dedupe(
+    activities.flatMap((activity) => {
+      const entry = activityEntry(activity)
+
+      if (entry?.row === 'none' || entry?.names === 'stored') {
+        return []
+      }
+
+      if (entry?.names !== 'parent') {
+        return [{ id: activity.entityId, type: activity.entityType }]
+      }
+
+      return activity.parentEntityId == null || activity.parentEntityType == null
+        ? []
+        : [{ id: activity.parentEntityId, type: activity.parentEntityType }]
+    }),
+  )
+}
+
 function dedupe(refs: readonly ActivityEntityRef[]): ActivityEntityRef[] {
   const seen = new Set<string>()
 

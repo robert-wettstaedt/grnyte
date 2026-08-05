@@ -92,6 +92,16 @@ export interface ActivityVerb {
   names?: 'parent' | 'stored'
   /** A new ascent scopes its verb by the ascent type it stores here, not by a column. */
   newValue?: string
+  /**
+   * Whether the card renders an entity row for the subject at all.
+   *
+   * `none` is for the events whose subject is no longer there to link to. A removed member is
+   * not in the region any more, so a row offering their profile is a dead end, and the row
+   * would sit there pulsing for anyone whose member list no longer holds them. The headline
+   * still names them, which is why this is not `names: 'stored'`: the entity is fetched, it
+   * just is not rendered.
+   */
+  row?: 'none'
   /** Whether the card shows an ascent status glyph, read off `newValue`. */
   status?: 'ascentType'
   /** Which value column carries the name once the subject is gone. */
@@ -375,13 +385,14 @@ export const ACTIVITY_VERBS = [
     columnName: 'role',
     entityType: 'user',
     key: 'activity_userDeletedRole',
+    row: 'none',
     tombstone: 'newValue',
     type: 'deleted',
   },
   // Leaving is its own event. It shared `role` with being removed until migration 0094, which
   // is why the feed used to say "Mara removed Mara from the region". No `tombstone`: the
   // sentence names only the actor, who is also the subject.
-  { columnName: 'membership', entityType: 'user', key: 'activity_userDeletedMembership', type: 'deleted' },
+  { columnName: 'membership', entityType: 'user', key: 'activity_userDeletedMembership', row: 'none', type: 'deleted' },
   {
     columnName: 'username',
     entityType: 'user',

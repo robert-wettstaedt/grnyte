@@ -467,7 +467,9 @@ describe('uploads', () => {
     expect(removal(undefined)).toBe('none')
   })
 
-  it('renders no entity row for a file, only its media', () => {
+  // The media comes off the file, the row comes off what the file was attached to. A file's own
+  // name is a cuid and its only page is the media viewer, so a row for it leads nowhere.
+  it('renders the parent as the row for an upload, and the file as its media', () => {
     const entities = entityMap([
       [
         { id: '400', type: 'block' },
@@ -480,8 +482,53 @@ describe('uploads', () => {
     ])
     const view = card([upload({ entityId: 'f1', id: 1 })], entities)
 
-    expect(view.rows.map((row) => row.entity?.row)).toEqual(['none'])
+    expect(view.rows.map((row) => row.ref)).toEqual([{ id: '400', type: 'block' }])
+    expect(view.rows.map((row) => row.entity?.row)).toEqual(['block'])
     expect(view.files).toHaveLength(1)
+  })
+
+  // Five photos from one submit all name the same parent, so the card shows one row, not five.
+  it('collapses a multi-file upload onto the one parent row', () => {
+    const entities = entityMap([
+      [
+        { id: '400', type: 'block' },
+        { name: 'Nordblock', row: 'block' },
+      ],
+      ...Array.from({ length: 3 }, (_, index): [{ id: string; type: 'file' }, ActivityEntity] => [
+        { id: `f${index}`, type: 'file' },
+        { files: [{ id: `f${index}` } as never], name: 'Nordblock', row: 'none' },
+      ]),
+    ])
+    const view = card(
+      Array.from({ length: 3 }, (_, index) => upload({ entityId: `f${index}`, id: index + 1 })),
+      entities,
+    )
+
+    expect(view.rows).toHaveLength(1)
+    expect(view.files).toHaveLength(3)
+  })
+
+  // A member who was removed is out of the region, so their row is a dead end even while the
+  // entity still hydrates. The headline still names them.
+  it('renders no row for a member removal or a departure', () => {
+    const entities = entityMap([
+      [
+        { id: '5', type: 'user' },
+        { name: 'Mara Lindqvist', row: 'user' },
+      ],
+    ])
+    const removed = card(
+      [activity({ columnName: 'role', entityId: '5', entityType: 'user', type: 'deleted' })],
+      entities,
+    )
+    const left = card(
+      [activity({ columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted' })],
+      entities,
+    )
+
+    expect(removed.rows).toEqual([])
+    expect(removed.entityName).toBe('Mara Lindqvist')
+    expect(left.rows).toEqual([])
   })
 })
 

@@ -7,6 +7,7 @@ import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
   activityEntityRefs,
+  activityRowRefs,
   type ActivityEntity,
   type ActivityEntityMap,
   type ActivityEntityRef,
@@ -121,6 +122,10 @@ export function activityCard(
 ): ActivityCardView {
   const newest = group.activities[0]
   const refs = activityEntityRefs(group.activities)
+  // What the card points AT and what it renders as rows are two different questions. An upload
+  // points at a file, which supplies the media and no row; the row belongs to the route or
+  // ascent it landed on.
+  const rowRefs = activityRowRefs(group.activities)
   const entityOf = (ref: ActivityEntityRef | undefined) =>
     ref == null ? undefined : entities?.get(activityEntityKey(ref))
 
@@ -231,8 +236,8 @@ export function activityCard(
     id: group.id,
     mine,
     note: refs.map((ref) => entityOf(ref)?.note).find((value) => value != null && value.length > 0),
-    overflowCount: Math.max(0, refs.length - MAX_ROWS),
-    rows: refs.slice(0, MAX_ROWS).map((ref): ActivityCardRow => {
+    overflowCount: Math.max(0, rowRefs.length - MAX_ROWS),
+    rows: rowRefs.slice(0, MAX_ROWS).map((ref): ActivityCardRow => {
       const entity = entityOf(ref)
       return {
         entity: entity ?? undefined,
