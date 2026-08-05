@@ -246,18 +246,6 @@ export const inviteRegionMember = authedForm(
     const address = normalizeEmail(email)
     const invitation = await createInvitation(db, { email: address, invitedByFk: user.id, regionFk })
 
-    // The invitee has no user row yet, so the activity is logged against the inviter, with the
-    // address as the value. Same shape the revoke below erases.
-    await insertActivity(db, {
-      columnName: 'invitation',
-      entityId: user.id,
-      entityType: 'user',
-      newValue: address,
-      regionFk,
-      type: 'created',
-      userFk: user.id,
-    })
-
     const sent = await sendInvitationEmail(
       db,
       {
@@ -270,6 +258,25 @@ export const inviteRegionMember = authedForm(
       },
       mailContext(),
     )
+
+    // After the send, and only when it went out. The invitee has no user row yet, so the row is
+    // logged against the inviter with the address as its value, the shape the revoke erases.
+    //
+    // `sendInvitationEmail` reports failure rather than throwing, and logging ahead of it put
+    // "You invited lea@example.com" in the region's log for a mail nobody received. The
+    // invitation itself survives a failed send, so a successful Resend logs it then; the
+    // identity collapse in `insertActivity` keeps that from stacking up a second card.
+    if (sent) {
+      await insertActivity(db, {
+        columnName: 'invitation',
+        entityId: user.id,
+        entityType: 'user',
+        newValue: address,
+        regionFk,
+        type: 'created',
+        userFk: user.id,
+      })
+    }
 
     return { data: { email: address, sent } }
   },

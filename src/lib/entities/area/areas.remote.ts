@@ -16,6 +16,7 @@ import {
   insertActivity,
   reassignActivityEntity,
 } from '../activity/activity.server'
+import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
@@ -216,18 +217,39 @@ export const deleteArea = authedCommand(
     // Sub-areas and blocks are the spec's "children"; files are folded in because they
     // FK-reference the area and can't be recreated on undo — an area with files is
     // soft-deleted rather than hard-deleted so nothing is lost.
-    const [subArea, block, file] = await Promise.all([
-      db.query.areas.findFirst({ columns: { id: true }, where: eq(areas.parentFk, id) }),
-      db.query.blocks.findFirst({ columns: { id: true }, where: eq(blocks.areaFk, id) }),
+    // The whole subtree, not just the direct children: deleting a crag takes its blocks and
+    // their routes with it, and after the delete none of it is left to count. The existence
+    // checks below fall out of the same numbers.
+    const areaIds = await collectAreaSubtreeIds(db, id)
+    const [blockRows, file] = await Promise.all([
+      db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) }),
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.areaFk, id) }),
     ])
+    const routeRows =
+      blockRows.length === 0
+        ? []
+        : await db.query.routes.findMany({
+            columns: { id: true },
+            where: inArray(
+              routes.blockFk,
+              blockRows.map((row) => row.id),
+            ),
+          })
 
     const data =
-      subArea == null && block == null && file == null ? await hardDeleteArea(db, area) : await softDeleteArea(db, area)
+      areaIds.length === 1 && blockRows.length === 0 && file == null
+        ? await hardDeleteArea(db, area)
+        : await softDeleteArea(db, area)
 
     await insertActivity(db, {
       entityId: area.id,
       entityType: 'area',
+      // What went with it, recorded while it is still knowable.
+      metadata: stringifyDeletionScale({
+        areas: areaIds.length - 1,
+        blocks: blockRows.length,
+        routes: routeRows.length,
+      }),
       // The only name the feed will ever have for it: the row is about to be unreachable.
       oldValue: area.name,
       parentEntityId: area.parentFk,

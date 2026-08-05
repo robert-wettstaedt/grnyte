@@ -28,6 +28,46 @@ export type ChangeRenderer =
   | 'topo'
 
 /**
+ * What a whole-entity deletion took with it, as its row stores it.
+ *
+ * A deletion is the one card whose subject a reader cannot go and look at, so the scale of it
+ * has to be written down while it is still knowable. Counts only: the card says "12 blocks,
+ * 200 routes", never a list, because a list of things that no longer exist is not navigable.
+ *
+ * Rows written before this carry no metadata and render exactly as they always did.
+ */
+export interface DeletionScale {
+  areas?: number
+  blocks?: number
+  routes?: number
+}
+
+export function parseDeletionScale(metadata: string | undefined): DeletionScale | undefined {
+  if (metadata == null || metadata.length === 0) {
+    return undefined
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(metadata)
+    if (typeof parsed !== 'object' || parsed == null) {
+      return undefined
+    }
+
+    const scale = parsed as DeletionScale
+    return scale.areas == null && scale.blocks == null && scale.routes == null ? undefined : scale
+  } catch {
+    // A topo row's metadata sits in the same column and is not JSON. Not ours, so not a scale.
+    return undefined
+  }
+}
+
+/** Only the non-zero counts, so an empty crag stores nothing rather than a row of zeroes. */
+export function stringifyDeletionScale(scale: DeletionScale): string | undefined {
+  const entries = Object.entries(scale).filter(([, value]) => typeof value === 'number' && value > 0)
+  return entries.length === 0 ? undefined : JSON.stringify(Object.fromEntries(entries))
+}
+
+/**
  * The field metadata entries share, hoisted so `en` and `de` cannot drift per screen.
  *
  * Referenced from the entries below rather than keyed by column name. That key was a level

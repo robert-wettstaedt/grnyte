@@ -31,6 +31,23 @@ type ActivityId = number | string
 
 const parentIdOf = (id: ActivityId | null | undefined) => (id == null ? null : String(id))
 
+/**
+ * Whether a column actually moved.
+ *
+ * Surrounding whitespace does not count. Opening a description in the markdown editor and
+ * saving it untouched reserialises it with a trailing newline, which is not an edit anybody
+ * made and which logged a card whose two sides looked identical.
+ *
+ * Only the ends are trimmed. Whitespace INSIDE the value is left alone on purpose: in markdown
+ * two spaces at the end of a line are a hard break, so collapsing runs would drop a real
+ * change. The stored values keep their exact bytes either way; this decides only whether there
+ * was a change to record.
+ */
+export function changed(before: unknown, after: unknown): boolean {
+  const normalise = (value: unknown) => (value == null ? '' : String(value).trim())
+  return normalise(before) !== normalise(after)
+}
+
 const toRow = ({ entityId, parentEntityId, ...rest }: ActivityInput): schema.InsertActivity => ({
   ...rest,
   entityId: String(entityId),
@@ -86,7 +103,7 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
   const prev = oldEntity as Record<string, unknown>
 
   Object.keys(next).forEach((key) => {
-    if (String(prev[key] ?? null) !== String(next[key] ?? null)) {
+    if (changed(prev[key], next[key])) {
       changes.push({
         columnName: key,
         newValue: next[key] == null ? null : String(next[key]),

@@ -159,6 +159,34 @@ describe('headline keys', () => {
     expect(card(rows).summary).toEqual([{ key: 'activity_summaryAscents', params: { count: 2 } }])
   })
 
+  // A deletion is the one card whose subject cannot be followed, so the scale of it is the
+  // only thing that can answer "how bad was that".
+  it('reports what a deletion took with it, summed over the card', () => {
+    const rows = burstRows(2, (index) => ({
+      entityId: String(index),
+      entityType: 'area' as const,
+      metadata: JSON.stringify({ blocks: index + 1, routes: 10 }),
+      parentEntityType: 'area' as const,
+      type: 'deleted' as const,
+    }))
+
+    expect(card(rows).summary).toEqual([
+      { key: 'activity_summaryBlocks', params: { count: 3 } },
+      { key: 'activity_summaryRoutes', params: { count: 20 } },
+    ])
+  })
+
+  it('leaves a deletion logged before the counts existed exactly as it was', () => {
+    const rows = [activity({ type: 'deleted' })]
+    expect(card(rows).summary).toBeUndefined()
+  })
+
+  // A topo row's metadata shares the column and is not JSON.
+  it('ignores metadata that is not a deletion scale', () => {
+    const rows = [activity({ columnName: 'topo', entityType: 'block', metadata: 'lines:700', type: 'deleted' })]
+    expect(card(rows).summary).toBeUndefined()
+  })
+
   it('says a group of deletions deleted rather than edited', () => {
     const rows = burstRows(2, (index) => ({ entityId: String(index), type: 'deleted' as const }))
     expect(card(rows).headline.key).toBe('activity_groupRemovals')

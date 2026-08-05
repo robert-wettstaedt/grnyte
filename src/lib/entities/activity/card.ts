@@ -13,7 +13,7 @@ import {
   type ActivityEntityRef,
 } from './entity'
 import type { ActivityGroup } from './grouping'
-import { activityEntry, activityVerb, type ActivityField } from './verbs'
+import { activityEntry, activityVerb, parseDeletionScale, type ActivityField } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
@@ -285,6 +285,41 @@ function createdWithMedia(group: ActivityGroup): ActivityListItem[] | undefined 
 }
 
 /**
+ * "12 blocks, 200 routes" under a deletion, summed over every row on the card.
+ *
+ * `undefined` when nothing on the card recorded a scale, which covers every deletion logged
+ * before the writers started counting as well as every card that is not a deletion.
+ */
+function deletionScaleParts(group: ActivityGroup): ActivityMessagePart[] | undefined {
+  const totals = { areas: 0, blocks: 0, routes: 0 }
+  let found = false
+
+  for (const activity of group.activities) {
+    const scale = activity.type === 'deleted' ? parseDeletionScale(activity.metadata) : undefined
+    if (scale == null) {
+      continue
+    }
+
+    found = true
+    totals.areas += scale.areas ?? 0
+    totals.blocks += scale.blocks ?? 0
+    totals.routes += scale.routes ?? 0
+  }
+
+  if (!found) {
+    return undefined
+  }
+
+  const parts: ActivityMessagePart[] = [
+    ...(totals.areas > 0 ? [{ key: 'activity_summaryAreas' as const, params: { count: totals.areas } }] : []),
+    ...(totals.blocks > 0 ? [{ key: 'activity_summaryBlocks' as const, params: { count: totals.blocks } }] : []),
+    ...(totals.routes > 0 ? [{ key: 'activity_summaryRoutes' as const, params: { count: totals.routes } }] : []),
+  ]
+
+  return parts.length === 0 ? undefined : parts
+}
+
+/**
  * The headline key for a whole card. A single-activity card speaks its own verb; a grouped
  * one summarises, because "redpointed Rampe" would name one of four ascents. The count
  * lives in the summary, so these stay one sentence per key.
@@ -405,6 +440,13 @@ function summaryParts(
   media: ActivityMedia,
   subjects: number,
 ): ActivityMessagePart[] | undefined {
+  // What a deletion took with it. Its own branch because it is the one summary a `single` card
+  // has: every other kind counts rows and a card of one has nothing to count.
+  const scale = deletionScaleParts(group)
+  if (scale != null) {
+    return scale
+  }
+
   if (group.kind === 'single') {
     return undefined
   }

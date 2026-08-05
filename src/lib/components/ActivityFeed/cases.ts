@@ -429,6 +429,7 @@ export const CASES: ActivityCase[] = [
       activity(5, {
         entityId: '301',
         entityType: 'area',
+        metadata: '{"blocks":12,"routes":200}',
         oldValue: 'Westwand',
         parentEntityId: '300',
         parentEntityType: 'area',
@@ -439,7 +440,7 @@ export const CASES: ActivityCase[] = [
     domain: 'area',
     entities: worldWith([[{ id: '301', type: 'area' }, null]]),
     expected:
-      'Exactly one removal row of identical shape, so a single tombstone card. The soft-delete cascade over blocks and routes logs nothing.',
+      'Exactly one removal row, so a single tombstone card. The cascade logs nothing of its own, but the delete row recorded what went with it, so the card carries a "12 blocks, 200 routes" sub line.',
     id: 'AREA-03b',
   },
   {

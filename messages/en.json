@@ -567,6 +567,16 @@
     }
   ],
   "activity_showChanges": "Show changes",
+  "activity_summaryAreas": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} area",
+        "countPlural=other": "{count} areas"
+      }
+    }
+  ],
   "activity_summaryAscents": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -574,6 +584,16 @@
       "match": {
         "countPlural=one": "{count} ascent",
         "countPlural=other": "{count} ascents"
+      }
+    }
+  ],
+  "activity_summaryBlocks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} block",
+        "countPlural=other": "{count} blocks"
       }
     }
   ],
@@ -618,6 +638,16 @@
       "match": {
         "countPlural=one": "{count} deletion",
         "countPlural=other": "{count} deletions"
+      }
+    }
+  ],
+  "activity_summaryRoutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route",
+        "countPlural=other": "{count} routes"
       }
     }
   ],

@@ -3,6 +3,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it } from 'vitest'
 import {
   activityFilterConditions,
+  changed,
   createUpdateActivity,
   insertActivity,
   reassignActivityEntity,
@@ -194,6 +195,30 @@ describe('deleteActivity filters', () => {
     expect(unscoped).toHaveLength(3)
     // The fourth condition is the `IS NULL` that keeps `route:deleted:file` rows out of it.
     expect(scoped).toHaveLength(4)
+  })
+})
+
+describe('changed', () => {
+  it('ignores whitespace the editor added around a value', () => {
+    // Opening a description and saving it untouched reserialises it with a trailing newline.
+    expect(changed('Sit start on crimps.', 'Sit start on crimps.\n')).toBe(false)
+    expect(changed('  Kante  ', 'Kante')).toBe(false)
+  })
+
+  // A column that was SQL NULL and a form that submits '' are the same state, "not set". The
+  // old comparison stringified null to "null", so an untouched save on a v1 row logged a card
+  // whose two sides both read "Not set".
+  it('treats an absent value and an empty one as the same', () => {
+    expect(changed(null, '')).toBe(false)
+    expect(changed(undefined, '')).toBe(false)
+  })
+
+  it('still sees a real edit', () => {
+    expect(changed('Kante', 'Kante direkt')).toBe(true)
+    expect(changed(null, 'Kante')).toBe(true)
+    expect(changed('Kante', '')).toBe(true)
+    // Whitespace inside is left alone: two trailing spaces on a line are a markdown hard break.
+    expect(changed('one\ntwo', 'one  \ntwo')).toBe(true)
   })
 })
 

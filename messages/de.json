@@ -567,6 +567,16 @@
     }
   ],
   "activity_showChanges": "Änderungen anzeigen",
+  "activity_summaryAreas": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Gebiet",
+        "countPlural=other": "{count} Gebiete"
+      }
+    }
+  ],
   "activity_summaryAscents": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -574,6 +584,16 @@
       "match": {
         "countPlural=one": "{count} Begehung",
         "countPlural=other": "{count} Begehungen"
+      }
+    }
+  ],
+  "activity_summaryBlocks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Block",
+        "countPlural=other": "{count} Blöcke"
       }
     }
   ],
@@ -618,6 +638,16 @@
       "match": {
         "countPlural=one": "{count} Löschung",
         "countPlural=other": "{count} Löschungen"
+      }
+    }
+  ],
+  "activity_summaryRoutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} Route",
+        "countPlural=other": "{count} Routen"
       }
     }
   ],

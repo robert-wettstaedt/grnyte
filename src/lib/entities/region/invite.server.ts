@@ -409,6 +409,21 @@ export async function resendInvitation(
     mail,
   )
 
+  // The first send may have failed, in which case nothing logged the invitation and this is the
+  // moment it reaches somebody. When the first send did work, `insertActivity` collapses this
+  // onto that row rather than adding a second card: same actor, region, column and address.
+  if (sent) {
+    await insertActivity(db, {
+      columnName: 'invitation',
+      entityId: invitation.invitedByFk,
+      entityType: 'user',
+      newValue: invitation.email,
+      regionFk: invitation.regionFk,
+      type: 'created',
+      userFk: invitation.invitedByFk,
+    })
+  }
+
   return { email: invitation.email, sent }
 }
 

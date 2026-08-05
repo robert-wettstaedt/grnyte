@@ -14,6 +14,7 @@ import {
   insertActivity,
   reassignActivityEntity,
 } from '../activity/activity.server'
+import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canDeleteBlock, canEditBlock } from './permissions'
@@ -393,11 +394,15 @@ export const deleteBlock = authedCommand(
 
     // Routes/topos/files FK-reference the block; a block with any of them is soft-deleted so
     // undo restores them cleanly (and so the hard delete never hits a FK constraint).
-    const [route, topo, file] = await Promise.all([
-      db.query.routes.findFirst({ columns: { id: true }, where: eq(routes.blockFk, id) }),
+    //
+    // Routes come back as rows rather than a single hit, because the count also goes on the
+    // activity: after the delete there is nothing left to count.
+    const [routeRows, topo, file] = await Promise.all([
+      db.query.routes.findMany({ columns: { id: true }, where: eq(routes.blockFk, id) }),
       db.query.topos.findFirst({ columns: { id: true }, where: eq(topos.blockFk, id) }),
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.blockFk, id) }),
     ])
+    const route = routeRows[0]
 
     const data =
       route == null && topo == null && file == null
@@ -410,6 +415,9 @@ export const deleteBlock = authedCommand(
     await insertActivity(db, {
       entityId: block.id,
       entityType: 'block',
+      // What went with it. A deletion is the one card a reader cannot check by following a
+      // link, so the scale of it has to be recorded at the moment it is still knowable.
+      metadata: stringifyDeletionScale({ routes: routeRows.length }),
       oldValue: block.name,
       parentEntityId: block.areaFk,
       parentEntityType: 'area',
