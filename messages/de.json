@@ -597,6 +597,7 @@
       }
     }
   ],
+  "activity_summaryClimbedOn": "Begangen am {date}",
   "activity_summaryEdits": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -651,6 +652,7 @@
       }
     }
   ],
+  "activity_thisAscent": "Diese Begehung",
   "activity_userCreatedInvitation": [
     {
       "declarations": ["input actor", "input name", "input person"],

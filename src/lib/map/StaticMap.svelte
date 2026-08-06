@@ -24,14 +24,24 @@
     height?: number
     /** Announced to screen readers, which cannot read the tiles. */
     label?: string
+    /** Approach paths, drawn as solid lines. The view fits these as well as the pins: a path
+     *  cropped at the edge says less about the walk in than no path at all. */
+    paths?: Coords[][]
     points: StaticMapPoint[]
     width?: number
   }
 
-  const { class: className, height = 135, label, points, width = 240 }: Props = $props()
+  const { class: className, height = 135, label, paths = [], points, width = 240 }: Props = $props()
 
-  const view = $derived(tileView(points, width, height))
+  const view = $derived(tileView([...points, ...paths.flat()], width, height))
   const placed = $derived(points.map((point) => ({ ...point, ...pointPx(point, view) })))
+  const lines = $derived(
+    paths.flatMap((path) => {
+      const drawn = path.map((point) => pointPx(point, view))
+      // One point is not a line, and `polyline` would render it as nothing anyway.
+      return drawn.length < 2 ? [] : [drawn.map(({ left, top }) => `${left},${top}`).join(' ')]
+    }),
+  )
 
   // Tiles are the one part that talks to the network. If they cannot be reached the caller's
   // caption still says what happened, so the thumbnail removes itself rather than showing a hole.
@@ -63,18 +73,34 @@
       {/each}
     </div>
 
-    <!-- Two pins are a before and an after, so the eye needs the line between them. -->
-    {#if placed.length === 2}
+    {#if placed.length === 2 || lines.length > 0}
       <svg class="text-primary-500 pointer-events-none absolute inset-0" {height} {width} aria-hidden="true">
-        <line
-          stroke="currentColor"
-          stroke-dasharray="4 3"
-          stroke-width="2"
-          x1={placed[0].left}
-          x2={placed[1].left}
-          y1={placed[0].top}
-          y2={placed[1].top}
-        />
+        <!-- Two pins are a before and an after, so the eye needs the line between them. -->
+        {#if placed.length === 2}
+          <line
+            stroke="currentColor"
+            stroke-dasharray="4 3"
+            stroke-width="2"
+            x1={placed[0].left}
+            x2={placed[1].left}
+            y1={placed[0].top}
+            y2={placed[1].top}
+          />
+        {/if}
+
+        <!-- The blue `createPathLayer` draws on the real map, so an approach reads as the same
+             thing in the thumbnail as it does when the reader opens it. Solid, which is what
+             keeps it apart from the dashed line above. -->
+        {#each lines as line, index (index)}
+          <polyline
+            fill="none"
+            points={line}
+            stroke="rgba(30, 64, 175, 0.7)"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+          />
+        {/each}
       </svg>
     {/if}
 

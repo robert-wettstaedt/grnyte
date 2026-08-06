@@ -41,7 +41,9 @@
    */
   const FIELDS: Record<keyof ActivityCardView, string> = {
     actorName: 'The avatar initials and the bold {actor} in the headline. Pulses while the user row syncs.',
+    ascent: 'The "This ascent" strip: the climber\'s own grade, rating and conditions. Create cards only.',
     changes: 'The rows behind the "Show changes" toggle, one per changed column.',
+    climbedAt: 'A "Climbed on ..." part in the sub line, when the climb date is not the log date.',
     climberName: "The bold {climber}. Only the messages about somebody else's ascent have that slot.",
     createdAt: 'The relative clock, top right. The view carries the timestamp, the component formats it.',
     entityName: "The bold {name} in the headline. A grouped card borrows its shared parent's name.",
@@ -52,6 +54,7 @@
     mine: 'Swaps the avatar for "Me" and picks the "You ..." wording of the same message.',
     note: 'The quoted block under the rows.',
     overflowCount: 'The "and N more" line under the rows.',
+    pin: 'The OSM thumbnail above the rows, on the card that placed a block.',
     rows: 'The entity rows, capped at four. Each is an entity, a skeleton or a tombstone.',
     status: 'The ascent type badge left of the clock.',
     summary: 'The sub line under the headline, joined with " · ". Grouped cards only.',

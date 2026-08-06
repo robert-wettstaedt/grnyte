@@ -1,6 +1,8 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
+import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { RouteListItem } from '$lib/entities/route/dto'
+import type { Coords } from '$lib/map/map'
 import type { ActivityEntityType, ActivityListItem } from './dto'
 import { activityEntry } from './verbs'
 
@@ -20,8 +22,21 @@ import { activityEntry } from './verbs'
  * different list resources into it without four different mappers.
  */
 export interface ActivityEntity {
+  /**
+   * The climber's own grade opinion (`ascents.gradeFk`), which is NOT the community grade the
+   * route row beside it renders. A card that logged one shows it in its own labelled strip,
+   * because two grades side by side with nothing to tell them apart reads as a bug.
+   */
+  ascentGradeFk?: number
+  /** The climber's own rating, in the same strip and for the same reason. */
+  ascentRating?: number
   /** Ascent type when the row stands for an ascent, so its route row shows the status glyph. */
   ascentType?: AscentType
+  /**
+   * When the ascent was climbed (`ascents.dateTime`), which is not when it was logged. The
+   * card's clock is the log time, so a session logged the morning after says so in its sub line.
+   */
+  climbedAt?: number
   /**
    * Whose ascent it is (`ascents.createdBy`). A region maintainer may edit anyone's, so the
    * headline has to say whether the actor edited their own or somebody else's; without
@@ -38,14 +53,28 @@ export interface ActivityEntity {
   files?: MediaFile[]
   /** Already-resolved row link. */
   href?: string
+  /** The ascent's humidity, half of the conditions pill in the same strip as the grade. */
+  humidity?: number
   /** Display name; the card's headline interpolates it. */
   name: string
   /** An ascent's notes, quoted under the rows. */
   note?: string
+  /**
+   * The area's approach paths (`areas.geoPaths`, already decoded), drawn on the thumbnail of a
+   * parking change. Only areas carry any, which is what keeps a block's location line pathless.
+   */
+  paths?: Coords[][]
+  /**
+   * The block's pin, drawn as a map thumbnail on the card that created it. The create row
+   * carries no coordinates of its own, so this is the pin as it stands today.
+   */
+  pin?: Geolocation
   /** The route the row renders, for `route` rows. */
   route?: ActivityRoute
   /** Which entity row the card renders. `none` renders the name alone. */
   row: 'area' | 'block' | 'none' | 'route' | 'user'
+  /** The ascent's temperature, the other half of the conditions pill. */
+  temperature?: number
   /** Thumbnail for block rows. */
   topoImagePath?: string
 }

@@ -28,6 +28,8 @@ import type { TopoView } from '$lib/entities/topo/dto'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import type { UserRef } from '$lib/entities/user/dto'
 import { usersByIds } from '$lib/entities/user/resources.svelte'
+import type { Coords } from '$lib/map/map'
+import { decodePath } from '$lib/map/polyline'
 import { getGlobalState } from '$lib/state/global.svelte'
 import type { ActivityEntityType, ActivityListItem } from './dto'
 import {
@@ -195,6 +197,7 @@ export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
               description: area.description,
               href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
               name: area.name,
+              paths: area.geoPaths.flatMap(decodeApproach),
               row: 'area',
             }
       }
@@ -214,11 +217,16 @@ export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
 
         return {
           ...(route == null ? { name: ascent.routeName, row: 'none' as const } : routeEntity(route)),
+          ascentGradeFk: ascent.gradeFk,
+          ascentRating: ascent.rating,
           ascentType: ascent.type,
+          climbedAt: ascent.dateTime,
           climberFk: ascent.createdBy,
           climberName: ascent.authorName,
           files: ascent.files,
+          humidity: ascent.humidity,
           note: ascent.notes,
+          temperature: ascent.temperature,
         }
       }
 
@@ -230,6 +238,7 @@ export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
               crumbs: crumbs(block.regionFk, [block.areas.at(-1)?.name]),
               href: entityHref({ id: block.id, label: block.name, type: 'blocks' }),
               name: block.name,
+              pin: block.geolocation,
               row: 'block',
               topoImagePath: block.topoImages[0]?.path,
             }
@@ -284,6 +293,20 @@ export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
   }
 
   return entities
+}
+
+/**
+ * One stored approach path as coordinates, or nothing when it does not decode.
+ *
+ * `geoPaths` holds whatever was written to it, and a card that draws a map is not the place
+ * to find out that one entry is malformed: the throw would take the whole feed with it.
+ */
+function decodeApproach(encoded: string): Coords[][] {
+  try {
+    return [decodePath(encoded).map(([lat, long]) => ({ lat, long }))]
+  } catch {
+    return []
+  }
 }
 
 /** Rows by their id as text, which is how an activity stores it. */

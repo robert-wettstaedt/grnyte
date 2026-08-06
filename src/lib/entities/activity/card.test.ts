@@ -410,6 +410,31 @@ describe('summary', () => {
     expect(view.summary).toEqual([{ key: 'activity_summaryEdits', params: { count: 2 } }])
   })
 
+  it('counts files, not edits, on a card that only removed media', () => {
+    const removal = (partial: Partial<ActivityListItem>) =>
+      activity({
+        columnName: 'file',
+        entityId: '500',
+        parentEntityId: '400',
+        parentEntityType: 'block',
+        type: 'deleted',
+        ...partial,
+      })
+
+    // Two photos off one route: the card knows it is about media, so "2 edits" reaches for
+    // the generic word when it has the specific one.
+    expect(
+      card([removal({ createdAt: 2, id: 1, oldValue: 'photo' }), removal({ createdAt: 1, id: 2, oldValue: 'photo' })])
+        .summary,
+    ).toEqual([{ key: 'activity_summaryFiles', params: { count: 2, media: 'photo' } }])
+
+    // A photo and a video agree on neither word, which is the arm that says "files".
+    expect(
+      card([removal({ createdAt: 2, id: 1, oldValue: 'photo' }), removal({ createdAt: 1, id: 2, oldValue: 'video' })])
+        .summary,
+    ).toEqual([{ key: 'activity_summaryFiles', params: { count: 2, media: 'none' } }])
+  })
+
   it('counts the people when an entity group mixes actors', () => {
     // Only `entity` groups can mix actors: a burst keys on the actor, so two people editing
     // the same crag get a card each. `user` rows are what fall through to `entity`.
@@ -624,5 +649,159 @@ describe('changes', () => {
 
   it('has none for a create row, which changed no column', () => {
     expect(card([activity({ type: 'created' })]).changes).toEqual([])
+  })
+
+  it("draws the area's approach on a parking change, and never on one that removed it", () => {
+    const paths = [
+      [
+        { lat: 47.1, long: 8.5 },
+        { lat: 47.2, long: 8.6 },
+      ],
+    ]
+    const entities = entityMap([
+      [
+        { id: '301', type: 'area' },
+        { name: 'Westwand', paths, row: 'area' },
+      ],
+    ])
+    const parking = (partial: Partial<ActivityListItem>) =>
+      activity({ columnName: 'parking location', entityId: '301', entityType: 'area', ...partial })
+
+    expect(card([parking({ newValue: '47.1,8.5' })], entities).changes[0].paths).toEqual(paths)
+    // The pin is gone, so the walk to it is not worth drawing.
+    expect(card([parking({ oldValue: '47.1,8.5', type: 'deleted' })], entities).changes[0].paths).toBeUndefined()
+  })
+})
+
+describe('create cards', () => {
+  const pin = { estimated: false, id: 1, lat: 47.1, long: 8.5 }
+  const blockRow = (partial: Partial<ActivityListItem> = {}) =>
+    activity({ entityId: '400', entityType: 'block', newValue: 'Nordblock', type: 'created', ...partial })
+
+  it('draws the pin a block was placed with', () => {
+    const entities = entityMap([
+      [
+        { id: '400', type: 'block' },
+        { name: 'Nordblock', pin, row: 'block' },
+      ],
+    ])
+
+    expect(card([blockRow()], entities).pin).toEqual(pin)
+  })
+
+  it('draws no pin for a block created without one', () => {
+    const entities = entityMap([
+      [
+        { id: '400', type: 'block' },
+        { name: 'Nordblock', row: 'block' },
+      ],
+    ])
+
+    expect(card([blockRow()], entities).pin).toBeUndefined()
+  })
+
+  it('draws no pin on an edit, which renders its own before-and-after map', () => {
+    const entities = entityMap([
+      [
+        { id: '400', type: 'block' },
+        { name: 'Nordblock', pin, row: 'block' },
+      ],
+    ])
+
+    expect(
+      card([blockRow({ columnName: 'name', newValue: 'Sudblock', type: 'updated' })], entities).pin,
+    ).toBeUndefined()
+  })
+
+  it("carries the climber's own grade, rating and conditions", () => {
+    const entities = entityMap([
+      [
+        { id: '9001', type: 'ascent' },
+        {
+          ascentGradeFk: 14,
+          ascentRating: 3,
+          ascentType: 'flash',
+          humidity: 45,
+          name: 'Rampe',
+          row: 'route',
+          temperature: 18,
+        },
+      ],
+    ])
+
+    expect(card([ascentRow({ entityId: '9001' })], entities).ascent).toEqual({
+      gradeFk: 14,
+      humidity: 45,
+      rating: 3,
+      temperature: 18,
+    })
+  })
+
+  it('carries nothing for an ascent logged with no opinion at all', () => {
+    // What every ascent starts as: a type and nothing else. A strip of placeholders under
+    // most session cards would say less than no strip.
+    const entities = entityMap([
+      [
+        { id: '9001', type: 'ascent' },
+        { ascentRating: 0, ascentType: 'flash', name: 'Rampe', row: 'route' },
+      ],
+    ])
+
+    expect(card([ascentRow({ entityId: '9001' })], entities).ascent).toBeUndefined()
+  })
+})
+
+describe('climb date', () => {
+  const DAY = 86_400_000
+  const HOUR = 3_600_000
+  /** Logged on day 3 at 09:00, which is what `climbedAt` is measured against. */
+  const LOGGED = 3 * DAY + 9 * HOUR
+  const logged = (climbedAt: number | undefined) =>
+    card(
+      [ascentRow({ createdAt: LOGGED, entityId: '9001' })],
+      entityMap([
+        [
+          { id: '9001', type: 'ascent' },
+          { ascentType: 'flash', climbedAt, name: 'Rampe', row: 'route' },
+        ],
+      ]),
+    ).climbedAt
+
+  it('shows the day an ascent logged the morning after was climbed', () => {
+    expect(logged(2 * DAY)).toBe(2 * DAY)
+  })
+
+  it('stays quiet when the ascent was logged the day it was climbed', () => {
+    expect(logged(3 * DAY)).toBeUndefined()
+  })
+
+  it('stays quiet inside the day of tolerance, whatever the reader timezone', () => {
+    // A day of slack rather than a calendar comparison: `climbedAt` is a UTC midnight and
+    // `createdAt` a moment, so a strict date comparison would need the reader's zone.
+    expect(logged(LOGGED - DAY)).toBeUndefined()
+    expect(logged(LOGGED - DAY - 1)).toBe(LOGGED - DAY - 1)
+  })
+
+  it('stays quiet when nothing recorded a climb date', () => {
+    expect(logged(undefined)).toBeUndefined()
+  })
+
+  it('stays quiet when a session spans two climb dates', () => {
+    const rows = [
+      ascentRow({ createdAt: LOGGED, entityId: '9001', id: 1 }),
+      ascentRow({ createdAt: LOGGED - 60_000, entityId: '9002', id: 2 }),
+    ]
+    const entities = entityMap([
+      [
+        { id: '9001', type: 'ascent' },
+        { ascentType: 'flash', climbedAt: DAY, name: 'Rampe', row: 'route' },
+      ],
+      [
+        { id: '9002', type: 'ascent' },
+        { ascentType: 'flash', climbedAt: 0, name: 'Kante', row: 'route' },
+      ],
+    ])
+
+    expect(card(rows, entities).climbedAt).toBeUndefined()
   })
 })

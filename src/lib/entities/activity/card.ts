@@ -1,8 +1,10 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
+import type { Geolocation } from '$lib/entities/geolocation/dto'
 import { diffTopoLines, parseTopoChange, type TopoChange, type TopoLineDiff } from '$lib/entities/topo/change'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { MessageKey } from '$lib/i18n/message'
+import type { Coords } from '$lib/map/map'
 import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
@@ -17,6 +19,21 @@ import { activityEntry, activityVerb, parseDeletionScale, type ActivityField } f
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
+
+/** How far the climb date has to sit from the log date before the card mentions it. */
+const DAY = 86_400_000
+
+/**
+ * What one ascent was logged with, beyond its type. The route row next to it renders the
+ * community grade and the community rating; these are one climber's take, which is why they
+ * render as their own labelled strip rather than as a second pair of numbers on the row.
+ */
+export interface ActivityCardAscent {
+  gradeFk: number | undefined
+  humidity: number | undefined
+  rating: number | undefined
+  temperature: number | undefined
+}
 
 /**
  * One entity row on a card, and which of the three shapes it takes. `skeleton` means the
@@ -42,7 +59,14 @@ export interface ActivityCardRow {
 export interface ActivityCardView {
   /** The actor's username. Empty while the user row has not synced. */
   actorName: string
+  /** What one logged ascent said about the route, when the card logged exactly one. */
+  ascent: ActivityCardAscent | undefined
   changes: ActivityChange[]
+  /**
+   * When the ascents on this card were climbed, if that is more than a day from when they were
+   * logged. Absent otherwise: same-day logging is the norm, and repeating the clock is noise.
+   */
+  climbedAt: number | undefined
   /** Whose ascent the card is about, when that is somebody other than the actor. */
   climberName: string | undefined
   createdAt: number
@@ -64,6 +88,8 @@ export interface ActivityCardView {
   note: string | undefined
   /** Rows beyond {@link MAX_ROWS}, reported as a count instead of rendered. */
   overflowCount: number
+  /** The pin a block was placed with, when this is the card that placed it. */
+  pin: Geolocation | undefined
   rows: ActivityCardRow[]
   /** The ascent's type, when the card is about a new ascent. Drives the status glyph. */
   status: AscentType | undefined
@@ -74,6 +100,13 @@ export interface ActivityCardView {
 export interface ActivityChange {
   activity: ActivityListItem
   field: ActivityField
+  /**
+   * The approach paths to draw on a location thumbnail, for the rows that have any.
+   *
+   * ponytail: the area's paths as they stand today, not as they were when the pin was placed:
+   * the row records the coordinates and nothing else. Upgrade = write the paths into the row.
+   */
+  paths?: Coords[][]
   /** What a topo row changed, decoded once here so the change list stays markup over a
    *  decided view, like every other renderer. Absent for a row that named no topo change:
    *  every one written before `metadata` existed, which renders as vaguely as it always did. */
@@ -198,8 +231,27 @@ export function activityCard(
         ? [...kinds][0]
         : 'none'
 
+  // What the card adds to a CREATE, which is the one shape that has no change list to put it
+  // in: the pin a block was placed with, and the numbers an ascent was logged with. An edit
+  // already renders each of these as its own change line, and a card that merely mentions the
+  // entity has no business growing a map.
+  const created = group.activities.flatMap((activity) =>
+    activity.type === 'created' ? [entityOf({ id: activity.entityId, type: activity.entityType })] : [],
+  )
+  // Only when the card created exactly one thing. Two creates have two sets of numbers and no
+  // row to hang either on, and a create-plus-media group is still one create.
+  const lone = created.length === 1 ? created[0] : undefined
+  const ascent = loggedAscent(lone)
+  // A session logs several ascents at once, so the date is the card's only when they agree on
+  // one. `climbedAt` is a calendar date at UTC midnight and `createdAt` a moment, so the gap is
+  // measured rather than compared as dates: a day of tolerance covers every timezone without
+  // needing to know the reader's.
+  const climbDates = new Set(created.map((entity) => entity?.climbedAt))
+  const climbedAt = climbDates.size === 1 ? [...climbDates][0] : undefined
+
   return {
     actorName: newest.userName,
+    ascent,
     changes: group.activities.flatMap((activity) => {
       const field = activityEntry(activity)?.field
       if (field == null) {
@@ -213,6 +265,13 @@ export function activityCard(
         {
           activity,
           field,
+          // Only a pin that is still there gets a path drawn to it. `locationRemoved` draws the
+          // pin that went away, and an approach to a parking spot nobody can park at any more
+          // would be drawing the way to nowhere.
+          paths:
+            field.renderer === 'location'
+              ? entityOf({ id: activity.entityId, type: activity.entityType })?.paths
+              : undefined,
           topo:
             change == null
               ? undefined
@@ -224,6 +283,7 @@ export function activityCard(
         },
       ]
     }),
+    climbedAt: climbedAt != null && Math.abs(group.createdAt - climbedAt) > DAY ? climbedAt : undefined,
     climberName: climber?.climberName,
     createdAt: group.createdAt,
     entityName,
@@ -237,6 +297,7 @@ export function activityCard(
     mine,
     note: refs.map((ref) => entityOf(ref)?.note).find((value) => value != null && value.length > 0),
     overflowCount: Math.max(0, rowRefs.length - MAX_ROWS),
+    pin: lone?.pin,
     rows: rowRefs.slice(0, MAX_ROWS).map((ref): ActivityCardRow => {
       const entity = entityOf(ref)
       return {
@@ -385,6 +446,32 @@ function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity |
 }
 
 /**
+ * What an ascent was logged with, or `undefined` when it was logged with nothing beyond its
+ * type. A grade of nothing and a rating of no stars is what every ascent starts as, so drawing
+ * the strip for one would put an empty row of placeholders on most session cards.
+ */
+function loggedAscent(entity: ActivityEntity | null | undefined): ActivityCardAscent | undefined {
+  if (entity?.ascentType == null) {
+    return undefined
+  }
+
+  const ascent = {
+    gradeFk: entity.ascentGradeFk,
+    humidity: entity.humidity,
+    rating: entity.ascentRating,
+    temperature: entity.temperature,
+  }
+
+  // A cleared rating is stored as 0, which is "no stars" rather than an opinion worth a strip.
+  return ascent.gradeFk == null &&
+    !(ascent.rating != null && ascent.rating > 0) &&
+    ascent.humidity == null &&
+    ascent.temperature == null
+    ? undefined
+    : ascent
+}
+
+/**
  * A name that is actually one. A name column holds `''` as readily as `null` (a route added
  * without a name stores an empty `newValue`), and an empty string reaches the screen as a
  * blank slot rather than falling through to the next candidate or to a tombstone label.
@@ -456,6 +543,13 @@ function summaryParts(
   const withMedia = createdWithMedia(group)
   if (withMedia != null) {
     return [{ key: 'activity_summaryFiles', params: { count: withMedia.length, media } }]
+  }
+
+  // Same idea from the other end: a card that only pulled files counts files. "2 edits" under
+  // "You removed media from Kante direkt" reaches for the generic word for a card that already
+  // knows it is about media, and `media` is the mixed-aware one the headline computed.
+  if (group.activities.every((activity) => activity.columnName === 'file' && activity.type === 'deleted')) {
+    return [{ key: 'activity_summaryFiles', params: { count: group.activities.length, media } }]
   }
 
   // Once the headline speaks the change itself ("You edited your ascent of Rampe"), the count

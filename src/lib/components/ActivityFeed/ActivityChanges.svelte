@@ -214,7 +214,7 @@
   {/if}
 {/snippet}
 
-{#snippet value({ activity, field, topo }: ActivityChange)}
+{#snippet value({ activity, field, paths, topo }: ActivityChange)}
   {@const renderer = field.renderer}
   {#if renderer === 'grade'}
     {@render gradeChip(activity.oldValue)}
@@ -273,7 +273,7 @@
          Upgrade = measure the container and pass the width in. -->
     <div class="flex min-w-0 flex-col gap-1.5">
       {#if points.length > 0}
-        <StaticMap height={120} {points} width={200} />
+        <StaticMap height={120} {paths} {points} width={200} />
       {/if}
 
       <span class="flex flex-wrap items-center gap-1.5">

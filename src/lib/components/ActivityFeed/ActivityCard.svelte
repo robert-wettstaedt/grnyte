@@ -20,9 +20,14 @@
   import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { activityEntityKey } from '$lib/entities/activity/entity'
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
+  import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
+  import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
+  import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { resolveMessage, type MessageKey } from '$lib/i18n/message'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { formatConditions } from '$lib/i18n/units.svelte'
+  import StaticMap from '$lib/map/StaticMap.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -56,8 +61,27 @@
     user: 'common_person',
   }
 
+  // The climb date joins the sub line rather than the headline or the clock: the clock says
+  // when it was logged, which is what sorts the feed, and both facts are true at once. Absolute
+  // rather than relative, because it only ever appears when it disagrees with the clock beside
+  // it, and "3 days ago · 4 days ago" is a puzzle. UTC: the stored value is a calendar date.
+  const climbedOn = $derived(
+    view.climbedAt == null
+      ? undefined
+      : m.activity_summaryClimbedOn({
+          date: new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(view.climbedAt),
+        }),
+  )
+
   const summary = $derived(
-    view.summary?.map((part) => (part.key == null ? part.text : resolveMessage(part.key, part.params))).join(' · '),
+    [
+      ...(view.summary ?? []).map((part) => (part.key == null ? part.text : resolveMessage(part.key, part.params))),
+      ...(climbedOn == null ? [] : [climbedOn]),
+    ].join(' · '),
+  )
+
+  const conditions = $derived(
+    view.ascent == null ? '' : formatConditions(view.ascent.temperature, view.ascent.humidity),
   )
 
   // The prop seeds the toggle and then stops mattering, which is what `untrack` states.
@@ -198,6 +222,18 @@
     </div>
   {/if}
 
+  <!-- Where a new block landed. A create row carries no coordinates, so this is the block's pin
+       as the reader would find it today; a later move draws its own before-and-after change
+       line, which is the card that says the pin moved.
+       ponytail: today's pin, not the pin as placed. Upgrade = write the coordinates into the row. -->
+  {#if view.pin != null}
+    <StaticMap
+      height={120}
+      points={[{ estimated: view.pin.estimated, lat: view.pin.lat, long: view.pin.long }]}
+      width={200}
+    />
+  {/if}
+
   {#if view.rows.length > 0}
     <div class="space-y-1">
       {#each view.rows as row (activityEntityKey(row.ref))}
@@ -206,6 +242,31 @@
 
       {#if view.overflowCount > 0}
         <p class="text-surface-600-400 px-1 text-xs">{m.activity_moreEntities({ count: view.overflowCount })}</p>
+      {/if}
+    </div>
+  {/if}
+
+  <!-- What the climber said about the route, which is not what the route says about itself: the
+       row above already carries the community grade and rating, so this strip is labelled. The
+       edit cards say the same things as change lines; a create has no change list to hold them. -->
+  {#if view.ascent != null}
+    <div class="flex flex-wrap items-center gap-2 px-1">
+      <span class="text-surface-600-400 text-xs font-semibold">{m.activity_thisAscent()}</span>
+
+      <RouteGrade
+        band={getGradeBand(view.ascent.gradeFk)}
+        grade={gradeLabel(global.grades, global.gradingScale, view.ascent.gradeFk)}
+      />
+      <RouteRating rating={view.ascent.rating} />
+
+      {#if conditions !== ''}
+        <!-- Same pill the ascent row's expanded half uses, so the conditions read identically
+             wherever they turn up. -->
+        <span
+          class="border-surface-200-800 bg-surface-100-900 text-surface-600-400 inline-flex h-6.25 items-center rounded-full border px-2.5 font-mono text-[11px] font-bold"
+        >
+          {conditions}
+        </span>
       {/if}
     </div>
   {/if}

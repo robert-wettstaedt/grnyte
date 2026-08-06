@@ -12,6 +12,7 @@
  */
 import type { ActivityListItem } from '$lib/entities/activity/dto'
 import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
+import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { TopoView } from '$lib/entities/topo/dto'
 import { m } from '$lib/paraglide/messages'
 import { activity, entityMap, photo, topoLines, topoMetadata, topos, video } from './fixtures'
@@ -84,9 +85,23 @@ const CRAG: [ActivityEntityRef, ActivityEntity | null][] = [
 
 export const world: ActivityEntityMap = entityMap(CRAG)
 
+/** The coordinates every pinned fixture uses, so two cases are never comparing two places. */
+const PIN = { lat: 47.123456, long: 8.56789 }
+
 /** A file's hydrated shape: it contributes media and a borrowed name, never a row of its own. */
 export function fileEntity(name: string, files: ReturnType<typeof photo>[]): ActivityEntity {
   return { files, name, row: 'none' }
+}
+
+/** Nordblock, hydrated with the pin it was placed with, which only a create card draws. */
+export function pinnedBlock(pin: Geolocation): ActivityEntity {
+  return { crumbs: ['Steinbruch', 'Westwand'], href: '#', name: 'Nordblock', pin, row: 'block' }
+}
+
+/** A calendar date `daysAgo` back, as Zero hands one back from a pg `date`: UTC midnight. */
+export function utcDay(daysAgo: number): number {
+  const date = new Date(Date.now() - daysAgo * 86_400_000)
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 }
 
 /** The crag with a few entries swapped, for the cases that need a tombstone or extra media. */
@@ -521,8 +536,27 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'area',
+    entities: worldWith([
+      [
+        { id: '301', type: 'area' },
+        {
+          crumbs: ['Steinbruch'],
+          href: '#',
+          name: 'Westwand',
+          paths: [
+            [
+              { lat: 47.1235, long: 8.5679 },
+              { lat: 47.1244, long: 8.5691 },
+              { lat: 47.1251, long: 8.5688 },
+              { lat: 47.1258, long: 8.5702 },
+            ],
+          ],
+          row: 'area',
+        },
+      ],
+    ]),
     expected:
-      'Identical row again, single card with the location line. geoPaths is never logged, so the drawn approach is invisible in the feed.',
+      'Identical row again, single card with the location line. geoPaths is still never logged, but the area hydrates with its approach, so the thumbnail draws the path in the same blue the real map uses and zooms out to fit it. What is drawn is the path as it stands today, not as it was when the pin went down.',
     id: 'AREA-05c',
   },
   {
@@ -667,8 +701,9 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'block',
+    entities: worldWith([[{ id: '400', type: 'block' }, pinnedBlock({ estimated: false, id: 1, ...PIN })]]),
     expected:
-      'single card, "You added Nordblock". burst kind with one member. No change line: create verbs declare no field.',
+      'single card, "You added Nordblock". burst kind with one member. No change line: create verbs declare no field, but the block hydrates with a pin and a create card draws it, so a 200x120 OSM thumbnail sits above the row.',
     id: 'BLOCK-01a',
   },
   {
@@ -688,11 +723,11 @@ export const CASES: ActivityCase[] = [
     entities: worldWith([
       [
         { id: '400', type: 'block' },
-        { crumbs: ['Steinbruch', 'Westwand'], href: '#', name: 'Block 3', row: 'block' },
+        { ...pinnedBlock({ estimated: false, id: 1, ...PIN }), name: 'Block 3' },
       ],
     ]),
     expected:
-      'single card. named() treats the empty newValue as absent, so the headline falls back to the hydrated "Block 3". No change line.',
+      'single card. named() treats the empty newValue as absent, so the headline falls back to the hydrated "Block 3". No change line, and the placed pin draws the same thumbnail BLOCK-01a gets.',
     id: 'BLOCK-01b',
   },
   {
@@ -710,12 +745,12 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'block',
     expected:
-      'single card, identical to BLOCK-01a. The skipped geolocation logs nothing, so there is no location change line beside it.',
+      'single card, BLOCK-01a without the map. The skipped geolocation logs nothing, so there is no location change line, and the block hydrates without a pin, so there is nothing to draw either.',
     id: 'BLOCK-01c',
   },
   {
     action:
-      '/explore -> + FAB -> Place on the map -> Add block -> pan -> confirm -> /areas/{cragId}/blocks/add?lat&long -> Add',
+      "/explore -> + FAB -> Place on the map -> Add block -> pan -> confirm -> /areas/{cragId}/blocks/add?lat&long -> leave I'm not sure about the exact spot on -> Add",
     activities: [
       activity(5, {
         entityId: '400',
@@ -728,8 +763,9 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'block',
+    entities: worldWith([[{ id: '400', type: 'block' }, pinnedBlock({ estimated: true, id: 1, ...PIN })]]),
     expected:
-      'single card, the same row the in-area form writes. The pre-located entry point changes nothing about the feed.',
+      'single card, the same row the in-area form writes: the pre-located entry point changes nothing about the row. The pin is flagged approximate, so the thumbnail draws it dashed with the "?" marker, the same way the interactive map does.',
     id: 'BLOCK-01d',
   },
   {
@@ -1180,6 +1216,7 @@ export const CASES: ActivityCase[] = [
       activity(5, {
         entityId: '400',
         entityType: 'block',
+        metadata: '{"routes":9}',
         oldValue: 'Nordblock',
         parentEntityId: '300',
         parentEntityType: 'area',
@@ -1190,7 +1227,7 @@ export const CASES: ActivityCase[] = [
     domain: 'block',
     entities: worldWith([[{ id: '400', type: 'block' }, null]]),
     expected:
-      'Exactly one removal card, identical to BLOCK-07a. The soft-delete cascade writes no route:deleted rows, so nothing else appears.',
+      'One removal card. The soft-delete cascade writes no route:deleted rows, but the delete row recorded how many routes went with the block, so the card carries a "9 routes" sub line.',
     id: 'BLOCK-07b',
   },
   {
@@ -1795,7 +1832,7 @@ export const CASES: ActivityCase[] = [
         entityId: '503',
         entityType: 'route',
         newValue: 'Sit start on crimps, then the long move to the sloper.\n',
-        oldValue: 'Sit start on crimps,  then the long move to the sloper.',
+        oldValue: 'Sit start on crimps, then the long move to the sloper.',
         parentEntityId: '400',
         parentEntityType: 'block',
         userFk: ME,
@@ -1803,7 +1840,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'route',
     expected:
-      'single card. A row is still written: the diff is raw string equality and does not normalise, so prose draws two visually near-identical sides.',
+      'No card. The editor reserialises with a trailing newline, which the diff now trims off both sides before comparing, so an untouched save writes nothing. Only the ends are trimmed: two trailing spaces on a markdown line are a hard break, so whitespace inside a value still counts as a change.',
     id: 'ROUTE-08d',
   },
   {
@@ -2063,7 +2100,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'route',
     expected:
-      'One burst card, "2 edits": oldValue differs, so neither row collapses the other. Both rows are the same kind of change, so the headline speaks that verb rather than "edited", and the two rows disagree on the media word, so it reads "removed media from". Two file lines, labelled Video and Photo.',
+      'One burst card, "2 files": oldValue differs, so neither row collapses the other. Both rows are the same kind of change, so the headline speaks that verb rather than "edited", and the two rows disagree on the media word, so it reads "removed media from" and the count says "files" rather than "photos". Two file lines, labelled Video and Photo.',
     id: 'ROUTE-13d',
   },
   {
@@ -2343,7 +2380,8 @@ export const CASES: ActivityCase[] = [
     id: 'ASC-01g',
   },
   {
-    action: '/routes/{id}/ascents/add -> Attempt -> back-date with the third When segment -> Save',
+    action:
+      '/routes/{id}/ascents/add -> Attempt -> back-date with the third When segment -> set Your grade and Your rating -> expand Conditions -> Save',
     activities: [
       activity(5, {
         entityId: '9001',
@@ -2356,8 +2394,24 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'ascent',
+    entities: worldWith([
+      [
+        { id: '9001', type: 'ascent' },
+        {
+          ...routeEntity('Rampe', 12),
+          ascentGradeFk: 14,
+          ascentRating: 3,
+          ascentType: 'attempt',
+          climbedAt: utcDay(3),
+          climberFk: ME,
+          climberName: 'Ada Rossi',
+          humidity: 45,
+          temperature: 18,
+        },
+      ],
+    ]),
     expected:
-      'Identical single session card. The card dates by activities.createdAt (today), not by the climb date, so it sorts to the top. No change line.',
+      'Identical single session card, still dated by activities.createdAt (today) so it sorts to the top, but the sub line now reads "Climbed on ..." because the climb date is more than a day off the log date. Under the row, a "This ascent" strip with the climber\'s own grade pill, their stars and a conditions pill, none of which the route row beside it shows. Still no change line.',
     id: 'ASC-01h',
   },
   {
