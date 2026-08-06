@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
+  import { APPROACH_COLOR } from './layers.svelte'
   import { pointPx, TILE_SIZE, tileView } from './tiles'
 
   interface Props {
@@ -95,7 +96,7 @@
           <polyline
             fill="none"
             points={line}
-            stroke="rgba(30, 64, 175, 0.7)"
+            stroke={APPROACH_COLOR}
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2.5"

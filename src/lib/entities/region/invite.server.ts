@@ -18,7 +18,7 @@
  */
 import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { regionInvitations, regionMembers, regions, users, userSettings } from '$lib/db/schema'
+import { activities, regionInvitations, regionMembers, regions, users, userSettings } from '$lib/db/schema'
 import { inviteEmailContent } from '$lib/email/invite'
 import { sendEmail } from '$lib/email/send.server'
 import type { EmailLocale } from '$lib/email/shell'
@@ -378,8 +378,14 @@ export function normalizeEmail(email: string): string {
 export async function resendInvitation(
   db: Db,
   // `inviter` is whoever hit Resend, not whoever sent the original. That is what the mail names,
-  // and it is the person the invitee would reply to.
-  { invitationFk, inviter, userRegions }: { invitationFk: number; inviter: string; userRegions: UserRegion[] },
+  // and it is the person the invitee would reply to. `inviterFk` is the same person, for the
+  // activity below; absent, nothing is logged, which is what the tests that do not care pass.
+  {
+    invitationFk,
+    inviter,
+    inviterFk,
+    userRegions,
+  }: { invitationFk: number; inviter: string; inviterFk?: number; userRegions: UserRegion[] },
   mail: MailContext,
 ): Promise<{ email: string; sent: boolean }> {
   const invitation = await loadEditable(db, invitationFk, userRegions)
@@ -410,18 +416,40 @@ export async function resendInvitation(
   )
 
   // The first send may have failed, in which case nothing logged the invitation and this is the
-  // moment it reaches somebody. When the first send did work, `insertActivity` collapses this
-  // onto that row rather than adding a second card: same actor, region, column and address.
-  if (sent) {
-    await insertActivity(db, {
-      columnName: 'invitation',
-      entityId: invitation.invitedByFk,
-      entityType: 'user',
-      newValue: invitation.email,
-      regionFk: invitation.regionFk,
-      type: 'created',
-      userFk: invitation.invitedByFk,
-    })
+  // moment it reaches somebody. So: log it only when the region has no record of this address
+  // being invited, and log it under whoever actually pressed Resend.
+  //
+  // Not left to `insertActivity`'s identity collapse, which is what this used to do by writing
+  // the ORIGINAL inviter's id so the values would match. That collapse deletes the earlier row
+  // and inserts a fresh one, so every resend re-dated somebody else's week-old card to now and
+  // floated it back to the top of the feed, still in their name. A resend is not a new
+  // invitation; when the invitation is already on the record there is nothing to say.
+  if (sent && inviterFk != null) {
+    const [logged] = await db
+      .select({ id: activities.id })
+      .from(activities)
+      .where(
+        and(
+          eq(activities.columnName, 'invitation'),
+          eq(activities.entityType, 'user'),
+          eq(activities.newValue, invitation.email),
+          eq(activities.regionFk, invitation.regionFk),
+          eq(activities.type, 'created'),
+        ),
+      )
+      .limit(1)
+
+    if (logged == null) {
+      await insertActivity(db, {
+        columnName: 'invitation',
+        entityId: inviterFk,
+        entityType: 'user',
+        newValue: invitation.email,
+        regionFk: invitation.regionFk,
+        type: 'created',
+        userFk: inviterFk,
+      })
+    }
   }
 
   return { email: invitation.email, sent }

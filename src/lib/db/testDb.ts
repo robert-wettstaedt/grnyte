@@ -34,6 +34,38 @@ export interface SeedUser {
  * assertion in the file meaningless, and the failure is far easier to read here than as an
  * undefined id three fixtures later.
  */
+/**
+ * An account that belongs to one suite and nothing else, created on the spot.
+ *
+ * The four seed logins are shared, which is fine for a test that only reads them or writes rows
+ * it deletes again. It is not fine for a test that COUNTS what an account owns: half a dozen
+ * suites insert regions as one seed user or another, vitest runs their files in parallel, and a
+ * count taken in one file changes under it while another file writes. That is what made the
+ * region-cap test fail in full runs and pass on its own, and no seed account was free to move
+ * it to.
+ *
+ * `label` only has to be unique per suite; the row itself is made unique with a fresh uuid.
+ * Pair every call with {@link dropThrowawayUser} in `afterAll`.
+ */
+export async function createThrowawayUser(label: string): Promise<SeedUser> {
+  const email = `__throwaway_${label}_${crypto.randomUUID()}@grnyte.test`
+
+  const [auth] = await sql<{ id: string }[]>`
+    insert into auth.users (id, email) values (gen_random_uuid(), ${email}) returning id`
+  const [user] = await sql<{ id: number }[]>`
+    insert into public.users (auth_user_fk, username) values (${auth.id}, ${email}) returning id`
+
+  return { authId: auth.id, email, userId: user.id }
+}
+
+/** Remove a {@link createThrowawayUser} account. Anything it still owns is its suite's to clean
+ *  up first: this deliberately does not cascade, so a leak fails loudly rather than silently
+ *  taking rows with it. */
+export async function dropThrowawayUser(user: SeedUser): Promise<void> {
+  await sql`delete from public.users where id = ${user.userId}`
+  await sql`delete from auth.users where id = ${user.authId}`
+}
+
 export async function seedUsers<K extends string>(emails: Record<K, string>): Promise<Record<K, SeedUser>> {
   const wanted: string[] = Object.values(emails)
 

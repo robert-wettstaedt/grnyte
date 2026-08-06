@@ -477,6 +477,31 @@ describe('person and owner', () => {
     expect(card(rows).headline.params.owner).toBe('none')
   })
 
+  it('reads whose deleted ascent it was off the row that deleted it', () => {
+    // A deleted ascent never hydrates: the row is gone in the same transaction that logs this.
+    // Without the recorded climber every removal reads "removed an ascent of Rampe", which is
+    // the one thing a card about somebody else's log must not say.
+    const removal = (climberFk: number) =>
+      card([
+        activity({
+          entityId: '9',
+          entityType: 'ascent',
+          metadata: JSON.stringify({ climberFk, climberName: 'Ada Rossi' }),
+          oldValue: 'flash',
+          type: 'deleted',
+          userFk: 7,
+        }),
+      ])
+
+    expect(removal(7).headline.params.owner).toBe('self')
+    expect(removal(3).headline.params.owner).toBe('other')
+    expect(removal(3).climberName).toBe('Ada Rossi')
+    // A row from before the climber was recorded still degrades to the vaguer sentence.
+    expect(
+      card([activity({ entityId: '9', entityType: 'ascent', type: 'deleted', userFk: 7 })]).headline.params.owner,
+    ).toBe('none')
+  })
+
   it('reads whose ascent an upload landed on off the parent', () => {
     // The row points at the file, so the ascent is only ever the parent. Without it the card
     // says "added a video to Karma" for something added to a climber's own ascent of it.
@@ -559,6 +584,29 @@ describe('uploads', () => {
     expect(mediaOf([file('f1', false), file('f2', false)])).toBe('photo')
     expect(mediaOf([file('f1', true), file('f2', false)])).toBe('none')
     expect(mediaOf([])).toBe('none')
+  })
+
+  it('lists a file once when the upload merged into the create it belongs to', () => {
+    // Logging an ascent with a clip is one card built from two rows, and both of them answer
+    // with the same file: the ascent hydrates with it hanging off it, the upload row hydrates
+    // with it directly. The thumbnails are keyed by file id, so a second copy is a crash.
+    const clip = [{ bunnyStreamFk: 'guid', id: 'f1' }] as never
+    const rows = [
+      ascentRow({ createdAt: 0, entityId: '9001', id: 1, parentEntityId: '500' }),
+      upload({ createdAt: 60_000, entityId: 'f1', id: 2, parentEntityId: '9001', parentEntityType: 'ascent' }),
+    ]
+    const entities = entityMap([
+      [
+        { id: '9001', type: 'ascent' },
+        { ascentType: 'flash', files: clip, name: 'Rampe', row: 'route' },
+      ],
+      [
+        { id: 'f1', type: 'file' },
+        { files: clip, name: '', row: 'none' },
+      ],
+    ])
+
+    expect(card(rows, entities).files.map((file) => file.id)).toEqual(['f1'])
   })
 
   it('takes a removal s word off the row, since the file it named is gone', () => {
@@ -671,6 +719,41 @@ describe('changes', () => {
     // The pin is gone, so the walk to it is not worth drawing.
     expect(card([parking({ oldValue: '47.1,8.5', type: 'deleted' })], entities).changes[0].paths).toBeUndefined()
   })
+
+  describe('prose', () => {
+    const edit = (oldValue: string | undefined, newValue: string | undefined) =>
+      card([activity({ columnName: 'description', newValue, oldValue })]).changes[0].prose
+
+    it('marks the words an edit changed and leaves the rest alone', () => {
+      // The edit is one clause in the middle of a sentence. Rendered as two whole texts it was
+      // the reader's job to find; as a diff it points at itself.
+      const prose = edit('The topout is easier from the left.', 'The topout is friendlier from the right.')
+
+      expect(prose).toEqual([
+        { kind: 'same', value: 'The topout is ' },
+        { kind: 'removed', value: 'easier' },
+        { kind: 'added', value: 'friendlier' },
+        { kind: 'same', value: ' from the ' },
+        { kind: 'removed', value: 'left' },
+        { kind: 'added', value: 'right' },
+        { kind: 'same', value: '.' },
+      ])
+    })
+
+    it('says nothing for a field filled from nothing or cleared', () => {
+      // Both sides render as "Not set" against the text, which says more than one long stripe
+      // of a single colour.
+      expect(edit(undefined, 'Sit start on the flake.')).toBeUndefined()
+      expect(edit('Sit start on the flake.', undefined)).toBeUndefined()
+      expect(edit('', 'Sit start on the flake.')).toBeUndefined()
+    })
+
+    it('is only built for the columns rendered as prose', () => {
+      expect(
+        card([activity({ columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante' })]).changes[0].prose,
+      ).toBeUndefined()
+    })
+  })
 })
 
 describe('create cards', () => {
@@ -754,11 +837,11 @@ describe('create cards', () => {
 describe('climb date', () => {
   const DAY = 86_400_000
   const HOUR = 3_600_000
-  /** Logged on day 3 at 09:00, which is what `climbedAt` is measured against. */
+  /** Logged on day 3 at 09:00 UTC, which is what `climbedAt` is compared against. */
   const LOGGED = 3 * DAY + 9 * HOUR
-  const logged = (climbedAt: number | undefined) =>
+  const logged = (climbedAt: number | undefined, createdAt = LOGGED) =>
     card(
-      [ascentRow({ createdAt: LOGGED, entityId: '9001' })],
+      [ascentRow({ createdAt, entityId: '9001' })],
       entityMap([
         [
           { id: '9001', type: 'ascent' },
@@ -767,19 +850,39 @@ describe('climb date', () => {
       ]),
     ).climbedAt
 
+  /**
+   * Read the card as somebody in `zone`. The line asks whether two calendar days differ, and
+   * which day a moment falls on is a question only the reader's timezone answers, so a test
+   * that pins no zone is really asserting whatever the machine running it is set to.
+   */
+  function inTimezone(zone: string, body: () => void) {
+    const original = process.env.TZ
+    process.env.TZ = zone
+    try {
+      body()
+    } finally {
+      process.env.TZ = original
+    }
+  }
+
   it('shows the day an ascent logged the morning after was climbed', () => {
-    expect(logged(2 * DAY)).toBe(2 * DAY)
+    inTimezone('Europe/Berlin', () => expect(logged(2 * DAY)).toBe(2 * DAY))
   })
 
   it('stays quiet when the ascent was logged the day it was climbed', () => {
-    expect(logged(3 * DAY)).toBeUndefined()
+    inTimezone('Europe/Berlin', () => expect(logged(3 * DAY)).toBeUndefined())
   })
 
-  it('stays quiet inside the day of tolerance, whatever the reader timezone', () => {
-    // A day of slack rather than a calendar comparison: `climbedAt` is a UTC midnight and
-    // `createdAt` a moment, so a strict date comparison would need the reader's zone.
-    expect(logged(LOGGED - DAY)).toBeUndefined()
-    expect(logged(LOGGED - DAY - 1)).toBe(LOGGED - DAY - 1)
+  it('stays quiet for a same-day log west of UTC, where the log moment is already tomorrow', () => {
+    // 23:00 in Honolulu on the day of the climb is 09:00 UTC the next morning, so the two
+    // sit 33 hours apart while being the same day to the person who climbed it.
+    inTimezone('Pacific/Honolulu', () => expect(logged(2 * DAY)).toBeUndefined())
+  })
+
+  it('shows a one-day back-date east of UTC, where less than a day has passed', () => {
+    // 09:00 in Auckland the morning after is 21 hours past the climb date's UTC midnight,
+    // and a different calendar day to the reader, which is what the line reports.
+    inTimezone('Pacific/Auckland', () => expect(logged(2 * DAY, 2 * DAY + 21 * HOUR)).toBe(2 * DAY))
   })
 
   it('stays quiet when nothing recorded a climb date', () => {

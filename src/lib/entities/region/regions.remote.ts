@@ -286,7 +286,11 @@ export const inviteRegionMember = authedForm(
 export const resendRegionInvitation = authedCommand(
   z.object({ invitationFk: z.number() }),
   async ({ invitationFk }, { db, user, userRegions }): Promise<MutationResult<{ email: string; sent: boolean }>> => ({
-    data: await resendInvitation(db, { invitationFk, inviter: user.username, userRegions }, mailContext()),
+    data: await resendInvitation(
+      db,
+      { invitationFk, inviter: user.username, inviterFk: user.id, userRegions },
+      mailContext(),
+    ),
   }),
 )
 

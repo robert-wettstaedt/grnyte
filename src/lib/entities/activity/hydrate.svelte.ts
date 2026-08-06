@@ -296,17 +296,41 @@ export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
 }
 
 /**
+ * Decoded approach paths, keyed by the polyline they came from.
+ *
+ * The hydration this feeds re-runs whenever any of its six resources answers, several times
+ * during a load and again on every sync change, and it decoded every path from scratch each
+ * time. Worse than the arithmetic, each run handed out fresh arrays, so the thumbnails saw new
+ * `paths` for cards nothing had happened to and redrew their SVGs.
+ *
+ * Unbounded on purpose: the keys are the encoded strings a region's areas hold, so the ceiling
+ * is that region's approach paths, and they are stable.
+ *
+ * ponytail: never evicted. Upgrade = an LRU if a session ever spans enough regions to matter.
+ */
+const approachCache = new Map<string, Coords[][]>()
+
+/**
  * One stored approach path as coordinates, or nothing when it does not decode.
  *
  * `geoPaths` holds whatever was written to it, and a card that draws a map is not the place
  * to find out that one entry is malformed: the throw would take the whole feed with it.
  */
 function decodeApproach(encoded: string): Coords[][] {
-  try {
-    return [decodePath(encoded).map(([lat, long]) => ({ lat, long }))]
-  } catch {
-    return []
+  const cached = approachCache.get(encoded)
+  if (cached != null) {
+    return cached
   }
+
+  let decoded: Coords[][]
+  try {
+    decoded = [decodePath(encoded).map(([lat, long]) => ({ lat, long }))]
+  } catch {
+    decoded = []
+  }
+
+  approachCache.set(encoded, decoded)
+  return decoded
 }
 
 /** Rows by their id as text, which is how an activity stores it. */

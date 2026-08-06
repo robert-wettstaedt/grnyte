@@ -1,7 +1,7 @@
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import type { AppRole, RolePermission } from './dto'
+import { assignableRoles, type AppRole, type RolePermission } from './dto'
 
 export type RolePermissionRow = QueryRow<typeof queries.listRolePermissions>
 
@@ -16,6 +16,21 @@ export function roleLabel(role: AppRole): string {
     default:
       return m.roles_admin()
   }
+}
+
+/**
+ * The label for a role that came out of storage rather than out of the enum, or `undefined`
+ * when it is not a role this app assigns.
+ *
+ * {@link roleLabel} answers "Admin" for anything it does not recognise, which is right for an
+ * `AppRole` and wrong for a string off an activity row: a typo, a retired role or `app_admin`
+ * itself would all read as a promotion. The guard belongs here, with the function whose
+ * fallback makes it necessary, rather than at each call site that handles stored values.
+ */
+export function roleLabelFor(value: string | undefined): string | undefined {
+  return value != null && (assignableRoles as readonly string[]).includes(value)
+    ? roleLabel(value as AppRole)
+    : undefined
 }
 
 export function toRolePermission(row: RolePermissionRow): RolePermission {

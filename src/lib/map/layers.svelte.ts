@@ -17,6 +17,16 @@ import CircleStyle from 'ol/style/Circle'
 import Icon from 'ol/style/Icon'
 import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, CRAG_ZOOM } from './types'
 
+/**
+ * The blue an approach path is drawn in, on the interactive map and on the thumbnails the feed
+ * renders beside a card.
+ *
+ * Exported because those are two different renderers (OpenLayers and hand-written SVG) drawing
+ * the same thing, and a reader who opens the map after seeing a card has to find what the card
+ * showed them. Each used to spell the colour out.
+ */
+export const APPROACH_COLOR = 'rgba(30, 64, 175, 0.7)'
+
 // Read-only fallback for areas/crags with no grade data, so we never allocate per feature.
 const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()
 
@@ -255,7 +265,7 @@ export function createPathLayer(minZoom = BLOCK_ZOOM): VectorLayer {
     minZoom,
     source: new VectorSource(),
     style: new Style({
-      stroke: new Stroke({ color: 'rgba(30, 64, 175, 0.7)', width: 2 }),
+      stroke: new Stroke({ color: APPROACH_COLOR, width: 2 }),
     }),
   })
   layer.set('layerName', 'Markers')

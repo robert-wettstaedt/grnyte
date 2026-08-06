@@ -10,7 +10,7 @@ import { CASES, world } from './cases'
 
 describe('activity case fixtures', () => {
   it('holds one entry per protocol id', () => {
-    expect(CASES).toHaveLength(252)
+    expect(CASES).toHaveLength(256)
     expect(new Set(CASES.map((entry) => entry.id)).size).toBe(CASES.length)
   })
 

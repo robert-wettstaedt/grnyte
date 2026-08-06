@@ -12,7 +12,7 @@ import {
   createUpdateActivity,
   deleteActivity,
   insertActivity,
-  reassignActivityEntity,
+  restoreActivityHistory,
 } from '../activity/activity.server'
 import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from '../area/area.server'
@@ -395,17 +395,21 @@ export const deleteBlock = authedCommand(
     // Routes/topos/files FK-reference the block; a block with any of them is soft-deleted so
     // undo restores them cleanly (and so the hard delete never hits a FK constraint).
     //
-    // Routes come back as rows rather than a single hit, because the count also goes on the
-    // activity: after the delete there is nothing left to count.
-    const [routeRows, topo, file] = await Promise.all([
-      db.query.routes.findMany({ columns: { id: true }, where: eq(routes.blockFk, id) }),
+    // Two counts, because the two questions have different answers. Whether a hard delete is
+    // safe is about every route that still points here, soft-deleted ones included. What the
+    // card says this delete took is about the live ones, counted before the stamp lands.
+    const [[routeTotal], [routeCount], topo, file] = await Promise.all([
+      db.select({ value: count() }).from(routes).where(eq(routes.blockFk, id)),
+      db
+        .select({ value: count() })
+        .from(routes)
+        .where(and(eq(routes.blockFk, id), isNull(routes.deletedAt))),
       db.query.topos.findFirst({ columns: { id: true }, where: eq(topos.blockFk, id) }),
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.blockFk, id) }),
     ])
-    const route = routeRows[0]
 
     const data =
-      route == null && topo == null && file == null
+      routeTotal.value === 0 && topo == null && file == null
         ? await hardDeleteBlock(db, block)
         : await softDeleteBlock(db, block)
 
@@ -417,7 +421,7 @@ export const deleteBlock = authedCommand(
       entityType: 'block',
       // What went with it. A deletion is the one card a reader cannot check by following a
       // link, so the scale of it has to be recorded at the moment it is still knowable.
-      metadata: stringifyDeletionScale({ routes: routeRows.length }),
+      metadata: stringifyDeletionScale({ routes: routeCount.value }),
       oldValue: block.name,
       parentEntityId: block.areaFk,
       parentEntityType: 'area',
@@ -505,10 +509,9 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     const blockId = await hardRestoreBlock(db, snapshot, user.id)
 
     await refreshAreaType(db, snapshot.areaFk)
-    await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
     // The row is new, so the history has to follow it, or the restored block's own create card
     // and every edit ever made to it render as tombstones next to the live block.
-    await reassignActivityEntity(db, { entityType: 'block', fromId: snapshot.blockId, toId: blockId })
+    await restoreActivityHistory(db, { entityType: 'block', fromId: snapshot.blockId, toId: blockId })
 
     return {
       data: { blockId },

@@ -5,21 +5,21 @@
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
   import { storedMedia, type ActivityChange, type ActivityTopoChange } from '$lib/entities/activity/card'
+  import type { ChangeRenderer } from '$lib/entities/activity/verbs'
   import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
-  import { assignableRoles, type AppRole } from '$lib/entities/rolePermission/dto'
-  import { roleLabel } from '$lib/entities/rolePermission/mapper'
+  import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import type { TopoAction, TopoLineState } from '$lib/entities/topo/change'
   import type { TopoView } from '$lib/entities/topo/dto'
   import { convertPathToPoints } from '$lib/entities/topo/mapper'
   import { resolveMessage } from '$lib/i18n/message'
-  import { formatCelsius } from '$lib/i18n/units.svelte'
+  import { formatDate } from '$lib/i18n/relativeTime'
+  import { formatCelsius, formatHumidity } from '$lib/i18n/units.svelte'
   import { parseCoords, type StoredCoords } from '$lib/map/coords'
   import { formatDistance } from '$lib/map/map'
   import StaticMap, { type StaticMapPoint } from '$lib/map/StaticMap.svelte'
@@ -36,18 +36,20 @@
 
   const global = getGlobalState()
 
+  /** The two halves of a prose diff. Named so each element fits on one line: the paragraph
+   *  around them preserves whitespace, so a wrapped tag would leak its indentation into the
+   *  sentence. The margin sits on the removed half alone, because `diffWords` hands back a
+   *  replaced word and its replacement with nothing between them while every other boundary
+   *  already carries the space it had in the text. */
+  const ADDED_WORDS = 'bg-success-500/25 text-surface-950-50 rounded-sm px-0.5 no-underline'
+  const REMOVED_WORDS = 'text-surface-600-400/70 mr-0.5 decoration-1'
+
   /** `tags` and `firstAscensionists` are stored comma-joined on the activity row. */
   const list = (value: string | undefined) =>
     (value ?? '')
       .split(',')
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0)
-
-  /** The member list's label for a stored role, or the raw value when it is not one of the
-   *  three the app assigns. `roleLabel` answers "Admin" for anything it does not recognise, so
-   *  the membership check has to happen out here. */
-  const roleName = (value: string | undefined) =>
-    assignableRoles.includes(value as (typeof assignableRoles)[number]) ? roleLabel(value as AppRole) : value
 
   const grade = (value: string | undefined) => {
     const gradeFk = value == null || value.length === 0 ? undefined : Number(value)
@@ -60,22 +62,35 @@
     return Number.isFinite(parsed) ? parsed : undefined
   }
 
-  /** The ascent date, stored as `YYYY-MM-DD`. Reading it back raw put an ISO string on a card
-   *  in a feed where every other date is localised. Anything unparseable stands as stored. */
-  const dateName = (value: string | undefined) => {
-    const parsed = value == null || value.length === 0 ? NaN : Date.parse(`${value}T00:00:00`)
-    return Number.isFinite(parsed)
-      ? new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium' }).format(parsed)
-      : value
-  }
+  const identity = (value: string | undefined) => value
 
-  const temperatureName = (value: string | undefined) => {
-    const celsius = numeric(value)
-    return celsius == null ? value : formatCelsius(celsius)
+  /**
+   * How a stored value reads once it is a chip, for the columns that are a plain old/new pair
+   * but not plain text. Keyed by renderer, so a new formatted column is an entry here rather
+   * than another branch in the chain below.
+   *
+   * Every one of them falls back to the raw value. A legacy row, a hand-inserted one, or a
+   * column whose stored shape has moved on is better shown as stored than mislabelled.
+   */
+  const FORMATTERS: Partial<Record<ChangeRenderer, (value: string | undefined) => string | undefined>> = {
+    // The ascent date, stored as `YYYY-MM-DD` and meaning a calendar day. Parsed as UTC and
+    // formatted as UTC by `formatDate`, which is what keeps it off the day before for readers
+    // west of Greenwich; reading it back raw put an ISO string in a feed of localised dates.
+    date: (value) => {
+      const parsed = value == null || value.length === 0 ? NaN : Date.parse(`${value}T00:00:00Z`)
+      return Number.isFinite(parsed) ? formatDate(parsed, getLocale()) : value
+    },
+    humidity: (value) => {
+      const humidity = numeric(value)
+      return humidity == null ? value : formatHumidity(humidity)
+    },
+    // `region_maintainer` is what the column stores, not what anybody should read.
+    role: (value) => roleLabelFor(value) ?? value,
+    temperature: (value) => {
+      const celsius = numeric(value)
+      return celsius == null ? value : formatCelsius(celsius)
+    },
   }
-
-  /** Matches `formatConditions`, which is what the ascent row and the media stage show. */
-  const humidityName = (value: string | undefined) => (numeric(value) == null ? value : `${numeric(value)} %`)
 
   /** Whether the pin actually moved. It can stay put and still be a change: confirming an
    *  estimated pin rewrites the flag alone, and "Moved 0 m" would be a silly way to say so. */
@@ -214,7 +229,7 @@
   {/if}
 {/snippet}
 
-{#snippet value({ activity, field, paths, topo }: ActivityChange)}
+{#snippet value({ activity, field, paths, prose, topo }: ActivityChange)}
   {@const renderer = field.renderer}
   {#if renderer === 'grade'}
     {@render gradeChip(activity.oldValue)}
@@ -243,26 +258,44 @@
       <summary class="text-surface-600-400 cursor-pointer text-xs">
         {m.activity_compareCharacters({ count: (activity.newValue ?? '').length })}
       </summary>
-      <!-- Descriptions and notes are markdown everywhere else they are shown, so the diff
-           renders them rather than printing the source. The old side keeps its strike-through
-           on the wrapper, which carries through whatever the markdown renders to. -->
-      <div class="mt-1.5 space-y-1.5 text-xs">
-        <div class="text-surface-600-400 line-through">
-          {#if activity.oldValue}
-            <Markdown className="short" disableLinks markdown={activity.oldValue} />
-          {:else}
-            <p>{m.activity_valueNotSet()}</p>
-          {/if}
-        </div>
-        <div class="text-surface-950-50">
-          {#if activity.newValue}
-            <!-- Links off on both sides: a diff is for reading what changed, and the live text
-                 is one tap away on the entity itself. -->
-            <Markdown className="short" disableLinks markdown={activity.newValue} />
-          {:else}
-            <p>{m.activity_valueNotSet()}</p>
-          {/if}
-        </div>
+      <!-- One merged text when both sides have one, so the edit points at itself instead of
+           leaving the reader to compare two near-identical paragraphs. Source rather than
+           rendered markdown: see `proseDiff`. -->
+      <div class="mt-1.5 text-xs">
+        {#if prose != null}
+          <!-- No whitespace between a tag and its text: the paragraph preserves what it is
+               given, so an indented `{segment.value}` would put the markup's own newlines
+               inside the sentence. The classes are named above for the same reason, to keep
+               each element on one line. -->
+          <p class="text-surface-600-400 whitespace-pre-wrap">
+            {#each prose as segment, index (index)}
+              {#if segment.kind === 'added'}
+                <ins class={ADDED_WORDS}>{segment.value}</ins>
+              {:else if segment.kind === 'removed'}
+                <del class={REMOVED_WORDS}>{segment.value}</del>
+              {:else}{segment.value}{/if}
+            {/each}
+          </p>
+        {:else}
+          <!-- Filled from nothing, or cleared. "Not set" against the text is the whole story,
+               and a diff of it would be one long stripe of a single colour. -->
+          <div class="space-y-1.5">
+            <div class="text-surface-600-400 line-through">
+              {#if activity.oldValue}
+                <p class="whitespace-pre-wrap">{activity.oldValue}</p>
+              {:else}
+                <p>{m.activity_valueNotSet()}</p>
+              {/if}
+            </div>
+            <div class="text-surface-950-50">
+              {#if activity.newValue}
+                <p class="whitespace-pre-wrap">{activity.newValue}</p>
+              {:else}
+                <p>{m.activity_valueNotSet()}</p>
+              {/if}
+            </div>
+          </div>
+        {/if}
       </div>
     </details>
   {:else if renderer === 'location' || renderer === 'locationRemoved'}
@@ -349,25 +382,6 @@
         </span>
       </div>
     {/if}
-  {:else if renderer === 'date'}
-    {@render chip(dateName(activity.oldValue))}
-    {@render arrow()}
-    {@render chip(dateName(activity.newValue))}
-  {:else if renderer === 'temperature'}
-    {@render chip(temperatureName(activity.oldValue))}
-    {@render arrow()}
-    {@render chip(temperatureName(activity.newValue))}
-  {:else if renderer === 'humidity'}
-    {@render chip(humidityName(activity.oldValue))}
-    {@render arrow()}
-    {@render chip(humidityName(activity.newValue))}
-  {:else if renderer === 'role'}
-    <!-- `region_maintainer` is what the column stores, not what anybody should read. Anything
-         outside the enum (a legacy or hand-inserted row) stands as stored rather than being
-         mislabelled as one of the three. -->
-    {@render chip(roleName(activity.oldValue))}
-    {@render arrow()}
-    {@render chip(roleName(activity.newValue))}
   {:else if renderer === 'source'}
     <!-- The host, not the URL: a reposted clip's credit is "youtube.com", and the full link
          would be a line of query string in a chip. A legacy free-text source has no host to
@@ -380,9 +394,14 @@
       {m.activity_changeFileRemoved({ media: storedMedia(activity.oldValue) })}
     </span>
   {:else}
-    {@render chip(activity.oldValue)}
+    <!-- The plain pair, and with it every renderer that is only a plain pair read through a
+         formatter (date, temperature, humidity, role). Those had a branch each, identical but
+         for the function they called, so a new formatted column meant a new branch and a
+         restyle of the pair meant editing five. -->
+    {@const format = FORMATTERS[renderer] ?? identity}
+    {@render chip(format(activity.oldValue))}
     {@render arrow()}
-    {@render chip(activity.newValue)}
+    {@render chip(format(activity.newValue))}
   {/if}
 {/snippet}
 

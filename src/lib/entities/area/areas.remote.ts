@@ -8,13 +8,13 @@ import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow } from '$lib/remote/require.server'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, invalid } from '@sveltejs/kit'
-import { and, eq, inArray, isNull, not } from 'drizzle-orm'
+import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
 import {
   createUpdateActivity,
   deleteActivity,
   insertActivity,
-  reassignActivityEntity,
+  restoreActivityHistory,
 } from '../activity/activity.server'
 import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from './area.server'
@@ -176,12 +176,15 @@ async function hardDeleteArea(db: Context['db'], area: Area): Promise<DeleteArea
 /** Soft-delete an area with descendants: stamp one `deletedAt` across the subtree (area +
  *  descendant areas, their blocks, those blocks' routes). The shared timestamp is the restore
  *  key. Only touch rows not already deleted, so restore won't resurrect independently-deleted
- *  ones. ponytail: timestamp as restore key; sub-ms collision with a concurrent delete is the
- *  ceiling. Upgrade = a dedicated deletion-batch id column. */
-async function softDeleteArea(db: Context['db'], area: Area): Promise<DeleteAreaSnapshot> {
-  const areaIds = await collectAreaSubtreeIds(db, area.id)
-  const blockRows = await db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) })
-  const blockIds = blockRows.map((row) => row.id)
+ *  ones. The caller walked the subtree to decide hard-vs-soft and hands the ids over, so the
+ *  walk does not happen twice. ponytail: timestamp as restore key; sub-ms collision with a
+ *  concurrent delete is the ceiling. Upgrade = a dedicated deletion-batch id column. */
+async function softDeleteArea(
+  db: Context['db'],
+  area: Area,
+  areaIds: number[],
+  blockIds: number[],
+): Promise<DeleteAreaSnapshot> {
   const deletedAt = new Date()
 
   await db
@@ -218,37 +221,48 @@ export const deleteArea = authedCommand(
     // FK-reference the area and can't be recreated on undo — an area with files is
     // soft-deleted rather than hard-deleted so nothing is lost.
     // The whole subtree, not just the direct children: deleting a crag takes its blocks and
-    // their routes with it, and after the delete none of it is left to count. The existence
-    // checks below fall out of the same numbers.
+    // their routes with it, and after the delete none of it is left to count.
+    //
+    // The existence checks count soft-deleted descendants too: a row stamped last month still
+    // FK-references this area, so hard-deleting around it would fail. What the card SAYS was
+    // taken is a different question with a different answer, which is why the counts below
+    // ask again with `deletedAt IS NULL`.
     const areaIds = await collectAreaSubtreeIds(db, id)
     const [blockRows, file] = await Promise.all([
-      db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) }),
+      db.query.blocks.findMany({ columns: { deletedAt: true, id: true }, where: inArray(blocks.areaFk, areaIds) }),
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.areaFk, id) }),
     ])
-    const routeRows =
-      blockRows.length === 0
-        ? []
-        : await db.query.routes.findMany({
-            columns: { id: true },
-            where: inArray(
-              routes.blockFk,
-              blockRows.map((row) => row.id),
-            ),
-          })
+    const blockIds = blockRows.map((row) => row.id)
+
+    // Counted, not listed: a crag holds thousands of routes and the card needs one integer.
+    // Live rows only, and before the delete stamps them - this is what this deletion takes.
+    const [[areaCount], [routeCount]] = await Promise.all([
+      db
+        .select({ value: count() })
+        .from(areas)
+        .where(and(inArray(areas.id, areaIds), isNull(areas.deletedAt))),
+      blockIds.length === 0
+        ? Promise.resolve([{ value: 0 }])
+        : db
+            .select({ value: count() })
+            .from(routes)
+            .where(and(inArray(routes.blockFk, blockIds), isNull(routes.deletedAt))),
+    ])
 
     const data =
       areaIds.length === 1 && blockRows.length === 0 && file == null
         ? await hardDeleteArea(db, area)
-        : await softDeleteArea(db, area)
+        : await softDeleteArea(db, area, areaIds, blockIds)
 
     await insertActivity(db, {
       entityId: area.id,
       entityType: 'area',
-      // What went with it, recorded while it is still knowable.
+      // What went with it, recorded while it is still knowable. The area itself is one of the
+      // live rows counted, and it is not something it took with it.
       metadata: stringifyDeletionScale({
-        areas: areaIds.length - 1,
-        blocks: blockRows.length,
-        routes: routeRows.length,
+        areas: Math.max(0, areaCount.value - 1),
+        blocks: blockRows.filter((row) => row.deletedAt == null).length,
+        routes: routeCount.value,
       }),
       // The only name the feed will ever have for it: the row is about to be unreachable.
       oldValue: area.name,
@@ -352,10 +366,9 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     const created = await hardRestoreArea(db, snapshot, user.id)
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
-    await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
     // The row is new, so the history has to follow it, or the restored area's own create card
     // and every edit ever made to it render as tombstones next to the live area.
-    await reassignActivityEntity(db, { entityType: 'area', fromId: snapshot.areaId, toId: created.id })
+    await restoreActivityHistory(db, { entityType: 'area', fromId: snapshot.areaId, toId: created.id })
 
     return {
       data: { areaId: created.id },

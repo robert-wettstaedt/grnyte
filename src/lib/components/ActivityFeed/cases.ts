@@ -12,9 +12,9 @@
  */
 import type { ActivityListItem } from '$lib/entities/activity/dto'
 import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
-import type { Geolocation } from '$lib/entities/geolocation/dto'
+import { stringifyDeletedAscent } from '$lib/entities/activity/verbs'
+import { routeDisplayName } from '$lib/entities/route/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
-import { m } from '$lib/paraglide/messages'
 import { activity, entityMap, photo, topoLines, topoMetadata, topos, video } from './fixtures'
 
 /** One row of the protocol's action matrix, ready to render. */
@@ -93,17 +93,6 @@ export function fileEntity(name: string, files: ReturnType<typeof photo>[]): Act
   return { files, name, row: 'none' }
 }
 
-/** Nordblock, hydrated with the pin it was placed with, which only a create card draws. */
-export function pinnedBlock(pin: Geolocation): ActivityEntity {
-  return { crumbs: ['Steinbruch', 'Westwand'], href: '#', name: 'Nordblock', pin, row: 'block' }
-}
-
-/** A calendar date `daysAgo` back, as Zero hands one back from a pg `date`: UTC midnight. */
-export function utcDay(daysAgo: number): number {
-  const date = new Date(Date.now() - daysAgo * 86_400_000)
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-}
-
 /** The crag with a few entries swapped, for the cases that need a tombstone or extra media. */
 export function worldWith(entries: [ActivityEntityRef, ActivityEntity | null][]): ActivityEntityMap {
   return entityMap([...CRAG, ...entries])
@@ -123,6 +112,25 @@ function ascentEntity(
   }
 }
 
+/** What `deleteAscent` writes down about whose ascent it took, since nothing can be asked
+ *  afterwards. Built through the writer so a fixture cannot drift from the stored shape. */
+function deletedAscent(climberFk: number, climberName: string): string {
+  return stringifyDeletedAscent({ climberFk, climberName })
+}
+
+/** Nordblock, hydrated with the pin it was placed with, which only a create card draws. One
+ *  pin for every case, so no two of them can read as two different places; `estimated` is the
+ *  only thing a caller ever varies. */
+function pinnedBlock(estimated = false): ActivityEntity {
+  return {
+    crumbs: ['Steinbruch', 'Westwand'],
+    href: '#',
+    name: 'Nordblock',
+    pin: { estimated, id: 1, ...PIN },
+    row: 'block',
+  }
+}
+
 /**
  * A hydrated route, named the way the feed really gets one.
  *
@@ -132,7 +140,9 @@ function ascentEntity(
  * is testing a state the app cannot produce.
  */
 function routeEntity(rawName: string, gradeFk: number): ActivityEntity {
-  const name = rawName.length === 0 ? m.common_unnamed() : rawName
+  // Through the mapper's own helper, so a fixture cannot describe a nameless route differently
+  // from the way hydration hands one out.
+  const name = routeDisplayName(rawName)
   return {
     crumbs: ['Steinbruch', 'Westwand', 'Nordblock'],
     href: '#',
@@ -142,8 +152,14 @@ function routeEntity(rawName: string, gradeFk: number): ActivityEntity {
   }
 }
 
+/** A calendar date `daysAgo` back, as Zero hands one back from a pg `date`: UTC midnight. */
+function utcDay(daysAgo: number): number {
+  const date = new Date(Date.now() - daysAgo * 86_400_000)
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
 // Re-exported so a case chunk needs one import.
-export { activity, photo, routeEntity, topoLines, topoMetadata, topos, video }
+export { activity, photo, topoLines, topoMetadata, topos, video }
 
 export const CASES: ActivityCase[] = [
   // ==== AREA ====
@@ -252,7 +268,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'area',
     expected:
-      'single card, description edit. prose renderer, a collapsed details reading "Compare, {n} characters" that expands to the struck-through old text over the new one.',
+      'single card, description edit. prose renderer, a collapsed details reading "Compare, {n} characters" that expands to one merged text: what the edit took struck through, what it added marked, the rest standing.',
     id: 'AREA-02b',
   },
   {
@@ -307,7 +323,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'area',
     expected:
-      'single card, description edit. prose renderer with the new side rendering the literal "Not set" (the stored value is an empty string, not null).',
+      'single card, description edit. No diff to draw when one side is empty, so this keeps the two-sided shape: the old text struck through over the literal "Not set" (the stored value is an empty string, not null).',
     id: 'AREA-02e',
   },
   {
@@ -701,7 +717,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'block',
-    entities: worldWith([[{ id: '400', type: 'block' }, pinnedBlock({ estimated: false, id: 1, ...PIN })]]),
+    entities: worldWith([[{ id: '400', type: 'block' }, pinnedBlock()]]),
     expected:
       'single card, "You added Nordblock". burst kind with one member. No change line: create verbs declare no field, but the block hydrates with a pin and a create card draws it, so a 200x120 OSM thumbnail sits above the row.',
     id: 'BLOCK-01a',
@@ -723,7 +739,7 @@ export const CASES: ActivityCase[] = [
     entities: worldWith([
       [
         { id: '400', type: 'block' },
-        { ...pinnedBlock({ estimated: false, id: 1, ...PIN }), name: 'Block 3' },
+        { ...pinnedBlock(), name: 'Block 3' },
       ],
     ]),
     expected:
@@ -763,7 +779,7 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'block',
-    entities: worldWith([[{ id: '400', type: 'block' }, pinnedBlock({ estimated: true, id: 1, ...PIN })]]),
+    entities: worldWith([[{ id: '400', type: 'block' }, pinnedBlock(true)]]),
     expected:
       'single card, the same row the in-area form writes: the pre-located entry point changes nothing about the row. The pin is flagged approximate, so the thumbnail draws it dashed with the "?" marker, the same way the interactive map does.',
     id: 'BLOCK-01d',
@@ -1784,7 +1800,8 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
-    expected: 'single card. prose renderer, collapsed Compare details, old side is the empty-string Not set.',
+    expected:
+      'single card. prose renderer, collapsed Compare details. No diff when one side is empty: the old side is the empty-string "Not set" over the new text.',
     id: 'ROUTE-08a',
   },
   {
@@ -1803,8 +1820,67 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'route',
     expected:
-      'single card. prose renderer, full old and new markdown stored verbatim, struck-through old over new when expanded.',
+      'single card. prose renderer: one merged text with the appended sentence marked as added, the rest of the description standing unchanged.',
     id: 'ROUTE-08b',
+  },
+  {
+    action: '/routes/503/edit -> change a clause in the middle of the Description -> Save',
+    activities: [
+      activity(5, {
+        columnName: 'description',
+        entityId: '503',
+        entityType: 'route',
+        newValue: 'Sit start on crimps, then the long move to the sloper. Top out friendlier from the right.',
+        oldValue: 'Sit start on crimps, then the long move to the sloper. Top out easier from the left.',
+        parentEntityId: '400',
+        parentEntityType: 'block',
+        userFk: ME,
+      }),
+    ],
+    domain: 'route',
+    expected:
+      'single card. The case the word diff exists for: "easier" struck through against "friendlier" marked, then "left" against "right", with the sentence around them shown once. Rendered as two whole texts this edit was the reader\'s to find.',
+    id: 'ROUTE-08e',
+  },
+  {
+    action: '/routes/503/edit -> replace the Description with an entirely different text -> Save',
+    activities: [
+      activity(5, {
+        columnName: 'description',
+        entityId: '503',
+        entityType: 'route',
+        newValue: 'Start matched on the low rail and trend right along the arete to a jug finish.',
+        oldValue: 'Sit start on crimps, then the long move to the sloper.',
+        parentEntityId: '400',
+        parentEntityType: 'block',
+        userFk: ME,
+      }),
+    ],
+    domain: 'route',
+    expected:
+      'single card, and the noisiest shape this renderer produces. A rewrite still shares its connectors ("on", "the", the full stop), so the diff interleaves around them instead of showing one block struck through followed by one block marked. Honest, and still only a handful of segments, but this is the case to look at if the word diff ever needs a fall back to plain before-and-after.',
+    id: 'ROUTE-08f',
+  },
+  {
+    action: '/routes/503/edit -> edit the second paragraph of a three-paragraph Description -> Save',
+    activities: [
+      activity(5, {
+        columnName: 'description',
+        entityId: '503',
+        entityType: 'route',
+        newValue:
+          'Stand start on the obvious flake.\n\nMove left into the scoop, then a long pull to the sloper. The topout is friendlier from the right since the block shifted.\n\nShares a landing with !route:501!, so bring a second pad.',
+        oldValue:
+          'Stand start on the obvious flake.\n\nMove left into the scoop, then a long pull to the sloper. The topout is easier from the left.\n\nShares a landing with !route:501!, so bring a second pad.',
+        parentEntityId: '400',
+        parentEntityType: 'block',
+        userFk: ME,
+      }),
+    ],
+    domain: 'route',
+    expected:
+      'single card. Paragraph breaks survive, and the two untouched paragraphs read normally while the middle one carries the marks. The `!route:501!` mention shows raw: the diff renders source rather than markdown, because the markdown pipeline drops raw HTML and highlights cannot be put inside a rendered document.',
+    id: 'ROUTE-08g',
   },
   {
     action: '/routes/503/edit -> clear the Description editor -> Save',
@@ -1821,7 +1897,8 @@ export const CASES: ActivityCase[] = [
       }),
     ],
     domain: 'route',
-    expected: 'single card. prose renderer, the new side renders the literal Not set while the DB column goes null.',
+    expected:
+      'single card. prose renderer, no diff with one side empty: the old text struck through over the literal "Not set", while the DB column goes null.',
     id: 'ROUTE-08c',
   },
   {
@@ -2411,8 +2488,39 @@ export const CASES: ActivityCase[] = [
       ],
     ]),
     expected:
-      'Identical single session card, still dated by activities.createdAt (today) so it sorts to the top, but the sub line now reads "Climbed on ..." because the climb date is more than a day off the log date. Under the row, a "This ascent" strip with the climber\'s own grade pill, their stars and a conditions pill, none of which the route row beside it shows. Still no change line.',
+      'Identical single session card, still dated by activities.createdAt (today) so it sorts to the top, but the sub line now reads "Climbed on ..." because the climb date is a different calendar day than the log date. Under the row, a "This ascent" strip with the climber\'s own grade pill, their stars and a conditions pill, none of which the route row beside it shows. Still no change line.',
     id: 'ASC-01h',
+  },
+  {
+    action:
+      '/routes/{id}/ascents/add -> Attempt -> leave Your grade and Your rating alone -> expand Conditions -> set the temperature -> Save',
+    activities: [
+      activity(5, {
+        entityId: '9001',
+        entityType: 'ascent',
+        newValue: 'attempt',
+        parentEntityId: '500',
+        parentEntityType: 'route',
+        type: 'created',
+        userFk: ME,
+      }),
+    ],
+    domain: 'ascent',
+    entities: worldWith([
+      [
+        { id: '9001', type: 'ascent' },
+        {
+          ...routeEntity('Rampe', 12),
+          ascentType: 'attempt',
+          climberFk: ME,
+          climberName: 'Ada Rossi',
+          temperature: 18,
+        },
+      ],
+    ]),
+    expected:
+      'Identical single session card. The "This ascent" strip carries the conditions pill alone: no grade chip, no stars. The climber said neither, and a placeholder grade beside three empty stars would put an opinion in their mouth.',
+    id: 'ASC-01i',
   },
   {
     action:
@@ -2742,6 +2850,7 @@ export const CASES: ActivityCase[] = [
       activity(5, {
         entityId: '9001',
         entityType: 'ascent',
+        metadata: deletedAscent(ME, 'Ada Rossi'),
         oldValue: 'flash',
         parentEntityId: '500',
         parentEntityType: 'route',
@@ -2752,7 +2861,7 @@ export const CASES: ActivityCase[] = [
     domain: 'ascent',
     entities: worldWith([[{ id: '9001', type: 'ascent' }, null]]),
     expected:
-      'removal kind (predicate 1 fires before the ascent predicate), one row so it renders single. No change line.',
+      'removal kind (predicate 1 fires before the ascent predicate), one row so it renders single. "your ascent": the deleted row recorded whose it was, since hydration cannot answer for a row that no longer exists. No change line.',
     id: 'ASC-10a',
   },
   {
@@ -2761,6 +2870,7 @@ export const CASES: ActivityCase[] = [
       activity(5, {
         entityId: '9002',
         entityType: 'ascent',
+        metadata: deletedAscent(3, 'Jonas Weber'),
         oldValue: 'redpoint',
         parentEntityId: '501',
         parentEntityType: 'route',
@@ -2771,7 +2881,7 @@ export const CASES: ActivityCase[] = [
     domain: 'ascent',
     entities: worldWith([[{ id: '9002', type: 'ascent' }, null]]),
     expected:
-      'Identical removal row, single card. The ascent is gone so hydration cannot resolve climberFk and owner degrades to none, which now has its own arm naming nobody, and the name falls back to the parent route. No change line.',
+      'Identical removal row, single card. The ascent is gone, so hydration cannot resolve climberFk and the card reads the climber off what the delete wrote down: "Jonas Weber\'s ascent", the moderation case that would otherwise name nobody. The entity name falls back to the parent route. No change line.',
     id: 'ASC-10b',
   },
   {
@@ -2780,6 +2890,7 @@ export const CASES: ActivityCase[] = [
       activity(5, {
         entityId: '9001',
         entityType: 'ascent',
+        metadata: deletedAscent(ME, 'Ada Rossi'),
         oldValue: 'flash',
         parentEntityId: '500',
         parentEntityType: 'route',

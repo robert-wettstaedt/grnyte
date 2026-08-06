@@ -6,6 +6,17 @@ import type { RouteDetail, RouteListItem } from './dto'
 
 export type RouteListRow = QueryRow<typeof queries.listRoutes>
 
+/**
+ * A route's name for reading, which is the placeholder when it has none.
+ *
+ * A route may genuinely be nameless, and the swap happens here so nothing downstream ever sees
+ * the empty string: a screen that checked for itself would be a second opinion about what a
+ * nameless route is called.
+ */
+export function routeDisplayName(name: string): string {
+  return name.length === 0 ? m.common_unnamed() : name
+}
+
 export function toRouteDetail(row: RouteListRow): RouteDetail {
   return {
     ...toRouteListItem(row),
@@ -38,7 +49,7 @@ export function toRouteListItem(row: RouteListRow): RouteListItem {
     firstAscentYear: row.firstAscentYear ?? undefined,
     gradeFk: row.userGradeFk ?? undefined,
     id: row.id,
-    name: row.name.length === 0 ? m.common_unnamed() : row.name,
+    name: routeDisplayName(row.name),
     rating: row.userRating ?? 0,
     rawName: row.name,
     regionFk: row.regionFk,

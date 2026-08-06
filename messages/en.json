@@ -807,7 +807,16 @@
     }
   ],
   "ascents_delete": "Delete ascent",
-  "ascents_deleteConfirm": "Your ascent of \"{name}\" and its grade and rating opinions will be removed, along with any attached photos and videos. This cannot be undone.",
+  "ascents_deleteConfirm": [
+    {
+      "declarations": ["input climber", "input name", "input owner"],
+      "selectors": ["owner"],
+      "match": {
+        "owner=self": "Your ascent of \"{name}\" and its grade and rating opinions will be removed, along with any attached photos and videos. This cannot be undone.",
+        "owner=*": "{climber}'s ascent of \"{name}\" and their grade and rating opinions will be removed, along with any attached photos and videos. This cannot be undone."
+      }
+    }
+  ],
   "ascents_deleted": "Ascent deleted",
   "ascents_editAscent": "Edit ascent",
   "ascents_empty": "No ascents yet.",

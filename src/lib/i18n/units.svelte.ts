@@ -29,8 +29,12 @@ export const formatCelsius = (celsius: number): string => {
   }).format(imperial ? celsius * 1.8 + 32 : celsius)
 }
 
+/** "45 %". Its own function so the conditions pill and the change list cannot drift apart the
+ *  way they would if each wrote the format out. */
+export const formatHumidity = (humidity: number): string => `${humidity} %`
+
 /** "18°C · 45 %" from an ascent's optional conditions; empty when neither is set. */
 export const formatConditions = (temperature: number | undefined, humidity: number | undefined): string =>
-  [temperature == null ? null : formatCelsius(temperature), humidity == null ? null : `${humidity} %`]
+  [temperature == null ? null : formatCelsius(temperature), humidity == null ? null : formatHumidity(humidity)]
     .filter(Boolean)
     .join(' · ')

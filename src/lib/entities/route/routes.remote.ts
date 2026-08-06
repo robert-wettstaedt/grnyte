@@ -25,7 +25,7 @@ import {
   createUpdateActivity,
   deleteActivity,
   insertActivity,
-  reassignActivityEntity,
+  restoreActivityHistory,
 } from '../activity/activity.server'
 import { regionTags } from '../region/tagVocabulary'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
@@ -480,11 +480,10 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
       )
     }
 
-    await deleteActivity(db, { columnName: null, entityId: snapshot.routeId, entityType: 'route', type: 'deleted' })
     // The row is new, so the history has to follow it. Without this the restored route's own
     // create card, and every edit ever made to it, keep pointing at the dead id and render as
     // tombstones next to the live route.
-    await reassignActivityEntity(db, { entityType: 'route', fromId: snapshot.routeId, toId: created.id })
+    await restoreActivityHistory(db, { entityType: 'route', fromId: snapshot.routeId, toId: created.id })
 
     return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
   }

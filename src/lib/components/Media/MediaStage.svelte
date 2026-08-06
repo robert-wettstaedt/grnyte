@@ -12,6 +12,7 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import { panzoom } from '$lib/components/Topo/panzoom'
   import AscentType from '$lib/entities/ascent/AscentType.svelte'
+  import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
   import type { MediaFile } from '$lib/entities/file/dto'
   import { sourceHost } from '$lib/entities/file/upload'
   import { getGradeBand } from '$lib/entities/grade/color'
@@ -19,7 +20,6 @@
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
-  import { formatConditions } from '$lib/i18n/units.svelte'
   import { imageSrc } from '$lib/images/derivatives'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -60,9 +60,6 @@
   let infoOpen = $state(false)
   const ascentHref = $derived(file.ascent == null ? '' : resolve('/(app)/ascents/[id]', { id: String(file.ascent.id) }))
   const ascentNotes = $derived(file.ascent?.notes.trim() ?? '')
-  const ascentConditions = $derived(
-    file.ascent == null ? '' : formatConditions(file.ascent.temperature, file.ascent.humidity),
-  )
 
   // Caption timestamp: relative ("3 days ago") within a week, absolute date beyond it.
   // Tapping swaps it to the exact date + time; hover shows the same via `title`.
@@ -324,13 +321,11 @@
               {/if}
             </div>
 
-            {#if ascentConditions !== ''}
-              <span
-                class="border-surface-200-800 bg-surface-100-900 text-surface-600-400 inline-flex h-6.25 items-center self-start rounded-full border px-2.5 font-mono text-[11px] font-bold"
-              >
-                {ascentConditions}
-              </span>
-            {/if}
+            <ConditionsPill
+              class="self-start"
+              humidity={file.ascent?.humidity}
+              temperature={file.ascent?.temperature}
+            />
 
             {#if ascentNotes !== ''}
               <div class="text-sm">

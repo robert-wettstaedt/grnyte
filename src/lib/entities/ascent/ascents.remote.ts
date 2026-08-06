@@ -1,6 +1,6 @@
 import { command, getRequestEvent } from '$app/server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
-import { ascents, ascentTypeEnum, files, routes } from '$lib/db/schema'
+import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
 import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { authedForm } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -9,6 +9,7 @@ import { error, invalid } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, insertActivity } from '../activity/activity.server'
+import { stringifyDeletedAscent } from '../activity/verbs'
 import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { canEditAscent, canLogAscent } from './permissions'
@@ -167,9 +168,21 @@ export const deleteAscent = command(
 
       await recalcUserGradeAndRating(db, ascent.routeFk)
 
+      // Whose ascent this was, written down while it still can be: the row is gone by the time
+      // any card renders, so the feed has nothing else to read it off. A maintainer clearing up
+      // somebody else's log otherwise gets "removed an ascent of Rampe" with no owner in it.
+      const climber = await db.query.users.findFirst({
+        columns: { username: true },
+        where: eq(users.id, ascent.createdBy),
+      })
+
       await insertActivity(db, {
         entityId: ascent.id,
         entityType: 'ascent',
+        metadata:
+          climber == null
+            ? undefined
+            : stringifyDeletedAscent({ climberFk: ascent.createdBy, climberName: climber.username }),
         oldValue: ascent.type,
         parentEntityId: ascent.routeFk,
         parentEntityType: 'route',

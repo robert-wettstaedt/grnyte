@@ -8,8 +8,8 @@
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createRegionForUser, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS } from './dto'
 
@@ -28,8 +28,16 @@ const found = (suffix: string) =>
 
 describe.skipIf(!reachable)('createRegionForUser', () => {
   beforeAll(async () => {
-    // A plain region user, not an admin: founding is open to anybody signed in.
-    founder = (await seedUsers({ founder: 'user@grnyte.rocks' })).founder
+    // An account of this suite's own, not one of the shared seed logins. This is the only test
+    // that counts regions per owner, and `tenancy.test.ts` (plus the guard and invite suites)
+    // found regions as those seed users while vitest runs the files in parallel: the count read
+    // at the top of the cap test then changed underneath it and the cap arrived mid-loop.
+    // Nothing about founding needs a seeded identity, since it is open to anybody signed in.
+    founder = await createThrowawayUser('create_region')
+  })
+
+  afterAll(async () => {
+    await dropThrowawayUser(founder)
   })
 
   afterEach(async () => {

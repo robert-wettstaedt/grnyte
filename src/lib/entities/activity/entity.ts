@@ -124,13 +124,23 @@ export function activityEntityRefs(activities: readonly ActivityListItem[]): Act
  */
 export function activityHydrationRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
   return dedupe(
-    activities.flatMap((activity) => [
-      ...activityEntityRefs([activity]),
-      ...(activity.parentEntityId == null || activity.parentEntityType == null
-        ? []
-        : [{ id: activity.parentEntityId, type: activity.parentEntityType }]),
-    ]),
+    activities.flatMap((activity) => {
+      const parent = activityParentRef(activity)
+      return [...activityEntityRefs([activity]), ...(parent == null ? [] : [parent])]
+    }),
   )
+}
+
+/**
+ * What an activity names as its parent, or `undefined` when it names none.
+ *
+ * Both halves have to be present to mean anything, and that guard was written out at four
+ * separate call sites, each free to disagree with the others about what a half-filled pair is.
+ */
+export function activityParentRef(activity: ActivityListItem): ActivityEntityRef | undefined {
+  return activity.parentEntityId == null || activity.parentEntityType == null
+    ? undefined
+    : { id: activity.parentEntityId, type: activity.parentEntityType }
 }
 
 /**
@@ -157,9 +167,8 @@ export function activityRowRefs(activities: readonly ActivityListItem[]): Activi
         return [{ id: activity.entityId, type: activity.entityType }]
       }
 
-      return activity.parentEntityId == null || activity.parentEntityType == null
-        ? []
-        : [{ id: activity.parentEntityId, type: activity.parentEntityType }]
+      const parent = activityParentRef(activity)
+      return parent == null ? [] : [parent]
     }),
   )
 }

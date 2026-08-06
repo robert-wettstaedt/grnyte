@@ -20,13 +20,13 @@
   import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { activityEntityKey } from '$lib/entities/activity/entity'
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
+  import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { resolveMessage, type MessageKey } from '$lib/i18n/message'
-  import { formatUploadedAt } from '$lib/i18n/relativeTime'
-  import { formatConditions } from '$lib/i18n/units.svelte'
+  import { formatDate, formatUploadedAt } from '$lib/i18n/relativeTime'
   import StaticMap from '$lib/map/StaticMap.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
@@ -66,11 +66,7 @@
   // rather than relative, because it only ever appears when it disagrees with the clock beside
   // it, and "3 days ago · 4 days ago" is a puzzle. UTC: the stored value is a calendar date.
   const climbedOn = $derived(
-    view.climbedAt == null
-      ? undefined
-      : m.activity_summaryClimbedOn({
-          date: new Intl.DateTimeFormat(getLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(view.climbedAt),
-        }),
+    view.climbedAt == null ? undefined : m.activity_summaryClimbedOn({ date: formatDate(view.climbedAt, getLocale()) }),
   )
 
   const summary = $derived(
@@ -78,10 +74,6 @@
       ...(view.summary ?? []).map((part) => (part.key == null ? part.text : resolveMessage(part.key, part.params))),
       ...(climbedOn == null ? [] : [climbedOn]),
     ].join(' · '),
-  )
-
-  const conditions = $derived(
-    view.ascent == null ? '' : formatConditions(view.ascent.temperature, view.ascent.humidity),
   )
 
   // The prop seeds the toggle and then stops mattering, which is what `untrack` states.
@@ -253,21 +245,20 @@
     <div class="flex flex-wrap items-center gap-2 px-1">
       <span class="text-surface-600-400 text-xs font-semibold">{m.activity_thisAscent()}</span>
 
-      <RouteGrade
-        band={getGradeBand(view.ascent.gradeFk)}
-        grade={gradeLabel(global.grades, global.gradingScale, view.ascent.gradeFk)}
-      />
-      <RouteRating rating={view.ascent.rating} />
-
-      {#if conditions !== ''}
-        <!-- Same pill the ascent row's expanded half uses, so the conditions read identically
-             wherever they turn up. -->
-        <span
-          class="border-surface-200-800 bg-surface-100-900 text-surface-600-400 inline-flex h-6.25 items-center rounded-full border px-2.5 font-mono text-[11px] font-bold"
-        >
-          {conditions}
-        </span>
+      <!-- Each half only when it was actually logged. The strip shows what the climber said,
+           and an ascent logged with conditions alone said nothing about grade or stars: an
+           empty grade chip and a row of three empty stars would put words in their mouth. -->
+      {#if view.ascent.gradeFk != null}
+        <RouteGrade
+          band={getGradeBand(view.ascent.gradeFk)}
+          grade={gradeLabel(global.grades, global.gradingScale, view.ascent.gradeFk)}
+        />
       {/if}
+      {#if view.ascent.rating != null && view.ascent.rating > 0}
+        <RouteRating rating={view.ascent.rating} />
+      {/if}
+
+      <ConditionsPill humidity={view.ascent.humidity} temperature={view.ascent.temperature} />
     </div>
   {/if}
 

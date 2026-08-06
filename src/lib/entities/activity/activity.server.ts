@@ -147,7 +147,11 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
         // Folded back to where it started: a pin nudged and nudged back, a line redrawn and
         // undone. There is no change left to report, and a row that kept its own start and
         // end would report one ("A → A", which the location renderer reads as "confirmed").
-        if (change.newValue === activity.oldValue) {
+        //
+        // Through `changed` rather than `===`, so "back where it started" means here exactly
+        // what it meant when the edit was detected: a field cleared to `''` is back to the
+        // `null` it was, and neither is a change worth a card.
+        if (!changed(activity.oldValue, change.newValue)) {
           return db.delete(schema.activities).where(eq(schema.activities.id, activity.id))
         }
 
@@ -284,24 +288,46 @@ export const deleteActivity = async (
  * leaving those behind puts a dead parent's name on a live card.
  *
  * Call this AFTER {@link deleteActivity} has erased the delete row, which still matches on the
- * old id. Only the three entities with a hard-restore path can reach it, which is why the
- * parameter takes the narrower parent enum.
+ * old id, or use {@link restoreActivityHistory}, which is that pair in the right order. Only the
+ * three entities with a hard-restore path can reach it, which is why the parameter takes the
+ * narrower parent enum.
  */
 export const reassignActivityEntity = async (
   db: PostgresJsDatabase<typeof schema>,
   { entityType, fromId, toId }: { entityType: ActivityParentEntityType; fromId: ActivityId; toId: ActivityId },
 ) => {
-  await db
-    .update(schema.activities)
-    .set({ entityId: String(toId) })
-    .where(and(eq(schema.activities.entityId, String(fromId)), eq(schema.activities.entityType, entityType)))
+  // Together: the two match disjoint rows on disjoint columns, so neither can see the other's
+  // work and the round trips are worth nothing serialized.
+  await Promise.all([
+    db
+      .update(schema.activities)
+      .set({ entityId: String(toId) })
+      .where(and(eq(schema.activities.entityId, String(fromId)), eq(schema.activities.entityType, entityType))),
 
-  await db
-    .update(schema.activities)
-    .set({ parentEntityId: String(toId) })
-    .where(
-      and(eq(schema.activities.parentEntityId, String(fromId)), eq(schema.activities.parentEntityType, entityType)),
-    )
+    db
+      .update(schema.activities)
+      .set({ parentEntityId: String(toId) })
+      .where(
+        and(eq(schema.activities.parentEntityId, String(fromId)), eq(schema.activities.parentEntityType, entityType)),
+      ),
+  ])
+}
+
+/**
+ * Put an entity's timeline back after a hard restore: erase the row that recorded the deletion,
+ * then move everything else onto the id the entity came back under.
+ *
+ * The order is the whole point of this existing. Erasing matches on the OLD id, so reassigning
+ * first moves the delete row along with the rest and leaves a "deleted" card attached to
+ * something standing right there, which is the bug the three call sites were each fixed for
+ * separately. A comment saying "call this after that" was the only thing holding it.
+ */
+export const restoreActivityHistory = async (
+  db: PostgresJsDatabase<typeof schema>,
+  { entityType, fromId, toId }: { entityType: ActivityParentEntityType; fromId: ActivityId; toId: ActivityId },
+) => {
+  await deleteActivity(db, { columnName: null, entityId: fromId, entityType, type: 'deleted' })
+  await reassignActivityEntity(db, { entityType, fromId, toId })
 }
 
 /** Exported for the test: an omitted field must contribute nothing and an explicit `null`

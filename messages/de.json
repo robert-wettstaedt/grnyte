@@ -807,7 +807,16 @@
     }
   ],
   "ascents_delete": "Begehung löschen",
-  "ascents_deleteConfirm": "Deine Begehung von „{name}“ und ihre Grad- und Bewertungsmeinungen werden entfernt, ebenso alle angehängten Fotos und Videos. Das kann nicht rückgängig gemacht werden.",
+  "ascents_deleteConfirm": [
+    {
+      "declarations": ["input climber", "input name", "input owner"],
+      "selectors": ["owner"],
+      "match": {
+        "owner=self": "Deine Begehung von „{name}“ und ihre Grad- und Bewertungsmeinungen werden entfernt, ebenso alle angehängten Fotos und Videos. Das kann nicht rückgängig gemacht werden.",
+        "owner=*": "{climber}s Begehung von „{name}“ und ihre Grad- und Bewertungsmeinungen werden entfernt, ebenso alle angehängten Fotos und Videos. Das kann nicht rückgängig gemacht werden."
+      }
+    }
+  ],
   "ascents_deleted": "Begehung gelöscht",
   "ascents_editAscent": "Begehung bearbeiten",
   "ascents_empty": "Noch keine Begehungen.",

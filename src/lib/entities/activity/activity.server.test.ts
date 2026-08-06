@@ -7,6 +7,7 @@ import {
   createUpdateActivity,
   insertActivity,
   reassignActivityEntity,
+  restoreActivityHistory,
   type ActivityInput,
 } from './activity.server'
 
@@ -157,6 +158,18 @@ describe('createUpdateActivity', () => {
     expect(calls.inserted).toBeNull()
   })
 
+  it('deletes the row when the edit folds back to a value only normalisation matches', async () => {
+    const { calls, db } = fakeDb([open({ oldValue: null })])
+    // The column held NULL, a save filled it, and a second save cleared it: the form submits
+    // '' where the column had nothing, which `changed` has always read as the same state.
+    // Comparing the two raw left a row whose sides both read "Not set".
+    await move(db, 'Beta', '')
+
+    expect(calls.deletes).toBe(1)
+    expect(calls.updates).toEqual([])
+    expect(calls.inserted).toBeNull()
+  })
+
   const PHOTO_1 = '{"action":"lines","topoId":1}'
   const PHOTO_2 = '{"action":"lines","topoId":2}'
 
@@ -231,5 +244,18 @@ describe('reassignActivityEntity', () => {
     await reassignActivityEntity(db, { entityType: 'route', fromId: 599, toId: 600 })
 
     expect(calls.updates).toEqual([{ entityId: '600' }, { parentEntityId: '600' }])
+  })
+})
+
+describe('restoreActivityHistory', () => {
+  // The ordering the three call sites used to hold by comment alone. Erasing matches on the OLD
+  // id, so reassigning first carries the delete row along with everything else and leaves a
+  // "deleted" card attached to an entity standing right there.
+  it('erases the delete row before moving the rest onto the new id', async () => {
+    const { calls, db } = fakeDb()
+    await restoreActivityHistory(db, { entityType: 'block', fromId: 41, toId: 42 })
+
+    expect(calls.deletes).toBe(1)
+    expect(calls.updates).toEqual([{ entityId: '42' }, { parentEntityId: '42' }])
   })
 })

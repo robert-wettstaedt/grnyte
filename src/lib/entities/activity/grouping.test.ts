@@ -191,6 +191,27 @@ describe('groupActivities', () => {
     expect(groups[0].activities).toHaveLength(2)
   })
 
+  // Only the row that set a source the file never had is redundant. Fixing a credit five
+  // minutes after uploading is a deliberate edit, and dropping it on the timestamp alone hid
+  // the one thing the climber went back to say.
+  it('keeps a source correction that landed inside the upload window', () => {
+    const groups = groupActivities([
+      activity({
+        columnName: 'source',
+        createdAt: day(1, 12),
+        entityId: 'file-1',
+        entityType: 'file',
+        newValue: 'https://vimeo.com/2',
+        oldValue: 'https://youtube.com/1',
+        ...underBlock,
+      }),
+      upload({ createdAt: day(1, 12) - 5 * MINUTE, entityId: 'file-1' }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['single', 'single'])
+    expect(groups[0].activities.map((entry) => entry.columnName)).toEqual(['source'])
+  })
+
   // A credit corrected later is its own event, and must not fold into the upload card either:
   // "added 3 photos" would swallow it.
   it('keeps a source edit made after the upload window as its own card', () => {
@@ -229,6 +250,63 @@ describe('groupActivities', () => {
     expect(groups[0].activities).toHaveLength(3)
     // The create leads, so the card speaks its verb rather than the newer uploads'.
     expect(groups[0].activities[0].type).toBe('created')
+  })
+
+  // A session is three things done, and the clip hangs off one of them. Folding it in made the
+  // card speak that one ascent's verb and count "1 video" for an afternoon of three ascents.
+  it('leaves a session alone when a clip landed on one of its ascents', () => {
+    const groups = groupActivities([
+      upload({ createdAt: day(1, 12), entityId: 'file-1', parentEntityId: '9002', parentEntityType: 'ascent' }),
+      ascent({ createdAt: day(1, 12) - MINUTE, entityId: '9003', parentEntityId: '500' }),
+      ascent({ createdAt: day(1, 12) - 2 * MINUTE, entityId: '9002', parentEntityId: '501' }),
+      ascent({ createdAt: day(1, 12) - 3 * MINUTE, entityId: '9001', parentEntityId: '502' }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['single', 'session'])
+    expect(groups[1].activities).toHaveLength(3)
+  })
+
+  // The merge only ever had one create to speak for, so the rows after it stay in the order
+  // the rest of the feed reads in. A newer edit landing behind the uploads rendered the change
+  // list out of order.
+  it('keeps a merged group chronological after the create it leads with', () => {
+    const groups = groupActivities([
+      activity({ columnName: 'name', createdAt: day(1, 12), entityId: '9', ...underBlock }),
+      upload({ createdAt: day(1, 12) - MINUTE, entityId: 'file-1', parentEntityId: '9', parentEntityType: 'route' }),
+      activity({
+        createdAt: day(1, 12) - 2 * MINUTE,
+        entityId: '9',
+        newValue: 'Kante',
+        type: 'created',
+        ...underBlock,
+      }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].activities.map((entry) => entry.type)).toEqual(['created', 'updated', 'uploaded'])
+  })
+
+  // The id keys on the oldest row so a card keeps its expand state as newer rows join. Reading
+  // the last position instead re-keyed exactly the cards the merge reordered.
+  it('keys a merged card on its oldest row, not on whatever sits last', () => {
+    const create = activity({
+      createdAt: day(1, 12) - 2 * MINUTE,
+      entityId: '9',
+      newValue: 'Kante',
+      type: 'created',
+      ...underBlock,
+    })
+    const photo = upload({
+      createdAt: day(1, 12) - MINUTE,
+      entityId: 'file-1',
+      parentEntityId: '9',
+      parentEntityType: 'route',
+    })
+
+    const [merged] = groupActivities([photo, create])
+    const [alone] = groupActivities([create])
+
+    expect(merged.id).toBe(alone.id)
   })
 
   it('leaves uploads alone when nothing created their parent nearby', () => {

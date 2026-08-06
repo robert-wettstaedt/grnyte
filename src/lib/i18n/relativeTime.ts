@@ -1,4 +1,16 @@
 /**
+ * The absolute form of a date-only value: "Aug 3, 2026".
+ *
+ * In UTC, because the value names a calendar date stored as UTC midnight; formatting it in the
+ * viewer's zone shifts it a day for everyone west of Greenwich. Shared so the change list, the
+ * card's climb line and {@link formatDay}'s own fallback cannot answer differently for one
+ * stored value, which they did while each spelled the formatter out.
+ */
+export function formatDate(timestamp: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(timestamp)
+}
+
+/**
  * For a date-only value (a pg `date` synced as UTC-midnight millis, e.g. an ascent's
  * `dateTime`): never finer than a calendar day. "today" / "yesterday" / "3 days ago"
  * within the last week, an absolute date beyond it.
@@ -13,7 +25,7 @@ export function formatDay(timestamp: number, now: number, locale: string): strin
   const today = Date.UTC(local.getFullYear(), local.getMonth(), local.getDate())
   const days = Math.round((timestamp - today) / DAY)
   if (Math.abs(days) >= 7) {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(timestamp)
+    return formatDate(timestamp, locale)
   }
   return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day')
 }

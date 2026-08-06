@@ -10,6 +10,7 @@ import {
   isVideoFile,
   MAX_IMAGE_SIZE,
   normalizeSource,
+  sourceHost,
   stagingPath,
 } from './upload'
 
@@ -89,6 +90,28 @@ describe('normalizeSource / isValidSource', () => {
     // A dotless host parses as a URL but is never a real origin, so it must not pass.
     expect(isValidSource(normalizeSource('youtube'))).toBe(false)
     expect(isValidSource(normalizeSource('instagram.com/reel/1'))).toBe(true)
+  })
+})
+
+describe('sourceHost', () => {
+  it('credits the host of a followable URL', () => {
+    expect(sourceHost('https://www.youtube.com/watch?v=x')).toBe('www.youtube.com')
+    expect(sourceHost('http://vimeo.com/1')).toBe('vimeo.com')
+  })
+
+  it('refuses a scheme that is not worth linking, however well it parses', () => {
+    // Whatever this returns becomes an href. `javascript:` parses as a URL, and with an
+    // authority it even yields a hostname that reads like a video site, so returning one
+    // would put a script-scheme link on the page under a plausible label.
+    expect(sourceHost('javascript:alert(1)')).toBeUndefined()
+    expect(sourceHost('javascript://example.com/%0aalert(1)')).toBeUndefined()
+    expect(sourceHost('data:text/html,<script>alert(1)</script>')).toBeUndefined()
+    expect(sourceHost('mailto:someone@example.com')).toBeUndefined()
+  })
+
+  it('leaves legacy free text as no host at all', () => {
+    expect(sourceHost('filmed by Jonas')).toBeUndefined()
+    expect(sourceHost(undefined)).toBeUndefined()
   })
 })
 

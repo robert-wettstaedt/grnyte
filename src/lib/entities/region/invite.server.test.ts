@@ -473,6 +473,45 @@ describe.skipIf(!reachable)('resendInvitation', () => {
     expect(mail.sent).toHaveLength(0)
   })
 
+  /** The invitation cards the region has logged, oldest first. */
+  const logged = () => sql<{ createdAt: Date; userFk: number }[]>`
+    select created_at as "createdAt", user_fk as "userFk" from public.activities
+    where region_fk = ${regionId} and column_name = 'invitation' and type = 'created'
+    order by id`
+
+  it('logs the invitation when the first send never did, under whoever resent it', async () => {
+    const { id } = await invite()
+
+    await resendInvitation(
+      db,
+      { invitationFk: id, inviter: 'ada', inviterFk: users.member.userId, userRegions: adminOf() },
+      MAIL,
+    )
+
+    // `createInvitation` logs nothing; the card is written by whichever send reaches somebody.
+    // That is this one, so it is this person's card, not the original inviter's.
+    expect(await logged()).toEqual([{ createdAt: expect.any(Date), userFk: users.member.userId }])
+  })
+
+  it('says nothing when the invitation is already on the record, and leaves its date alone', async () => {
+    const { id } = await invite()
+    await sql`
+      insert into public.activities (column_name, entity_id, entity_type, new_value, region_fk, type, user_fk, created_at)
+      values ('invitation', ${users.admin.userId}, 'user', ${EMAILS.invitee}, ${regionId}, 'created',
+              ${users.admin.userId}, now() - interval '7 days')`
+    const [before] = await logged()
+
+    await resendInvitation(
+      db,
+      { invitationFk: id, inviter: 'ada', inviterFk: users.member.userId, userRegions: adminOf() },
+      MAIL,
+    )
+
+    // A resend is not a new invitation. Writing one anyway collapsed onto this row and re-dated
+    // it to now, floating a week-old card back to the top of the feed in somebody else's name.
+    expect(await logged()).toEqual([before])
+  })
+
   it('writes to the recipient’s stored language, not the sender’s', async () => {
     await sql`update public.user_settings set contact_locale = 'de' where user_fk = ${users.invitee.userId}`
     const { id } = await invite()

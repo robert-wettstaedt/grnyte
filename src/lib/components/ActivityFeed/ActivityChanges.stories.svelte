@@ -30,7 +30,16 @@
     activity(8, { columnName: 'location', entityType: 'block', userFk: 1 }),
     activity(9, { columnName: 'topo', entityType: 'block', userFk: 1 }),
     activity(10, { columnName: 'file', type: 'deleted', userFk: 1 }),
-    activity(11, { columnName: 'role', entityType: 'user', newValue: 'maintainer', oldValue: 'user', userFk: 1 }),
+    // The stored enum members, which is what the column really holds: the short forms this
+    // fixture used to pass are not roles, so the row silently rendered the raw-value fallback
+    // and this story showed the degraded path for every reader who checked it.
+    activity(11, {
+      columnName: 'role',
+      entityType: 'user',
+      newValue: 'region_maintainer',
+      oldValue: 'region_user',
+      userFk: 1,
+    }),
     activity(12, {
       columnName: 'source',
       entityType: 'file',
@@ -74,6 +83,34 @@
     // A row from before any of that: no metadata, so it degrades to the vaguer sentence.
     activity(6, { columnName: 'topo', entityType: 'block', userFk: 1 }),
   ]
+
+  // A real description edit: three paragraphs, one sentence changed in the middle one. This is
+  // the shape the `prose` renderer exists for, and the shape it currently cannot show.
+  const DESCRIPTION_BEFORE = `Stand start on the obvious flake, matching low.
+
+Move left into the scoop, then a long pull to the sloper. The topout is easier from the left.
+
+Bring a second pad for the landing under the arete.`
+
+  const DESCRIPTION_AFTER = `Stand start on the obvious flake, matching low.
+
+Move left into the scoop, then a long pull to the sloper. The topout is friendlier from the right since the block shifted.
+
+Bring a second pad for the landing under the arete.`
+
+  const proseChanges = changes([
+    activity(1, {
+      columnName: 'description',
+      newValue: DESCRIPTION_AFTER,
+      oldValue: DESCRIPTION_BEFORE,
+      userFk: 1,
+    }),
+  ])
+
+  /** Open every `<details>` under the node, so the comparison needs no clicking. */
+  const expanded = (node: HTMLElement) => {
+    node.querySelectorAll('details').forEach((entry) => (entry.open = true))
+  }
 
   // What an ascent edit looks like: conditions and the ascent type, not crag data.
   const ascentEdit = [
@@ -122,4 +159,28 @@
   name="Nothing renderable"
   args={{ changes: changes([activity(1, { entityType: 'area', type: 'created', userFk: 1 })]) }}
   {template}
+/>
+
+<!-- A description edit where only a clause in the middle paragraph moved. Rendered as two
+     clamped previews, as it was before, both sides read the same opening sentence and the edit
+     is invisible. The `<details>` is forced open here; in the app it takes a click. -->
+{#snippet proseTemplate(args: ComponentProps<typeof ActivityChanges>)}
+  <div style="width: 420px; max-width: 100%;" {@attach expanded}>
+    <ActivityChanges {...args} />
+  </div>
+{/snippet}
+
+<Story name="Prose diff" args={{ changes: proseChanges }} template={proseTemplate} />
+
+<!-- The two edits that have no diff to draw: a description filled from nothing, and one
+     cleared. "Not set" against the text is the whole story. -->
+<Story
+  name="Prose set and cleared"
+  args={{
+    changes: changes([
+      activity(1, { columnName: 'description', newValue: DESCRIPTION_BEFORE, userFk: 1 }),
+      activity(2, { columnName: 'description', oldValue: DESCRIPTION_BEFORE, userFk: 1 }),
+    ]),
+  }}
+  template={proseTemplate}
 />

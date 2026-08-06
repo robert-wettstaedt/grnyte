@@ -5,23 +5,22 @@ import { diffTopoLines, parseTopoChange, type TopoChange, type TopoLineDiff } fr
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { MessageKey } from '$lib/i18n/message'
 import type { Coords } from '$lib/map/map'
+import { diffWords } from 'diff'
 import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
   activityEntityRefs,
+  activityParentRef,
   activityRowRefs,
   type ActivityEntity,
   type ActivityEntityMap,
   type ActivityEntityRef,
 } from './entity'
 import type { ActivityGroup } from './grouping'
-import { activityEntry, activityVerb, parseDeletionScale, type ActivityField } from './verbs'
+import { activityEntry, activityVerb, parseDeletedAscent, parseDeletionScale, type ActivityField } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
-
-/** How far the climb date has to sit from the log date before the card mentions it. */
-const DAY = 86_400_000
 
 /**
  * What one ascent was logged with, beyond its type. The route row next to it renders the
@@ -63,8 +62,9 @@ export interface ActivityCardView {
   ascent: ActivityCardAscent | undefined
   changes: ActivityChange[]
   /**
-   * When the ascents on this card were climbed, if that is more than a day from when they were
-   * logged. Absent otherwise: same-day logging is the norm, and repeating the clock is noise.
+   * When the ascents on this card were climbed, if that is a different calendar day from the
+   * one they were logged on. Absent otherwise: same-day logging is the norm, and repeating the
+   * clock is noise.
    */
   climbedAt: number | undefined
   /** Whose ascent the card is about, when that is somebody other than the actor. */
@@ -107,6 +107,12 @@ export interface ActivityChange {
    * the row records the coordinates and nothing else. Upgrade = write the paths into the row.
    */
   paths?: Coords[][]
+  /**
+   * A description or note edit as one merged text, decided here so the change list stays
+   * markup over a decided view. Absent unless both sides hold text: a field filled from
+   * nothing, or cleared, says more as an explicit "Not set" than as a wall of one colour.
+   */
+  prose?: ProseSegment[]
   /** What a topo row changed, decoded once here so the change list stays markup over a
    *  decided view, like every other renderer. Absent for a row that named no topo change:
    *  every one written before `metadata` existed, which renders as vaguely as it always did. */
@@ -141,6 +147,29 @@ export interface ActivityTopoChange {
   view: TopoView | undefined
 }
 
+/** One run of a prose diff: text that survived the edit, text it added, text it took out. */
+export interface ProseSegment {
+  kind: 'added' | 'removed' | 'same'
+  value: string
+}
+
+/**
+ * What the headline and the sub line both have to know, worked out once.
+ *
+ * They have to agree: the headline saying "You added the route Kante direkt" and the summary
+ * counting "3 edits" underneath it are the same card contradicting itself. Deriving each half
+ * separately let a branch added to one drift from the other, and paid for the derivation twice
+ * on every card of every sync tick.
+ */
+interface CardVerb {
+  /** Distinct actors. More than one, and nobody in particular "edited" the thing. */
+  actors: number
+  /** The files on a create-that-picked-up-media, which both halves speak for. */
+  media: ActivityListItem[] | undefined
+  /** The one verb every row shares, when they share one. */
+  shared: MessageKey | undefined
+}
+
 /**
  * Fold a group into what its card renders.
  *
@@ -168,26 +197,14 @@ export function activityCard(
   const placeName = named(entityOf(place)?.name)
   const firstName = named(entityOf(refs[0])?.name)
 
-  const entityName =
-    // An upload names what it was attached to, never the file: a file's own name is a cuid.
-    // This holds for a lone photo as much as for five, so it is decided before `single`.
-    activityEntry(newest)?.names === 'parent'
-      ? (placeName ?? firstName)
-      : group.kind === 'single'
-        ? // An entry with no `tombstone` stores no name to fall back on, by design: an ascent's
-          // value column holds its ascent type. Once the ascent is gone there is nothing left
-          // on the row, and the parent route is the only true name for it. Entries that DO
-          // declare a tombstone are left alone, so a route deleted without a name still says
-          // so rather than borrowing the block it hung on.
-          (headlineEntityName(newest, entityOf(refs[0])) ??
-          (activityEntry(newest)?.tombstone == null ? placeName : undefined))
-        : // A group whose rows all point at ONE entity is about that entity, so it names it.
-          // Falling to the parent here is what made four topo saves on Nordblock read as
-          // "edited Steinbruch", the area the block hangs under. The parent is still the right
-          // answer for a burst spanning several routes, where no single one is the subject.
-          refs.length === 1
-          ? (firstName ?? placeName ?? headlineEntityName(newest, undefined))
-          : (placeName ?? firstName ?? headlineEntityName(newest, undefined))
+  const entityName = headlineName({
+    firstName,
+    group,
+    newest,
+    placeName,
+    subject: entityOf(refs[0]),
+    subjects: refs.length,
+  })
 
   // A missing name is only worth waiting for while something might still answer. Once every
   // ref it could come from has answered (with a row that has no name, or with nothing at
@@ -203,13 +220,25 @@ export function activityCard(
   //
   // `none` where no ascent is in play at all, which is what lets one sentence cover both
   // ("added a photo to your ascent of X" / "added a photo to X"). An ascent that has not
-  // hydrated is `none` too, and reads as the same somebody-else's wording it always did,
+  // hydrated yet is `none` too, and reads as the same somebody-else's wording it always did,
   // since every ascent sentence catches the rest with `owner=*`.
+  //
+  // A DELETED ascent never hydrates, so it falls back to what its own row wrote down. Without
+  // that every removal read "removed an ascent of Rampe", the one sentence a card about
+  // somebody else's log must not say, and four of the six arms were unreachable.
   const climber = [refs[0], place].map(entityOf).find((entity) => entity?.climberFk != null)
-  const owner = climber == null ? 'none' : climber.climberFk === newest.userFk ? 'self' : 'other'
+  const recorded = group.activities
+    .map((activity) => (activity.entityType === 'ascent' ? parseDeletedAscent(activity.metadata) : undefined))
+    .find((entry) => entry != null)
+  const climberFk = climber?.climberFk ?? recorded?.climberFk
+  const owner = climberFk == null ? 'none' : climberFk === newest.userFk ? 'self' : 'other'
   const mine = currentUserFk != null && group.userFk === currentUserFk
 
-  const files = refs.flatMap((ref) => entityOf(ref)?.files ?? [])
+  // Keyed by id: a merged create-plus-media group holds the ascent AND the file it landed on,
+  // and the ascent hydrates with that same file hanging off it, so the flat list would carry
+  // it twice - once as the ascent's, once as its own row's - and the keyed `{#each}` that
+  // draws the thumbnails would see two of one key.
+  const files = [...new Map(refs.flatMap((ref) => entityOf(ref)?.files ?? []).map((file) => [file.id, file])).values()]
   // Photo or video. An upload reads it off the hydrated file rather than the row, which only
   // records that a file was added: reading the row would leave every upload logged before
   // this saying "photo". The word settles when the file syncs, alongside the name beside it.
@@ -243,11 +272,18 @@ export function activityCard(
   const lone = created.length === 1 ? created[0] : undefined
   const ascent = loggedAscent(lone)
   // A session logs several ascents at once, so the date is the card's only when they agree on
-  // one. `climbedAt` is a calendar date at UTC midnight and `createdAt` a moment, so the gap is
-  // measured rather than compared as dates: a day of tolerance covers every timezone without
-  // needing to know the reader's.
+  // one. Whether it is worth saying is a question about calendar days, not elapsed time: see
+  // `calendarDay`.
   const climbDates = new Set(created.map((entity) => entity?.climbedAt))
   const climbedAt = climbDates.size === 1 ? [...climbDates][0] : undefined
+
+  // Once, for both halves of the card. See `CardVerb`.
+  const actors = new Set(group.activities.map((activity) => activity.userFk)).size
+  const verb: CardVerb = {
+    actors,
+    media: createdWithMedia(group),
+    shared: sharedVerbKey(group, refs.length, actors),
+  }
 
   return {
     actorName: newest.userName,
@@ -272,6 +308,7 @@ export function activityCard(
             field.renderer === 'location'
               ? entityOf({ id: activity.entityId, type: activity.entityType })?.paths
               : undefined,
+          prose: field.renderer === 'prose' ? proseDiff(activity.oldValue, activity.newValue) : undefined,
           topo:
             change == null
               ? undefined
@@ -283,14 +320,14 @@ export function activityCard(
         },
       ]
     }),
-    climbedAt: climbedAt != null && Math.abs(group.createdAt - climbedAt) > DAY ? climbedAt : undefined,
-    climberName: climber?.climberName,
+    climbedAt: climbedAt != null && climbedAt !== calendarDay(group.createdAt) ? climbedAt : undefined,
+    climberName: climber?.climberName ?? recorded?.climberName,
     createdAt: group.createdAt,
     entityName,
     entityUnnamed,
     files,
     headline: {
-      key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group, refs.length),
+      key: group.kind === 'single' ? activityVerb(newest) : groupVerbKey(group, verb),
       params: { media, owner, person: mine ? 'self' : 'other' },
     },
     id: group.id,
@@ -312,7 +349,7 @@ export function activityCard(
     // Declared on the entry, so the cast is reachable only for the four rows that really do
     // store an ascent type in `newValue`.
     status: activityEntry(newest)?.status === 'ascentType' ? (newest.newValue as AscentType | undefined) : undefined,
-    summary: summaryParts(group, placeName, media, refs.length),
+    summary: summaryParts(group, placeName, media, refs.length, verb),
   }
 }
 
@@ -329,6 +366,20 @@ function activityFor(activities: readonly ActivityListItem[], ref: ActivityEntit
   return (
     activities.find((activity) => activity.entityId === ref.id && activity.entityType === ref.type) ?? activities[0]
   )
+}
+
+/**
+ * The calendar day a moment falls on, as a UTC-midnight stamp, read in the reader's timezone.
+ *
+ * The stored climb date is a calendar date and arrives as UTC midnight; `createdAt` is a
+ * moment. Comparing them as a distance in milliseconds answers a different question and gets
+ * it wrong on both sides of UTC: an afternoon log in Hawaii sits more than a day past its own
+ * climb date, and a genuine one-day back-date in New Zealand sits less than one from a later
+ * one. Both are calendar dates to the reader, so both are compared as such.
+ */
+function calendarDay(at: number): number {
+  const date = new Date(at)
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
 /**
@@ -353,24 +404,17 @@ function createdWithMedia(group: ActivityGroup): ActivityListItem[] | undefined 
  */
 function deletionScaleParts(group: ActivityGroup): ActivityMessagePart[] | undefined {
   const totals = { areas: 0, blocks: 0, routes: 0 }
-  let found = false
 
   for (const activity of group.activities) {
     const scale = activity.type === 'deleted' ? parseDeletionScale(activity.metadata) : undefined
-    if (scale == null) {
-      continue
-    }
-
-    found = true
-    totals.areas += scale.areas ?? 0
-    totals.blocks += scale.blocks ?? 0
-    totals.routes += scale.routes ?? 0
+    totals.areas += scale?.areas ?? 0
+    totals.blocks += scale?.blocks ?? 0
+    totals.routes += scale?.routes ?? 0
   }
 
-  if (!found) {
-    return undefined
-  }
-
+  // No separate "nothing was recorded" flag: `stringifyDeletionScale` only ever writes counts
+  // above zero, so a card with no scale on it and a card whose scale is all zeroes are the same
+  // card, and the empty list below is what both of them mean.
   const parts: ActivityMessagePart[] = [
     ...(totals.areas > 0 ? [{ key: 'activity_summaryAreas' as const, params: { count: totals.areas } }] : []),
     ...(totals.blocks > 0 ? [{ key: 'activity_summaryBlocks' as const, params: { count: totals.blocks } }] : []),
@@ -385,19 +429,18 @@ function deletionScaleParts(group: ActivityGroup): ActivityMessagePart[] | undef
  * one summarises, because "redpointed Rampe" would name one of four ascents. The count
  * lives in the summary, so these stay one sentence per key.
  */
-function groupVerbKey(group: ActivityGroup, subjects: number): MessageKey {
+function groupVerbKey(group: ActivityGroup, verb: CardVerb): MessageKey {
   // Ahead of every kind rule: a create that picked up media is one event with one sentence,
   // "You flashed Rampe" or "You added the route Kante direkt", the photos below it.
   // `mergeCreatedWithMedia` put the create first for exactly this. Deciding by kind instead
   // would answer "session" for the ascent and "edits" for the route, neither of which is what
   // the reader just did.
-  if (createdWithMedia(group) != null) {
+  if (verb.media != null) {
     return activityVerb(group.activities[0])
   }
 
-  const shared = sharedVerbKey(group, subjects)
-  if (shared != null) {
-    return shared
+  if (verb.shared != null) {
+    return verb.shared
   }
 
   if (group.kind === 'session') {
@@ -415,9 +458,7 @@ function groupVerbKey(group: ActivityGroup, subjects: number): MessageKey {
   }
 
   // Only `entity` groups can mix actors, and then no single person "edited" it.
-  return new Set(group.activities.map((activity) => activity.userFk)).size > 1
-    ? 'activity_groupEditsMultiple'
-    : 'activity_groupEdits'
+  return verb.actors > 1 ? 'activity_groupEditsMultiple' : 'activity_groupEdits'
 }
 
 /**
@@ -443,6 +484,49 @@ function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity |
   // entry with no `tombstone` has none: every other column stores its own value (a grade id,
   // a rating, an ascent type), which would read as a nonsense name.
   return entry?.tombstone == null ? undefined : named(activity[entry.tombstone])
+}
+
+/**
+ * The name a card's headline puts in `{name}`, in the order the four rules apply.
+ *
+ * Early returns rather than one expression: the rules do not compose, they override each other,
+ * and the nested ternary this replaced needed four block comments to be followed at all.
+ */
+function headlineName({
+  firstName,
+  group,
+  newest,
+  placeName,
+  subject,
+  subjects,
+}: {
+  firstName: string | undefined
+  group: ActivityGroup
+  newest: ActivityListItem
+  placeName: string | undefined
+  subject: ActivityEntity | null | undefined
+  subjects: number
+}): string | undefined {
+  // An upload names what it was attached to, never the file: a file's own name is a cuid.
+  // This holds for a lone photo as much as for five, so it is decided before `single`.
+  if (activityEntry(newest)?.names === 'parent') {
+    return placeName ?? firstName
+  }
+
+  // An entry with no `tombstone` stores no name to fall back on, by design: an ascent's value
+  // column holds its ascent type. Once the ascent is gone there is nothing left on the row, and
+  // the parent route is the only true name for it. Entries that DO declare a tombstone are left
+  // alone, so a route deleted without a name still says so rather than borrowing its block.
+  if (group.kind === 'single') {
+    return headlineEntityName(newest, subject) ?? (activityEntry(newest)?.tombstone == null ? placeName : undefined)
+  }
+
+  // A group whose rows all point at ONE entity is about that entity, so it names it. Falling to
+  // the parent here is what made four topo saves on Nordblock read as "edited Steinbruch", the
+  // area the block hangs under. The parent is still the right answer for a burst spanning
+  // several routes, where no single one is the subject.
+  const [first, second] = subjects === 1 ? [firstName, placeName] : [placeName, firstName]
+  return first ?? second ?? headlineEntityName(newest, undefined)
 }
 
 /**
@@ -486,17 +570,46 @@ function named(value: null | string | undefined): string | undefined {
  * no such place and falls back to its first entity.
  */
 function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef | undefined {
-  const first = activities[0]
-  if (first?.parentEntityId == null || first.parentEntityType == null) {
+  const first = activities[0] == null ? undefined : activityParentRef(activities[0])
+  if (first == null) {
     return undefined
   }
 
   const shared = activities.every(
-    (activity) =>
-      activity.parentEntityId === first.parentEntityId && activity.parentEntityType === first.parentEntityType,
+    (activity) => activity.parentEntityId === first.id && activity.parentEntityType === first.type,
   )
 
-  return shared ? { id: first.parentEntityId, type: first.parentEntityType } : undefined
+  return shared ? first : undefined
+}
+
+/**
+ * A description edit as one text: what stayed, what went, what arrived.
+ *
+ * Word granularity, because that is where an edit to prose actually happens. The two sides were
+ * previously rendered one under the other, which left the reader to spot a changed clause in two
+ * near-identical paragraphs, and each was clamped to a single line on top of that.
+ *
+ * Plain text rather than rendered markdown, deliberately. The markdown pipeline drops raw HTML
+ * (see `Markdown.svelte`), so highlights cannot be put inside a rendered document without
+ * opening that door on user input, and a diff is for comparing rather than for reading the
+ * finished text, which is one tap away on the entity itself.
+ *
+ * `undefined` when either side is empty: "Not set" against the text says more than a whole
+ * description marked as one long insertion.
+ *
+ * ponytail: a `!route:501!` reference shows raw here rather than as the route's name. Upgrade =
+ * resolve references to their names before diffing, which needs the hydration the card already
+ * does for its rows.
+ */
+function proseDiff(before: string | undefined, after: string | undefined): ProseSegment[] | undefined {
+  if (before == null || before.length === 0 || after == null || after.length === 0) {
+    return undefined
+  }
+
+  return diffWords(before, after).map((part) => ({
+    kind: part.added === true ? 'added' : part.removed === true ? 'removed' : 'same',
+    value: part.value,
+  }))
 }
 
 /**
@@ -511,8 +624,8 @@ function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef |
  * subject has no single entity for the sentence's `{name}`, so it would borrow the parent's and
  * report "You renamed Nordblock" for two renamed routes. Mixed keys have no one verb to speak.
  */
-function sharedVerbKey(group: ActivityGroup, subjects: number): MessageKey | undefined {
-  if (subjects !== 1 || new Set(group.activities.map((activity) => activity.userFk)).size > 1) {
+function sharedVerbKey(group: ActivityGroup, subjects: number, actors: number): MessageKey | undefined {
+  if (subjects !== 1 || actors > 1) {
     return undefined
   }
 
@@ -526,6 +639,7 @@ function summaryParts(
   placeName: string | undefined,
   media: ActivityMedia,
   subjects: number,
+  verb: CardVerb,
 ): ActivityMessagePart[] | undefined {
   // What a deletion took with it. Its own branch because it is the one summary a `single` card
   // has: every other kind counts rows and a card of one has nothing to count.
@@ -540,9 +654,8 @@ function summaryParts(
 
   // A create that picked up media counts the media, not the rows. "3 edits" for one route and
   // two photos counts the create as an edit and says nothing about what is on the card.
-  const withMedia = createdWithMedia(group)
-  if (withMedia != null) {
-    return [{ key: 'activity_summaryFiles', params: { count: withMedia.length, media } }]
+  if (verb.media != null) {
+    return [{ key: 'activity_summaryFiles', params: { count: verb.media.length, media } }]
   }
 
   // Same idea from the other end: a card that only pulled files counts files. "2 edits" under
@@ -555,7 +668,7 @@ function summaryParts(
   // Once the headline speaks the change itself ("You edited your ascent of Rampe"), the count
   // is of edits, whatever kind the group is. "1 ascent" under that sentence counts something
   // the reader was not asking about.
-  const spoken = sharedVerbKey(group, subjects) != null
+  const spoken = verb.shared != null
 
   // A session counts ascents, and three edits to one ascent are one ascent, not three. Every
   // other kind counts rows, which is what it says it counts: edits, files, removals.
@@ -580,9 +693,8 @@ function summaryParts(
     parts.push({ text: placeName })
   }
 
-  const actors = new Set(group.activities.map((activity) => activity.userFk)).size
-  if (actors > 1) {
-    parts.push({ key: 'activity_summaryPeople', params: { count: actors } })
+  if (verb.actors > 1) {
+    parts.push({ key: 'activity_summaryPeople', params: { count: verb.actors } })
   }
 
   return parts

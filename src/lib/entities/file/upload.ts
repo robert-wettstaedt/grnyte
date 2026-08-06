@@ -77,8 +77,8 @@ export const normalizeSource = (raw: string): string | undefined => {
 }
 
 /**
- * The host to credit a clip to ("youtube.com"), or `undefined` when the stored value is not a
- * URL at all. Legacy rows predate the `z.url()` validation and hold free text, so every screen
+ * The host to credit a clip to ("youtube.com"), or `undefined` when the stored value is not an
+ * http(s) URL. Legacy rows predate the `z.url()` validation and hold free text, so every screen
  * that shows a source has to cope with one.
  */
 export const sourceHost = (source: string | undefined): string | undefined => {
@@ -86,7 +86,12 @@ export const sourceHost = (source: string | undefined): string | undefined => {
     return undefined
   }
   try {
-    return new URL(source).hostname
+    const url = new URL(source)
+    // Only a scheme a browser can follow, because whatever this names becomes an href. A
+    // `javascript:` value parses as a URL and can even carry a plausible hostname
+    // (`javascript://example.com/%0aalert(1)`), so crediting whatever parsed would put a
+    // script-scheme link behind a host that reads like a video site.
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.hostname : undefined
   } catch {
     return undefined
   }

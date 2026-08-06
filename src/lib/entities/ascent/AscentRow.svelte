@@ -5,12 +5,12 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MediaThumbnail from '$lib/components/Media/MediaThumbnail.svelte'
+  import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
   import { formatDay } from '$lib/i18n/relativeTime'
-  import { formatConditions } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -51,11 +51,16 @@
   const crumbText = $derived(Array.isArray(crumbs) ? crumbs.join(' · ') : crumbs)
 
   const canEdit = $derived(canEditAscent(global.userRegions, global.user?.id, ascent))
+  // A maintainer may delete anybody's ascent, so the confirmation has to say whose it is
+  // rather than assuring them it is their own. Same actor/climber split the feed cards make.
+  const ownAscent = $derived(global.user?.id != null && ascent.createdBy === global.user.id)
   // Empty until the author row syncs in (Zero loads the relation lazily): show a
   // skeleton for the avatar and name rather than a blank circle and empty link.
   const authorLoading = $derived(ascent.authorName === '')
   const hasNotes = $derived(ascent.notes.trim() !== '')
-  const conditions = $derived(formatConditions(ascent.temperature, ascent.humidity))
+  // The pill renders nothing without them; this row still needs to know, because the edit
+  // actions share its line and the whole line goes when neither has anything to show.
+  const hasConditions = $derived(ascent.temperature != null || ascent.humidity != null)
   const editHref = $derived(resolve('/(app)/ascents/[id]/edit', { id: String(ascent.id) }))
   const userHref = $derived(resolve('/(app)/users/[id]', { id: String(ascent.createdBy) }))
 
@@ -177,15 +182,9 @@
         </div>
       {/if}
 
-      {#if conditions !== '' || canEdit}
+      {#if hasConditions || canEdit}
         <div class="flex items-center gap-2">
-          {#if conditions !== ''}
-            <span
-              class="border-surface-200-800 bg-surface-100-900 text-surface-600-400 inline-flex h-6.25 items-center rounded-full border px-2.5 font-mono text-[11px] font-bold"
-            >
-              {conditions}
-            </span>
-          {/if}
+          <ConditionsPill humidity={ascent.humidity} temperature={ascent.temperature} />
           <span class="flex-1"></span>
           {#if canEdit}
             <a class="btn btn-sm preset-tonal-surface" href={editHref}>
@@ -200,7 +199,11 @@
                 </button>
               {/snippet}
               {#snippet content()}
-                {m.ascents_deleteConfirm({ name: routeName })}
+                {m.ascents_deleteConfirm({
+                  climber: ascent.authorName,
+                  name: routeName,
+                  owner: ownAscent ? 'self' : 'other',
+                })}
               {/snippet}
             </Dialog>
           {/if}
