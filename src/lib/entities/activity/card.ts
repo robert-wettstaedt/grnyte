@@ -7,9 +7,7 @@ import { activityChanges, storedMedia, type ActivityChangeView, type ActivityMed
 import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
-  activityEntityRefs,
-  activityParentRef,
-  activityRowRefs,
+  activityRefs,
   type ActivityEntity,
   type ActivityEntityMap,
   type ActivityEntityRef,
@@ -136,17 +134,14 @@ export function activityCard(
   topos?: ReadonlyMap<number, TopoView>,
 ): ActivityCardView {
   const newest = group.activities[0]
-  const refs = activityEntityRefs(group.activities)
-  // What the card points AT and what it renders as rows are two different questions. An upload
-  // points at a file, which supplies the media and no row; the row belongs to the route or
-  // ascent it landed on.
-  const rowRefs = activityRowRefs(group.activities)
+  // What the card points AT, what it renders as rows and the place it happened in are three
+  // different questions off one pass. An upload points at a file, which supplies the media and
+  // no row; the row belongs to the route or ascent it landed on. The place is not rendered as a
+  // row at all (the edits below it are), only named, in the headline and the session summary.
+  const { place, rows: rowRefs, subjects: refs } = activityRefs(group.activities)
   const entityOf = (ref: ActivityEntityRef | undefined) =>
     ref == null ? undefined : entities?.get(activityEntityKey(ref))
 
-  // The place a burst happened in, when its rows agree on one. Its own row is not rendered
-  // (the edits below it are), only its name, in the headline and the session summary.
-  const place = parentRef(group.activities)
   const placeName = named(entityOf(place)?.name)
   const firstName = named(entityOf(refs[0])?.name)
 
@@ -476,24 +471,6 @@ function loggedAscent(entity: ActivityEntity | null | undefined): ActivityCardAs
  */
 function named(value: null | string | undefined): string | undefined {
   return value == null || value.length === 0 ? undefined : value
-}
-
-/**
- * The place a group of edits happened in, when every row agrees on one parent. That is what
- * a burst headline names ("made 12 edits in Nordblock"); a group spanning two parents has
- * no such place and falls back to its first entity.
- */
-function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef | undefined {
-  const first = activities[0] == null ? undefined : activityParentRef(activities[0])
-  if (first == null) {
-    return undefined
-  }
-
-  const shared = activities.every(
-    (activity) => activity.parentEntityId === first.id && activity.parentEntityType === first.type,
-  )
-
-  return shared ? first : undefined
 }
 
 /**

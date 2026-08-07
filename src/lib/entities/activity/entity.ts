@@ -92,6 +92,46 @@ export interface ActivityEntityRef {
   type: ActivityEntityType
 }
 
+/**
+ * Which refs a window of activities points at, in each of the roles a card reads them in.
+ *
+ * One pass rather than four collectors. Every role answers the same question ("which ref, and
+ * in what capacity") from the same three declarations on a catalogue entry, and split across
+ * four functions each was free to read them differently: the card asked for subjects and rows
+ * separately, hydration asked for a third combination, and the shared parent was a private
+ * fifth copy of the guard in `card.ts`. Together they also walked and deduped the same list
+ * three times per card, on every sync tick.
+ */
+export interface ActivityRefs {
+  /**
+   * Everything to fetch: the subjects plus every parent any row names. "Made 12 edits in
+   * Nordblock" needs the block, and none of those twelve rows is *about* the block.
+   */
+  hydrate: ActivityEntityRef[]
+  /**
+   * The place the whole window agrees on, when it has one. That is what a burst headline names;
+   * a window spanning two parents has no such place and falls back to its first subject.
+   */
+  place: ActivityEntityRef | undefined
+  /**
+   * The entities a card renders as rows, which is not always what its activities point at.
+   *
+   * An upload points at a file, whose name is a cuid and whose only page is the media viewer, so
+   * the row worth showing is the thing it was attached to, which is exactly what the row already
+   * names as its parent. An entry declaring `row: 'none'` renders none at all: a removed member
+   * is out of the region, so the row would be a dead end even when the person still hydrates.
+   */
+  rows: ActivityEntityRef[]
+  /**
+   * What the activities are about, each listed once.
+   *
+   * A row whose entry declares `names: 'stored'` contributes nothing: its `entityId` does not
+   * point at what the card is about. An invitation points at the inviter, so fetching it put the
+   * inviter's row under a headline naming the invitee.
+   */
+  subjects: ActivityEntityRef[]
+}
+
 /** The slice of a route an activity card's row renders. A `RouteListItem` satisfies it. */
 export type ActivityRoute = Pick<
   RouteListItem,
@@ -100,35 +140,6 @@ export type ActivityRoute = Pick<
 
 export function activityEntityKey(ref: ActivityEntityRef): string {
   return `${ref.type}:${ref.id}`
-}
-
-/**
- * The entities a card renders as rows, newest first, each listed once.
- *
- * A row whose entry declares `names: 'stored'` contributes nothing: its `entityId` does not
- * point at what the card is about. An invitation points at the inviter, so fetching it put
- * the inviter's row under a headline naming the invitee.
- */
-export function activityEntityRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
-  return dedupe(
-    activities.flatMap((activity) =>
-      activityEntry(activity)?.names === 'stored' ? [] : [{ id: activity.entityId, type: activity.entityType }],
-    ),
-  )
-}
-
-/**
- * Everything a window of activities has to fetch: the entities the cards point at, plus
- * the parents a headline names. "Made 12 edits in Nordblock" needs the block, and none of
- * those twelve rows is *about* the block, so the parents have to be collected separately.
- */
-export function activityHydrationRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
-  return dedupe(
-    activities.flatMap((activity) => {
-      const parent = activityParentRef(activity)
-      return [...activityEntityRefs([activity]), ...(parent == null ? [] : [parent])]
-    }),
-  )
 }
 
 /**
@@ -143,47 +154,45 @@ export function activityParentRef(activity: ActivityListItem): ActivityEntityRef
     : { id: activity.parentEntityId, type: activity.parentEntityType }
 }
 
-/**
- * The entities a card renders as ROWS, which is not always what its activities point at.
- *
- * An upload points at a file, whose name is a cuid and whose only page is the media viewer, so
- * the row worth showing under the headline is the thing it was attached to. That is exactly
- * what the row already names as its parent, which is why the same entries that borrow the
- * parent's name also borrow its row.
- *
- * An entry that declares `row: 'none'` renders none at all: a removed member is out of the
- * region, so the row would be a dead end even when the person still hydrates.
- */
-export function activityRowRefs(activities: readonly ActivityListItem[]): ActivityEntityRef[] {
-  return dedupe(
-    activities.flatMap((activity) => {
-      const entry = activityEntry(activity)
+export function activityRefs(activities: readonly ActivityListItem[]): ActivityRefs {
+  const subjects = new Map<string, ActivityEntityRef>()
+  const rows = new Map<string, ActivityEntityRef>()
+  const hydrate = new Map<string, ActivityEntityRef>()
 
-      if (entry?.row === 'none' || entry?.names === 'stored') {
-        return []
-      }
+  // The first row's parent is the candidate; a later row disagreeing with it means the window
+  // spans more than one place and there is none to name.
+  let place = activities.length === 0 ? undefined : activityParentRef(activities[0])
 
-      if (entry?.names !== 'parent') {
-        return [{ id: activity.entityId, type: activity.entityType }]
-      }
+  for (const activity of activities) {
+    const entry = activityEntry(activity)
+    const subject: ActivityEntityRef = { id: activity.entityId, type: activity.entityType }
+    const parent = activityParentRef(activity)
 
-      const parent = activityParentRef(activity)
-      return parent == null ? [] : [parent]
-    }),
-  )
-}
-
-function dedupe(refs: readonly ActivityEntityRef[]): ActivityEntityRef[] {
-  const seen = new Set<string>()
-
-  return refs.reduce<ActivityEntityRef[]>((unique, ref) => {
-    const key = activityEntityKey(ref)
-
-    if (!seen.has(key)) {
-      seen.add(key)
-      unique.push(ref)
+    if (place != null && (parent?.id !== place.id || parent.type !== place.type)) {
+      place = undefined
     }
 
-    return unique
-  }, [])
+    if (entry?.names !== 'stored') {
+      add(subjects, subject)
+      add(hydrate, subject)
+    }
+
+    if (parent != null) {
+      add(hydrate, parent)
+    }
+
+    if (entry?.row !== 'none' && entry?.names !== 'stored') {
+      // The entries that borrow the parent's name borrow its row for the same reason.
+      add(rows, entry?.names === 'parent' ? parent : subject)
+    }
+  }
+
+  return { hydrate: [...hydrate.values()], place, rows: [...rows.values()], subjects: [...subjects.values()] }
+}
+
+/** Keyed insertion order, which is how each role stays newest-first with no duplicates. */
+function add(refs: Map<string, ActivityEntityRef>, ref: ActivityEntityRef | undefined): void {
+  if (ref != null) {
+    refs.set(activityEntityKey(ref), ref)
+  }
 }

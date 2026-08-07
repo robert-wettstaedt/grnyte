@@ -34,7 +34,7 @@ import { getGlobalState } from '$lib/state/global.svelte'
 import type { ActivityEntityType, ActivityListItem } from './dto'
 import {
   activityEntityKey,
-  activityHydrationRefs,
+  activityRefs,
   type ActivityEntity,
   type ActivityEntityMap,
   type ActivityEntityRef,
@@ -90,7 +90,7 @@ export function activityEntities(
 ): ActivityHydrationResult {
   const global = getGlobalState()
 
-  const refs = $derived(activityHydrationRefs(activities()))
+  const refs = $derived(activityRefs(activities()).hydrate)
   // `entityId` is text for every kind; the numeric tables get the ids that survive parsing,
   // so a malformed row can't widen a query with a NaN.
   const uniqueIds = (ids: readonly string[]) => [...new Set(ids.map(Number))].filter(Number.isInteger)
