@@ -685,74 +685,17 @@ describe('uploads', () => {
   })
 })
 
+// The change list itself is `change.ts`, tested there. What belongs to the card is that it
+// carries one, decided from the same rows the headline read.
 describe('changes', () => {
-  it('keeps only the columns the field registry knows', () => {
+  it('carries a line per column the catalogue knows, and none for a create', () => {
     const rows = [
       activity({ columnName: 'gradeFk', createdAt: 2, id: 1 }),
       activity({ columnName: 'somethingNobodyWrites', createdAt: 1, id: 2 }),
     ]
 
-    expect(card(rows).changes.map((change) => change.activity.columnName)).toEqual(['gradeFk'])
-  })
-
-  it('has none for a create row, which changed no column', () => {
+    expect(card(rows).changes.map((change) => change.kind)).toEqual(['grade'])
     expect(card([activity({ type: 'created' })]).changes).toEqual([])
-  })
-
-  it("draws the area's approach on a parking change, and never on one that removed it", () => {
-    const paths = [
-      [
-        { lat: 47.1, long: 8.5 },
-        { lat: 47.2, long: 8.6 },
-      ],
-    ]
-    const entities = entityMap([
-      [
-        { id: '301', type: 'area' },
-        { name: 'Westwand', paths, row: 'area' },
-      ],
-    ])
-    const parking = (partial: Partial<ActivityListItem>) =>
-      activity({ columnName: 'parking location', entityId: '301', entityType: 'area', ...partial })
-
-    expect(card([parking({ newValue: '47.1,8.5' })], entities).changes[0].paths).toEqual(paths)
-    // The pin is gone, so the walk to it is not worth drawing.
-    expect(card([parking({ oldValue: '47.1,8.5', type: 'deleted' })], entities).changes[0].paths).toBeUndefined()
-  })
-
-  describe('prose', () => {
-    const edit = (oldValue: string | undefined, newValue: string | undefined) =>
-      card([activity({ columnName: 'description', newValue, oldValue })]).changes[0].prose
-
-    it('marks the words an edit changed and leaves the rest alone', () => {
-      // The edit is one clause in the middle of a sentence. Rendered as two whole texts it was
-      // the reader's job to find; as a diff it points at itself.
-      const prose = edit('The topout is easier from the left.', 'The topout is friendlier from the right.')
-
-      expect(prose).toEqual([
-        { kind: 'same', value: 'The topout is ' },
-        { kind: 'removed', value: 'easier' },
-        { kind: 'added', value: 'friendlier' },
-        { kind: 'same', value: ' from the ' },
-        { kind: 'removed', value: 'left' },
-        { kind: 'added', value: 'right' },
-        { kind: 'same', value: '.' },
-      ])
-    })
-
-    it('says nothing for a field filled from nothing or cleared', () => {
-      // Both sides render as "Not set" against the text, which says more than one long stripe
-      // of a single colour.
-      expect(edit(undefined, 'Sit start on the flake.')).toBeUndefined()
-      expect(edit('Sit start on the flake.', undefined)).toBeUndefined()
-      expect(edit('', 'Sit start on the flake.')).toBeUndefined()
-    })
-
-    it('is only built for the columns rendered as prose', () => {
-      expect(
-        card([activity({ columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante' })]).changes[0].prose,
-      ).toBeUndefined()
-    })
   })
 })
 

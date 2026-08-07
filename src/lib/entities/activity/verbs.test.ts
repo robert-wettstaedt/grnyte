@@ -10,8 +10,8 @@
  * `activity_ascentCreatedSend`, a key that no longer exists.
  */
 import { ascentTypeEnum } from '$lib/db/schema'
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { activityChanges } from './change'
 import {
   ACTIVITY_VERBS,
   activityVerb,
@@ -36,28 +36,60 @@ describe('ACTIVITY_VERBS', () => {
     expect([...written].sort()).toEqual([...ascentTypeEnum].sort())
   })
 
-  // Read off the component rather than restated here, so this cannot become the second place
-  // that knows which renderers exist. `'user'` was declared by four entries for months with
-  // no branch implementing it, and every one of them silently rendered as plain text.
-  it('declares only renderers ActivityChanges implements', () => {
-    const source = readFileSync('src/lib/components/ActivityFeed/ActivityChanges.svelte', 'utf8')
-    // Two ways to be implemented: a branch of your own, or an entry in `FORMATTERS`, which the
-    // `{:else}` arm reads before rendering the plain pair. `text` IS that plain pair, so it
-    // needs neither.
-    const formatters = /const FORMATTERS[^{]*\{([\s\S]*?)\n {2}\}/.exec(source)?.[1] ?? ''
-    const implemented = new Set([
-      'text',
-      ...[...source.matchAll(/renderer === '(\w+)'/g)].map(([, name]) => name),
-      ...[...formatters.matchAll(/^ {4}(\w+):/gm)].map(([, name]) => name),
-    ])
+  /**
+   * Every declared kind decodes into a view of that kind.
+   *
+   * This replaces a test that read `ActivityChanges.svelte` as text and regex-matched its
+   * branches, because that was the only way to ask whether a declared renderer was implemented
+   * at all: `'user'` was declared by four entries for months with no branch, and every one of
+   * them silently rendered as plain text. Now the kinds are a union, `activityChanges` switches
+   * on it exhaustively (so a missing arm is a `tsc` error) and the markup narrows on the view,
+   * so what is left to check is that the catalogue's own entries round-trip.
+   */
+  it('decodes every declared field kind', () => {
+    // Widened first, like `WRITTEN_ACTIVITIES`: only some `as const` members declare
+    // `columnName`, and a union cannot be read on a key its every member does not have.
+    const fields = (ACTIVITY_VERBS as readonly ActivityVerb[]).flatMap((verb) =>
+      verb.field == null ? [] : [{ ...verb, field: verb.field }],
+    )
+    const kinds = new Set(fields.map((verb) => verb.field.kind))
 
-    // The regex above is the load-bearing half of this test: if it stops finding the map, every
-    // renderer it covers silently looks unimplemented (or, worse, the set looks complete for
-    // the wrong reason).
-    expect([...implemented]).toEqual(expect.arrayContaining(['date', 'humidity', 'role', 'temperature']))
-    const declared = [...new Set(ACTIVITY_VERBS.flatMap((verb) => ('field' in verb ? [verb.field.renderer] : [])))]
+    // Only the pairs may carry a format, and every pair must: `undefined` would fall back to
+    // plain text and quietly stop localising a date or a role.
+    expect(
+      fields.filter((verb) => (verb.field.kind === 'pair') !== (verb.field.format != null)).map((verb) => verb.key),
+    ).toEqual([])
 
-    expect(declared.filter((renderer) => !implemented.has(renderer))).toEqual([])
+    // Only a location may declare itself cleared; on anything else the flag does nothing.
+    expect(
+      fields.filter((verb) => verb.field.cleared != null && verb.field.kind !== 'location').map((verb) => verb.key),
+    ).toEqual([])
+
+    const decoded = fields.map((verb) => {
+      const [change] = activityChanges([
+        {
+          columnName: verb.columnName,
+          createdAt: 0,
+          entityId: '1',
+          entityType: verb.entityType,
+          id: 1,
+          metadata: undefined,
+          newValue: undefined,
+          oldValue: undefined,
+          parentEntityId: undefined,
+          parentEntityType: undefined,
+          regionFk: 1,
+          type: verb.type,
+          userFk: 1,
+          userName: 'ada',
+        },
+      ])
+
+      return { key: verb.key, kind: change?.kind }
+    })
+
+    expect(decoded.filter((entry) => entry.kind == null)).toEqual([])
+    expect([...new Set(decoded.map((entry) => entry.kind))].sort()).toEqual([...kinds].sort())
   })
 
   it('resolves every entry to its own key', () => {

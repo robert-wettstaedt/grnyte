@@ -1,11 +1,9 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
-import { diffTopoLines, parseTopoChange, type TopoChange, type TopoLineDiff } from '$lib/entities/topo/change'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { MessageKey } from '$lib/i18n/message'
-import type { Coords } from '$lib/map/map'
-import { diffWords } from 'diff'
+import { activityChanges, storedMedia, type ActivityChangeView, type ActivityMedia } from './change'
 import type { ActivityListItem } from './dto'
 import {
   activityEntityKey,
@@ -17,7 +15,7 @@ import {
   type ActivityEntityRef,
 } from './entity'
 import type { ActivityGroup } from './grouping'
-import { activityEntry, activityVerb, parseDeletedAscent, parseDeletionScale, type ActivityField } from './verbs'
+import { activityEntry, activityVerb, parseDeletedAscent, parseDeletionScale } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
@@ -60,7 +58,8 @@ export interface ActivityCardView {
   actorName: string
   /** What one logged ascent said about the route, when the card logged exactly one. */
   ascent: ActivityCardAscent | undefined
-  changes: ActivityChange[]
+  /** The expanded half: one decided line per changed column. See `change.ts`. */
+  changes: ActivityChangeView[]
   /**
    * When the ascents on this card were climbed, if that is a different calendar day from the
    * one they were logged on. Absent otherwise: same-day logging is the norm, and repeating the
@@ -96,62 +95,16 @@ export interface ActivityCardView {
   summary: ActivityMessagePart[] | undefined
 }
 
-/** One changed column the expanded half renders, paired with its registry entry. */
-export interface ActivityChange {
-  activity: ActivityListItem
-  field: ActivityField
-  /**
-   * The approach paths to draw on a location thumbnail, for the rows that have any.
-   *
-   * ponytail: the area's paths as they stand today, not as they were when the pin was placed:
-   * the row records the coordinates and nothing else. Upgrade = write the paths into the row.
-   */
-  paths?: Coords[][]
-  /**
-   * A description or note edit as one merged text, decided here so the change list stays
-   * markup over a decided view. Absent unless both sides hold text: a field filled from
-   * nothing, or cleared, says more as an explicit "Not set" than as a wall of one colour.
-   */
-  prose?: ProseSegment[]
-  /** What a topo row changed, decoded once here so the change list stays markup over a
-   *  decided view, like every other renderer. Absent for a row that named no topo change:
-   *  every one written before `metadata` existed, which renders as vaguely as it always did. */
-  topo?: ActivityTopoChange
-}
-
 export interface ActivityHeadline {
   /** The sentence to render, straight out of the verb catalogue. */
   key: MessageKey
   params: { media: ActivityMedia; owner: 'none' | 'other' | 'self'; person: 'other' | 'self' }
 }
 
-/**
- * Which word a sentence about media uses. `none` covers three cases that all have to read
- * the same way: nothing has synced yet, the file is gone, and a submit that mixed the two,
- * where neither "photo" nor "video" is true of the card.
- */
-export type ActivityMedia = 'none' | 'photo' | 'video'
-
 /** A piece of a composed line: a message to resolve, or text that is already a name. */
 export type ActivityMessagePart =
   | { key: MessageKey; params?: Record<string, unknown>; text?: never }
   | { key?: never; text: string }
-
-export interface ActivityTopoChange {
-  /** Which of the five topo edits it was, and which photo it happened on. */
-  change: TopoChange
-  /** What the redraw drew, moved and erased, plus the state it left behind. Empty on the
-   *  four photo actions, which carry no before/after pair. */
-  lines: TopoLineDiff
-  /** The photo itself, when it is still there to draw. */
-  view: TopoView | undefined
-}
-
-/** One run of a prose diff: text that survived the edit, text it added, text it took out. */
-export interface ProseSegment {
-  kind: 'added' | 'removed' | 'same'
-  value: string
-}
 
 /**
  * What the headline and the sub line both have to know, worked out once.
@@ -288,38 +241,7 @@ export function activityCard(
   return {
     actorName: newest.userName,
     ascent,
-    changes: group.activities.flatMap((activity) => {
-      const field = activityEntry(activity)?.field
-      if (field == null) {
-        return []
-      }
-
-      // A removed photo resolves to no view on purpose: the row it points at is gone, and
-      // so is the image behind it. The change line says so instead of drawing it.
-      const change = parseTopoChange(activity.metadata)
-      return [
-        {
-          activity,
-          field,
-          // Only a pin that is still there gets a path drawn to it. `locationRemoved` draws the
-          // pin that went away, and an approach to a parking spot nobody can park at any more
-          // would be drawing the way to nowhere.
-          paths:
-            field.renderer === 'location'
-              ? entityOf({ id: activity.entityId, type: activity.entityType })?.paths
-              : undefined,
-          prose: field.renderer === 'prose' ? proseDiff(activity.oldValue, activity.newValue) : undefined,
-          topo:
-            change == null
-              ? undefined
-              : {
-                  change,
-                  lines: diffTopoLines(activity.oldValue, activity.newValue),
-                  view: change.topoId == null ? undefined : topos?.get(change.topoId),
-                },
-        },
-      ]
-    }),
+    changes: activityChanges(group.activities, { entities, topos }),
     climbedAt: climbedAt != null && climbedAt !== calendarDay(group.createdAt) ? climbedAt : undefined,
     climberName: climber?.climberName ?? recorded?.climberName,
     createdAt: group.createdAt,
@@ -351,14 +273,6 @@ export function activityCard(
     status: activityEntry(newest)?.status === 'ascentType' ? (newest.newValue as AscentType | undefined) : undefined,
     summary: summaryParts(group, placeName, media, refs.length, verb),
   }
-}
-
-/**
- * The word a removal row stored for the file it removed, or `none` for one written before
- * they did. Exported for the change list, which says the same thing under the headline.
- */
-export function storedMedia(value: null | string | undefined): ActivityMedia {
-  return value === 'photo' || value === 'video' ? value : 'none'
 }
 
 /** The activity in `activities` that points at `ref`, which is where its name is stashed. */
@@ -580,36 +494,6 @@ function parentRef(activities: readonly ActivityListItem[]): ActivityEntityRef |
   )
 
   return shared ? first : undefined
-}
-
-/**
- * A description edit as one text: what stayed, what went, what arrived.
- *
- * Word granularity, because that is where an edit to prose actually happens. The two sides were
- * previously rendered one under the other, which left the reader to spot a changed clause in two
- * near-identical paragraphs, and each was clamped to a single line on top of that.
- *
- * Plain text rather than rendered markdown, deliberately. The markdown pipeline drops raw HTML
- * (see `Markdown.svelte`), so highlights cannot be put inside a rendered document without
- * opening that door on user input, and a diff is for comparing rather than for reading the
- * finished text, which is one tap away on the entity itself.
- *
- * `undefined` when either side is empty: "Not set" against the text says more than a whole
- * description marked as one long insertion.
- *
- * ponytail: a `!route:501!` reference shows raw here rather than as the route's name. Upgrade =
- * resolve references to their names before diffing, which needs the hydration the card already
- * does for its rows.
- */
-function proseDiff(before: string | undefined, after: string | undefined): ProseSegment[] | undefined {
-  if (before == null || before.length === 0 || after == null || after.length === 0) {
-    return undefined
-  }
-
-  return diffWords(before, after).map((part) => ({
-    kind: part.added === true ? 'added' : part.removed === true ? 'removed' : 'same',
-    value: part.value,
-  }))
 }
 
 /**

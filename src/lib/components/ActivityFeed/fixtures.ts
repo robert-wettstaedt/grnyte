@@ -3,7 +3,8 @@
  * `(entityType, type, columnName)` triples the mutation layer actually writes, then folded
  * by the real `groupActivities`. Storybook only — nothing in the app imports this.
  */
-import { activityCard, type ActivityCardView, type ActivityChange } from '$lib/entities/activity/card'
+import { activityCard, type ActivityCardView } from '$lib/entities/activity/card'
+import type { ActivityChangeView } from '$lib/entities/activity/change'
 import type { ActivityListItem } from '$lib/entities/activity/dto'
 import {
   activityEntityKey,
@@ -62,7 +63,7 @@ export function activity(
  * set that grouping would otherwise split. Runs the real `activityCard`, so a story cannot
  * drift from what a card actually renders.
  */
-export function changes(activities: ActivityListItem[], topos?: ReadonlyMap<number, TopoView>): ActivityChange[] {
+export function changes(activities: ActivityListItem[], topos?: ReadonlyMap<number, TopoView>): ActivityChangeView[] {
   return activities.flatMap((activity) => view(groupActivities([activity])[0], undefined, undefined, topos).changes)
 }
 

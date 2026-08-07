@@ -1,31 +1,26 @@
 import type { IconName } from '$lib/components/Icon/icons'
 import type { MessageKey } from '$lib/i18n/message'
+import type { ActivityChangeKind, PairFormat } from './change'
 import type { ActivityEntityType, ActivityListItem, ActivityType } from './dto'
 
-/** The label, icon and diff renderer for one changed column. */
+/**
+ * The label, icon and change-line shape for one changed column.
+ *
+ * The shape is declared here rather than mapped somewhere else, so a column states how it
+ * renders where it states what it is called. `change.ts` reads this and needs no table of its
+ * own; a shape it does not handle is a compile error rather than a silently plain-text row.
+ */
 export interface ActivityField {
+  /** Only on `location`: the pin was cleared rather than moved. The shared caption ladder
+   *  would otherwise announce a removal as an update, and an approach path would be drawn to
+   *  a parking spot nobody can park at any more. */
+  cleared?: true
+  /** Only on `pair`: which formatter the two chips read through. */
+  format?: PairFormat
   icon: IconName
+  kind: ActivityChangeKind
   labelKey: MessageKey
-  renderer: ChangeRenderer
 }
-
-/** How the expanded change list renders a column's old/new pair. */
-export type ChangeRenderer =
-  | 'chips'
-  | 'date'
-  | 'file'
-  | 'grade'
-  | 'humidity'
-  | 'location'
-  | 'locationRemoved'
-  | 'prose'
-  | 'rating'
-  | 'role'
-  | 'source'
-  | 'tags'
-  | 'temperature'
-  | 'text'
-  | 'topo'
 
 /**
  * Whose ascent a deletion took, as its row recorded it.
@@ -126,33 +121,33 @@ export function stringifyDeletionScale(scale: DeletionScale): string | undefined
  * gave `role` one entry across every entity and change type that names that column.
  */
 const FIELD = {
-  dateTime: { icon: 'history', labelKey: 'activity_fieldDateTime', renderer: 'date' },
-  description: { icon: 'file-text', labelKey: 'activity_fieldDescription', renderer: 'prose' },
-  file: { icon: 'image', labelKey: 'activity_fieldFile', renderer: 'file' },
-  firstAscensionist: { icon: 'user', labelKey: 'activity_fieldFirstAscensionist', renderer: 'text' },
-  firstAscensionists: { icon: 'users', labelKey: 'activity_fieldFirstAscensionists', renderer: 'chips' },
-  firstAscentYear: { icon: 'history', labelKey: 'activity_fieldFirstAscentYear', renderer: 'text' },
-  grade: { icon: 'trending-up', labelKey: 'activity_fieldGrade', renderer: 'grade' },
-  humidity: { icon: 'info', labelKey: 'activity_fieldHumidity', renderer: 'humidity' },
-  location: { icon: 'map-pin', labelKey: 'activity_fieldLocation', renderer: 'location' },
-  /** A cleared pin, which the shared `location` renderer would announce as an update. */
-  locationGone: { icon: 'map-pin', labelKey: 'activity_fieldLocation', renderer: 'locationRemoved' },
-  name: { icon: 'edit', labelKey: 'activity_fieldName', renderer: 'text' },
-  notes: { icon: 'file-text', labelKey: 'activity_fieldNotes', renderer: 'prose' },
-  parkingLocation: { icon: 'parking', labelKey: 'activity_fieldParkingLocation', renderer: 'location' },
-  parkingLocationGone: { icon: 'parking', labelKey: 'activity_fieldParkingLocation', renderer: 'locationRemoved' },
-  rating: { icon: 'star', labelKey: 'activity_fieldRating', renderer: 'rating' },
+  dateTime: { format: 'date', icon: 'history', kind: 'pair', labelKey: 'activity_fieldDateTime' },
+  description: { icon: 'file-text', kind: 'prose', labelKey: 'activity_fieldDescription' },
+  file: { icon: 'image', kind: 'file', labelKey: 'activity_fieldFile' },
+  firstAscensionist: { format: 'text', icon: 'user', kind: 'pair', labelKey: 'activity_fieldFirstAscensionist' },
+  firstAscensionists: { icon: 'users', kind: 'chips', labelKey: 'activity_fieldFirstAscensionists' },
+  firstAscentYear: { format: 'text', icon: 'history', kind: 'pair', labelKey: 'activity_fieldFirstAscentYear' },
+  grade: { icon: 'trending-up', kind: 'grade', labelKey: 'activity_fieldGrade' },
+  humidity: { format: 'humidity', icon: 'info', kind: 'pair', labelKey: 'activity_fieldHumidity' },
+  location: { icon: 'map-pin', kind: 'location', labelKey: 'activity_fieldLocation' },
+  /** A cleared pin. See {@link ActivityField.cleared}. */
+  locationGone: { cleared: true, icon: 'map-pin', kind: 'location', labelKey: 'activity_fieldLocation' },
+  name: { format: 'text', icon: 'edit', kind: 'pair', labelKey: 'activity_fieldName' },
+  notes: { icon: 'file-text', kind: 'prose', labelKey: 'activity_fieldNotes' },
+  parkingLocation: { icon: 'parking', kind: 'location', labelKey: 'activity_fieldParkingLocation' },
+  parkingLocationGone: { cleared: true, icon: 'parking', kind: 'location', labelKey: 'activity_fieldParkingLocation' },
+  rating: { icon: 'star', kind: 'rating', labelKey: 'activity_fieldRating' },
   /** The stored value is the `region_*` enum member, which is a database detail. Its own
-   *  renderer so the chips read Admin, Maintainer and User like the member list does. */
-  role: { icon: 'users-round', labelKey: 'activity_fieldRole', renderer: 'role' },
-  /** A video's origin URL. Its own renderer because the stored value is a whole URL and a
-   *  reader only wants the host it was reposted from. */
-  source: { icon: 'link', labelKey: 'activity_fieldSource', renderer: 'source' },
-  tags: { icon: 'bookmark', labelKey: 'activity_fieldTags', renderer: 'tags' },
-  temperature: { icon: 'info', labelKey: 'activity_fieldTemperature', renderer: 'temperature' },
-  topo: { icon: 'route', labelKey: 'activity_fieldTopo', renderer: 'topo' },
-  type: { icon: 'pickaxe', labelKey: 'activity_fieldType', renderer: 'text' },
-  username: { icon: 'user', labelKey: 'activity_fieldUsername', renderer: 'text' },
+   *  format so the chips read Admin, Maintainer and User like the member list does. */
+  role: { format: 'role', icon: 'users-round', kind: 'pair', labelKey: 'activity_fieldRole' },
+  /** A video's origin URL. Its own kind because the stored value is a whole URL and a reader
+   *  only wants the host it was reposted from. */
+  source: { icon: 'link', kind: 'source', labelKey: 'activity_fieldSource' },
+  tags: { icon: 'bookmark', kind: 'tags', labelKey: 'activity_fieldTags' },
+  temperature: { format: 'temperature', icon: 'info', kind: 'pair', labelKey: 'activity_fieldTemperature' },
+  topo: { icon: 'route', kind: 'topo', labelKey: 'activity_fieldTopo' },
+  type: { format: 'text', icon: 'pickaxe', kind: 'pair', labelKey: 'activity_fieldType' },
+  username: { format: 'text', icon: 'user', kind: 'pair', labelKey: 'activity_fieldUsername' },
 } as const satisfies Record<string, ActivityField>
 
 /**
