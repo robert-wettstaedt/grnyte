@@ -1,65 +1,68 @@
 <!--
   The global activity feed: everything logged across the regions the user belongs to.
 
-  The page owns the window (how many rows are synced), the grouping and the entity
-  hydration; `ActivityFeed` is the markup for the result. Filters are the next phase, so
-  this is the unfiltered "All" view.
+  Markup and the filter values. `activityFeed()` owns the window, the mark behind the "N new"
+  pill, the grouping and the hydration; `ActivityFeed` renders the cards it decides.
 -->
 <script lang="ts">
+  import { replaceState } from '$app/navigation'
+  import { resolve } from '$app/paths'
+  import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ActivityFeed from '$lib/components/ActivityFeed/ActivityFeed.svelte'
+  import ActivityFilters from '$lib/components/ActivityFeed/ActivityFilters.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import { groupActivities } from '$lib/entities/activity/grouping'
-  import { activityEntities } from '$lib/entities/activity/hydrate.svelte'
-  import { activityList } from '$lib/entities/activity/resources.svelte'
+  import type { ActivityCategory } from '$lib/entities/activity/dto'
+  import { activityFeed } from '$lib/entities/activity/feed.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
-  import { SvelteSet } from 'svelte/reactivity'
 
   const global = getGlobalState()
 
-  /** Sync window, and what one "load older" tap adds to it. It also caps the pill's count:
-   *  past a page of unread rows the number stops being worth the rows it would sync. */
-  const PAGE_SIZE = 50
+  /** Read once, from the URL, so a reloaded or shared feed opens narrowed the way it was left. */
+  const initial = page.url.searchParams
+  const asNumber = (value: null | string) => {
+    const parsed = Number(value)
+    return value == null || !Number.isInteger(parsed) ? undefined : parsed
+  }
 
-  let limit = $state(PAGE_SIZE)
-  /** Id of the newest activity the reader has acknowledged. Anything above it waits. */
-  let seen = $state<number>()
+  let category = $state<ActivityCategory | undefined>(
+    initial.get('category') === 'ascent' ? 'ascent' : initial.get('category') === 'update' ? 'update' : undefined,
+  )
+  let regionFk = $state(asNumber(initial.get('region')))
+  let userFk = $state(asNumber(initial.get('user')))
 
-  // Two windows either side of the mark rather than one filtered list: rows that arrive while
-  // reading would push the list down under the cursor, and if they merely counted against
-  // `limit` they would also push an equal number of old rows off the bottom.
-  const activities = activityList(() => ({ limit, upToId: seen }))
-  const incoming = activityList(() => ({ afterId: seen, limit: PAGE_SIZE }), { enabled: () => seen != null })
+  const feed = activityFeed(() => ({ category, regionFk, userFk }))
 
-  const newCount = $derived(incoming.data.length)
-
-  const groups = $derived(groupActivities(activities.data))
-
-  // Which cards are open, and with them the only rows worth fetching a topo photo for: the
-  // change list behind the toggle is the one thing that draws one.
-  const expandedIds = new SvelteSet<string>()
-  const expandedActivities = $derived(
-    groups.filter((group) => expandedIds.has(group.id)).flatMap((group) => group.activities),
+  const regions = $derived(
+    global.userRegions.map((membership) => ({ name: membership.name, regionFk: membership.regionFk })),
   )
 
-  const hydration = activityEntities(
-    () => activities.data,
-    () => expandedActivities,
+  /** The params this page owns. Anything else on the URL is somebody else's and is kept. */
+  const OWNED = ['category', 'region', 'user']
+
+  const query = $derived(
+    [
+      ...[...page.url.searchParams].filter(([key]) => !OWNED.includes(key)),
+      ...(
+        [
+          ['category', category],
+          ['region', regionFk],
+          ['user', userFk],
+        ] as const
+      ).flatMap(([key, value]) => (value == null ? [] : [[key, String(value)] as [string, string]])),
+    ]
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join('&'),
   )
 
-  // Zero hands back at most `limit` rows, so a full window is the only signal that there
-  // are older ones. A window that comes back short is the end of the log.
-  const hasMore = $derived(activities.data.length >= limit)
-
-  const acknowledge = () => (seen = incoming.data[0]?.id ?? activities.data[0]?.id)
-
-  // The first window is what the reader opened the page to, so it counts as read; only what
-  // lands after that queues behind the pill. A one-time capture, so it cannot be `$derived`:
-  // a mark that kept following the newest row would never hold anything back.
+  // Mirrored rather than driven: the filters are the state, and the URL follows them so a reload
+  // or a shared link lands on the same feed. `replaceState` keeps the back button meaning "the
+  // page before this one" rather than "the filter before this one", which is what a chip is for.
   $effect(() => {
-    if (seen == null && activities.data.length > 0) {
-      acknowledge()
+    if (query !== page.url.searchParams.toString()) {
+      // eslint-disable-next-line svelte/no-navigation-without-resolve -- the path IS resolved; only the query is appended
+      replaceState(`${resolve('/(app)/(shell)/feed')}${query.length === 0 ? '' : `?${query}`}`, page.state)
     }
   })
 </script>
@@ -69,20 +72,17 @@
 </svelte:head>
 
 <div class="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-24 md:pb-8">
-  <h1 class="text-surface-950-50 text-2xl font-bold tracking-tight">{m.feed_title()}</h1>
+  <ActivityFilters bind:category currentUserFk={global.user?.id} bind:regionFk {regions} bind:userFk />
 
-  <QueryState resource={activities}>
+  <QueryState resource={feed.resource}>
     {#snippet ready()}
       <ActivityFeed
-        currentUserFk={global.user?.id}
-        entities={hydration.entities}
-        {expandedIds}
-        {groups}
-        {hasMore}
-        {newCount}
-        onLoadOlder={() => (limit += PAGE_SIZE)}
-        onMergeNew={acknowledge}
-        topos={hydration.topos}
+        expandedIds={feed.expandedIds}
+        hasMore={feed.hasMore}
+        newCount={feed.newCount}
+        onLoadOlder={feed.loadOlder}
+        onMergeNew={feed.acknowledge}
+        views={feed.views}
       />
     {/snippet}
 
