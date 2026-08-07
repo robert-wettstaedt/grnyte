@@ -72,6 +72,18 @@ What a card says, computed before any markup: the headline key and its parts, th
 the rows and their state. Pure, and it returns message keys rather than resolved copy, so
 it can be asserted against without asserting against a translation.
 
+**change line**
+One changed column as the expanded half of a card renders it: an icon, a label, and what the
+column moved between. Decided by `change.ts` under the same contract as the card view (keys and
+raw values, never resolved copy and never a formatted string), because the unit, the locale and
+the grading scale belong to whoever is reading.
+
+**change kind**
+Which of the ten shapes a change line takes (`pair`, `chips`, `tags`, `grade`, `rating`,
+`prose`, `location`, `topo`, `source`, `file`). Declared by the column's catalogue entry in
+`verbs.ts`, next to its label, so a column states how it renders where it states what it is
+called. A `pair` also declares the `format` its two chips read through.
+
 **entity ref**
 The polymorphic `(entityType, entityId)` pair an activity points at. `entityId` is `text`
 and the type varies, so Zero cannot join it to the entity it names.
