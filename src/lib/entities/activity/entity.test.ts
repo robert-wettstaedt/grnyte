@@ -1,26 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ActivityListItem } from './dto'
 import { activityEntityRefs } from './entity'
-
-function activity(partial: Partial<ActivityListItem>): ActivityListItem {
-  return {
-    columnName: undefined,
-    createdAt: 0,
-    entityId: '1',
-    entityType: 'route',
-    id: 1,
-    metadata: undefined,
-    newValue: undefined,
-    oldValue: undefined,
-    parentEntityId: undefined,
-    parentEntityType: undefined,
-    regionFk: 1,
-    type: 'updated',
-    userFk: 1,
-    userName: 'ada',
-    ...partial,
-  }
-}
+import { activity } from './fixture'
 
 describe('activityEntityRefs', () => {
   it('lists each entity once, in the order the activities arrive', () => {

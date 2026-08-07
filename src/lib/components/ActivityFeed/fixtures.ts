@@ -1,164 +1,41 @@
-/**
- * Story data for the activity feed: the design's sample week, built from the same
- * `(entityType, type, columnName)` triples the mutation layer actually writes, then folded
- * by the real `groupActivities`. Storybook only — nothing in the app imports this.
- */
-import { activityCard, type ActivityCardView } from '$lib/entities/activity/card'
-import type { ActivityChangeView } from '$lib/entities/activity/change'
 import type { ActivityListItem } from '$lib/entities/activity/dto'
+import type { ActivityEntity, ActivityEntityRef } from '$lib/entities/activity/entity'
 import {
-  activityEntityKey,
-  type ActivityEntity,
-  type ActivityEntityMap,
-  type ActivityEntityRef,
-} from '$lib/entities/activity/entity'
-import { groupActivities, type ActivityGroup } from '$lib/entities/activity/grouping'
-import type { MediaFile } from '$lib/entities/file/dto'
-import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from '$lib/entities/topo/change'
+  activityAgo as activity,
+  entityMap,
+  ME,
+  PEOPLE,
+  photo,
+  topoLines,
+  topoMetadata,
+  topos,
+  video,
+} from '$lib/entities/activity/fixture'
 import type { TopoView } from '$lib/entities/topo/dto'
 
-const MINUTE = 60_000
-const HOUR = 60 * MINUTE
-
-/** The signed-in climber, so one card in the week reads "You …". */
-export const ME = 1
-
-const PEOPLE: Record<number, string> = {
-  2: 'Tomas Kessler',
-  3: 'Sofia Brandt',
-  4: 'Jonas Weber',
-  5: 'Mara Lindqvist',
-  [ME]: 'Ada Rossi',
-}
-
-let nextId = 1
-
-/** Wall-clock base. Read once so every card in a story dates off the same moment. */
-const base = Date.now()
-
-export function activity(
-  minutesAgo: number,
-  partial: Partial<ActivityListItem> & Pick<ActivityListItem, 'userFk'>,
-): ActivityListItem {
-  return {
-    columnName: undefined,
-    createdAt: base - minutesAgo * MINUTE,
-    entityId: '1',
-    entityType: 'route',
-    id: nextId++,
-    metadata: undefined,
-    newValue: undefined,
-    oldValue: undefined,
-    parentEntityId: undefined,
-    parentEntityType: undefined,
-    regionFk: 1,
-    type: 'updated',
-    userName: PEOPLE[partial.userFk] ?? '',
-    ...partial,
-  }
-}
-
 /**
- * The changes an expanded card would show, one activity at a time so a story can hand in a
- * set that grouping would otherwise split. Runs the real `activityCard`, so a story cannot
- * drift from what a card actually renders.
- */
-export function changes(activities: ActivityListItem[], topos?: ReadonlyMap<number, TopoView>): ActivityChangeView[] {
-  return activities.flatMap((activity) => view(groupActivities([activity])[0], undefined, undefined, topos).changes)
-}
-
-/** The map the feed hands cards: an absent key is still syncing, an explicit null is gone. */
-export function entityMap(entries: [ActivityEntityRef, ActivityEntity | null][]): Map<string, ActivityEntity | null> {
-  return new Map(entries.map(([ref, entity]) => [activityEntityKey(ref), entity]))
-}
-
-/** Groups a story's activities exactly as the feed page will. */
-export function groups(activities: ActivityListItem[]): ActivityGroup[] {
-  return groupActivities(activities)
-}
-
-export function photo(id: string): MediaFile {
-  return {
-    ascentCreatedBy: undefined,
-    bunnyStreamFk: undefined,
-    createdAt: base - HOUR,
-    height: 900,
-    id,
-    path: 'topo-sample.svg',
-    regionFk: 1,
-    source: undefined,
-    uploader: undefined,
-    visibility: 'public',
-    width: 1200,
-  }
-}
-
-/**
- * The lines on a topo, as the writers encode them onto the row's old/new pair.
+ * The design's sample week, built from the same `(entityType, type, columnName)` triples the
+ * mutation layer actually writes and folded by the real `groupActivities`.
  *
- * One path per line rather than one for all of them. Sharing a path drew every ghost exactly
- * underneath a live line, so an erased line looked like it rendered nothing at all.
+ * The builders themselves live in `$lib/entities/activity/fixture`, beside the module they
+ * describe, and are re-exported here so a story needs one import. What is left in this file is
+ * only the week: story material, and the one thing the tests have no use for.
  */
-export function topoLines(lines: readonly { name: string; routeFk: number }[], moved = false): string {
-  return stringifyTopoLines(
-    lines.map((line, index) => {
-      const x = 0.2 + index * 0.22 + (moved ? 0.1 : 0)
-      return { ...line, path: `M${x.toFixed(2)},0.9 L${(x + 0.08).toFixed(2)},0.2`, topType: 'top' }
-    }),
-  )
-}
+export {
+  activity,
+  changes,
+  entityMap,
+  groups,
+  ME,
+  photo,
+  topoLines,
+  topoMetadata,
+  topos,
+  video,
+  view,
+} from '$lib/entities/activity/fixture'
 
-/** What a topo row says about itself: which of the five edits it was, and on which photo. */
-export function topoMetadata(action: TopoAction, topoId?: number): string {
-  return stringifyTopoChange({ action, topoId })
-}
-
-/** The photo a topo change row renders, with two lines drawn on it. */
-export function topos(id = 700): Map<number, TopoView> {
-  const line = (lineId: number, name: string, gradeFk: number, x: number) => ({
-    gradeFk,
-    id: lineId,
-    name,
-    points: [
-      { id: `${lineId}-start`, type: 'start' as const, x, y: 0.88 },
-      { id: `${lineId}-mid`, type: 'middle' as const, x: x + 0.04, y: 0.5 },
-      { id: `${lineId}-top`, type: 'top' as const, x: x + 0.02, y: 0.12 },
-    ],
-    routeId: lineId,
-    topType: 'top' as const,
-  })
-
-  return new Map([
-    [
-      id,
-      {
-        id,
-        imageHeight: 900,
-        imagePath: 'topo-sample.svg',
-        imageWidth: 1200,
-        lines: [line(501, 'Kante direkt', 11, 0.3), line(502, 'Rampe', 15, 0.6)],
-      },
-    ],
-  ])
-}
-
-/**
- * A beta clip. Storybook has no Bunny to fetch a still from, so the tile renders the same
- * play placeholder a video still encoding does, which is what the card shows there too.
- */
-export function video(id: string, source?: string): MediaFile {
-  return { ...photo(id), bunnyStreamFk: `bunny-${id}`, path: '', source }
-}
-
-/** What a card says about a group, decided by the same function the feed calls. */
-export function view(
-  group: ActivityGroup,
-  entities?: ActivityEntityMap,
-  currentUserFk?: number,
-  topoViews?: ReadonlyMap<number, TopoView>,
-): ActivityCardView {
-  return activityCard(group, entities, currentUserFk, topoViews)
-}
+const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try after brushing the top.'
 
 /** An ascent's route row, plus whose ascent it is (so the headline can say). */
 function ascent(name: string, gradeFk: number, climberFk: number, extra: Partial<ActivityEntity> = {}): ActivityEntity {
@@ -176,8 +53,6 @@ function route(name: string, gradeFk: number, extra: Partial<ActivityEntity> = {
   }
 }
 
-const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try after brushing the top.'
-
 /**
  * The week from the design: a flash with photos, a four-ascent session, a twelve-edit
  * burst, a topo redraw, a new area, a grade change, a removed photo, a deleted route
@@ -186,7 +61,7 @@ const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try
 export const sampleWeek: {
   activities: ActivityListItem[]
   entities: Map<string, ActivityEntity | null>
-  topos: Map<number, TopoView>
+  topos: ReadonlyMap<number, TopoView>
 } = (() => {
   const activities: ActivityListItem[] = [
     // Flash, with the ascent's photos and notes.

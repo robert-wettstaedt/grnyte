@@ -7,15 +7,14 @@
   case that folds into two cards shows two.
 
   Read a domain's story top to bottom, compare each card against the action above it, and
-  note the ids that are wrong. Those ids are then the work list, and once they are settled
-  the same `CASES` array becomes the snapshot fixture for the unit tests.
+  note the ids that are wrong. Those ids are then the work list, and the same `CASES` array is
+  the snapshot fixture in `cases.test.ts`, so a card that changes here changes there too.
 -->
 <script module lang="ts">
-  import type { ActivityCase, ActivityCaseDomain } from '$lib/components/ActivityFeed/cases'
+  import { CASES, ME, world, type ActivityCase, type ActivityCaseDomain } from '$lib/entities/activity/cases'
   import { groupActivities } from '$lib/entities/activity/grouping'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import ActivityCard from './ActivityCard.svelte'
-  import { CASES, ME, world } from './cases'
   import { view } from './fixtures'
 
   const { Story } = defineMeta({

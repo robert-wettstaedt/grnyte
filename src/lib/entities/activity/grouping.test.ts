@@ -1,30 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { ActivityListItem } from './dto'
+import { activity } from './fixture'
 import { groupActivities } from './grouping'
 
 const MINUTE = 60 * 1000
 const day = (n: number, hour = 12) => new Date(2026, 0, n, hour).getTime()
-
-let nextId = 0
-function activity(partial: Partial<ActivityListItem>): ActivityListItem {
-  return {
-    columnName: undefined,
-    createdAt: day(1),
-    entityId: '1',
-    entityType: 'route',
-    id: ++nextId,
-    metadata: undefined,
-    newValue: undefined,
-    oldValue: undefined,
-    parentEntityId: undefined,
-    parentEntityType: undefined,
-    regionFk: 1,
-    type: 'updated',
-    userFk: 1,
-    userName: 'ada',
-    ...partial,
-  }
-}
 
 const ascent = (partial: Partial<ActivityListItem> = {}) =>
   activity({ entityType: 'ascent', parentEntityType: 'route', type: 'created', ...partial })

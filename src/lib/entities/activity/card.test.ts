@@ -1,37 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { activityCard } from './card'
 import type { ActivityListItem } from './dto'
-import { activityEntityKey, type ActivityEntity, type ActivityEntityMap } from './entity'
+import type { ActivityEntity, ActivityEntityMap } from './entity'
+import { activity, entityMap } from './fixture'
 import { groupActivities } from './grouping'
 import { WRITTEN_ACTIVITIES } from './verbs'
-
-function activity(partial: Partial<ActivityListItem>): ActivityListItem {
-  return {
-    columnName: undefined,
-    createdAt: 0,
-    entityId: '1',
-    entityType: 'route',
-    id: 1,
-    metadata: undefined,
-    newValue: undefined,
-    oldValue: undefined,
-    parentEntityId: undefined,
-    parentEntityType: undefined,
-    regionFk: 1,
-    type: 'updated',
-    userFk: 1,
-    userName: 'ada',
-    ...partial,
-  }
-}
 
 /** The card for a set of activities, folded exactly as the feed folds them. */
 function card(activities: ActivityListItem[], entities?: ActivityEntityMap, currentUserFk?: number) {
   return activityCard(groupActivities(activities)[0], entities, currentUserFk)
-}
-
-function entityMap(entries: [{ id: string; type: ActivityListItem['entityType'] }, ActivityEntity | null][]) {
-  return new Map(entries.map(([ref, entity]) => [activityEntityKey(ref), entity]))
 }
 
 const route = (name: string): ActivityEntity => ({ name, row: 'route' })

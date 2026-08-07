@@ -10,12 +10,12 @@
  *
  * Storybook and tests only. Nothing in the app imports this.
  */
-import type { ActivityListItem } from '$lib/entities/activity/dto'
-import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
-import { stringifyDeletedAscent } from '$lib/entities/activity/verbs'
 import { routeDisplayName } from '$lib/entities/route/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
-import { activity, entityMap, photo, topoLines, topoMetadata, topos, video } from './fixtures'
+import type { ActivityListItem } from './dto'
+import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from './entity'
+import { activityAgo, entityMap, ME, photo, topoLines, topoMetadata, topos, video } from './fixture'
+import { stringifyDeletedAscent } from './verbs'
 
 /** One row of the protocol's action matrix, ready to render. */
 export interface ActivityCase {
@@ -37,9 +37,6 @@ export interface ActivityCase {
 }
 
 export type ActivityCaseDomain = 'area' | 'ascent' | 'block' | 'file' | 'region' | 'route' | 'topo' | 'user'
-
-/** The signed-in climber, so "You ..." cards read as they do in the app. */
-export const ME = 1
 
 /**
  * One crag every case points at, so a reader is not relearning names card to card.
@@ -158,15 +155,15 @@ function utcDay(daysAgo: number): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 }
 
-// Re-exported so a case chunk needs one import.
-export { activity, photo, topoLines, topoMetadata, topos, video }
+// Re-exported so a case chunk, and the catalogue story, need one import.
+export { activityAgo, ME, photo, topoLines, topoMetadata, topos, video }
 
 export const CASES: ActivityCase[] = [
   // ==== AREA ====
   {
     action: '/explore -> + FAB -> Add to the region -> New area in {Region} -> /areas/add -> Area name -> Create area',
     activities: [
-      activity(5, { entityId: '300', entityType: 'area', newValue: 'Steinbruch', type: 'created', userFk: ME }),
+      activityAgo(5, { entityId: '300', entityType: 'area', newValue: 'Steinbruch', type: 'created', userFk: ME }),
     ],
     domain: 'area',
     expected: 'single card, "You added Steinbruch". No change line: create verbs declare no field.',
@@ -175,7 +172,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/300 -> More -> Add -> Add area -> /areas/300/add -> Area name -> Create area',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '301',
         entityType: 'area',
         newValue: 'Westwand',
@@ -193,7 +190,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/300 -> More -> Add -> Add area -> fill Area name AND Description -> Create area',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '301',
         entityType: 'area',
         newValue: 'Westwand',
@@ -219,7 +216,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Create an area, then within 15 min More -> Manage -> Edit -> change the name -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '301',
         entityType: 'area',
         newValue: 'Westwand',
@@ -237,7 +234,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Manage -> Edit -> change Area name -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '301',
         entityType: 'area',
@@ -255,7 +252,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Manage -> Edit -> change only the Description MarkdownEditor -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '301',
         entityType: 'area',
@@ -274,7 +271,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Manage -> Edit -> change Area name AND Description -> one Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '301',
         entityType: 'area',
@@ -284,7 +281,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '301',
         entityType: 'area',
@@ -310,7 +307,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Manage -> Edit -> clear the Description entirely -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '301',
         entityType: 'area',
@@ -330,7 +327,7 @@ export const CASES: ActivityCase[] = [
     action:
       'On an area whose stored description is SQL NULL (v1 import), open /areas/301/edit and press Save without touching anything',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '301',
         entityType: 'area',
@@ -348,7 +345,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/{id} -> More -> Manage -> Edit -> change Area name -> Save, then rename again within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '300',
         entityType: 'area',
@@ -373,7 +370,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Manage -> Edit -> rename -> Save, wait more than 15 min, rename again -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '301',
         entityType: 'area',
@@ -383,7 +380,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(25, {
+      activityAgo(25, {
         columnName: 'name',
         entityId: '301',
         entityType: 'area',
@@ -402,7 +399,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> Edit -> rename -> Save as user X, then within 15 min the same rename by user Y',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '301',
         entityType: 'area',
@@ -412,7 +409,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: 3,
       }),
-      activity(8, {
+      activityAgo(8, {
         columnName: 'name',
         entityId: '301',
         entityType: 'area',
@@ -438,7 +435,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 on a bare leaf area -> More -> Manage -> Delete area (no confirm)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '301',
         entityType: 'area',
         oldValue: 'Westwand',
@@ -457,7 +454,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 on a crag holding 12 blocks and 200 routes -> More -> Manage -> Delete area',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '301',
         entityType: 'area',
         metadata: '{"blocks":12,"routes":200}',
@@ -477,7 +474,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/300 on a top-level area -> More -> Manage -> Delete area',
     activities: [
-      activity(5, { entityId: '300', entityType: 'area', oldValue: 'Steinbruch', type: 'deleted', userFk: ME }),
+      activityAgo(5, { entityId: '300', entityType: 'area', oldValue: 'Steinbruch', type: 'deleted', userFk: ME }),
     ],
     domain: 'area',
     entities: worldWith([[{ id: '300', type: 'area' }, null]]),
@@ -504,7 +501,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Add -> Add parking -> step Place parking -> Next -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -523,7 +520,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/explore -> + FAB -> Place on the map -> Add parking -> pan -> confirm Add parking -> /areas/301/parking/edit?lat&long -> Next -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -541,7 +538,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Add -> Add parking -> place the pin -> draw an approach path on step 2 -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -578,7 +575,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> More -> Add -> Add parking -> Save, then repeat at different coordinates',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -587,7 +584,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(15, {
+      activityAgo(15, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -605,7 +602,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/301 -> Add parking at P -> Save, delete the parking, then add parking again at exactly P',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -614,7 +611,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(20, {
+      activityAgo(20, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -633,7 +630,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/explore -> tap the blue parking marker -> /parking/{geolocationId} -> More -> Manage -> Delete parking',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'parking location',
         entityId: '301',
         entityType: 'area',
@@ -669,7 +666,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Not reachable from the UI: hand-insert a files row with area_fk set, then /f/{fileId} -> trash (aria-label Delete) -> Delete media -> Delete',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '301',
         entityType: 'area',
@@ -686,7 +683,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'As AREA-08a with a Bunny video: /f/{fileId} -> trash -> Delete media -> Delete',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '301',
         entityType: 'area',
@@ -706,7 +703,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/areas/{cragId} -> More -> Add -> Add block -> /areas/{cragId}/blocks/add -> Block name -> Use current location -> Done -> Add',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         newValue: 'Nordblock',
@@ -725,7 +722,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/{cragId}/blocks/add -> leave Block name blank -> place the pin -> Add',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         newValue: '',
@@ -749,7 +746,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/areas/{cragId}/blocks/add with no location -> dialog Add without a location? -> Add without location',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         newValue: 'Nordblock',
@@ -768,7 +765,7 @@ export const CASES: ActivityCase[] = [
     action:
       "/explore -> + FAB -> Place on the map -> Add block -> pan -> confirm -> /areas/{cragId}/blocks/add?lat&long -> leave I'm not sure about the exact spot on -> Add",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         newValue: 'Nordblock',
@@ -802,7 +799,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit on a pinless block -> Choose on map -> Done -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -819,7 +816,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> Adjust -> move the pin -> Done -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -839,7 +836,7 @@ export const CASES: ActivityCase[] = [
     action:
       "/blocks/{id}/edit on an estimated pin -> flip I'm not sure about the exact spot off -> Save without moving the pin",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -858,7 +855,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "/blocks/{id}/edit -> flip I'm not sure about the exact spot on -> Save without moving the pin",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -876,7 +873,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> Adjust -> move the pin -> Save, then move it again within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -909,7 +906,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> Remove location -> Save -> dialog Save without a location? -> Save without location',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -935,7 +932,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> Choose on map -> Save, then within 15 min Remove location -> Save without location',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -945,7 +942,7 @@ export const CASES: ActivityCase[] = [
         type: 'deleted',
         userFk: ME,
       }),
-      activity(8, {
+      activityAgo(8, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -971,7 +968,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> change Block name A to B -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '400',
         entityType: 'block',
@@ -989,7 +986,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> clear the Block name field -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '400',
         entityType: 'block',
@@ -1008,7 +1005,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/blocks/{id}/edit on a previously unnamed block (the field prefills from rawName, so it starts empty) -> type a name -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '400',
         entityType: 'block',
@@ -1033,7 +1030,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/edit -> Adjust the pin and change Block name -> one Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1043,7 +1040,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '400',
         entityType: 'block',
@@ -1069,7 +1066,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/blocks/{id} -> More -> Manage -> Move on the map (or the amber Add location button) -> /blocks/{id}/move -> place the pin -> Done',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1087,7 +1084,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/move on a block whose pin is estimated -> place the pin -> Done',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1113,7 +1110,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/move -> Done, then /blocks/{id}/edit -> Adjust -> move the pin -> Save within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1132,7 +1129,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/topos/edit on a pinless block -> Add photo -> pick a phone JPEG carrying GPS EXIF',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1164,7 +1161,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/topos/edit -> Add photo -> multi-select 5 GPS photos',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1182,7 +1179,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/blocks/{id}/topos/edit on a pinless block -> Add photo -> pick one GPS JPEG (the same upload that writes TOPO-01a)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -1191,7 +1188,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'location',
         entityId: '400',
         entityType: 'block',
@@ -1210,7 +1207,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id} -> More -> Manage -> Delete block (no confirm) on a bare block',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         oldValue: 'Nordblock',
@@ -1229,7 +1226,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id} -> More -> Manage -> Delete block on a block holding routes, topos and files',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         metadata: '{"routes":9}',
@@ -1249,7 +1246,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id} -> More -> Manage -> Delete block on an unnamed block',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '400',
         entityType: 'block',
         oldValue: '',
@@ -1285,7 +1282,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Read a files.id where block_fk = {blockId} out of psql, sign in with region DELETE, /f/{fileId} -> trash -> Delete media -> Delete',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '400',
         entityType: 'block',
@@ -1304,7 +1301,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/blocks/400 -> More -> Manage -> Add route -> /blocks/400/routes/add -> fill Route name, Grade, Rating, Tags, Description, Year, First ascensionists -> Add',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '500',
         entityType: 'route',
         newValue: 'Kante direkt',
@@ -1321,7 +1318,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same add form, submit with Route name left blank',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '503',
         entityType: 'route',
         newValue: '',
@@ -1340,7 +1337,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same add form, drop two files on the Photos & videos tile before Add',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '501',
         entityType: 'route',
         newValue: 'Riss',
@@ -1349,7 +1346,7 @@ export const CASES: ActivityCase[] = [
         type: 'created',
         userFk: ME,
       }),
-      activity(4, {
+      activityAgo(4, {
         entityId: 'f-r1c-0',
         entityType: 'file',
         parentEntityId: '501',
@@ -1357,7 +1354,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(3, {
+      activityAgo(3, {
         entityId: 'f-r1c-1',
         entityType: 'file',
         parentEntityId: '501',
@@ -1378,7 +1375,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same add form, pick Me in First ascensionists on a first ever self-claim in the region',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '502',
         entityType: 'route',
         newValue: 'Dach',
@@ -1387,7 +1384,7 @@ export const CASES: ActivityCase[] = [
         type: 'created',
         userFk: 5,
       }),
-      activity(4, {
+      activityAgo(4, {
         columnName: 'first ascensionist',
         entityId: '5',
         entityType: 'user',
@@ -1410,7 +1407,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/400/topos/edit -> Routes -> Add route to this photo -> Or create new -> Quick line',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '503',
         entityType: 'route',
         newValue: '',
@@ -1430,7 +1427,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/blocks/400/topos/edit -> Routes -> New route -> fill Route name, Grade, Tags -> header check button (aria-label Add)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '502',
         entityType: 'route',
         newValue: 'Dach',
@@ -1448,7 +1445,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500 -> More -> Manage -> Edit -> change Route name -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '500',
         entityType: 'route',
@@ -1466,7 +1463,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500/edit -> clear the Route name field -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '500',
         entityType: 'route',
@@ -1495,7 +1492,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> drag Grade on an ungraded route -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '503',
         entityType: 'route',
@@ -1513,7 +1510,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/501/edit -> move Grade from one value to another -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '501',
         entityType: 'route',
@@ -1531,7 +1528,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/501/edit -> clear the Grade -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '501',
         entityType: 'route',
@@ -1548,7 +1545,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/502/edit -> tap 2 stars under Rating -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'rating',
         entityId: '502',
         entityType: 'route',
@@ -1566,7 +1563,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/502/edit -> tap the selected star again to clear the Rating -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'rating',
         entityId: '502',
         entityType: 'route',
@@ -1590,7 +1587,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500/edit -> toggle a tag chip on -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'tags',
         entityId: '500',
         entityType: 'route',
@@ -1608,7 +1605,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500/edit -> deselect every tag -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'tags',
         entityId: '500',
         entityType: 'route',
@@ -1640,7 +1637,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Legacy row: a tags row written even though the tag set did not change',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'tags',
         entityId: '500',
         entityType: 'route',
@@ -1659,7 +1656,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/501/edit -> First ascensionists -> Add "Jane Doe" -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'firstAscensionists',
         entityId: '501',
         entityType: 'route',
@@ -1678,7 +1675,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/501/edit -> First ascensionists -> pick the Me row on a first ever self-claim -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'firstAscensionists',
         entityId: '501',
         entityType: 'route',
@@ -1688,7 +1685,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'block',
         userFk: 5,
       }),
-      activity(4, {
+      activityAgo(4, {
         columnName: 'first ascensionist',
         entityId: '5',
         entityType: 'user',
@@ -1704,7 +1701,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/501/edit -> remove every First ascensionists chip -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'firstAscensionists',
         entityId: '501',
         entityType: 'route',
@@ -1729,7 +1726,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/502/edit -> pick a Year on a route with none -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'firstAscentYear',
         entityId: '502',
         entityType: 'route',
@@ -1746,7 +1743,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/502/edit -> change the Year -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'firstAscentYear',
         entityId: '502',
         entityType: 'route',
@@ -1764,7 +1761,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/502/edit -> pick the empty first Year option (a bare dash) -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'firstAscentYear',
         entityId: '502',
         entityType: 'route',
@@ -1788,7 +1785,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> type into Description on a route with none -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1807,7 +1804,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> edit the existing Description prose -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1826,7 +1823,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> change a clause in the middle of the Description -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1845,7 +1842,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> replace the Description with an entirely different text -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1864,7 +1861,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> edit the second paragraph of a three-paragraph Description -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1885,7 +1882,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> clear the Description editor -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1904,7 +1901,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503/edit -> open and Save so the editor reserialises the same markdown without a real edit',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'description',
         entityId: '503',
         entityType: 'route',
@@ -1923,7 +1920,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500/edit -> change Route name and Grade -> one Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '500',
         entityType: 'route',
@@ -1933,7 +1930,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'block',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '500',
         entityType: 'route',
@@ -1952,7 +1949,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Any ROUTE-02..08 edit, then a second Save of the same column within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '500',
         entityType: 'route',
@@ -1978,7 +1975,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Any ROUTE-02..08 edit, then a second Save of the same column more than 15 min later',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'name',
         entityId: '500',
         entityType: 'route',
@@ -1988,7 +1985,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'block',
         userFk: ME,
       }),
-      activity(95, {
+      activityAgo(95, {
         columnName: 'name',
         entityId: '500',
         entityType: 'route',
@@ -2015,7 +2012,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500 -> More -> Manage -> Delete route (no confirm) on a bare route',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '500',
         entityType: 'route',
         oldValue: 'Kante direkt',
@@ -2034,7 +2031,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/501 -> More -> Manage -> Delete route on a route with ascents, files and topo lines (soft delete)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '501',
         entityType: 'route',
         oldValue: 'Riss',
@@ -2053,7 +2050,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "/blocks/400/topos/edit -> select the route's line -> Delete route everywhere",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '502',
         entityType: 'route',
         oldValue: 'Dach',
@@ -2072,7 +2069,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/503 -> More -> Manage -> Delete route on a route whose name is blank',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '503',
         entityType: 'route',
         oldValue: '',
@@ -2107,7 +2104,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/500 -> tap a photo thumb (?media={fileId}) -> trash (aria-label Delete) -> Delete media -> Delete',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '500',
         entityType: 'route',
@@ -2124,7 +2121,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same trash flow on a Bunny video attached to the route',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '500',
         entityType: 'route',
@@ -2141,7 +2138,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'ROUTE-13a twice (or three times) on the same route as the same user',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '500',
         entityType: 'route',
@@ -2158,7 +2155,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'ROUTE-13a then ROUTE-13b on the same route',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '500',
         entityType: 'route',
@@ -2166,7 +2163,7 @@ export const CASES: ActivityCase[] = [
         type: 'deleted',
         userFk: ME,
       }),
-      activity(8, {
+      activityAgo(8, {
         columnName: 'file',
         entityId: '500',
         entityType: 'route',
@@ -2192,7 +2189,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/blocks/400/routes/add or /routes/501/edit -> First ascensionists -> Me -> submit, first ever claim in that region',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'first ascensionist',
         entityId: '5',
         entityType: 'user',
@@ -2229,7 +2226,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Me self-claim repeated in a second region',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'first ascensionist',
         entityId: '5',
         entityType: 'user',
@@ -2237,7 +2234,7 @@ export const CASES: ActivityCase[] = [
         regionFk: 2,
         userFk: 5,
       }),
-      activity(95, {
+      activityAgo(95, {
         columnName: 'first ascensionist',
         entityId: '5',
         entityType: 'user',
@@ -2253,7 +2250,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "Me self-claim inside 15 min of the route's own creation",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'first ascensionist',
         entityId: '5',
         entityType: 'user',
@@ -2271,7 +2268,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id} -> Log ascent -> /routes/{id}/ascents/add -> How did it go? card 1 Attempt -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'attempt',
@@ -2289,7 +2286,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> How did it go? card 2 Flash -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'flash',
@@ -2306,7 +2303,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> How did it go? card 3 Redpoint -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'redpoint',
@@ -2323,7 +2320,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> How did it go? card 4 Repeat -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'repeat',
@@ -2340,7 +2337,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> Flash -> drop 3 photos on the Add tile -> Save',
     activities: [
-      activity(2, {
+      activityAgo(2, {
         entityId: 'f-asc-1',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2348,7 +2345,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(3, {
+      activityAgo(3, {
         entityId: 'f-asc-2',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2356,7 +2353,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(4, {
+      activityAgo(4, {
         entityId: 'f-asc-3',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2364,7 +2361,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'flash',
@@ -2387,7 +2384,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> Flash -> drop one photo and one video on the Add tile -> Save',
     activities: [
-      activity(2, {
+      activityAgo(2, {
         entityId: 'f-asc-4',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2395,7 +2392,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(3, {
+      activityAgo(3, {
         entityId: 'f-asc-5',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2403,7 +2400,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'flash',
@@ -2425,7 +2422,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> Flash -> fill Notes -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'flash',
@@ -2460,7 +2457,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/routes/{id}/ascents/add -> Attempt -> back-date with the third When segment -> set Your grade and Your rating -> expand Conditions -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'attempt',
@@ -2495,7 +2492,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/routes/{id}/ascents/add -> Attempt -> leave Your grade and Your rating alone -> expand Conditions -> set the temperature -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         newValue: 'attempt',
@@ -2526,7 +2523,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/routes/{id}/ascents -> Details -> Edit -> /ascents/{id}/edit -> pick another type card -> Save, more than 15 min after logging',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'type',
         entityId: '9001',
         entityType: 'ascent',
@@ -2557,7 +2554,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> drag Your grade on an ascent with none -> Save',
     activities: [
-      activity(5, { columnName: 'gradeFk', entityId: '9001', entityType: 'ascent', newValue: '15', userFk: ME }),
+      activityAgo(5, { columnName: 'gradeFk', entityId: '9001', entityType: 'ascent', newValue: '15', userFk: ME }),
     ],
     domain: 'ascent',
     expected:
@@ -2567,7 +2564,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Clear next to the grade pill -> Save',
     activities: [
-      activity(5, { columnName: 'gradeFk', entityId: '9001', entityType: 'ascent', oldValue: '15', userFk: ME }),
+      activityAgo(5, { columnName: 'gradeFk', entityId: '9001', entityType: 'ascent', oldValue: '15', userFk: ME }),
     ],
     domain: 'ascent',
     expected:
@@ -2577,7 +2574,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> tap a star under Your rating -> Save',
     activities: [
-      activity(5, { columnName: 'rating', entityId: '9001', entityType: 'ascent', newValue: '2', userFk: ME }),
+      activityAgo(5, { columnName: 'rating', entityId: '9001', entityType: 'ascent', newValue: '2', userFk: ME }),
     ],
     domain: 'ascent',
     expected: 'session kind, single card. rating renderer, label Rating, empty stars to two filled.',
@@ -2586,7 +2583,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> tap the selected star again to clear -> Save',
     activities: [
-      activity(5, { columnName: 'rating', entityId: '9001', entityType: 'ascent', oldValue: '2', userFk: ME }),
+      activityAgo(5, { columnName: 'rating', entityId: '9001', entityType: 'ascent', oldValue: '2', userFk: ME }),
     ],
     domain: 'ascent',
     expected:
@@ -2596,7 +2593,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> When -> Yesterday or a picked date -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'dateTime',
         entityId: '9001',
         entityType: 'ascent',
@@ -2620,7 +2617,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Save untouched on a machine whose locale is far from UTC',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'dateTime',
         entityId: '9001',
         entityType: 'ascent',
@@ -2637,7 +2634,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> expand Conditions -> drag Temperature -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'temperature',
         entityId: '9001',
         entityType: 'ascent',
@@ -2654,7 +2651,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Conditions -> Clear on the Temperature header row -> Save',
     activities: [
-      activity(5, { columnName: 'temperature', entityId: '9001', entityType: 'ascent', oldValue: '12', userFk: ME }),
+      activityAgo(5, { columnName: 'temperature', entityId: '9001', entityType: 'ascent', oldValue: '12', userFk: ME }),
     ],
     domain: 'ascent',
     expected: 'session kind, single card. temperature renderer, chip to Not set.',
@@ -2663,7 +2660,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Conditions -> drag Humidity -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'humidity',
         entityId: '9001',
         entityType: 'ascent',
@@ -2680,7 +2677,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Conditions -> Clear on the Humidity header row -> Save',
     activities: [
-      activity(5, { columnName: 'humidity', entityId: '9001', entityType: 'ascent', oldValue: '55', userFk: ME }),
+      activityAgo(5, { columnName: 'humidity', entityId: '9001', entityType: 'ascent', oldValue: '55', userFk: ME }),
     ],
     domain: 'ascent',
     expected: 'session kind, single card. humidity renderer, chip to Not set.',
@@ -2689,7 +2686,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> type into Notes on an ascent with none -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'notes',
         entityId: '9001',
         entityType: 'ascent',
@@ -2706,7 +2703,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> empty the Notes editor -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'notes',
         entityId: '9001',
         entityType: 'ascent',
@@ -2723,7 +2720,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> insert an @mention into Notes -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'notes',
         entityId: '9001',
         entityType: 'ascent',
@@ -2740,7 +2737,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> change type, grade and notes in one Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'type',
         entityId: '9001',
         entityType: 'ascent',
@@ -2748,7 +2745,7 @@ export const CASES: ActivityCase[] = [
         oldValue: 'attempt',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '9001',
         entityType: 'ascent',
@@ -2756,7 +2753,7 @@ export const CASES: ActivityCase[] = [
         oldValue: '12',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'notes',
         entityId: '9001',
         entityType: 'ascent',
@@ -2773,7 +2770,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> change a column -> Save, then change the same column again within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '9001',
         entityType: 'ascent',
@@ -2805,7 +2802,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "As a region admin, /ascents/{id}/edit on somebody else's ascent -> change the grade -> Save",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'gradeFk',
         entityId: '9002',
         entityType: 'ascent',
@@ -2822,7 +2819,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Two people edit the same ascent from /ascents/{id}/edit within 15 min of each other',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'rating',
         entityId: '9002',
         entityType: 'ascent',
@@ -2830,7 +2827,7 @@ export const CASES: ActivityCase[] = [
         oldValue: '2',
         userFk: 5,
       }),
-      activity(8, {
+      activityAgo(8, {
         columnName: 'notes',
         entityId: '9002',
         entityType: 'ascent',
@@ -2847,7 +2844,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents -> expand the ascent row -> Delete -> confirm Delete ascent',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         metadata: deletedAscent(ME, 'Ada Rossi'),
@@ -2867,7 +2864,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "As an admin, expand somebody else's ascent row -> Delete -> confirm Delete ascent",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9002',
         entityType: 'ascent',
         metadata: deletedAscent(3, 'Jonas Weber'),
@@ -2887,7 +2884,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Delete an ascent that carries photos and videos, via expand -> Delete -> Delete ascent',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: '9001',
         entityType: 'ascent',
         metadata: deletedAscent(ME, 'Ada Rossi'),
@@ -2908,7 +2905,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Tap an ascent photo thumb (route page, ascent list, /ascents/{id}/edit or /profile) -> trash -> Delete media -> Delete',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '9001',
         entityType: 'ascent',
@@ -2925,7 +2922,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Tap an ascent video thumb -> trash -> Delete media -> Delete',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'file',
         entityId: '9001',
         entityType: 'ascent',
@@ -2942,7 +2939,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'A media removal row written before the media word was stored (legacy data, no UI path today)',
     activities: [
-      activity(5, { columnName: 'file', entityId: '9001', entityType: 'ascent', type: 'deleted', userFk: ME }),
+      activityAgo(5, { columnName: 'file', entityId: '9001', entityType: 'ascent', type: 'deleted', userFk: ME }),
     ],
     domain: 'ascent',
     expected:
@@ -2952,7 +2949,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Photos & videos -> + Add tile -> pick an image (no submit needed)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-asc-6',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2970,7 +2967,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Photos & videos -> + Add tile -> pick an .mp4 (TUS straight to Bunny)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-asc-7',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2988,7 +2985,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Photos & videos -> + Add tile -> pick a photo and a video in one submit',
     activities: [
-      activity(4, {
+      activityAgo(4, {
         entityId: 'f-asc-8',
         entityType: 'file',
         parentEntityId: '9001',
@@ -2996,7 +2993,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-asc-9',
         entityType: 'file',
         parentEntityId: '9001',
@@ -3024,7 +3021,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> Photos & videos -> a failed finalize retried via the toast Retry',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-asc-10',
         entityType: 'file',
         parentEntityId: '9001',
@@ -3045,7 +3042,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/routes/{id} -> Photos & videos -> Add tile -> sheet Add photos or videos -> Upload photos -> pick 1 JPG (no submit step)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01a',
         entityType: 'file',
         parentEntityId: '500',
@@ -3063,7 +3060,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id}/routes/add -> fill Route name -> drop photos on Photos & videos -> Add',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01b-0',
         entityType: 'file',
         parentEntityId: '500',
@@ -3071,7 +3068,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(6, {
+      activityAgo(6, {
         entityId: 'f-01b-1',
         entityType: 'file',
         parentEntityId: '500',
@@ -3079,7 +3076,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(7, {
+      activityAgo(7, {
         entityId: '500',
         entityType: 'route',
         newValue: 'Kante direkt',
@@ -3101,7 +3098,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> drop photos on Photos & videos -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01c',
         entityType: 'file',
         parentEntityId: '9001',
@@ -3119,7 +3116,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/ascents/{id}/edit -> + Add -> pick a photo (finalizes on pick, no Save needed)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01d',
         entityType: 'file',
         parentEntityId: '9001',
@@ -3153,7 +3150,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id} -> Add tile -> Upload photos -> pick 1 HEIC/HEIF',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01g',
         entityType: 'file',
         parentEntityId: '500',
@@ -3171,7 +3168,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id} -> Add tile -> Upload photos -> multi-select 5 JPGs (cap is 10 per pick)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01h-0',
         entityType: 'file',
         parentEntityId: '500',
@@ -3179,7 +3176,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(6, {
+      activityAgo(6, {
         entityId: 'f-01h-1',
         entityType: 'file',
         parentEntityId: '500',
@@ -3187,7 +3184,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(7, {
+      activityAgo(7, {
         entityId: 'f-01h-2',
         entityType: 'file',
         parentEntityId: '500',
@@ -3195,7 +3192,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(8, {
+      activityAgo(8, {
         entityId: 'f-01h-3',
         entityType: 'file',
         parentEntityId: '500',
@@ -3203,7 +3200,7 @@ export const CASES: ActivityCase[] = [
         type: 'uploaded',
         userFk: ME,
       }),
-      activity(9, {
+      activityAgo(9, {
         entityId: 'f-01h-4',
         entityType: 'file',
         parentEntityId: '500',
@@ -3234,7 +3231,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id} -> Add tile -> pick a photo, finalize fails -> toast Retry',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-01j-retry',
         entityType: 'file',
         parentEntityId: '500',
@@ -3251,7 +3248,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id}/ascents/add -> drag an .mp4 onto the plain drop zone -> fill the form -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-02a',
         entityType: 'file',
         parentEntityId: '9001',
@@ -3269,7 +3266,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/routes/{id} -> Add -> Upload a video -> Choose a video -> leave Source empty -> Add video',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-02b',
         entityType: 'file',
         parentEntityId: '500',
@@ -3287,7 +3284,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same as FILE-02b, typing a valid URL into Source before Add video',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         entityId: 'f-02c',
         entityType: 'file',
         parentEntityId: '500',
@@ -3322,7 +3319,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/routes/{id} -> tap a video thumb -> ?media={fileId} viewer -> chain icon (Edit source) -> type a URL -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'source',
         entityId: 'f-03a',
         entityType: 'file',
@@ -3346,7 +3343,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same viewer, replace the existing Source URL with another one -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'source',
         entityId: 'f-03b',
         entityType: 'file',
@@ -3368,7 +3365,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same viewer, clear the Source field entirely -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'source',
         entityId: 'f-03c',
         entityType: 'file',
@@ -3394,7 +3391,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'FILE-03b, then edit the Source a second time within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'source',
         entityId: 'f-03e',
         entityType: 'file',
@@ -3424,7 +3421,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Open the viewer on a legacy clip whose stored source is free text rather than a URL',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'source',
         entityId: 'f-03g',
         entityType: 'file',
@@ -3445,7 +3442,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'FILE-02b then FILE-03a on the same clip, immediately after the upload',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'source',
         entityId: 'f-03h',
         entityType: 'file',
@@ -3454,7 +3451,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'route',
         userFk: ME,
       }),
-      activity(8, {
+      activityAgo(8, {
         entityId: 'f-03h',
         entityType: 'file',
         parentEntityId: '501',
@@ -3494,7 +3491,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/blocks/{id} -> More -> Manage -> Edit topos -> Add photo (or the dashed + ADD tile) -> pick 1 image',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3512,7 +3509,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Same topo editor Add photo, multi-select 4 images',
     activities: [700, 701, 702, 703].map((topoId, index) =>
-      activity(5 + index * 3, {
+      activityAgo(5 + index * 3, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3538,7 +3535,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Add photo with 4 images, one upload fails mid-batch',
     activities: [700, 701, 702].map((topoId, index) =>
-      activity(5 + index * 3, {
+      activityAgo(5 + index * 3, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3556,7 +3553,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> Delete photo, then Add photo with an identical image',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3575,7 +3572,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> tap a thumbnail -> its More button -> Delete photo -> accept the native confirm()',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3602,7 +3599,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> Delete photo on two thumbnails in a row',
     activities: [701, 702].map((topoId, index) =>
-      activity(5 + index * 4, {
+      activityAgo(5 + index * 4, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3622,7 +3619,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> select a photo -> More -> Replace photo -> pick 1 image (single-select is forced)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3640,7 +3637,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Replace photo twice on the same photo, any interval',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3659,7 +3656,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Add photo, then Replace photo on that same photo',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3668,7 +3665,7 @@ export const CASES: ActivityCase[] = [
         parentEntityType: 'area',
         userFk: ME,
       }),
-      activity(9, {
+      activityAgo(9, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3688,7 +3685,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Topo editor with 2+ photos -> tap a thumbnail -> press its grip (Drag to reorder) -> drag past 8px onto another slot -> release',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3707,7 +3704,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Reorder the thumbnails repeatedly, any interval',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3734,7 +3731,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Reorder from a stale client snapshot whose ids all get filtered out server-side',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3754,7 +3751,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Topo editor -> select a photo -> Routes -> Add route to this photo -> pick a route -> place Start / Middle / Top -> Done -> HUD Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3775,7 +3772,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> select a line -> drag its points -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3796,7 +3793,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> select a line -> toggle Finish hold / Top out without moving a point -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3817,7 +3814,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> select a line -> Remove line -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3841,7 +3838,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> Remove line on the last remaining line -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3872,7 +3869,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Draw a line and Save, then redraw and Save again on the same photo within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3904,7 +3901,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> edit lines on 2 photos -> one HUD Save press',
     activities: [700, 701].map((topoId, index) =>
-      activity(5 + index * 4, {
+      activityAgo(5 + index * 4, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3932,7 +3929,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Topo editor -> Routes -> Quick line for a route with no name -> place points -> Done -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3953,7 +3950,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Save lines, soft-delete one of those routes, then Save the topo again',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3974,7 +3971,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Open the feed on a legacy topo row whose metadata is NULL (2 exist in the dev DB)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -3992,7 +3989,7 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Open the feed on a lines row whose diff resolves to nothing added, redrawn or removed',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'topo',
         entityId: '400',
         entityType: 'block',
@@ -4030,7 +4027,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/settings -> Regions -> the region row -> /settings/regions/{id} -> Invite someone -> Email address -> Invite',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'invitation',
         entityId: '1',
         entityType: 'user',
@@ -4047,7 +4044,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/regions/{id} -> Invite someone -> the same address that already has a live invitation -> Invite',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'invitation',
         entityId: '1',
         entityType: 'user',
@@ -4078,7 +4075,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/regions/{id} -> Invite someone -> Invite, with the mail provider failing',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'invitation',
         entityId: '1',
         entityType: 'user',
@@ -4096,7 +4093,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/settings/regions/{id} -> the pending invitation row -> Revoke invitation (Resend, above the rule, writes nothing)',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'invitation',
         entityId: '1',
         entityType: 'user',
@@ -4114,7 +4111,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Sofia invites the address, then Mara opens /settings/regions/{id} -> the invitation row -> Revoke invitation',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'invitation',
         entityId: '5',
         entityType: 'user',
@@ -4122,7 +4119,7 @@ export const CASES: ActivityCase[] = [
         type: 'deleted',
         userFk: 5,
       }),
-      activity(8, {
+      activityAgo(8, {
         columnName: 'invitation',
         entityId: '3',
         entityType: 'user',
@@ -4147,7 +4144,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "/settings/regions/{id} -> another member's row -> Role -> pick a different role",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'role',
         entityId: '5',
         entityType: 'user',
@@ -4164,7 +4161,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/regions/{id} -> the same member -> Role -> a different role, twice within 15 min',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'role',
         entityId: '5',
         entityType: 'user',
@@ -4188,7 +4185,7 @@ export const CASES: ActivityCase[] = [
   {
     action: "Change the same member's role in region A, then in region B (/settings/regions/{other}) within 15 min",
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'role',
         entityId: '5',
         entityType: 'user',
@@ -4197,7 +4194,7 @@ export const CASES: ActivityCase[] = [
         regionFk: 2,
         userFk: ME,
       }),
-      activity(8, {
+      activityAgo(8, {
         columnName: 'role',
         entityId: '5',
         entityType: 'user',
@@ -4228,7 +4225,9 @@ export const CASES: ActivityCase[] = [
   },
   {
     action: "/settings/regions/{id} -> a member's row -> below the rule -> Remove",
-    activities: [activity(5, { columnName: 'role', entityId: '5', entityType: 'user', type: 'deleted', userFk: ME })],
+    activities: [
+      activityAgo(5, { columnName: 'role', entityId: '5', entityType: 'user', type: 'deleted', userFk: ME }),
+    ],
     domain: 'region',
     expected:
       'single card, "You removed Mara Lindqvist from the region". No change line, deliberately: the row stores no old/new pair, and the shared registry used to render "Role: maintainer to Not set".',
@@ -4237,8 +4236,8 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/regions/{id} -> Remove on one member, then Remove on a second member within 30 min',
     activities: [
-      activity(5, { columnName: 'role', entityId: '5', entityType: 'user', type: 'deleted', userFk: ME }),
-      activity(11, { columnName: 'role', entityId: '3', entityType: 'user', type: 'deleted', userFk: ME }),
+      activityAgo(5, { columnName: 'role', entityId: '5', entityType: 'user', type: 'deleted', userFk: ME }),
+      activityAgo(11, { columnName: 'role', entityId: '3', entityType: 'user', type: 'deleted', userFk: ME }),
     ],
     domain: 'region',
     entities: worldWith([
@@ -4262,7 +4261,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/regions/{id} -> your own member row -> Leave region -> confirm the Leave region dialog',
     activities: [
-      activity(5, { columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted', userFk: 5 }),
+      activityAgo(5, { columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted', userFk: 5 }),
     ],
     domain: 'region',
     expected:
@@ -4279,8 +4278,8 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Leave region, then follow a fresh invite back in via /invite/accept?token={uuid} -> Join {region}',
     activities: [
-      activity(5, { columnName: 'invitation', entityId: '5', entityType: 'user', type: 'updated', userFk: 5 }),
-      activity(25, { columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted', userFk: 5 }),
+      activityAgo(5, { columnName: 'invitation', entityId: '5', entityType: 'user', type: 'updated', userFk: 5 }),
+      activityAgo(25, { columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted', userFk: 5 }),
     ],
     domain: 'region',
     expected:
@@ -4291,7 +4290,7 @@ export const CASES: ActivityCase[] = [
     action:
       'Follow the emailed link to /invite/accept?token={uuid} -> Join {region}, or /settings -> Invitations -> Join',
     activities: [
-      activity(5, { columnName: 'invitation', entityId: '1', entityType: 'user', type: 'updated', userFk: ME }),
+      activityAgo(5, { columnName: 'invitation', entityId: '1', entityType: 'user', type: 'updated', userFk: ME }),
     ],
     domain: 'region',
     expected:
@@ -4308,8 +4307,8 @@ export const CASES: ActivityCase[] = [
   {
     action: 'Leave region, get re-invited, then Join {region} again',
     activities: [
-      activity(5, { columnName: 'invitation', entityId: '5', entityType: 'user', type: 'updated', userFk: 5 }),
-      activity(95, { columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted', userFk: 5 }),
+      activityAgo(5, { columnName: 'invitation', entityId: '5', entityType: 'user', type: 'updated', userFk: 5 }),
+      activityAgo(95, { columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted', userFk: 5 }),
     ],
     domain: 'region',
     expected:
@@ -4327,7 +4326,7 @@ export const CASES: ActivityCase[] = [
     action:
       '/settings -> Account -> Username -> /settings/username -> type a new name -> Save, as a member of 3 regions',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4336,7 +4335,7 @@ export const CASES: ActivityCase[] = [
         regionFk: 1,
         userFk: 5,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4345,7 +4344,7 @@ export const CASES: ActivityCase[] = [
         regionFk: 2,
         userFk: 5,
       }),
-      activity(5, {
+      activityAgo(5, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4371,7 +4370,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/username -> change mara to Mara (case only) -> Save',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4395,7 +4394,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/username -> Save twice, mara to mara.l, then mara.l to lindqvist',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4403,7 +4402,7 @@ export const CASES: ActivityCase[] = [
         oldValue: 'mara.l',
         userFk: 5,
       }),
-      activity(20, {
+      activityAgo(20, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4420,7 +4419,7 @@ export const CASES: ActivityCase[] = [
   {
     action: '/settings/username -> Save three times: mara to mara.l, back to mara, then to mara.l again',
     activities: [
-      activity(5, {
+      activityAgo(5, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',
@@ -4428,7 +4427,7 @@ export const CASES: ActivityCase[] = [
         oldValue: 'mara',
         userFk: 5,
       }),
-      activity(12, {
+      activityAgo(12, {
         columnName: 'username',
         entityId: '5',
         entityType: 'user',

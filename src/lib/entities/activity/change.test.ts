@@ -4,7 +4,7 @@ import { stringifyCoords } from '$lib/map/coords'
 import { describe, expect, it } from 'vitest'
 import { activityChanges, storedMedia, type ActivityChangeContext, type ActivityChangeView } from './change'
 import type { ActivityListItem } from './dto'
-import { activityEntityKey, type ActivityEntity, type ActivityEntityRef } from './entity'
+import { activity, entityMap } from './fixture'
 
 /**
  * What a change line says, asserted against message keys and raw values rather than against
@@ -14,26 +14,6 @@ import { activityEntityKey, type ActivityEntity, type ActivityEntityRef } from '
  * The cases carrying a comment are the ones the markup's own comments recorded as having been
  * wrong once.
  */
-
-function activity(partial: Partial<ActivityListItem>): ActivityListItem {
-  return {
-    columnName: undefined,
-    createdAt: 0,
-    entityId: '1',
-    entityType: 'route',
-    id: 1,
-    metadata: undefined,
-    newValue: undefined,
-    oldValue: undefined,
-    parentEntityId: undefined,
-    parentEntityType: undefined,
-    regionFk: 1,
-    type: 'updated',
-    userFk: 1,
-    userName: 'ada',
-    ...partial,
-  }
-}
 
 /** The one change a row decodes to. Every test here is about a single row. */
 function change(partial: Partial<ActivityListItem>, ctx?: ActivityChangeContext): ActivityChangeView {
@@ -54,10 +34,6 @@ function changeOf<K extends ActivityChangeView['kind']>(
   const view = change(partial, ctx)
   expect(view.kind).toBe(kind)
   return view as Extract<ActivityChangeView, { kind: K }>
-}
-
-function entityMap(entries: [ActivityEntityRef, ActivityEntity][]) {
-  return new Map(entries.map(([ref, entity]) => [activityEntityKey(ref), entity]))
 }
 
 /** A photo with two lines drawn on it, the way hydration hands one over. */
