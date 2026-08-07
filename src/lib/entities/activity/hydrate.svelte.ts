@@ -1,15 +1,6 @@
 /* eslint-disable svelte/prefer-svelte-reactivity -- these collections are rebuilt wholesale
    inside $derived (the new reference is the reactivity) and never mutated afterwards, and
    `activityEntityMap` is a pure function that has no reactive state to be. */
-/**
- * The second pass the polymorphic `entityId` forces (see `entity.ts`): collect the ids a
- * window of activities points at, fetch them through the per-entity list resources, and
- * join them in memory into the map the cards read.
- *
- * The join itself is {@link activityEntityMap}, a pure function, because the interesting
- * part is not the fetching: it is deciding, per ref, between "still syncing" (absent, a
- * skeleton) and "hydration finished without it" (an explicit `null`, a tombstone).
- */
 import { entityHref } from '$lib/components/EntitySearch/search.svelte'
 import type { AreaDetail } from '$lib/entities/area/dto'
 import { areaList } from '$lib/entities/area/resources.svelte'
@@ -40,6 +31,23 @@ import {
   type ActivityEntityRef,
 } from './entity'
 
+/**
+ * The second pass the polymorphic `entityId` forces (see `entity.ts`): collect the ids a window
+ * of activities points at, fetch them through the per-entity list resources, and join them in
+ * memory into the map the cards read.
+ *
+ * One entry per entity kind, in {@link KINDS}. The kinds used to be spelled out in four parallel
+ * lists (which ids to collect, which resource answers, which fetches count as settled, and how a
+ * row becomes an entity), so a seventh kind meant four edits and a missing one showed up as a
+ * card that pulsed forever. What is left outside the table is the resource wiring itself, which
+ * cannot be table-driven because each resource takes its arguments in its own shape.
+ *
+ * The join is {@link activityEntityMap}, a pure function, and the readiness rule lives inside it
+ * rather than in the wiring around it: deciding between "still syncing" (absent, a skeleton) and
+ * "hydration finished without it" (an explicit `null`, a tombstone) is the interesting part, and
+ * it is the part that used to be untestable.
+ */
+
 /** What {@link activityEntityMap} joins: the refs to resolve, and everything fetched for them. */
 export interface ActivityHydration {
   areas: readonly AreaDetail[]
@@ -47,9 +55,9 @@ export interface ActivityHydration {
   blocks: readonly BlockDetail[]
   files: readonly MediaFile[]
   /**
-   * The entity kinds whose fetch has settled. A ref of a kind that is not in here has not
-   * been answered yet and renders as a skeleton; one that is in here but missing from its
-   * list was answered with nothing, so it is gone, and renders as a tombstone.
+   * The entity kinds whose fetch has settled. A ref of a kind that is not in here has not been
+   * answered yet; one that is in here but missing from its list was answered with nothing.
+   * {@link KINDS} says which other kinds a ref waits for on top of its own.
    */
   ready: ReadonlySet<ActivityEntityType>
   refs: readonly ActivityEntityRef[]
@@ -72,6 +80,116 @@ export interface ActivityHydrationResult {
   readonly topos: ReadonlyMap<number, TopoView>
 }
 
+/** What one kind of entity contributes to the join. */
+interface ActivityKind<Row> {
+  /**
+   * Kinds whose fetch must also have settled before a ref of this kind that resolved to nothing
+   * can be called gone. An ascent's row is its route's, so an ascent whose route is still in
+   * flight would otherwise flash a tombstone for something standing right there.
+   */
+  needs?: readonly ActivityEntityType[]
+  /** Whether the table this kind lives in keys on a number. `files` keys on a cuid. */
+  numeric: boolean
+  /** The fetched rows, indexed by id as text, which is how an activity stores it. */
+  rows: (input: ActivityHydration) => ReadonlyMap<string, Row>
+  /** The row as a card renders it, or `undefined` when this row cannot stand on its own yet. */
+  toEntity: (row: Row, input: ActivityHydration) => ActivityEntity | undefined
+}
+
+/** Declares one kind, so `Row` is inferred from `rows` and checked against `toEntity`. */
+function kind<Row>(spec: ActivityKind<Row>): ActivityKind<Row> {
+  return spec
+}
+
+/**
+ * The kinds, one entry each.
+ *
+ * Not held against a `Record<ActivityEntityType, ...>`: a constraint wide enough to accept six
+ * differently shaped rows accepts anything, and the exhaustiveness is already checked where it
+ * matters, by `KINDS[ref.type]` in {@link activityEntityMap}. A missing kind is an error there.
+ */
+const KINDS = {
+  area: kind({
+    numeric: true,
+    rows: (input) => index(input.areas),
+    toEntity: (area, input): ActivityEntity => ({
+      crumbs: crumbs(input, area.regionFk, [area.areas.at(-1)?.name]),
+      description: area.description,
+      href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
+      name: area.name,
+      paths: area.geoPaths.flatMap(decodeApproach),
+      row: 'area',
+    }),
+  }),
+
+  ascent: kind({
+    needs: ['route'],
+    numeric: true,
+    rows: (input) => index(input.ascents),
+    toEntity: (ascent, input): ActivityEntity | undefined => {
+      // The route carries the row (grade, stars, tags, topo thumb); reading those off the ascent
+      // would render a real route with zeroed values, which is worse than late.
+      const route = routeRows(input).get(String(ascent.routeFk))
+      if (route == null && !input.ready.has('route')) {
+        return undefined
+      }
+
+      return {
+        ...(route == null ? { name: ascent.routeName, row: 'none' as const } : routeEntity(route, input)),
+        ascentGradeFk: ascent.gradeFk,
+        ascentRating: ascent.rating,
+        ascentType: ascent.type,
+        climbedAt: ascent.dateTime,
+        climberFk: ascent.createdBy,
+        climberName: ascent.authorName,
+        files: ascent.files,
+        humidity: ascent.humidity,
+        note: ascent.notes,
+        temperature: ascent.temperature,
+      }
+    },
+  }),
+
+  block: kind({
+    numeric: true,
+    rows: (input) => index(input.blocks),
+    toEntity: (block, input): ActivityEntity => ({
+      crumbs: crumbs(input, block.regionFk, [block.areas.at(-1)?.name]),
+      href: entityHref({ id: block.id, label: block.name, type: 'blocks' }),
+      name: block.name,
+      pin: block.geolocation,
+      row: 'block',
+      topoImagePath: block.topoImages[0]?.path,
+    }),
+  }),
+
+  file: kind({
+    numeric: false,
+    rows: (input) => new Map(input.files.map((file) => [file.id, file])),
+    // A file has no page of its own and its id is a cuid, so it contributes the photo and
+    // nothing else: the card names the parent it landed on, hydrated alongside it.
+    toEntity: (file): ActivityEntity => ({ files: [file], name: '', row: 'none' }),
+  }),
+
+  route: kind({
+    numeric: true,
+    rows: routeRows,
+    toEntity: (route, input): ActivityEntity => routeEntity(route, input),
+  }),
+
+  user: kind({
+    numeric: true,
+    rows: (input) => index(input.users),
+    toEntity: (user): ActivityEntity => ({
+      // No breadcrumb: a person's region membership would read like a location path.
+      crumbs: [],
+      href: entityHref({ id: user.id, label: user.username, type: 'users' }),
+      name: user.username,
+      row: 'user',
+    }),
+  }),
+}
+
 /**
  * Fetch and join the entities a window of activities points at.
  *
@@ -91,38 +209,48 @@ export function activityEntities(
   const global = getGlobalState()
 
   const refs = $derived(activityRefs(activities()).hydrate)
-  // `entityId` is text for every kind; the numeric tables get the ids that survive parsing,
-  // so a malformed row can't widen a query with a NaN.
-  const uniqueIds = (ids: readonly string[]) => [...new Set(ids.map(Number))].filter(Number.isInteger)
-  const numericIds = (type: ActivityEntityType) => uniqueIds(refs.flatMap((ref) => (ref.type === type ? [ref.id] : [])))
+  // `entityId` is text for every kind; the numeric tables get the ids that survive parsing, so a
+  // malformed row can't widen a query with a NaN.
+  const idsOf = (type: ActivityEntityType) => {
+    const ids = refs.flatMap((ref) => (ref.type === type ? [ref.id] : []))
+    return KINDS[type].numeric ? [...new Set(ids.map(Number))].filter(Number.isInteger) : [...new Set(ids)]
+  }
 
-  const areaIds = $derived(numericIds('area'))
-  const ascentIds = $derived(numericIds('ascent'))
-  const blockIds = $derived(numericIds('block'))
-  const fileIds = $derived(refs.flatMap((ref) => (ref.type === 'file' ? [ref.id] : [])))
-  const userIds = $derived(numericIds('user'))
+  const areaIds = $derived(idsOf('area').map(Number))
+  const ascentIds = $derived(idsOf('ascent').map(Number))
+  const blockIds = $derived(idsOf('block').map(Number))
+  const fileIds = $derived(idsOf('file').map(String))
+  const userIds = $derived(idsOf('user').map(Number))
 
+  // One line per resource, because each takes its arguments in its own shape. This is the
+  // adapter the table cannot absorb.
   const areas = areaList(() => ({ id: areaIds }))
   const ascents = ascentsByIds(() => ascentIds)
   const blocks = blockList(() => ({ blockId: blockIds }))
   const files = filesByIds(() => fileIds)
   const users = usersByIds(() => userIds)
 
-  // An ascent card renders its route's row, so the ascents' routes join the route ids. It
-  // is a second wave (the route ids arrive with the ascents), which the `ready` set already
-  // handles: the re-targeted query reads as loading until it answers.
-  const routeIds = $derived([...new Set([...numericIds('route'), ...ascents.data.map((ascent) => ascent.routeFk)])])
+  // An ascent card renders its route's row, so the ascents' routes join the route ids. It is a
+  // second wave (the route ids arrive with the ascents), which `KINDS.ascent.needs` handles: the
+  // re-targeted query reads as loading until it answers.
+  const routeIds = $derived([
+    ...new Set([...idsOf('route').map(Number), ...ascents.data.map((ascent) => ascent.routeFk)]),
+  ])
   const routes = routesByIds(() => routeIds)
 
-  // The blocks whose open rows say a topo photo changed. Their lines are a second query
-  // rather than a wider `blockList`, so the screens that only need a block's thumbnail keep
-  // paying for a thumbnail.
+  // The blocks whose open rows say a topo photo changed. Their lines are a second query rather
+  // than a wider `blockList`, so the screens that only need a block's thumbnail keep paying for
+  // a thumbnail.
   const topoBlockIds = $derived(
-    uniqueIds(
-      expanded().flatMap((activity) =>
-        activity.entityType === 'block' && parseTopoChange(activity.metadata) != null ? [activity.entityId] : [],
+    [
+      ...new Set(
+        expanded()
+          .flatMap((activity) =>
+            activity.entityType === 'block' && parseTopoChange(activity.metadata) != null ? [activity.entityId] : [],
+          )
+          .map(Number),
       ),
-    ),
+    ].filter(Number.isInteger),
   )
   const topos = toposByBlockIds(() => topoBlockIds)
 
@@ -167,132 +295,33 @@ export function activityEntities(
 
 /** Join fetched rows onto the refs that asked for them. Pure: see the module comment. */
 export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
-  const areas = index(input.areas)
-  const ascents = index(input.ascents)
-  const blocks = index(input.blocks)
-  const routes = index(input.routes)
-  const users = index(input.users)
-  const files = new Map(input.files.map((file) => [file.id, file]))
-
-  const crumbs = (regionFk: null | number | undefined, rest: (null | string | undefined)[]): string[] =>
-    [regionCrumb(input.userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
-
-  const routeEntity = (route: RouteListItem): ActivityEntity => ({
-    crumbs: crumbs(route.regionFk, [route.areaName, route.blockName]),
-    href: entityHref({ id: route.id, label: route.name, type: 'routes' }),
-    name: route.name,
-    route,
-    row: 'route',
-  })
-
-  /** `undefined` = not answered yet, `null` = answered with nothing. */
-  const entityOf = (ref: ActivityEntityRef): ActivityEntity | null | undefined => {
-    switch (ref.type) {
-      case 'area': {
-        const area = areas.get(ref.id)
-        return area == null
-          ? undefined
-          : {
-              crumbs: crumbs(area.regionFk, [area.areas.at(-1)?.name]),
-              description: area.description,
-              href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
-              name: area.name,
-              paths: area.geoPaths.flatMap(decodeApproach),
-              row: 'area',
-            }
-      }
-
-      case 'ascent': {
-        const ascent = ascents.get(ref.id)
-        if (ascent == null) {
-          return undefined
-        }
-
-        // The route carries the row (grade, stars, tags, topo thumb); reading those off the
-        // ascent would render a real route with zeroed values, which is worse than late.
-        const route = routes.get(String(ascent.routeFk))
-        if (route == null && !input.ready.has('route')) {
-          return undefined
-        }
-
-        return {
-          ...(route == null ? { name: ascent.routeName, row: 'none' as const } : routeEntity(route)),
-          ascentGradeFk: ascent.gradeFk,
-          ascentRating: ascent.rating,
-          ascentType: ascent.type,
-          climbedAt: ascent.dateTime,
-          climberFk: ascent.createdBy,
-          climberName: ascent.authorName,
-          files: ascent.files,
-          humidity: ascent.humidity,
-          note: ascent.notes,
-          temperature: ascent.temperature,
-        }
-      }
-
-      case 'block': {
-        const block = blocks.get(ref.id)
-        return block == null
-          ? undefined
-          : {
-              crumbs: crumbs(block.regionFk, [block.areas.at(-1)?.name]),
-              href: entityHref({ id: block.id, label: block.name, type: 'blocks' }),
-              name: block.name,
-              pin: block.geolocation,
-              row: 'block',
-              topoImagePath: block.topoImages[0]?.path,
-            }
-      }
-
-      case 'file': {
-        const file = files.get(ref.id)
-        // A file has no page of its own and its id is a cuid, so it contributes the photo
-        // and nothing else: the card names the parent it landed on, hydrated alongside it.
-        return file == null ? undefined : { files: [file], name: '', row: 'none' }
-      }
-
-      case 'route': {
-        const route = routes.get(ref.id)
-        return route == null ? undefined : routeEntity(route)
-      }
-
-      case 'user': {
-        const user = users.get(ref.id)
-        return user == null
-          ? undefined
-          : {
-              // No breadcrumb: a person's region membership would read like a location path.
-              crumbs: [],
-              href: entityHref({ id: user.id, label: user.username, type: 'users' }),
-              name: user.username,
-              row: 'user',
-            }
-      }
-    }
-  }
-
-  /**
-   * Whether every fetch a ref depends on has settled. An ascent depends on the routes as
-   * well as the ascents, and only once both have answered does an unresolved one mean it
-   * is gone: without that, an ascent would flash a "deleted" tombstone for the tick its
-   * route spends in flight.
-   */
-  const answered = (ref: ActivityEntityRef) =>
-    input.ready.has(ref.type) && (ref.type !== 'ascent' || input.ready.has('route'))
-
   const entities = new Map<string, ActivityEntity | null>()
 
   for (const ref of input.refs) {
-    const entity = entityOf(ref)
+    const spec = KINDS[ref.type]
+    // The one cast in here. Six kinds index six differently shaped tables, and `ref.type` is
+    // what says which; `kind()` has already checked each `rows`/`toEntity` pair agrees with
+    // itself, so the row a lookup hands back is the row its own `toEntity` takes.
+    const rows = spec.rows(input) as ReadonlyMap<string, never>
+    const row = rows.get(ref.id)
+    const entity = row === undefined ? undefined : spec.toEntity(row, input)
 
     if (entity != null) {
       entities.set(activityEntityKey(ref), entity)
-    } else if (answered(ref)) {
+    } else if (answered(input, ref)) {
       entities.set(activityEntityKey(ref), null)
     }
   }
 
   return entities
+}
+
+/**
+ * Whether every fetch a ref depends on has settled: its own kind, and whatever that kind
+ * declares it needs. Only then does an unresolved ref mean the entity is gone.
+ */
+function answered(input: ActivityHydration, ref: ActivityEntityRef): boolean {
+  return input.ready.has(ref.type) && (KINDS[ref.type].needs ?? []).every((dependency) => input.ready.has(dependency))
 }
 
 /**
@@ -309,6 +338,11 @@ export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
  * ponytail: never evicted. Upgrade = an LRU if a session ever spans enough regions to matter.
  */
 const approachCache = new Map<string, Coords[][]>()
+
+/** The region crumb, then whatever else the row leads with. */
+function crumbs(input: ActivityHydration, regionFk: null | number | undefined, rest: (null | string | undefined)[]) {
+  return [regionCrumb(input.userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
+}
 
 /**
  * One stored approach path as coordinates, or nothing when it does not decode.
@@ -336,4 +370,21 @@ function decodeApproach(encoded: string): Coords[][] {
 /** Rows by their id as text, which is how an activity stores it. */
 function index<T extends { id: number }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [String(row.id), row]))
+}
+
+/** The row an ascent borrows as well as the one a route renders for itself. */
+function routeEntity(route: RouteListItem, input: ActivityHydration): ActivityEntity {
+  return {
+    crumbs: crumbs(input, route.regionFk, [route.areaName, route.blockName]),
+    href: entityHref({ id: route.id, label: route.name, type: 'routes' }),
+    name: route.name,
+    route,
+    row: 'route',
+  }
+}
+
+/** The routes, indexed. Its own function because an ascent borrows a route's row, and reaching
+ *  for it through {@link KINDS} would make the table refer to itself while it is being built. */
+function routeRows(input: ActivityHydration): ReadonlyMap<string, RouteListItem> {
+  return index(input.routes)
 }

@@ -1,5 +1,5 @@
 import type { ActivityListItem } from '$lib/entities/activity/dto'
-import type { ActivityEntity, ActivityEntityRef } from '$lib/entities/activity/entity'
+import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
 import {
   activityAgo as activity,
   entityMap,
@@ -22,7 +22,7 @@ import type { TopoView } from '$lib/entities/topo/dto'
  * only the week: story material, and the one thing the tests have no use for.
  */
 export {
-  activity,
+  activityAgo as activity,
   changes,
   entityMap,
   groups,
@@ -60,7 +60,7 @@ function route(name: string, gradeFk: number, extra: Partial<ActivityEntity> = {
  */
 export const sampleWeek: {
   activities: ActivityListItem[]
-  entities: Map<string, ActivityEntity | null>
+  entities: ActivityEntityMap
   topos: ReadonlyMap<number, TopoView>
 } = (() => {
   const activities: ActivityListItem[] = [

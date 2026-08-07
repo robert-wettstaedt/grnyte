@@ -148,4 +148,44 @@ describe('activityEntityMap', () => {
 
     expect(get(map, 'route', '500')?.crumbs).toEqual(['Westwand', 'Nordblock'])
   })
+
+  /**
+   * The readiness rule, which is what the flashing tombstones were. A kind declares what it
+   * waits for (`KINDS[kind].needs`) and this is the behaviour that declaration buys, asserted
+   * per kind rather than for the one that happens to have a dependency today.
+   */
+  describe('readiness', () => {
+    it.each([
+      ['area', '300'],
+      ['block', '400'],
+      ['file', 'f-1'],
+      ['route', '500'],
+      ['user', '5'],
+    ] as const)('leaves a %s ref pending until its own fetch answers', (type, id) => {
+      const refs = [ref(type, id)]
+
+      expect(activityEntityMap(hydration({ refs })).size).toBe(0)
+      expect(get(activityEntityMap(hydration({ ready: new Set([type]), refs })), type, id)).toBeNull()
+    })
+
+    // An ascent's row is its route's, so its own fetch answering is not enough.
+    it('holds an ascent pending until the routes answer too', () => {
+      const refs = [ref('ascent', '9001')]
+
+      expect(activityEntityMap(hydration({ ready: new Set(['ascent']), refs })).size).toBe(0)
+      expect(
+        get(activityEntityMap(hydration({ ready: new Set(['ascent', 'route']), refs })), 'ascent', '9001'),
+      ).toBeNull()
+    })
+
+    // A kind that answered says nothing about a ref of another kind.
+    it('decides each ref against its own kind', () => {
+      const map = activityEntityMap(
+        hydration({ ready: new Set(['area']), refs: [ref('area', '300'), ref('block', '400')] }),
+      )
+
+      expect(get(map, 'area', '300')).toBeNull()
+      expect(map.has(activityEntityKey(ref('block', '400')))).toBe(false)
+    })
+  })
 })
