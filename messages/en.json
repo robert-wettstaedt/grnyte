@@ -451,6 +451,15 @@
     }
   ],
   "activity_hideChanges": "Hide changes",
+  "activity_metaCreated": "Created {time} by {actor}",
+  "activity_metaCreatedOn": "Created on {time} by {actor}",
+  "activity_metaCreatedOnUnknown": "Created on {time}",
+  "activity_metaCreatedUnknown": "Created {time}",
+  "activity_metaNoChanges": "No changes recorded since.",
+  "activity_metaUpdated": "Updated {time} by {actor}",
+  "activity_metaUpdatedOn": "Updated on {time} by {actor}",
+  "activity_metaUpdatedOnUnknown": "Updated on {time}",
+  "activity_metaUpdatedUnknown": "Updated {time}",
   "activity_moreEntities": "{count} more",
   "activity_routeCreated": [
     {

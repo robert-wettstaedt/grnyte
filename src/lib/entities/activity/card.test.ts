@@ -2,13 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { activityCard } from './card'
 import type { ActivityListItem } from './dto'
 import type { ActivityEntity, ActivityEntityMap } from './entity'
+import type { ActivityEntityRef } from './entity'
 import { activity, entityMap } from './fixture'
 import { groupActivities } from './grouping'
 import { WRITTEN_ACTIVITIES } from './verbs'
 
 /** The card for a set of activities, folded exactly as the feed folds them. */
-function card(activities: ActivityListItem[], entities?: ActivityEntityMap, currentUserFk?: number) {
-  return activityCard(groupActivities(activities)[0], entities, currentUserFk)
+function card(
+  activities: ActivityListItem[],
+  entities?: ActivityEntityMap,
+  currentUserFk?: number,
+  omit?: ActivityEntityRef,
+) {
+  return activityCard(groupActivities(activities)[0], entities, currentUserFk, undefined, omit)
 }
 
 const route = (name: string): ActivityEntity => ({ name, row: 'route' })
@@ -324,6 +330,34 @@ describe('rows', () => {
 
     expect(view.rows).toHaveLength(4)
     expect(view.overflowCount).toBe(2)
+  })
+
+  // The scoped log renders on the entity's own page, where every row is a link back to it.
+  it('drops the row for the entity the card is rendered on', () => {
+    const view = card([activity({ columnName: 'gradeFk', entityId: '7' })], undefined, undefined, {
+      id: '7',
+      type: 'route',
+    })
+
+    expect(view.rows).toEqual([])
+    // The sentence still names it: the headline is one translated string, not a fragment.
+    expect(view.headline.key).toBe('activity_routeUpdatedGradeFk')
+  })
+
+  it('keeps the rows that are not the entity the card is rendered on', () => {
+    const rows = burstRows(2, (index) => ({ columnName: 'name', entityId: String(index + 1), id: 2 - index }))
+    const view = card(rows, undefined, undefined, { id: '1', type: 'route' })
+
+    expect(view.rows.map((row) => row.ref.id)).toEqual(['2'])
+  })
+
+  it('counts the overflow after the omitted row is gone', () => {
+    const rows = burstRows(6, (index) => ({ columnName: 'name', entityId: String(index), id: 6 - index }))
+    const view = card(rows, undefined, undefined, { id: '0', type: 'route' })
+
+    expect(view.rows).toHaveLength(4)
+    // Five rows left, not six: an overflow counted before the filter would say "2 more".
+    expect(view.overflowCount).toBe(1)
   })
 })
 

@@ -451,6 +451,15 @@
     }
   ],
   "activity_hideChanges": "Änderungen ausblenden",
+  "activity_metaCreated": "Erstellt {time} von {actor}",
+  "activity_metaCreatedOn": "Erstellt am {time} von {actor}",
+  "activity_metaCreatedOnUnknown": "Erstellt am {time}",
+  "activity_metaCreatedUnknown": "Erstellt {time}",
+  "activity_metaNoChanges": "Seitdem keine Änderungen erfasst.",
+  "activity_metaUpdated": "Aktualisiert {time} von {actor}",
+  "activity_metaUpdatedOn": "Aktualisiert am {time} von {actor}",
+  "activity_metaUpdatedOnUnknown": "Aktualisiert am {time}",
+  "activity_metaUpdatedUnknown": "Aktualisiert {time}",
   "activity_moreEntities": "{count} weitere",
   "activity_routeCreated": [
     {

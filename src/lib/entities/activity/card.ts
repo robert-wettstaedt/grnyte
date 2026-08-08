@@ -126,21 +126,31 @@ interface CardVerb {
  *
  * `entities` is the hydration result: a key it does not hold is still syncing, an explicit
  * `null` means hydration finished without it. Both render, differently.
+ *
+ * `omit` is the entity whose own page this card is rendered on, whose row would be a link back
+ * to where the reader already is. Only the rows drop; the headline still names it, because the
+ * sentence is one translated string and German puts the participle after the object.
  */
 export function activityCard(
   group: ActivityGroup,
   entities: ActivityEntityMap | undefined,
   currentUserFk: number | undefined,
   topos?: ReadonlyMap<number, TopoView>,
+  omit?: ActivityEntityRef,
 ): ActivityCardView {
   const newest = group.activities[0]
   // What the card points AT, what it renders as rows and the place it happened in are three
   // different questions off one pass. An upload points at a file, which supplies the media and
   // no row; the row belongs to the route or ascent it landed on. The place is not rendered as a
   // row at all (the edits below it are), only named, in the headline and the session summary.
-  const { place, rows: rowRefs, subjects: refs } = activityRefs(group.activities)
+  const { place, rows: allRowRefs, subjects: refs } = activityRefs(group.activities)
   const entityOf = (ref: ActivityEntityRef | undefined) =>
     ref == null ? undefined : entities?.get(activityEntityKey(ref))
+
+  // Dropped here rather than in the component so `overflowCount` counts what is left: a scoped
+  // log whose rows were all the scope entity would otherwise read "3 more" under no rows at all.
+  const omitKey = omit == null ? undefined : activityEntityKey(omit)
+  const rowRefs = omitKey == null ? allRowRefs : allRowRefs.filter((ref) => activityEntityKey(ref) !== omitKey)
 
   const placeName = named(entityOf(place)?.name)
   const firstName = named(entityOf(refs[0])?.name)

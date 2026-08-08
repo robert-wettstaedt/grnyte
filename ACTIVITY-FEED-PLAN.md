@@ -179,6 +179,9 @@ ActivityCard.svelte        header (avatar/who/verb/what/time/status badge), sub 
 ActivityChanges.svelte     expanded typed diff list, dispatches on fields.ts
 ActivityFilters.svelte     title + region chip + filter button + segments + active chips
 ActivityFilterSheet.svelte Modal: region picker, person picker, reset, apply
+ActivityMeta.svelte        the detail pages' one line ("Updated 3 days ago by Robert")
+                           and the sheet it opens
+ActivityLog.svelte         that sheet's body: one entity's log, mounted only while open
 ```
 
 Plus a `.stories.svelte` beside each, driven by fixtures that mirror the design's sample week
@@ -189,7 +192,8 @@ grade change, deleted route, role grant, tombstone, skeleton).
 
 - `(app)/(shell)/feed/+page.svelte` — `ActivityFilters` + `ActivityFeed`, filter state in the
   URL so the view is shareable and back works.
-- Area / block / route detail — `ActivityFeed` scoped to that entity, no filters.
+- Area / block / route detail — `ActivityMeta` at the bottom of the content stack. Not a feed:
+  see §5 phase 6.
 
 ---
 
@@ -208,12 +212,21 @@ grade change, deleted route, role grant, tombstone, skeleton).
    region row reads out the role held there. The URL is mirrored through
    `syncSearchParams` / `withSearchParams` in `state/navigation.svelte.ts`, one `URL` on both sides
    so the query survives its own round trip.
-6. **Per-entity activity.** Same `ActivityFeed` on area/block/route detail.
+6. **Per-entity audit log.** Not a scoped feed: a crag's blocks, a block's routes and a route's
+   ascents all name it as their parent, and none of them is a change to it (a route page already
+   lists its ascents). `scope` therefore narrows to the entity's own rows plus the uploads that
+   landed on it, since a removal is logged on the entity but an upload points at the file and
+   only names the entity as parent. On the page it is one `ActivityMeta` row at the bottom,
+   "Updated 3 days ago by Robert", falling back to "Created ..." off the entity's own
+   `createdAt`/`createdBy` when nothing is logged. Tapping it opens `ActivityLog` in a sheet
+   (`nested` inside the explore sheet, a right aside on the route page), which mounts
+   `activityFeed()` only while open so no detail page pays for a window nobody asked for.
 7. **Verify.** `/grnyte-verify` against real data, plus a Playwright spec for filter + expand.
 
 Phases 1–3 are independent of each other's UI and can land as separate commits.
 
-**Done: 1–5.** `/feed` runs on real data and narrows by segment, region and person. 6–7 are open.
+**Done: 1–6.** `/feed` runs on real data and narrows by segment, region and person, and area,
+block and route detail each carry their own audit log. 7 is open.
 
 ---
 

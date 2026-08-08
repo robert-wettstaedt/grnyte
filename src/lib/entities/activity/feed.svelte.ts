@@ -27,7 +27,11 @@ export interface ActivityFeedFilter {
   category?: ActivityCategory
   /** Narrow to one region when the user belongs to several. */
   regionFk?: number
-  /** Scope to one entity: its own rows plus the rows its children logged against it. */
+  /**
+   * Scope to one entity's audit log: the rows written about that record, plus the uploads that
+   * landed on it. Not its children. A block's routes, a route's ascents and a crag's blocks all
+   * name their parent, and none of them is a change to it.
+   */
   scope?: { id: string; type: ActivityEntityType }
   /** Narrow to one actor. */
   userFk?: number
@@ -89,8 +93,10 @@ export function activityFeed(filter: () => ActivityFeedFilter = () => ({})): Act
 
   // Decided once per group, so the component is markup and its lightbox reads the same files the
   // cards show rather than walking the hydration map again.
+  // The scope doubles as what the cards leave out: a feed narrowed to one entity renders on that
+  // entity's page, where a row pointing at it is a link to the page the reader is already on.
   const views = $derived(
-    groups.map((group) => activityCard(group, hydration.entities, global.user?.id, hydration.topos)),
+    groups.map((group) => activityCard(group, hydration.entities, global.user?.id, hydration.topos, filter().scope)),
   )
 
   const acknowledge = () => {

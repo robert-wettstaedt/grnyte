@@ -12,7 +12,11 @@ export interface ActivityListFilter {
   limit?: number
   /** Narrow to one region when the user belongs to several. */
   regionFk?: number
-  /** Scope to one entity: its own rows plus the rows its children logged against it. */
+  /**
+   * Scope to one entity's audit log: the rows written about that record, plus the uploads that
+   * landed on it. Not its children. A block's routes, a route's ascents and a crag's blocks all
+   * name their parent, and none of them is a change to it.
+   */
   scope?: { id: string; type: ActivityEntityType }
   /** Only rows at or older than this id: the window the reader has acknowledged. */
   upToId?: number

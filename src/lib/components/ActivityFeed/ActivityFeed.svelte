@@ -26,6 +26,12 @@
     expandedIds?: SvelteSet<string>
     /** Whether the sync window can still grow. */
     hasMore?: boolean
+    /**
+     * Whether this feed mounts the viewer its thumbnails open. Off for a feed rendered onto a
+     * page that already has one: both would match the same `?media` id and stack two viewers
+     * (see MediaLightbox), and on such a page the file is in the page's own set anyway.
+     */
+    lightbox?: boolean
     /** Rows that arrived while the user was reading. Merging stays explicit so the
      *  list never jumps under the cursor. */
     newCount?: number
@@ -38,6 +44,7 @@
   const {
     expandedIds = new SvelteSet<string>(),
     hasMore = false,
+    lightbox = true,
     newCount = 0,
     onLoadOlder,
     onMergeNew,
@@ -93,4 +100,6 @@
   {/if}
 </div>
 
-<MediaLightbox items={files} />
+{#if lightbox}
+  <MediaLightbox items={files} />
+{/if}

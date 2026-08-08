@@ -2,6 +2,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
@@ -148,6 +149,16 @@
       {/if}
 
       <ReferencedBy type="areas" id={detail.id} />
+
+      <!-- `beside`: this page renders inside the explore panel, so on desktop the log opens as a
+           second panel next to it, the way this page's own MoreMenu does. -->
+      <ActivityMeta
+        beside
+        createdAt={detail.createdAt}
+        createdBy={detail.createdBy}
+        scopeId={String(detail.id)}
+        scopeType="area"
+      />
     </div>
   {/snippet}
 

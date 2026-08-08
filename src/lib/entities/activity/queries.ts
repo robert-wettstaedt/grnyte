@@ -85,8 +85,15 @@ export const activitiesQueryDefs = {
         q = q.where((q) => q.or(q.cmp('entityType', '!=', 'ascent'), q.cmp('columnName', 'file')))
       }
 
-      // Scoped to one entity: its own rows plus the rows its children logged against it
-      // (a block edit names its area as parent), so an area's section shows its blocks too.
+      // One entity's audit log: what was written about that record, and nothing about the
+      // records under it. A crag's blocks, a block's routes and a route's ascents all name it
+      // as their parent, and none of them is a change to it; a route page already lists its
+      // ascents, and a reader opening a crag is asking when the crag was last edited.
+      //
+      // Uploads are the one exception, and they have to be. A removal is logged on the entity
+      // (`entityType: 'route'`, `columnName: 'file'`), but an upload points at the FILE and
+      // only names the entity as its parent. Without this half the log would show every photo
+      // leaving and none arriving.
       if (args.scope != null) {
         const { id, type } = args.scope
         const parentType = activityParentEntityTypes.find((candidate) => candidate === type)
@@ -94,7 +101,15 @@ export const activitiesQueryDefs = {
         q = q.where((q) =>
           q.or(
             q.and(q.cmp('entityType', type), q.cmp('entityId', id)),
-            ...(parentType == null ? [] : [q.and(q.cmp('parentEntityType', parentType), q.cmp('parentEntityId', id))]),
+            ...(parentType == null
+              ? []
+              : [
+                  q.and(
+                    q.cmp('parentEntityType', parentType),
+                    q.cmp('parentEntityId', id),
+                    q.cmp('entityType', 'file'),
+                  ),
+                ]),
           ),
         )
       }
