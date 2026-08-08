@@ -7,7 +7,7 @@ import { activityEntityKey } from './entity'
 import { groups, view } from './fixture'
 
 /**
- * The protocol case list, in two jobs.
+ * The activity case list, in two jobs.
  *
  * First, its own invariants, so the catalogue story cannot quietly start showing a state the app
  * cannot produce. Each of those was a real fixture bug that read as a product bug on the wall.
@@ -67,7 +67,7 @@ function without<T extends object, K extends keyof T>(value: T, ...keys: K[]): O
 }
 
 describe('activity case fixtures', () => {
-  it('holds one entry per protocol id', () => {
+  it('holds one entry per case id', () => {
     expect(CASES).toHaveLength(256)
     expect(new Set(CASES.map((entry) => entry.id)).size).toBe(CASES.length)
   })
@@ -121,12 +121,12 @@ describe('activity case fixtures', () => {
   })
 })
 
-describe('every protocol case', () => {
+describe('every activity case', () => {
   /**
    * One snapshot for the whole matrix.
    *
    * Per case rather than one giant object, so a diff names the ids that moved: `AREA-05b` in the
-   * report is the case in the protocol and the anchor in the catalogue story.
+   * report is the case here and the anchor in the catalogue story.
    */
   it.each(CASES.map((entry) => [entry.id, entry] as const))('decides the same card for %s', (id, entry) => {
     expect(decided(entry)).toMatchSnapshot(id)

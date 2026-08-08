@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import prettier from 'eslint-config-prettier'
 import drizzle from 'eslint-plugin-drizzle'
 import perfectionist from 'eslint-plugin-perfectionist'
+import storybook from 'eslint-plugin-storybook'
 import svelte from 'eslint-plugin-svelte'
 import { defineConfig, includeIgnoreFile } from 'eslint/config'
 import globals from 'globals'
@@ -100,5 +101,13 @@ export default defineConfig(
       // (it left a switch here tripping no-fallthrough). Not worth the control-flow risk.
       'perfectionist/sort-switch-case': 'off',
     },
+  },
+  // eslint-plugin-storybook came with the Storybook install and was never registered, so none of
+  // its rules ran. Its story rules only parse CSF `.stories.ts` and every story here is Svelte
+  // CSF, which leaves the one check that does apply: an addon listed in main.ts but not installed.
+  {
+    files: ['.storybook/main.ts'],
+    plugins: { storybook },
+    rules: { 'storybook/no-uninstalled-addons': 'error' },
   },
 )

@@ -6,7 +6,7 @@
 
   const { Story } = defineMeta({
     component: ActivityChanges,
-    parameters: { backgrounds: { value: 'card' }, layout: 'centered' },
+    parameters: { backgrounds: { value: 'card' }, layout: 'centered', width: 420 },
     tags: ['autodocs'],
     title: 'Components/ActivityFeed/ActivityChanges',
   })
@@ -121,20 +121,14 @@ Bring a second pad for the landing under the arete.`
   ]
 </script>
 
-{#snippet template(args: ComponentProps<typeof ActivityChanges>)}
-  <div style="width: 420px; max-width: 100%;">
-    <ActivityChanges {...args} />
-  </div>
-{/snippet}
-
 <!-- Every renderer the field registry knows, in one list. -->
-<Story name="Every renderer" args={{ changes: changes(everyRenderer) }} {template} />
+<Story name="Every renderer" args={{ changes: changes(everyRenderer) }} />
 
-<Story name="Ascent edit" args={{ changes: changes(ascentEdit) }} {template} />
+<Story name="Ascent edit" args={{ changes: changes(ascentEdit) }} />
 
 <!-- Each topo edit saying what it did, and the photo it did it to. The removed photo has
      no image left to draw, and the reorder is about the strip rather than one photo. -->
-<Story name="Topo edits" args={{ changes: changes(topoEdits, topos()) }} {template} />
+<Story name="Topo edits" args={{ changes: changes(topoEdits, topos()) }} />
 
 <!-- A column with no old value falls back to the "Not set" chip rather than a blank, and so
      does a value that was cleared: a source dropped back to "own footage". -->
@@ -151,21 +145,20 @@ Bring a second pad for the landing under the arete.`
       }),
     ]),
   }}
-  {template}
 />
 
 <!-- Rows whose column has no registry entry render nothing at all. -->
 <Story
   name="Nothing renderable"
   args={{ changes: changes([activity(1, { entityType: 'area', type: 'created', userFk: 1 })]) }}
-  {template}
 />
 
 <!-- A description edit where only a clause in the middle paragraph moved. Rendered as two
      clamped previews, as it was before, both sides read the same opening sentence and the edit
      is invisible. The `<details>` is forced open here; in the app it takes a click. -->
 {#snippet proseTemplate(args: ComponentProps<typeof ActivityChanges>)}
-  <div style="width: 420px; max-width: 100%;" {@attach expanded}>
+  <!-- Same canvas as the other stories (the meta's `width`), plus the forced-open details. -->
+  <div {@attach expanded}>
     <ActivityChanges {...args} />
   </div>
 {/snippet}

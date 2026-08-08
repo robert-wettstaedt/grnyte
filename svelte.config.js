@@ -13,6 +13,12 @@ const config = {
   extensions: ['.svelte'],
   kit: {
     adapter: process.env.VERCEL ? adapterAuto() : adapterNode(),
+    // Story fixtures (the seeded grade table, the sample route counts) live beside the Storybook
+    // config rather than in `$lib`, since nothing the app ships imports them. Stories sit in
+    // `src/`, so without this they reach it by counting `../` up to the repo root.
+    alias: {
+      '$storybook/*': '.storybook/*',
+    },
     experimental: {
       remoteFunctions: true,
     },

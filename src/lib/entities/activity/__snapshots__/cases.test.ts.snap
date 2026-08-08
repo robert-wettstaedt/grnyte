@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`every protocol case > decides the same card for AREA-01a > AREA-01a 1`] = `
+exports[`every activity case > decides the same card for AREA-01a > AREA-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -42,7 +42,7 @@ exports[`every protocol case > decides the same card for AREA-01a > AREA-01a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-01b > AREA-01b 1`] = `
+exports[`every activity case > decides the same card for AREA-01b > AREA-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -84,7 +84,7 @@ exports[`every protocol case > decides the same card for AREA-01b > AREA-01b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-01c > AREA-01c 1`] = `
+exports[`every activity case > decides the same card for AREA-01c > AREA-01c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -126,9 +126,9 @@ exports[`every protocol case > decides the same card for AREA-01c > AREA-01c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-01d > AREA-01d 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-01d > AREA-01d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-01e > AREA-01e 1`] = `
+exports[`every activity case > decides the same card for AREA-01e > AREA-01e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -170,7 +170,7 @@ exports[`every protocol case > decides the same card for AREA-01e > AREA-01e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02a > AREA-02a 1`] = `
+exports[`every activity case > decides the same card for AREA-02a > AREA-02a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -223,7 +223,7 @@ exports[`every protocol case > decides the same card for AREA-02a > AREA-02a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02b > AREA-02b 1`] = `
+exports[`every activity case > decides the same card for AREA-02b > AREA-02b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -305,7 +305,7 @@ exports[`every protocol case > decides the same card for AREA-02b > AREA-02b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02c > AREA-02c 1`] = `
+exports[`every activity case > decides the same card for AREA-02c > AREA-02c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -400,9 +400,9 @@ exports[`every protocol case > decides the same card for AREA-02c > AREA-02c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02d > AREA-02d 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-02d > AREA-02d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-02e > AREA-02e 1`] = `
+exports[`every activity case > decides the same card for AREA-02e > AREA-02e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -455,7 +455,7 @@ exports[`every protocol case > decides the same card for AREA-02e > AREA-02e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02f > AREA-02f 1`] = `
+exports[`every activity case > decides the same card for AREA-02f > AREA-02f 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -508,7 +508,7 @@ exports[`every protocol case > decides the same card for AREA-02f > AREA-02f 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02g > AREA-02g 1`] = `
+exports[`every activity case > decides the same card for AREA-02g > AREA-02g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -561,9 +561,9 @@ exports[`every protocol case > decides the same card for AREA-02g > AREA-02g 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02h > AREA-02h 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-02h > AREA-02h 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-02i > AREA-02i 1`] = `
+exports[`every activity case > decides the same card for AREA-02i > AREA-02i 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -633,7 +633,7 @@ exports[`every protocol case > decides the same card for AREA-02i > AREA-02i 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02j > AREA-02j 1`] = `
+exports[`every activity case > decides the same card for AREA-02j > AREA-02j 1`] = `
 [
   {
     "actorName": "Sofia Brandt",
@@ -734,9 +734,9 @@ exports[`every protocol case > decides the same card for AREA-02j > AREA-02j 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-02k > AREA-02k 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-02k > AREA-02k 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-03a > AREA-03a 1`] = `
+exports[`every activity case > decides the same card for AREA-03a > AREA-03a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -778,7 +778,7 @@ exports[`every protocol case > decides the same card for AREA-03a > AREA-03a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-03b > AREA-03b 1`] = `
+exports[`every activity case > decides the same card for AREA-03b > AREA-03b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -833,7 +833,7 @@ exports[`every protocol case > decides the same card for AREA-03b > AREA-03b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-03c > AREA-03c 1`] = `
+exports[`every activity case > decides the same card for AREA-03c > AREA-03c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -875,11 +875,11 @@ exports[`every protocol case > decides the same card for AREA-03c > AREA-03c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-04a > AREA-04a 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-04a > AREA-04a 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-04b > AREA-04b 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-04b > AREA-04b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-05a > AREA-05a 1`] = `
+exports[`every activity case > decides the same card for AREA-05a > AREA-05a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -941,7 +941,7 @@ exports[`every protocol case > decides the same card for AREA-05a > AREA-05a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-05b > AREA-05b 1`] = `
+exports[`every activity case > decides the same card for AREA-05b > AREA-05b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1003,7 +1003,7 @@ exports[`every protocol case > decides the same card for AREA-05b > AREA-05b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-05c > AREA-05c 1`] = `
+exports[`every activity case > decides the same card for AREA-05c > AREA-05c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1084,7 +1084,7 @@ exports[`every protocol case > decides the same card for AREA-05c > AREA-05c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-05d > AREA-05d 1`] = `
+exports[`every activity case > decides the same card for AREA-05d > AREA-05d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1172,7 +1172,7 @@ exports[`every protocol case > decides the same card for AREA-05d > AREA-05d 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-05e > AREA-05e 1`] = `
+exports[`every activity case > decides the same card for AREA-05e > AREA-05e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1260,7 +1260,7 @@ exports[`every protocol case > decides the same card for AREA-05e > AREA-05e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-06a > AREA-06a 1`] = `
+exports[`every activity case > decides the same card for AREA-06a > AREA-06a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1322,11 +1322,11 @@ exports[`every protocol case > decides the same card for AREA-06a > AREA-06a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-06b > AREA-06b 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-06b > AREA-06b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-07 > AREA-07 1`] = `[]`;
+exports[`every activity case > decides the same card for AREA-07 > AREA-07 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for AREA-08a > AREA-08a 1`] = `
+exports[`every activity case > decides the same card for AREA-08a > AREA-08a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1377,7 +1377,7 @@ exports[`every protocol case > decides the same card for AREA-08a > AREA-08a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for AREA-08b > AREA-08b 1`] = `
+exports[`every activity case > decides the same card for AREA-08b > AREA-08b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1428,7 +1428,7 @@ exports[`every protocol case > decides the same card for AREA-08b > AREA-08b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01a > ASC-01a 1`] = `
+exports[`every activity case > decides the same card for ASC-01a > ASC-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1470,7 +1470,7 @@ exports[`every protocol case > decides the same card for ASC-01a > ASC-01a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01b > ASC-01b 1`] = `
+exports[`every activity case > decides the same card for ASC-01b > ASC-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1512,7 +1512,7 @@ exports[`every protocol case > decides the same card for ASC-01b > ASC-01b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01c > ASC-01c 1`] = `
+exports[`every activity case > decides the same card for ASC-01c > ASC-01c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1554,7 +1554,7 @@ exports[`every protocol case > decides the same card for ASC-01c > ASC-01c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01d > ASC-01d 1`] = `
+exports[`every activity case > decides the same card for ASC-01d > ASC-01d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1596,7 +1596,7 @@ exports[`every protocol case > decides the same card for ASC-01d > ASC-01d 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01e > ASC-01e 1`] = `
+exports[`every activity case > decides the same card for ASC-01e > ASC-01e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1650,7 +1650,7 @@ exports[`every protocol case > decides the same card for ASC-01e > ASC-01e 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01f > ASC-01f 1`] = `
+exports[`every activity case > decides the same card for ASC-01f > ASC-01f 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1703,7 +1703,7 @@ exports[`every protocol case > decides the same card for ASC-01f > ASC-01f 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01g > ASC-01g 1`] = `
+exports[`every activity case > decides the same card for ASC-01g > ASC-01g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1745,7 +1745,7 @@ exports[`every protocol case > decides the same card for ASC-01g > ASC-01g 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01h > ASC-01h 1`] = `
+exports[`every activity case > decides the same card for ASC-01h > ASC-01h 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1792,7 +1792,7 @@ exports[`every protocol case > decides the same card for ASC-01h > ASC-01h 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-01i > ASC-01i 1`] = `
+exports[`every activity case > decides the same card for ASC-01i > ASC-01i 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1839,7 +1839,7 @@ exports[`every protocol case > decides the same card for ASC-01i > ASC-01i 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-02a > ASC-02a 1`] = `
+exports[`every activity case > decides the same card for ASC-02a > ASC-02a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1892,11 +1892,11 @@ exports[`every protocol case > decides the same card for ASC-02a > ASC-02a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-02b > ASC-02b 1`] = `[]`;
+exports[`every activity case > decides the same card for ASC-02b > ASC-02b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ASC-02c > ASC-02c 1`] = `[]`;
+exports[`every activity case > decides the same card for ASC-02c > ASC-02c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ASC-03a > ASC-03a 1`] = `
+exports[`every activity case > decides the same card for ASC-03a > ASC-03a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -1948,7 +1948,7 @@ exports[`every protocol case > decides the same card for ASC-03a > ASC-03a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-03b > ASC-03b 1`] = `
+exports[`every activity case > decides the same card for ASC-03b > ASC-03b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2000,7 +2000,7 @@ exports[`every protocol case > decides the same card for ASC-03b > ASC-03b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-04a > ASC-04a 1`] = `
+exports[`every activity case > decides the same card for ASC-04a > ASC-04a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2052,7 +2052,7 @@ exports[`every protocol case > decides the same card for ASC-04a > ASC-04a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-04b > ASC-04b 1`] = `
+exports[`every activity case > decides the same card for ASC-04b > ASC-04b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2104,7 +2104,7 @@ exports[`every protocol case > decides the same card for ASC-04b > ASC-04b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-05a > ASC-05a 1`] = `
+exports[`every activity case > decides the same card for ASC-05a > ASC-05a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2157,9 +2157,9 @@ exports[`every protocol case > decides the same card for ASC-05a > ASC-05a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-05b > ASC-05b 1`] = `[]`;
+exports[`every activity case > decides the same card for ASC-05b > ASC-05b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ASC-05c > ASC-05c 1`] = `
+exports[`every activity case > decides the same card for ASC-05c > ASC-05c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2212,7 +2212,7 @@ exports[`every protocol case > decides the same card for ASC-05c > ASC-05c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-06a > ASC-06a 1`] = `
+exports[`every activity case > decides the same card for ASC-06a > ASC-06a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2265,7 +2265,7 @@ exports[`every protocol case > decides the same card for ASC-06a > ASC-06a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-06b > ASC-06b 1`] = `
+exports[`every activity case > decides the same card for ASC-06b > ASC-06b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2318,7 +2318,7 @@ exports[`every protocol case > decides the same card for ASC-06b > ASC-06b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-07a > ASC-07a 1`] = `
+exports[`every activity case > decides the same card for ASC-07a > ASC-07a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2371,7 +2371,7 @@ exports[`every protocol case > decides the same card for ASC-07a > ASC-07a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-07b > ASC-07b 1`] = `
+exports[`every activity case > decides the same card for ASC-07b > ASC-07b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2424,7 +2424,7 @@ exports[`every protocol case > decides the same card for ASC-07b > ASC-07b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-08a > ASC-08a 1`] = `
+exports[`every activity case > decides the same card for ASC-08a > ASC-08a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2477,7 +2477,7 @@ exports[`every protocol case > decides the same card for ASC-08a > ASC-08a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-08b > ASC-08b 1`] = `
+exports[`every activity case > decides the same card for ASC-08b > ASC-08b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2530,7 +2530,7 @@ exports[`every protocol case > decides the same card for ASC-08b > ASC-08b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-08c > ASC-08c 1`] = `
+exports[`every activity case > decides the same card for ASC-08c > ASC-08c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2596,7 +2596,7 @@ exports[`every protocol case > decides the same card for ASC-08c > ASC-08c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-09a > ASC-09a 1`] = `
+exports[`every activity case > decides the same card for ASC-09a > ASC-09a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2675,7 +2675,7 @@ exports[`every protocol case > decides the same card for ASC-09a > ASC-09a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-09b > ASC-09b 1`] = `
+exports[`every activity case > decides the same card for ASC-09b > ASC-09b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2727,11 +2727,11 @@ exports[`every protocol case > decides the same card for ASC-09b > ASC-09b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-09c > ASC-09c 1`] = `[]`;
+exports[`every activity case > decides the same card for ASC-09c > ASC-09c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ASC-09d > ASC-09d 1`] = `[]`;
+exports[`every activity case > decides the same card for ASC-09d > ASC-09d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ASC-09e > ASC-09e 1`] = `
+exports[`every activity case > decides the same card for ASC-09e > ASC-09e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2783,7 +2783,7 @@ exports[`every protocol case > decides the same card for ASC-09e > ASC-09e 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-09f > ASC-09f 1`] = `
+exports[`every activity case > decides the same card for ASC-09f > ASC-09f 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -2883,7 +2883,7 @@ exports[`every protocol case > decides the same card for ASC-09f > ASC-09f 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-10a > ASC-10a 1`] = `
+exports[`every activity case > decides the same card for ASC-10a > ASC-10a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2925,7 +2925,7 @@ exports[`every protocol case > decides the same card for ASC-10a > ASC-10a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-10b > ASC-10b 1`] = `
+exports[`every activity case > decides the same card for ASC-10b > ASC-10b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -2967,7 +2967,7 @@ exports[`every protocol case > decides the same card for ASC-10b > ASC-10b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-10c > ASC-10c 1`] = `
+exports[`every activity case > decides the same card for ASC-10c > ASC-10c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3009,7 +3009,7 @@ exports[`every protocol case > decides the same card for ASC-10c > ASC-10c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-11a > ASC-11a 1`] = `
+exports[`every activity case > decides the same card for ASC-11a > ASC-11a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3060,7 +3060,7 @@ exports[`every protocol case > decides the same card for ASC-11a > ASC-11a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-11b > ASC-11b 1`] = `
+exports[`every activity case > decides the same card for ASC-11b > ASC-11b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3111,7 +3111,7 @@ exports[`every protocol case > decides the same card for ASC-11b > ASC-11b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-11c > ASC-11c 1`] = `
+exports[`every activity case > decides the same card for ASC-11c > ASC-11c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3162,7 +3162,7 @@ exports[`every protocol case > decides the same card for ASC-11c > ASC-11c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-12a > ASC-12a 1`] = `
+exports[`every activity case > decides the same card for ASC-12a > ASC-12a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3206,7 +3206,7 @@ exports[`every protocol case > decides the same card for ASC-12a > ASC-12a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-12b > ASC-12b 1`] = `
+exports[`every activity case > decides the same card for ASC-12b > ASC-12b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3250,7 +3250,7 @@ exports[`every protocol case > decides the same card for ASC-12b > ASC-12b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-12c > ASC-12c 1`] = `
+exports[`every activity case > decides the same card for ASC-12c > ASC-12c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3303,9 +3303,9 @@ exports[`every protocol case > decides the same card for ASC-12c > ASC-12c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for ASC-12d > ASC-12d 1`] = `[]`;
+exports[`every activity case > decides the same card for ASC-12d > ASC-12d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ASC-12e > ASC-12e 1`] = `
+exports[`every activity case > decides the same card for ASC-12e > ASC-12e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3349,7 +3349,7 @@ exports[`every protocol case > decides the same card for ASC-12e > ASC-12e 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-01a > BLOCK-01a 1`] = `
+exports[`every activity case > decides the same card for BLOCK-01a > BLOCK-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3396,7 +3396,7 @@ exports[`every protocol case > decides the same card for BLOCK-01a > BLOCK-01a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-01b > BLOCK-01b 1`] = `
+exports[`every activity case > decides the same card for BLOCK-01b > BLOCK-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3443,7 +3443,7 @@ exports[`every protocol case > decides the same card for BLOCK-01b > BLOCK-01b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-01c > BLOCK-01c 1`] = `
+exports[`every activity case > decides the same card for BLOCK-01c > BLOCK-01c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3485,7 +3485,7 @@ exports[`every protocol case > decides the same card for BLOCK-01c > BLOCK-01c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-01d > BLOCK-01d 1`] = `
+exports[`every activity case > decides the same card for BLOCK-01d > BLOCK-01d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3532,11 +3532,11 @@ exports[`every protocol case > decides the same card for BLOCK-01d > BLOCK-01d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-01e > BLOCK-01e 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-01e > BLOCK-01e 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-02a > BLOCK-02a 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-02a > BLOCK-02a 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-02b > BLOCK-02b 1`] = `
+exports[`every activity case > decides the same card for BLOCK-02b > BLOCK-02b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3598,7 +3598,7 @@ exports[`every protocol case > decides the same card for BLOCK-02b > BLOCK-02b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-02c > BLOCK-02c 1`] = `
+exports[`every activity case > decides the same card for BLOCK-02c > BLOCK-02c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3666,7 +3666,7 @@ exports[`every protocol case > decides the same card for BLOCK-02c > BLOCK-02c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-02d > BLOCK-02d 1`] = `
+exports[`every activity case > decides the same card for BLOCK-02d > BLOCK-02d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3734,7 +3734,7 @@ exports[`every protocol case > decides the same card for BLOCK-02d > BLOCK-02d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-02e > BLOCK-02e 1`] = `
+exports[`every activity case > decides the same card for BLOCK-02e > BLOCK-02e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3802,7 +3802,7 @@ exports[`every protocol case > decides the same card for BLOCK-02e > BLOCK-02e 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-02f > BLOCK-02f 1`] = `
+exports[`every activity case > decides the same card for BLOCK-02f > BLOCK-02f 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3870,11 +3870,11 @@ exports[`every protocol case > decides the same card for BLOCK-02f > BLOCK-02f 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-02g > BLOCK-02g 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-02g > BLOCK-02g 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-02h > BLOCK-02h 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-02h > BLOCK-02h 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-03a > BLOCK-03a 1`] = `
+exports[`every activity case > decides the same card for BLOCK-03a > BLOCK-03a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -3936,9 +3936,9 @@ exports[`every protocol case > decides the same card for BLOCK-03a > BLOCK-03a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-03b > BLOCK-03b 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-03b > BLOCK-03b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-03c > BLOCK-03c 1`] = `
+exports[`every activity case > decides the same card for BLOCK-03c > BLOCK-03c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4026,9 +4026,9 @@ exports[`every protocol case > decides the same card for BLOCK-03c > BLOCK-03c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-03d > BLOCK-03d 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-03d > BLOCK-03d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-04a > BLOCK-04a 1`] = `
+exports[`every activity case > decides the same card for BLOCK-04a > BLOCK-04a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4081,7 +4081,7 @@ exports[`every protocol case > decides the same card for BLOCK-04a > BLOCK-04a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-04b > BLOCK-04b 1`] = `
+exports[`every activity case > decides the same card for BLOCK-04b > BLOCK-04b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4134,7 +4134,7 @@ exports[`every protocol case > decides the same card for BLOCK-04b > BLOCK-04b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-04c > BLOCK-04c 1`] = `
+exports[`every activity case > decides the same card for BLOCK-04c > BLOCK-04c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4187,9 +4187,9 @@ exports[`every protocol case > decides the same card for BLOCK-04c > BLOCK-04c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-04d > BLOCK-04d 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-04d > BLOCK-04d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-04e > BLOCK-04e 1`] = `
+exports[`every activity case > decides the same card for BLOCK-04e > BLOCK-04e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4274,9 +4274,9 @@ exports[`every protocol case > decides the same card for BLOCK-04e > BLOCK-04e 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-04f > BLOCK-04f 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-04f > BLOCK-04f 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-05a > BLOCK-05a 1`] = `
+exports[`every activity case > decides the same card for BLOCK-05a > BLOCK-05a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4338,7 +4338,7 @@ exports[`every protocol case > decides the same card for BLOCK-05a > BLOCK-05a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-05b > BLOCK-05b 1`] = `
+exports[`every activity case > decides the same card for BLOCK-05b > BLOCK-05b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4406,9 +4406,9 @@ exports[`every protocol case > decides the same card for BLOCK-05b > BLOCK-05b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-05c > BLOCK-05c 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-05c > BLOCK-05c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-05d > BLOCK-05d 1`] = `
+exports[`every activity case > decides the same card for BLOCK-05d > BLOCK-05d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4476,7 +4476,7 @@ exports[`every protocol case > decides the same card for BLOCK-05d > BLOCK-05d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-06a > BLOCK-06a 1`] = `
+exports[`every activity case > decides the same card for BLOCK-06a > BLOCK-06a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4538,11 +4538,11 @@ exports[`every protocol case > decides the same card for BLOCK-06a > BLOCK-06a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-06b > BLOCK-06b 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-06b > BLOCK-06b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-06c > BLOCK-06c 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-06c > BLOCK-06c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-06d > BLOCK-06d 1`] = `
+exports[`every activity case > decides the same card for BLOCK-06d > BLOCK-06d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4604,7 +4604,7 @@ exports[`every protocol case > decides the same card for BLOCK-06d > BLOCK-06d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-06e > BLOCK-06e 1`] = `
+exports[`every activity case > decides the same card for BLOCK-06e > BLOCK-06e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4737,7 +4737,7 @@ exports[`every protocol case > decides the same card for BLOCK-06e > BLOCK-06e 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-07a > BLOCK-07a 1`] = `
+exports[`every activity case > decides the same card for BLOCK-07a > BLOCK-07a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4779,7 +4779,7 @@ exports[`every protocol case > decides the same card for BLOCK-07a > BLOCK-07a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-07b > BLOCK-07b 1`] = `
+exports[`every activity case > decides the same card for BLOCK-07b > BLOCK-07b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4828,7 +4828,7 @@ exports[`every protocol case > decides the same card for BLOCK-07b > BLOCK-07b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-07c > BLOCK-07c 1`] = `
+exports[`every activity case > decides the same card for BLOCK-07c > BLOCK-07c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4870,11 +4870,11 @@ exports[`every protocol case > decides the same card for BLOCK-07c > BLOCK-07c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for BLOCK-08a > BLOCK-08a 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-08a > BLOCK-08a 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-08b > BLOCK-08b 1`] = `[]`;
+exports[`every activity case > decides the same card for BLOCK-08b > BLOCK-08b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for BLOCK-09 > BLOCK-09 1`] = `
+exports[`every activity case > decides the same card for BLOCK-09 > BLOCK-09 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4916,7 +4916,7 @@ exports[`every protocol case > decides the same card for BLOCK-09 > BLOCK-09 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01a > FILE-01a 1`] = `
+exports[`every activity case > decides the same card for FILE-01a > FILE-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -4960,7 +4960,7 @@ exports[`every protocol case > decides the same card for FILE-01a > FILE-01a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01b > FILE-01b 1`] = `
+exports[`every activity case > decides the same card for FILE-01b > FILE-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5013,7 +5013,7 @@ exports[`every protocol case > decides the same card for FILE-01b > FILE-01b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01c > FILE-01c 1`] = `
+exports[`every activity case > decides the same card for FILE-01c > FILE-01c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5057,7 +5057,7 @@ exports[`every protocol case > decides the same card for FILE-01c > FILE-01c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01d > FILE-01d 1`] = `
+exports[`every activity case > decides the same card for FILE-01d > FILE-01d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5101,11 +5101,11 @@ exports[`every protocol case > decides the same card for FILE-01d > FILE-01d 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01e > FILE-01e 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-01e > FILE-01e 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-01f > FILE-01f 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-01f > FILE-01f 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-01g > FILE-01g 1`] = `
+exports[`every activity case > decides the same card for FILE-01g > FILE-01g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5149,7 +5149,7 @@ exports[`every protocol case > decides the same card for FILE-01g > FILE-01g 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01h > FILE-01h 1`] = `
+exports[`every activity case > decides the same card for FILE-01h > FILE-01h 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5205,9 +5205,9 @@ exports[`every protocol case > decides the same card for FILE-01h > FILE-01h 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-01i > FILE-01i 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-01i > FILE-01i 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-01j > FILE-01j 1`] = `
+exports[`every activity case > decides the same card for FILE-01j > FILE-01j 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5249,7 +5249,7 @@ exports[`every protocol case > decides the same card for FILE-01j > FILE-01j 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-02a > FILE-02a 1`] = `
+exports[`every activity case > decides the same card for FILE-02a > FILE-02a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5293,7 +5293,7 @@ exports[`every protocol case > decides the same card for FILE-02a > FILE-02a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-02b > FILE-02b 1`] = `
+exports[`every activity case > decides the same card for FILE-02b > FILE-02b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5337,7 +5337,7 @@ exports[`every protocol case > decides the same card for FILE-02b > FILE-02b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-02c > FILE-02c 1`] = `
+exports[`every activity case > decides the same card for FILE-02c > FILE-02c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5381,11 +5381,11 @@ exports[`every protocol case > decides the same card for FILE-02c > FILE-02c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-02d > FILE-02d 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-02d > FILE-02d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-02e > FILE-02e 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-02e > FILE-02e 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-03a > FILE-03a 1`] = `
+exports[`every activity case > decides the same card for FILE-03a > FILE-03a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5445,7 +5445,7 @@ exports[`every protocol case > decides the same card for FILE-03a > FILE-03a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-03b > FILE-03b 1`] = `
+exports[`every activity case > decides the same card for FILE-03b > FILE-03b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5505,7 +5505,7 @@ exports[`every protocol case > decides the same card for FILE-03b > FILE-03b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-03c > FILE-03c 1`] = `
+exports[`every activity case > decides the same card for FILE-03c > FILE-03c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5565,9 +5565,9 @@ exports[`every protocol case > decides the same card for FILE-03c > FILE-03c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-03d > FILE-03d 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-03d > FILE-03d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-03e > FILE-03e 1`] = `
+exports[`every activity case > decides the same card for FILE-03e > FILE-03e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5627,9 +5627,9 @@ exports[`every protocol case > decides the same card for FILE-03e > FILE-03e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-03f > FILE-03f 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-03f > FILE-03f 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-03g > FILE-03g 1`] = `
+exports[`every activity case > decides the same card for FILE-03g > FILE-03g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5689,7 +5689,7 @@ exports[`every protocol case > decides the same card for FILE-03g > FILE-03g 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-03h > FILE-03h 1`] = `
+exports[`every activity case > decides the same card for FILE-03h > FILE-03h 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5733,11 +5733,11 @@ exports[`every protocol case > decides the same card for FILE-03h > FILE-03h 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for FILE-03i > FILE-03i 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-03i > FILE-03i 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for FILE-03j > FILE-03j 1`] = `[]`;
+exports[`every activity case > decides the same card for FILE-03j > FILE-03j 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-01a > REG-01a 1`] = `
+exports[`every activity case > decides the same card for REG-01a > REG-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5769,7 +5769,7 @@ exports[`every protocol case > decides the same card for REG-01a > REG-01a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-01b > REG-01b 1`] = `
+exports[`every activity case > decides the same card for REG-01b > REG-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5801,11 +5801,11 @@ exports[`every protocol case > decides the same card for REG-01b > REG-01b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-01c > REG-01c 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-01c > REG-01c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-01d > REG-01d 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-01d > REG-01d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-01e > REG-01e 1`] = `
+exports[`every activity case > decides the same card for REG-01e > REG-01e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5837,7 +5837,7 @@ exports[`every protocol case > decides the same card for REG-01e > REG-01e 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-02a > REG-02a 1`] = `
+exports[`every activity case > decides the same card for REG-02a > REG-02a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5869,7 +5869,7 @@ exports[`every protocol case > decides the same card for REG-02a > REG-02a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-02b > REG-02b 1`] = `
+exports[`every activity case > decides the same card for REG-02b > REG-02b 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -5928,9 +5928,9 @@ exports[`every protocol case > decides the same card for REG-02b > REG-02b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-03 > REG-03 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-03 > REG-03 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-04a > REG-04a 1`] = `
+exports[`every activity case > decides the same card for REG-04a > REG-04a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -5983,7 +5983,7 @@ exports[`every protocol case > decides the same card for REG-04a > REG-04a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-04b > REG-04b 1`] = `
+exports[`every activity case > decides the same card for REG-04b > REG-04b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6036,9 +6036,9 @@ exports[`every protocol case > decides the same card for REG-04b > REG-04b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-04c > REG-04c 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-04c > REG-04c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-04d > REG-04d 1`] = `
+exports[`every activity case > decides the same card for REG-04d > REG-04d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6139,11 +6139,11 @@ exports[`every protocol case > decides the same card for REG-04d > REG-04d 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-04e > REG-04e 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-04e > REG-04e 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-04f > REG-04f 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-04f > REG-04f 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-05a > REG-05a 1`] = `
+exports[`every activity case > decides the same card for REG-05a > REG-05a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6175,7 +6175,7 @@ exports[`every protocol case > decides the same card for REG-05a > REG-05a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-05b > REG-05b 1`] = `
+exports[`every activity case > decides the same card for REG-05b > REG-05b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6234,9 +6234,9 @@ exports[`every protocol case > decides the same card for REG-05b > REG-05b 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-06 > REG-06 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-06 > REG-06 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-07a > REG-07a 1`] = `
+exports[`every activity case > decides the same card for REG-07a > REG-07a 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -6268,9 +6268,9 @@ exports[`every protocol case > decides the same card for REG-07a > REG-07a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-07b > REG-07b 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-07b > REG-07b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-07c > REG-07c 1`] = `
+exports[`every activity case > decides the same card for REG-07c > REG-07c 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -6309,7 +6309,7 @@ exports[`every protocol case > decides the same card for REG-07c > REG-07c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-08a > REG-08a 1`] = `
+exports[`every activity case > decides the same card for REG-08a > REG-08a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6341,9 +6341,9 @@ exports[`every protocol case > decides the same card for REG-08a > REG-08a 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-08b > REG-08b 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-08b > REG-08b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for REG-08c > REG-08c 1`] = `
+exports[`every activity case > decides the same card for REG-08c > REG-08c 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -6402,9 +6402,9 @@ exports[`every protocol case > decides the same card for REG-08c > REG-08c 1`] =
 ]
 `;
 
-exports[`every protocol case > decides the same card for REG-08d > REG-08d 1`] = `[]`;
+exports[`every activity case > decides the same card for REG-08d > REG-08d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-01a > ROUTE-01a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-01a > ROUTE-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6446,7 +6446,7 @@ exports[`every protocol case > decides the same card for ROUTE-01a > ROUTE-01a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-01b > ROUTE-01b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-01b > ROUTE-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6488,7 +6488,7 @@ exports[`every protocol case > decides the same card for ROUTE-01b > ROUTE-01b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-01c > ROUTE-01c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-01c > ROUTE-01c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6541,7 +6541,7 @@ exports[`every protocol case > decides the same card for ROUTE-01c > ROUTE-01c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-01d > ROUTE-01d 1`] = `
+exports[`every activity case > decides the same card for ROUTE-01d > ROUTE-01d 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -6631,9 +6631,9 @@ exports[`every protocol case > decides the same card for ROUTE-01d > ROUTE-01d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-01e > ROUTE-01e 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-01e > ROUTE-01e 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-01f > ROUTE-01f 1`] = `
+exports[`every activity case > decides the same card for ROUTE-01f > ROUTE-01f 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6675,7 +6675,7 @@ exports[`every protocol case > decides the same card for ROUTE-01f > ROUTE-01f 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-01g > ROUTE-01g 1`] = `
+exports[`every activity case > decides the same card for ROUTE-01g > ROUTE-01g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6717,7 +6717,7 @@ exports[`every protocol case > decides the same card for ROUTE-01g > ROUTE-01g 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-02a > ROUTE-02a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-02a > ROUTE-02a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6770,7 +6770,7 @@ exports[`every protocol case > decides the same card for ROUTE-02a > ROUTE-02a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-02b > ROUTE-02b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-02b > ROUTE-02b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6823,9 +6823,9 @@ exports[`every protocol case > decides the same card for ROUTE-02b > ROUTE-02b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-02c > ROUTE-02c 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-02c > ROUTE-02c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-03a > ROUTE-03a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-03a > ROUTE-03a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6877,7 +6877,7 @@ exports[`every protocol case > decides the same card for ROUTE-03a > ROUTE-03a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-03b > ROUTE-03b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-03b > ROUTE-03b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6929,7 +6929,7 @@ exports[`every protocol case > decides the same card for ROUTE-03b > ROUTE-03b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-03c > ROUTE-03c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-03c > ROUTE-03c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -6981,7 +6981,7 @@ exports[`every protocol case > decides the same card for ROUTE-03c > ROUTE-03c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-04a > ROUTE-04a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-04a > ROUTE-04a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7033,7 +7033,7 @@ exports[`every protocol case > decides the same card for ROUTE-04a > ROUTE-04a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-04b > ROUTE-04b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-04b > ROUTE-04b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7085,9 +7085,9 @@ exports[`every protocol case > decides the same card for ROUTE-04b > ROUTE-04b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-04c > ROUTE-04c 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-04c > ROUTE-04c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-05a > ROUTE-05a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-05a > ROUTE-05a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7141,7 +7141,7 @@ exports[`every protocol case > decides the same card for ROUTE-05a > ROUTE-05a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-05b > ROUTE-05b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-05b > ROUTE-05b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7196,11 +7196,11 @@ exports[`every protocol case > decides the same card for ROUTE-05b > ROUTE-05b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-05c > ROUTE-05c 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-05c > ROUTE-05c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-05d > ROUTE-05d 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-05d > ROUTE-05d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-05e > ROUTE-05e 1`] = `
+exports[`every activity case > decides the same card for ROUTE-05e > ROUTE-05e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7252,7 +7252,7 @@ exports[`every protocol case > decides the same card for ROUTE-05e > ROUTE-05e 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-06a > ROUTE-06a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-06a > ROUTE-06a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7309,7 +7309,7 @@ exports[`every protocol case > decides the same card for ROUTE-06a > ROUTE-06a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-06b > ROUTE-06b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-06b > ROUTE-06b 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -7414,7 +7414,7 @@ exports[`every protocol case > decides the same card for ROUTE-06b > ROUTE-06b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-06c > ROUTE-06c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-06c > ROUTE-06c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7469,9 +7469,9 @@ exports[`every protocol case > decides the same card for ROUTE-06c > ROUTE-06c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-06d > ROUTE-06d 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-06d > ROUTE-06d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-07a > ROUTE-07a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-07a > ROUTE-07a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7524,7 +7524,7 @@ exports[`every protocol case > decides the same card for ROUTE-07a > ROUTE-07a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-07b > ROUTE-07b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-07b > ROUTE-07b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7577,7 +7577,7 @@ exports[`every protocol case > decides the same card for ROUTE-07b > ROUTE-07b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-07c > ROUTE-07c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-07c > ROUTE-07c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7630,9 +7630,9 @@ exports[`every protocol case > decides the same card for ROUTE-07c > ROUTE-07c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-07d > ROUTE-07d 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-07d > ROUTE-07d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-08a > ROUTE-08a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08a > ROUTE-08a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7685,7 +7685,7 @@ exports[`every protocol case > decides the same card for ROUTE-08a > ROUTE-08a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-08b > ROUTE-08b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08b > ROUTE-08b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7747,7 +7747,7 @@ exports[`every protocol case > decides the same card for ROUTE-08b > ROUTE-08b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-08c > ROUTE-08c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08c > ROUTE-08c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7800,7 +7800,7 @@ exports[`every protocol case > decides the same card for ROUTE-08c > ROUTE-08c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-08d > ROUTE-08d 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08d > ROUTE-08d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7860,7 +7860,7 @@ exports[`every protocol case > decides the same card for ROUTE-08d > ROUTE-08d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-08e > ROUTE-08e 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08e > ROUTE-08e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -7942,7 +7942,7 @@ exports[`every protocol case > decides the same card for ROUTE-08e > ROUTE-08e 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-08f > ROUTE-08f 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08f > ROUTE-08f 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8040,7 +8040,7 @@ exports[`every protocol case > decides the same card for ROUTE-08f > ROUTE-08f 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-08g > ROUTE-08g 1`] = `
+exports[`every activity case > decides the same card for ROUTE-08g > ROUTE-08g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8134,7 +8134,7 @@ Shares a landing with !route:501!, so bring a second pad.",
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-09a > ROUTE-09a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-09a > ROUTE-09a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8203,7 +8203,7 @@ exports[`every protocol case > decides the same card for ROUTE-09a > ROUTE-09a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-10a > ROUTE-10a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-10a > ROUTE-10a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8256,9 +8256,9 @@ exports[`every protocol case > decides the same card for ROUTE-10a > ROUTE-10a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-10b > ROUTE-10b 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-10b > ROUTE-10b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-10c > ROUTE-10c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-10c > ROUTE-10c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8359,9 +8359,9 @@ exports[`every protocol case > decides the same card for ROUTE-10c > ROUTE-10c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-10d > ROUTE-10d 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-10d > ROUTE-10d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-11a > ROUTE-11a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-11a > ROUTE-11a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8403,7 +8403,7 @@ exports[`every protocol case > decides the same card for ROUTE-11a > ROUTE-11a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-11b > ROUTE-11b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-11b > ROUTE-11b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8445,7 +8445,7 @@ exports[`every protocol case > decides the same card for ROUTE-11b > ROUTE-11b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-11c > ROUTE-11c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-11c > ROUTE-11c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8487,7 +8487,7 @@ exports[`every protocol case > decides the same card for ROUTE-11c > ROUTE-11c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-11d > ROUTE-11d 1`] = `
+exports[`every activity case > decides the same card for ROUTE-11d > ROUTE-11d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8529,11 +8529,11 @@ exports[`every protocol case > decides the same card for ROUTE-11d > ROUTE-11d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-12a > ROUTE-12a 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-12a > ROUTE-12a 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-12b > ROUTE-12b 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-12b > ROUTE-12b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-13a > ROUTE-13a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-13a > ROUTE-13a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8584,7 +8584,7 @@ exports[`every protocol case > decides the same card for ROUTE-13a > ROUTE-13a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-13b > ROUTE-13b 1`] = `
+exports[`every activity case > decides the same card for ROUTE-13b > ROUTE-13b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8635,7 +8635,7 @@ exports[`every protocol case > decides the same card for ROUTE-13b > ROUTE-13b 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-13c > ROUTE-13c 1`] = `
+exports[`every activity case > decides the same card for ROUTE-13c > ROUTE-13c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8686,7 +8686,7 @@ exports[`every protocol case > decides the same card for ROUTE-13c > ROUTE-13c 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-13d > ROUTE-13d 1`] = `
+exports[`every activity case > decides the same card for ROUTE-13d > ROUTE-13d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -8753,9 +8753,9 @@ exports[`every protocol case > decides the same card for ROUTE-13d > ROUTE-13d 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-13e > ROUTE-13e 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-13e > ROUTE-13e 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-14a > ROUTE-14a 1`] = `
+exports[`every activity case > decides the same card for ROUTE-14a > ROUTE-14a 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -8808,13 +8808,13 @@ exports[`every protocol case > decides the same card for ROUTE-14a > ROUTE-14a 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-14b > ROUTE-14b 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-14b > ROUTE-14b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-14c > ROUTE-14c 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-14c > ROUTE-14c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-14d > ROUTE-14d 1`] = `[]`;
+exports[`every activity case > decides the same card for ROUTE-14d > ROUTE-14d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for ROUTE-14e > ROUTE-14e 1`] = `
+exports[`every activity case > decides the same card for ROUTE-14e > ROUTE-14e 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -8915,7 +8915,7 @@ exports[`every protocol case > decides the same card for ROUTE-14e > ROUTE-14e 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for ROUTE-14f > ROUTE-14f 1`] = `
+exports[`every activity case > decides the same card for ROUTE-14f > ROUTE-14f 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -8968,7 +8968,7 @@ exports[`every protocol case > decides the same card for ROUTE-14f > ROUTE-14f 1
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-01a > TOPO-01a 1`] = `
+exports[`every activity case > decides the same card for TOPO-01a > TOPO-01a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9075,7 +9075,7 @@ exports[`every protocol case > decides the same card for TOPO-01a > TOPO-01a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-01b > TOPO-01b 1`] = `
+exports[`every activity case > decides the same card for TOPO-01b > TOPO-01b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9381,9 +9381,9 @@ exports[`every protocol case > decides the same card for TOPO-01b > TOPO-01b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-01c > TOPO-01c 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-01c > TOPO-01c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-01d > TOPO-01d 1`] = `
+exports[`every activity case > decides the same card for TOPO-01d > TOPO-01d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9625,7 +9625,7 @@ exports[`every protocol case > decides the same card for TOPO-01d > TOPO-01d 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-01e > TOPO-01e 1`] = `
+exports[`every activity case > decides the same card for TOPO-01e > TOPO-01e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9681,7 +9681,7 @@ exports[`every protocol case > decides the same card for TOPO-01e > TOPO-01e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-02a > TOPO-02a 1`] = `
+exports[`every activity case > decides the same card for TOPO-02a > TOPO-02a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9737,9 +9737,9 @@ exports[`every protocol case > decides the same card for TOPO-02a > TOPO-02a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-02b > TOPO-02b 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-02b > TOPO-02b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-02c > TOPO-02c 1`] = `
+exports[`every activity case > decides the same card for TOPO-02c > TOPO-02c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9815,7 +9815,7 @@ exports[`every protocol case > decides the same card for TOPO-02c > TOPO-02c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-03a > TOPO-03a 1`] = `
+exports[`every activity case > decides the same card for TOPO-03a > TOPO-03a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -9922,7 +9922,7 @@ exports[`every protocol case > decides the same card for TOPO-03a > TOPO-03a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-03b > TOPO-03b 1`] = `
+exports[`every activity case > decides the same card for TOPO-03b > TOPO-03b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10029,7 +10029,7 @@ exports[`every protocol case > decides the same card for TOPO-03b > TOPO-03b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-03c > TOPO-03c 1`] = `
+exports[`every activity case > decides the same card for TOPO-03c > TOPO-03c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10207,7 +10207,7 @@ exports[`every protocol case > decides the same card for TOPO-03c > TOPO-03c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-04a > TOPO-04a 1`] = `
+exports[`every activity case > decides the same card for TOPO-04a > TOPO-04a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10263,7 +10263,7 @@ exports[`every protocol case > decides the same card for TOPO-04a > TOPO-04a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-04b > TOPO-04b 1`] = `
+exports[`every activity case > decides the same card for TOPO-04b > TOPO-04b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10319,9 +10319,9 @@ exports[`every protocol case > decides the same card for TOPO-04b > TOPO-04b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-04c > TOPO-04c 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-04c > TOPO-04c 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-04d > TOPO-04d 1`] = `
+exports[`every activity case > decides the same card for TOPO-04d > TOPO-04d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10377,7 +10377,7 @@ exports[`every protocol case > decides the same card for TOPO-04d > TOPO-04d 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05a > TOPO-05a 1`] = `
+exports[`every activity case > decides the same card for TOPO-05a > TOPO-05a 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10461,7 +10461,7 @@ exports[`every protocol case > decides the same card for TOPO-05a > TOPO-05a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05b > TOPO-05b 1`] = `
+exports[`every activity case > decides the same card for TOPO-05b > TOPO-05b 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10563,7 +10563,7 @@ exports[`every protocol case > decides the same card for TOPO-05b > TOPO-05b 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05c > TOPO-05c 1`] = `
+exports[`every activity case > decides the same card for TOPO-05c > TOPO-05c 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10665,7 +10665,7 @@ exports[`every protocol case > decides the same card for TOPO-05c > TOPO-05c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05d > TOPO-05d 1`] = `
+exports[`every activity case > decides the same card for TOPO-05d > TOPO-05d 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10767,7 +10767,7 @@ exports[`every protocol case > decides the same card for TOPO-05d > TOPO-05d 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05e > TOPO-05e 1`] = `
+exports[`every activity case > decides the same card for TOPO-05e > TOPO-05e 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10873,9 +10873,9 @@ exports[`every protocol case > decides the same card for TOPO-05e > TOPO-05e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05f > TOPO-05f 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-05f > TOPO-05f 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-05g > TOPO-05g 1`] = `
+exports[`every activity case > decides the same card for TOPO-05g > TOPO-05g 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -10981,9 +10981,9 @@ exports[`every protocol case > decides the same card for TOPO-05g > TOPO-05g 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05h > TOPO-05h 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-05h > TOPO-05h 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-05i > TOPO-05i 1`] = `
+exports[`every activity case > decides the same card for TOPO-05i > TOPO-05i 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -11115,9 +11115,9 @@ exports[`every protocol case > decides the same card for TOPO-05i > TOPO-05i 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05j > TOPO-05j 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-05j > TOPO-05j 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-05k > TOPO-05k 1`] = `
+exports[`every activity case > decides the same card for TOPO-05k > TOPO-05k 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -11201,7 +11201,7 @@ exports[`every protocol case > decides the same card for TOPO-05k > TOPO-05k 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05l > TOPO-05l 1`] = `
+exports[`every activity case > decides the same card for TOPO-05l > TOPO-05l 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -11303,7 +11303,7 @@ exports[`every protocol case > decides the same card for TOPO-05l > TOPO-05l 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05m > TOPO-05m 1`] = `
+exports[`every activity case > decides the same card for TOPO-05m > TOPO-05m 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -11359,7 +11359,7 @@ exports[`every protocol case > decides the same card for TOPO-05m > TOPO-05m 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05n > TOPO-05n 1`] = `
+exports[`every activity case > decides the same card for TOPO-05n > TOPO-05n 1`] = `
 [
   {
     "actorName": "Ada Rossi",
@@ -11438,11 +11438,11 @@ exports[`every protocol case > decides the same card for TOPO-05n > TOPO-05n 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for TOPO-05o > TOPO-05o 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-05o > TOPO-05o 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for TOPO-05p > TOPO-05p 1`] = `[]`;
+exports[`every activity case > decides the same card for TOPO-05p > TOPO-05p 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for USER-01a > USER-01a 1`] = `
+exports[`every activity case > decides the same card for USER-01a > USER-01a 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -11591,9 +11591,9 @@ exports[`every protocol case > decides the same card for USER-01a > USER-01a 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for USER-01b > USER-01b 1`] = `[]`;
+exports[`every activity case > decides the same card for USER-01b > USER-01b 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for USER-01c > USER-01c 1`] = `
+exports[`every activity case > decides the same card for USER-01c > USER-01c 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -11646,9 +11646,9 @@ exports[`every protocol case > decides the same card for USER-01c > USER-01c 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for USER-01d > USER-01d 1`] = `[]`;
+exports[`every activity case > decides the same card for USER-01d > USER-01d 1`] = `[]`;
 
-exports[`every protocol case > decides the same card for USER-01e > USER-01e 1`] = `
+exports[`every activity case > decides the same card for USER-01e > USER-01e 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",
@@ -11718,7 +11718,7 @@ exports[`every protocol case > decides the same card for USER-01e > USER-01e 1`]
 ]
 `;
 
-exports[`every protocol case > decides the same card for USER-01f > USER-01f 1`] = `
+exports[`every activity case > decides the same card for USER-01f > USER-01f 1`] = `
 [
   {
     "actorName": "Mara Lindqvist",

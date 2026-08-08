@@ -1,12 +1,12 @@
 /**
- * Every case in `docs/activity-feed-test-protocol.md`, as the rows the mutation layer writes.
+ * Every action the app can perform that the feed has an opinion about, as the rows the mutation
+ * layer writes.
  *
- * The protocol's "expected card" column was derived by reading the code, so it says what the
- * feed DOES, not what it SHOULD say. That is the point of this file: it feeds the catalogue
- * story, which renders all of them on one page through the real `groupActivities` and
- * `activityCard`, so the cards can be judged by eye in one sitting instead of by clicking 252
- * flows through the app. Once the mismatches are settled, the same list becomes the snapshot
- * fixture for the unit tests.
+ * Each case's `expected` was derived by reading the code, so it says what the feed DOES, not what
+ * it SHOULD say. That is the point of this file: it feeds the catalogue story, which renders the
+ * cases through the real `groupActivities` and `activityCard`, so the cards can be judged by eye
+ * in one sitting instead of by clicking 252 flows through the app. Once the mismatches are
+ * settled, the same list becomes the snapshot fixture for the unit tests.
  *
  * Storybook and tests only. Nothing in the app imports this.
  */
@@ -17,9 +17,9 @@ import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from './ent
 import { activityAgo, entityMap, ME, photo, topoLines, topoMetadata, topos, video } from './fixture'
 import { stringifyDeletedAscent } from './verbs'
 
-/** One row of the protocol's action matrix, ready to render. */
+/** One action the app can perform, and the cards the feed answers with. */
 export interface ActivityCase {
-  /** The UI path that produces it, condensed from the protocol's "UI steps" column. */
+  /** The UI path that produces it. */
   action: string
   /** The rows the mutation writes, newest first. Empty means the action writes nothing at all,
    *  which is a case worth seeing: it is where a reader most often expects a card. */
@@ -27,10 +27,10 @@ export interface ActivityCase {
   domain: ActivityCaseDomain
   /** Hydration for this case. Defaults to {@link world}. */
   entities?: ActivityEntityMap
-  /** What the protocol says the card renders. Code-derived, so this is the claim under review,
+  /** What the card is expected to render. Code-derived, so this is the claim under review,
    *  never the oracle. Disagreeing with it is the whole exercise. */
   expected: string
-  /** The protocol's stable id, e.g. `AREA-02f`. */
+  /** Stable id, e.g. `AREA-02f`: what a snapshot diff and a review comment point at. */
   id: string
   /** Only for topo cases, whose change lines draw the photo. */
   topos?: ReadonlyMap<number, TopoView>

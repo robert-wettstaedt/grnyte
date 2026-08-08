@@ -32,3 +32,37 @@ export const GRADES: Grade[] = (
     ['9A', 'V17'],
   ] as const
 ).map(([FB, V], id) => ({ FB: `FB ${FB}`, id, V }))
+
+/**
+ * Route counts keyed by grade id, the shape every grade chart takes. Two spreads cover what the
+ * charts need to show, so the donut, the histogram and the map's range filter read the same
+ * crag instead of each inventing one.
+ */
+
+/** A typical crag: bulk in the easy tier (6A–7A), tapering into medium, a couple hard. */
+export const TYPICAL_COUNTS = new Map<number, number>([
+  [2, 1],
+  [3, 4],
+  [4, 6],
+  [5, 8],
+  [6, 7],
+  [7, 9],
+  [8, 6],
+  [9, 5],
+  [10, 4],
+  [11, 3],
+  [12, 2],
+  [13, 1],
+  [15, 1],
+])
+
+/** One bucket per difficulty tier: very easy, easy, medium, hard, so all four colours show. */
+export const TIER_COUNTS = new Map<number, number>([
+  [1, 6],
+  [5, 14],
+  [12, 5],
+  [17, 2],
+])
+
+/** What the charts label as the total: every graded route, before any ungraded tail. */
+export const graded = (counts: ReadonlyMap<number, number>) => [...counts.values()].reduce((a, b) => a + b, 0)

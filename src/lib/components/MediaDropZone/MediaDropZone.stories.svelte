@@ -1,13 +1,13 @@
 <script module lang="ts">
   import { ImageUpload, VideoUpload, type MediaUploadStatus } from '$lib/entities/file/upload-manager.svelte'
   import { defineMeta } from '@storybook/addon-svelte-csf'
-  import type { ComponentProps } from 'svelte'
   import MediaDropZone from './MediaDropZone.svelte'
 
   const { Story } = defineMeta({
     component: MediaDropZone,
     parameters: {
       layout: 'centered',
+      width: 400,
     },
     tags: ['autodocs'],
     title: 'Components/MediaDropZone',
@@ -55,18 +55,12 @@
   ]
 </script>
 
-{#snippet template(args: ComponentProps<typeof MediaDropZone>)}
-  <div style="width: 400px;">
-    <MediaDropZone {...args} />
-  </div>
-{/snippet}
+<Story name="Empty" />
 
-<Story name="Empty" {template} />
+<Story name="Upload states" args={{ uploads: states }} />
 
-<Story name="Upload states" args={{ uploads: states }} {template} />
+<Story name="With videos" args={{ accept: ['image', 'video'], uploads: videoStates }} />
 
-<Story name="With videos" args={{ accept: ['image', 'video'], uploads: videoStates }} {template} />
+<Story name="Videos only" args={{ accept: ['video'] }} />
 
-<Story name="Videos only" args={{ accept: ['video'] }} {template} />
-
-<Story name="Disabled" args={{ disabled: true }} {template} />
+<Story name="Disabled" args={{ disabled: true }} />

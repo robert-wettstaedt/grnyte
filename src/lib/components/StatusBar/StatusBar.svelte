@@ -86,7 +86,7 @@
 </script>
 
 <script lang="ts">
-  // All three props exist only so the story can show states that are near-impossible
+  // All four props exist only so the story can show states that are near-impossible
   // to trigger live (`needs-auth`, `closed`, an announcement). Unset, the bar reads
   // the real device, the real Zero connection and the ANNOUNCEMENT constant. The
   // announcement comes in whole rather than as bare copy so that dismissing it -
@@ -94,6 +94,9 @@
   interface Props {
     announcement?: Announcement
     connectionState?: { name: string }
+    /** Overrides the hold below. A story pinning a state has already waited for it, and
+     *  10s of blank canvas reads as a broken story rather than as a deliberate delay. */
+    holdMs?: number
     online?: boolean
   }
 
@@ -117,7 +120,8 @@
       return
     }
 
-    const timer = setTimeout(() => (settled = raw), TERMINAL.includes(raw) ? TERMINAL_HOLD_MS : TRANSIENT_HOLD_MS)
+    const hold = props.holdMs ?? (TERMINAL.includes(raw) ? TERMINAL_HOLD_MS : TRANSIENT_HOLD_MS)
+    const timer = setTimeout(() => (settled = raw), hold)
     return () => clearTimeout(timer)
   })
 

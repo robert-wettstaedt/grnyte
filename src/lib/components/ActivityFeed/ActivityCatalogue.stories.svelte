@@ -1,5 +1,5 @@
 <!--
-  The card wall: every case in `docs/activity-feed-test-protocol.md` rendered at once.
+  The card wall: every case in `$lib/entities/activity/cases`, one story per domain.
 
   It exists to answer one question by eye instead of by clicking: does the feed say what a
   reader expects for each action the app can perform. Each case runs through the real
@@ -65,8 +65,6 @@
 {#snippet template(args: { cases: ActivityCase[] })}
   {@render wall(args.cases)}
 {/snippet}
-
-<Story name="All cases" args={{ cases: CASES }} {template} />
 
 <Story name="Area" args={{ cases: byDomain('area') }} {template} />
 

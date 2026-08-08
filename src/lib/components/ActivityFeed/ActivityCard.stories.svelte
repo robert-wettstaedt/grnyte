@@ -3,20 +3,28 @@
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import ActivityCard from './ActivityCard.svelte'
-  import { activity, entityMap, groups, ME, photo, sampleWeek, view } from './fixtures'
+  import {
+    activity,
+    entityMap,
+    groups,
+    ME,
+    sampleWeekView as mine,
+    photo,
+    sampleWeek,
+    sampleWeekGroups,
+    view,
+  } from './fixtures'
 
   const { Story } = defineMeta({
     component: ActivityCard,
-    parameters: { backgrounds: { value: 'root' }, layout: 'centered' },
+    parameters: { backgrounds: { value: 'root' }, layout: 'centered', width: 420 },
     tags: ['autodocs'],
     title: 'Components/ActivityFeed/ActivityCard',
   })
 
-  // The whole sample week, folded by the real grouping rules. Each story below picks the
-  // group it wants out of it, so the fixtures stay one consistent data set.
-  const week = groups(sampleWeek.activities)
-  const { entities } = sampleWeek
-  const pick = (predicate: (group: (typeof week)[number]) => boolean) => week.find(predicate)!
+  // Each story below picks the group it wants out of the sample week, so the fixtures stay one
+  // consistent data set. `mine()` renders one as the card the signed-in climber would see.
+  const pick = (predicate: (group: (typeof sampleWeekGroups)[number]) => boolean) => sampleWeekGroups.find(predicate)!
 
   const flash = pick((group) => group.activities[0].entityId === '9001')
   const session = pick((group) => group.kind === 'session' && group.activities.length > 1)
@@ -30,9 +38,6 @@
   const deletedRoute = pick((group) => group.activities[0].entityId === '599')
   const roleGrant = pick((group) => group.activities[0].entityType === 'user')
   const unsynced = pick((group) => group.activities[0].entityId === '9099')
-
-  /** The card view for a group of the sample week, seen as the signed-in climber. */
-  const mine = (group: (typeof week)[number]) => view(group, entities, ME, sampleWeek.topos)
 
   /**
    * Every field of {@link ActivityCardView} and the part of the card it comes out as. A
@@ -75,12 +80,6 @@
   }
 </script>
 
-{#snippet template(args: ComponentProps<typeof ActivityCard>)}
-  <div style="width: 420px; max-width: 100%;">
-    <ActivityCard {...args} />
-  </div>
-{/snippet}
-
 {#snippet anatomy(args: ComponentProps<typeof ActivityCard>)}
   <div class="flex flex-wrap items-start gap-6">
     <div style="width: 420px; max-width: 100%;">
@@ -113,46 +112,56 @@
 <!-- What each field of `ActivityCardView` turns into, read off a real card. One single and
      one grouped card, because each fills what the other leaves unset: the status, note and
      photos here, the summary, overflow count and changes there. -->
-<Story name="Anatomy (single)" args={{ view: mine(flash) }} parameters={{ layout: 'padded' }} template={anatomy} />
+<Story
+  name="Anatomy (single)"
+  args={{ view: mine(flash) }}
+  parameters={{ layout: 'padded', width: null }}
+  template={anatomy}
+/>
 
-<Story name="Anatomy (grouped)" args={{ view: mine(burst) }} parameters={{ layout: 'padded' }} template={anatomy} />
+<Story
+  name="Anatomy (grouped)"
+  args={{ view: mine(burst) }}
+  parameters={{ layout: 'padded', width: null }}
+  template={anatomy}
+/>
 
 <!-- An ascent with the ascent's photos and notes: the fullest single card there is. -->
-<Story name="Flash with photos" args={{ view: mine(flash) }} {template} />
+<Story name="Flash with photos" args={{ view: mine(flash) }} />
 
 <!-- Four ascents logged in one sitting fold into one session card. -->
-<Story name="Session" args={{ view: mine(session) }} {template} />
+<Story name="Session" args={{ view: mine(session) }} />
 
 <!-- Twelve edits across six routes of one block, capped at four rows. Expand for the diff. -->
-<Story name="Edit burst" args={{ view: mine(burst) }} {template} />
+<Story name="Edit burst" args={{ view: mine(burst) }} />
 
 <!-- Five photos from one submit as one card, not five: the rows agree on the block. -->
-<Story name="Photo upload" args={{ view: mine(uploads) }} {template} />
+<Story name="Photo upload" args={{ view: mine(uploads) }} />
 
 <!-- A reposted clip's credit corrected. Points at the file like an upload does, so the card
      draws the clip and names the route, but stays its own card instead of joining one.
      Expand for the old and new host. -->
-<Story name="Video source" args={{ view: mine(videoSource) }} {template} />
+<Story name="Video source" args={{ view: mine(videoSource) }} />
 
-<Story name="Topo redraw" args={{ view: mine(topo) }} {template} />
+<Story name="Topo redraw" args={{ view: mine(topo) }} />
 
-<Story name="New area" args={{ view: mine(newArea) }} {template} />
+<Story name="New area" args={{ view: mine(newArea) }} />
 
 <!-- Your own row: solid avatar and the "You …" variant of the same message. -->
-<Story name="Yours (grade change)" args={{ view: mine(gradeChange) }} {template} />
+<Story name="Yours (grade change)" args={{ view: mine(gradeChange) }} />
 
-<Story name="Photo removed" args={{ view: mine(photoRemoved) }} {template} />
+<Story name="Photo removed" args={{ view: mine(photoRemoved) }} />
 
 <!-- Hydration finished without the route: a tombstone, named from the delete row itself. -->
-<Story name="Deleted entity" args={{ view: mine(deletedRoute) }} {template} />
+<Story name="Deleted entity" args={{ view: mine(deletedRoute) }} />
 
-<Story name="Role change" args={{ view: mine(roleGrant) }} {template} />
+<Story name="Role change" args={{ view: mine(roleGrant) }} />
 
 <!-- The entity has not synced yet: a skeleton row and a placeholder in the headline. -->
-<Story name="Not yet synced" args={{ view: mine(unsynced) }} {template} />
+<Story name="Not yet synced" args={{ view: mine(unsynced) }} />
 
 <!-- Nobody signed in (the share/logged-out case): every card speaks in the third person. -->
-<Story name="Someone else" args={{ view: view(gradeChange, entities) }} {template} />
+<Story name="Someone else" args={{ view: view(gradeChange, sampleWeek.entities) }} />
 
 <!-- The actor's user row has not synced either: a pulsing avatar rather than "?". -->
 <Story
@@ -171,5 +180,4 @@
       ME,
     ),
   }}
-  {template}
 />

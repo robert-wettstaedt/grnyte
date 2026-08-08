@@ -4,22 +4,6 @@
   import type { ComponentProps } from 'svelte'
   import RouteRow from './RouteRow.svelte'
 
-  const { Story } = defineMeta({
-    argTypes: {
-      status: {
-        control: 'select',
-        description: "The user's logged ascent state, if any.",
-        options: [undefined, 'flash', 'redpoint', 'attempt', 'repeat'],
-      },
-    },
-    component: RouteRow,
-    parameters: {
-      layout: 'centered',
-    },
-    tags: ['autodocs'],
-    title: 'Components/EntityRow/RouteRow',
-  })
-
   // The route DTO carries name, gradeFk (→ heat band), rating (stars), the
   // description (markdown subline) and topo thumbnail; the display grade label
   // stays a separate prop. Keep story descriptions free of `!type:id!`
@@ -31,37 +15,47 @@
     route: { description: 'Sit start on crimps', gradeFk: 12, name: 'Arch Nemesis', rating: 3, tags: [] },
     status: 'redpoint',
   } satisfies ComponentProps<typeof RouteRow>
+
+  const { Story } = defineMeta({
+    args: base,
+    argTypes: {
+      status: {
+        control: 'select',
+        description: "The user's logged ascent state, if any.",
+        options: [undefined, 'flash', 'redpoint', 'attempt', 'repeat'],
+      },
+    },
+    component: RouteRow,
+    parameters: {
+      layout: 'centered',
+      width: 360,
+    },
+    tags: ['autodocs'],
+    title: 'Components/EntityRow/RouteRow',
+  })
 </script>
 
-{#snippet template(args: ComponentProps<typeof RouteRow>)}
-  <div style="width: 360px;">
-    <RouteRow {...args} />
-  </div>
-{/snippet}
+<Story name="Default" />
 
-<Story name="Default" args={{ ...base }} {template} />
+<Story name="Flashed" args={{ status: 'flash' }} />
 
-<Story name="Flashed" args={{ ...base, status: 'flash' }} {template} />
+<Story name="Project" args={{ status: 'attempt' }} />
 
-<Story name="Project" args={{ ...base, status: 'attempt' }} {template} />
+<Story name="Repeat" args={{ status: 'repeat' }} />
 
-<Story name="Repeat" args={{ ...base, status: 'repeat' }} {template} />
+<Story name="No ascent" args={{ route: { ...base.route, rating: 0 }, status: undefined }} />
 
-<Story name="No ascent" args={{ ...base, route: { ...base.route, rating: 0 }, status: undefined }} {template} />
-
-<Story name="As link" args={{ ...base, href: '#' }} {template} />
+<Story name="As link" args={{ href: '#' }} />
 
 <!-- Selected card: expands with the tags/actions line. -->
 <Story
   name="Active (expanded)"
   args={{
-    ...base,
     active: true,
     detailsHref: '#',
     mapHref: '#',
     route: { ...base.route, tags: ['SD', 'high'] },
   }}
-  {template}
 />
 
 <!-- Real topo thumbnail with the route's line, in the normalized 0–1 format (legacy
@@ -69,7 +63,6 @@
 <Story
   name="With topo"
   args={{
-    ...base,
     route: {
       ...base.route,
       topoImagePath: 'topo-sample.svg',
@@ -78,5 +71,4 @@
       ),
     },
   }}
-  {template}
 />

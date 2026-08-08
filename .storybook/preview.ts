@@ -1,5 +1,6 @@
 import type { Preview } from '@storybook/sveltekit'
 import GlobalStateDecorator from './GlobalStateDecorator.svelte'
+import WidthDecorator from './WidthDecorator.svelte'
 // Pull in the real app stylesheet (Tailwind 4 + Skeleton + grnyte tokens) so
 // components render exactly as they do in the app.
 import '../src/app.css'
@@ -12,14 +13,20 @@ if (typeof document !== 'undefined') {
 }
 
 const preview: Preview = {
-  // Provides the getGlobalState() context (empty, ready fixture) so components
-  // built on it — e.g. rows rendering markdown sublines — mount outside the app.
-  decorators: [() => GlobalStateDecorator],
+  decorators: [
+    // Sizes the canvas for stories that set `parameters.width`; a no-op for the rest.
+    (story, context) => ({ Component: WidthDecorator, props: { width: context.parameters.width } }),
+    // Provides the getGlobalState() context (empty, ready fixture) so components
+    // built on it — e.g. rows rendering markdown sublines — mount outside the app.
+    () => GlobalStateDecorator,
+  ],
   parameters: {
     backgrounds: {
+      // The theme tokens themselves, not copies of them: app.css is loaded above, so the two
+      // canvases track the surface ramp instead of drifting from it.
       options: {
-        card: { name: 'Surface card', value: 'oklch(0.215 0.010 305)' },
-        root: { name: 'Surface root', value: 'oklch(0.165 0.008 305)' },
+        card: { name: 'Surface card', value: 'var(--color-surface-900)' },
+        root: { name: 'Surface root', value: 'var(--color-surface-950)' },
       },
     },
     controls: {

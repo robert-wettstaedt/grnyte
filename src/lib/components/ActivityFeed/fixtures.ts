@@ -3,6 +3,7 @@ import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/
 import {
   activityAgo as activity,
   entityMap,
+  groups,
   ME,
   PEOPLE,
   photo,
@@ -10,7 +11,9 @@ import {
   topoMetadata,
   topos,
   video,
+  view,
 } from '$lib/entities/activity/fixture'
+import type { ActivityGroup } from '$lib/entities/activity/grouping'
 import type { TopoView } from '$lib/entities/topo/dto'
 
 /**
@@ -220,3 +223,18 @@ export const sampleWeek: {
 
   return { activities, entities, topos: topos() }
 })()
+
+/** The week folded by the real grouping rules, which is where every card below starts. */
+export const sampleWeekGroups: ActivityGroup[] = groups(sampleWeek.activities)
+
+/**
+ * One group as the card the page would show it as, seen as the signed-in climber. The card story
+ * picks single groups out of the week and the feed story takes them all, and both were passing
+ * the same `ME` and the same topo views by hand.
+ */
+export const sampleWeekView = (group: ActivityGroup, entities: ActivityEntityMap = sampleWeek.entities) =>
+  view(group, entities, ME, sampleWeek.topos)
+
+/** The whole week as cards. `entities` is overridable so a story can show it un-hydrated. */
+export const sampleWeekViews = (entities?: ActivityEntityMap) =>
+  sampleWeekGroups.map((group) => sampleWeekView(group, entities))
