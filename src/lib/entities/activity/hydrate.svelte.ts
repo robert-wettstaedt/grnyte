@@ -92,9 +92,24 @@ interface ActivityKind<Row> {
   numeric: boolean
   /** The fetched rows, indexed by id as text, which is how an activity stores it. */
   rows: (input: ActivityHydration) => ReadonlyMap<string, Row>
-  /** The row as a card renders it, or `undefined` when this row cannot stand on its own yet. */
-  toEntity: (row: Row, input: ActivityHydration) => ActivityEntity | undefined
+  /**
+   * The row as a card renders it, or `undefined` when this row cannot stand on its own yet.
+   *
+   * `tables` is every kind's rows, already indexed for this join, for the one kind that borrows
+   * another's row: an ascent renders its route's.
+   */
+  toEntity: (row: Row, input: ActivityHydration, tables: JoinTables) => ActivityEntity | undefined
 }
+
+/**
+ * Every kind's rows, indexed once per join.
+ *
+ * Typed as `never` rows on purpose: which map a lookup wants is `ref.type`, which no signature can
+ * follow, and `kind()` has already checked that each `rows` and its own `toEntity` agree. So the
+ * one place that needs the real row type casts for it, right where it knows the kind (see
+ * `KINDS.ascent`), and everywhere else the map is opaque.
+ */
+type JoinTables = Record<ActivityEntityType, ReadonlyMap<string, never>>
 
 /** Declares one kind, so `Row` is inferred from `rows` and checked against `toEntity`. */
 function kind<Row>(spec: ActivityKind<Row>): ActivityKind<Row> {
@@ -126,10 +141,12 @@ const KINDS = {
     needs: ['route'],
     numeric: true,
     rows: (input) => index(input.ascents),
-    toEntity: (ascent, input): ActivityEntity | undefined => {
+    toEntity: (ascent, input, tables): ActivityEntity | undefined => {
       // The route carries the row (grade, stars, tags, topo thumb); reading those off the ascent
-      // would render a real route with zeroed values, which is worse than late.
-      const route = routeRows(input).get(String(ascent.routeFk))
+      // would render a real route with zeroed values, which is worse than late. Cast because this
+      // is the one place that reads another kind's table and so knows which kind it is.
+      const routes = tables.route as ReadonlyMap<string, RouteListItem>
+      const route = routes.get(String(ascent.routeFk))
       if (route == null && !input.ready.has('route')) {
         return undefined
       }
@@ -173,7 +190,7 @@ const KINDS = {
 
   route: kind({
     numeric: true,
-    rows: routeRows,
+    rows: (input) => index(input.routes),
     toEntity: (route, input): ActivityEntity => routeEntity(route, input),
   }),
 
@@ -296,15 +313,15 @@ export function activityEntities(
 /** Join fetched rows onto the refs that asked for them. Pure: see the module comment. */
 export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
   const entities = new Map<string, ActivityEntity | null>()
+  // Indexed once for the whole join, not once per ref: a window of fifty rows asking fifty
+  // questions of the same fetched rows would otherwise rebuild the same six maps fifty times,
+  // on every tick that answers.
+  const tables = indexed(input)
 
   for (const ref of input.refs) {
     const spec = KINDS[ref.type]
-    // The one cast in here. Six kinds index six differently shaped tables, and `ref.type` is
-    // what says which; `kind()` has already checked each `rows`/`toEntity` pair agrees with
-    // itself, so the row a lookup hands back is the row its own `toEntity` takes.
-    const rows = spec.rows(input) as ReadonlyMap<string, never>
-    const row = rows.get(ref.id)
-    const entity = row === undefined ? undefined : spec.toEntity(row, input)
+    const row = tables[ref.type].get(ref.id)
+    const entity = row === undefined ? undefined : spec.toEntity(row, input, tables)
 
     if (entity != null) {
       entities.set(activityEntityKey(ref), entity)
@@ -372,6 +389,13 @@ function index<T extends { id: number }>(rows: readonly T[]): Map<string, T> {
   return new Map(rows.map((row) => [String(row.id), row]))
 }
 
+/** Each kind's rows, indexed, keyed by kind. Built off `KINDS` itself, so a kind added there is
+ *  indexed here without a second list to remember. */
+function indexed(input: ActivityHydration): JoinTables {
+  const types = Object.keys(KINDS) as ActivityEntityType[]
+  return Object.fromEntries(types.map((type) => [type, KINDS[type].rows(input)])) as JoinTables
+}
+
 /** The row an ascent borrows as well as the one a route renders for itself. */
 function routeEntity(route: RouteListItem, input: ActivityHydration): ActivityEntity {
   return {
@@ -381,10 +405,4 @@ function routeEntity(route: RouteListItem, input: ActivityHydration): ActivityEn
     route,
     row: 'route',
   }
-}
-
-/** The routes, indexed. Its own function because an ascent borrows a route's row, and reaching
- *  for it through {@link KINDS} would make the table refer to itself while it is being built. */
-function routeRows(input: ActivityHydration): ReadonlyMap<string, RouteListItem> {
-  return index(input.routes)
 }
