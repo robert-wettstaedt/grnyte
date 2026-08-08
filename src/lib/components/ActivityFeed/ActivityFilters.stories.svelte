@@ -1,35 +1,40 @@
 <script module lang="ts">
+  import type { UserListItem } from '$lib/entities/user/dto'
   import { defineMeta } from '@storybook/addon-svelte-csf'
-  import type { ComponentProps } from 'svelte'
   import ActivityFilters from './ActivityFilters.svelte'
-  import { ME } from './fixtures'
+  import { ME, PEOPLE } from './fixtures'
+
+  const regions = [
+    { name: 'Frankenjura', regionFk: 1, role: 'region_admin' as const },
+    { name: 'Ticino', regionFk: 2, role: 'region_user' as const },
+  ]
+
+  // What the page hands down: the members of the regions in scope, without the signed-in user,
+  // who is the pinned "Just me" row instead.
+  const people: UserListItem[] = Object.entries(PEOPLE)
+    .map(([id, username]) => ({ id: Number(id), regionFks: Number(id) % 2 === 0 ? [1] : [1, 2], username }))
+    .filter((person) => person.id !== ME)
 
   const { Story } = defineMeta({
+    args: { currentUserFk: ME, people, regions },
     component: ActivityFilters,
-    parameters: { backgrounds: { value: 'root' }, layout: 'padded' },
+    parameters: { backgrounds: { value: 'root' }, layout: 'padded', width: 420 },
     tags: ['autodocs'],
     title: 'Components/ActivityFeed/ActivityFilters',
   })
-
-  const regions = [
-    { name: 'Frankenjura', regionFk: 1 },
-    { name: 'Ticino', regionFk: 2 },
-  ]
 </script>
 
-{#snippet template(args: ComponentProps<typeof ActivityFilters>)}
-  <div style="width: 420px; max-width: 100%; margin: 0 auto;">
-    <ActivityFilters {...args} />
-  </div>
-{/snippet}
-
-<!-- Two regions: the current one reads out next to the filter button. -->
-<Story name="Default" args={{ currentUserFk: ME, regions }} {template} />
+<!-- Two regions and nothing picked: the header says what the feed is scoped to. -->
+<Story name="Default" />
 
 <!-- One region is nothing to choose between, so the region controls stay hidden. -->
-<Story name="Single region" args={{ currentUserFk: ME, regions: regions.slice(0, 1) }} {template} />
+<Story name="Single region" args={{ regions: regions.slice(0, 1) }} />
 
-<Story name="Ascents only" args={{ category: 'ascent', currentUserFk: ME, regions }} {template} />
+<Story name="Ascents only" args={{ category: 'ascent', filtered: true }} />
 
-<!-- Narrowed: a removable chip per filter, so a filtered feed never reads as an empty one. -->
-<Story name="Filtered" args={{ currentUserFk: ME, regionFk: 2, regions, userFk: ME }} {template} />
+<!-- Narrowed: a removable chip per filter, so a filtered feed never reads as an empty one. The
+     header's scope label gives way to the region chip rather than repeating it. -->
+<Story name="Filtered" args={{ filtered: true, regionFk: 2, userFk: ME }} />
+
+<!-- A person rather than yourself: the chip names them, resolved by the host from the id alone. -->
+<Story name="Person picked" args={{ filtered: true, personName: PEOPLE[2], userFk: 2 }} />

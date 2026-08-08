@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
 
-  interface Props {
+  interface BaseProps {
     /** Accent (primary) icon tile — for "add" actions. */
     accent?: boolean
     /** Optional second line under the label. */
@@ -14,17 +15,26 @@
      *  deletion of an unknown quantity. */
     disabled?: boolean
     href?: string
-    icon: IconName
     label: string
     onclick?: () => void
-    /** The current choice in a menu of options: accent tile plus a trailing check, so it does
-     *  not read as selected by colour alone. Announced as `aria-pressed` on a button row and
-     *  `aria-current` on a link one, so the check is never visual-only. */
+    /** The current choice in a menu of options: an accent tile (or a ring on an avatar) plus a
+     *  trailing check, so it does not read as selected by colour alone. Announced as
+     *  `aria-pressed` on a button row and `aria-current` on a link one, so the check is never
+     *  visual-only. */
     selected?: boolean
   }
 
+  /**
+   * Every row carries a leading visual, and it is one of the two: an icon tile, or a person's
+   * avatar rendered in the same 40px slot so a row about somebody lines up with the icon rows
+   * around it. A union rather than two optionals, so a row with neither is a type error rather
+   * than a headless row that misaligns against its siblings at runtime.
+   */
+  type Props = BaseProps & ({ avatar: string; icon?: never } | { avatar?: never; icon: IconName })
+
   const {
     accent = false,
+    avatar,
     description,
     destructive = false,
     disabled = false,
@@ -37,18 +47,27 @@
 </script>
 
 {#snippet body()}
-  <span
-    class={[
-      'flex size-10 flex-none items-center justify-center rounded-xl',
-      destructive
-        ? 'bg-error-500/15 text-error-500'
-        : accent || selected
-          ? 'bg-primary-500/15 text-primary-500'
-          : 'bg-surface-200-800 text-surface-600-400',
-    ]}
-  >
-    <Icon name={icon} size={20} />
-  </span>
+  {#if avatar != null}
+    <!-- A ring, not `solid`: on Avatar that fill means "registered user", and every person in a
+         menu is one. Reusing it for selection would read as one real account among unregistered
+         names. -->
+    <span class={['flex flex-none rounded-full', selected && 'ring-primary-500 ring-2']}>
+      <Avatar name={avatar} size={40} />
+    </span>
+  {:else if icon != null}
+    <span
+      class={[
+        'flex size-10 flex-none items-center justify-center rounded-xl',
+        destructive
+          ? 'bg-error-500/15 text-error-500'
+          : accent || selected
+            ? 'bg-primary-500/15 text-primary-500'
+            : 'bg-surface-200-800 text-surface-600-400',
+      ]}
+    >
+      <Icon name={icon} size={20} />
+    </span>
+  {/if}
   <span class="flex min-w-0 flex-col">
     <span class="font-medium">{label}</span>
     {#if description}

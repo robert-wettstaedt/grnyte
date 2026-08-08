@@ -30,6 +30,7 @@ export {
   entityMap,
   groups,
   ME,
+  PEOPLE,
   photo,
   topoLines,
   topoMetadata,

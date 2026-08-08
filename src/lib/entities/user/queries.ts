@@ -16,6 +16,9 @@ export const usersQueryDefs = {
   listUsers: defineQuery(
     z.object({
       content: z.string().optional(),
+      // Narrow to specific users. Unlike `usersByIds` this stays inside the
+      // region scope below, so it is safe to resolve an id that came off a URL.
+      ids: z.array(z.number()).optional(),
       limit: z.number().optional(),
       // Users who are active members of any of these regions (a global search
       // spans every region the signed-in user belongs to). Empty = match none.
@@ -37,6 +40,10 @@ export const usersQueryDefs = {
 
       if (args.content != null) {
         q = q.where('username', 'ILIKE', `%${args.content}%`)
+      }
+
+      if (args.ids != null) {
+        q = q.where('id', 'IN', args.ids)
       }
 
       if (args.limit != null) {

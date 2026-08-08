@@ -4,6 +4,8 @@ import { toUser, toUserListItem, toUserRef } from './mapper'
 
 export interface UserListFilter {
   content?: string
+  /** Narrow to specific users, still inside `regionFks`. */
+  ids?: number[]
   limit?: number
   /** Users active in any of these regions; empty matches none. */
   regionFks: number[]

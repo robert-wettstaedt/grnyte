@@ -7,6 +7,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { ActivityCategory } from '$lib/entities/activity/dto'
   import type { UserRegion } from '$lib/entities/region/dto'
+  import type { UserListItem } from '$lib/entities/user/dto'
   import { m } from '$lib/paraglide/messages'
   import { SegmentedControl } from '@skeletonlabs/skeleton-svelte'
   import ActivityFilterSheet from './ActivityFilterSheet.svelte'
@@ -16,11 +17,23 @@
     category?: ActivityCategory
     /** The signed-in user, the subject of the "Just me" filter. */
     currentUserFk?: number
+    /** Whether anything is narrowed, decided by the host: it is the only place that holds every
+     *  filter value, and the sheet's Reset and the page's empty-state Reset must agree. */
+    filtered?: boolean
+    /** Clears every filter, including the ones this component does not render. */
+    onReset?: () => void
+    /** Bindable so the host can sync the people list only while the picker is up. */
+    open?: boolean
+    /** The people who can be filtered to, already scoped and without the signed-in user. */
+    people?: UserListItem[]
+    /** Name of the selected actor, resolved by the host so a reloaded `?user=` still reads out
+     *  even when that person is outside the region the picker is currently scoped to. */
+    personName?: string
     /** Selected region, or `undefined` for all of them. */
     regionFk?: number
     /** The user's regions. The design hides the region controls for a single-region user,
      *  who has nothing to narrow to. */
-    regions?: Pick<UserRegion, 'name' | 'regionFk'>[]
+    regions?: Pick<UserRegion, 'name' | 'regionFk' | 'role'>[]
     /** Selected actor, or `undefined` for everyone. */
     userFk?: number
   }
@@ -28,6 +41,11 @@
   let {
     category = $bindable(),
     currentUserFk,
+    filtered = false,
+    onReset,
+    open = $bindable(false),
+    people = [],
+    personName,
     regionFk = $bindable(),
     regions = [],
     userFk = $bindable(),
@@ -38,6 +56,11 @@
   const segment = $derived(category ?? 'all')
 
   const regionName = $derived(regions.find((region) => region.regionFk === regionFk)?.name)
+
+  // The header says what the feed is scoped to only while nothing is picked. Once a region is,
+  // the chip below is the readout, and it is the one that can be tapped away; printing the name
+  // in both places says it twice.
+  const scopeLabel = $derived(regions.length > 1 && regionFk == null ? m.feed_allRegions() : undefined)
 </script>
 
 {#snippet chip(label: string, clear: () => void)}
@@ -55,11 +78,11 @@
   <div class="flex items-center gap-2">
     <h1 class="text-surface-950-50 flex-1 text-2xl font-bold tracking-tight">{m.feed_title()}</h1>
 
-    {#if regions.length > 1}
-      <span class="text-surface-600-400 truncate text-xs font-semibold">{regionName ?? m.feed_allRegions()}</span>
+    {#if scopeLabel != null}
+      <span class="text-surface-600-400 truncate text-xs font-semibold">{scopeLabel}</span>
     {/if}
 
-    <ActivityFilterSheet {currentUserFk} bind:regionFk bind:userFk {regions} />
+    <ActivityFilterSheet {currentUserFk} {filtered} {onReset} bind:open {people} bind:regionFk {regions} bind:userFk />
   </div>
 
   <SegmentedControl
@@ -85,7 +108,10 @@
         {@render chip(regionName, () => (regionFk = undefined))}
       {/if}
       {#if userFk != null}
-        {@render chip(userFk === currentUserFk ? m.feed_justMe() : m.feed_person(), () => (userFk = undefined))}
+        {@render chip(
+          userFk === currentUserFk ? m.feed_justMe() : (personName ?? m.feed_person()),
+          () => (userFk = undefined),
+        )}
       {/if}
     </div>
   {/if}

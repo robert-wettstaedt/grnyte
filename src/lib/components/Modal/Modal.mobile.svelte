@@ -72,12 +72,12 @@
 
 {#snippet content()}
   <BottomSheet.Sheet
-    class="preset-filled-surface-50-950! keyboard-aware {backdrop ? 'modal-elevated' : ''} {nested
+    class="preset-filled-surface-50-950! keyboard-aware modal-sheet {backdrop ? 'modal-elevated' : ''} {nested
       ? 'modal-elevated-nested'
       : ''}"
   >
     <div
-      class="preset-filled-surface-50-950 border-surface-100-900 sticky top-0 z-100 flex items-center justify-between border-b-2 px-4 py-2"
+      class="preset-filled-surface-50-950 border-surface-100-900 flex shrink-0 items-center justify-between border-b-2 px-4 py-2"
     >
       {#if headerLeft}
         {@render headerLeft()}
@@ -107,15 +107,20 @@
       {/if}
     </div>
 
-    <BottomSheet.Content class={['w-full px-4! pt-4!', footer ? 'pb-20!' : '']}>
+    <BottomSheet.Content class="w-full px-4! pt-4! pb-4!">
       {@render children?.()}
     </BottomSheet.Content>
 
     {#if footer}
-      <!-- Inside the sheet so it only renders while open; pinned to the bottom (the
-           sheet's scroll wrapper breaks `position: sticky`, so `fixed` is used). -->
+      <!-- A plain flex item, outside the scroll area (see the style block), which is the only
+           arrangement where content cannot pass under it. Pinning it over the scrollport, by
+           `fixed` or by `sticky`, means the scroll area has to reserve its height by hand, and
+           any number chosen for that is wrong for the next caller who puts something taller in
+           the footer. The bottom padding clears the home indicator on a gesture-navigation
+           phone. -->
       <div
-        class="bg-surface-50-950 border-surface-100-900 fixed right-0 bottom-0 left-0 z-100 flex items-center justify-end gap-2 border-t-2 p-4"
+        class="bg-surface-50-950 border-surface-100-900 z-100 flex shrink-0 items-center justify-end gap-2 border-t-2 px-4 pt-4"
+        style:padding-bottom="calc(1rem + env(safe-area-inset-bottom))"
       >
         {@render footer()}
       </div>
@@ -154,6 +159,30 @@
   /* Lift the fixed sheet above the keyboard by the measured overlap (set in JS). */
   :global(.bottom-sheet.keyboard-aware) {
     bottom: var(--keyboard-inset, 0px) !important;
+  }
+
+  /* Header / scroll area / footer as a column, so only the middle scrolls and the header and
+     footer keep their own space. svelte-bottom-sheet builds for exactly this (its `.scroll-clip`
+     already carries `flex-grow: 1`) but only sets `display: flex` for the left, right and top
+     positions, so a bottom sheet is left as a single scrolling block with its `.scroll-clip`
+     clipped rather than scrollable. That is what puts a long list under a pinned footer.
+
+     Keyed to `.modal-sheet` (this component's own marker) rather than to the library's
+     `.position-bottom`: the map's sheet is a bottom sheet too, and it wants the library's
+     single-scrolling-block layout. A global rule on the position class rewrites that one as
+     well, and it cannot opt out of the `overflow-y` half by any class of its own. */
+  :global(.bottom-sheet.modal-sheet) {
+    display: flex;
+    flex-direction: column;
+    /* `!important` because the library's own `overflow-y: auto` is `.bottom-sheet.svelte-<hash>`,
+       the same specificity as this, so without it the winner is whichever stylesheet the bundler
+       emitted last. `.scroll-clip` below is the one scrollport this sheet has. */
+    overflow-y: hidden !important;
+  }
+
+  :global(.bottom-sheet.modal-sheet .scroll-clip) {
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* Backdrop-only: sit the sheet + scrim above the map's persistent area panel (z-50). */

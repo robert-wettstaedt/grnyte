@@ -19,6 +19,12 @@
     title,
     trigger,
   }: Props = $props()
+
+  // Two `max-h-*` utilities on one element are the same specificity, so which one wins is the
+  // order Tailwind happened to emit them in, not the order they are listed here. Four callers
+  // already pass their own cap, so the default only applies when they did not.
+  // ponytail: a substring test, not a class parser. `max-h-` is unambiguous in a class list.
+  const cappedByCaller = $derived(contentClass?.includes('max-h-') ?? false)
 </script>
 
 {#if panel}
@@ -89,28 +95,37 @@
              whole popover. z-60 clears the map's area dialog (z-50) instead of hiding behind it. -->
         <!-- Full border + drop shadow so the popover reads as a floating layer instead of
              blending into the page (both share the same surface background). -->
+        <!-- Same column as the panel branch above: a capped card whose middle scrolls, so a long
+             list (a region's members, say) does not grow the popover off the screen. The cap is
+             what Zag measured between the trigger and the viewport edge, so the popover never
+             overflows whichever side it flipped to. No `overflow-hidden` on the card itself here,
+             unlike the panel: it would clip the arrow. -->
         <Popover.Content
-          class={['card bg-surface-50-950 border-surface-200-800 z-60 border shadow-2xl', contentClass ?? 'w-96']}
+          class={[
+            'card bg-surface-50-950 border-surface-200-800 z-60 flex flex-col border shadow-2xl',
+            !cappedByCaller && 'max-h-[min(70dvh,var(--available-height,70dvh))]',
+            contentClass ?? 'w-96',
+          ]}
         >
-          <div class="space-y-4">
-            <header class="flex flex-col px-4 py-2 shadow">
-              {#if subtitle}
-                <span class="text-sm opacity-60">{subtitle}</span>
-              {/if}
-
-              <span class="text-lg">{title}</span>
-            </header>
-
-            <Popover.Description class="px-4 pb-4">
-              {@render children?.()}
-            </Popover.Description>
-
-            {#if footer}
-              <div class="border-surface-100-900 flex items-center justify-end gap-2 border-t-2 px-4 py-3">
-                {@render footer()}
-              </div>
+          <header class="flex shrink-0 flex-col px-4 py-2 shadow">
+            {#if subtitle}
+              <span class="text-sm opacity-60">{subtitle}</span>
             {/if}
-          </div>
+
+            <span class="text-lg">{title}</span>
+          </header>
+
+          <Popover.Description class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-4">
+            {@render children?.()}
+          </Popover.Description>
+
+          {#if footer}
+            <div
+              class="bg-surface-50-950 border-surface-100-900 flex shrink-0 items-center justify-end gap-2 border-t-2 px-4 py-3"
+            >
+              {@render footer()}
+            </div>
+          {/if}
 
           <Popover.Arrow class="[--arrow-background:var(--color-surface-50-950)] [--arrow-size:--spacing(2)]">
             <Popover.ArrowTip />

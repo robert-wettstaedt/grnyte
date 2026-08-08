@@ -203,13 +203,17 @@ grade change, deleted route, role grant, tombstone, skeleton).
    This is where each activity type gets its visual, in isolation, before any real data.
 4. **Feed page.** Wire real resources, day dividers, load-older, "N new" pill.
 5. **Filters.** Segments, region chip (only when `userRegions.length > 1`), person sheet,
-   removable chips, empty-with-filters state, URL sync.
+   removable chips, empty-with-filters state, URL sync. The person sheet lists the members of the
+   regions in scope (`userList`, capped at 50, no search) with `Just me` pinned above them; each
+   region row reads out the role held there. The URL is mirrored through
+   `syncSearchParams` / `withSearchParams` in `state/navigation.svelte.ts`, one `URL` on both sides
+   so the query survives its own round trip.
 6. **Per-entity activity.** Same `ActivityFeed` on area/block/route detail.
 7. **Verify.** `/grnyte-verify` against real data, plus a Playwright spec for filter + expand.
 
 Phases 1–3 are independent of each other's UI and can land as separate commits.
 
-**Done: 1–4.** `/feed` runs on real data, unfiltered. 5–7 are open.
+**Done: 1–5.** `/feed` runs on real data and narrows by segment, region and person. 6–7 are open.
 
 ---
 

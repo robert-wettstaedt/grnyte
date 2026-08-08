@@ -1,4 +1,4 @@
-import { afterNavigate, goto } from '$app/navigation'
+import { afterNavigate, goto, replaceState } from '$app/navigation'
 import { page } from '$app/state'
 
 // How many same-origin history entries deep we are since entering the app.
@@ -61,6 +61,23 @@ export function replaceUrl(url: string | URL, opts: Omit<object & Parameters<typ
   })
 }
 
+/**
+ * Mirror a page's own state into the query string, leaving every param it does not own alone.
+ *
+ * `replaceState` rather than a `goto`: the values are already in memory, so there is nothing to
+ * load, and the back button keeps meaning "the page before this one" rather than "the filter
+ * before this one". Call it from an `$effect` over the state being mirrored.
+ */
+export function syncSearchParams(values: Record<string, number | string | undefined>) {
+  const url = withSearchParams(page.url, values)
+
+  // Guarded, because the effect re-runs on the `page.url` its own write produces.
+  if (url.search !== page.url.search) {
+    // eslint-disable-next-line svelte/no-navigation-without-resolve -- the path is `page.url`'s own, already resolved; only the query changes
+    replaceState(url, page.state)
+  }
+}
+
 /** Register once from a top-level layout to track same-origin navigation depth. */
 export function trackHistoryDepth() {
   afterNavigate((navigation) => {
@@ -83,17 +100,42 @@ export function trackHistoryDepth() {
   })
 }
 
+/**
+ * A copy of `url` with `values` written onto its query: set when a value is there, deleted when
+ * it is `undefined` or empty. Every other param keeps its key, its value and its position.
+ *
+ * Not byte-for-byte, though: a write re-serialises the whole query through `URLSearchParams`, so
+ * params this call never named are normalised along with it (`%20` becomes `+`, a valueless
+ * `?debug` becomes `?debug=`). Do not mirror state next to a param whose exact bytes are the
+ * point, a signature or a base64 token; read those before the first write, or keep them in the
+ * path.
+ *
+ * Split out from {@link syncSearchParams} because this half is the one with the sharp edge, and
+ * it is testable without a browser. Normalising through a `URL` is also what makes the round trip
+ * a fixed point: hand-building the string with `encodeURIComponent` and comparing it against what
+ * the browser reports back compares two different serialisers (a space is `%20` on one side and
+ * `+` on the other), so the guard in `syncSearchParams` never matches and it replaces forever.
+ */
+export function withSearchParams(url: URL, values: Record<string, number | string | undefined>): URL {
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- a throwaway value, built and read within the call; nothing reads it reactively
+  const next = new URL(url)
+
+  for (const [key, value] of Object.entries(values)) {
+    if (value == null || value === '') {
+      next.searchParams.delete(key)
+    } else {
+      next.searchParams.set(key, String(value))
+    }
+  }
+
+  return next
+}
+
 // The `?media=<file id>` param drives the fullscreen media viewer for a set of
 // files: opening pushes a history entry (back closes it), paging replaces it in
 // place, closing pops it. One place owns the URL mechanics so the open/page/close
 // history semantics can't drift between the thumbnail, the overflow chip, and the
 // viewer's own paging.
 function mediaUrl(id: null | string): URL {
-  const url = new URL(page.url)
-  if (id == null) {
-    url.searchParams.delete('media')
-  } else {
-    url.searchParams.set('media', id)
-  }
-  return url
+  return withSearchParams(page.url, { media: id ?? undefined })
 }

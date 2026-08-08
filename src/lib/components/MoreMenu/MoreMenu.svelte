@@ -18,12 +18,15 @@
   let open = $state(false)
 </script>
 
+<!-- Only the panel needs a height cap of its own: it is positioned by hand, so nothing measures
+     it. The popover leaves the cap to Modal, whose default is what Zag measured between the
+     trigger and the viewport edge, and so is right on whichever side the menu flipped to. -->
 <Modal
   backdrop
   bind:open
   {panel}
   panelClass={panel ? 'fixed inset-0 left-[31.25rem] z-60 flex items-start py-2 lg:left-[35.25rem]' : undefined}
-  contentClass="max-h-[calc(100dvh-6rem)] w-80"
+  contentClass={panel ? 'max-h-[calc(100dvh-6rem)] w-80' : 'w-80'}
   subtitle={m.areas_manage()}
   {title}
 >
