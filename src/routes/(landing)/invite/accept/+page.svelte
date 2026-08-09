@@ -6,10 +6,12 @@
   import { signOut } from '$lib/auth/session.remote'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
+  import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import { acceptPath } from '$lib/entities/region/dto'
   import { acceptRegionInvitation } from '$lib/entities/region/regions.remote'
   import { resolveErrorMessage } from '$lib/forms/issue'
   import { m } from '$lib/paraglide/messages'
+  import { installPromoMode } from '$lib/state/install.svelte'
   import type { PageProps } from './$types'
 
   // The one screen every invite path lands on: the emailed link, the signed-in bounce from
@@ -86,6 +88,21 @@
 
   let pending = $state(false)
   let failure = $state<string | undefined>(undefined)
+  let joined = $state(false)
+
+  // One literal, read by both the routing decision below and the card itself, so the screen can
+  // never be shown to hold a card that then renders nothing.
+  //
+  // `permanent`, because this is a surface somebody arrived at deliberately: a browser that has not
+  // fired `beforeinstallprompt` yet still gets the route named rather than a coin flip on whether
+  // the screen appears at all. `dismissible`, because somebody who already has the app (an emailed
+  // invite opens in a browser tab, where the installed copy is invisible to every check here) needs
+  // a way to stop being told to install it.
+  const promo = { dismissible: true, permanent: true }
+
+  // A full page navigation, not `goto`: the Zero client is session scoped and preloads
+  // `userRegions` at init, so a client-side navigation would sync nothing.
+  const enter = () => (location.href = resolve('/explore'))
 
   const join = async () => {
     pending = true
@@ -93,9 +110,18 @@
 
     try {
       await acceptRegionInvitation({ token })
-      // A full page navigation, not `goto`: the Zero client is session scoped and preloads
-      // `userRegions` at init, so a client-side navigation would sync nothing.
-      location.href = resolve('/explore')
+
+      // Straight in, unless there is something worth one screen first. This is the highest-intent
+      // moment in the app - the invitee has just committed, on what is already a click-driven
+      // confirmation - and on the platform where installing gates push it is the natural home for
+      // the Add to Home Screen instructions.
+      if (installPromoMode(promo) === 'none') {
+        enter()
+        return
+      }
+
+      joined = true
+      pending = false
     } catch (cause) {
       failure = resolveErrorMessage(cause)
       pending = false
@@ -125,7 +151,21 @@
       </strong>
     </a>
 
-    {#if data.state === 'valid'}
+    {#if joined}
+      <!-- Same terminal shape as below, with the install ask sitting between the confirmation and
+           the way out, so it is offered rather than in the way. -->
+      <div class="flex flex-col items-center text-center">
+        <div class="bg-success-500/15 text-success-500 flex size-20 items-center justify-center rounded-3xl">
+          <Icon name="check" size={36} />
+        </div>
+
+        <h1 class="mt-5 text-[25px] font-bold tracking-tight text-balance">{m.invite_accepted({ region })}</h1>
+
+        <InstallApp {...promo} class="mt-7 w-full text-left" />
+
+        <button type="button" class="{ctaClass} mt-4" onclick={enter}>{m.invite_continue()}</button>
+      </div>
+    {:else if data.state === 'valid'}
       <h1 class="mb-1.5 text-[25px] font-bold tracking-tight">{m.invite_title()}</h1>
       <p class="text-surface-600-400 mb-6 text-[14.5px] leading-snug">
         {m.invite_invitedBy({ inviter, region })}

@@ -51,6 +51,8 @@ export default defineConfig(
         projectService: {
           allowDefaultProject: ['.storybook/*.svelte'],
         },
+        // Pin the root so a nested worktree (.claude/worktrees/*) isn't a second candidate.
+        tsconfigRootDir: import.meta.dirname,
       },
     },
   },

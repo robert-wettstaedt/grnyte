@@ -9,6 +9,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ActivityFeed from '$lib/components/ActivityFeed/ActivityFeed.svelte'
   import ActivityFilters from '$lib/components/ActivityFeed/ActivityFilters.svelte'
+  import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { ActivityCategory } from '$lib/entities/activity/dto'
   import { activityFeed } from '$lib/entities/activity/feed.svelte'
@@ -103,6 +104,10 @@
 </svelte:head>
 
 <div class="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-24 md:pb-8">
+  <!-- The highest-traffic surface, and the one that gains most from standalone chrome. Renders
+       nothing on desktop, once installed, or once the nag policy has retired it. -->
+  <InstallApp dismissible />
+
   <ActivityFilters
     bind:category
     currentUserFk={global.user?.id}

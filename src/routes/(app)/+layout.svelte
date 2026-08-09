@@ -14,8 +14,6 @@
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
-  import { pwaAssetsHead } from 'virtual:pwa-assets/head'
-  import { pwaInfo } from 'virtual:pwa-info'
 
   const { children, data } = $props()
 
@@ -71,7 +69,6 @@
   // (app) root so the count stays accurate across every page, not just the map area.
   trackHistoryDepth()
 
-  let webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '')
   let markdownCssHref = $state(markdownLightCssUrl)
 </script>
 
@@ -85,13 +82,6 @@
   <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
 
-  <!-- theme-color is managed in app.html so it can track the resolved light/dark theme. -->
-  {#each pwaAssetsHead.links as link (link.href)}
-    <link {...link} />
-  {/each}
-
-  <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted build-time PWA web manifest -->
-  {@html webManifest}
 </svelte:head>
 
 {#if globalState?.isLoading}

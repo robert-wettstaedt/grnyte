@@ -5,6 +5,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import { APP_PERMISSION_ADMIN } from '$lib/auth'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import type { UserInvitationItem } from '$lib/entities/region/dto'
   import { acceptMyInvitation, listMyInvitations } from '$lib/entities/region/regions.remote'
@@ -185,6 +186,12 @@
       </label>
     </div>
   </SettingSection>
+
+  <!-- The permanent, always-available install path, and the only one that never retires itself.
+       A card rather than a settings row, because the branch that cannot use a prompt has to
+       explain itself in more than a row's worth of space. Absent on desktop, where installing
+       buys nothing and the control would just be a confusing switch. -->
+  <InstallApp permanent />
 
   <!-- Invitations. Sits above Regions because it is the one section here that is waiting on the
          reader, and it is the only place an invitation can be found once the mail is gone. -->
