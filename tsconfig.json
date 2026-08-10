@@ -16,7 +16,7 @@
       "vitest/globals",
       "@testing-library/jest-dom",
       "vite-plugin-pwa/info",
-      "vite-plugin-pwa/svelte",
+      "vite-plugin-pwa/vanillajs",
       "vite-plugin-pwa/pwa-assets"
     ]
   }
