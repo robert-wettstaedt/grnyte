@@ -92,8 +92,10 @@
       <span class="text-surface-600-400 truncate text-xs font-semibold">{scopeLabel}</span>
     {/if}
 
+    <!-- Same size and same preset as the filter trigger beside it: they are two tools of equal
+         rank in one header, and the badge is the only thing here that should draw an eye. -->
     <a
-      class="btn-icon preset-filled-surface-200-800 relative flex-none"
+      class="btn-icon preset-tonal-surface relative flex-none"
       href={resolve('/(app)/notifications')}
       aria-label={unreadNotifications > 0
         ? `${m.notifications_title()} - ${m.notifications_unread({ count: unreadNotifications })}`

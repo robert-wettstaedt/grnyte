@@ -281,18 +281,13 @@ export function activityCard(
 }
 
 /**
- * The name to put in a headline. The hydrated entity's when it is there, otherwise the one
- * the row itself stashed: a create row carries the added name in `newValue`, a delete row
- * the removed one in `oldValue`.
- */
-/**
  * The name a headline puts in its `{name}` slot: the stored one where the entry says the subject
  * is stored, the hydrated one where there is one, and the tombstone the row wrote down otherwise.
  *
  * Exported because the push digest renders the same sentences from the same catalogue and must
  * resolve the name the same way. A deleted area's name only exists in `oldValue`, and an
  * invitation deliberately has no hydrated subject at all, so a digest that consulted the database
- * alone would announce both as "<no name>".
+ * alone would announce both with `common_unnamed`.
  */
 export function headlineEntityName(
   activity: ActivityListItem,
@@ -408,7 +403,7 @@ function groupVerbKey(group: ActivityGroup, verb: CardVerb): MessageKey {
   }
 
   // No `{name}`: what a removal card would name is exactly what it just deleted, so the slot
-  // would be the "<no name>" placeholder on every card that did not stash a name.
+  // would be the `common_unnamed` placeholder on every card that did not stash a name.
   if (group.kind === 'removal') {
     return 'activity_groupRemovals'
   }

@@ -3943,7 +3943,7 @@ export const CASES: ActivityCase[] = [
     ],
     domain: 'topo',
     expected:
-      'single card. The name encodes as the empty string, so the topo renderer chip reads the "no name" placeholder.',
+      'single card. The name encodes as the empty string, so the topo renderer chip reads the `common_unnamed` placeholder.',
     id: 'TOPO-05k',
     topos: topos(),
   },

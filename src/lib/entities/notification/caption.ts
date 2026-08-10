@@ -16,12 +16,22 @@ export interface NotificationView {
   /**
    * What the row renders underneath the caption, for the shared hydration to resolve.
    *
-   * Absent when the subject is the reader: a role change stores the member it is about, which is
-   * the recipient, so a row would be their own name linking to their own profile. The region the
-   * role changed in is what the reader actually wants, and `regionFk` already carries it.
+   * Absent whenever the row would only repeat its own sentence, which is the case for three of
+   * the five source types:
+   * - a role change stores the member it is about, which is the recipient, so the row would be
+   *   their own name linking to their own profile;
+   * - an accepted invitation stores the person who accepted, who is the actor the caption already
+   *   names and the avatar already shows;
+   * - a deleted ascent can only hydrate into a tombstone, and "your ascent" is the one thing the
+   *   caption has already said.
+   *
+   * The region carries the place in all three, and `regionFk` already holds it.
    */
   ref: ActivityEntityRef | undefined
 }
+
+/** The source types whose subject the caption (and the actor's avatar) has already said. */
+const NO_ROW = new Set<NotificationSourceType>(['ascent_deleted', 'invite_accepted', 'role_changed'])
 
 /** One key per source type. Exhaustive by construction: a value added to the DB enum (and
  *  regenerated into the Zero schema) breaks this record at compile time. */
@@ -57,9 +67,6 @@ export function notificationView(notification: NotificationSubject, options?: Me
         ? 'notifications_roleChangedPlain'
         : KEYS[notification.sourceType],
     params: { actor: notification.actorName, role },
-    ref:
-      notification.sourceType === 'role_changed'
-        ? undefined
-        : { id: notification.entityId, type: notification.entityType },
+    ref: NO_ROW.has(notification.sourceType) ? undefined : { id: notification.entityId, type: notification.entityType },
   }
 }

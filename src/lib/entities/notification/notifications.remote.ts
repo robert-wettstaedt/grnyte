@@ -1,13 +1,11 @@
-import { command, getRequestEvent } from '$app/server'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import { command } from '$app/server'
 import { db as baseDb } from '$lib/db/db.server'
 import { activities, notifications, pushSubscriptions, userSettings } from '$lib/db/schema'
 import { writeUserSettings } from '$lib/entities/user/settings.server'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
-import { authedCommand } from '$lib/remote/authed.server'
+import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
-import { error } from '@sveltejs/kit'
 import { and, eq, isNull, max, ne, sql } from 'drizzle-orm'
 import z from 'zod'
 import { DIGEST_TAG } from './push'
@@ -72,25 +70,34 @@ const subscriptionSchema = z.object({
  * backlog as delivered.
  */
 export const subscribeToPush = command(subscriptionSchema, async (subscription) => {
-  const { supabase, user } = getRequestEvent().locals
-  if (user == null) {
-    error(401, 'Not authenticated')
-  }
+  const { rls, user } = await authedRls()
 
   // An endpoint is a BROWSER, not an account. Sign out, sign in as somebody else, and the same
   // endpoint comes back owned by the previous account: a row RLS hides from the new caller, so an
   // upsert against it raises a unique violation instead of taking it over, and that account is
   // left receiving somebody else's digests.
   //
-  // Hand-wired rather than authedCommand precisely so this can run BEFORE the insert on its own
-  // connection. Deferring it to `afterCommit` would run it after the insert it exists to make
+  // Matched on the subscription's KEYS as well as its endpoint, never the endpoint alone. An
+  // endpoint is a string a request can simply state, and handing a row over on a stated name would
+  // let any caller move somebody else's device onto their own account: that person silently stops
+  // receiving their own pushes, and their browser starts receiving payloads it cannot decrypt.
+  // `auth` is the browser's own 16-byte secret, so presenting the pair the stored row holds is
+  // proof this is that device coming back rather than a caller naming it.
+  //
+  // Privileged, and BEFORE the insert on its own connection, which is why this is not an
+  // authedCommand: deferring it to `afterCommit` would run it after the insert it exists to make
   // possible, and nesting it inside the handler's transaction would take a second connection out
   // of the same ten-slot pool.
   await baseDb
     .delete(pushSubscriptions)
-    .where(and(eq(pushSubscriptions.endpoint, subscription.endpoint), ne(pushSubscriptions.userFk, user.id)))
-
-  const rls = await createDrizzleSupabaseClient(supabase)
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, subscription.endpoint),
+        eq(pushSubscriptions.auth, subscription.auth),
+        eq(pushSubscriptions.p256dh, subscription.p256dh),
+        ne(pushSubscriptions.userFk, user.id),
+      ),
+    )
 
   await rls(async (db) => {
     const existing = await db.query.pushSubscriptions.findFirst({
@@ -141,15 +148,12 @@ export const unsubscribeFromPush = authedCommand(
 export const sendTestPush = command(
   z.object({ endpoint: z.string().min(1) }),
   async ({ endpoint }): Promise<MutationResult<{ delivered: boolean }>> => {
-    const { supabase, user } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    // Not an authedCommand: `sendPush` follows a moved endpoint and deletes a dead one on the
+    // privileged handle, so it needs a connection of its own, and taking one while an
+    // authedCommand transaction holds another out of the same pool is what deadlocks it. It cannot
+    // be `afterCommit` work either, because whether the send worked IS this command's answer.
+    const { rls, user } = await authedRls()
 
-    // Hand-wired rather than authedCommand: `sendPush` follows a moved endpoint and deletes a dead
-    // one on the privileged handle, so it needs a connection of its own. Taking one while an
-    // authedCommand transaction holds another out of the same pool is what deadlocks it.
     const found = await rls(async (db) => {
       const subscription = await db.query.pushSubscriptions.findFirst({
         where: and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.userFk, user.id)),

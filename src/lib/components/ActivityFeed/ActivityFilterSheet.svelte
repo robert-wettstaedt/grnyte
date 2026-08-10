@@ -72,11 +72,11 @@
     <button
       {...props}
       type="button"
-      class={[props.class, 'btn-icon btn-icon-sm', filtered ? 'preset-filled-primary-500' : 'preset-tonal-surface']}
+      class={[props.class, 'btn-icon', filtered ? 'preset-filled-primary-500' : 'preset-tonal-surface']}
       aria-label={m.feed_filterTitle()}
       onclick={() => (open = !open)}
     >
-      <Icon name="filter" size={16} />
+      <Icon name="filter" size={18} />
     </button>
   {/snippet}
 

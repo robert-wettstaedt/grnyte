@@ -33,7 +33,11 @@
           ]}
           aria-current={active ? 'page' : undefined}
         >
-          <NavIcon icon={item.icon} size={23} unread={item.icon === 'feed' ? global.unreadNotifications : 0} />
+          <NavIcon
+            icon={item.icon}
+            size={23}
+            unread={item.icon === 'feed' && !active ? global.unreadNotifications : 0}
+          />
           <Navigation.TriggerText class="text-[10px] font-bold">
             {item.label()}
           </Navigation.TriggerText>

@@ -22,7 +22,7 @@ import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser }
 import { eq, inArray } from 'drizzle-orm'
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { notificationRecipients, notify, notifyMentions } from './notification.server'
+import { notificationRecipients, notify, notifyMentions, readableRegions } from './notification.server'
 
 const REGION_NAME = '__notification_test__'
 
@@ -84,7 +84,6 @@ beforeAll(async () => {
 
   const created = await Promise.all(WHO.map((who) => createThrowawayUser(who)))
   users = Object.fromEntries(WHO.map((who, index) => [who, created[index]])) as Record<Who, SeedUser>
-
   ;[{ id: regionId }] = await sql<{ id: number }[]>`
     insert into public.regions (name, created_by, max_members)
     values (${REGION_NAME}, ${users.actor.userId}, 10) returning id`
@@ -95,7 +94,6 @@ beforeAll(async () => {
       (${regionId}, 'region_admin', true, ${users.admin.authId}, ${users.admin.userId}),
       (${regionId}, 'region_user', true, ${users.member.authId}, ${users.member.userId}),
       (${regionId}, 'region_user', false, ${users.inactive.authId}, ${users.inactive.userId})`
-
   ;[{ id: activityId }] = await sql<{ id: number }[]>`
     insert into public.activities (region_fk, user_fk, entity_id, entity_type, type)
     values (${regionId}, ${users.actor.userId}, '1', 'route', 'created') returning id`
@@ -205,6 +203,37 @@ describe.skipIf(!reachable)('notify', () => {
     expect(await rows()).toHaveLength(2)
   })
 
+  /**
+   * The other half of that rule, and the reason it is not a plain `do nothing`. The index carries
+   * no time, so a row that survives (30 days after a read, 90 unread) would otherwise mute every
+   * repeat of the same event for as long as it sits there.
+   */
+  it('tells somebody again about a repeat of something they already read', async () => {
+    const input = {
+      actorFk: users.actor.userId,
+      entityId: 42,
+      entityType: 'route' as const,
+      regionFk: regionId,
+      sourceType: 'ascent_edited' as const,
+      userFks: [users.member.userId],
+    }
+
+    await notify(input)
+    await db
+      .update(notifications)
+      .set({ pushedAt: new Date(), readAt: new Date() })
+      .where(eq(notifications.regionFk, regionId))
+
+    await notify(input)
+
+    const written = await rows()
+    // Still one row: the same event in the same place, not a second entry in the inbox.
+    expect(written).toHaveLength(1)
+    expect(written[0].readAt).toBeNull()
+    // Undelivered again, or the cron would never push what it just revived.
+    expect(written[0].pushedAt).toBeNull()
+  })
+
   it('writes nothing when nobody is left to tell', async () => {
     await notify({
       actorFk: users.actor.userId,
@@ -216,6 +245,22 @@ describe.skipIf(!reachable)('notify', () => {
     })
 
     expect(await rows()).toHaveLength(0)
+  })
+})
+
+describe.skipIf(!reachable)('readableRegions', () => {
+  /** The same rule as the recipient set, from the other end, and batched: both halves of the cron
+   *  ask it of everybody they are about to push to. */
+  it('answers per person, and only for what they can still read', async () => {
+    const byUser = await readableRegions([users.member.userId, users.inactive.userId, users.outsider.userId])
+
+    expect(byUser.get(users.member.userId)).toContain(regionId)
+    expect(byUser.get(users.inactive.userId)).toBeUndefined()
+    expect(byUser.get(users.outsider.userId)).toBeUndefined()
+  })
+
+  it('asks nothing of an empty list', async () => {
+    expect(await readableRegions([])).toEqual(new Map())
   })
 })
 

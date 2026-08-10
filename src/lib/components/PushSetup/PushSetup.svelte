@@ -18,6 +18,7 @@
     dismissPushPrompt,
     enablePush,
     promptDismissed,
+    pushEndpoint,
     pushState,
     syncPushSubscription,
   } from '$lib/state/push.svelte'
@@ -52,7 +53,13 @@
     // A device can hold a live subscription whose row we lost, and from the browser's side that is
     // indistinguishable from being subscribed. Re-registering is keyed on the endpoint, so it is a
     // no-op whenever the row is already right.
-    void syncPushSubscription()
+    //
+    // Once per page load, not per mount: this card sits on three surfaces, one of them every route
+    // page with an ascent on it, and the repair is for a row that went missing rather than
+    // something to re-run on every navigation.
+    if (pushEndpoint() == null) {
+      void syncPushSubscription()
+    }
   })
 
   const onEnable = async () => {
@@ -77,7 +84,9 @@
          Push API is the platform where push only exists once the app is installed, so the install
          is the fix; a desktop browser that cannot do push would not be helped by installing, and
          saying so plainly beats sending somebody to a Home Screen they do not have. -->
-    <div class="border-surface-200-800 bg-surface-100-900 space-y-3 rounded-2xl border p-4">
+    <!-- Dashed, on every branch: this card is an offer, and it sits at the top of two lists whose
+         items are solid-bordered cards of the same size. Solid would read as the newest of them. -->
+    <div class="border-surface-300-700 space-y-3 rounded-2xl border border-dashed p-4">
       {#if installable}
         <p class="text-surface-600-400 text-sm">{m.push_installFirst()}</p>
         <InstallApp permanent />
@@ -86,12 +95,12 @@
       {/if}
     </div>
   {:else if status === 'denied'}
-    <div class="border-surface-200-800 bg-surface-100-900 space-y-1 rounded-2xl border p-4">
+    <div class="border-surface-300-700 space-y-1 rounded-2xl border border-dashed p-4">
       <p class="text-surface-950-50 font-semibold">{m.push_deniedTitle()}</p>
       <p class="text-surface-600-400 text-sm">{m.push_deniedBody()}</p>
     </div>
   {:else if status === 'prompt'}
-    <div class="border-surface-200-800 bg-surface-100-900 space-y-3 rounded-2xl border p-4">
+    <div class="border-surface-300-700 space-y-3 rounded-2xl border border-dashed p-4">
       <div class="flex items-start gap-3">
         <span class="preset-tonal-primary grid size-10 flex-none place-items-center rounded-xl">
           <Icon name="bell" size={20} />

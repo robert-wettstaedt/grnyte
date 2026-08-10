@@ -9,6 +9,10 @@
      * Unread directed notifications. Rendered as a plain dot, never a number: the feed header's
      * bell already shows the exact count, and two counts on one screen are an invitation to
      * disagree. A dot cannot.
+     *
+     * The dot's whole job is "there is something for you, on a screen you are not looking at", so
+     * the nav passes `0` for the tab the reader is already on: the bell that clears it is right
+     * there, and a dot on the tab you are standing on points at nothing you can tap.
      */
     unread = 0,
   }: { icon: NavItem['icon']; size?: number; unread?: number } = $props()

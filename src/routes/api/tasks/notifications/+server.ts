@@ -1,6 +1,7 @@
 import { CRON_API_KEY } from '$env/static/private'
 import { db } from '$lib/db/db.server'
 import { activities, notifications, pushSubscriptions, users, userSettings } from '$lib/db/schema'
+import { isAscentActivity } from '$lib/entities/activity/dto'
 import { notificationView } from '$lib/entities/notification/caption'
 import { digestCopy, type DigestActivity } from '$lib/entities/notification/digest.server'
 import { readableRegions } from '$lib/entities/notification/notification.server'
@@ -16,7 +17,7 @@ import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entitie
 import { resolveMessage } from '$lib/i18n/message'
 import { baseLocale, isLocale, type Locale } from '$lib/paraglide/runtime'
 import { json } from '@sveltejs/kit'
-import { and, count, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
@@ -63,6 +64,28 @@ const authorized = (request: Request): boolean => {
   }
 }
 
+/**
+ * Run `task` over `items` a few at a time, and collect the results.
+ *
+ * One at a time was the shape both halves had: a subscriber's queries and its HTTPS send waiting
+ * on the previous subscriber's, inside a job that has five minutes.
+ *
+ * ponytail: a fixed width rather than a queue, deliberately below the ten-slot database pool this
+ * shares with the rest of the process. Upgrade = one ranked query over all subscribers, if the
+ * subscriber list ever outgrows the window.
+ */
+async function inBatches<T, R>(items: readonly T[], task: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = []
+
+  for (let index = 0; index < items.length; index += BATCH_SIZE) {
+    results.push(...(await Promise.all(items.slice(index, index + BATCH_SIZE).map(task))))
+  }
+
+  return results
+}
+
+const BATCH_SIZE = 4
+
 /** The language to write to this account in. Same field the invite mail reads. */
 const localeOf = (contactLocale: null | string): Locale =>
   contactLocale != null && isLocale(contactLocale) ? contactLocale : baseLocale
@@ -81,9 +104,9 @@ function categoryEnabled(
   activity: Pick<DigestActivity, 'columnName' | 'entityType'>,
   settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyCragEdits: boolean | null },
 ): boolean {
-  // A photo pulled off an ascent is a crag edit, not an ascent: the same split the feed's own
-  // segmented control makes.
-  if (activity.entityType === 'ascent' && activity.columnName !== 'file') {
+  // Through the feed's own definition rather than a copy of it, so the switch cannot come to mean
+  // something the segmented control does not.
+  if (isAscentActivity(activity)) {
     return settings.notifyAscents !== false
   }
 
@@ -118,7 +141,7 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
  */
 async function sendDigests(nowMs: number): Promise<number> {
   // Only people with a device to push to. Everything below is per-recipient, and this is what
-  // keeps that loop the length of the subscriber list rather than of the user table.
+  // keeps that work the length of the subscriber list rather than of the user table.
   const subscribers = await db
     .selectDistinct({
       contactLocale: userSettings.contactLocale,
@@ -140,20 +163,35 @@ async function sendDigests(nowMs: number): Promise<number> {
     return 0
   }
 
-  const subscriptions = await subscriptionsFor(subscribers.map((row) => row.userFk))
-  const unread = await unreadCounts(subscribers.map((row) => row.userFk))
+  const userFks = subscribers.map((row) => row.userFk)
+  const subscriptions = await subscriptionsFor(userFks)
+  const unread = await unreadCounts(userFks)
+  // Membership alone is not the rule: the `activities` SELECT policy also requires a role that
+  // holds `region.read`, and a digest naming entities the reader cannot open would be worse than
+  // no digest. Once for the batch, because asking per subscriber was a round trip each before the
+  // scan below had even started.
+  const regionsByUser = await readableRegions(userFks)
+  // The starting line for anybody who has never had a watermark, see below.
+  const [{ newestActivityId }] = await db.select({ newestActivityId: max(activities.id) }).from(activities)
 
-  let sent = 0
-  for (const subscriber of subscribers) {
+  const sendDigest = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
+    // Both marks null means never initialised, which is NOT the same as "caught up to nothing":
+    // `digestFloor` reads it as 0, and this person would be pushed the region's entire history 500
+    // activities at a time, once per run, until it caught up. `subscribeToPush` seeds the marks on
+    // a FIRST subscription, so the accounts that land here are the ones that already had one when
+    // their settings row appeared: everybody who carried a 1.0 subscription across (0096 backfills
+    // those), and anybody whose settings row is created afterwards by a writer that is not
+    // `subscribeToPush`. First sight is the starting line, exactly as it is for a new subscriber.
+    if (subscriber.pushedUpTo == null && subscriber.seenUpTo == null) {
+      await advanceWatermark(subscriber.userFk, newestActivityId ?? 0)
+      return false
+    }
+
     const floor = digestFloor(subscriber.pushedUpTo, subscriber.seenUpTo)
-
-    // Membership alone is not the rule: the `activities` SELECT policy also requires a role that
-    // holds `region.read`, and a digest naming entities the reader cannot open would be worse
-    // than no digest.
-    const regions = await readableRegions(subscriber.userFk)
+    const regions = regionsByUser.get(subscriber.userFk) ?? []
 
     if (regions.length === 0) {
-      continue
+      return false
     }
 
     const queued = await db
@@ -165,6 +203,10 @@ async function sendDigests(nowMs: number): Promise<number> {
         id: activities.id,
         metadata: activities.metadata,
         newValue: activities.newValue,
+        // The name of a DELETED entity lives nowhere else: `entityNames` finds nothing for it, and
+        // the headline then falls back to whichever value column the verb says carries the name.
+        // Leaving it out renders every deletion with `common_unnamed`.
+        oldValue: activities.oldValue,
         parentEntityId: activities.parentEntityId,
         parentEntityType: activities.parentEntityType,
         regionFk: activities.regionFk,
@@ -187,7 +229,7 @@ async function sendDigests(nowMs: number): Promise<number> {
       .limit(DIGEST_SCAN_LIMIT)
 
     if (queued.length === 0) {
-      continue
+      return false
     }
 
     const enabled = queued.filter((activity) => categoryEnabled(activity, subscriber))
@@ -197,19 +239,19 @@ async function sendDigests(nowMs: number): Promise<number> {
     // back on, one push announcing the entire backlog.
     if (enabled.length === 0) {
       await advanceWatermark(subscriber.userFk, queued[queued.length - 1].id)
-      continue
+      return false
     }
 
     const oldest = enabled[0].createdAt.getTime()
     const newest = enabled[enabled.length - 1].createdAt.getTime()
     if (!isDigestDue(oldest, newest, nowMs)) {
-      continue
+      return false
     }
 
     const actorNames = await namesOf(enabled.map((activity) => activity.userFk))
-    const copy = await digestCopy(enabled as DigestActivity[], actorNames, localeOf(subscriber.contactLocale))
+    const copy = await digestCopy(enabled, actorNames, localeOf(subscriber.contactLocale))
     if (copy == null) {
-      continue
+      return false
     }
 
     const delivered = await sendPushToUser(subscriptions, subscriber.userFk, {
@@ -222,16 +264,14 @@ async function sendDigests(nowMs: number): Promise<number> {
       title: copy.title,
     })
 
-    if (delivered) {
-      sent += 1
-    }
-
     // Whether or not a device took it, and past everything scanned rather than only what was
     // enabled: an offline phone must not build a backlog that all fires at once later.
     await advanceWatermark(subscriber.userFk, queued[queued.length - 1].id)
+
+    return delivered
   }
 
-  return sent
+  return (await inBatches(subscribers, sendDigest)).filter(Boolean).length
 }
 
 /**
@@ -272,11 +312,18 @@ async function sendDirected(nowMs: number): Promise<number> {
   }
 
   const wanted = ready.filter((row) => row.notifyDirected !== false)
-  const subscriptions = await subscriptionsFor(wanted.map((row) => row.userFk))
+
+  // The same re-check the digest half makes, for the same reason. A member removed from the region
+  // (or whose role lost `region.read`) between the fan-out and now would otherwise be pushed the
+  // name of a route they can no longer open, and find an empty inbox when they tap it: the row's
+  // own SELECT policy requires that permission, so it is hidden from the reader it names.
+  const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
+  const readable = wanted.filter((row) => regionsByUser.get(row.userFk)?.includes(row.regionFk) === true)
+
+  const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
   const unread = await unreadCounts(ready.map((row) => row.userFk))
 
-  let sent = 0
-  for (const row of wanted) {
+  const results = await inBatches(readable, (row) => {
     const locale = localeOf(row.contactLocale)
     const view = notificationView(
       {
@@ -289,17 +336,15 @@ async function sendDirected(nowMs: number): Promise<number> {
       { locale },
     )
 
-    const delivered = await sendPushToUser(subscriptions, row.userFk, {
+    return sendPushToUser(subscriptions, row.userFk, {
       badge: unread.get(row.userFk) ?? 0,
       pathname: '/notifications',
       tag: directedTag(row.id),
       title: resolveMessage(view.key, view.params, { locale }),
     })
+  })
 
-    if (delivered) {
-      sent += 1
-    }
-  }
+  const sent = results.filter(Boolean).length
 
   // Every row that was due, not only the ones that went out: a device that is offline or a person
   // with no subscription must not build a queue that all fires at once later.

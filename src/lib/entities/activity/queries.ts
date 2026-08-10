@@ -2,7 +2,7 @@ import { regionMemberCan } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
-import type { ActivityEntityType, ActivityParentEntityType } from './dto'
+import { ASCENT_SEGMENT, type ActivityEntityType, type ActivityParentEntityType } from './dto'
 
 // Exhaustive by construction: a value added to the DB enum (and regenerated into the Zero
 // schema) breaks these records at compile time instead of silently failing zod at runtime.
@@ -77,12 +77,20 @@ export const activitiesQueryDefs = {
         q = q.where('id', '>', args.afterId)
       }
 
-      // The feed's two segments. Everything that isn't an ascent is a crag or people edit,
-      // and so is a photo pulled off an ascent (there `entityType` names the photo's owner).
+      // The feed's two segments, off the one definition `isAscentActivity` reads: everything that
+      // isn't an ascent is a crag or people edit, and so is a photo pulled off an ascent (there
+      // `entityType` names the photo's owner). The push cron branches on the same values.
       if (args.category === 'ascent') {
-        q = q.where((q) => q.and(q.cmp('entityType', 'ascent'), q.cmp('columnName', 'IS NOT', 'file')))
+        q = q.where((q) =>
+          q.and(
+            q.cmp('entityType', ASCENT_SEGMENT.entityType),
+            q.cmp('columnName', 'IS NOT', ASCENT_SEGMENT.mediaColumn),
+          ),
+        )
       } else if (args.category === 'update') {
-        q = q.where((q) => q.or(q.cmp('entityType', '!=', 'ascent'), q.cmp('columnName', 'file')))
+        q = q.where((q) =>
+          q.or(q.cmp('entityType', '!=', ASCENT_SEGMENT.entityType), q.cmp('columnName', ASCENT_SEGMENT.mediaColumn)),
+        )
       }
 
       // One entity's audit log: what was written about that record, and nothing about the

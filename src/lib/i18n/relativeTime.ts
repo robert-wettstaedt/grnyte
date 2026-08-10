@@ -31,18 +31,6 @@ export function formatDay(timestamp: number, now: number, locale: string): strin
 }
 
 /**
- * Whether {@link formatUploadedAt} will render this moment as a date rather than as "N days ago".
- *
- * Exported because a sentence that embeds the result has to agree with it: "Updated 3 days ago"
- * takes no preposition and "Updated on 3 Aug 2026" does, and German makes the same split with
- * "vor" against "am". A caller picking its wording off its own copy of the boundary would drift
- * from the formatter the first time either moved.
- */
-export function isDatedMoment(timestamp: number, now: number): boolean {
-  return Math.abs(Math.min(0, timestamp - now)) >= 7 * 86_400_000
-}
-
-/**
  * For a full timestamp (e.g. `createdAt`): sub-day units while the moment is fresh
  * ("5 minutes ago", "2 hours ago"), days within the last week, an absolute date
  * ("May 14, 2026") beyond it. For date-only values use `formatDay`; sub-day units
@@ -69,4 +57,16 @@ export function formatUploadedAt(timestamp: number, now: number, locale: string)
   if (abs < HOUR) return rtf.format(Math.round(ms / MINUTE), 'minute')
   if (abs < DAY) return rtf.format(Math.round(ms / HOUR), 'hour')
   return rtf.format(Math.round(ms / DAY), 'day')
+}
+
+/**
+ * Whether {@link formatUploadedAt} will render this moment as a date rather than as "N days ago".
+ *
+ * Exported because a sentence that embeds the result has to agree with it: "Updated 3 days ago"
+ * takes no preposition and "Updated on 3 Aug 2026" does, and German makes the same split with
+ * "vor" against "am". A caller picking its wording off its own copy of the boundary would drift
+ * from the formatter the first time either moved.
+ */
+export function isDatedMoment(timestamp: number, now: number): boolean {
+  return Math.abs(Math.min(0, timestamp - now)) >= 7 * 86_400_000
 }

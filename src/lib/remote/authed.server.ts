@@ -26,6 +26,8 @@ export interface Context {
   userRegions: UserRegion[]
 }
 
+type Rls = Awaited<ReturnType<typeof createDrizzleSupabaseClient>>
+
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 /** `command`, but the handler also receives {@link Context} and runs inside the RLS transaction. */
@@ -64,6 +66,23 @@ export function authedQuery<S extends StandardSchemaV1, O>(
   return query(schema, (input) => run((ctx) => handler(input, ctx)))
 }
 
+/**
+ * The 401 gate and an RLS handle, with no transaction wrapped around the caller.
+ *
+ * For the commands that cannot be an {@link authedCommand}: work that has to take a SECOND,
+ * privileged connection while reading through RLS, or that has to run outside the transaction
+ * rather than after it (a push send, an irreversible storage teardown). They still want the same
+ * gate and the same client, and hand-rolling both per command is how the two drift apart.
+ */
+export async function authedRls(): Promise<{ rls: Rls; user: NonNullable<App.Locals['user']> }> {
+  const { supabase, user } = getRequestEvent().locals
+  if (user == null) {
+    error(401, 'Not authenticated')
+  }
+
+  return { rls: await createDrizzleSupabaseClient(supabase), user }
+}
+
 /** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the
  *  handler deferred to {@link Context.afterCommit}, then log failures. */
 async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
@@ -88,7 +107,14 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
   // Serially, and outside the transaction, which is the whole point: each is free to take a
   // connection of its own now that this handler is no longer holding one.
   for (const task of deferred) {
-    await task()
+    try {
+      await task()
+    } catch (e) {
+      // Logged, never rethrown. The transaction has committed, so letting a notification fan-out
+      // fail here would report a mutation that actually succeeded as a failure, and the user would
+      // resubmit into a duplicate-name error for the row they just created.
+      console.error('[remote] afterCommit task failed', e)
+    }
   }
 
   return returnValue

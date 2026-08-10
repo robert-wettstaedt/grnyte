@@ -12,7 +12,6 @@
   import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { resolveMessage, type MessageKey } from '$lib/i18n/message'
-  import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import AreaRow from './AreaRow.svelte'
   import BlockRow from './BlockRow.svelte'
@@ -54,9 +53,19 @@
       <Icon name="trash" size={20} />
     </span>
 
+    <!-- The name line only when a name was actually stored. A tombstone with nothing to name used
+         to render the type over `common_unnamed`, which is the label above it said twice.
+
+         Without a name the type stops being an eyebrow and becomes the whole content, so it is set
+         as the line rather than as the caption over an empty one. -->
     <span class="min-w-0">
-      <span class="text-surface-500 block text-[11px] font-semibold">{resolveMessage(ENTITY_LABEL[row.ref.type])}</span>
-      <span class="block truncate italic">{row.name ?? m.common_unnamed()}</span>
+      <span class={row.name == null ? 'block' : 'text-surface-500 block text-[11px] font-semibold'}>
+        {resolveMessage(ENTITY_LABEL[row.ref.type])}
+      </span>
+
+      {#if row.name != null}
+        <span class="block truncate italic">{row.name}</span>
+      {/if}
     </span>
   </div>
 {:else if row.entity != null}

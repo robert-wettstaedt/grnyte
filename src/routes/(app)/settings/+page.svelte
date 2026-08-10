@@ -246,52 +246,22 @@
     </div>
   </SettingSection>
 
-  <!-- Notifications. The four switches govern PUSH only: a mention still lands in the inbox and a
-       crag edit still lands in the feed whatever they say, which is why there is no switch that
-       turns either of those off. -->
+  <!-- Notifications, split by scope rather than by hierarchy. Delivery is per browser; the types
+       below are per account. They used to share one card, which reads as a master switch owning
+       four children - so a phone with push off showed four switches saying "on" underneath it, and
+       the only way to explain that was a caption talking the layout down. Two headed groups say it
+       without a caption, permanently rather than only while the device is off. -->
   <SettingSection title={m.settings_notifications()}>
     <div class="space-y-3">
       <PushSetup />
 
       {#if push === 'granted'}
-        <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+        <div class="border-surface-200-800 rounded-xl border">
           <SettingSwitch
             checked={endpoint != null}
             disabled={switchingPush}
-            hint={m.settings_pushHint()}
             label={m.settings_push()}
             onchange={onPushDevice}
-          />
-
-          <!-- Account-wide, so deliberately NOT gated on this device having a subscription:
-               turning push off on a phone must not lock somebody out of preferences that still
-               govern their laptop. -->
-          <SettingSwitch
-            checked={settings?.notifyDirected ?? true}
-            hint={m.settings_notifyDirectedHint()}
-            label={m.settings_notifyDirected()}
-            onchange={(checked) => updateUserSettings({ notifyDirected: checked })}
-          />
-
-          <SettingSwitch
-            checked={settings?.notifyAscents ?? true}
-            hint={m.settings_notifyAscentsHint()}
-            label={m.settings_notifyAscents()}
-            onchange={(checked) => updateUserSettings({ notifyAscents: checked })}
-          />
-
-          <SettingSwitch
-            checked={settings?.notifyCragEdits ?? true}
-            hint={m.settings_notifyCragEditsHint()}
-            label={m.settings_notifyCragEdits()}
-            onchange={(checked) => updateUserSettings({ notifyCragEdits: checked })}
-          />
-
-          <SettingSwitch
-            checked={settings?.notifyCommunity ?? true}
-            hint={m.settings_notifyCommunityHint()}
-            label={m.settings_notifyCommunity()}
-            onchange={(checked) => updateUserSettings({ notifyCommunity: checked })}
           />
         </div>
 
@@ -301,6 +271,48 @@
           </button>
         {/if}
       {/if}
+    </div>
+  </SettingSection>
+
+  <!-- Deliberately outside the permission gate above: these are account settings, and the device
+       reading them is not necessarily one that receives anything. A laptop where the native prompt
+       was never answered still has to be able to change what the phone gets.
+
+       They govern PUSH only: a mention still lands in the inbox and a crag edit still lands in the
+       feed whatever they say, which is why there is no switch that turns either of those off. -->
+  <SettingSection title={m.settings_notificationsTypes()}>
+    {#snippet aside()}
+      <span class="text-surface-600-400 text-xs">{m.settings_notifyScope()}</span>
+    {/snippet}
+
+    <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+      <SettingSwitch
+        checked={settings?.notifyDirected ?? true}
+        hint={m.settings_notifyDirectedHint()}
+        label={m.settings_notifyDirected()}
+        onchange={(checked) => updateUserSettings({ notifyDirected: checked })}
+      />
+
+      <SettingSwitch
+        checked={settings?.notifyAscents ?? true}
+        hint={m.settings_notifyAscentsHint()}
+        label={m.settings_notifyAscents()}
+        onchange={(checked) => updateUserSettings({ notifyAscents: checked })}
+      />
+
+      <SettingSwitch
+        checked={settings?.notifyCragEdits ?? true}
+        hint={m.settings_notifyCragEditsHint()}
+        label={m.settings_notifyCragEdits()}
+        onchange={(checked) => updateUserSettings({ notifyCragEdits: checked })}
+      />
+
+      <SettingSwitch
+        checked={settings?.notifyCommunity ?? true}
+        hint={m.settings_notifyCommunityHint()}
+        label={m.settings_notifyCommunity()}
+        onchange={(checked) => updateUserSettings({ notifyCommunity: checked })}
+      />
     </div>
   </SettingSection>
 

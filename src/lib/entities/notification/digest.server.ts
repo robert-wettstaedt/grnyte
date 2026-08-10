@@ -2,7 +2,7 @@ import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
 import { headlineEntityName } from '$lib/entities/activity/card'
-import type { ActivityEntityType, ActivityListItem } from '$lib/entities/activity/dto'
+import { toActivityListItem, type ActivityEntityType, type ActivityListItem } from '$lib/entities/activity/dto'
 import { activityEntityKey, activityRefs, type ActivityEntityRef } from '$lib/entities/activity/entity'
 import { groupActivities } from '$lib/entities/activity/grouping'
 import { activityVerb, parseDeletedAscent } from '$lib/entities/activity/verbs'
@@ -82,7 +82,7 @@ export async function digestCopy(
   // Through the same precedence the feed card uses, not the database alone. A deleted area is
   // gone from `areas` and its name survives only in `oldValue`; an invitation deliberately has no
   // hydrated subject at all. Looking only at what `entityNames` found would announce both of
-  // those as "<no name>".
+  // those with `common_unnamed`.
   const hydrated = subject == null ? undefined : names.get(activityEntityKey(subject))
   const name = headlineEntityName(lead, hydrated == null ? null : { name: hydrated, row: 'none' })
 
@@ -178,20 +178,7 @@ export async function entityNames(refs: readonly ActivityEntityRef[]): Promise<M
 
 /** An `activities` row in the shape the pure grouping and catalogue functions read. */
 function toListItem(activity: DigestActivity): ActivityListItem {
-  return {
-    columnName: activity.columnName ?? undefined,
-    createdAt: activity.createdAt.getTime(),
-    entityId: activity.entityId,
-    entityType: activity.entityType,
-    id: activity.id,
-    metadata: activity.metadata ?? undefined,
-    newValue: activity.newValue ?? undefined,
-    oldValue: activity.oldValue ?? undefined,
-    parentEntityId: activity.parentEntityId ?? undefined,
-    parentEntityType: activity.parentEntityType ?? undefined,
-    regionFk: activity.regionFk,
-    type: activity.type,
-    userFk: activity.userFk,
-    userName: '',
-  }
+  // No actor name: the digest passes actors in separately, keyed by id, because one batch spans
+  // several of them and only the headline's is ever read.
+  return toActivityListItem({ ...activity, createdAt: activity.createdAt.getTime(), userName: '' })
 }

@@ -9,7 +9,9 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
+  import Icon from '$lib/components/Icon/Icon.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
@@ -21,7 +23,7 @@
   import { notificationList } from '$lib/entities/notification/resources.svelte'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { resolveMessage } from '$lib/i18n/message'
-  import { formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -46,6 +48,22 @@
 
   const views = $derived(
     notifications.data.map((notification) => ({ notification, view: notificationView(notification) })),
+  )
+
+  /** Local calendar day as the UTC midnight `formatDay` reads, exactly as the feed's dividers. */
+  const dayOf = (timestamp: number) => {
+    const date = new Date(timestamp)
+    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  }
+
+  // Same day dividers as the feed, decided the same way: a flat sequence with a flag on the first
+  // row of each day, rather than nested per-day arrays.
+  const rows = $derived(
+    views.map((entry, index) => ({
+      ...entry,
+      day: dayOf(entry.notification.createdAt),
+      startsDay: index === 0 || dayOf(views[index - 1].notification.createdAt) !== dayOf(entry.notification.createdAt),
+    })),
   )
 
   // The same second pass the feed makes, for the same reason: `entityId` is polymorphic text, so
@@ -99,46 +117,77 @@
 
     <QueryState resource={notifications}>
       {#snippet ready()}
-        {#each views as { notification, view } (notification.id)}
-          <article
-            class={[
-              'space-y-1 rounded-2xl border p-3',
-              arrivedUnread.has(notification.id)
-                ? 'border-primary-500/40 bg-primary-500/5'
-                : 'border-surface-200-800 bg-surface-100-900',
-            ]}
-          >
-            <div class="flex items-baseline gap-2">
-              <p class="text-surface-950-50 min-w-0 flex-1 text-sm font-semibold">
-                {resolveMessage(view.key, view.params)}
-              </p>
-
-              <time
-                class="text-surface-600-400 flex-none text-xs"
-                datetime={new Date(notification.createdAt).toISOString()}
-              >
-                {formatUploadedAt(notification.createdAt, now(), getLocale())}
-              </time>
-            </div>
-
-            {#if view.ref != null}
-              <HydratedRow row={rowFor(view.ref)} />
-            {:else if regionCrumb(global.userRegions, notification.regionFk) != null}
-              <!-- No row to render (the subject is the reader), so the region carries the place
-                   instead. Through `regionCrumb`, which is silent for a single-region member:
-                   there is nothing to disambiguate for them. -->
-              <p class="text-surface-500 px-1 text-[11px] font-semibold">
-                {regionCrumb(global.userRegions, notification.regionFk)}
-              </p>
+        <div class="space-y-2">
+          {#each rows as { day, notification, startsDay, view } (notification.id)}
+            {#if startsDay}
+              <h2 class="text-surface-600-400 px-1 pt-1 text-xs font-bold tracking-wide uppercase">
+                {formatDay(day, now(), getLocale())}
+              </h2>
             {/if}
-          </article>
-        {/each}
+
+            {@const crumb = regionCrumb(global.userRegions, notification.regionFk)}
+
+            <article
+              class={[
+                'space-y-2 rounded-2xl border p-3',
+                arrivedUnread.has(notification.id)
+                  ? 'border-primary-500/40 bg-primary-500/5'
+                  : 'border-surface-200-800 bg-surface-100-900',
+              ]}
+            >
+              <!-- The feed's header, in the same order and the same sizes: who, what, when. Every
+                   sentence here starts with the actor, so the face that goes with the name belongs
+                   on the row as much as it does on a card. -->
+              <header class="flex items-center gap-2.5">
+                <Avatar name={notification.actorName} size={34} solid loading={notification.actorName.length === 0} />
+
+                <div class="min-w-0 flex-1">
+                  <p class="text-surface-950-50 text-sm/snug font-semibold">
+                    {resolveMessage(view.key, view.params)}
+                  </p>
+
+                  <!-- Which community this happened in, on the sub line the feed uses for the
+                       same job. Only for a row with nothing to hydrate: an entity row carries the
+                       region in its own crumbs. Silent for a single-region member through
+                       `regionCrumb`, who has nothing to disambiguate. -->
+                  {#if view.ref == null && crumb != null}
+                    <p class="text-surface-600-400 mt-0.5 text-xs">{crumb}</p>
+                  {/if}
+                </div>
+
+                <time
+                  class="text-surface-600-400 flex-none text-xs whitespace-nowrap"
+                  datetime={new Date(notification.createdAt).toISOString()}
+                >
+                  {formatUploadedAt(notification.createdAt, now(), getLocale())}
+                </time>
+              </header>
+
+              {#if view.ref != null}
+                <HydratedRow row={rowFor(view.ref)} />
+              {/if}
+            </article>
+          {/each}
+        </div>
       {/snippet}
 
       {#snippet empty()}
+        <!-- An empty inbox is the normal state, not a failure, so it says what will land here and
+             then hands back the screen the reader came from. Without the link this route is a
+             dead end: it carries no nav of its own, and the back arrow is above the fold. -->
         <div class="space-y-1 py-10 text-center">
+          <span
+            class="bg-surface-200-800 text-surface-600-400 mx-auto mb-3 grid size-14 place-items-center rounded-2xl"
+          >
+            <Icon name="bell" size={24} />
+          </span>
+
           <p class="text-surface-950-50 font-semibold">{m.notifications_empty()}</p>
           <p class="text-surface-600-400 text-sm">{m.notifications_emptyBody()}</p>
+
+          <a class="btn preset-tonal-surface mt-3" href={resolve('/(app)/(shell)/feed')}>
+            {m.notifications_emptyAction()}
+          </a>
         </div>
       {/snippet}
     </QueryState>

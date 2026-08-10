@@ -6,7 +6,7 @@
 import type { Pathname } from '$app/types'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { imageCache } from 'workbox-recipes'
-import { pushPayloadSchema } from './lib/entities/notification/push'
+import { pushPayloadSchema, type PushPayload } from './lib/entities/notification/push'
 import { isDerivativeRequest } from './lib/images/derivatives'
 
 declare let self: ServiceWorkerGlobalScope
@@ -85,13 +85,13 @@ imageCache({
  *   notification that grew every five minutes and repeated itself.
  * - **The badge comes from the payload.** How many OS notifications happen to be lying around is
  *   not the number of unread things in the inbox, and it was being used as if it were.
- * - **Do not buzz somebody who is looking at the app.** The badge still updates, so the count
- *   they can already see stays right.
+ * - **Do not buzz somebody who is looking at the app.** Silently, though, never nothing at all:
+ *   see {@link showFor}.
  */
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
-  const parsed = pushPayloadSchema.safeParse(event.data.json())
+  const parsed = pushPayloadSchema.safeParse(readJson(event.data))
 
   if (!parsed.success) {
     console.error('[push] unrecognised payload', parsed.error)
@@ -114,25 +114,54 @@ self.addEventListener('push', (event) => {
       // the reader is working in another application entirely, and that person should still be
       // told. Only somebody actually looking at the app is spared the buzz.
       const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
-      if (clients.some((client) => client.focused)) {
-        return
-      }
-
-      await self.registration.showNotification(payload.title, {
-        badge: '/pwa-192x192.png',
-        body: payload.body,
-        data: { pathname: payload.pathname },
-        icon: '/pwa-192x192.png',
-        // Alert again on replacement. `renotify` defaults to false, which would make every digest
-        // after the first silently swap the text under a notification nobody looked at - and with
-        // a 20-minute quiet period, replacement is the normal case rather than the exception. It
-        // requires a tag, which the payload schema makes mandatory.
-        renotify: true,
-        tag: payload.tag,
-      })
+      await showFor(
+        payload,
+        clients.some((client) => client.focused),
+      )
     })(),
   )
 })
+
+/**
+ * The payload as JSON, or `undefined` for anything that is not.
+ *
+ * `PushMessageData.json()` throws on a body this deployment did not write (a sender from an older
+ * release, a probe, a partially decrypted body), and a throw inside the push listener means no
+ * notification at all - which is exactly the silent push the subscription promised never to send.
+ */
+function readJson(data: PushMessageData): unknown {
+  try {
+    return data.json()
+  } catch (error) {
+    console.error('[push] unparseable payload', error)
+    return undefined
+  }
+}
+
+/**
+ * Show it, quietly when somebody is already looking at the app.
+ *
+ * Quietly rather than not at all, which is the part that is not a preference: the subscription is
+ * created `userVisibleOnly`, a promise that every push shows something. Firefox counts the ones
+ * that show nothing against a per-origin budget and drops the subscription when it runs out, so
+ * "skip it while they are reading" would end push on that device, permanently, with nothing in the
+ * app able to notice.
+ */
+function showFor(payload: PushPayload, focused: boolean): Promise<void> {
+  return self.registration.showNotification(payload.title, {
+    badge: '/pwa-192x192.png',
+    body: payload.body,
+    data: { pathname: payload.pathname },
+    icon: '/pwa-192x192.png',
+    // Alert again on replacement. `renotify` defaults to false, which would make every digest
+    // after the first silently swap the text under a notification nobody looked at - and with
+    // a 20-minute quiet period, replacement is the normal case rather than the exception. It
+    // requires a tag, which the payload schema makes mandatory.
+    renotify: !focused,
+    silent: focused,
+    tag: payload.tag,
+  })
+}
 
 self.addEventListener('notificationclick', (event) => {
   const notification = event.notification

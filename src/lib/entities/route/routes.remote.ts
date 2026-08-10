@@ -84,7 +84,7 @@ async function areaAncestry(db: Context['db'], areaId: number): Promise<number[]
 }
 
 /** A duplicate route name on the same block (blank names are fine, they render as
- *  "<no name>"), mirroring the block form's per-area check. */
+ *  `common_unnamed`), mirroring the block form's per-area check. */
 async function findDuplicateName(
   db: Context['db'],
   value: Pick<RouteFormValue, 'name'>,

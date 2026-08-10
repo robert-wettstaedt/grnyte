@@ -55,4 +55,14 @@ describe('notificationView', () => {
       type: 'ascent',
     })
   })
+
+  // The three sentences that already contain their own subject. A row underneath them could only
+  // repeat the caption: their own name, the actor the avatar shows, or a tombstone for an ascent
+  // the caption has just called "your ascent".
+  it.each(['ascent_deleted', 'invite_accepted', 'role_changed'] as NotificationSourceType[])(
+    'renders no row for %s',
+    (sourceType) => {
+      expect(notificationView(notification({ entityType: 'user', sourceType })).ref).toBeUndefined()
+    },
+  )
 })

@@ -36,12 +36,18 @@ export async function writeUserSettings(
     return
   }
 
+  // An EMPTY row, then the same UPDATE again. `values` may hold expressions that read the row
+  // (`greatest(coalesce(user_settings.x, 0), N)`), and inside an `INSERT ... VALUES` that is a
+  // self-reference Postgres rejects outright (42P01), which would break the one case this fallback
+  // exists for. Against a row that now exists the expression is simply true: coalesce(null, 0).
+  //
   // The client reads settings through `users.user_settings_fk`, so the link has to be made too or
   // the row exists and nothing can see it.
   const [created] = await db
     .insert(userSettings)
-    .values({ ...values, authUserFk: user.authUserFk, userFk: user.id })
+    .values({ authUserFk: user.authUserFk, userFk: user.id })
     .returning({ id: userSettings.id })
 
   await db.update(users).set({ userSettingsFk: created.id }).where(eq(users.id, user.id))
+  await db.update(userSettings).set(values).where(eq(userSettings.id, created.id))
 }

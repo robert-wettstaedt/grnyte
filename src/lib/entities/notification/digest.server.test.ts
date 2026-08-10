@@ -11,6 +11,7 @@
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { m } from '$lib/paraglide/messages'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { digestCopy, entityNames, type DigestActivity } from './digest.server'
 
@@ -152,10 +153,28 @@ describe.skipIf(!reachable)('digestCopy', () => {
     expect(copy?.body).toBe('and 4 more updates')
   })
 
-  /** A deleted entity has no row left to name it, and the sentence still has to be a sentence. */
+  /** A deleted entity has no row left to name it, and the sentence still has to be a sentence.
+   *  Through the message rather than its English, so rewording the placeholder is a copy change
+   *  and not a broken test. */
   it('falls back to the unnamed placeholder for an entity that is gone', async () => {
     const copy = await digestCopy([activity({ entityId: '999999999' })], names(), 'en')
 
-    expect(copy?.title).toBe('Anna added the route <no name>')
+    expect(copy?.title).toBe(`Anna added the route ${m.common_unnamed({}, { locale: 'en' })}`)
+  })
+
+  /**
+   * The one thing a deletion CAN be named from. `entityNames` finds nothing for a row that no
+   * longer exists, so the name has to come off the activity itself - which means the cron's select
+   * has to have fetched `oldValue`. Leaving it out reads as the unnamed placeholder on every
+   * deletion, and the test above is the one that would still pass.
+   */
+  it('names a deleted entity from the row that removed it', async () => {
+    const copy = await digestCopy(
+      [activity({ entityId: '999999999', oldValue: 'Kante direkt', type: 'deleted' })],
+      names(),
+      'en',
+    )
+
+    expect(copy?.title).toBe('Anna deleted the route Kante direkt')
   })
 })

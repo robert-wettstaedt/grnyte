@@ -110,7 +110,7 @@
         rating: route.rating,
         route,
         // Score the raw name — for an unnamed route it's empty, so a description-only
-        // hit can't spuriously match the "<no name>" placeholder text.
+        // hit can't spuriously match the `common_unnamed` placeholder text.
         score: matchScore(route.rawName ?? route.name, q),
         status: ascentStatus.get(route.id),
         type: 'routes',

@@ -31,9 +31,10 @@ const config = {
     serviceWorker: {
       register: false,
     },
-    version: {
-      name: Date.now().toString(),
-    },
+    // Do not set `version.name` to anything non-deterministic (Date.now(), random). Kit re-imports
+    // this file with a cache-busting query for each build pass, so the client and server passes
+    // would get different values, and the `__sveltekit_<hash(version)>` global the client bootstrap
+    // reads would never match the one the server injects. Kit's own default is stable per process.
   },
 
   preprocess: [vitePreprocess()],

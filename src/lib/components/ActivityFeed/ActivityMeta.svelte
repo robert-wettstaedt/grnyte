@@ -24,16 +24,16 @@
   import ActivityLog from './ActivityLog.svelte'
 
   interface Props {
-    /** The entity's own creation stamp, off its DTO. */
-    createdAt: Date | undefined
-    /** The entity's own creator, off its DTO. Resolved to a name only when the log is empty. */
-    createdBy: number
     /**
      * This row sits inside the explore panel, so on desktop the log opens as a second panel
      * beside it rather than as a right-hand aside. Mirrors `MoreMenu`'s `panel`, which the same
      * area and block pages already use; the route page is standalone and leaves it off.
      */
     beside?: boolean
+    /** The entity's own creation stamp, off its DTO. */
+    createdAt: Date | undefined
+    /** The entity's own creator, off its DTO. Resolved to a name only when the log is empty. */
+    createdBy: number
     /** Whether the log mounts the media viewer. Off where the host page already has one. */
     lightbox?: boolean
     /** Whether the log is up, for a host that has to stand down while it is (see the route page). */

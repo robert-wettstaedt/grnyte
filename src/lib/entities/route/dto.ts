@@ -7,7 +7,7 @@ export type RouteDetail = RouteListItem & {
    *  the edit form prefills from these, never from the community values. */
   rawGradeFk: number | undefined
   /** The stored name as typed, empty for unnamed routes. `name` is the display
-   *  fallback ("<no name>"); editing must prefill from this so a blank route stays blank. */
+   *  fallback (`common_unnamed`); editing must prefill from this so a blank route stays blank. */
   rawName: string
   rawRating: number
   regionFk: number
@@ -31,7 +31,7 @@ export interface RouteListItem {
   name: string
   /** Community rating (`userRating`), same one-vote-per-user rule as the grade. */
   rating: number
-  /** The stored name as typed, empty for unnamed routes (`name` is the "<no name>"
+  /** The stored name as typed, empty for unnamed routes (`name` is the `common_unnamed`
    *  display fallback). Search scores against this so an unnamed route can't match
    *  the placeholder text. */
   rawName?: string

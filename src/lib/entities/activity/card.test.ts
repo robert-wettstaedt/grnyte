@@ -211,7 +211,7 @@ describe('headline name', () => {
   })
 
   // A deleted ascent stores no name of its own, so the route it hung on is the only true name
-  // left. Without this the card said "<no name>" for an ascent whose route is right there.
+  // left. Without this the card fell to `common_unnamed` for an ascent whose route is right there.
   it('borrows the parent when the entry stores no name to fall back on', () => {
     const rows = [
       activity({

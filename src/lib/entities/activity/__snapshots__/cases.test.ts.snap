@@ -6454,7 +6454,7 @@ exports[`every activity case > decides the same card for ROUTE-01b > ROUTE-01b 1
     "backdated": false,
     "changes": [],
     "climberName": undefined,
-    "entityName": "<no name>",
+    "entityName": "Unnamed",
     "entityUnnamed": false,
     "files": [],
     "headline": {
@@ -6641,7 +6641,7 @@ exports[`every activity case > decides the same card for ROUTE-01f > ROUTE-01f 1
     "backdated": false,
     "changes": [],
     "climberName": undefined,
-    "entityName": "<no name>",
+    "entityName": "Unnamed",
     "entityUnnamed": false,
     "files": [],
     "headline": {
@@ -6789,7 +6789,7 @@ exports[`every activity case > decides the same card for ROUTE-02b > ROUTE-02b 1
       },
     ],
     "climberName": undefined,
-    "entityName": "<no name>",
+    "entityName": "Unnamed",
     "entityUnnamed": false,
     "files": [],
     "headline": {

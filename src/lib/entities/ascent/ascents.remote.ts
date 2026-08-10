@@ -246,6 +246,9 @@ export const deleteAscent = command(
     // there and is where the reader wants to go. The cost is that two of your ascents on one
     // route deleted by the same person collapse into one notification, which is what a reader
     // would want anyway.
+    // Logged rather than awaited into the caller: a fan-out that throws (a lookup that fails, a
+    // pool with nothing left) must not be what skips the teardown below and leaves the bytes of a
+    // deleted ascent behind forever. Nothing sweeps those up later.
     await notify({
       actorFk: user.id,
       entityId: routeFk,
@@ -253,7 +256,7 @@ export const deleteAscent = command(
       regionFk,
       sourceType: 'ascent_deleted',
       userFks: [climberFk],
-    })
+    }).catch((exception) => console.error('[ascents] delete notification failed', exception))
 
     // Only now that everything that can still fail has: destroy the backing bytes.
     await removeFileStorage(storage)

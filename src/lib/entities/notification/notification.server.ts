@@ -13,7 +13,7 @@ import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
 import { db as baseDb } from '$lib/db/db.server'
 import { notifications, regionMembers, rolePermissions } from '$lib/db/schema'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import type { NotificationEntityType, NotificationSourceType } from './dto'
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
@@ -105,7 +105,23 @@ export async function notify(input: NotifyInput): Promise<void> {
     // The unique index is what makes a re-save idempotent: opening a description in the markdown
     // editor and saving it again re-emits the same `!users:N!` refs, and without this that
     // re-notifies everyone mentioned, every time.
-    .onConflictDoNothing()
+    //
+    // Collapsed only while the row is still UNREAD, which is the case that idempotency is about.
+    // The index carries no time, and a plain `do nothing` would therefore mute a genuinely new
+    // event for as long as the old row survives - up to 30 days after a read, 90 unread. Once it
+    // has been read the reader is done with it, so the same thing happening again is news: the row
+    // goes back to unread and undelivered, with a fresh timestamp for the push debounce to count.
+    .onConflictDoUpdate({
+      set: { createdAt: new Date(), metadata: sql`excluded.metadata`, pushedAt: null, readAt: null },
+      setWhere: isNotNull(notifications.readAt),
+      target: [
+        notifications.userFk,
+        notifications.sourceType,
+        notifications.entityType,
+        notifications.entityId,
+        notifications.actorFk,
+      ],
+    })
 }
 
 /**
@@ -133,25 +149,39 @@ export async function notifyMentions(input: {
 }
 
 /**
- * The regions this person may actually be told about: active membership AND a role that holds
- * `region.read`, which is what the `activities` SELECT policy requires.
+ * The regions each of these people may actually be told about: active membership AND a role that
+ * holds `region.read`, which is what the `activities` SELECT policy requires.
  *
- * Same rule as {@link notificationRecipients}, from the other end. The digest needs it because
- * "the regions I am a member of" is a looser set: revoke `region.read` from a role and its members
+ * Same rule as {@link notificationRecipients}, from the other end. Push needs it because "the
+ * regions I am a member of" is a looser set: revoke `region.read` from a role and its members
  * would keep receiving pushes naming entities they can no longer open.
+ *
+ * Batched rather than per person, because both halves of the cron ask this of everybody they are
+ * about to send to, every five minutes.
  */
-export async function readableRegions(userFk: number): Promise<number[]> {
+export async function readableRegions(userFks: readonly number[]): Promise<Map<number, number[]>> {
+  const ids = [...new Set(userFks)]
+
+  if (ids.length === 0) {
+    return new Map()
+  }
+
   const rows = await baseDb
-    .selectDistinct({ regionFk: regionMembers.regionFk })
+    .selectDistinct({ regionFk: regionMembers.regionFk, userFk: regionMembers.userFk })
     .from(regionMembers)
     .innerJoin(rolePermissions, eq(rolePermissions.role, regionMembers.role))
     .where(
       and(
-        eq(regionMembers.userFk, userFk),
+        inArray(regionMembers.userFk, ids),
         eq(regionMembers.isActive, true),
         eq(rolePermissions.permission, REGION_PERMISSION_READ),
       ),
     )
 
-  return rows.map((row) => row.regionFk)
+  const byUser = new Map<number, number[]>()
+  for (const row of rows) {
+    byUser.set(row.userFk, [...(byUser.get(row.userFk) ?? []), row.regionFk])
+  }
+
+  return byUser
 }

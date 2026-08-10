@@ -10,6 +10,14 @@ import type { ActivityListItem } from './dto'
  * whose row has not synced yet, are both worse than saying less.
  */
 
+export interface ActivityMetaLine {
+  /** Empty when the actor is not known, which is what picks a key that does not name one. */
+  actor: string
+  key: MessageKey
+  /** Epoch millis. The caller formats it against its own clock and locale. */
+  timestamp: number
+}
+
 /** What a detail page knows about its entity, apart from its log. */
 export interface ActivityMetaSource {
   /** The entity's own creation stamp. Absent on rows written before the column existed. */
@@ -27,14 +35,6 @@ export interface ActivityMetaSource {
    * and a date needs the preposition a relative phrase does not.
    */
   now: number
-}
-
-export interface ActivityMetaLine {
-  /** Empty when the actor is not known, which is what picks a key that does not name one. */
-  actor: string
-  key: MessageKey
-  /** Epoch millis. The caller formats it against its own clock and locale. */
-  timestamp: number
 }
 
 /**
