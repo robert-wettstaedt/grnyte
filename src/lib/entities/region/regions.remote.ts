@@ -9,6 +9,7 @@ import { error, invalid } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
+import { notify } from '../notification/notification.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
 import { createRegionForUser, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS, type RegionInvitationItem, type UserInvitationItem } from './dto'
@@ -402,7 +403,7 @@ export const acceptMyInvitation = authedCommand(
 export const updateRegionMemberRole = authedCommand(
   z.object({ regionFk: z.number(), role: assignableRoleSchema, userFk: z.number() }),
   async ({ regionFk, role, userFk }, ctx) => {
-    const { db, user } = ctx
+    const { afterCommit, db, user } = ctx
     assertCanEdit(ctx, regionFk)
 
     const member = await findActiveMember(db, regionFk, userFk)
@@ -420,6 +421,26 @@ export const updateRegionMemberRole = authedCommand(
       regionFk,
       userFk: user.id,
     })
+
+    // What you can do in a region just changed, and the feed card says it in the third person to
+    // everybody. `metadata` carries the role because the sentence needs to name it and the user
+    // row the notification points at cannot: a person holds a different role per region.
+    //
+    // Deferred so the recipient check reads the committed membership rather than this
+    // transaction's private view. It does not matter while every assignable role holds
+    // `region.read`, and it is exactly what would silently drop the notification the day one
+    // does not.
+    afterCommit(() =>
+      notify({
+        actorFk: user.id,
+        entityId: userFk,
+        entityType: 'user',
+        metadata: role,
+        regionFk,
+        sourceType: 'role_changed',
+        userFks: [userFk],
+      }),
+    )
   },
 )
 

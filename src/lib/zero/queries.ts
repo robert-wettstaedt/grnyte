@@ -7,6 +7,7 @@ import { filesQueryDefs } from '$lib/entities/file/queries'
 import { firstAscensionistsQueryDefs } from '$lib/entities/firstAscensionist/queries'
 import { geolocationsQueryDefs } from '$lib/entities/geolocation/queries'
 import { gradesQueryDefs } from '$lib/entities/grade/queries'
+import { notificationsQueryDefs } from '$lib/entities/notification/queries'
 import { regionsQueryDefs } from '$lib/entities/region/queries'
 import { rolePermissionsQueryDefs } from '$lib/entities/rolePermission/queries'
 import { routesQueryDefs } from '$lib/entities/route/queries'
@@ -23,6 +24,7 @@ export const queries = defineQueries({
   ...firstAscensionistsQueryDefs,
   ...geolocationsQueryDefs,
   ...gradesQueryDefs,
+  ...notificationsQueryDefs,
   ...regionsQueryDefs,
   ...rolePermissionsQueryDefs,
   ...routesQueryDefs,

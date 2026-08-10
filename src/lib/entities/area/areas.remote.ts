@@ -17,6 +17,7 @@ import {
   restoreActivityHistory,
 } from '../activity/activity.server'
 import { stringifyDeletionScale } from '../activity/verbs'
+import { notifyMentions } from '../notification/notification.server'
 import { refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
@@ -35,7 +36,7 @@ const areaActionSchema = z.object({
 /** Field shape the shared area form (`AreaFormFields`) binds to — same for create and edit. */
 export type AreaFormInput = StandardSchemaV1.InferInput<typeof areaActionSchema>
 
-export const createArea = authedForm(areaActionSchema, async (value, { db, user, userRegions }, issue) => {
+export const createArea = authedForm(areaActionSchema, async (value, { afterCommit, db, user, userRegions }, issue) => {
   const { parent: parentArea, status } = await loadParentArea(db, value.parentFk, value.regionFk)
 
   if (status === 'missing') {
@@ -87,43 +88,66 @@ export const createArea = authedForm(areaActionSchema, async (value, { db, user,
     userFk: user.id,
   })
 
+  afterCommit(() =>
+    notifyMentions({
+      actorFk: user.id,
+      body: value.description,
+      entityId: createdArea.id,
+      entityType: 'area',
+      regionFk: createdArea.regionFk,
+    }),
+  )
+
   return { redirectTo: resolve('/(app)/areas/[id]', { id: createdArea.id.toString() }) }
 })
 
-export const updateArea = authedForm(areaActionSchema, async ({ id, ...value }, { db, user, userRegions }, issue) => {
-  const area = await requireEditableArea(db, userRegions, id)
+export const updateArea = authedForm(
+  areaActionSchema,
+  async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
+    const area = await requireEditableArea(db, userRegions, id)
 
-  const existingAreasResult = await db.query.areas.findMany({
-    where: and(
-      eq(areas.name, value.name),
-      area.parentFk == null ? isNull(areas.parentFk) : eq(areas.parentFk, area.parentFk),
-      not(eq(areas.id, area.id)),
-    ),
-  })
+    const existingAreasResult = await db.query.areas.findMany({
+      where: and(
+        eq(areas.name, value.name),
+        area.parentFk == null ? isNull(areas.parentFk) : eq(areas.parentFk, area.parentFk),
+        not(eq(areas.id, area.id)),
+      ),
+    })
 
-  if (existingAreasResult.length > 0) {
-    invalid(issue.name(formError('areas_nameExists', { name: existingAreasResult[0].name })))
-  }
+    if (existingAreasResult.length > 0) {
+      invalid(issue.name(formError('areas_nameExists', { name: existingAreasResult[0].name })))
+    }
 
-  await db
-    .update(areas)
-    .set({ ...value, id: area.id })
-    .where(eq(areas.id, area.id))
+    await db
+      .update(areas)
+      .set({ ...value, id: area.id })
+      .where(eq(areas.id, area.id))
 
-  await createUpdateActivity({
-    db,
-    entityId: area.id,
-    entityType: 'area',
-    newEntity: { description: value.description, name: value.name },
-    oldEntity: { description: area.description, name: area.name },
-    parentEntityId: area.parentFk,
-    parentEntityType: 'area',
-    regionFk: area.regionFk,
-    userFk: user.id,
-  })
+    await createUpdateActivity({
+      db,
+      entityId: area.id,
+      entityType: 'area',
+      newEntity: { description: value.description, name: value.name },
+      oldEntity: { description: area.description, name: area.name },
+      parentEntityId: area.parentFk,
+      parentEntityType: 'area',
+      regionFk: area.regionFk,
+      userFk: user.id,
+    })
 
-  return { redirectTo: resolve('/(app)/areas/[id]', { id: area.id.toString() }) }
-})
+    afterCommit(() =>
+      notifyMentions({
+        actorFk: user.id,
+        body: value.description,
+        entityId: area.id,
+        entityType: 'area',
+        regionFk: area.regionFk,
+      }),
+    )
+
+    return { redirectTo: resolve('/(app)/areas/[id]', { id: area.id.toString() }) }
+  },
+)
 
 /** Snapshot {@link deleteArea} returns so {@link restoreArea} can undo either delete path. */
 type DeleteAreaSnapshot =

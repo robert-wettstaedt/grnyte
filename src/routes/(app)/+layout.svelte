@@ -8,6 +8,7 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import StatusBar from '$lib/components/StatusBar/StatusBar.svelte'
   import Toaster from '$lib/components/Toaster/Toaster.svelte'
+  import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import { REGIONLESS_PATHS } from '$lib/entities/region/dto'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError } from '$lib/logging/report'
@@ -23,6 +24,24 @@
   // Re-runs when settings sync/change; null falls back to locale inference.
   $effect(() => {
     setUnitPreference(globalState?.user?.userSettings?.unitSystem ?? null)
+  })
+
+  // Carry the unread count outside the app, onto the installed icon. Only what was aimed at this
+  // person: a badge fed by region activity would never be zero and would stop meaning anything.
+  // Feature-detected because the Badging API is absent in Firefox and in every browser tab on
+  // iOS, where it only exists for an installed PWA.
+  $effect(() => {
+    if (!('setAppBadge' in navigator)) {
+      return
+    }
+
+    // Capped the same way the bell is, which is the point: the query syncs one row past the cap
+    // so the bell can say "99+", and an OS badge reading 100 next to a bell reading 99+ is the
+    // two-counts-disagreeing problem the dot on the tab exists to avoid.
+    const unread = Math.min(globalState?.unreadNotifications ?? 0, UNREAD_CAP)
+    // Rejections are ignored on purpose: the permission can be revoked at any time, and a badge
+    // that cannot be set is not something to tell anybody about.
+    void (unread > 0 ? navigator.setAppBadge(unread) : navigator.clearAppBadge()).catch(() => undefined)
   })
 
   // Feed Supabase token refreshes to Zero. Supabase rotates the access token
@@ -81,7 +100,6 @@
   <meta property="og:image" content={Logo} />
   <meta property="og:url" content={page.url.toString()} />
   <meta property="og:type" content="website" />
-
 </svelte:head>
 
 {#if globalState?.isLoading}

@@ -1,8 +1,11 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { getGlobalState } from '$lib/state/global.svelte'
   import { Navigation } from '@skeletonlabs/skeleton-svelte'
   import { isNavItemActive, navItems } from './items'
   import NavIcon from './NavIcon.svelte'
+
+  const global = getGlobalState()
 </script>
 
 <Navigation
@@ -20,7 +23,7 @@
         ]}
         aria-current={active ? 'page' : undefined}
       >
-        <NavIcon icon={item.icon} size={24} />
+        <NavIcon icon={item.icon} size={24} unread={item.icon === 'feed' ? global.unreadNotifications : 0} />
         <Navigation.TriggerText class="text-[11px] font-semibold">
           {item.label()}
         </Navigation.TriggerText>

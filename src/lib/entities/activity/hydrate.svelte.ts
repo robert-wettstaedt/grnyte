@@ -223,9 +223,59 @@ export function activityEntities(
    */
   expanded: () => readonly ActivityListItem[] = () => [],
 ): ActivityHydrationResult {
+  return hydrateEntities(
+    () => activityRefs(activities()).hydrate,
+    // The blocks whose open rows say a topo photo changed.
+    () =>
+      expanded()
+        .flatMap((activity) =>
+          activity.entityType === 'block' && parseTopoChange(activity.metadata) != null ? [activity.entityId] : [],
+        )
+        .map(Number),
+  )
+}
+
+/** Join fetched rows onto the refs that asked for them. Pure: see the module comment. */
+export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
+  const entities = new Map<string, ActivityEntity | null>()
+  // Indexed once for the whole join, not once per ref: a window of fifty rows asking fifty
+  // questions of the same fetched rows would otherwise rebuild the same six maps fifty times,
+  // on every tick that answers.
+  const tables = indexed(input)
+
+  for (const ref of input.refs) {
+    const spec = KINDS[ref.type]
+    const row = tables[ref.type].get(ref.id)
+    const entity = row === undefined ? undefined : spec.toEntity(row, input, tables)
+
+    if (entity != null) {
+      entities.set(activityEntityKey(ref), entity)
+    } else if (answered(input, ref)) {
+      entities.set(activityEntityKey(ref), null)
+    }
+  }
+
+  return entities
+}
+
+/**
+ * Fetch and join a set of polymorphic `(entityType, entityId)` refs.
+ *
+ * Split from {@link activityEntities} because the feed is not the only screen that holds refs
+ * rather than rows: the notification inbox stores the same pair for the same reason, and needs
+ * the same names, breadcrumbs and links out of them.
+ *
+ * Reads `userRegions` off the global state, so call it during component initialisation like any
+ * other resource factory.
+ */
+export function hydrateEntities(
+  refsOf: () => readonly ActivityEntityRef[],
+  /** Blocks whose topo photos are wanted. Only the feed's open cards draw any. */
+  topoBlocks: () => readonly number[] = () => [],
+): ActivityHydrationResult {
   const global = getGlobalState()
 
-  const refs = $derived(activityRefs(activities()).hydrate)
+  const refs = $derived(refsOf())
   // `entityId` is text for every kind; the numeric tables get the ids that survive parsing, so a
   // malformed row can't widen a query with a NaN.
   const idsOf = (type: ActivityEntityType) => {
@@ -255,20 +305,9 @@ export function activityEntities(
   ])
   const routes = routesByIds(() => routeIds)
 
-  // The blocks whose open rows say a topo photo changed. Their lines are a second query rather
-  // than a wider `blockList`, so the screens that only need a block's thumbnail keep paying for
-  // a thumbnail.
-  const topoBlockIds = $derived(
-    [
-      ...new Set(
-        expanded()
-          .flatMap((activity) =>
-            activity.entityType === 'block' && parseTopoChange(activity.metadata) != null ? [activity.entityId] : [],
-          )
-          .map(Number),
-      ),
-    ].filter(Number.isInteger),
-  )
+  // Topo lines are a second query rather than a wider `blockList`, so the screens that only need
+  // a block's thumbnail keep paying for a thumbnail.
+  const topoBlockIds = $derived([...new Set(topoBlocks())].filter(Number.isInteger))
   const topos = toposByBlockIds(() => topoBlockIds)
 
   const ready = $derived(
@@ -308,29 +347,6 @@ export function activityEntities(
       return topos.data
     },
   }
-}
-
-/** Join fetched rows onto the refs that asked for them. Pure: see the module comment. */
-export function activityEntityMap(input: ActivityHydration): ActivityEntityMap {
-  const entities = new Map<string, ActivityEntity | null>()
-  // Indexed once for the whole join, not once per ref: a window of fifty rows asking fifty
-  // questions of the same fetched rows would otherwise rebuild the same six maps fifty times,
-  // on every tick that answers.
-  const tables = indexed(input)
-
-  for (const ref of input.refs) {
-    const spec = KINDS[ref.type]
-    const row = tables[ref.type].get(ref.id)
-    const entity = row === undefined ? undefined : spec.toEntity(row, input, tables)
-
-    if (entity != null) {
-      entities.set(activityEntityKey(ref), entity)
-    } else if (answered(input, ref)) {
-      entities.set(activityEntityKey(ref), null)
-    }
-  }
-
-  return entities
 }
 
 /**

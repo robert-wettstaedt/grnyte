@@ -8,16 +8,12 @@
 -->
 <script lang="ts">
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
-  import AreaRow from '$lib/components/EntityRow/AreaRow.svelte'
-  import BlockRow from '$lib/components/EntityRow/BlockRow.svelte'
-  import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
-  import UserRow from '$lib/components/EntityRow/UserRow.svelte'
+  import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MediaThumbnail from '$lib/components/Media/MediaThumbnail.svelte'
   import Message from '$lib/components/Message/Message.svelte'
-  import type { ActivityCardRow, ActivityCardView } from '$lib/entities/activity/card'
-  import type { ActivityEntityType } from '$lib/entities/activity/dto'
+  import type { ActivityCardView } from '$lib/entities/activity/card'
   import { activityEntityKey } from '$lib/entities/activity/entity'
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
   import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
@@ -25,7 +21,7 @@
   import { gradeLabel } from '$lib/entities/grade/label'
   import RouteGrade from '$lib/entities/route/RouteGrade.svelte'
   import RouteRating from '$lib/entities/route/RouteRating.svelte'
-  import { resolveMessage, type MessageKey } from '$lib/i18n/message'
+  import { resolveMessage } from '$lib/i18n/message'
   import { formatDate, formatUploadedAt } from '$lib/i18n/relativeTime'
   import StaticMap from '$lib/map/StaticMap.svelte'
   import { m } from '$lib/paraglide/messages'
@@ -48,18 +44,6 @@
   const { initiallyExpanded = false, onToggle, view }: Props = $props()
 
   const global = getGlobalState()
-
-  /** What a tombstone was, since the entity is no longer there to say so itself. */
-  const ENTITY_LABEL: Record<ActivityEntityType, MessageKey> = {
-    area: 'common_area',
-    ascent: 'common_ascent',
-    block: 'common_block',
-    // Neutral: the row is a tombstone because the file is gone, so nothing is left to say
-    // whether it was a photo or a video.
-    file: 'common_media',
-    route: 'common_route',
-    user: 'common_person',
-  }
 
   // The climb date joins the sub line rather than the headline or the clock: the clock says
   // when it was logged, which is what sorts the feed, and both facts are true at once. Absolute
@@ -100,70 +84,6 @@
     <span class="text-surface-600-400 italic">{m.common_unnamed()}</span>
   {:else}
     {@render strong(view.entityName)}
-  {/if}
-{/snippet}
-
-{#snippet skeletonRow()}
-  <div class="flex items-center gap-2.5 px-1 py-2" aria-busy="true">
-    <span class="bg-surface-200-800 size-13 flex-none animate-pulse rounded-xl"></span>
-    <span class="bg-surface-200-800 h-3.5 w-32 animate-pulse rounded"></span>
-  </div>
-{/snippet}
-
-<!-- What it was is all that is left of it, so the row leads with that rather than hiding the
-     type in an `sr-only` span: without it a card of tombstones says nothing at all.
-
-     The name slot falls back to the same placeholder the headline uses. It used to read "this
-     entry was deleted", which said a third time what the trash icon and the type label above it
-     already say, and left the one thing the reader wanted (which route?) unanswered. -->
-{#snippet tombstoneRow(row: ActivityCardRow)}
-  <div class="text-surface-600-400 flex items-center gap-2.5 px-1 py-2 text-sm">
-    <span class="bg-surface-200-800/60 grid size-13 flex-none place-items-center rounded-xl">
-      <Icon name="trash" size={20} />
-    </span>
-
-    <span class="min-w-0">
-      <span class="text-surface-500 block text-[11px] font-semibold">{resolveMessage(ENTITY_LABEL[row.ref.type])}</span>
-      <span class="block truncate italic">{row.name ?? m.common_unnamed()}</span>
-    </span>
-  </div>
-{/snippet}
-
-{#snippet entityRow(row: ActivityCardRow)}
-  {#if row.state === 'skeleton'}
-    {@render skeletonRow()}
-  {:else if row.state === 'tombstone'}
-    {@render tombstoneRow(row)}
-  {:else if row.entity != null}
-    {@const entity = row.entity}
-    {#if entity.row === 'route' && entity.route != null}
-      <RouteRow
-        crumbs={entity.crumbs}
-        grade={gradeLabel(global.grades, global.gradingScale, entity.route.gradeFk)}
-        href={entity.href}
-        route={entity.route}
-        status={entity.ascentType}
-        variant="option"
-      />
-    {:else if entity.row === 'area'}
-      <AreaRow
-        crumbs={entity.crumbs}
-        description={entity.description}
-        href={entity.href}
-        name={entity.name}
-        variant="option"
-      />
-    {:else if entity.row === 'block'}
-      <BlockRow
-        crumbs={entity.crumbs}
-        href={entity.href}
-        name={entity.name}
-        topoImagePath={entity.topoImagePath}
-        variant="option"
-      />
-    {:else if entity.row === 'user'}
-      <UserRow crumbs={entity.crumbs} href={entity.href} name={entity.name} variant="option" />
-    {/if}
   {/if}
 {/snippet}
 
@@ -229,7 +149,7 @@
   {#if view.rows.length > 0}
     <div class="space-y-1">
       {#each view.rows as row (activityEntityKey(row.ref))}
-        {@render entityRow(row)}
+        <HydratedRow {row} />
       {/each}
 
       {#if view.overflowCount > 0}

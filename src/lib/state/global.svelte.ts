@@ -1,6 +1,7 @@
 import { page } from '$app/state'
 import type { Grade } from '$lib/entities/grade/dto'
 import { gradeList } from '$lib/entities/grade/resources.svelte'
+import { unreadNotificationList } from '$lib/entities/notification/resources.svelte'
 import type { RegionMembership, UserRegion } from '$lib/entities/region/dto'
 import { userRegionList } from '$lib/entities/region/resources.svelte'
 import type { AppRole, Permission, RolePermission } from '$lib/entities/rolePermission/dto'
@@ -27,6 +28,15 @@ export interface GlobalState {
   /** True while app-shell prerequisites are still loading. */
   readonly isLoading: boolean
   readonly rolePermissionsResource: QueryResource<RolePermission[]>
+  /**
+   * Unread directed notifications, capped at `UNREAD_CAP + 1`.
+   *
+   * App-wide because three surfaces read the same number and must never disagree: the bell in
+   * the feed header, the dot on the feed tab, and the OS badge. It counts only what was aimed at
+   * this person, never region activity, which is the whole reason the inbox and the feed are two
+   * different things.
+   */
+  readonly unreadNotifications: number
   /** The signed-in user with their settings, or `undefined` while loading. */
   readonly user: undefined | User
 
@@ -75,6 +85,9 @@ export function setGlobalState(): GlobalState | undefined {
   const userRoleResource = currentUserRole()
   const rolePermissionsResource = rolePermissionList()
   const userRegionsResource = userRegionList()
+  // Not part of `isLoading`: the shell must not wait on the inbox to render, and an unread count
+  // that starts at zero and moves is exactly right.
+  const unreadResource = unreadNotificationList()
 
   const state: GlobalState = {
     get grades() {
@@ -97,6 +110,9 @@ export function setGlobalState(): GlobalState | undefined {
     },
     get rolePermissionsResource() {
       return rolePermissionsResource
+    },
+    get unreadNotifications() {
+      return unreadResource.data.length
     },
     get user() {
       return userResource.data
@@ -170,6 +186,7 @@ export function staticGlobalState(
     gradingScale: data.gradingScale ?? data.user?.userSettings?.gradingScale ?? 'FB',
     isLoading: false,
     rolePermissionsResource: ready([]),
+    unreadNotifications: 0,
     user: data.user,
     userPermissions: data.userPermissions,
     userRegions,

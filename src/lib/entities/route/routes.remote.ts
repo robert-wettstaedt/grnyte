@@ -27,6 +27,7 @@ import {
   insertActivity,
   restoreActivityHistory,
 } from '../activity/activity.server'
+import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
 import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
@@ -108,175 +109,205 @@ const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id)
 
 /** Create a route under a block. Returns `{ id }` instead of redirecting so the form can
  *  finalize its background media uploads against the new route before navigating. */
-export const createRoute = authedForm(routeActionSchema, async (value, { db, user, userRegions }, issue) => {
-  const block = await db.query.blocks.findFirst({ where: eq(blocks.id, value.blockId) })
+export const createRoute = authedForm(
+  routeActionSchema,
+  async (value, { afterCommit, db, user, userRegions }, issue) => {
+    const block = await db.query.blocks.findFirst({ where: eq(blocks.id, value.blockId) })
 
-  if (block == null) {
-    invalid(formError('blocks_notFound'))
-  }
+    if (block == null) {
+      invalid(formError('blocks_notFound'))
+    }
 
-  if (!canAddRoute(userRegions, block)) {
-    invalid(formError('form_noPermission'))
-  }
+    if (!canAddRoute(userRegions, block)) {
+      invalid(formError('form_noPermission'))
+    }
 
-  const duplicate = await findDuplicateName(db, value, block.id)
-  if (duplicate != null) {
-    invalid(issue.name(formError('routes_nameExists', { name: duplicate.name })))
-  }
+    const duplicate = await findDuplicateName(db, value, block.id)
+    if (duplicate != null) {
+      invalid(issue.name(formError('routes_nameExists', { name: duplicate.name })))
+    }
 
-  const areaFks = await areaAncestry(db, block.areaFk)
+    const areaFks = await areaAncestry(db, block.areaFk)
 
-  const [route] = await db
-    .insert(routes)
-    .values({
-      areaFks,
-      areaIds: areaFks.map((id) => `^${id}$`).join(','),
-      blockFk: block.id,
-      createdBy: user.id,
-      description: value.description.length === 0 ? null : value.description,
-      firstAscentYear: value.firstAscentYear,
-      gradeFk: value.gradeFk,
-      name: value.name,
-      rating: value.rating,
+    const [route] = await db
+      .insert(routes)
+      .values({
+        areaFks,
+        areaIds: areaFks.map((id) => `^${id}$`).join(','),
+        blockFk: block.id,
+        createdBy: user.id,
+        description: value.description.length === 0 ? null : value.description,
+        firstAscentYear: value.firstAscentYear,
+        gradeFk: value.gradeFk,
+        name: value.name,
+        rating: value.rating,
+        regionFk: block.regionFk,
+      })
+      .returning()
+
+    // Seeds userGradeFk/userRating from the route's own grade (no ascent votes yet),
+    // through the same SQL every other write path uses.
+    await recalcUserGradeAndRating(db, route.id)
+
+    const tags = allowedTags(regionTags(userRegions, block.regionFk), value.tags)
+    if (tags.length > 0) {
+      await db
+        .insert(routesToTags)
+        .values(tags.map((tagFk) => ({ regionFk: block.regionFk, routeFk: route.id, tagFk })))
+    }
+
+    const resolvedFa = await resolveFirstAscensionists(db, value.firstAscensionists, block.regionFk, user.id)
+    if (resolvedFa.length > 0) {
+      await db
+        .insert(routesToFirstAscensionists)
+        .values(resolvedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: block.regionFk, routeFk: route.id })))
+    }
+
+    await insertActivity(db, {
+      entityId: route.id,
+      entityType: 'route',
+      newValue: route.name,
+      parentEntityId: block.id,
+      parentEntityType: 'block',
       regionFk: block.regionFk,
+      type: 'created',
+      userFk: user.id,
     })
-    .returning()
 
-  // Seeds userGradeFk/userRating from the route's own grade (no ascent votes yet),
-  // through the same SQL every other write path uses.
-  await recalcUserGradeAndRating(db, route.id)
+    afterCommit(() =>
+      notifyMentions({
+        actorFk: user.id,
+        body: value.description,
+        entityId: route.id,
+        entityType: 'route',
+        regionFk: block.regionFk,
+      }),
+    )
 
-  const tags = allowedTags(regionTags(userRegions, block.regionFk), value.tags)
-  if (tags.length > 0) {
-    await db.insert(routesToTags).values(tags.map((tagFk) => ({ regionFk: block.regionFk, routeFk: route.id, tagFk })))
-  }
-
-  const resolvedFa = await resolveFirstAscensionists(db, value.firstAscensionists, block.regionFk, user.id)
-  if (resolvedFa.length > 0) {
-    await db
-      .insert(routesToFirstAscensionists)
-      .values(resolvedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: block.regionFk, routeFk: route.id })))
-  }
-
-  await insertActivity(db, {
-    entityId: route.id,
-    entityType: 'route',
-    newValue: route.name,
-    parentEntityId: block.id,
-    parentEntityType: 'block',
-    regionFk: block.regionFk,
-    type: 'created',
-    userFk: user.id,
-  })
-
-  return { data: { id: route.id } }
-})
+    return { data: { id: route.id } }
+  },
+)
 
 /** Edit a route. Reuses the create form (with `id` set). Any region member may edit the
  *  route itself; tag changes additionally need EDIT (their RLS is stricter). */
-export const updateRoute = authedForm(routeActionSchema, async ({ id, ...value }, { db, user, userRegions }, issue) => {
-  const route = await requireRowForm(
-    () => (id == null ? Promise.resolve(undefined) : db.query.routes.findFirst({ where: eq(routes.id, id) })),
-    (row) => canEditRoute(userRegions, row),
-    formError('routes_notFound'),
-  )
-
-  const duplicate = await findDuplicateName(db, value, route.blockFk, route.id)
-  if (duplicate != null) {
-    invalid(issue.name(formError('routes_nameExists', { name: duplicate.name })))
-  }
-
-  const oldTagRows = await db.query.routesToTags.findMany({ where: eq(routesToTags.routeFk, route.id) })
-  const oldTags = oldTagRows.map((row) => row.tagFk).sort()
-  // `oldTags` joins the allowlist so an edit cannot strip a tag the region retired mid-session.
-  const allowed = [...regionTags(userRegions, route.regionFk), ...oldTags]
-  const newTags = [...new Set(allowedTags(allowed, value.tags))].sort()
-  const tagsChanged = oldTags.join(',') !== newTags.join(',')
-
-  await db
-    .update(routes)
-    .set({
-      description: value.description.length === 0 ? null : value.description,
-      firstAscentYear: value.firstAscentYear ?? null,
-      gradeFk: value.gradeFk ?? null,
-      name: value.name,
-      rating: value.rating ?? null,
-    })
-    .where(eq(routes.id, route.id))
-
-  // The route's own grade/rating is one of the community votes.
-  await recalcUserGradeAndRating(db, route.id)
-
-  if (tagsChanged) {
-    const removed = oldTags.filter((tag) => !newTags.includes(tag))
-    const added = newTags.filter((tag) => !oldTags.includes(tag))
-    if (removed.length > 0) {
-      await db.delete(routesToTags).where(and(eq(routesToTags.routeFk, route.id), inArray(routesToTags.tagFk, removed)))
-    }
-    if (added.length > 0) {
-      await db
-        .insert(routesToTags)
-        .values(added.map((tagFk) => ({ regionFk: route.regionFk, routeFk: route.id, tagFk })))
-    }
-  }
-
-  const oldFaRows = await db.query.routesToFirstAscensionists.findMany({
-    where: eq(routesToFirstAscensionists.routeFk, route.id),
-    with: { firstAscensionist: true },
-  })
-  const newFaRows = await resolveFirstAscensionists(db, value.firstAscensionists, route.regionFk, user.id)
-  const removedFa = oldFaRows.filter((row) => !newFaRows.some((fa) => fa.id === row.firstAscensionistFk))
-  const addedFa = newFaRows.filter((fa) => !oldFaRows.some((row) => row.firstAscensionistFk === fa.id))
-  if (removedFa.length > 0) {
-    await db.delete(routesToFirstAscensionists).where(
-      inArray(
-        routesToFirstAscensionists.id,
-        removedFa.map((row) => row.id),
-      ),
+export const updateRoute = authedForm(
+  routeActionSchema,
+  async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
+    const route = await requireRowForm(
+      () => (id == null ? Promise.resolve(undefined) : db.query.routes.findFirst({ where: eq(routes.id, id) })),
+      (row) => canEditRoute(userRegions, row),
+      formError('routes_notFound'),
     )
-  }
-  if (addedFa.length > 0) {
+
+    const duplicate = await findDuplicateName(db, value, route.blockFk, route.id)
+    if (duplicate != null) {
+      invalid(issue.name(formError('routes_nameExists', { name: duplicate.name })))
+    }
+
+    const oldTagRows = await db.query.routesToTags.findMany({ where: eq(routesToTags.routeFk, route.id) })
+    const oldTags = oldTagRows.map((row) => row.tagFk).sort()
+    // `oldTags` joins the allowlist so an edit cannot strip a tag the region retired mid-session.
+    const allowed = [...regionTags(userRegions, route.regionFk), ...oldTags]
+    const newTags = [...new Set(allowedTags(allowed, value.tags))].sort()
+    const tagsChanged = oldTags.join(',') !== newTags.join(',')
+
     await db
-      .insert(routesToFirstAscensionists)
-      .values(addedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: route.regionFk, routeFk: route.id })))
-  }
+      .update(routes)
+      .set({
+        description: value.description.length === 0 ? null : value.description,
+        firstAscentYear: value.firstAscentYear ?? null,
+        gradeFk: value.gradeFk ?? null,
+        name: value.name,
+        rating: value.rating ?? null,
+      })
+      .where(eq(routes.id, route.id))
 
-  await createUpdateActivity({
-    db,
-    entityId: route.id,
-    entityType: 'route',
-    newEntity: {
-      description: value.description,
-      firstAscensionists: newFaRows
-        .map((fa) => fa.name)
-        .sort()
-        .join(','),
-      firstAscentYear: value.firstAscentYear,
-      gradeFk: value.gradeFk,
-      name: value.name,
-      rating: value.rating,
-      tags: newTags.join(','),
-    },
-    oldEntity: {
-      description: route.description ?? '',
-      firstAscensionists: oldFaRows
-        .map((row) => row.firstAscensionist.name)
-        .sort()
-        .join(','),
-      firstAscentYear: route.firstAscentYear,
-      gradeFk: route.gradeFk,
-      name: route.name,
-      rating: route.rating,
-      tags: oldTags.join(','),
-    },
-    parentEntityId: route.blockFk,
-    parentEntityType: 'block',
-    regionFk: route.regionFk,
-    userFk: user.id,
-  })
+    // The route's own grade/rating is one of the community votes.
+    await recalcUserGradeAndRating(db, route.id)
 
-  return { data: { id: route.id } }
-})
+    if (tagsChanged) {
+      const removed = oldTags.filter((tag) => !newTags.includes(tag))
+      const added = newTags.filter((tag) => !oldTags.includes(tag))
+      if (removed.length > 0) {
+        await db
+          .delete(routesToTags)
+          .where(and(eq(routesToTags.routeFk, route.id), inArray(routesToTags.tagFk, removed)))
+      }
+      if (added.length > 0) {
+        await db
+          .insert(routesToTags)
+          .values(added.map((tagFk) => ({ regionFk: route.regionFk, routeFk: route.id, tagFk })))
+      }
+    }
+
+    const oldFaRows = await db.query.routesToFirstAscensionists.findMany({
+      where: eq(routesToFirstAscensionists.routeFk, route.id),
+      with: { firstAscensionist: true },
+    })
+    const newFaRows = await resolveFirstAscensionists(db, value.firstAscensionists, route.regionFk, user.id)
+    const removedFa = oldFaRows.filter((row) => !newFaRows.some((fa) => fa.id === row.firstAscensionistFk))
+    const addedFa = newFaRows.filter((fa) => !oldFaRows.some((row) => row.firstAscensionistFk === fa.id))
+    if (removedFa.length > 0) {
+      await db.delete(routesToFirstAscensionists).where(
+        inArray(
+          routesToFirstAscensionists.id,
+          removedFa.map((row) => row.id),
+        ),
+      )
+    }
+    if (addedFa.length > 0) {
+      await db
+        .insert(routesToFirstAscensionists)
+        .values(addedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: route.regionFk, routeFk: route.id })))
+    }
+
+    await createUpdateActivity({
+      db,
+      entityId: route.id,
+      entityType: 'route',
+      newEntity: {
+        description: value.description,
+        firstAscensionists: newFaRows
+          .map((fa) => fa.name)
+          .sort()
+          .join(','),
+        firstAscentYear: value.firstAscentYear,
+        gradeFk: value.gradeFk,
+        name: value.name,
+        rating: value.rating,
+        tags: newTags.join(','),
+      },
+      oldEntity: {
+        description: route.description ?? '',
+        firstAscensionists: oldFaRows
+          .map((row) => row.firstAscensionist.name)
+          .sort()
+          .join(','),
+        firstAscentYear: route.firstAscentYear,
+        gradeFk: route.gradeFk,
+        name: route.name,
+        rating: route.rating,
+        tags: oldTags.join(','),
+      },
+      parentEntityId: route.blockFk,
+      parentEntityType: 'block',
+      regionFk: route.regionFk,
+      userFk: user.id,
+    })
+
+    afterCommit(() =>
+      notifyMentions({
+        actorFk: user.id,
+        body: value.description,
+        entityId: route.id,
+        entityType: 'route',
+        regionFk: route.regionFk,
+      }),
+    )
+
+    return { data: { id: route.id } }
+  },
+)
 
 /** Snapshot {@link deleteRoute} returns so {@link restoreRoute} can undo either delete path. */
 type DeleteRouteSnapshot =

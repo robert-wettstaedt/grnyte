@@ -11,6 +11,7 @@ import z from 'zod'
 import { createUpdateActivity, insertActivity } from '../activity/activity.server'
 import { stringifyDeletedAscent } from '../activity/verbs'
 import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
+import { notify, notifyMentions } from '../notification/notification.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
 import { canEditAscent, canLogAscent } from './permissions'
 
@@ -36,7 +37,7 @@ export type AscentFormInput = z.input<typeof ascentActionSchema>
 
 /** Log an ascent of a route. Returns `{ id }` instead of redirecting so the form can
  *  finalize its background media uploads against the new ascent before navigating. */
-export const createAscent = authedForm(ascentActionSchema, async (value, { db, user, userRegions }) => {
+export const createAscent = authedForm(ascentActionSchema, async (value, { afterCommit, db, user, userRegions }) => {
   const route = await db.query.routes.findFirst({ where: eq(routes.id, value.routeId) })
 
   if (route == null) {
@@ -76,62 +77,105 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { db, u
     userFk: user.id,
   })
 
+  afterCommit(() =>
+    notifyMentions({
+      actorFk: user.id,
+      body: value.notes,
+      entityId: ascent.id,
+      entityType: 'ascent',
+      regionFk: route.regionFk,
+    }),
+  )
+
   return { data: { id: ascent.id } }
 })
 
 /** Edit an ascent. Reuses the create form (with `id` set). Owner-only (RLS mirrors this). */
-export const updateAscent = authedForm(ascentActionSchema, async ({ id, ...value }, { db, user, userRegions }) => {
-  const ascent = await requireRowForm(
-    () => (id == null ? Promise.resolve(undefined) : db.query.ascents.findFirst({ where: eq(ascents.id, id) })),
-    (row) => canEditAscent(userRegions, user.id, row),
-    formError('ascents_notFound'),
-  )
+export const updateAscent = authedForm(
+  ascentActionSchema,
+  async ({ id, ...value }, { afterCommit, db, user, userRegions }) => {
+    const ascent = await requireRowForm(
+      () => (id == null ? Promise.resolve(undefined) : db.query.ascents.findFirst({ where: eq(ascents.id, id) })),
+      (row) => canEditAscent(userRegions, user.id, row),
+      formError('ascents_notFound'),
+    )
 
-  await db
-    .update(ascents)
-    .set({
-      dateTime: value.dateTime,
-      gradeFk: value.gradeFk ?? null,
-      humidity: value.humidity ?? null,
-      notes: value.notes.length === 0 ? null : value.notes,
-      rating: value.rating ?? null,
-      temperature: value.temperature ?? null,
-      type: value.type,
+    await db
+      .update(ascents)
+      .set({
+        dateTime: value.dateTime,
+        gradeFk: value.gradeFk ?? null,
+        humidity: value.humidity ?? null,
+        notes: value.notes.length === 0 ? null : value.notes,
+        rating: value.rating ?? null,
+        temperature: value.temperature ?? null,
+        type: value.type,
+      })
+      .where(eq(ascents.id, ascent.id))
+
+    await recalcUserGradeAndRating(db, ascent.routeFk)
+
+    const edited = await createUpdateActivity({
+      db,
+      entityId: ascent.id,
+      entityType: 'ascent',
+      newEntity: {
+        dateTime: value.dateTime,
+        gradeFk: value.gradeFk,
+        humidity: value.humidity,
+        notes: value.notes,
+        rating: value.rating,
+        temperature: value.temperature,
+        type: value.type,
+      },
+      oldEntity: {
+        dateTime: ascent.dateTime,
+        gradeFk: ascent.gradeFk,
+        humidity: ascent.humidity,
+        notes: ascent.notes ?? '',
+        rating: ascent.rating,
+        temperature: ascent.temperature,
+        type: ascent.type,
+      },
+      parentEntityId: ascent.routeFk,
+      parentEntityType: 'route',
+      regionFk: ascent.regionFk,
+      userFk: user.id,
     })
-    .where(eq(ascents.id, ascent.id))
 
-  await recalcUserGradeAndRating(db, ascent.routeFk)
+    // A maintainer may edit anybody's log, and the climber has no other way of finding out.
+    // `notify` drops the actor from the recipients, so editing your own is silent.
+    //
+    // Gated on the diff, not on the submit: a maintainer who opens somebody's ascent and saves it
+    // untouched logs no activity, and must not announce one either. Worse than the noise, the
+    // unique index would keep that empty save as the row for this (actor, ascent, kind) pair and
+    // swallow the real edit that followed it.
+    if (edited) {
+      afterCommit(() =>
+        notify({
+          actorFk: user.id,
+          entityId: ascent.id,
+          entityType: 'ascent',
+          regionFk: ascent.regionFk,
+          sourceType: 'ascent_edited',
+          userFks: [ascent.createdBy],
+        }),
+      )
+    }
 
-  await createUpdateActivity({
-    db,
-    entityId: ascent.id,
-    entityType: 'ascent',
-    newEntity: {
-      dateTime: value.dateTime,
-      gradeFk: value.gradeFk,
-      humidity: value.humidity,
-      notes: value.notes,
-      rating: value.rating,
-      temperature: value.temperature,
-      type: value.type,
-    },
-    oldEntity: {
-      dateTime: ascent.dateTime,
-      gradeFk: ascent.gradeFk,
-      humidity: ascent.humidity,
-      notes: ascent.notes ?? '',
-      rating: ascent.rating,
-      temperature: ascent.temperature,
-      type: ascent.type,
-    },
-    parentEntityId: ascent.routeFk,
-    parentEntityType: 'route',
-    regionFk: ascent.regionFk,
-    userFk: user.id,
-  })
+    afterCommit(() =>
+      notifyMentions({
+        actorFk: user.id,
+        body: value.notes,
+        entityId: ascent.id,
+        entityType: 'ascent',
+        regionFk: ascent.regionFk,
+      }),
+    )
 
-  return { data: { id: ascent.id, routeFk: ascent.routeFk } }
-})
+    return { data: { id: ascent.id, routeFk: ascent.routeFk } }
+  },
+)
 
 /**
  * Delete an ascent and its attached media (rows plus Nextcloud images and Bunny
@@ -151,7 +195,7 @@ export const deleteAscent = command(
     }
     const rls = await createDrizzleSupabaseClient(supabase)
 
-    const { routeFk, storage } = await rls(async (db) => {
+    const { climberFk, regionFk, routeFk, storage } = await rls(async (db) => {
       const ascent = await requireRow(
         () => db.query.ascents.findFirst({ where: eq(ascents.id, id) }),
         (row) => canEditAscent(userRegions, user.id, row),
@@ -191,10 +235,27 @@ export const deleteAscent = command(
         userFk: user.id,
       })
 
-      return { routeFk: ascent.routeFk, storage }
+      return { climberFk: ascent.createdBy, regionFk: ascent.regionFk, routeFk: ascent.routeFk, storage }
     })
 
-    // Only now that the row deletion has committed: destroy the backing bytes.
+    // Before the storage teardown, not after: the delete has committed either way, so a failing
+    // Nextcloud or Bunny call must not be what swallows the climber's only notice of it.
+    //
+    // Points at the ROUTE, not the ascent: the ascent row is gone by the time the inbox renders,
+    // so a row pointing at it could only ever be a tombstone, while the route is standing right
+    // there and is where the reader wants to go. The cost is that two of your ascents on one
+    // route deleted by the same person collapse into one notification, which is what a reader
+    // would want anyway.
+    await notify({
+      actorFk: user.id,
+      entityId: routeFk,
+      entityType: 'route',
+      regionFk,
+      sourceType: 'ascent_deleted',
+      userFks: [climberFk],
+    })
+
+    // Only now that everything that can still fail has: destroy the backing bytes.
     await removeFileStorage(storage)
 
     return { data: { routeFk } }

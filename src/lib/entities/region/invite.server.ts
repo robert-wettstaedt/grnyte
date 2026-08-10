@@ -30,6 +30,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { authUsers } from 'drizzle-orm/supabase'
 import z from 'zod'
 import { insertActivity } from '../activity/activity.server'
+import { notify } from '../notification/notification.server'
 import { acceptPath, type UserInvitationItem, type UserRegion } from './dto'
 import { canEditRegion } from './permissions'
 
@@ -112,7 +113,12 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
 }> {
   const address = normalizeEmail(email)
 
-  return baseDb.transaction(async (tx) => {
+  /** Set only when this call is the one that actually added the membership, so a reopened link
+   *  or a double tap does not tell the inviter twice. Notified after the commit, since the
+   *  fan-out runs on its own connection and must not announce a join that then rolls back. */
+  let joined: undefined | { invitedByFk: number; regionFk: number; userFk: number }
+
+  const accepted = await baseDb.transaction(async (tx) => {
     const invitation = await tx.query.regionInvitations.findFirst({
       where: eq(regionInvitations.token, token),
       with: { region: { columns: { maxMembers: true, name: true } } },
@@ -185,6 +191,8 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
         type: 'updated',
         userFk: user.id,
       })
+
+      joined = { invitedByFk: invitation.invitedByFk, regionFk: invitation.regionFk, userFk: user.id }
     }
 
     await tx
@@ -194,6 +202,21 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
 
     return { regionFk: invitation.regionFk, regionName: invitation.region.name }
   })
+
+  if (joined != null) {
+    // The one directed event whose recipient is not its subject: the inviter is told, and the row
+    // points at the person who joined.
+    await notify({
+      actorFk: joined.userFk,
+      entityId: joined.userFk,
+      entityType: 'user',
+      regionFk: joined.regionFk,
+      sourceType: 'invite_accepted',
+      userFks: [joined.invitedByFk],
+    })
+  }
+
+  return accepted
 }
 
 /** Throws 429 when the last send is too recent. Split out so a test can drive it without a clock. */

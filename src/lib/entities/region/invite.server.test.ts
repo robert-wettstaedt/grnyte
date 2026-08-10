@@ -85,6 +85,8 @@ async function invite(email: string = EMAILS.invitee) {
 }
 
 async function removeFixtures() {
+  // Accepting an invitation tells the inviter, so the fixture region owns notification rows too.
+  await sql`delete from public.notifications where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.region_invitations where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = ${REGION})`

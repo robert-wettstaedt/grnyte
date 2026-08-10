@@ -1,9 +1,12 @@
 import { CRON_API_KEY, SUPABASE_SERVICE_ROLE_KEY } from '$env/static/private'
 import { PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { db } from '$lib/db/db.server'
+import { notifications } from '$lib/db/schema'
 import { STAGING_BUCKET } from '$lib/entities/file/upload'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createClient } from '@supabase/supabase-js'
 import { json } from '@sveltejs/kit'
+import { and, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
 
@@ -11,6 +14,11 @@ import type { RequestHandler } from './$types'
 const STAGING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 /** Bunny orphans past this age are dead: the TUS resume window is 24h, so 48h clears clock skew too. */
 const BUNNY_MAX_AGE_MS = 48 * 60 * 60 * 1000
+
+/** A notification somebody has already opened is history the inbox does not render. */
+const NOTIFICATION_READ_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+/** One they never opened is kept three times as long before it is written off as never read. */
+const NOTIFICATION_UNREAD_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
 
 /** Same x-api-key gate the pg_cron caller uses (mirrors the 1.0 notifications cron). */
 const authorized = (request: Request): boolean => {
@@ -89,15 +97,38 @@ const sweepBunny = async (before: Date): Promise<number> => {
   return removed
 }
 
+/**
+ * Drop notifications nobody is going to read again.
+ *
+ * About bounding what Zero syncs into every replica, not about what is on screen: the inbox
+ * query is capped at a page either way. Unread rows get three times the grace, since deleting
+ * one is deleting something that was never delivered.
+ */
+const sweepNotifications = async (readBefore: Date, unreadBefore: Date): Promise<number> => {
+  const removed = await db
+    .delete(notifications)
+    .where(
+      or(
+        and(isNotNull(notifications.readAt), lt(notifications.readAt, readBefore)),
+        and(isNull(notifications.readAt), lt(notifications.createdAt, unreadBefore)),
+      ),
+    )
+    .returning({ id: notifications.id })
+  return removed.length
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   if (!authorized(request)) {
     return new Response('Unauthorized', { status: 401 })
   }
   const now = Date.now()
-  const [staging, bunny] = await Promise.all([
+  const [staging, bunny, notificationRows] = await Promise.all([
     sweepStaging(new Date(now - STAGING_MAX_AGE_MS)),
     sweepBunny(new Date(now - BUNNY_MAX_AGE_MS)),
+    sweepNotifications(new Date(now - NOTIFICATION_READ_MAX_AGE_MS), new Date(now - NOTIFICATION_UNREAD_MAX_AGE_MS)),
   ])
-  console.log(`[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos`)
-  return json({ bunny, staging })
+  console.log(
+    `[cleanup] removed ${staging} staging objects, ${bunny} orphaned videos, ${notificationRows} notifications`,
+  )
+  return json({ bunny, notifications: notificationRows, staging })
 }

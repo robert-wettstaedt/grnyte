@@ -22,6 +22,7 @@ export const regionTables = [
   'files',
   'firstAscensionists',
   'geolocations',
+  'notifications',
   'regionInvitations',
   'regionMembers',
   'routeExternalResource27crags',

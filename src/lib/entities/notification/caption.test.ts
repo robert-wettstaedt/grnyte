@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest'
+import { notificationView } from './caption'
+import type { NotificationListItem, NotificationSourceType } from './dto'
+
+const notification = (over: Partial<NotificationListItem> = {}): NotificationListItem => ({
+  actorFk: 2,
+  actorName: 'Anna',
+  createdAt: 0,
+  entityId: '42',
+  entityType: 'route',
+  id: 1,
+  metadata: undefined,
+  readAt: undefined,
+  regionFk: 1,
+  sourceType: 'mention',
+  ...over,
+})
+
+describe('notificationView', () => {
+  // Keys, not copy: a test that asserted the sentence would have to be rewritten every time a
+  // translator touched it, and would still not say which key the row picked.
+  it.each([
+    ['mention', 'notifications_mention'],
+    ['ascent_edited', 'notifications_ascentEdited'],
+    ['ascent_deleted', 'notifications_ascentDeleted'],
+    ['invite_accepted', 'notifications_inviteAccepted'],
+  ] as [NotificationSourceType, string][])('picks %s s own sentence', (sourceType, key) => {
+    expect(notificationView(notification({ sourceType })).key).toBe(key)
+  })
+
+  it('names the granted role', () => {
+    const view = notificationView(
+      notification({ entityType: 'user', metadata: 'region_maintainer', sourceType: 'role_changed' }),
+    )
+
+    expect(view.key).toBe('notifications_roleChanged')
+    expect(view.params.role).toBe('Maintainer')
+  })
+
+  /**
+   * The reason this goes through `roleLabelFor`. The plain label answers "Admin" for anything it
+   * does not recognise, so a role that was retired since the row was written would read as a
+   * promotion. Falling back to the role-less sentence is still true.
+   */
+  it.each(['app_admin', 'region_overlord', undefined])('falls back to the plain sentence for %s', (metadata) => {
+    const view = notificationView(notification({ entityType: 'user', metadata, sourceType: 'role_changed' }))
+
+    expect(view.key).toBe('notifications_roleChangedPlain')
+    expect(view.params.role).toBeUndefined()
+  })
+
+  it('hands the row its subject to hydrate', () => {
+    expect(notificationView(notification({ entityId: '9', entityType: 'ascent' })).ref).toEqual({
+      id: '9',
+      type: 'ascent',
+    })
+  })
+})

@@ -4,8 +4,10 @@
   Filter values are bindable; the page owns them and mirrors them into the URL.
 -->
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { ActivityCategory } from '$lib/entities/activity/dto'
+  import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import type { UserRegion } from '$lib/entities/region/dto'
   import type { UserListItem } from '$lib/entities/user/dto'
   import { m } from '$lib/paraglide/messages'
@@ -34,6 +36,8 @@
     /** The user's regions. The design hides the region controls for a single-region user,
      *  who has nothing to narrow to. */
     regions?: Pick<UserRegion, 'name' | 'regionFk' | 'role'>[]
+    /** Unread directed notifications. `0` renders the bell without a count. */
+    unreadNotifications?: number
     /** Selected actor, or `undefined` for everyone. */
     userFk?: number
   }
@@ -48,8 +52,14 @@
     personName,
     regionFk = $bindable(),
     regions = [],
+    unreadNotifications = 0,
     userFk = $bindable(),
   }: Props = $props()
+
+  // Past the cap the number stops being information. The bell is also the only place that shows
+  // an exact count: the tab dot next to it is deliberately a dot, because two counts on one
+  // screen are an invitation to disagree.
+  const unreadLabel = $derived(unreadNotifications > UNREAD_CAP ? `${UNREAD_CAP}+` : String(unreadNotifications))
 
   // The control needs a value for "no category", which the filter itself expresses as
   // `undefined`; `all` is that value, and never leaves this component.
@@ -81,6 +91,25 @@
     {#if scopeLabel != null}
       <span class="text-surface-600-400 truncate text-xs font-semibold">{scopeLabel}</span>
     {/if}
+
+    <a
+      class="btn-icon preset-filled-surface-200-800 relative flex-none"
+      href={resolve('/(app)/notifications')}
+      aria-label={unreadNotifications > 0
+        ? `${m.notifications_title()} - ${m.notifications_unread({ count: unreadNotifications })}`
+        : m.notifications_title()}
+    >
+      <Icon name="bell" size={18} />
+
+      {#if unreadNotifications > 0}
+        <span
+          class="preset-filled-primary-500 absolute -inset-e-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold"
+          aria-hidden="true"
+        >
+          {unreadLabel}
+        </span>
+      {/if}
+    </a>
 
     <ActivityFilterSheet {currentUserFk} {filtered} {onReset} bind:open {people} bind:regionFk {regions} bind:userFk />
   </div>

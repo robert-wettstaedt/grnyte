@@ -1322,6 +1322,117 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
 }))
 
+/**
+ * What a directed notification is about: one value per sentence the inbox can write. Splitting
+ * "somebody touched your ascent" into edited and deleted, and membership into a role change and
+ * an accepted invitation, is what lets each row be a specific sentence rather than a category.
+ *
+ * A `text` column with a TypeScript-side enum and no CHECK, so adding a value is a `schema.ts`
+ * edit plus `generate:zero`, with no DDL at all. That is why the media case is absent: attaching
+ * a photo to somebody else's ascent is refused outright by `resolveAttachRegion`, so a source
+ * type for it could never fire. Add it back here the day that gate relaxes.
+ */
+export const notificationSourceType: ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted'] =
+  ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted']
+
+/**
+ * The entity kinds a notification points at. A subset of `activities.entity_type`, and stored the
+ * same way, so the feed's hydration layer resolves both.
+ *
+ * No `block`: the only thing that points at a non-ascent entity is a mention, and mentions come
+ * out of markdown bodies. Blocks have none. Add it here the day they get a description.
+ */
+export const notificationEntityType: ['area', 'ascent', 'route', 'user'] = ['area', 'ascent', 'route', 'user']
+
+/**
+ * Things aimed at one person: a mention, somebody editing your ascent, a role change.
+ *
+ * Deliberately NOT where region activity lives. Broadcast events are already on screen in the
+ * feed, already grouped and already hydrated, so a row per recipient would store what the feed
+ * holds N times over only to render it a second time. What the badge counts is what was aimed at
+ * the reader; a badge dominated by crag edits trains people to ignore it.
+ *
+ * Only the server writes here (the fan-out runs on the privileged handle), so there is no insert
+ * or delete policy: an own-rows insert policy would by definition reject a row the actor is
+ * writing for somebody else, and a wider one would let anybody with a JWT post into a stranger's
+ * inbox.
+ */
+export const notifications = table(
+  'notifications',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+
+    /** Who caused it. Never the recipient: self-authored events are filtered out at fan-out. */
+    actorFk: integer('actor_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+    // The recipient again, as auth sees them. `user_fk` is what the app joins on; this is what
+    // the own-rows policy compares, exactly as `favorites` carries both.
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    entityId: text('entity_id').notNull(),
+    entityType: text('entity_type', { enum: notificationEntityType }).notNull(),
+    /** Whatever the sentence needs that the entity can no longer answer, e.g. the route name of
+     *  a deleted ascent. */
+    metadata: text('metadata'),
+    /** null = unread. */
+    readAt: timestamp('read_at', { withTimezone: true }),
+    sourceType: text('source_type', { enum: notificationSourceType }).notNull(),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+  },
+  (table) => [
+    // What makes a re-save idempotent. Opening a description in the markdown editor and saving it
+    // again re-emits the same `!users:N!` refs; without this that re-notifies everyone mentioned,
+    // every time.
+    // ponytail: it also collapses a second event of the same kind on the same entity by the same
+    // actor into the first (two photos on your ascent are one notification, which is what you
+    // want; a role set back and forth is one, which is the price). Upgrade = a nonce column if
+    // anybody misses the second one.
+    uniqueIndex('notifications_source_idx').on(
+      table.userFk,
+      table.sourceType,
+      table.entityType,
+      table.entityId,
+      table.actorFk,
+    ),
+    index('notifications_user_fk_read_at_idx').on(table.userFk, table.readAt),
+    index('notifications_region_fk_idx').on(table.regionFk),
+
+    // Own rows AND a region the reader can still open, which is what `activities` requires of the
+    // events these are about. Without the second half a member who left a region keeps reading
+    // its notifications straight off PostgREST, where none of the client's region filtering
+    // applies.
+    policy(
+      `users can read own notifications`,
+      getPolicyConfig(
+        'select',
+        sql.raw(
+          `(SELECT auth.uid()) = auth_user_fk AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))`,
+        ),
+      ),
+    ),
+    // Own rows only. WHICH COLUMN is not something a policy can say, so the migration additionally
+    // narrows the `authenticated` grant to `read_at`: without that, `PATCH /rest/v1/notifications`
+    // with a plain user JWT rewrites the source type, the actor and the metadata of the reader's
+    // own inbox rows.
+    policy(`users can update own notifications`, getOwnEntryPolicyConfig('update')),
+  ],
+).enableRLS()
+
+export type InsertNotification = InferInsertModel<typeof notifications>
+export type Notification = InferSelectModel<typeof notifications>
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  actor: one(users, { fields: [notifications.actorFk], references: [users.id], relationName: 'notification-actor' }),
+  authUser: one(authUsers, { fields: [notifications.authUserFk], references: [authUsers.id] }),
+  region: one(regions, { fields: [notifications.regionFk], references: [regions.id] }),
+  user: one(users, { fields: [notifications.userFk], references: [users.id], relationName: 'notification-user' }),
+}))
+
 export const favoriteEntityType: ['block', 'route', 'area'] = ['block', 'route', 'area']
 
 export const favorites = table(

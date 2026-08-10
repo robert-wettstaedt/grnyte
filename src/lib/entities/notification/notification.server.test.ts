@@ -1,0 +1,267 @@
+// @vitest-environment node
+/**
+ * The fan-out, against a real database.
+ *
+ * Everything interesting here is a query, so a mock would only assert that the code calls the
+ * functions it calls. Two things are worth proving:
+ *
+ * 1. **The recipient set is exactly who can read the region.** `notificationRecipients` mirrors
+ *    the `activities` SELECT policy by hand, and a hand-written mirror is the kind of thing that
+ *    drifts silently. So it is not asserted against a list written out here: it is asserted
+ *    against who can really `SELECT` a row in that region, impersonated the way `createDrizzle`
+ *    does. Loosen the helper and this fails.
+ * 2. **A repeated event does not repeat the notification.** Saving a description twice re-emits
+ *    the same `!users:N!` refs, and the unique index is the only thing standing between that and
+ *    a second notification on every save.
+ *
+ * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
+ */
+import { db } from '$lib/db/db.server'
+import { notifications } from '$lib/db/schema'
+import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
+import { eq, inArray } from 'drizzle-orm'
+import postgres from 'postgres'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { notificationRecipients, notify, notifyMentions } from './notification.server'
+
+const REGION_NAME = '__notification_test__'
+
+/**
+ * One account per membership shape the recipient rule has to decide, plus the actor.
+ *
+ * `inactive` is the one that matters most: an inactive membership is not a membership, and it is
+ * the case a `region_fk` check alone would get wrong.
+ */
+const WHO = ['actor', 'admin', 'member', 'inactive', 'outsider'] as const
+
+type Who = (typeof WHO)[number]
+
+let users = {} as Record<Who, SeedUser>
+let regionId = 0
+/** An activity row in the fixture region, the thing the recipient rule is mirrored from. */
+let activityId = 0
+
+/** Rolls back whatever `fn` did, so a read never leaves anything behind. */
+const ROLLBACK = Symbol('rollback')
+
+/** Runs `fn` as `who`, impersonated the way `createDrizzle` does. Always rolls back. */
+async function as<T>(who: Who, fn: (tx: postgres.TransactionSql) => Promise<T>): Promise<T> {
+  const { authId, email } = users[who]
+  const claims = JSON.stringify({ email, role: 'authenticated', sub: authId })
+
+  let result!: T
+  try {
+    await sql.begin(async (tx) => {
+      await tx`select set_config('request.jwt.claims', ${claims}, true)`
+      await tx.unsafe('set local role authenticated')
+      result = await fn(tx)
+      throw ROLLBACK
+    })
+  } catch (error) {
+    if (error !== ROLLBACK) throw error
+  }
+  return result
+}
+
+/** Whether `who` can actually `SELECT` the fixture activity, which is what "may be told about
+ *  something in this region" means. */
+async function canReadRegion(who: Who): Promise<boolean> {
+  const rows = await as(who, (tx) => tx`select 1 from public.activities where id = ${activityId}`)
+  return rows.length > 0
+}
+
+async function removeFixtures() {
+  await sql`delete from public.notifications where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.region_members where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.regions where name = ${REGION_NAME}`
+}
+
+beforeAll(async () => {
+  if (!reachable) return
+
+  await removeFixtures()
+
+  const created = await Promise.all(WHO.map((who) => createThrowawayUser(who)))
+  users = Object.fromEntries(WHO.map((who, index) => [who, created[index]])) as Record<Who, SeedUser>
+
+  ;[{ id: regionId }] = await sql<{ id: number }[]>`
+    insert into public.regions (name, created_by, max_members)
+    values (${REGION_NAME}, ${users.actor.userId}, 10) returning id`
+
+  await sql`
+    insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk) values
+      (${regionId}, 'region_admin', true, ${users.actor.authId}, ${users.actor.userId}),
+      (${regionId}, 'region_admin', true, ${users.admin.authId}, ${users.admin.userId}),
+      (${regionId}, 'region_user', true, ${users.member.authId}, ${users.member.userId}),
+      (${regionId}, 'region_user', false, ${users.inactive.authId}, ${users.inactive.userId})`
+
+  ;[{ id: activityId }] = await sql<{ id: number }[]>`
+    insert into public.activities (region_fk, user_fk, entity_id, entity_type, type)
+    values (${regionId}, ${users.actor.userId}, '1', 'route', 'created') returning id`
+})
+
+afterAll(async () => {
+  if (reachable) {
+    await removeFixtures()
+    await Promise.all(WHO.map((who) => dropThrowawayUser(users[who])))
+  }
+  await sql.end()
+})
+
+beforeEach(async () => {
+  if (reachable) await sql`delete from public.notifications where region_fk = ${regionId}`
+})
+
+describe.skipIf(!reachable)('notificationRecipients', () => {
+  /**
+   * The assertion the whole file exists for. Not "these two ids come back": "exactly the people
+   * who can read the row come back", answered by the database itself.
+   */
+  it('matches who can actually read the region, minus the actor', async () => {
+    const candidates = WHO.map((who) => users[who].userId)
+    const recipients = await notificationRecipients(regionId, candidates, users.actor.userId)
+
+    const expected: number[] = []
+    for (const who of WHO) {
+      if (who !== 'actor' && (await canReadRegion(who))) {
+        expected.push(users[who].userId)
+      }
+    }
+
+    expect(recipients.map((recipient) => recipient.userFk).sort()).toEqual(expected.sort())
+    // Non-empty, so a helper that silently returned nothing could not pass this by agreeing with
+    // an equally silent policy failure.
+    expect(recipients.length).toBeGreaterThan(0)
+  })
+
+  it('carries the auth id the row s RLS predicate compares', async () => {
+    const [recipient] = await notificationRecipients(regionId, [users.member.userId], users.actor.userId)
+    expect(recipient.authUserFk).toBe(users.member.authId)
+  })
+
+  it('drops the actor, even when they are the only candidate', async () => {
+    expect(await notificationRecipients(regionId, [users.actor.userId], users.actor.userId)).toEqual([])
+  })
+
+  it('drops an inactive membership', async () => {
+    expect(await notificationRecipients(regionId, [users.inactive.userId], users.actor.userId)).toEqual([])
+  })
+
+  it('drops somebody who is not in the region at all', async () => {
+    expect(await notificationRecipients(regionId, [users.outsider.userId], users.actor.userId)).toEqual([])
+  })
+})
+
+describe.skipIf(!reachable)('notify', () => {
+  const rows = () =>
+    db.select().from(notifications).where(eq(notifications.regionFk, regionId)).orderBy(notifications.userFk)
+
+  it('writes one row per readable recipient', async () => {
+    await notify({
+      actorFk: users.actor.userId,
+      entityId: 42,
+      entityType: 'route',
+      regionFk: regionId,
+      sourceType: 'ascent_edited',
+      userFks: [users.admin.userId, users.member.userId, users.inactive.userId, users.outsider.userId],
+    })
+
+    const written = await rows()
+    expect(written.map((row) => row.userFk).sort()).toEqual([users.admin.userId, users.member.userId].sort())
+    expect(written[0].entityId).toBe('42')
+    expect(written[0].readAt).toBeNull()
+  })
+
+  it('does not write a second row for a repeat of the same event', async () => {
+    const input = {
+      actorFk: users.actor.userId,
+      entityId: 42,
+      entityType: 'route' as const,
+      regionFk: regionId,
+      sourceType: 'mention' as const,
+      userFks: [users.member.userId],
+    }
+
+    await notify(input)
+    await notify(input)
+
+    expect(await rows()).toHaveLength(1)
+  })
+
+  // The same entity and the same actor, but a different sentence, so it is a different row.
+  it('keeps two source types on one entity apart', async () => {
+    const input = {
+      actorFk: users.actor.userId,
+      entityId: 42,
+      entityType: 'route' as const,
+      regionFk: regionId,
+      userFks: [users.member.userId],
+    }
+
+    await notify({ ...input, sourceType: 'mention' })
+    await notify({ ...input, sourceType: 'ascent_deleted' })
+
+    expect(await rows()).toHaveLength(2)
+  })
+
+  it('writes nothing when nobody is left to tell', async () => {
+    await notify({
+      actorFk: users.actor.userId,
+      entityId: 42,
+      entityType: 'route',
+      regionFk: regionId,
+      sourceType: 'ascent_edited',
+      userFks: [users.actor.userId, users.outsider.userId],
+    })
+
+    expect(await rows()).toHaveLength(0)
+  })
+})
+
+describe.skipIf(!reachable)('notifyMentions', () => {
+  const mentioned = () =>
+    db
+      .select()
+      .from(notifications)
+      .where(inArray(notifications.regionFk, [regionId]))
+
+  it('notifies every user token in the body, once each', async () => {
+    await notifyMentions({
+      actorFk: users.actor.userId,
+      body: `Belayed by !users:${users.member.userId}! and !users:${users.member.userId}! again.`,
+      entityId: 7,
+      entityType: 'ascent',
+      regionFk: regionId,
+    })
+
+    const rows = await mentioned()
+    expect(rows).toHaveLength(1)
+    expect(rows[0].sourceType).toBe('mention')
+    expect(rows[0].userFk).toBe(users.member.userId)
+  })
+
+  it('ignores area, block and route tokens, which are not people', async () => {
+    await notifyMentions({
+      actorFk: users.actor.userId,
+      body: 'See !areas:1! and !blocks:2! and !routes:3!.',
+      entityId: 7,
+      entityType: 'ascent',
+      regionFk: regionId,
+    })
+
+    expect(await mentioned()).toHaveLength(0)
+  })
+
+  it('writes nothing for a cleared body', async () => {
+    await notifyMentions({
+      actorFk: users.actor.userId,
+      body: null,
+      entityId: 7,
+      entityType: 'ascent',
+      regionFk: regionId,
+    })
+
+    expect(await mentioned()).toHaveLength(0)
+  })
+})

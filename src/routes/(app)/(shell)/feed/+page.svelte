@@ -118,6 +118,7 @@
     personName={selectedPerson.data[0]?.username}
     bind:regionFk
     {regions}
+    unreadNotifications={global.unreadNotifications}
     bind:userFk
   />
 

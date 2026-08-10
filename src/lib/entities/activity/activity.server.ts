@@ -80,6 +80,12 @@ interface HandleOpts<E extends ActivityEntityType> extends Pick<
   parentEntityId?: ActivityId | null
 }
 
+/**
+ * Diff an entity and log what moved. Returns whether the submission changed anything at all,
+ * which is not the same as whether a row was written: a change folded back into an earlier one,
+ * or undone entirely, is still an edit somebody made and still worth telling its owner about.
+ * A save that touched nothing must announce nothing.
+ */
 export const createUpdateActivity = async <E extends ActivityEntityType>({
   db,
   entityId: rawEntityId,
@@ -91,7 +97,7 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
   parentEntityType,
   regionFk,
   userFk,
-}: HandleOpts<E>) => {
+}: HandleOpts<E>): Promise<boolean> => {
   const entityId = String(rawEntityId)
   const parentEntityId = parentIdOf(rawParentEntityId)
   const changes: Pick<schema.InsertActivity, 'columnName' | 'newValue' | 'oldValue'>[] = []
@@ -111,6 +117,10 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
       })
     }
   })
+
+  // Taken before the fold below consumes entries out of `changes`, so it answers "did this
+  // submission change anything", not "is there a row left to insert after folding".
+  const edited = changes.length > 0
 
   // `regionFk` scopes the fold as much as the entity does. A user row is the same id in every
   // region that person belongs to, so without it a role change in one region folded into the
@@ -163,7 +173,7 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
   )
 
   if (existingActivities.some((activity) => activity.type === 'created')) {
-    return
+    return edited
   }
 
   if (changes.length > 0) {
@@ -185,6 +195,8 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
       ),
     )
   }
+
+  return edited
 }
 
 // Columns that define an activity's identity for the collapse below. Excludes id/createdAt

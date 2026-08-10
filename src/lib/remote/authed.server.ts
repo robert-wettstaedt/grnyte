@@ -7,6 +7,19 @@ import { error, redirect, type InvalidField, type RemoteFormInput } from '@svelt
 
 /** Injected into every wrapped handler. Add shared per-call deps here. */
 export interface Context {
+  /**
+   * Defer work until the handler's transaction has committed.
+   *
+   * For the writes that cannot join it: anything on the privileged `db` handle (the notification
+   * fan-out) needs a SECOND connection, and taking one while this handler is holding one out of
+   * the same ten-slot pool deadlocks it under load. Deferring also means such a write cannot
+   * announce a change that then rolled back, and that it reads committed state rather than the
+   * transaction's private view.
+   *
+   * Tasks run in the order they were queued, after the transaction closes and before the handler's
+   * value is returned. A handler that throws never reaches them.
+   */
+  afterCommit: (task: () => Promise<void>) => void
   db: Tx
   user: NonNullable<App.Locals['user']>
   userPermissions: App.Locals['userPermissions']
@@ -51,7 +64,8 @@ export function authedQuery<S extends StandardSchemaV1, O>(
   return query(schema, (input) => run((ctx) => handler(input, ctx)))
 }
 
-/** before: auth-gate, open an RLS transaction, run the handler inside it; after: log failures. */
+/** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the
+ *  handler deferred to {@link Context.afterCommit}, then log failures. */
 async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
   const { supabase, user, userPermissions, userRegions } = getRequestEvent().locals
   if (user == null) {
@@ -59,13 +73,22 @@ async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
   }
 
   let returnValue: Awaited<O>
+  const deferred: (() => Promise<void>)[] = []
 
   const rls = await createDrizzleSupabaseClient(supabase)
   try {
-    returnValue = await rls(async (db) => handler({ db, user, userPermissions, userRegions }))
+    returnValue = await rls(async (db) =>
+      handler({ afterCommit: (task) => void deferred.push(task), db, user, userPermissions, userRegions }),
+    )
   } catch (e) {
     console.error('[remote] handler failed', e)
     throw e
+  }
+
+  // Serially, and outside the transaction, which is the whole point: each is free to take a
+  // connection of its own now that this handler is no longer holding one.
+  for (const task of deferred) {
+    await task()
   }
 
   return returnValue
