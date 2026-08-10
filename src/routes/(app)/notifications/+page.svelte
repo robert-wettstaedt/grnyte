@@ -11,6 +11,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { ActivityCardRow } from '$lib/entities/activity/card'
   import { activityEntityKey, type ActivityEntityRef } from '$lib/entities/activity/entity'
@@ -18,11 +19,11 @@
   import { notificationView } from '$lib/entities/notification/caption'
   import { markNotificationsRead } from '$lib/entities/notification/notifications.remote'
   import { notificationList } from '$lib/entities/notification/resources.svelte'
+  import { regionCrumb } from '$lib/entities/region/mapper'
   import { resolveMessage } from '$lib/i18n/message'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
-  import { regionCrumb } from '$lib/entities/region/mapper'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { now } from '$lib/state/now.svelte'
@@ -91,6 +92,11 @@
   <PageHeader onback={() => back(resolve('/(app)/(shell)/feed'))} title={m.notifications_title()} />
 
   <div class="container mx-auto max-w-3xl space-y-2 px-4 py-6 pb-24 md:pb-8">
+    <!-- The ask, on the screen where somebody has just come looking for what they missed. Retires
+         itself once permission is granted or once dismissed, and shares that dismissal with every
+         other surface that offers it. -->
+    <PushSetup dismissible />
+
     <QueryState resource={notifications}>
       {#snippet ready()}
         {#each views as { notification, view } (notification.id)}

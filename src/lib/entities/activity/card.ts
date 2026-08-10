@@ -280,6 +280,43 @@ export function activityCard(
   }
 }
 
+/**
+ * The name to put in a headline. The hydrated entity's when it is there, otherwise the one
+ * the row itself stashed: a create row carries the added name in `newValue`, a delete row
+ * the removed one in `oldValue`.
+ */
+/**
+ * The name a headline puts in its `{name}` slot: the stored one where the entry says the subject
+ * is stored, the hydrated one where there is one, and the tombstone the row wrote down otherwise.
+ *
+ * Exported because the push digest renders the same sentences from the same catalogue and must
+ * resolve the name the same way. A deleted area's name only exists in `oldValue`, and an
+ * invitation deliberately has no hydrated subject at all, so a digest that consulted the database
+ * alone would announce both as "<no name>".
+ */
+export function headlineEntityName(
+  activity: ActivityListItem,
+  entity: ActivityEntity | null | undefined,
+): string | undefined {
+  const entry = activityEntry(activity)
+
+  // A stored subject is never the hydrated one: an invitation names an address the invitee
+  // has no account for, and points `entityId` at the inviter, so hydrating it would render
+  // "Jonas invited Jonas".
+  if (entry?.names === 'stored') {
+    return named(activity.newValue ?? activity.oldValue)
+  }
+
+  if (entity != null) {
+    return named(entity.name)
+  }
+
+  // Nothing hydrated, so fall back to the value column the entry says carries the name. An
+  // entry with no `tombstone` has none: every other column stores its own value (a grade id,
+  // a rating, an ascent type), which would read as a nonsense name.
+  return entry?.tombstone == null ? undefined : named(activity[entry.tombstone])
+}
+
 /** The activity in `activities` that points at `ref`, which is where its name is stashed. */
 function activityFor(activities: readonly ActivityListItem[], ref: ActivityEntityRef): ActivityListItem {
   return (
@@ -378,31 +415,6 @@ function groupVerbKey(group: ActivityGroup, verb: CardVerb): MessageKey {
 
   // Only `entity` groups can mix actors, and then no single person "edited" it.
   return verb.actors > 1 ? 'activity_groupEditsMultiple' : 'activity_groupEdits'
-}
-
-/**
- * The name to put in a headline. The hydrated entity's when it is there, otherwise the one
- * the row itself stashed: a create row carries the added name in `newValue`, a delete row
- * the removed one in `oldValue`.
- */
-function headlineEntityName(activity: ActivityListItem, entity: ActivityEntity | null | undefined): string | undefined {
-  const entry = activityEntry(activity)
-
-  // A stored subject is never the hydrated one: an invitation names an address the invitee
-  // has no account for, and points `entityId` at the inviter, so hydrating it would render
-  // "Jonas invited Jonas".
-  if (entry?.names === 'stored') {
-    return named(activity.newValue ?? activity.oldValue)
-  }
-
-  if (entity != null) {
-    return named(entity.name)
-  }
-
-  // Nothing hydrated, so fall back to the value column the entry says carries the name. An
-  // entry with no `tombstone` has none: every other column stores its own value (a grade id,
-  // a rating, an ascent type), which would read as a nonsense name.
-  return entry?.tombstone == null ? undefined : named(activity[entry.tombstone])
 }
 
 /**

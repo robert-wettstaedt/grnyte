@@ -199,10 +199,40 @@ export const userSettings = table(
       .default('FB'),
     id: baseFields.id,
 
-    notifyModerations: boolean('notify_moderations').notNull().default(false),
+    /**
+     * The four push switches. They govern PUSH and nothing else: a directed event always lands in
+     * the inbox and a broadcast one always lands in the feed, whatever these say. There is
+     * deliberately no way to turn the inbox off, because the point is that people discover
+     * updates; this is only about not being disturbed while they do.
+     *
+     * All default true, because granting the browser its push permission is the opt-in. A
+     * subscriber who then receives nothing reads it as broken, and a second opt-in buys nothing.
+     */
+    notifyAscents: boolean('notify_ascents').notNull().default(true),
+    notifyCommunity: boolean('notify_community').notNull().default(true),
+    /**
+     * Renamed from `notify_moderations`, which is what it always actually governed: 1.0's
+     * grouping fell through to 'moderate' for anything that was not an ascent or a user, so the
+     * flag covered every crag edit. The name now records that.
+     */
+    notifyCragEdits: boolean('notify_crag_edits').notNull().default(true),
+    /** Push for the things aimed at you personally: mentions, your ascent, your role. */
+    notifyDirected: boolean('notify_directed').notNull().default(true),
 
-    notifyNewAscents: boolean('notify_new_ascents').notNull().default(false),
-    notifyNewUsers: boolean('notify_new_users').notNull().default(false),
+    /**
+     * The broadcast half's bookkeeping, two integers rather than a row per user per activity.
+     *
+     * `pushedUpTo` is how far a digest has covered this person; `seenUpTo` is how far they have
+     * caught up in the feed. The digest counts what is above both, so reading the feed silences
+     * the push for what was read, and a push does not repeat itself. Deliberately not foreign
+     * keys: the undo flows delete activity rows, and a watermark must not block that.
+     *
+     * Both are set to the current maximum activity id when a device first subscribes, so a
+     * brand-new subscriber's first digest does not read "4,812 updates".
+     */
+    pushedUpToActivityId: integer('pushed_up_to_activity_id'),
+    seenUpToActivityId: integer('seen_up_to_activity_id'),
+
     // null = follow the runtime locale (see isImperialLocale); set = explicit override.
     unitSystem: text('unit_system', { enum: ['metric', 'imperial'] }),
     userFk: integer('user_fk')
@@ -229,6 +259,7 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
 export const pushSubscriptions = table(
   'push_subscriptions',
   {
+    ...baseFields,
     auth: text('auth').notNull(),
 
     authUserFk: uuid('auth_user_fk')
@@ -237,8 +268,6 @@ export const pushSubscriptions = table(
     endpoint: text('endpoint').notNull(),
 
     expirationTime: integer('expiration_time'),
-    id: baseFields.id,
-    lang: text('lang'),
     p256dh: text('p256dh').notNull(),
 
     userFk: integer('user_fk')
@@ -248,6 +277,10 @@ export const pushSubscriptions = table(
   (table) => [
     index('push_subscriptions_auth_user_fk_idx').on(table.authUserFk),
     index('push_subscriptions_user_fk_idx').on(table.userFk),
+    // An endpoint IS the device. There was no constraint, so every re-subscribe (a service worker
+    // update, a component remount, a subscription refresh) inserted another row and that one
+    // device then received N copies of every push.
+    uniqueIndex('push_subscriptions_endpoint_idx').on(table.endpoint),
 
     policy(`users can delete own push_subscriptions`, getOwnEntryPolicyConfig('delete')),
     policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert')),
@@ -1269,7 +1302,6 @@ export const activities = table(
     entityType: text('entity_type', { enum: [...activityParentEntityType, 'file', 'user'] }).notNull(),
     metadata: text('metadata'), // JSON string containing relevant changes
     newValue: text('new_value'), // Only populated for 'updated' activities
-    notified: boolean('notified'),
     oldValue: text('old_value'), // Only populated for 'updated' activities
     parentEntityId: text('parent_entity_id'),
     parentEntityType: text('parent_entity_type', { enum: activityParentEntityType }),
@@ -1282,7 +1314,6 @@ export const activities = table(
     index('activities_created_at_idx').on(table.createdAt),
     index('activities_entity_id_idx').on(table.entityId),
     index('activities_entity_type_idx').on(table.entityType),
-    index('activities_notified_idx').on(table.notified),
     index('activities_parent_entity_id_idx').on(table.parentEntityId),
     index('activities_type_idx').on(table.type),
     index('activities_user_fk_idx').on(table.userFk),
@@ -1377,6 +1408,8 @@ export const notifications = table(
     /** Whatever the sentence needs that the entity can no longer answer, e.g. the route name of
      *  a deleted ascent. */
     metadata: text('metadata'),
+    /** null = never delivered by push. Set by the cron once it has gone out. */
+    pushedAt: timestamp('pushed_at', { withTimezone: true }),
     /** null = unread. */
     readAt: timestamp('read_at', { withTimezone: true }),
     sourceType: text('source_type', { enum: notificationSourceType }).notNull(),
@@ -1401,6 +1434,14 @@ export const notifications = table(
     ),
     index('notifications_user_fk_read_at_idx').on(table.userFk, table.readAt),
     index('notifications_region_fk_idx').on(table.regionFk),
+    // The cron's only query over this table, and it runs every five minutes. Partial on BOTH
+    // predicates, so it stays the size of the undelivered-and-unread backlog rather than of the
+    // whole inbox, and keyed on `created_at` because that is what the debounce then orders and
+    // filters by. Indexing `pushed_at` itself would index a column that is null in every row the
+    // index contains.
+    index('notifications_pushed_at_idx')
+      .on(table.createdAt)
+      .where(sql`pushed_at is null and read_at is null`),
 
     // Own rows AND a region the reader can still open, which is what `activities` requires of the
     // events these are about. Without the second half a member who left a region keeps reading

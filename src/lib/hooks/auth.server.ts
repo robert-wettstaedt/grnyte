@@ -75,9 +75,10 @@ export const supabase: Handle = async ({ event, resolve }) => {
         userSettings: {
           columns: {
             gradingScale: true,
-            notifyModerations: true,
-            notifyNewAscents: true,
-            notifyNewUsers: true,
+            notifyAscents: true,
+            notifyCommunity: true,
+            notifyCragEdits: true,
+            notifyDirected: true,
             unitSystem: true,
           },
         },

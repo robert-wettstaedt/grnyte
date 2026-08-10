@@ -22,9 +22,18 @@ export interface UserRef {
 
 export interface UserSettings {
   gradingScale: GradingScale
-  notifyModerations: boolean
-  notifyNewAscents: boolean
-  notifyNewUsers: boolean
+  /**
+   * The four push switches. They govern push only: the inbox and the feed ignore them.
+   *
+   * Optional because not every carrier of this type loads them. The `/f/<id>` share page serves a
+   * deliberately minimised settings payload (it renders a grade and a temperature and nothing
+   * else), and push preferences have no business travelling to a page an anonymous visitor can
+   * open. Only the settings screen reads them, and it defaults each to the column's own default.
+   */
+  notifyAscents?: boolean
+  notifyCommunity?: boolean
+  notifyCragEdits?: boolean
+  notifyDirected?: boolean
   /** Explicit metric/imperial override; null follows the runtime locale. */
   unitSystem: null | UnitSystem
 }

@@ -67,6 +67,22 @@ if (restricted) {
   )
 }
 
+// Web Push. Never documented in 1.0, which is how it ended up deployed with no keys at all: a
+// missing pair is indistinguishable from "nothing to send" from the app's side, because the cron
+// reports `configured: false` and returns 200 rather than failing.
+const publicVapid = process.env.PUBLIC_VAPID_KEY ?? ''
+const privateVapid = process.env.PRIVATE_VAPID_KEY ?? ''
+
+check(publicVapid.length > 0 && privateVapid.length > 0, 'VAPID key pair is set')
+
+if (publicVapid.length > 0 && privateVapid.length > 0) {
+  // The lengths are fixed by the curve (P-256): 65 raw bytes public, 32 private, url-safe base64.
+  // A truncated or swapped pair passes a presence check and then fails every single send.
+  const decoded = (value: string) => Buffer.from(value.replace(/-/g, '+').replace(/_/g, '/'), 'base64').length
+  check(decoded(publicVapid) === 65, 'PUBLIC_VAPID_KEY decodes to a 65-byte P-256 public key')
+  check(decoded(privateVapid) === 32, 'PRIVATE_VAPID_KEY decodes to a 32-byte P-256 private key')
+}
+
 console.log(failures.length === 0 ? '\nall good' : `\n${failures.length} check(s) failed`)
 process.exit(failures.length === 0 ? 0 : 1)
 

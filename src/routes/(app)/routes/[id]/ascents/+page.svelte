@@ -5,6 +5,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import AscentRow from '$lib/entities/ascent/AscentRow.svelte'
   import { ASCENT_TYPES, STATUS } from '$lib/entities/ascent/AscentType.svelte'
@@ -113,7 +114,14 @@
       </PageHeader>
 
       <div class="flex flex-col gap-5 px-4 py-4">
+        <!-- The plan's second pre-prompt surface. This is where logging an ascent lands, so it is
+             the moment somebody has just put something into the app and might want to hear when
+             others touch it. Only shown once they have an ascent here, and only to somebody who
+             has not answered the ask yet: the dismissal flag is shared with every other surface,
+             and the card retires itself once permission is granted. -->
         {#if split.mine.length > 0}
+          <PushSetup dismissible />
+
           <section class="flex flex-col gap-2">
             <h2 class="text-primary-400 text-xs font-bold tracking-wider uppercase">{m.ascents_yourLogbook()}</h2>
             {#each split.mine as ascent (ascent.id)}

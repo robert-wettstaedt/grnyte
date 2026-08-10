@@ -176,6 +176,27 @@
       "when": 1786309123785,
       "tag": "0095_modern_ares",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1786341748517,
+      "tag": "0096_dry_tombstone",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1786341768257,
+      "tag": "0097_redundant_snowbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1786344621346,
+      "tag": "0098_abnormal_grandmaster",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { regionMembers, users, userSettings } from '$lib/db/schema'
+import { regionMembers, users } from '$lib/db/schema'
 import { formError, usernameSchema } from '$lib/forms/schemas'
 import { locales } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm } from '$lib/remote/authed.server'
@@ -6,6 +6,7 @@ import { invalid } from '@sveltejs/kit'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import z from 'zod'
 import { insertActivity, type ActivityInput } from '../activity/activity.server'
+import { writeUserSettings } from './settings.server'
 
 /**
  * Rename the signed-in user. RLS scopes the write to their own row (`auth.uid() = auth_user_fk`),
@@ -84,24 +85,15 @@ export const updateUserSettings = authedCommand(
     // language we mail somebody in.
     contactLocale: z.enum(locales).optional(),
     gradingScale: z.enum(['FB', 'V']).optional(),
+    // The four push switches. They govern push and nothing else: what lands in the inbox and what
+    // lands in the feed is not affected by any of them.
+    notifyAscents: z.boolean().optional(),
+    notifyCommunity: z.boolean().optional(),
+    notifyCragEdits: z.boolean().optional(),
+    notifyDirected: z.boolean().optional(),
     unitSystem: z.enum(['metric', 'imperial']).nullable().optional(),
   }),
   async (values, { db, user }) => {
-    const [updated] = await db
-      .update(userSettings)
-      .set(values)
-      .where(eq(userSettings.userFk, user.id))
-      .returning({ id: userSettings.id })
-
-    if (updated == null) {
-      // No settings row yet: create one and link it from the user (the client reads settings via
-      // users.userSettingsFk). ponytail: user_fk has no unique constraint to upsert against and a
-      // per-user row has no real write contention, so update-then-insert without a lock is fine.
-      const [created] = await db
-        .insert(userSettings)
-        .values({ ...values, authUserFk: user.authUserFk, userFk: user.id })
-        .returning({ id: userSettings.id })
-      await db.update(users).set({ userSettingsFk: created.id }).where(eq(users.id, user.id))
-    }
+    await writeUserSettings(db, user, values)
   },
 )

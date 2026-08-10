@@ -34,9 +34,13 @@ export function toUserSettings(row: UserSettingsRow): undefined | UserSettings {
 
   return {
     gradingScale: row.gradingScale ?? 'FB',
-    notifyModerations: row.notifyModerations ?? false,
-    notifyNewAscents: row.notifyNewAscents ?? false,
-    notifyNewUsers: row.notifyNewUsers ?? false,
+    // The columns carry a DB default, which Zero types as nullable; they never are. Defaulting to
+    // true rather than false matches the column, so a settings row that has not synced yet renders
+    // the switches the way they will actually be.
+    notifyAscents: row.notifyAscents ?? true,
+    notifyCommunity: row.notifyCommunity ?? true,
+    notifyCragEdits: row.notifyCragEdits ?? true,
+    notifyDirected: row.notifyDirected ?? true,
     unitSystem: row.unitSystem ?? null,
   }
 }

@@ -131,3 +131,27 @@ export async function notifyMentions(input: {
 
   await notify({ ...input, sourceType: 'mention', userFks })
 }
+
+/**
+ * The regions this person may actually be told about: active membership AND a role that holds
+ * `region.read`, which is what the `activities` SELECT policy requires.
+ *
+ * Same rule as {@link notificationRecipients}, from the other end. The digest needs it because
+ * "the regions I am a member of" is a looser set: revoke `region.read` from a role and its members
+ * would keep receiving pushes naming entities they can no longer open.
+ */
+export async function readableRegions(userFk: number): Promise<number[]> {
+  const rows = await baseDb
+    .selectDistinct({ regionFk: regionMembers.regionFk })
+    .from(regionMembers)
+    .innerJoin(rolePermissions, eq(rolePermissions.role, regionMembers.role))
+    .where(
+      and(
+        eq(regionMembers.userFk, userFk),
+        eq(regionMembers.isActive, true),
+        eq(rolePermissions.permission, REGION_PERMISSION_READ),
+      ),
+    )
+
+  return rows.map((row) => row.regionFk)
+}

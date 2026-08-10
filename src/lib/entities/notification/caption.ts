@@ -1,6 +1,6 @@
 import type { ActivityEntityRef } from '$lib/entities/activity/entity'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
-import type { MessageKey } from '$lib/i18n/message'
+import type { MessageKey, MessageOptions } from '$lib/i18n/message'
 import type { NotificationListItem, NotificationSourceType } from './dto'
 
 /**
@@ -33,11 +33,23 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   role_changed: 'notifications_roleChanged',
 }
 
-export function notificationView(notification: NotificationListItem): NotificationView {
+/**
+ * Only what the sentence reads, so the push cron can hand over a database row without inventing
+ * the fields the inbox needs and it does not (an id, a clock, a read stamp).
+ */
+export type NotificationSubject = Pick<
+  NotificationListItem,
+  'actorName' | 'entityId' | 'entityType' | 'metadata' | 'sourceType'
+>
+
+export function notificationView(notification: NotificationSubject, options?: MessageOptions): NotificationView {
   // Through `roleLabelFor` rather than `roleLabel`, because this value came out of storage: the
   // plain label answers "Admin" for anything it does not recognise, so a retired role would read
   // as a promotion. An unresolvable one falls back to the generic sentence, which is still true.
-  const role = notification.sourceType === 'role_changed' ? roleLabelFor(notification.metadata) : undefined
+  //
+  // `options` carries the recipient's locale for the push cron: this label is resolved HERE, so
+  // the caller's own `resolveMessage(..., { locale })` around the sentence cannot reach inside it.
+  const role = notification.sourceType === 'role_changed' ? roleLabelFor(notification.metadata, options) : undefined
 
   return {
     key:

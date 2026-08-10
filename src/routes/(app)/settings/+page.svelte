@@ -7,6 +7,8 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
+  import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
+  import { sendTestPush } from '$lib/entities/notification/notifications.remote'
   import type { UserInvitationItem } from '$lib/entities/region/dto'
   import { acceptMyInvitation, listMyInvitations } from '$lib/entities/region/regions.remote'
   import { roleLabel } from '$lib/entities/rolePermission/mapper'
@@ -16,11 +18,13 @@
   import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { notifyError } from '$lib/state/toast'
+  import { disablePush, enablePush, pushEndpoint, pushState } from '$lib/state/push.svelte'
+  import { notifyError, toaster } from '$lib/state/toast'
   import { legalLinks } from '../../(landing)/legal/links'
   import SettingLink from './SettingLink.svelte'
   import SettingSection from './SettingSection.svelte'
   import SettingSelect from './SettingSelect.svelte'
+  import SettingSwitch from './SettingSwitch.svelte'
   import ThemeSwitch from './ThemeSwitch.svelte'
 
   const global = getGlobalState()
@@ -99,10 +103,65 @@
     }
   }
 
+  // The switches read straight off the synced settings rather than through local state: the
+  // switch owns its own optimism and reverts itself, so a second copy here could only disagree.
+  const settings = $derived(global.user?.userSettings)
+
+  const push = $derived(pushState())
+  const endpoint = $derived(pushEndpoint())
+
+  let switchingPush = $state(false)
+  let testing = $state(false)
+
+  // Per device by construction: a subscription belongs to one browser. Turning it off leaves the
+  // permission granted, so turning it back on needs no second native prompt.
+  const onPushDevice = async (checked: boolean) => {
+    switchingPush = true
+    try {
+      if (checked) {
+        await enablePush()
+      } else {
+        await disablePush()
+      }
+    } catch (cause) {
+      notifyError(cause)
+    } finally {
+      switchingPush = false
+    }
+  }
+
+  // The only practical way to debug an installed iOS PWA, where a broken subscription and a
+  // working one with nothing to send look exactly alike from the outside.
+  const onTestPush = async () => {
+    if (endpoint == null) return
+
+    testing = true
+    try {
+      const result = await sendTestPush({ endpoint })
+      // The push service accepting it is all the server can know; whether the device then showed
+      // anything is exactly what the reader is looking at their screen to find out.
+      toaster.create(
+        result?.data?.delivered === true
+          ? { title: m.settings_pushTestSent(), type: 'success' }
+          : { title: m.settings_pushTestFailed(), type: 'error' },
+      )
+    } catch (cause) {
+      notifyError(cause)
+    } finally {
+      testing = false
+    }
+  }
+
   const signOut = async () => {
     // supabase is always present under (app); the guard just narrows the route-union type.
     const { supabase } = page.data
     if (supabase == null) return
+
+    // Release this device FIRST. A push endpoint belongs to the browser, not the account, so a
+    // subscription left behind keeps delivering the signed-out person's digests, and the next
+    // account to sign in here collides with a row it cannot see. Best effort: a failure here must
+    // not be what stops somebody signing out.
+    await disablePush().catch(() => undefined)
 
     // signOut resolves with { error } rather than throwing; on failure the session survives, so
     // surface it instead of navigating to the landing page as if it worked.
@@ -184,6 +243,64 @@
           ]}
         />
       </label>
+    </div>
+  </SettingSection>
+
+  <!-- Notifications. The four switches govern PUSH only: a mention still lands in the inbox and a
+       crag edit still lands in the feed whatever they say, which is why there is no switch that
+       turns either of those off. -->
+  <SettingSection title={m.settings_notifications()}>
+    <div class="space-y-3">
+      <PushSetup />
+
+      {#if push === 'granted'}
+        <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
+          <SettingSwitch
+            checked={endpoint != null}
+            disabled={switchingPush}
+            hint={m.settings_pushHint()}
+            label={m.settings_push()}
+            onchange={onPushDevice}
+          />
+
+          <!-- Account-wide, so deliberately NOT gated on this device having a subscription:
+               turning push off on a phone must not lock somebody out of preferences that still
+               govern their laptop. -->
+          <SettingSwitch
+            checked={settings?.notifyDirected ?? true}
+            hint={m.settings_notifyDirectedHint()}
+            label={m.settings_notifyDirected()}
+            onchange={(checked) => updateUserSettings({ notifyDirected: checked })}
+          />
+
+          <SettingSwitch
+            checked={settings?.notifyAscents ?? true}
+            hint={m.settings_notifyAscentsHint()}
+            label={m.settings_notifyAscents()}
+            onchange={(checked) => updateUserSettings({ notifyAscents: checked })}
+          />
+
+          <SettingSwitch
+            checked={settings?.notifyCragEdits ?? true}
+            hint={m.settings_notifyCragEditsHint()}
+            label={m.settings_notifyCragEdits()}
+            onchange={(checked) => updateUserSettings({ notifyCragEdits: checked })}
+          />
+
+          <SettingSwitch
+            checked={settings?.notifyCommunity ?? true}
+            hint={m.settings_notifyCommunityHint()}
+            label={m.settings_notifyCommunity()}
+            onchange={(checked) => updateUserSettings({ notifyCommunity: checked })}
+          />
+        </div>
+
+        {#if endpoint != null}
+          <button type="button" class="btn preset-tonal-surface w-full" disabled={testing} onclick={onTestPush}>
+            {m.settings_pushTest()}
+          </button>
+        {/if}
+      {/if}
     </div>
   </SettingSection>
 

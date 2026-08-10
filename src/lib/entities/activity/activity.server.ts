@@ -1,6 +1,6 @@
 import * as schema from '$lib/db/schema'
 import { sub } from 'date-fns'
-import { and, Column, eq, gt, isNull, or } from 'drizzle-orm'
+import { and, Column, eq, gt, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import type { ActivityEntityType, ActivityParentEntityType } from './dto'
 import type { DeclaredActivity, DeclaredColumn } from './verbs'
@@ -199,8 +199,8 @@ export const createUpdateActivity = async <E extends ActivityEntityType>({
   return edited
 }
 
-// Columns that define an activity's identity for the collapse below. Excludes id/createdAt
-// (auto) and notified (see the note on `insertActivity`).
+// Columns that define an activity's identity for the collapse below. Excludes id and createdAt,
+// which are assigned by the table rather than by a writer.
 const activityValueColumns = [
   'type',
   'userFk',
@@ -225,19 +225,19 @@ export const insertActivity = async (
     return
   }
 
-  // Collapse repeats until notified: drop any earlier row carrying identical values, so a
-  // repeated save (a topo redrawn twice, a block nudged again) replaces its predecessor
-  // instead of piling up duplicates.
+  // Collapse repeats: drop any earlier row carrying identical values, so a repeated save (a topo
+  // redrawn twice, a block nudged again) replaces its predecessor instead of piling up
+  // duplicates.
   //
-  // `notified` is the intended bound, and NOTHING SETS IT YET - the consumer that will is
-  // still to be written. Until it lands, the filter matches every earlier row however old, so
-  // the valueless activities (topo, location) keep one entry per person and entity for good.
-  // That resolves itself when the consumer ships: a notified row stops being collapsible and
-  // the window closes behind it.
+  // This used to be bounded by an `activities.notified` flag that nothing ever set, so the window
+  // was already every earlier row however old. The flag is gone now that delivery state lives
+  // where it can actually be per-recipient (`user_settings.pushed_up_to_activity_id`), and the
+  // behaviour is unchanged.
   //
-  // So do not replace the flag with a time bound. It would read like a fix for the unbounded
-  // window and would instead fight the consumer this is waiting for. `createUpdateActivity`
-  // is the one that uses 15 minutes, because its rows carry old/new values worth keeping apart.
+  // ponytail: the ceiling is that a collapse re-inserts under a NEW id, so an activity already
+  // counted in somebody's digest can be counted again by the next one. That reads as "they saved
+  // it again", which is what happened. Upgrade = compare against the lowest live watermark, if
+  // anybody ever reports a digest repeating itself.
   //
   // ponytail: one delete per item; callers pass a single activity today. Upgrade = batch if
   // an array ever gets large.
@@ -248,9 +248,7 @@ export const insertActivity = async (
       return value == null ? isNull(column) : eq(column, value)
     })
 
-    await db
-      .delete(schema.activities)
-      .where(and(or(isNull(schema.activities.notified), eq(schema.activities.notified, false)), ...conditions))
+    await db.delete(schema.activities).where(and(...conditions))
   }
 
   // Collapse exact-duplicate rows within a single call (same identity), last-writer-wins, so a

@@ -1,3 +1,4 @@
+import { markFeedSeen } from '$lib/entities/notification/notifications.remote'
 import { getGlobalState } from '$lib/state/global.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { SvelteSet } from 'svelte/reactivity'
@@ -101,6 +102,16 @@ export function activityFeed(filter: () => ActivityFeedFilter = () => ({})): Act
 
   const acknowledge = () => {
     seen = incoming.data[0]?.id ?? activities.data[0]?.id
+
+    // Persisted only on the UNFILTERED feed. A scoped one (an entity's audit log, a single
+    // actor's activity) is a different list, and letting it move the global watermark would mark
+    // a region's whole backlog read because somebody opened one crag's history.
+    //
+    // Side benefit of persisting it at all: the "N new" pill used to reset on reload and did not
+    // follow anybody between devices. It does both now.
+    if (seen != null && isGlobal(filter())) {
+      void markFeedSeen({ activityId: seen }).catch(() => undefined)
+    }
   }
 
   // The first window is what the reader opened the page to, so it counts as read; only what
@@ -143,4 +154,16 @@ export function activityFeed(filter: () => ActivityFeedFilter = () => ({})): Act
       return views
     },
   }
+}
+
+/**
+ * Whether this feed is the whole thing rather than a slice of it.
+ *
+ * Only the whole feed may move the persisted watermark, which is what the push digest counts
+ * against. `category` is deliberately NOT part of it: the segmented control hides half the rows
+ * but the reader is still looking at the global feed, and a digest that re-announced everything
+ * they filtered out would be worse than one that skipped a card they chose not to see.
+ */
+function isGlobal(filter: ActivityFeedFilter): boolean {
+  return filter.regionFk == null && filter.scope == null && filter.userFk == null
 }

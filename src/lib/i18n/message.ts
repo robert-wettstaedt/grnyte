@@ -1,4 +1,5 @@
 import { m } from '$lib/paraglide/messages'
+import type { Locale } from '$lib/paraglide/runtime'
 
 /**
  * Every key paraglide compiled, as a literal union. Keys that are only known at runtime
@@ -7,10 +8,15 @@ import { m } from '$lib/paraglide/messages'
  */
 export type MessageKey = keyof typeof m
 
+/** Paraglide's own second argument. Only the locale is ever worth passing here. */
+export interface MessageOptions {
+  locale?: Locale
+}
+
 /** A resolved message cut into literal text and the placeholders a caller renders itself. */
 export type MessageSegment = { part: string; text?: never } | { part?: never; text: string }
 
-type MessageFn = (params?: Record<string, unknown>) => string
+type MessageFn = (params?: Record<string, unknown>, options?: MessageOptions) => string
 
 /** Whether paraglide has a message under this key, for callers that pick between candidates. */
 export function hasMessage(key: string): key is MessageKey {
@@ -20,13 +26,17 @@ export function hasMessage(key: string): key is MessageKey {
 /**
  * Resolve a paraglide key that is only known at runtime: server-emitted form issues and the
  * activity feed's `(entityType, type, columnName)` verbs both compute their keys.
+ * `options.locale` is what makes this usable off the request's ambient locale: the push cron
+ * renders the SAME keys the feed card does, once per recipient, in whichever language that
+ * account is written to. Omitted, it follows the ambient locale exactly as before.
+ *
  * ponytail: an unknown key falls back to the key itself, so a miss shows up on screen rather
  * than blanking the copy. The type makes that unreachable for every caller but the one that
  * casts deliberately (`card.ts`, where a missing verb is meant to fail loudly).
  */
-export function resolveMessage(key: MessageKey, params?: Record<string, unknown>): string {
+export function resolveMessage(key: MessageKey, params?: Record<string, unknown>, options?: MessageOptions): string {
   const message = (m as unknown as Record<string, MessageFn | undefined>)[key]
-  return message?.(params) ?? key
+  return message?.(params, options) ?? key
 }
 
 /** Cannot occur in message text, so splitting on it can never cut a translation in half. */

@@ -6,36 +6,10 @@
 import type { Pathname } from '$app/types'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 import { imageCache } from 'workbox-recipes'
-import { z } from 'zod'
+import { pushPayloadSchema } from './lib/entities/notification/push'
 import { isDerivativeRequest } from './lib/images/derivatives'
 
 declare let self: ServiceWorkerGlobalScope
-
-/**
- * Shape of a push payload, narrowed to the fields the handlers below actually read.
- *
- * These used to live in `src/lib/notifications/`, which the 2.0 rework deleted (d4180a2c)
- * without updating this import - so the service worker stopped building entirely, and the
- * failure was invisible because the PWA plugin's own error fires first and buries it.
- *
- * Nothing sends a push on 2.0 yet: `web-push` is still a dependency but unimported, nothing
- * calls `pushManager.subscribe`, and no app code reads `push_subscriptions` (the table and
- * the `notify_*` user settings survived the rework, the delivery path did not). The handlers
- * are kept because that plumbing is clearly meant to come back; the old server-side routing
- * fields (`userId`, `type`) are not, since only a sender ever read them. Delete this whole
- * section instead if push is not coming back.
- */
-const NotificationDataSchema = z.object({
-  pathname: z.string().optional(),
-})
-
-const NotificationSchema = z.object({
-  body: z.string().optional(),
-  data: NotificationDataSchema.optional(),
-  icon: z.string().optional(),
-  tag: z.string().optional(),
-  title: z.string().optional(),
-})
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -101,57 +75,73 @@ imageCache({
   maxEntries: 200,
 })
 
+/**
+ * Show what the server sent, and nothing it did not.
+ *
+ * Three rules, all of which the 1.0 handler got wrong in ways nobody could see:
+ *
+ * - **Replace by tag, never concatenate.** A digest is a complete restatement of what is waiting,
+ *   so the new one replaces the last. Appending the old body to the new one produced a
+ *   notification that grew every five minutes and repeated itself.
+ * - **The badge comes from the payload.** How many OS notifications happen to be lying around is
+ *   not the number of unread things in the inbox, and it was being used as if it were.
+ * - **Do not buzz somebody who is looking at the app.** The badge still updates, so the count
+ *   they can already see stays right.
+ */
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
-  try {
-    const data = event.data.json()
-    const newNotification = NotificationSchema.parse(data)
+  const parsed = pushPayloadSchema.safeParse(event.data.json())
 
-    const options: NotificationOptions = {
-      badge: '/pwa-192x192.png',
-      body: newNotification.body,
-      data: newNotification.data,
-      icon: newNotification.icon ?? '/pwa-192x192.png',
-    }
-
-    async function mergeNotifications() {
-      const existingNotifications = await self.registration.getNotifications({ tag: newNotification.tag })
-      let notificationCount = existingNotifications.length
-
-      for (const existingNotification of existingNotifications) {
-        if (newNotification.tag == existingNotification.tag) {
-          existingNotification.close()
-          options.body = `${options.body}\n${existingNotification.body}`
-          notificationCount--
-        }
-      }
-
-      if ('setAppBadge' in self.navigator) {
-        try {
-          await self.navigator.setAppBadge(notificationCount)
-        } catch {
-          console.log('failed to setAppBadge')
-        }
-      }
-
-      return self.registration.showNotification(newNotification.title ?? 'New activity', options)
-    }
-
-    event.waitUntil(mergeNotifications())
-  } catch (error) {
-    console.error('Error showing notification:', error)
+  if (!parsed.success) {
+    console.error('[push] unrecognised payload', parsed.error)
+    return
   }
+
+  const payload = parsed.data
+
+  event.waitUntil(
+    (async () => {
+      if (payload.badge != null && 'setAppBadge' in self.navigator) {
+        try {
+          await (payload.badge > 0 ? self.navigator.setAppBadge(payload.badge) : self.navigator.clearAppBadge())
+        } catch {
+          // The permission can be revoked at any time. Nothing to do and nobody to tell.
+        }
+      }
+
+      // `focused`, not `visibilityState`: a tab can be the visible one in its own window while
+      // the reader is working in another application entirely, and that person should still be
+      // told. Only somebody actually looking at the app is spared the buzz.
+      const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+      if (clients.some((client) => client.focused)) {
+        return
+      }
+
+      await self.registration.showNotification(payload.title, {
+        badge: '/pwa-192x192.png',
+        body: payload.body,
+        data: { pathname: payload.pathname },
+        icon: '/pwa-192x192.png',
+        // Alert again on replacement. `renotify` defaults to false, which would make every digest
+        // after the first silently swap the text under a notification nobody looked at - and with
+        // a 20-minute quiet period, replacement is the normal case rather than the exception. It
+        // requires a tag, which the payload schema makes mandatory.
+        renotify: true,
+        tag: payload.tag,
+      })
+    })(),
+  )
 })
 
 self.addEventListener('notificationclick', (event) => {
   const notification = event.notification
   const action = event.action
-  const data = NotificationDataSchema.parse(notification.data)
+  const data = (notification.data ?? {}) as { pathname?: string }
 
   notification.close()
 
-  if (action && data && data.pathname) {
+  if (action && data.pathname != null) {
     event.waitUntil(self.clients.openWindow(data.pathname))
     return
   }
