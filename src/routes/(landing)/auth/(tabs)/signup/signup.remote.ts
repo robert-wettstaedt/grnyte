@@ -1,6 +1,7 @@
 import { form, getRequestEvent } from '$app/server'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
+import { notifyAdminsOfSignup } from '$lib/entities/notification/signup.server'
 import { authError, formError, usernameSchema } from '$lib/forms/schemas'
 import { getLocale } from '$lib/paraglide/runtime'
 import { invalid } from '@sveltejs/kit'
@@ -28,6 +29,7 @@ const signUpSchema = z
 export const signUp = form(signUpSchema, async ({ email, password, username }) => {
   const {
     locals: { supabase },
+    url,
   } = getRequestEvent()
 
   const { data, error } = await supabase.auth.signUp({ email, password })
@@ -49,8 +51,9 @@ export const signUp = form(signUpSchema, async ({ email, password, username }) =
     .returning()
   await db.update(schema.users).set({ userSettingsFk: createdSettings.id }).where(eq(schema.users.id, createdUser.id))
 
-  // ponytail: skipped the "notify app admins of new user" side-effect — the 2.0 notification
-  // system isn't wired yet (old notifyNewUser helper is gone). Re-add when notifications land.
+  // Last, and after the rows it names exist. Never throws, so a push service or mail host that is
+  // down cannot fail a sign-up that already succeeded.
+  await notifyAdminsOfSignup({ origin: url.origin, userFk: createdUser.id, username })
 
   // No redirect: Supabase may require email confirmation before the first sign-in, so we
   // surface a success message and let the user head to the sign-in tab (mirrors old behaviour).

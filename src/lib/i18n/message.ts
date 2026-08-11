@@ -1,5 +1,5 @@
 import { m } from '$lib/paraglide/messages'
-import type { Locale } from '$lib/paraglide/runtime'
+import { baseLocale, isLocale, type Locale } from '$lib/paraglide/runtime'
 
 /**
  * Every key paraglide compiled, as a literal union. Keys that are only known at runtime
@@ -17,6 +17,18 @@ export interface MessageOptions {
 export type MessageSegment = { part: string; text?: never } | { part?: never; text: string }
 
 type MessageFn = (params?: Record<string, unknown>, options?: MessageOptions) => string
+
+/**
+ * The language to write to an account in: its stored `user_settings.contact_locale`, or the base
+ * locale when it has none or an unknown one.
+ *
+ * Every server-side send needs this and none of them may fall back to the ambient locale: the push
+ * cron has no request to read one from, and a sign-up alert would otherwise reach admins in
+ * whatever language the person signing up happened to be using.
+ */
+export function contactLocale(stored: null | string | undefined): Locale {
+  return stored != null && isLocale(stored) ? stored : baseLocale
+}
 
 /** Whether paraglide has a message under this key, for callers that pick between candidates. */
 export function hasMessage(key: string): key is MessageKey {

@@ -14,8 +14,7 @@ import {
   isDirectedDue,
 } from '$lib/entities/notification/push'
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
-import { resolveMessage } from '$lib/i18n/message'
-import { baseLocale, isLocale, type Locale } from '$lib/paraglide/runtime'
+import { contactLocale, resolveMessage } from '$lib/i18n/message'
 import { json } from '@sveltejs/kit'
 import { and, count, eq, gt, inArray, isNull, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
@@ -85,10 +84,6 @@ async function inBatches<T, R>(items: readonly T[], task: (item: T) => Promise<R
 }
 
 const BATCH_SIZE = 4
-
-/** The language to write to this account in. Same field the invite mail reads. */
-const localeOf = (contactLocale: null | string): Locale =>
-  contactLocale != null && isLocale(contactLocale) ? contactLocale : baseLocale
 
 /** Move a person's push watermark forward, never back. */
 async function advanceWatermark(userFk: number, activityId: number): Promise<void> {
@@ -249,7 +244,7 @@ async function sendDigests(nowMs: number): Promise<number> {
     }
 
     const actorNames = await namesOf(enabled.map((activity) => activity.userFk))
-    const copy = await digestCopy(enabled, actorNames, localeOf(subscriber.contactLocale))
+    const copy = await digestCopy(enabled, actorNames, contactLocale(subscriber.contactLocale))
     if (copy == null) {
       return false
     }
@@ -324,7 +319,7 @@ async function sendDirected(nowMs: number): Promise<number> {
   const unread = await unreadCounts(ready.map((row) => row.userFk))
 
   const results = await inBatches(readable, (row) => {
-    const locale = localeOf(row.contactLocale)
+    const locale = contactLocale(row.contactLocale)
     const view = notificationView(
       {
         actorName: row.actorName,
