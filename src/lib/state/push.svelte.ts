@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { env as publicEnv } from '$env/dynamic/public'
+import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { subscribeToPush, unsubscribeFromPush } from '$lib/entities/notification/notifications.remote'
 
 /**
@@ -19,7 +20,7 @@ import { subscribeToPush, unsubscribeFromPush } from '$lib/entities/notification
  *  an old desktop browser: the Push API is simply absent until the app is installed there. */
 export type PushState = 'denied' | 'granted' | 'prompt' | 'unsupported'
 
-const PROMPT_DISMISSED_KEY = 'grnyte.pushPromptDismissed'
+const PROMPT_DISMISSED_KEY = `${PUBLIC_APPLICATION_NAME}.pushPromptDismissed`
 
 /** Shared by every soft pre-prompt surface, so somebody sees the ask once in total rather than
  *  once per screen that offers it. */

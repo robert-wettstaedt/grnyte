@@ -5,6 +5,7 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+  import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import ProfileView from '$lib/components/Profile/ProfileView.svelte'
@@ -17,6 +18,8 @@
   const global = getGlobalState()
   const userId = $derived(Number(page.params.id))
   const user = userById(() => userId)
+
+  trackView('users', () => user.data?.id)
 
   const goBack = () => back(resolve('/explore'))
 </script>

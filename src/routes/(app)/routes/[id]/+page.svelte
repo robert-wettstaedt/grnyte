@@ -6,6 +6,7 @@
   import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -42,6 +43,8 @@
 
   const routeId = $derived(Number(page.params.id))
   const route = routeDetail(() => routeId)
+
+  trackView('routes', () => route.data?.id)
 
   // The block frames the page: header breadcrumb, back fallback, and the topos the
   // route is drawn on. `-1` while the route loads is the established idiom.

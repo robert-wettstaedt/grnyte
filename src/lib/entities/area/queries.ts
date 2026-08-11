@@ -28,13 +28,15 @@ export const areasQueryDefs = {
       limit: z.number().optional(),
       parentFk: z.number().nullable().optional(),
       references: z.string().optional(),
+      /** `createdAt` sorts newest first (the search flyout's "recently added"); default is by name. */
+      sort: z.enum(['createdAt', 'name']).optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = zql.areas
-        .where('deletedAt', 'IS', null)
-        .orderBy('name', 'asc')
+      const base = zql.areas.where('deletedAt', 'IS', null)
+
+      let q = (args.sort === 'createdAt' ? base.orderBy('createdAt', 'desc') : base.orderBy('name', 'asc'))
         .related('parent', (q) => r(q).related('parent', r))
         .related('parkingLocations', r)
 

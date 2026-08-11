@@ -5,6 +5,7 @@
   import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
+  import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
@@ -33,6 +34,8 @@
   // Getter keeps the resource live across navigation between blocks — the query
   // re-targets as the param changes.
   const block = blockDetail(() => blockId)
+
+  trackView('blocks', () => block.data?.id)
 
   // Topos (with their drawn route lines) and the block's routes, both off the same
   // `queries.block` instance Zero dedupes. Routes are ordered the way they read

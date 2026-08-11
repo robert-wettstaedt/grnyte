@@ -3,28 +3,31 @@
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
-  import { flip } from 'svelte/animate'
   import { slide } from 'svelte/transition'
-  import { ENTITY_TYPE_ICON, entityGroupLabel, type EntityCandidate, type EntityGroup } from './search.svelte'
+  import { ENTITY_TYPE_ICON, type EntityCandidate, type EntityGroup } from './search.svelte'
 
   interface Props {
     /** Highlighted candidate, indexed across the flattened list. */
     activeIndex: number
     /** Grouped, filtered candidates (in section order). */
     groups: EntityGroup[]
+    /** Flat index of the first candidate, when rows above this list share the cursor. */
+    indexOffset?: number
     /** Selection (tap or Enter). */
     onselect: (item: EntityCandidate) => void
   }
 
-  let { activeIndex, groups, onselect }: Props = $props()
+  let { activeIndex, groups, indexOffset = 0, onselect }: Props = $props()
 
   // Assign each candidate the flat index that `entitySearch.flat` produces,
   // so keyboard highlighting stays in sync across section boundaries.
   const sections = $derived.by(() => {
-    let index = 0
+    let index = indexOffset
     return groups.map((group) => ({
       items: group.items.map((item) => ({ index: index++, item })),
-      type: group.type,
+      key: group.key,
+      label: group.label,
+      onclear: group.onclear,
     }))
   })
 </script>
@@ -33,15 +36,26 @@
   <p class="text-surface-500 px-3 py-6 text-center text-sm">{m.editor_noMatches()}</p>
 {:else}
   <ul class="flex flex-col gap-0.5 p-1">
-    {#each sections as section (section.type)}
+    {#each sections as section (section.key)}
       <li>
-        <p class="text-surface-500 px-2 pt-2 pb-1 text-[11px] font-bold tracking-wide uppercase">
-          {entityGroupLabel(section.type)}
-        </p>
+        <div class="flex items-center justify-between px-2 pt-2 pb-1">
+          <p class="text-surface-500 text-[11px] font-bold tracking-wide uppercase">{section.label}</p>
+
+          {#if section.onclear != null}
+            <button type="button" class="text-surface-500 hover:text-surface-950-50 text-xs" onclick={section.onclear}>
+              {m.common_clear()}
+            </button>
+          {/if}
+        </div>
 
         <ul class="flex flex-col gap-0.5">
           {#each section.items as { index, item } (item.type + '-' + item.id)}
-            <li animate:flip={{ duration: 150 }} transition:slide={{ duration: 150 }}>
+            <!-- No `animate:flip` here: these rows reorder on every keystroke, and one that is
+                 still mid-`slide` (height 0) makes flip divide by a zero-height rect and emit
+                 NaN/Infinity keyframes. Nothing is lost by dropping it: an `animate:` directive
+                 is also what makes Svelte lift a leaving row out of the flow, so without one the
+                 slide collapses the row in place and the rows below follow on their own. -->
+            <li transition:slide={{ duration: 150 }}>
               <Row
                 active={index === activeIndex}
                 crumbs={item.context}

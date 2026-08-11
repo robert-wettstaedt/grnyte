@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
@@ -13,7 +14,7 @@
   // Zero retries every 5s and flaps through `connecting` on token refresh and tab wake.
   const TRANSIENT_HOLD_MS = 10_000
 
-  const DISMISS_KEY = 'grnyte.dismissedAnnouncements'
+  const DISMISS_KEY = `${PUBLIC_APPLICATION_NAME}.dismissedAnnouncements`
 
   export interface Announcement {
     /** Read with `Date.parse`, so an ISO date or datetime. */

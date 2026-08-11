@@ -6,7 +6,12 @@
   import RouteRow from '$lib/components/EntityRow/RouteRow.svelte'
   import type { AscentStatus } from '$lib/components/EntityRow/types'
   import UserRow from '$lib/components/EntityRow/UserRow.svelte'
-  import { entityGroupLabel, entityHref, type EntityType } from '$lib/components/EntitySearch/search.svelte'
+  import {
+    entityCrumbs,
+    entityGroupLabel,
+    entityHref,
+    type EntityType,
+  } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { userAscentStatus } from '$lib/entities/ascent/resources.svelte'
@@ -48,8 +53,9 @@
 
   const ascentStatus = userAscentStatus(() => global.user?.id)
 
+  // Same builder as the search bar's dropdown, so the two never disagree about a row.
   const crumbsOf = (regionFk: null | number | undefined, rest: Array<null | string | undefined>): string[] =>
-    [regionCrumb(global.userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
+    entityCrumbs(regionCrumb(global.userRegions, regionFk), rest)
 
   interface ResultBase {
     crumbs: string[]

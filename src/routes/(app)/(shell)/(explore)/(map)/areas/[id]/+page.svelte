@@ -4,6 +4,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -39,6 +40,8 @@
     return data.areas.at(-1)?.id ?? null
   })
   const siblings = areaList(() => ({ parentFk }))
+
+  trackView('areas', () => area.data?.id)
 
   const areaHref = (id: number) => resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(id) })
 

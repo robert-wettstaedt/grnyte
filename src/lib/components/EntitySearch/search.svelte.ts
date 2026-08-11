@@ -1,5 +1,8 @@
 import { resolve } from '$app/paths'
 import type { IconName } from '$lib/components/Icon/icons'
+import { toAreaListItem, type AreaAncestor } from '$lib/entities/area/mapper'
+import { toBlockListItem } from '$lib/entities/block/mapper'
+import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { m } from '$lib/paraglide/messages'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
@@ -30,10 +33,17 @@ export interface EntityCandidate extends EntityItem {
   context?: string | string[]
 }
 
-/** Candidates of one kind; the section header label is localised by the list. */
+/** One rendered section of a candidate list: the live search groups by entity type,
+ *  the flyout's recent/new sections mix types under one heading. */
 export interface EntityGroup {
   items: EntityCandidate[]
-  type: EntityType
+  /** Stable list key. */
+  key: string
+  /** Section heading, already localised. */
+  label: string
+  /** When set, the heading carries a Clear button wired to this. Only a section built
+   *  from something persisted (the viewed-entity list) has anything to clear. */
+  onclear?: () => void
 }
 
 /** Localised section heading per entity type. Shared by the same lists. */
@@ -86,6 +96,82 @@ interface EntitySearchOptions {
   /** Regions to search users within; empty hides the People group. */
   regionFks: () => number[]
 }
+interface UserRow {
+  id: number
+  regionMemberships?: readonly { regionFk: number }[] | undefined
+  username: string
+}
+
+/**
+ * The context line under an entity row: an optional leading region crumb, then the
+ * containment chain, with blanks dropped.
+ *
+ * Exported so the `?q=` results page builds the same line as the dropdown. An empty
+ * segment has to go, not just a null one: a parent area with no name would otherwise
+ * render as a stray separator between two crumbs.
+ */
+export function entityCrumbs(region: string | undefined, rest: Array<null | string | undefined>): string[] {
+  return [region, ...rest].filter((crumb): crumb is string => crumb != null && crumb.length > 0)
+}
+
+/**
+ * Row → candidate mappers, shared by the live search and the search flyout's
+ * recent/new sections so their crumbs can't drift apart. `regionCrumb` prepends the
+ * region name (used once a search spans more than one region); omitting it leaves
+ * the crumbs bare.
+ *
+ * Labels and crumbs come from the entity mappers, never from `row.name`: those mappers
+ * are what decide that a nameless route reads `common_unnamed` and a nameless block
+ * reads "Block <order>", so a list formatting its own label would render a blank row.
+ */
+export function entityMappers(regionCrumb?: (regionFk: number) => string | undefined) {
+  const crumbs = (regionFk: null | number | undefined, rest: Array<null | string | undefined>): string[] =>
+    entityCrumbs(regionCrumb != null && regionFk != null ? regionCrumb(regionFk) : undefined, rest)
+
+  return {
+    areas: (row: AreaAncestor & { regionFk: number }): EntityCandidate => {
+      const area = toAreaListItem(row)
+      return {
+        context: crumbs(row.regionFk, [area.areas.at(-1)?.name]),
+        id: area.id,
+        label: area.name,
+        type: 'areas',
+      }
+    },
+
+    blocks: (row: Parameters<typeof toBlockListItem>[0]): EntityCandidate => {
+      const block = toBlockListItem(row)
+      return {
+        context: crumbs(block.regionFk, [block.areas.at(-1)?.name]),
+        id: block.id,
+        label: block.name,
+        type: 'blocks',
+      }
+    },
+
+    routes: (row: RouteListRow): EntityCandidate => {
+      const route = toRouteListItem(row)
+      return {
+        context: crumbs(route.regionFk, [route.areaName, route.blockName]),
+        id: route.id,
+        label: route.name,
+        type: 'routes',
+      }
+    },
+
+    users: (row: UserRow): EntityCandidate => ({
+      // A user isn't in one place, so its crumb is the region(s) it shares with the
+      // searcher — only shown when `regionCrumb` opts in.
+      context: crumbs(
+        null,
+        (row.regionMemberships ?? []).map((membership) => regionCrumb?.(membership.regionFk)),
+      ),
+      id: row.id,
+      label: row.username,
+      type: 'users',
+    }),
+  }
+}
 
 /**
  * Reactive entity search. The search term and a per-type `limit` are pushed
@@ -96,63 +182,29 @@ interface EntitySearchOptions {
  */
 export function entitySearch({ limit, open, query, regionCrumb, regionFks }: EntitySearchOptions) {
   const perGroup = limit ?? PER_GROUP_LIMIT
-
-  // Prepend the region crumb (when enabled) and drop empty segments.
-  const crumbs = (regionFk: null | number | undefined, rest: Array<null | string | undefined>): string[] => {
-    const region = regionCrumb != null && regionFk != null ? regionCrumb(regionFk) : undefined
-    return [region, ...rest].filter((crumb): crumb is string => crumb != null)
-  }
+  const map = entityMappers(regionCrumb)
 
   const areas = createResource(
     () => queries.listAreas({ content: query(), limit: perGroup }),
-    (rows): EntityCandidate[] =>
-      rows.map((row) => ({
-        context: crumbs(row.regionFk, [row.parent?.name]),
-        id: row.id,
-        label: row.name,
-        type: 'areas',
-      })),
+    (rows): EntityCandidate[] => rows.map(map.areas),
     { enabled: open },
   )
 
   const blocks = createResource(
     () => queries.listBlocks({ content: query(), limit: perGroup }),
-    (rows): EntityCandidate[] =>
-      rows.map((row) => ({
-        context: crumbs(row.regionFk, [row.area?.name]),
-        id: row.id,
-        label: row.name,
-        type: 'blocks',
-      })),
+    (rows): EntityCandidate[] => rows.map(map.blocks),
     { enabled: open },
   )
 
   const routes = createResource(
     () => queries.listRoutes({ content: query(), pageSize: perGroup, sort: 'rating', sortOrder: 'desc' }),
-    (rows): EntityCandidate[] =>
-      rows.map((row) => ({
-        context: crumbs(row.regionFk, [row.block?.area?.name, row.block?.name]),
-        id: row.id,
-        label: row.name,
-        type: 'routes',
-      })),
+    (rows): EntityCandidate[] => rows.map(map.routes),
     { enabled: open },
   )
 
   const users = createResource(
     () => queries.listUsers({ content: query(), limit: perGroup, regionFks: regionFks() }),
-    (rows): EntityCandidate[] =>
-      rows.map((row) => ({
-        // A user isn't in one place, so its crumb is the region(s) it shares
-        // with the searcher — only shown when `regionCrumb` opts in.
-        context: crumbs(
-          null,
-          (row.regionMemberships ?? []).map((membership) => regionCrumb?.(membership.regionFk)),
-        ),
-        id: row.id,
-        label: row.username,
-        type: 'users',
-      })),
+    (rows): EntityCandidate[] => rows.map(map.users),
     { enabled: () => open() && regionFks().length > 0 },
   )
 
@@ -172,7 +224,9 @@ export function entitySearch({ limit, open, query, regionCrumb, regionFks }: Ent
     /** Non-empty groups, in section order (already filtered + capped by the queries). */
     get groups(): EntityGroup[] {
       const all = candidates()
-      return GROUP_ORDER.map((type) => ({ items: all[type], type })).filter((group) => group.items.length > 0)
+      return GROUP_ORDER.map((type) => ({ items: all[type], key: type, label: entityGroupLabel(type) })).filter(
+        (group) => group.items.length > 0,
+      )
     },
 
     /**

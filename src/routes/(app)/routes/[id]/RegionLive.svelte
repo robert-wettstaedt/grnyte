@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
+  import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { canEditRegion } from '$lib/entities/region/permissions'
   import { routeMapList } from '$lib/entities/route/resources.svelte'
@@ -34,7 +35,7 @@
   // localStorage, not a column: one bit of "already celebrated" does not deserve a migration, and
   // losing it on a new device costs one dismissed card. Writable derived rather than state+effect,
   // so it is read before the first paint and re-reads if the region changes under it.
-  const storageKey = $derived(`grnyte:regionLive:${regionFk}`)
+  const storageKey = $derived(`${PUBLIC_APPLICATION_NAME}:regionLive:${regionFk}`)
   let seen = $derived(localStorage.getItem(storageKey) != null)
 
   // Deliberately no member-count condition. It was there to avoid celebrating in an established

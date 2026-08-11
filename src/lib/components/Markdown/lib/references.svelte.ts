@@ -1,4 +1,4 @@
-import type { EntityType } from '$lib/components/EntitySearch/search.svelte'
+import { entityMappers, type EntityType } from '$lib/components/EntitySearch/search.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, type QueryResource } from '$lib/zero/resource.svelte'
 import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
@@ -14,21 +14,26 @@ import type { MarkdownReference, MarkdownReferencesIds } from './remark-referenc
  * instead of a dead link. Gated on `isComplete` so still-loading refs don't flash.
  */
 export function markdownReferences(ids: () => MarkdownReferencesIds) {
+  // Names via the entity mappers, so a reference to a nameless route renders the
+  // `common_unnamed` placeholder and a nameless block its "Block <order>" label
+  // rather than a link with no text.
+  const map = entityMappers()
+
   const areas = createResource(
     () => queries.listAreas({ id: ids().areas }),
-    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.name, type: 'areas' })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: map.areas(row).label, type: 'areas' })),
     { enabled: () => ids().areas.length > 0 },
   )
 
   const blocks = createResource(
     () => queries.listBlocks({ blockId: ids().blocks }),
-    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.name, type: 'blocks' })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: map.blocks(row).label, type: 'blocks' })),
     { enabled: () => ids().blocks.length > 0 },
   )
 
   const routes = createResource(
     () => queries.listRoutes({ routeId: ids().routes }),
-    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: row.name, type: 'routes' })),
+    (rows) => rows.map((row): MarkdownReference => ({ id: row.id, name: map.routes(row).label, type: 'routes' })),
     { enabled: () => ids().routes.length > 0 },
   )
 

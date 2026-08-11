@@ -6,9 +6,10 @@ import { toActivityListItem, type ActivityEntityType, type ActivityListItem } fr
 import { activityEntityKey, activityRefs, type ActivityEntityRef } from '$lib/entities/activity/entity'
 import { groupActivities } from '$lib/entities/activity/grouping'
 import { activityVerb, parseDeletedAscent } from '$lib/entities/activity/verbs'
+import { blockName } from '$lib/entities/block/mapper'
 import { resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
-import type { Locale } from '$lib/paraglide/runtime'
+import { baseLocale, type Locale } from '$lib/paraglide/runtime'
 import { eq, inArray } from 'drizzle-orm'
 
 /**
@@ -74,7 +75,7 @@ export async function digestCopy(
   // What the card would put a row under, falling back to what the activities are about: an upload
   // names the thing it landed on rather than the file, which has no name worth reading.
   const subject = refs.rows[0] ?? refs.subjects[0]
-  const names = await entityNames(subject == null ? [] : [subject])
+  const names = await entityNames(subject == null ? [] : [subject], locale)
 
   const lead = newest.activities[0]
   const climber = parseDeletedAscent(lead.metadata ?? undefined)
@@ -114,7 +115,10 @@ export async function digestCopy(
  * One query per entity kind actually present, with known ids. An ascent borrows its route's name,
  * the same substitution the feed makes, because "an ascent" is not a thing anybody can picture.
  */
-export async function entityNames(refs: readonly ActivityEntityRef[]): Promise<Map<string, string>> {
+export async function entityNames(
+  refs: readonly ActivityEntityRef[],
+  locale: Locale = baseLocale,
+): Promise<Map<string, string>> {
   const names = new Map<string, string>()
 
   const idsOf = (type: ActivityEntityType): number[] => [
@@ -138,10 +142,12 @@ export async function entityNames(refs: readonly ActivityEntityRef[]): Promise<M
 
   if (blockIds.length > 0) {
     for (const row of await baseDb
-      .select({ id: blocks.id, name: blocks.name })
+      .select({ id: blocks.id, name: blocks.name, order: blocks.order })
       .from(blocks)
       .where(inArray(blocks.id, blockIds))) {
-      names.set(`block:${row.id}`, row.name)
+      // The same fallback the app's block mapper applies, so a push about a nameless block
+      // reads "Block 3" like the screen it links to, not the generic `common_unnamed`.
+      names.set(`block:${row.id}`, blockName(row.name, row.order, locale))
     }
   }
 

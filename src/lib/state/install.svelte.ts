@@ -1,4 +1,5 @@
 import { browser } from '$app/environment'
+import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 import { now } from '$lib/state/now.svelte'
 
 /**
@@ -25,8 +26,8 @@ export type InstallMode =
   /** A stashed `beforeinstallprompt` is ready to fire. */
   | 'prompt'
 
-const DISMISSED_AT_KEY = 'grnyte.installBannerDismissedAt'
-const DISMISS_COUNT_KEY = 'grnyte.installBannerDismissCount'
+const DISMISSED_AT_KEY = `${PUBLIC_APPLICATION_NAME}.installBannerDismissedAt`
+const DISMISS_COUNT_KEY = `${PUBLIC_APPLICATION_NAME}.installBannerDismissCount`
 
 /** A dismissal is worth 30 days, and the third one retires the banner for good. */
 const SNOOZE_MS = 30 * 24 * 60 * 60 * 1000

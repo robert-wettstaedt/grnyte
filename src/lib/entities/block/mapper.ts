@@ -1,6 +1,7 @@
 import { toAncestors, type AreaAncestor } from '$lib/entities/area/mapper'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
 import { m } from '$lib/paraglide/messages'
+import type { Locale } from '$lib/paraglide/runtime'
 import type { Row } from '$lib/zero/types'
 import type { BlockDetail, BlockListItem } from './dto'
 
@@ -28,6 +29,18 @@ interface BlockRow {
   readonly name: string
   readonly order: number
   readonly regionFk: number
+}
+
+/**
+ * A block's display name: its own, or its position in the area when it has none.
+ *
+ * Exported because the client mapper is not the only renderer: the push digest builds the
+ * same name on the server, and a second copy of the fallback would let a notification read
+ * "Block 3" while the screen it links to reads something else. `locale` is explicit for that
+ * caller, which renders once per recipient rather than in the reader's own session.
+ */
+export function blockName(name: string, order: number, locale?: Locale): string {
+  return name.length === 0 ? `${m.common_block({}, { locale })} ${order + 1}` : name
 }
 
 export function toBlockDetail(row: BlockDetailRow): BlockDetail {
@@ -68,7 +81,7 @@ export function toBlockListItem(row: BlockRow): BlockListItem {
   return {
     areas,
     id: row.id,
-    name: row.name.length === 0 ? `${m.common_block()} ${row.order + 1}` : row.name,
+    name: blockName(row.name, row.order),
     order: row.order,
     regionFk: row.regionFk,
   }

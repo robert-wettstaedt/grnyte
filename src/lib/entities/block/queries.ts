@@ -58,14 +58,19 @@ export const blocksQueryDefs = {
       blockId: z.union([z.number(), z.array(z.number())]).optional(),
       content: z.string().optional(),
       limit: z.number().optional(),
+      /** `createdAt` sorts newest first (the search flyout's "recently added"); default is the block order. */
+      sort: z.enum(['createdAt', 'order']).optional(),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
 
-      let q = zql.blocks
-        .where('deletedAt', 'IS', null)
-        .orderBy('order', 'asc')
-        .orderBy('name', 'asc')
+      const base = zql.blocks.where('deletedAt', 'IS', null)
+
+      let q = (
+        args.sort === 'createdAt'
+          ? base.orderBy('createdAt', 'desc')
+          : base.orderBy('order', 'asc').orderBy('name', 'asc')
+      )
         .related('topos', (q) => r(q).orderBy('order', 'asc').orderBy('id', 'asc').related('file', r))
         .related('area', (q) => r(q).related('parent', r))
         .related('geolocation', r)

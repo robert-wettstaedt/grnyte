@@ -25,7 +25,7 @@
 <Story name="Not syncing" args={{ connectionState: { name: 'needs-auth' }, online: true }} />
 
 <!-- Announcement, the only dismissible variant. Dismissing really does persist, under a
-     story-only id so it cannot hide the shipped notice: clear `grnyte.dismissedAnnouncements`
+     story-only id so it cannot hide the shipped notice: clear `<app name>.dismissedAnnouncements`
      from localStorage to bring this story back. -->
 <Story
   name="Announcement"

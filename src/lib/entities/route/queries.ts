@@ -104,7 +104,7 @@ export const routesQueryDefs = {
       references: z.string().optional(),
       regionFk: z.number().optional(),
       routeId: z.union([z.number(), z.array(z.number())]).optional(),
-      sort: z.enum(['rating', 'grade', 'firstAscentYear']).optional(),
+      sort: z.enum(['rating', 'grade', 'firstAscentYear', 'createdAt']).optional(),
       sortOrder: z.enum(['asc', 'desc']).optional(),
       tags: z.array(z.string()).optional(),
     }),
