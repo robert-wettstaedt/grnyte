@@ -141,6 +141,7 @@ export const updateArea = authedForm(
         body: value.description,
         entityId: area.id,
         entityType: 'area',
+        previousBody: area.description,
         regionFk: area.regionFk,
       }),
     )

@@ -169,6 +169,7 @@ export const updateAscent = authedForm(
         body: value.notes,
         entityId: ascent.id,
         entityType: 'ascent',
+        previousBody: ascent.notes,
         regionFk: ascent.regionFk,
       }),
     )

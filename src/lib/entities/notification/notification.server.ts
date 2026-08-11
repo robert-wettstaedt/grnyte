@@ -102,9 +102,10 @@ export async function notify(input: NotifyInput): Promise<void> {
         userFk: recipient.userFk,
       })),
     )
-    // The unique index is what makes a re-save idempotent: opening a description in the markdown
-    // editor and saving it again re-emits the same `!users:N!` refs, and without this that
-    // re-notifies everyone mentioned, every time.
+    // The unique index collapses the same event fired twice in a row, e.g. a double submit, or a
+    // maintainer who saves the same edit again a minute later. It is a backstop, not the thing that
+    // decides what is news: see {@link notifyMentions} for why a source type whose "again" is not a
+    // new event has to work that out for itself before it gets here.
     //
     // Collapsed only while the row is still UNREAD, which is the case that idempotency is about.
     // The index carries no time, and a plain `do nothing` would therefore mute a genuinely new
@@ -125,11 +126,15 @@ export async function notify(input: NotifyInput): Promise<void> {
 }
 
 /**
- * Tell everybody named in a markdown body that they were named in it.
+ * Tell everybody newly named in a markdown body that they were named in it.
  *
- * The refs are read off the body as saved, not off the difference from the previous one: an edit
- * that adds a name has to notify it, and an edit that keeps one must not notify it twice. The
- * unique index in {@link notify} is what makes the second half true, so this stays a plain read.
+ * Newly is the whole point, so this is a diff and not a plain read of the saved body. A mention is
+ * not an event that recurs; it happens once, when somebody writes the name. Every later save of
+ * that text is the same mention again, and the {@link notify} unique index cannot be what tells
+ * them apart, because the row it needs is not guaranteed to be there: cleanup drops read rows after
+ * 30 days and unread ones after 90, and a row that has been read is deliberately re-armed on
+ * conflict. Leaning on it re-pushed a months-old mention every time anyone touched the entity for
+ * any other reason. Comparing the two bodies needs no row at all.
  */
 export async function notifyMentions(input: {
   actorFk: number
@@ -137,9 +142,16 @@ export async function notifyMentions(input: {
   body: null | string | undefined
   entityId: number | string
   entityType: NotificationEntityType
+  /**
+   * The body this save replaced. Anybody named in it has already been told, so they are dropped.
+   * Omitted when creating, where there is nothing to have been told about yet. A name that is
+   * removed and later written again is a fresh mention, and notifies again.
+   */
+  previousBody?: null | string
   regionFk: number
 }): Promise<void> {
-  const userFks = input.body == null ? [] : getReferences(input.body).users
+  const before = new Set(input.previousBody == null ? [] : getReferences(input.previousBody).users)
+  const userFks = (input.body == null ? [] : getReferences(input.body).users).filter((userFk) => !before.has(userFk))
 
   if (userFks.length === 0) {
     return

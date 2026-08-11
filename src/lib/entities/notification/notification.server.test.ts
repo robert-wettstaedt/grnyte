@@ -10,9 +10,9 @@
  *    drifts silently. So it is not asserted against a list written out here: it is asserted
  *    against who can really `SELECT` a row in that region, impersonated the way `createDrizzle`
  *    does. Loosen the helper and this fails.
- * 2. **A repeated event does not repeat the notification.** Saving a description twice re-emits
- *    the same `!users:N!` refs, and the unique index is the only thing standing between that and
- *    a second notification on every save.
+ * 2. **A repeated event does not repeat the notification.** For an event that can genuinely happen
+ *    twice the unique index is what collapses it; for a mention, which cannot, the diff against
+ *    the previous body is, because the row the index needs does not outlive cleanup.
  *
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
@@ -308,5 +308,67 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     })
 
     expect(await mentioned()).toHaveLength(0)
+  })
+
+  it('tells only the name this save added', async () => {
+    await notifyMentions({
+      actorFk: users.actor.userId,
+      body: `!users:${users.member.userId}! and !users:${users.admin.userId}!`,
+      entityId: 7,
+      entityType: 'ascent',
+      previousBody: `!users:${users.member.userId}!`,
+      regionFk: regionId,
+    })
+
+    const rows = await mentioned()
+    expect(rows).toHaveLength(1)
+    expect(rows[0].userFk).toBe(users.admin.userId)
+  })
+
+  /**
+   * The regression: a mention is not an event that recurs, so an edit that leaves the text alone
+   * must be silent even once the notification for it is gone or has been read. The read row is the
+   * sharper half - {@link notify} re-arms one on conflict, so before the diff this pushed a
+   * months-old mention again the next time anybody touched the entity for any other reason.
+   */
+  it('says nothing when the body still holds a mention it already sent', async () => {
+    const body = `Belayed by !users:${users.member.userId}!`
+    const input = {
+      actorFk: users.actor.userId,
+      body,
+      entityId: 7,
+      entityType: 'ascent' as const,
+      regionFk: regionId,
+    }
+
+    await notifyMentions(input)
+    const read = new Date()
+    await db.update(notifications).set({ pushedAt: read, readAt: read }).where(eq(notifications.regionFk, regionId))
+
+    // An edit of something else entirely: same description, so the same refs come back out of it.
+    await notifyMentions({ ...input, previousBody: body })
+
+    const rows = await mentioned()
+    expect(rows).toHaveLength(1)
+    // Still read and still delivered, i.e. the cron has nothing to pick up.
+    expect(rows[0].readAt).not.toBeNull()
+    expect(rows[0].pushedAt).not.toBeNull()
+  })
+
+  it('mentions somebody again once their name has been taken out and written back', async () => {
+    const input = {
+      actorFk: users.actor.userId,
+      body: `!users:${users.member.userId}!`,
+      entityId: 7,
+      entityType: 'ascent' as const,
+      regionFk: regionId,
+    }
+
+    await notifyMentions(input)
+    await notifyMentions({ ...input, body: 'nobody', previousBody: input.body })
+    await db.delete(notifications).where(eq(notifications.regionFk, regionId)) // cleanup, 30 days on
+    await notifyMentions({ ...input, previousBody: 'nobody' })
+
+    expect(await mentioned()).toHaveLength(1)
   })
 })

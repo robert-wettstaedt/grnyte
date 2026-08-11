@@ -301,6 +301,7 @@ export const updateRoute = authedForm(
         body: value.description,
         entityId: route.id,
         entityType: 'route',
+        previousBody: route.description,
         regionFk: route.regionFk,
       }),
     )
