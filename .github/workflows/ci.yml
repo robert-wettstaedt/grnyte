@@ -44,8 +44,8 @@ jobs:
       BUNNY_STREAM_API_KEY: foobar
       PUBLIC_BUNNY_STREAM_LIBRARY_ID: foobar
       PUBLIC_BUNNY_STREAM_HOSTNAME: foobar
-      PRIVATE_VAPID_KEY: foobar
-      PUBLIC_VAPID_KEY: foobar
+      PRIVATE_VAPID_KEY: ${{ secrets.PRIVATE_VAPID_KEY }}
+      PUBLIC_VAPID_KEY: ${{ secrets.PUBLIC_VAPID_KEY }}
       CRON_API_KEY: foobar
       PUBLIC_ZERO_URL: foobar
 
