@@ -197,6 +197,13 @@
       "when": 1786344621346,
       "tag": "0098_abnormal_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1786550770004,
+      "tag": "0099_vengeful_mantis",
+      "breakpoints": true
     }
   ]
 }

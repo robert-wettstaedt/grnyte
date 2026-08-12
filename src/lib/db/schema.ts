@@ -12,6 +12,7 @@ import { relations, sql } from 'drizzle-orm'
 import {
   bigint,
   boolean,
+  check,
   date,
   doublePrecision,
   index,
@@ -38,6 +39,9 @@ import {
   getAuthorizedPolicyConfig,
   getOwnActivityPolicyConfig,
   getOwnEntryPolicyConfig,
+  getOwnEventChildPolicyConfig,
+  getOwnEventPolicyConfig,
+  getOwnReactionPolicyConfig,
   getPolicyConfig,
 } from './policy'
 
@@ -877,6 +881,11 @@ export const ascents = table(
   {
     ...baseFields,
     ...baseRegionFields,
+    // An ascent outlives its own deletion once `events` names it with a real foreign key: the log
+    // has to survive what it describes, and a hard-deleted row would take its history with it.
+    // Hard deletion is still what happens inside the 15-minute grace window, where the point is
+    // that a mistake leaves no trace at all (see EVENTS-PLAN.md).
+    ...softDeleteFields,
     createdBy: baseContentFields.createdBy,
 
     dateTime: date('date_time').notNull().defaultNow(),
@@ -893,6 +902,7 @@ export const ascents = table(
   },
   (table) => [
     index('ascents_created_by_idx').on(table.createdBy),
+    index('ascents_deleted_at_idx').on(table.deletedAt),
     index('ascents_notes_idx').on(table.notes),
     index('ascents_region_fk_idx').on(table.regionFk),
     index('ascents_route_fk_idx').on(table.routeFk),
@@ -981,6 +991,16 @@ export const files = table(
     // or the region creator as a last resort (see migration 0079).
     createdBy: baseContentFields.createdBy,
 
+    // Same reason as `ascents`: an upload event names the file through `events.file_fk`, so the
+    // row has to outlive the blob or the event cascades away and the upload vanishes from the
+    // log. `path` still points at storage that is gone, so every media query filters on this.
+    //
+    // One upload call currently produces one event PER file, because an event carries exactly
+    // one object. Whether a five-photo upload should instead be one event on the route with five
+    // change rows is a write-path question, open in step 2; `changes` is documented as
+    // update-only today, so that shape would need both docs to move together.
+    ...softDeleteFields,
+
     height: integer('height'),
     // '' for video rows — the media lives at the video host (see finalizeVideo);
     // discriminate on bunnyStreamFk before treating the path as a storage location.
@@ -997,6 +1017,7 @@ export const files = table(
     index('files_ascent_fk_idx').on(table.ascentFk),
     index('files_block_fk_idx').on(table.blockFk),
     index('files_created_by_idx').on(table.createdBy),
+    index('files_deleted_at_idx').on(table.deletedAt),
     index('files_region_fk_idx').on(table.regionFk),
     index('files_route_fk_idx').on(table.routeFk),
 
@@ -1351,6 +1372,381 @@ export type InsertActivity = InferInsertModel<typeof activities>
 export const activitiesRelations = relations(activities, ({ one }) => ({
   region: one(regions, { fields: [activities.regionFk], references: [regions.id] }),
   user: one(users, { fields: [activities.userFk], references: [users.id] }),
+}))
+
+/**
+ *
+ *
+ * === EVENTS ===
+ *
+ * What happened, as opposed to what changed. See EVENTS-PLAN.md and CONTEXT.md.
+ *
+ * AS OF THIS COMMIT NOTHING WRITES OR READS THESE TABLES. `activities` above is still the live
+ * log: every mutation handler still calls `insertActivity`, and it is still in `regionTables`.
+ * The write path moves over in step 2 and the readers in step 3, after which `activities` goes
+ * quiet and is dropped in step 7. Keeping its rows until then is what makes the folding backfill
+ * checkable against its source.
+ *
+ *
+ */
+
+/**
+ * AS2 verbs, taken rather than invented: <https://www.w3.org/TR/activitystreams-vocabulary/>.
+ *
+ * A subset. AS2 defines 28 and the rest belong to the federated social web (`Follow`, `Announce`,
+ * `Flag`, `Question`, check-ins, read receipts). Four of those are plausible here later without
+ * inventing anything, which is the argument for borrowing the vocabulary rather than minting our
+ * own words.
+ *
+ * What this replaces: `activityType` plus `columnName`, where `created` + `column_name:
+ * 'invitation'` was how we spelled `Invite`. That encoding is why a join contributed nothing to
+ * `activityRefs` and why nobody who joined a region ever heard they had been welcomed.
+ */
+export const eventVerb: ['create', 'update', 'delete', 'add', 'remove', 'join', 'leave', 'invite', 'accept'] = [
+  'create',
+  'update',
+  'delete',
+  'add',
+  'remove',
+  'join',
+  'leave',
+  'invite',
+  'accept',
+]
+
+/**
+ * The AS2 object columns, shared verbatim by `events` and `changes`.
+ *
+ * Six nullable foreign keys rather than one polymorphic `(type, id)` pair. That pair is what
+ * `hydrate.svelte.ts` exists to work around: `entity_id` is `text`, the type varies, and Zero
+ * cannot join it, so the feed runs seven queries and reconciles them by hand. Real keys arrive
+ * nested in one query.
+ *
+ * `on delete cascade` on the five ENTITY keys is what makes the 15-minute grace window work: a
+ * mistake deleted inside it is hard-deleted and takes its events with it, leaving no trace, while
+ * anything older soft-deletes and keeps its history. Without the cascade the hard delete would be
+ * blocked by its own log.
+ *
+ * `subject_fk` is deliberately NOT one of them. It points at a person, and people are not subject
+ * to the grace window, so cascading there would mean deleting an account silently erases the
+ * region's record of who invited, promoted or removed them. It matches `actor_fk` instead: a user
+ * row with history cannot be hard-deleted at all, which is the same answer for both directions
+ * rather than one that depends on which end of the sentence somebody was on.
+ *
+ * There is deliberately no `target`. A parent is reachable through the object's own key
+ * (`files.route_fk`, `blocks.area_fk`), which is what `parent_entity_*` was standing in for.
+ */
+const eventObjectFields = {
+  areaFk: integer('area_fk').references((): AnyColumn => areas.id, { onDelete: 'cascade' }),
+  ascentFk: integer('ascent_fk').references((): AnyColumn => ascents.id, { onDelete: 'cascade' }),
+  blockFk: integer('block_fk').references((): AnyColumn => blocks.id, { onDelete: 'cascade' }),
+  fileFk: text('file_fk').references((): AnyColumn => files.id, { onDelete: 'cascade' }),
+  routeFk: integer('route_fk').references((): AnyColumn => routes.id, { onDelete: 'cascade' }),
+  /**
+   * The person an event is about. Membership events only.
+   *
+   * Distinct from `actor_fk` in exactly one case, a role change, where somebody acts on somebody
+   * else: "Jonas made Mara a maintainer". Everywhere else the two are the same person by nature.
+   * Joining, leaving and accepting an invitation are things you do to your own membership, so
+   * subject and actor are both you and that is not a bug.
+   *
+   * The one degenerate case is `invite`. An invitation names an email address, and the invitee has
+   * no account to point at, so this holds the INVITER and the address lives in `metadata`, which
+   * is what the card renders from. Do not read a subject off an invite event.
+   */
+  subjectFk: integer('subject_fk').references((): AnyColumn => users.id),
+}
+
+const EVENT_OBJECT_COLUMNS = 'area_fk, ascent_fk, block_fk, file_fk, route_fk, subject_fk'
+
+export const events = table(
+  'events',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+    ...eventObjectFields,
+
+    /** AS2 actor. Exactly one per event, which is what makes "not your own" a single comparison. */
+    actorFk: integer('actor_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+    /** What the sentence needs and the object cannot answer, e.g. the role a change assigned. */
+    metadata: text('metadata'),
+    verb: text('verb', { enum: eventVerb }).notNull(),
+  },
+  (table) => [
+    // What the feed actually reads: the reader's regions, newest first. Two single-column
+    // indexes cannot serve that as an index scan, so it degrades to a bitmap scan plus a sort on
+    // the table that will grow fastest here.
+    index('events_region_fk_created_at_idx').on(table.regionFk, table.createdAt.desc()),
+    index('events_actor_fk_idx').on(table.actorFk),
+    // Partial, because `events_one_object` guarantees five of these six are NULL in every row.
+    // A full btree would store an entry per row in all six, roughly 6x the bytes for nothing:
+    // the only query any of them serves is "the log for this entity", which never asks for NULL.
+    index('events_area_fk_idx')
+      .on(table.areaFk)
+      .where(sql`area_fk is not null`),
+    index('events_ascent_fk_idx')
+      .on(table.ascentFk)
+      .where(sql`ascent_fk is not null`),
+    index('events_block_fk_idx')
+      .on(table.blockFk)
+      .where(sql`block_fk is not null`),
+    index('events_file_fk_idx')
+      .on(table.fileFk)
+      .where(sql`file_fk is not null`),
+    index('events_route_fk_idx')
+      .on(table.routeFk)
+      .where(sql`route_fk is not null`),
+    index('events_subject_fk_idx')
+      .on(table.subjectFk)
+      .where(sql`subject_fk is not null`),
+
+    // Exactly one object. An objectless event has nothing to render and nothing to react to, and
+    // allowing it would reintroduce the "which of these is set" branching the keys exist to end.
+    check('events_one_object', sql.raw(`num_nonnulls(${EVENT_OBJECT_COLUMNS}) = 1`)),
+
+    // Ownership on INSERT too, not only on the edits. A region predicate alone would let any
+    // member write an event carrying somebody else's `actor_fk`, and the feed would render
+    // "Bob deleted Rampe" about somebody who did nothing. `activities` has that hole today; it
+    // does not get carried forward.
+    policy(
+      `${REGION_PERMISSION_READ} can insert their own events`,
+      getOwnEventPolicyConfig('insert', REGION_PERMISSION_READ),
+    ),
+    policy(
+      `${REGION_PERMISSION_READ} can read events`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    // The fold merges a continuing call into an open event, which is an UPDATE. A table with RLS
+    // on denies any command it has no policy for, so without this the fold silently loses writes.
+    policy(
+      `${REGION_PERMISSION_READ} can update their own events`,
+      getOwnEventPolicyConfig('update', REGION_PERMISSION_READ),
+    ),
+    policy(
+      `${REGION_PERMISSION_READ} can delete their own events`,
+      getOwnEventPolicyConfig('delete', REGION_PERMISSION_READ),
+    ),
+    policy(
+      `${REGION_PERMISSION_DELETE} can delete events`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+    ),
+  ],
+).enableRLS()
+
+export const eventsRelations = relations(events, ({ many, one }) => ({
+  actor: one(users, { fields: [events.actorFk], references: [users.id], relationName: 'event-actor' }),
+  area: one(areas, { fields: [events.areaFk], references: [areas.id] }),
+  ascent: one(ascents, { fields: [events.ascentFk], references: [ascents.id] }),
+  block: one(blocks, { fields: [events.blockFk], references: [blocks.id] }),
+  changes: many(changes),
+  file: one(files, { fields: [events.fileFk], references: [files.id] }),
+  reactions: many(reactions),
+  region: one(regions, { fields: [events.regionFk], references: [regions.id] }),
+  route: one(routes, { fields: [events.routeFk], references: [routes.id] }),
+  subject: one(users, { fields: [events.subjectFk], references: [users.id], relationName: 'event-subject' }),
+}))
+
+/**
+ * One changed column under an event. This is `activities` with everything that was really about
+ * the action lifted up to the event, where exactly one copy of it lives.
+ *
+ * Only exists for `verb: 'update'`. Roughly 90% of today's activity rows carry no diff at all and
+ * become events with no change row under them, which is the whole diagnosis in one line.
+ *
+ * The object columns are `at most one` here rather than exactly one: null means "the event's own
+ * object", which is the common path. They are set only when a single call moved several rows (a
+ * block reorder), and that is what lets a block's log find a reorder whose object is its area.
+ */
+export const changes = table(
+  'changes',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+    ...eventObjectFields,
+
+    columnName: text('column_name').notNull(),
+    eventFk: integer('event_fk')
+      .notNull()
+      .references((): AnyColumn => events.id, { onDelete: 'cascade' }),
+    newValue: text('new_value'),
+    oldValue: text('old_value'),
+  },
+  (table) => [
+    index('changes_region_fk_idx').on(table.regionFk),
+    // One row per column per event is the fold's contract, so it is a constraint rather than a
+    // convention. It also lets the fold be a single `ON CONFLICT (event_fk, column_name) DO
+    // UPDATE` instead of the read-then-write that today's `createUpdateActivity` performs, which
+    // is what makes a double-submit produce two contradictory `grade` lines on one card.
+    uniqueIndex('changes_event_fk_column_name_idx').on(table.eventFk, table.columnName),
+    // Partial for the same reason as `events`: at most one of the six is ever set, and the only
+    // query that reads them is a scoped log asking for one entity.
+    index('changes_area_fk_idx')
+      .on(table.areaFk)
+      .where(sql`area_fk is not null`),
+    index('changes_ascent_fk_idx')
+      .on(table.ascentFk)
+      .where(sql`ascent_fk is not null`),
+    index('changes_block_fk_idx')
+      .on(table.blockFk)
+      .where(sql`block_fk is not null`),
+    index('changes_file_fk_idx')
+      .on(table.fileFk)
+      .where(sql`file_fk is not null`),
+    index('changes_route_fk_idx')
+      .on(table.routeFk)
+      .where(sql`route_fk is not null`),
+    index('changes_subject_fk_idx')
+      .on(table.subjectFk)
+      .where(sql`subject_fk is not null`),
+
+    check('changes_at_most_one_object', sql.raw(`num_nonnulls(${EVENT_OBJECT_COLUMNS}) <= 1`)),
+
+    // Ownership is read through `event_fk`, never off the row: a change has no author of its
+    // own. A plain region predicate here would let any member rewrite anybody's diff, or forge
+    // one onto somebody else's event.
+    policy(
+      `${REGION_PERMISSION_READ} can insert changes on their own events`,
+      getOwnEventChildPolicyConfig('insert', REGION_PERMISSION_READ),
+    ),
+    policy(
+      `${REGION_PERMISSION_READ} can read changes`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    // The column-local half of the fold: a second edit of the same column overwrites `new_value`
+    // on the row the first one wrote, and an edit back to where it started deletes the row.
+    policy(
+      `${REGION_PERMISSION_READ} can update changes on their own events`,
+      getOwnEventChildPolicyConfig('update', REGION_PERMISSION_READ),
+    ),
+    policy(
+      `${REGION_PERMISSION_READ} can delete changes on their own events`,
+      getOwnEventChildPolicyConfig('delete', REGION_PERMISSION_READ),
+    ),
+    // Moderation deletes the EVENT, and the cascade takes its changes with it without consulting
+    // RLS on this table, so there is deliberately no `region.delete` policy here to match the one
+    // on `events`. A moderator who could delete change rows on their own could leave an event
+    // claiming an edit with no diff under it.
+  ],
+).enableRLS()
+
+export const changesRelations = relations(changes, ({ one }) => ({
+  area: one(areas, { fields: [changes.areaFk], references: [areas.id] }),
+  ascent: one(ascents, { fields: [changes.ascentFk], references: [ascents.id] }),
+  block: one(blocks, { fields: [changes.blockFk], references: [blocks.id] }),
+  event: one(events, { fields: [changes.eventFk], references: [events.id] }),
+  file: one(files, { fields: [changes.fileFk], references: [files.id] }),
+  region: one(regions, { fields: [changes.regionFk], references: [regions.id] }),
+  route: one(routes, { fields: [changes.routeFk], references: [routes.id] }),
+  subject: one(users, { fields: [changes.subjectFk], references: [users.id] }),
+}))
+
+/**
+ * What people said back: emoji and comments in one table, discriminated by `type`.
+ *
+ * Both are a person, a target and a string, so `type` is the only thing that differs and therefore
+ * the only discriminator. Sharing the table is what buys reactions-on-comments for one nullable
+ * self-reference instead of a second target column on every table that points here.
+ *
+ * NOT rows in `events`, deliberately. Reactions outnumber events by a large multiple, they toggle
+ * all day where the log is append-only, they are written by the client directly where events are
+ * written only by mutation handlers, and one-per-person is a clean index only on its own table.
+ * AS2 models a Like as an activity, but AS2 is a wire format: Mastodon speaks it and still keeps
+ * `favourites` apart from `statuses`, and Stream spells comments as reactions with a kind.
+ *
+ * The name is wider than the UI word on purpose, see CONTEXT.md: here "reaction" covers comments,
+ * in the interface "Reactions" means only the emoji half.
+ */
+export const reactionType: ['emoji', 'comment'] = ['emoji', 'comment']
+
+export const reactions = table(
+  'reactions',
+  {
+    ...baseFields,
+    ...baseRegionFields,
+    ...softDeleteFields,
+
+    /** What the own-entry policy compares. `user_fk` is what the app joins on, as `favorites` does. */
+    authUserFk: uuid('auth_user_fk')
+      .notNull()
+      .references((): AnyColumn => authUsers.id),
+    /** The emoji, or the comment text. One column because both payloads are strings; a future type
+     *  carrying a number would want its own rather than a stringified one. */
+    body: text('body').notNull(),
+    /** The card this hangs under, at any depth. Stays set on a reply to a reply, so the whole
+     *  subtree under a card is one query rather than a recursive walk. */
+    eventFk: integer('event_fk')
+      .notNull()
+      .references((): AnyColumn => events.id, { onDelete: 'cascade' }),
+    /** A reply, or a reaction on a comment. Null for anything hanging directly off the event. */
+    parentFk: integer('parent_fk').references((): AnyColumn => reactions.id, { onDelete: 'cascade' }),
+    type: text('type', { enum: reactionType }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }),
+    userFk: integer('user_fk')
+      .notNull()
+      .references((): AnyColumn => users.id),
+  },
+  (table) => [
+    index('reactions_event_fk_idx').on(table.eventFk),
+    index('reactions_parent_fk_idx').on(table.parentFk),
+    index('reactions_region_fk_idx').on(table.regionFk),
+    index('reactions_user_fk_idx').on(table.userFk),
+
+    // One emoji per person per target; comments are unlimited. Through `coalesce` rather than
+    // `NULLS NOT DISTINCT` because drizzle's index builder cannot express the latter, and because
+    // this works on any Postgres version. Ids are serial from 1, so 0 is a safe stand-in for "no
+    // parent". Without the coalesce every null `parent_fk` counts as distinct and the constraint
+    // silently stops deduping the top level, which is the only level that has any today.
+    // `deleted_at IS NULL` is load-bearing, not tidiness: this table soft-deletes, so a removed
+    // reaction stays. Without it, un-reacting and reacting again with the same emoji hits 23505
+    // against the row the first tap left behind.
+    uniqueIndex('reactions_one_emoji_idx')
+      .on(table.eventFk, sql`coalesce(${table.parentFk}, 0)`, table.userFk)
+      .where(sql`${table.type} = 'emoji' and ${table.deletedAt} is null`),
+
+    // The emoji half is only a length guard: Postgres regex has no `\p{RGI_Emoji}` (it is a
+    // property of strings, JS `v` flag only), so single-emoji validation stays in the handler.
+    check(
+      'reactions_body_fits_type',
+      // Both halves need a lower bound. `<= 16` alone accepts '', which is NOT NULL but empty:
+      // it takes the one-emoji-per-person slot and renders as a chip nobody can see to remove.
+      sql.raw(
+        `(type = 'comment' AND length(body) BETWEEN 1 AND 5000) OR (type = 'emoji' AND length(body) BETWEEN 1 AND 16)`,
+      ),
+    ),
+
+    // Not `getOwnEntryPolicyConfig`: that only compares `auth.uid()` to `auth_user_fk`, which
+    // says who is asking but not who the row is attributed to, and carries no region predicate
+    // at all. Every relation and the whole Zero schema joins on `user_fk`, so unbound it lets a
+    // caller post under another member's name, into a region they are not in, on an event they
+    // cannot read.
+    policy(`users can insert own reactions`, getOwnReactionPolicyConfig('insert', REGION_PERMISSION_READ)),
+    policy(`users can update own reactions`, getOwnReactionPolicyConfig('update', REGION_PERMISSION_READ)),
+    policy(`users can delete own reactions`, getOwnEntryPolicyConfig('delete')),
+    policy(
+      `${REGION_PERMISSION_READ} can read reactions`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    // Recourse. 👎 is in the quick row, so a region moderator can remove one. No UI ships with
+    // this; the policy exists so the lever is there when it is first needed.
+    policy(
+      `${REGION_PERMISSION_DELETE} can delete reactions`,
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+    ),
+  ],
+).enableRLS()
+
+export const reactionsRelations = relations(reactions, ({ many, one }) => ({
+  children: many(reactions, { relationName: 'reaction-parent' }),
+  event: one(events, { fields: [reactions.eventFk], references: [events.id] }),
+  parent: one(reactions, {
+    fields: [reactions.parentFk],
+    references: [reactions.id],
+    relationName: 'reaction-parent',
+  }),
+  region: one(regions, { fields: [reactions.regionFk], references: [regions.id] }),
+  user: one(users, { fields: [reactions.userFk], references: [users.id] }),
 }))
 
 /**

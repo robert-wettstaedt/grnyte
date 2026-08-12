@@ -43,9 +43,45 @@ label stays "Durchstieg"; the enum value does not oblige the copy.
 **community**
 The people in a region. Never crew, team or squad.
 
+## Events
+
+The layer being built in `EVENTS-PLAN.md`. Until it lands, the terms under "Activity feed"
+below are the ones the code uses; the ones marked _retiring_ are what it replaces.
+
+Note the one word that means two things during the transition. **`events.verb`** is an AS2
+verb, a stored value out of a closed set (`create`, `update`, `delete`, `add`, `remove`,
+`join`, `leave`, `invite`, `accept`). **Headline verb**, below, is a paraglide message key.
+They are unrelated, and "the verb" is ambiguous until the rename in step 6 settles it.
+
+**event**
+One thing that happened: an actor, a verb, and one object named by a real foreign key. One
+event per mutation call, so a block reorder is one `Update` on the area and a session of
+five ascents is five events. A second call on the same object within 15 minutes joins the
+open event rather than opening a new one. This is the only thing in the system with a
+stable id a person would recognise, which is why reactions, comments and notifications all
+point at it.
+
+**change**
+One changed column under an event: the column, and what it moved between. This is the
+`activities` table minus everything that was really about the action rather than the diff.
+Roughly 90% of today's activity rows carry no diff at all and become events with no change
+row under them.
+
+**reaction**
+A row in `reactions`, which holds **both** emoji and comments, discriminated by `type`. The
+code name is deliberately wider than the UI word: in the interface "Reactions" means only
+the emoji half, and comments are "Comments". Do not assume `event.reactions` is the emoji
+bar. Stream's vocabulary, and the shape is what lets a reaction target a comment through
+one foreign key instead of a polymorphic pair.
+
+**subscriber**
+Who hears about a comment: the event's actor, plus every distinct author of a comment on
+it, minus whoever is writing. Derived at fan-out, never stored. A reply notifies the whole
+thread, not only the parent's author.
+
 ## Activity feed
 
-**activity row**
+**activity row** _(retiring)_
 One entry in the `activities` audit log. Identified by the triple
 `(entityType, type, columnName)`, which is what selects a verb, an icon and a diff
 renderer. `written.ts` lists every triple the mutation layer writes today.
@@ -61,8 +97,9 @@ climber's ascents in one sitting), **burst** (one editor's crag edits in one pla
 in time), **entity** (anyone's edits to the same entity, close in time) and **single**.
 None of them is a stored entity, they exist only for the feed.
 
-**verb**
-The message key a group's headline resolves to. Each key holds a _whole sentence_ with
+**headline verb** _(retiring as a bare "verb")_
+The message key a group's headline resolves to. Not `events.verb`, which is a stored AS2
+value; this is copy. Each key holds a _whole sentence_ with
 `{actor}` and `{name}` placeholders, never a verb fragment: German puts the participle
 after the object ("hat die Route Rampe hinzugefügt"), which a fixed markup order cannot
 express. `Message.svelte` splits the resolved sentence to render the placeholders.
@@ -84,12 +121,16 @@ Which of the ten shapes a change line takes (`pair`, `chips`, `tags`, `grade`, `
 `verbs.ts`, next to its label, so a column states how it renders where it states what it is
 called. A `pair` also declares the `format` its two chips read through.
 
-**entity ref**
+**entity ref** _(retiring)_
 The polymorphic `(entityType, entityId)` pair an activity points at. `entityId` is `text`
-and the type varies, so Zero cannot join it to the entity it names.
+and the type varies, so Zero cannot join it to the entity it names. An event names its
+object with a real foreign key instead, one nullable column per type with a CHECK that
+exactly one is set.
 
-**hydration**
+**hydration** _(retiring)_
 Resolving entity refs to the entities themselves, client-side, in a second pass: collect
 the ids per type off the synced activity rows, fetch them through the per-entity list
 resources, join in memory. A ref that resolves to nothing is a tombstone (deleted); a ref
-not yet in the map is a skeleton (still syncing).
+not yet in the map is a skeleton (still syncing). With real keys the entity arrives nested
+in the same query, so all three states collapse to one: the relation is there, or the row
+is soft-deleted and can still be named.

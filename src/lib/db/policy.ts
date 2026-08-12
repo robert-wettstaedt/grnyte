@@ -47,13 +47,19 @@ export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for']) =>
   getPolicyConfig(policyFor, sql.raw('(SELECT auth.uid()) = auth_user_fk'))
 
 /**
- * An activity row the caller wrote themselves, in a region they can still read. `activities`
- * joins `users` to get there because it stores `user_fk`, not `auth_user_fk`.
+ * A log row the caller wrote themselves, in a region they can still read. `activities` and
+ * `events` both join `users` to get there because they store the app user id, not `auth_user_fk`.
  *
  * Shared by the own-row delete and the own-row update: it is the same row and the same author,
  * and a security predicate spelled out twice is one edit away from meaning two different things.
+ * `authorColumn` exists for the same reason, so `events.actor_fk` reuses this rather than
+ * restating it.
  */
-export const getOwnActivityPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+export const getOwnActivityPolicyConfig = (
+  policyFor: PgPolicyConfig['for'],
+  permission: App.Permission,
+  authorColumn = 'user_fk',
+) =>
   getPolicyConfig(
     policyFor,
     sql.raw(`
@@ -63,9 +69,87 @@ export const getOwnActivityPolicyConfig = (policyFor: PgPolicyConfig['for'], per
             FROM
               public.users u
             WHERE
-              u.id = user_fk
+              u.id = ${authorColumn}
               AND u.auth_user_fk = (SELECT auth.uid())
           ) AND EXISTS (SELECT authorize_in_region('${permission}', region_fk))
+        `),
+  )
+
+/** {@link getOwnActivityPolicyConfig} against `events.actor_fk`, which is the same predicate. */
+export const getOwnEventPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+  getOwnActivityPolicyConfig(policyFor, permission, 'actor_fk')
+
+/**
+ * A row hanging off an event the caller opened themselves, in a region they can still read.
+ *
+ * `changes` has no author of its own: the actor lives one table up, so ownership has to be read
+ * through `event_fk` rather than off the row. Without this the only predicate available is the
+ * region one, which would let any member of a region rewrite or delete anybody's diff, or forge
+ * "changed grade from 6a to 8c" onto somebody else's event.
+ *
+ * Every write here is the fold: it inserts changes under the event it just opened, overwrites
+ * `new_value` when the same column moves again, and deletes the row when an edit returns to where
+ * it started. All three are the same person on their own event, which is exactly this predicate.
+ */
+export const getOwnEventChildPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+  getPolicyConfig(
+    policyFor,
+    sql.raw(`
+          EXISTS (
+            SELECT
+              1
+            FROM
+              public.events e
+              JOIN public.users u ON u.id = e.actor_fk
+            WHERE
+              e.id = event_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+              AND e.region_fk = changes.region_fk
+          ) AND EXISTS (SELECT authorize_in_region('${permission}', region_fk))
+        `),
+  )
+
+/**
+ * A reaction or comment the caller is posting as themselves, on an event they can read, filed in
+ * that event's region.
+ *
+ * Three separate things, and dropping any one of them opens a hole. `auth.uid() = auth_user_fk`
+ * alone says who is asking but not who the row is attributed to: `user_fk` is what every relation
+ * and the whole Zero schema joins on, so without binding the two a caller can post under somebody
+ * else's name. The region predicate is what stops a row being filed in a region the caller cannot
+ * read. And `e.region_fk = reactions.region_fk` is what stops it being filed in the WRONG region:
+ * Zero's region gate filters on the row's own `region_fk`, so a mismatch syncs the row to people
+ * who cannot see the event it hangs off, and hides it from those who can.
+ *
+ * That last one MUST qualify the outer column. Written bare, `region_fk` inside the subquery
+ * resolves to `events.region_fk` and the test becomes `e.region_fk = e.region_fk`, which is always
+ * true. It reads correctly and permits exactly what it was added to prevent, which is how it got
+ * through the first time.
+ */
+export const getOwnReactionPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+  getPolicyConfig(
+    policyFor,
+    sql.raw(`
+          (SELECT auth.uid()) = auth_user_fk
+          AND EXISTS (
+            SELECT
+              1
+            FROM
+              public.users u
+            WHERE
+              u.id = user_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+          AND EXISTS (
+            SELECT
+              1
+            FROM
+              public.events e
+            WHERE
+              e.id = event_fk
+              AND e.region_fk = reactions.region_fk
+          )
+          AND EXISTS (SELECT authorize_in_region('${permission}', region_fk))
         `),
   )
 
