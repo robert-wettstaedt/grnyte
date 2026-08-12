@@ -11,6 +11,7 @@ import z from 'zod'
 const detailedAscents = (ctx: Parameters<typeof relatedRegion>[0]) => {
   const r = relatedRegion(ctx)
   return zql.ascents
+    .where('deletedAt', 'IS', null)
     .related('author')
     .related('files', (q) => r(q).related('bunnyStream').related('author'))
     .related('route', (q) => r(q).related('block', (q) => r(q).related('area', r)))
@@ -23,6 +24,7 @@ export const ascentsQueryDefs = {
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
       return zql.ascents
+        .where('deletedAt', 'IS', null)
         .where('id', args.ascentId)
         .related('files', (q) => r(q).related('bunnyStream').related('author'))
     }),
@@ -45,6 +47,7 @@ export const ascentsQueryDefs = {
       // bunnyStream/author aren't `r`'s region-scoped tables, but they're reached only
       // through an already region-filtered file (and RLS re-checks them server-side).
       return zql.ascents
+        .where('deletedAt', 'IS', null)
         .where('routeFk', args.routeId)
         .related('author')
         .related('files', (q) => r(q).related('bunnyStream').related('author'))
@@ -53,7 +56,7 @@ export const ascentsQueryDefs = {
 
   listUserAscents: defineQuery(
     z.object({ userId: z.number() }),
-    regionMemberCan(({ args }) => zql.ascents.where('createdBy', args.userId)),
+    regionMemberCan(({ args }) => zql.ascents.where('deletedAt', 'IS', null).where('createdBy', args.userId)),
   ),
 
   // A user's ascents enriched for their profile: author + media (like

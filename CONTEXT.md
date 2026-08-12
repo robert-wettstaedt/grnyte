@@ -45,13 +45,14 @@ The people in a region. Never crew, team or squad.
 
 ## Events
 
-The layer being built in `EVENTS-PLAN.md`. Until it lands, the terms under "Activity feed"
-below are the ones the code uses; the ones marked _retiring_ are what it replaces.
+The layer replacing the activity feed's storage. It is being built module by module, so until it
+lands the terms under "Activity feed" below are still the ones the code uses; the ones marked
+_retiring_ are what it replaces.
 
 Note the one word that means two things during the transition. **`events.verb`** is an AS2
 verb, a stored value out of a closed set (`create`, `update`, `delete`, `add`, `remove`,
 `join`, `leave`, `invite`, `accept`). **Headline verb**, below, is a paraglide message key.
-They are unrelated, and "the verb" is ambiguous until the rename in step 6 settles it.
+They are unrelated, so say which one you mean until the module rename retires the ambiguity.
 
 **event**
 One thing that happened: an actor, a verb, and one object named by a real foreign key. One

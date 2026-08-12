@@ -5,7 +5,7 @@
  */
 import * as schema from '$lib/db/schema'
 import { firstAscensionists } from '$lib/db/schema'
-import { insertActivity } from '$lib/entities/activity/activity.server'
+import { insertEvent } from '$lib/entities/event/event.server'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
@@ -62,14 +62,12 @@ export async function resolveFirstAscensionists(
     // Worth its own row despite the route activity alongside it, which records a different
     // thing (the route's history changed, not who somebody is).
     if (claimedUserFk != null) {
-      await insertActivity(db, {
-        columnName: 'first ascensionist',
-        entityId: claimedUserFk,
-        entityType: 'user',
-        newValue: created.name,
+      await insertEvent(db, {
+        actorFk: claimedUserFk,
+        metadata: created.name,
+        object: { id: claimedUserFk, type: 'user' },
         regionFk,
-        type: 'updated',
-        userFk: claimedUserFk,
+        verb: 'add',
       })
     }
 

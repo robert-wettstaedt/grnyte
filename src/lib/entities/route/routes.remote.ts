@@ -347,7 +347,10 @@ export const deleteRoute = authedCommand(
     // Ascents/files/topo lines FK-reference the route; with any of them present the route
     // is soft-deleted (and the hard delete never hits a FK constraint).
     const [ascent, file, topoRoute] = await Promise.all([
-      db.query.ascents.findFirst({ columns: { id: true }, where: eq(ascents.routeFk, id) }),
+      db.query.ascents.findFirst({
+        columns: { id: true },
+        where: and(eq(ascents.routeFk, id), isNull(ascents.deletedAt)),
+      }),
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.routeFk, id) }),
       db.query.topoRoutes.findFirst({ columns: { id: true }, where: eq(topoRoutes.routeFk, id) }),
     ])

@@ -63,7 +63,7 @@ export async function resolveAttachRegion(
   if (type === 'ascent') {
     const ascent = await db.query.ascents.findFirst({
       columns: { createdBy: true, regionFk: true },
-      where: (ascents) => eq(ascents.id, id),
+      where: (ascents, { and, isNull }) => and(eq(ascents.id, id), isNull(ascents.deletedAt)),
     })
     if (ascent == null) {
       error(404, 'ascent not found')

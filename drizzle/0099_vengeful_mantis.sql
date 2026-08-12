@@ -285,7 +285,7 @@ CREATE TABLE "_backfill_islands" AS
 WITH resolvable AS (
   -- Only rows whose object still exists, and the AS2 verb each one maps to. The clear cases are
   -- named; the rest fall through to create/update/delete, which is what they already meant. The
-  -- write path in step 2 emits the precise verb from the call site, where it is known exactly.
+  -- live write path emits the precise verb from the call site, where it is known exactly.
   SELECT a.*,
     CASE
       WHEN a.type = 'uploaded'                                                           THEN 'add'
@@ -375,9 +375,12 @@ SELECT c.created_at, c.region_fk, e.id, c.column_name, c.old_value, c.new_value
 FROM per_column c
 JOIN island_anchor a USING (region_fk, user_fk, entity_type, entity_id, verb, meta, island)
 JOIN "events" e ON e."_backfill_anchor" = a.anchor
--- The undo case: an edit that ended where it started is not a change. `IS DISTINCT FROM` so a
--- field cleared to '' against a NULL is judged the same way `changed()` judges it in the app.
-WHERE c.old_value IS DISTINCT FROM c.new_value;--> statement-breakpoint
+-- The undo case: an edit that ended where it started is not a change. Judged exactly as
+-- `changed()` judges it in the app, which means trimming BOTH ends and treating NULL and '' as
+-- the same absence. `IS DISTINCT FROM` alone does neither: it keeps NULL vs '' as a change, and
+-- keeps 'hi' vs 'hi\n' as one, so backfilled cards showed no-op diffs the live fold deletes.
+-- `btrim(x, E' \t\n\r')` is spelled out because bare `btrim` strips spaces only.
+WHERE coalesce(btrim(c.old_value, E' \t\n\r'), '') IS DISTINCT FROM coalesce(btrim(c.new_value, E' \t\n\r'), '');--> statement-breakpoint
 
 -- An update whose every change undid itself is not an event. Same rule the live fold applies
 -- when it deletes the last change row out of an event.

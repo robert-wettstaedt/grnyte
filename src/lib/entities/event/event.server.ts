@@ -1,0 +1,331 @@
+import * as schema from '$lib/db/schema'
+import { sub } from 'date-fns'
+import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import { changed } from '../activity/activity.server'
+
+type Db = PostgresJsDatabase<typeof schema>
+
+/** The six things an event can be about, and the column each one lands in. */
+export const EVENT_OBJECT_COLUMNS = {
+  area: 'areaFk',
+  ascent: 'ascentFk',
+  block: 'blockFk',
+  file: 'fileFk',
+  route: 'routeFk',
+  user: 'subjectFk',
+} as const satisfies Record<string, keyof schema.InsertEvent>
+
+export interface EventInput {
+  actorFk: number
+  /** What the sentence needs and the object cannot answer: a role, an invited address. */
+  metadata?: null | string
+  object: EventObject
+  regionFk: number
+  verb: schema.EventVerb
+}
+
+/** What a mutation names: the thing it acted on. `file` keys on a cuid, the rest on a serial. */
+export interface EventObject {
+  id: number | string
+  type: EventObjectType
+}
+
+export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
+
+/**
+ * How long a call has to continue an event before it opens a new one.
+ *
+ * The same 15 minutes the grace-window delete uses, and for the same reason: inside it, a person
+ * is still finishing one action rather than starting another.
+ */
+const FOLD_WINDOW = { minutes: 15 }
+
+/** One changed column, as a caller states it. */
+export interface EventChange {
+  columnName: string
+  newValue: null | string
+  oldValue: null | string
+  /** Set only when one call moved several rows (a reorder), so a block's log can find itself. */
+  subject?: EventObject
+}
+
+/** A diff of an entity, as `createUpdateEvent` takes it. */
+export type EventDiff = Record<string, unknown>
+
+/**
+ * Diff an entity, open or continue its event, and record what moved.
+ *
+ * The replacement for `createUpdateActivity`. What is gone from the signature:
+ * `parentEntityType`/`parentEntityId`, because a parent is reachable through the object's own
+ * foreign key, and `entityType`/`entityId` as a polymorphic pair, because the object is typed.
+ */
+export async function createUpdateEvent(
+  db: Db,
+  {
+    actorFk,
+    metadata,
+    newEntity,
+    object,
+    oldEntity,
+    regionFk,
+    verb = 'update',
+  }: Omit<EventInput, 'verb'> & {
+    newEntity: EventDiff
+    oldEntity: EventDiff
+    verb?: schema.EventVerb
+  },
+): Promise<boolean> {
+  const changes: EventChange[] = Object.keys(newEntity)
+    .filter((key) => changed(oldEntity[key], newEntity[key]))
+    .map((key) => ({
+      columnName: key,
+      newValue: newEntity[key] == null ? null : String(newEntity[key]),
+      oldValue: oldEntity[key] == null ? null : String(oldEntity[key]),
+    }))
+
+  if (changes.length === 0) {
+    return false
+  }
+
+  const event = await insertEvent(db, { actorFk, metadata, object, regionFk, verb })
+  return writeChanges(db, event, changes)
+}
+
+/**
+ * Only a refinement may join an open event, and only a create or an update may absorb one.
+ *
+ * The fold exists to merge a burst of edits into the action they refine, not to merge distinct
+ * actions. Without this a `delete` five minutes after an `update` on the same object joins it,
+ * keeps the verb `update`, and the deletion is never recorded anywhere: the feed reports "Jonas
+ * edited Mara's ascent" for a row he removed. `add` and `remove` are likewise distinct events
+ * each time, which is why attaching two photos is two cards rather than one that quietly grows.
+ */
+const joinable = (verb: schema.EventVerb) => verb === 'update'
+const absorbs = (verb: schema.EventVerb) => verb === 'create' || verb === 'update'
+
+/**
+ * Whether this row may be hard-deleted, or must soft-delete and keep its history.
+ *
+ * A row may go for good only if all three of these hold, and this takes all three because two of
+ * them are generic and one is not:
+ *
+ * - **young enough**, which is the same 15 minutes everywhere
+ * - **nobody has responded**, which is generic too: reactions and comments hang off `events`, and
+ *   `events.<object>_fk ON DELETE CASCADE` takes them with the row without a word. A mistake
+ *   leaves no trace; somebody else's words are not part of the mistake
+ * - **`childless`**, which is entity-specific and only the caller can answer. A route means no
+ *   ascents, files or topo lines; an area means no blocks; an ascent means nothing at all, since
+ *   `deleteAscent` cascades its own media along with it
+ *
+ * That last one is a required argument rather than a note in this comment on purpose. It was a
+ * note first, and the ascent call site did not check it, which is the shape of mistake a
+ * parameter makes impossible: the only caller that may pass `true` is one that has thought about
+ * what its children are.
+ */
+export async function canHardDelete(
+  db: Db,
+  { childless, createdAt, object }: { childless: boolean; createdAt: Date | number; object: EventObject },
+): Promise<boolean> {
+  if (!childless || !withinGraceWindow(createdAt)) {
+    return false
+  }
+
+  const [responded] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.reactions)
+    .innerJoin(schema.events, eq(schema.events.id, schema.reactions.eventFk))
+    .where(objectMatches(object))
+
+  return responded.count === 0
+}
+
+/**
+ * Log that something happened, and return the event it landed on.
+ *
+ * One event per mutation call, its object the entity the call names. A call that continues an open
+ * event on the same object joins it and bumps its timestamp so it returns to the top of the feed,
+ * exactly as the per-column fold does today.
+ *
+ * Replaces `insertActivity`. The repeat-collapse that function performs (deleting an earlier row
+ * with identical values before inserting) is not needed here: joining the open event IS the
+ * collapse, and it keeps the event's id stable, which is the whole point. A reaction attached to
+ * it survives the author saving again.
+ */
+export async function insertEvent(db: Db, input: EventInput): Promise<schema.Event> {
+  const open = joinable(input.verb) ? await openEvent(db, input) : undefined
+
+  if (open != null && absorbs(open.verb)) {
+    // The verb is NOT overwritten. A create that gains later edits is still a create; that is
+    // what makes "Anna added Traumtanz" absorb its own refinements instead of becoming an update.
+    const [bumped] = await db
+      .update(schema.events)
+      .set({ createdAt: new Date() })
+      .where(eq(schema.events.id, open.id))
+      .returning()
+
+    return bumped
+  }
+
+  const [created] = await db
+    .insert(schema.events)
+    .values({
+      actorFk: input.actorFk,
+      metadata: input.metadata ?? null,
+      regionFk: input.regionFk,
+      verb: input.verb,
+      ...objectColumns(input.object),
+    })
+    .returning()
+
+  return created
+}
+
+/**
+ * Whether a row is young enough to be deleted without trace.
+ *
+ * Deleted inside 15 minutes of creation, it was a mistake: it is hard-deleted and takes its events
+ * with it through `on delete cascade`. Deleted later, it has been seen, so it soft-deletes and
+ * keeps its history. The window matches the fold's for the same reason: inside it, nothing has
+ * settled into being a fact yet.
+ *
+ * Only the age half. Reach for {@link canHardDelete} instead unless you genuinely want just this:
+ * it asks the other two conditions as well, and takes the entity-specific one as an argument so
+ * it cannot be skipped.
+ */
+export function withinGraceWindow(createdAt: Date | number): boolean {
+  const created = typeof createdAt === 'number' ? createdAt : createdAt.getTime()
+  return created > sub(new Date(), FOLD_WINDOW).getTime()
+}
+
+/**
+ * Record what changed under an event, merging with anything the same call already wrote.
+ *
+ * Three behaviours, all of which `createUpdateActivity` has today at the row level and which move
+ * here unchanged:
+ *
+ * 1. **Column merge.** A to B then B to C inside the window is one row, A to C. The intermediate
+ *    was never a state the crag was left in. `ON CONFLICT` does it in one statement, where the old
+ *    code read then wrote and could race a double submit into two contradictory rows.
+ * 2. **Undo.** An edit that ends where it started deletes its row.
+ * 3. **Empty update.** An `update` event left holding no changes deletes itself.
+ *
+ * Returns whether the submission changed anything at all, which is not the same as whether a row
+ * survived: a change folded back into an earlier one is still an edit somebody made, and its owner
+ * still wants telling. A save that touched nothing must announce nothing.
+ */
+export async function writeChanges(db: Db, event: schema.Event, changes: readonly EventChange[]): Promise<boolean> {
+  const moved = changes.filter((change) => changed(change.oldValue, change.newValue))
+
+  if (moved.length > 0) {
+    // One statement for the whole diff. A seven-column ascent edit was seven sequential round
+    // trips; `ON CONFLICT` still does the merge, keeping where each column started and taking
+    // where it ended.
+    await db
+      .insert(schema.changes)
+      .values(
+        moved.map((change) => ({
+          columnName: change.columnName,
+          eventFk: event.id,
+          newValue: change.newValue,
+          oldValue: change.oldValue,
+          regionFk: event.regionFk,
+          ...(change.subject == null ? {} : objectColumns(change.subject)),
+        })),
+      )
+      .onConflictDoUpdate({
+        set: { newValue: sql`excluded.new_value` },
+        target: [schema.changes.eventFk, schema.changes.columnName],
+      })
+  }
+
+  // Undo, checked against the STORED start rather than this call's, so A to B then B to A across
+  // two saves is caught as well as within one.
+  //
+  // Read back and judge in JS rather than in SQL. Postgres `btrim` strips spaces only, so it
+  // disagreed with `changed()` on exactly the case the rule exists for: a description that
+  // reserialises with a trailing newline is an undo to `changed()` and a real edit to `btrim`,
+  // which is how "description changed from text to text" got onto a card.
+  const stored = await db.select().from(schema.changes).where(eq(schema.changes.eventFk, event.id))
+  const undone = stored.filter((row) => !changed(row.oldValue, row.newValue))
+
+  if (undone.length > 0) {
+    await db.delete(schema.changes).where(
+      inArray(
+        schema.changes.id,
+        undone.map((row) => row.id),
+      ),
+    )
+  }
+
+  if (event.verb === 'update' && stored.length === undone.length) {
+    // An update that undid itself is not an event. Unless somebody has already responded to it:
+    // deleting it here would cascade their reactions and comments away, and a thread that
+    // vanishes because the author edited a typo back is worse than a card with an empty diff.
+    const [responded] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.reactions)
+      .where(eq(schema.reactions.eventFk, event.id))
+
+    if (responded.count === 0) {
+      await db.delete(schema.events).where(eq(schema.events.id, event.id))
+    }
+  }
+
+  return moved.length > 0
+}
+
+/** `area_fk = 12`, and null for the other five. The CHECK requires exactly one to be set. */
+function objectColumns(object: EventObject): Pick<schema.InsertEvent, (typeof EVENT_OBJECT_COLUMNS)[EventObjectType]> {
+  const column = EVENT_OBJECT_COLUMNS[object.type]
+  // `file_fk` is text and the rest are integers, which is the whole reason six columns beat one
+  // polymorphic pair: each id keeps its own type instead of everything becoming text.
+  const value = object.type === 'file' ? String(object.id) : Number(object.id)
+  return { [column]: value } as never
+}
+
+/** The equality test for "the same object", spelled once so the fold and its callers agree. */
+function objectMatches(object: EventObject) {
+  const column = EVENT_OBJECT_COLUMNS[object.type]
+  const value = object.type === 'file' ? String(object.id) : Number(object.id)
+
+  return and(
+    eq(schema.events[column], value),
+    // Every other object column must be null, or an event about a different entity that happens
+    // to share an id would match. The CHECK guarantees only one is set, not WHICH one.
+    ...Object.values(EVENT_OBJECT_COLUMNS)
+      .filter((other) => other !== column)
+      .map((other) => isNull(schema.events[other])),
+  )
+}
+
+/**
+ * The event this call belongs to: the one it continues, or a new one.
+ *
+ * The fold key is `(actor, object, region, metadata)` and deliberately NOT the verb. A save five
+ * minutes after your own `create` joins the create, which is what today's created-suppression does
+ * except that it kept nothing; here the refinements survive as change rows under "Anna added
+ * Traumtanz". Two people editing the same route in the same minute still get an event each,
+ * because the actor is in the key.
+ *
+ * `metadata` scopes it for the same reason it scopes the old fold: it holds what a change is ABOUT
+ * rather than what it changed, so two photos on one block are two events rather than one.
+ */
+async function openEvent(db: Db, input: EventInput): Promise<schema.Event | undefined> {
+  const [open] = await db
+    .select()
+    .from(schema.events)
+    .where(
+      and(
+        eq(schema.events.actorFk, input.actorFk),
+        eq(schema.events.regionFk, input.regionFk),
+        objectMatches(input.object),
+        input.metadata == null ? isNull(schema.events.metadata) : eq(schema.events.metadata, input.metadata),
+        gt(schema.events.createdAt, sub(new Date(), FOLD_WINDOW)),
+      ),
+    )
+    .orderBy(sql`${schema.events.createdAt} desc`)
+    .limit(1)
+
+  return open
+}

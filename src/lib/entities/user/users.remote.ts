@@ -5,7 +5,7 @@ import { authedCommand, authedForm } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import z from 'zod'
-import { insertActivity, type ActivityInput } from '../activity/activity.server'
+import { createUpdateEvent } from '../event/event.server'
 import { writeUserSettings } from './settings.server'
 
 /**
@@ -50,25 +50,19 @@ export const updateUsername = authedForm(
 
     await db.update(users).set({ username }).where(eq(users.id, user.id))
 
-    // One activity per region the user belongs to: a rename is only news to the people who see
-    // that name in their lists, and the feed is region-scoped. `insertActivity` collapses on the
-    // whole row until it has been notified, so renaming back to a name used before replaces that
-    // earlier entry rather than adding a second one.
-    await insertActivity(
-      db,
-      regionFks.map(
-        (regionFk): ActivityInput => ({
-          columnName: 'username',
-          entityId: user.id,
-          entityType: 'user',
-          newValue: username,
-          oldValue: user.username,
-          regionFk,
-          type: 'updated',
-          userFk: user.id,
-        }),
-      ),
-    )
+    // One event per region the user belongs to: a rename is only news to the people who see that
+    // name in their lists, and the feed is region-scoped. The fold keys on the region too, so
+    // renaming twice inside the window merges to one change per region rather than stacking, and
+    // renaming back to where it started removes the event entirely.
+    for (const regionFk of regionFks) {
+      await createUpdateEvent(db, {
+        actorFk: user.id,
+        newEntity: { username },
+        object: { id: user.id, type: 'user' },
+        oldEntity: { username: user.username },
+        regionFk,
+      })
+    }
   },
 )
 

@@ -69,7 +69,11 @@ function applyRouteFilters<Q extends RoutesQuery>(
     q = q.where(({ exists, or }) =>
       or(
         exists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null)),
-        exists('ascents', (a) => r(a).whereExists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null))),
+        exists('ascents', (a) =>
+          r(a)
+            .where('deletedAt', 'IS', null)
+            .whereExists('files', (f) => r(f).where('bunnyStreamFk', 'IS NOT', null)),
+        ),
       ),
     )
   }

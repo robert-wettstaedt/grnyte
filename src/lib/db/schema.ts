@@ -884,7 +884,7 @@ export const ascents = table(
     // An ascent outlives its own deletion once `events` names it with a real foreign key: the log
     // has to survive what it describes, and a hard-deleted row would take its history with it.
     // Hard deletion is still what happens inside the 15-minute grace window, where the point is
-    // that a mistake leaves no trace at all (see EVENTS-PLAN.md).
+    // that a mistake leaves no trace at all.
     ...softDeleteFields,
     createdBy: baseContentFields.createdBy,
 
@@ -997,8 +997,8 @@ export const files = table(
     //
     // One upload call currently produces one event PER file, because an event carries exactly
     // one object. Whether a five-photo upload should instead be one event on the route with five
-    // change rows is a write-path question, open in step 2; `changes` is documented as
-    // update-only today, so that shape would need both docs to move together.
+    // change rows is still open; `changes` is update-only today, so that shape would need this
+    // and the `changes` contract to move together.
     ...softDeleteFields,
 
     height: integer('height'),
@@ -1379,13 +1379,14 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
  *
  * === EVENTS ===
  *
- * What happened, as opposed to what changed. See EVENTS-PLAN.md and CONTEXT.md.
+ * What happened, as opposed to what changed. See CONTEXT.md for the vocabulary.
  *
- * AS OF THIS COMMIT NOTHING WRITES OR READS THESE TABLES. `activities` above is still the live
- * log: every mutation handler still calls `insertActivity`, and it is still in `regionTables`.
- * The write path moves over in step 2 and the readers in step 3, after which `activities` goes
- * quiet and is dropped in step 7. Keeping its rows until then is what makes the folding backfill
- * checkable against its source.
+ * PARTIALLY LIVE, AND THE HALVES DISAGREE. The write path is moving over module by module:
+ * ascents, usernames and first-ascensionist claims already write here, everything else still
+ * writes `activities`. NOTHING reads `events` yet, so those three no longer appear in the feed or
+ * the digest. That gap is deliberate and only tolerable because nothing is deployed; it closes
+ * when the readers move over. `activities` keeps its rows until the migration is finished, which
+ * is what makes the folding backfill checkable against its source.
  *
  *
  */
@@ -1535,6 +1536,10 @@ export const events = table(
   ],
 ).enableRLS()
 
+export type Event = InferSelectModel<typeof events>
+export type EventVerb = (typeof eventVerb)[number]
+export type InsertEvent = InferInsertModel<typeof events>
+
 export const eventsRelations = relations(events, ({ many, one }) => ({
   actor: one(users, { fields: [events.actorFk], references: [users.id], relationName: 'event-actor' }),
   area: one(areas, { fields: [events.areaFk], references: [areas.id] }),
@@ -1631,6 +1636,9 @@ export const changes = table(
   ],
 ).enableRLS()
 
+export type Change = InferSelectModel<typeof changes>
+export type InsertChange = InferInsertModel<typeof changes>
+
 export const changesRelations = relations(changes, ({ one }) => ({
   area: one(areas, { fields: [changes.areaFk], references: [areas.id] }),
   ascent: one(ascents, { fields: [changes.ascentFk], references: [ascents.id] }),
@@ -1723,7 +1731,11 @@ export const reactions = table(
     // cannot read.
     policy(`users can insert own reactions`, getOwnReactionPolicyConfig('insert', REGION_PERMISSION_READ)),
     policy(`users can update own reactions`, getOwnReactionPolicyConfig('update', REGION_PERMISSION_READ)),
-    policy(`users can delete own reactions`, getOwnEntryPolicyConfig('delete')),
+    // Same three predicates as insert and update, not the bare own-entry helper: somebody who
+    // left a region, or whose membership was deactivated, must not still be able to delete rows
+    // in it. `getOwnEntryPolicyConfig` carries no region check at all, which is the reason the
+    // comment above rejects it.
+    policy(`users can delete own reactions`, getOwnReactionPolicyConfig('delete', REGION_PERMISSION_READ)),
     policy(
       `${REGION_PERMISSION_READ} can read reactions`,
       getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
@@ -1736,6 +1748,10 @@ export const reactions = table(
     ),
   ],
 ).enableRLS()
+
+export type InsertReaction = InferInsertModel<typeof reactions>
+export type Reaction = InferSelectModel<typeof reactions>
+export type ReactionType = (typeof reactionType)[number]
 
 export const reactionsRelations = relations(reactions, ({ many, one }) => ({
   children: many(reactions, { relationName: 'reaction-parent' }),

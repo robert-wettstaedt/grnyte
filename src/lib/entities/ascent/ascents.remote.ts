@@ -6,10 +6,10 @@ import { authedForm } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import z from 'zod'
-import { createUpdateActivity, insertActivity } from '../activity/activity.server'
 import { stringifyDeletedAscent } from '../activity/verbs'
+import { canHardDelete, createUpdateEvent, insertEvent } from '../event/event.server'
 import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
 import { notify, notifyMentions } from '../notification/notification.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
@@ -66,15 +66,11 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { after
 
   await recalcUserGradeAndRating(db, route.id)
 
-  await insertActivity(db, {
-    entityId: ascent.id,
-    entityType: 'ascent',
-    newValue: value.type,
-    parentEntityId: route.id,
-    parentEntityType: 'route',
+  await insertEvent(db, {
+    actorFk: user.id,
+    object: { id: ascent.id, type: 'ascent' },
     regionFk: route.regionFk,
-    type: 'created',
-    userFk: user.id,
+    verb: 'create',
   })
 
   afterCommit(() =>
@@ -95,7 +91,10 @@ export const updateAscent = authedForm(
   ascentActionSchema,
   async ({ id, ...value }, { afterCommit, db, user, userRegions }) => {
     const ascent = await requireRowForm(
-      () => (id == null ? Promise.resolve(undefined) : db.query.ascents.findFirst({ where: eq(ascents.id, id) })),
+      () =>
+        id == null
+          ? Promise.resolve(undefined)
+          : db.query.ascents.findFirst({ where: and(eq(ascents.id, id), isNull(ascents.deletedAt)) }),
       (row) => canEditAscent(userRegions, user.id, row),
       formError('ascents_notFound'),
     )
@@ -115,10 +114,8 @@ export const updateAscent = authedForm(
 
     await recalcUserGradeAndRating(db, ascent.routeFk)
 
-    const edited = await createUpdateActivity({
-      db,
-      entityId: ascent.id,
-      entityType: 'ascent',
+    const edited = await createUpdateEvent(db, {
+      actorFk: user.id,
       newEntity: {
         dateTime: value.dateTime,
         gradeFk: value.gradeFk,
@@ -128,6 +125,7 @@ export const updateAscent = authedForm(
         temperature: value.temperature,
         type: value.type,
       },
+      object: { id: ascent.id, type: 'ascent' },
       oldEntity: {
         dateTime: ascent.dateTime,
         gradeFk: ascent.gradeFk,
@@ -137,10 +135,7 @@ export const updateAscent = authedForm(
         temperature: ascent.temperature,
         type: ascent.type,
       },
-      parentEntityId: ascent.routeFk,
-      parentEntityType: 'route',
       regionFk: ascent.regionFk,
-      userFk: user.id,
     })
 
     // A maintainer may edit anybody's log, and the climber has no other way of finding out.
@@ -198,7 +193,7 @@ export const deleteAscent = command(
 
     const { climberFk, regionFk, routeFk, storage } = await rls(async (db) => {
       const ascent = await requireRow(
-        () => db.query.ascents.findFirst({ where: eq(ascents.id, id) }),
+        () => db.query.ascents.findFirst({ where: and(eq(ascents.id, id), isNull(ascents.deletedAt)) }),
         (row) => canEditAscent(userRegions, user.id, row),
         'Ascent not found',
       )
@@ -209,32 +204,55 @@ export const deleteAscent = command(
       })
       const storage = await deleteFileRows(db, fileRows)
 
-      await db.delete(ascents).where(eq(ascents.id, id))
+      // The grace window. Logged within the last fifteen minutes, this is somebody correcting a
+      // mistake, so the row goes for good and `on delete cascade` takes its events with it,
+      // leaving no trace. Any older and it has been seen: it soft-deletes and keeps its history,
+      // which is also what lets a card still name what was removed.
+      // `childless: true` is a claim this call site earns: the only thing that hangs off an
+      // ascent is its media, and `deleteFileRows` above has already taken it. Nothing else
+      // references the row, so removing it strands nothing.
+      const mistake = await canHardDelete(db, {
+        childless: true,
+        createdAt: ascent.createdAt,
+        object: { id: ascent.id, type: 'ascent' },
+      })
+
+      if (mistake) {
+        await db.delete(ascents).where(eq(ascents.id, id))
+      } else {
+        await db.update(ascents).set({ deletedAt: new Date() }).where(eq(ascents.id, id))
+      }
 
       await recalcUserGradeAndRating(db, ascent.routeFk)
 
-      // Whose ascent this was, written down while it still can be: the row is gone by the time
-      // any card renders, so the feed has nothing else to read it off. A maintainer clearing up
-      // somebody else's log otherwise gets "removed an ascent of Rampe" with no owner in it.
-      const climber = await db.query.users.findFirst({
-        columns: { username: true },
-        where: eq(users.id, ascent.createdBy),
-      })
+      // Only when somebody else did it. Deleting your own log entry is not news: the card
+      // disappearing IS what deleting means, and announcing it defeats the point. A maintainer
+      // clearing up another person's log is accountability and stays on the record.
+      //
+      // Nothing at all is written for a mistake, because the cascade just removed the event this
+      // would hang beside.
+      if (!mistake && user.id !== ascent.createdBy) {
+        // Whose ascent this was, in metadata: on a soft delete the row survives so the card could
+        // read it, but the climber's NAME still cannot be read off an ascent, and the sentence
+        // needs it ("Jonas removed Mara's ascent of Rampe").
+        const climber = await db.query.users.findFirst({
+          columns: { username: true },
+          where: eq(users.id, ascent.createdBy),
+        })
 
-      await insertActivity(db, {
-        entityId: ascent.id,
-        entityType: 'ascent',
-        metadata:
-          climber == null
-            ? undefined
-            : stringifyDeletedAscent({ climberFk: ascent.createdBy, climberName: climber.username }),
-        oldValue: ascent.type,
-        parentEntityId: ascent.routeFk,
-        parentEntityType: 'route',
-        regionFk: ascent.regionFk,
-        type: 'deleted',
-        userFk: user.id,
-      })
+        await insertEvent(db, {
+          actorFk: user.id,
+          // The climber's NAME, which is the one thing the object cannot answer: a soft-deleted
+          // ascent still knows `created_by`, but the sentence needs "Mara", not an id.
+          metadata:
+            climber == null
+              ? null
+              : stringifyDeletedAscent({ climberFk: ascent.createdBy, climberName: climber.username }),
+          object: { id: ascent.id, type: 'ascent' },
+          regionFk: ascent.regionFk,
+          verb: 'delete',
+        })
+      }
 
       return { climberFk: ascent.createdBy, regionFk: ascent.regionFk, routeFk: ascent.routeFk, storage }
     })

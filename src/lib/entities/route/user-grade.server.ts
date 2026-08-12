@@ -24,13 +24,13 @@ export async function recalcUserGradeAndRating(db: PostgresJsDatabase<typeof sch
     WITH grade_votes AS (
       SELECT DISTINCT ON (route_fk, created_by) route_fk, grade_fk AS vote
       FROM ascents
-      WHERE grade_fk IS NOT NULL ${andAscent}
+      WHERE grade_fk IS NOT NULL AND deleted_at IS NULL ${andAscent}
       ORDER BY route_fk, created_by, date_time DESC, id DESC
     ),
     rating_votes AS (
       SELECT DISTINCT ON (route_fk, created_by) route_fk, rating AS vote
       FROM ascents
-      WHERE rating IS NOT NULL ${andAscent}
+      WHERE rating IS NOT NULL AND deleted_at IS NULL ${andAscent}
       ORDER BY route_fk, created_by, date_time DESC, id DESC
     ),
     grade_agg AS (
