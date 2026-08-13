@@ -1,5 +1,5 @@
 {
-  "id": "79e8dfd1-a8b5-4afb-b269-28d75f25f4dc",
+  "id": "43d59c94-f40b-4426-b218-0f3591984184",
   "prevId": "c0415881-1dd8-4507-a1fe-87c863936404",
   "version": "7",
   "dialect": "postgresql",
@@ -2190,12 +2190,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "height": {
           "name": "height",
           "type": "integer",
@@ -2278,21 +2272,6 @@
           "columns": [
             {
               "expression": "created_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "files_deleted_at_idx": {
-          "name": "files_deleted_at_idx",
-          "columns": [
-            {
-              "expression": "deleted_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3535,7 +3514,7 @@
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT auth.uid()) = auth_user_fk"
+          "using": "\n          (SELECT auth.uid()) = auth_user_fk\n          AND EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = (SELECT auth.uid())\n          )\n          AND EXISTS (\n            SELECT\n              1\n            FROM\n              public.events e\n            WHERE\n              e.id = event_fk\n              AND e.region_fk = reactions.region_fk\n          )\n          AND EXISTS (SELECT authorize_in_region('region.read', region_fk))\n        "
         },
         "region.read can read reactions": {
           "name": "region.read can read reactions",

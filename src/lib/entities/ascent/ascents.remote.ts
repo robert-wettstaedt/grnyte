@@ -208,16 +208,21 @@ export const deleteAscent = command(
       // mistake, so the row goes for good and `on delete cascade` takes its events with it,
       // leaving no trace. Any older and it has been seen: it soft-deletes and keeps its history,
       // which is also what lets a card still name what was removed.
-      // `childless: true` is a claim this call site earns: the only thing that hangs off an
-      // ascent is its media, and `deleteFileRows` above has already taken it. Nothing else
-      // references the row, so removing it strands nothing.
-      const mistake = await canHardDelete(db, {
+      // `childless: true` is a claim this call site earns, and the constraint list is what earns
+      // it: exactly three tables reference `ascents`, and only `files` is ON DELETE NO ACTION.
+      // `deleteFileRows` above has already removed those rows for good, and `changes` and
+      // `events` both cascade. Nothing is left to strand.
+      //
+      // That depends on files being hard-deleted. If they are ever tombstoned instead, a
+      // surviving `files.ascent_fk` pins this row and the delete below fails on it, so this
+      // claim has to be revisited at the same time.
+      const erasable = await canHardDelete(db, {
         childless: true,
         createdAt: ascent.createdAt,
         object: { id: ascent.id, type: 'ascent' },
       })
 
-      if (mistake) {
+      if (erasable) {
         await db.delete(ascents).where(eq(ascents.id, id))
       } else {
         await db.update(ascents).set({ deletedAt: new Date() }).where(eq(ascents.id, id))
@@ -231,7 +236,7 @@ export const deleteAscent = command(
       //
       // Nothing at all is written for a mistake, because the cascade just removed the event this
       // would hang beside.
-      if (!mistake && user.id !== ascent.createdBy) {
+      if (!erasable && user.id !== ascent.createdBy) {
         // Whose ascent this was, in metadata: on a soft delete the row survives so the card could
         // read it, but the climber's NAME still cannot be read off an ascent, and the sentence
         // needs it ("Jonas removed Mara's ascent of Rampe").

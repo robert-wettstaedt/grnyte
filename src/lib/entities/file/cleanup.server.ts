@@ -22,11 +22,17 @@ type DeletableFile = Pick<File, 'bunnyStreamFk' | 'id' | 'path'>
  * fetched (the caller usually loaded them to permission-check anyway); their pre-unlink
  * `bunnyStreamFk` is what points at the hosted video.
  *
+ * A hard delete, deliberately, even though ascents and crag entities tombstone. An upload
+ * is one event per file, so cascading `events.file_fk` removes exactly the card for the
+ * photo that went and nothing else. Tombstoning instead would strand every parent: every
+ * `files.*_fk` is ON DELETE NO ACTION, so a surviving row pins the ascent, route, block or
+ * area it hangs off and their own deletes fail on it.
+ *
  * Storage is deliberately NOT touched here. Removing the hosted bytes is irreversible,
  * so it must run only after the transaction commits (see {@link removeFileStorage});
  * otherwise a later failure in the same transaction rolls the rows back but leaves a
- * live row pointing at media that is already gone. The DELETE `returning` is the source
- * of truth: a row RLS silently kept keeps its bytes too.
+ * live row pointing at media that is already gone. What comes back from `returning` is
+ * the source of truth: a row RLS silently kept keeps its bytes too.
  */
 export async function deleteFileRows(
   db: PostgresJsDatabase<typeof schema>,
@@ -42,6 +48,7 @@ export async function deleteFileRows(
   // streams, then delete the files.
   await db.update(files).set({ bunnyStreamFk: null }).where(inArray(files.id, ids))
   await db.delete(bunnyStreams).where(inArray(bunnyStreams.fileFk, ids))
+
   const deleted = await db.delete(files).where(inArray(files.id, ids)).returning({ id: files.id })
 
   const deletedIds = new Set(deleted.map((row) => row.id))

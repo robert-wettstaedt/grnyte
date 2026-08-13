@@ -17,6 +17,7 @@ import {
 import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
+import { canHardDelete } from '../event/event.server'
 import { canDeleteBlock, canEditBlock } from './permissions'
 
 const blockActionSchema = z.object({
@@ -408,10 +409,16 @@ export const deleteBlock = authedCommand(
       db.query.files.findFirst({ columns: { id: true }, where: eq(files.blockFk, id) }),
     ])
 
-    const data =
-      routeTotal.value === 0 && topo == null && file == null
-        ? await hardDeleteBlock(db, block)
-        : await softDeleteBlock(db, block)
+    // Childless is necessary but no longer sufficient: `events.block_fk` cascades, so erasing a
+    // block that has been logged for a while takes its history, and one somebody has reacted to
+    // takes their words.
+    const erasable = await canHardDelete(db, {
+      childless: routeTotal.value === 0 && topo == null && file == null,
+      createdAt: block.createdAt,
+      object: { id, type: 'block' },
+    })
+
+    const data = erasable ? await hardDeleteBlock(db, block) : await softDeleteBlock(db, block)
 
     // Close the gap the block leaves; the soft-deleted block keeps its own `order` for restore.
     await shiftBlockOrdersDown(db, block.areaFk, block.order)

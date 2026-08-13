@@ -991,16 +991,6 @@ export const files = table(
     // or the region creator as a last resort (see migration 0079).
     createdBy: baseContentFields.createdBy,
 
-    // Same reason as `ascents`: an upload event names the file through `events.file_fk`, so the
-    // row has to outlive the blob or the event cascades away and the upload vanishes from the
-    // log. `path` still points at storage that is gone, so every media query filters on this.
-    //
-    // One upload call currently produces one event PER file, because an event carries exactly
-    // one object. Whether a five-photo upload should instead be one event on the route with five
-    // change rows is still open; `changes` is update-only today, so that shape would need this
-    // and the `changes` contract to move together.
-    ...softDeleteFields,
-
     height: integer('height'),
     // '' for video rows — the media lives at the video host (see finalizeVideo);
     // discriminate on bunnyStreamFk before treating the path as a storage location.
@@ -1017,7 +1007,6 @@ export const files = table(
     index('files_ascent_fk_idx').on(table.ascentFk),
     index('files_block_fk_idx').on(table.blockFk),
     index('files_created_by_idx').on(table.createdBy),
-    index('files_deleted_at_idx').on(table.deletedAt),
     index('files_region_fk_idx').on(table.regionFk),
     index('files_route_fk_idx').on(table.routeFk),
 

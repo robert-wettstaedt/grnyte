@@ -27,6 +27,7 @@ import {
   insertActivity,
   restoreActivityHistory,
 } from '../activity/activity.server'
+import { canHardDelete } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
@@ -355,8 +356,17 @@ export const deleteRoute = authedCommand(
       db.query.topoRoutes.findFirst({ columns: { id: true }, where: eq(topoRoutes.routeFk, id) }),
     ])
 
+    // Childless is necessary but no longer sufficient. `events.route_fk` cascades, so erasing a
+    // route that has been in the log for a while takes its whole history with it, and erasing one
+    // somebody has reacted to takes their words too. Both fall back to the soft path.
+    const erasable = await canHardDelete(db, {
+      childless: ascent == null && file == null && topoRoute == null,
+      createdAt: route.createdAt,
+      object: { id, type: 'route' },
+    })
+
     let data: DeleteRouteSnapshot
-    if (ascent == null && file == null && topoRoute == null) {
+    if (erasable) {
       const tagRows = await db.query.routesToTags.findMany({ where: eq(routesToTags.routeFk, id) })
       const faRows = await db.query.routesToFirstAscensionists.findMany({
         where: eq(routesToFirstAscensionists.routeFk, id),

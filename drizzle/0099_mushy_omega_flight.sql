@@ -50,7 +50,6 @@ CREATE TABLE "reactions" (
 --> statement-breakpoint
 ALTER TABLE "reactions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "ascents" ADD COLUMN "deleted_at" timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "files" ADD COLUMN "deleted_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "changes" ADD CONSTRAINT "changes_region_fk_regions_id_fk" FOREIGN KEY ("region_fk") REFERENCES "public"."regions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "changes" ADD CONSTRAINT "changes_area_fk_areas_id_fk" FOREIGN KEY ("area_fk") REFERENCES "public"."areas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "changes" ADD CONSTRAINT "changes_ascent_fk_ascents_id_fk" FOREIGN KEY ("ascent_fk") REFERENCES "public"."ascents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -94,7 +93,6 @@ CREATE INDEX "reactions_region_fk_idx" ON "reactions" USING btree ("region_fk");
 CREATE INDEX "reactions_user_fk_idx" ON "reactions" USING btree ("user_fk");--> statement-breakpoint
 CREATE UNIQUE INDEX "reactions_one_emoji_idx" ON "reactions" USING btree ("event_fk",coalesce("parent_fk", 0),"user_fk") WHERE "reactions"."type" = 'emoji' and "reactions"."deleted_at" is null;--> statement-breakpoint
 CREATE INDEX "ascents_deleted_at_idx" ON "ascents" USING btree ("deleted_at");--> statement-breakpoint
-CREATE INDEX "files_deleted_at_idx" ON "files" USING btree ("deleted_at");--> statement-breakpoint
 CREATE POLICY "region.read can insert changes on their own events" ON "changes" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK (
           EXISTS (
             SELECT
@@ -257,7 +255,28 @@ CREATE POLICY "users can update own reactions" ON "reactions" AS PERMISSIVE FOR 
           )
           AND EXISTS (SELECT authorize_in_region('region.read', region_fk))
         );--> statement-breakpoint
-CREATE POLICY "users can delete own reactions" ON "reactions" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT auth.uid()) = auth_user_fk);--> statement-breakpoint
+CREATE POLICY "users can delete own reactions" ON "reactions" AS PERMISSIVE FOR DELETE TO "authenticated" USING (
+          (SELECT auth.uid()) = auth_user_fk
+          AND EXISTS (
+            SELECT
+              1
+            FROM
+              public.users u
+            WHERE
+              u.id = user_fk
+              AND u.auth_user_fk = (SELECT auth.uid())
+          )
+          AND EXISTS (
+            SELECT
+              1
+            FROM
+              public.events e
+            WHERE
+              e.id = event_fk
+              AND e.region_fk = reactions.region_fk
+          )
+          AND EXISTS (SELECT authorize_in_region('region.read', region_fk))
+        );--> statement-breakpoint
 CREATE POLICY "region.read can read reactions" ON "reactions" AS PERMISSIVE FOR SELECT TO "authenticated" USING ((SELECT authorize_in_region('region.read', region_fk)));--> statement-breakpoint
 CREATE POLICY "region.delete can delete reactions" ON "reactions" AS PERMISSIVE FOR DELETE TO "authenticated" USING ((SELECT authorize_in_region('region.delete', region_fk)));
 --> statement-breakpoint

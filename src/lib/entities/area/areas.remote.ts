@@ -17,6 +17,7 @@ import {
   restoreActivityHistory,
 } from '../activity/activity.server'
 import { stringifyDeletionScale } from '../activity/verbs'
+import { canHardDelete } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
@@ -274,10 +275,16 @@ export const deleteArea = authedCommand(
             .where(and(inArray(routes.blockFk, blockIds), isNull(routes.deletedAt))),
     ])
 
-    const data =
-      areaIds.length === 1 && blockRows.length === 0 && file == null
-        ? await hardDeleteArea(db, area)
-        : await softDeleteArea(db, area, areaIds, blockIds)
+    // Childless is necessary but no longer sufficient: `events.area_fk` cascades, so erasing an
+    // area that has been in the log for a while takes its history, and one somebody has reacted
+    // to takes their words.
+    const erasable = await canHardDelete(db, {
+      childless: areaIds.length === 1 && blockRows.length === 0 && file == null,
+      createdAt: area.createdAt,
+      object: { id, type: 'area' },
+    })
+
+    const data = erasable ? await hardDeleteArea(db, area) : await softDeleteArea(db, area, areaIds, blockIds)
 
     await insertActivity(db, {
       entityId: area.id,
