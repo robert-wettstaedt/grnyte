@@ -2,18 +2,7 @@ import * as schema from '$lib/db/schema'
 import { sub } from 'date-fns'
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-
-type Db = PostgresJsDatabase<typeof schema>
-
-/** The six things an event can be about, and the column each one lands in. */
-export const EVENT_OBJECT_COLUMNS = {
-  area: 'areaFk',
-  ascent: 'ascentFk',
-  block: 'blockFk',
-  file: 'fileFk',
-  route: 'routeFk',
-  user: 'subjectFk',
-} as const satisfies Record<string, keyof schema.InsertEvent>
+import { EVENT_OBJECT_COLUMNS, type EventObjectType } from './dto'
 
 export interface EventInput {
   actorFk: number
@@ -30,7 +19,7 @@ export interface EventObject {
   type: EventObjectType
 }
 
-export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
+type Db = PostgresJsDatabase<typeof schema>
 
 /**
  * How long a call has to continue an event before it opens a new one.
