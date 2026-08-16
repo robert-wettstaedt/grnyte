@@ -2,7 +2,6 @@ import * as schema from '$lib/db/schema'
 import { sub } from 'date-fns'
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import { changed } from '../activity/activity.server'
 
 type Db = PostgresJsDatabase<typeof schema>
 
@@ -46,8 +45,6 @@ export interface EventChange {
   columnName: string
   newValue: null | string
   oldValue: null | string
-  /** Set only when one call moved several rows (a reorder), so a block's log can find itself. */
-  subject?: EventObject
 }
 
 /** A diff of an entity, as `createUpdateEvent` takes it. */
@@ -62,6 +59,28 @@ export interface EventFilter {
   object?: EventObject
   regionFk?: number
   verb?: schema.EventVerb
+}
+
+/**
+ * Whether a column actually moved.
+ *
+ * Surrounding whitespace does not count. Opening a description in the markdown editor and saving
+ * it untouched reserialises it with a trailing newline, which is not an edit anybody made and
+ * which logged a card whose two sides looked identical. A SQL NULL and a form's '' are likewise
+ * the same state, "not set"; stringifying null to "null" logged a card reading "Not set" on both
+ * sides of a v1 row somebody merely opened.
+ *
+ * Only the ends are trimmed. Whitespace INSIDE the value is left alone on purpose: in markdown two
+ * spaces at the end of a line are a hard break, so collapsing runs would drop a real change. The
+ * stored values keep their exact bytes either way; this decides only whether there was a change to
+ * record.
+ *
+ * `writeChanges` reads the stored rows back and applies this in JS rather than in SQL, because
+ * Postgres `btrim` strips spaces only and so disagreed with it on exactly the newline case above.
+ */
+export function changed(before: unknown, after: unknown): boolean {
+  const normalise = (value: unknown) => (value == null ? '' : String(value).trim())
+  return normalise(before) !== normalise(after)
 }
 
 /**
@@ -148,11 +167,13 @@ export async function canHardDelete(
     return false
   }
 
+  // Soft-deleted reactions do not count. `reactions` keeps a removed row, so without this a tap
+  // taken back a second later would disable the grace window for that entity forever.
   const [responded] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.reactions)
     .innerJoin(schema.events, eq(schema.events.id, schema.reactions.eventFk))
-    .where(objectMatches(object))
+    .where(and(objectMatches(object), isNull(schema.reactions.deletedAt)))
 
   return responded.count === 0
 }
@@ -205,13 +226,13 @@ export async function insertEvent(db: Db, input: EventInput): Promise<schema.Eve
   if (open != null && joins(input.verb, open)) {
     // The verb is NOT overwritten. A create that gains later edits is still a create; that is
     // what makes "Anna added Traumtanz" absorb its own refinements instead of becoming an update.
-    const [bumped] = await db
-      .update(schema.events)
-      .set({ createdAt: new Date() })
-      .where(eq(schema.events.id, open.id))
-      .returning()
+    await db.update(schema.events).set({ createdAt: new Date() }).where(eq(schema.events.id, open.id))
 
-    return bumped
+    // Deliberately the row as it was BEFORE the bump: `writeChanges` puts that timestamp back when
+    // the edit turns out to have undone itself, so a create does not refloat for a no-op save.
+    // Not the UPDATE's own RETURNING, which is empty whenever RLS lets the caller read the open
+    // event but not write it, and destructuring that gave a null deref instead of an error.
+    return open
   }
 
   const [created] = await db
@@ -277,7 +298,6 @@ export async function writeChanges(db: Db, event: schema.Event, changes: readonl
           newValue: change.newValue,
           oldValue: change.oldValue,
           regionFk: event.regionFk,
-          ...(change.subject == null ? {} : objectColumns(change.subject)),
         })),
       )
       .onConflictDoUpdate({
@@ -305,17 +325,23 @@ export async function writeChanges(db: Db, event: schema.Event, changes: readonl
     )
   }
 
-  if (event.verb === 'update' && stored.length === undone.length) {
+  if (stored.length === undone.length) {
     // An update that undid itself is not an event. Unless somebody has already responded to it:
     // deleting it here would cascade their reactions and comments away, and a thread that
     // vanishes because the author edited a typo back is worse than a card with an empty diff.
+    // A withdrawn reaction is not a response: `reactions` soft-deletes, so the row is still there.
     const [responded] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.reactions)
-      .where(eq(schema.reactions.eventFk, event.id))
+      .where(and(eq(schema.reactions.eventFk, event.id), isNull(schema.reactions.deletedAt)))
 
-    if (responded.count === 0) {
+    if (event.verb === 'update' && responded.count === 0) {
       await db.delete(schema.events).where(eq(schema.events.id, event.id))
+    } else {
+      // The event survives holding nothing, so it must not have moved. `insertEvent` bumps the
+      // open event before anybody knows a change will survive, which floated "Anna added
+      // Traumtanz" back to the top of the feed for a rename she typed and untyped.
+      await db.update(schema.events).set({ createdAt: event.createdAt }).where(eq(schema.events.id, event.id))
     }
   }
 
