@@ -10,14 +10,8 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
-import {
-  createUpdateActivity,
-  deleteActivity,
-  insertActivity,
-  restoreActivityHistory,
-} from '../activity/activity.server'
 import { stringifyDeletionScale } from '../activity/verbs'
-import { canHardDelete } from '../event/event.server'
+import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { refreshAreaType } from './area.server'
 import { loadParentArea, requireEditableArea } from './guards.server'
@@ -77,16 +71,13 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
     await refreshAreaType(db, value.parentFk)
   }
 
-  await insertActivity(db, {
-    entityId: createdArea.id,
-    entityType: 'area',
-    // The name the feed falls back to once the area itself is gone (`tombstone` in `verbs.ts`).
-    newValue: createdArea.name,
-    parentEntityId: createdArea.parentFk,
-    parentEntityType: 'area',
+  // No name and no parent stored: an area soft-deletes, so `areas.name` and `areas.parent_fk`
+  // are still readable through the object key when the card renders.
+  await insertEvent(db, {
+    actorFk: user.id,
+    object: { id: createdArea.id, type: 'area' },
     regionFk: createdArea.regionFk,
-    type: 'created',
-    userFk: user.id,
+    verb: 'create',
   })
 
   afterCommit(() =>
@@ -124,16 +115,12 @@ export const updateArea = authedForm(
       .set({ ...value, id: area.id })
       .where(eq(areas.id, area.id))
 
-    await createUpdateActivity({
-      db,
-      entityId: area.id,
-      entityType: 'area',
+    await createUpdateEvent(db, {
+      actorFk: user.id,
       newEntity: { description: value.description, name: value.name },
+      object: { id: area.id, type: 'area' },
       oldEntity: { description: area.description, name: area.name },
-      parentEntityId: area.parentFk,
-      parentEntityType: 'area',
       regionFk: area.regionFk,
-      userFk: user.id,
     })
 
     afterCommit(() =>
@@ -286,24 +273,25 @@ export const deleteArea = authedCommand(
 
     const data = erasable ? await hardDeleteArea(db, area) : await softDeleteArea(db, area, areaIds, blockIds)
 
-    await insertActivity(db, {
-      entityId: area.id,
-      entityType: 'area',
-      // What went with it, recorded while it is still knowable. The area itself is one of the
-      // live rows counted, and it is not something it took with it.
-      metadata: stringifyDeletionScale({
-        areas: Math.max(0, areaCount.value - 1),
-        blocks: blockRows.filter((row) => row.deletedAt == null).length,
-        routes: routeCount.value,
-      }),
-      // The only name the feed will ever have for it: the row is about to be unreachable.
-      oldValue: area.name,
-      parentEntityId: area.parentFk,
-      parentEntityType: 'area',
-      regionFk: area.regionFk,
-      type: 'deleted',
-      userFk: user.id,
-    })
+    // Soft path only. `events.area_fk` is an immediate foreign key, so an event written after the
+    // row is gone aborts the transaction, and one written before it is cascaded away a statement
+    // later: a mistake inside the grace window leaves no trace either way.
+    if (!erasable) {
+      await insertEvent(db, {
+        actorFk: user.id,
+        // What went with it, recorded while it is still knowable: the counts are gone the moment
+        // the children are stamped. The area's own name is not stored, because the soft delete
+        // keeps the row readable.
+        metadata: stringifyDeletionScale({
+          areas: Math.max(0, areaCount.value - 1),
+          blocks: blockRows.filter((row) => row.deletedAt == null).length,
+          routes: routeCount.value,
+        }),
+        object: { id: area.id, type: 'area' },
+        regionFk: area.regionFk,
+        verb: 'delete',
+      })
+    }
     if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
 
     const redirectTo =
@@ -370,8 +358,8 @@ async function softRestoreArea(
 }
 
 /** Undo a {@link deleteArea}: recreate the hard-deleted area (with its parking), or clear
- *  the `deletedAt` the soft delete stamped across the subtree. Either way, remove the
- *  'deleted' activity the delete logged so the timeline reads as if it never happened. */
+ *  the `deletedAt` the soft delete stamped across the subtree. Either way, the delete event
+ *  goes with it so the timeline reads as if it never happened. */
 export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
     // The snapshot came from the client, so re-validate its structural placement the way createArea
@@ -398,9 +386,8 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     const created = await hardRestoreArea(db, snapshot, user.id)
 
     if (created.parentFk != null) await refreshAreaType(db, created.parentFk)
-    // The row is new, so the history has to follow it, or the restored area's own create card
-    // and every edit ever made to it render as tombstones next to the live area.
-    await restoreActivityHistory(db, { entityType: 'area', fromId: snapshot.areaId, toId: created.id })
+    // Nothing to move onto the new id: only an area inside the grace window is hard-deleted, and
+    // `events.area_fk on delete cascade` took its entire log with it.
 
     return {
       data: { areaId: created.id },
@@ -417,7 +404,9 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
   await softRestoreArea(db, snapshot)
 
   if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
-  await deleteActivity(db, { columnName: null, entityId: snapshot.areaId, entityType: 'area', type: 'deleted' })
+  // The delete event and nothing else: the area's own create and every edit ever made to it
+  // still point at this id and stay live.
+  await deleteEvent(db, { object: { id: snapshot.areaId, type: 'area' }, verb: 'delete' })
 
   return {
     data: { areaId: snapshot.areaId },
@@ -455,16 +444,17 @@ export const addParking = authedForm(
 
     await createParking(db, area, { lat, long, path })
 
-    await insertActivity(db, {
-      columnName: 'parking location',
-      entityId: area.id,
-      entityType: 'area',
-      newValue: stringifyCoords({ lat, long }),
-      parentEntityId: area.parentFk,
-      parentEntityType: 'area',
+    // An event with the coordinates in `metadata`, NOT a change row on the area. An area holds
+    // several parkings and each one is its own thing added, not a field of the area moving from
+    // one value to another: as a change they would all key on one column name, where
+    // `changes_event_fk_column_name_idx` merges them into a single row and the second parking
+    // erases the first. Metadata scopes the fold instead, so two parkings are two events.
+    await insertEvent(db, {
+      actorFk: user.id,
+      metadata: stringifyCoords({ lat, long }),
+      object: { id: area.id, type: 'area' },
       regionFk: area.regionFk,
-      type: 'updated',
-      userFk: user.id,
+      verb: 'add',
     })
 
     return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: areaId.toString() }) }
@@ -511,17 +501,15 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
     await db.update(areas).set({ geoPaths: remaining }).where(eq(areas.id, area.id))
   }
 
+  // The coordinates in `metadata` for the same reason the add stores them there, plus one this
+  // side only: the row that could answer where the parking was is gone by now.
   if (area != null) {
-    await insertActivity(db, {
-      columnName: 'parking location',
-      entityId: area.id,
-      entityType: 'area',
-      oldValue: stringifyCoords(parking),
-      parentEntityId: area.parentFk,
-      parentEntityType: 'area',
+    await insertEvent(db, {
+      actorFk: user.id,
+      metadata: stringifyCoords(parking),
+      object: { id: area.id, type: 'area' },
       regionFk: area.regionFk,
-      type: 'deleted',
-      userFk: user.id,
+      verb: 'remove',
     })
   }
 
@@ -549,11 +537,13 @@ export const restoreParking = authedCommand(
 
     await createParking(db, area, { lat, long, path })
 
-    await deleteActivity(db, {
-      columnName: 'parking location',
-      entityId: areaId,
-      entityType: 'area',
-      type: 'deleted',
+    // Keyed on the coordinates rather than on who removed the parking: any admin's undo erases
+    // the record, and an area's other parkings carry other coordinates and survive.
+    await deleteEvent(db, {
+      metadata: stringifyCoords({ lat, long }),
+      object: { id: areaId, type: 'area' },
+      regionFk: area.regionFk,
+      verb: 'remove',
     })
   },
 )

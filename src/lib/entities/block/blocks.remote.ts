@@ -8,16 +8,10 @@ import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
 import z from 'zod'
-import {
-  createUpdateActivity,
-  deleteActivity,
-  insertActivity,
-  restoreActivityHistory,
-} from '../activity/activity.server'
 import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
-import { canHardDelete } from '../event/event.server'
+import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { canDeleteBlock, canEditBlock } from './permissions'
 
 const blockActionSchema = z.object({
@@ -97,16 +91,13 @@ export const createBlock = authedForm(blockActionSchema, async (value, { db, use
 
   await refreshAreaType(db, value.areaId)
 
-  await insertActivity(db, {
-    entityId: block.id,
-    entityType: 'block',
-    // The name the feed falls back to once the block itself is gone (`tombstone` in `verbs.ts`).
-    newValue: block.name,
-    parentEntityId: value.areaId,
-    parentEntityType: 'area',
+  // No name and no parent stored: a block soft-deletes, so `blocks.name` and `blocks.area_fk`
+  // stay readable through the object key when the card renders.
+  await insertEvent(db, {
+    actorFk: user.id,
+    object: { id: block.id, type: 'block' },
     regionFk: block.regionFk,
-    type: 'created',
-    userFk: user.id,
+    verb: 'create',
   })
 
   return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
@@ -135,13 +126,19 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
     invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
   }
 
-  // Sync the optional location: move the existing pin, attach a new one, or remove it.
+  // Sync the optional location: move the existing pin, attach a new one, or remove it. The two
+  // sides of the pin are collected rather than logged here, so one submit writes one diff below.
   let geolocationFk = block.geolocationFk
+  let oldLocation: null | string = null
+  let newLocation: null | string = null
   if (value.lat != null && value.long != null) {
     const existing =
       geolocationFk == null
         ? null
         : await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+
+    oldLocation = existing == null ? null : stringifyCoords(existing, existing.estimated)
+    newLocation = stringifyCoords({ lat: value.lat, long: value.long }, value.estimated)
 
     if (existing == null) {
       const [geolocation] = await db
@@ -161,60 +158,34 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
         .set({ estimated: value.estimated, lat: value.lat, long: value.long })
         .where(eq(geolocations.id, existing.id))
     }
-
-    // The form resubmits the current pin on every save, so a name-only edit arrives here with
-    // unchanged coordinates. `createUpdateActivity` compares before it writes, so that is a
-    // no-op rather than a lie in the feed, and a burst of nudges collapses into one row that
-    // keeps the original `oldValue`.
-    await createUpdateActivity({
-      db,
-      entityId: block.id,
-      entityType: 'block',
-      newEntity: { location: stringifyCoords({ lat: value.lat, long: value.long }, value.estimated) },
-      oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
-      parentEntityId: block.areaFk,
-      parentEntityType: 'area',
-      regionFk: block.regionFk,
-      userFk: user.id,
-    })
   } else if (geolocationFk != null) {
     // Read the pin before dropping it: `oldValue` is the only place the feed can learn where
     // the block used to be, since the row it points at is about to be gone.
     const removed = await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+    oldLocation = removed == null ? null : stringifyCoords(removed, removed.estimated)
 
     // Removed: break the block→geo link first so the row can be deleted.
     await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
     await db.delete(geolocations).where(eq(geolocations.id, geolocationFk))
     geolocationFk = null
-
-    await insertActivity(db, {
-      columnName: 'location',
-      entityId: block.id,
-      entityType: 'block',
-      oldValue: removed == null ? null : stringifyCoords(removed, removed.estimated),
-      parentEntityId: block.areaFk,
-      parentEntityType: 'area',
-      regionFk: block.regionFk,
-      type: 'deleted',
-      userFk: user.id,
-    })
   }
 
   await db.update(blocks).set({ geolocationFk, name: value.name }).where(eq(blocks.id, block.id))
 
-  if (block.name !== value.name) {
-    await createUpdateActivity({
-      db,
-      entityId: block.id,
-      entityType: 'block',
-      newEntity: { name: value.name },
-      oldEntity: { name: block.name },
-      parentEntityId: block.areaFk,
-      parentEntityType: 'area',
-      regionFk: block.regionFk,
-      userFk: user.id,
-    })
-  }
+  // One call for the whole submit, the way `updateRoute` does it: both columns land on the same
+  // event anyway, and a call apiece pays for the open-event lookup and the readback twice.
+  //
+  // The form resubmits the current pin on every save, so a name-only edit arrives here with
+  // unchanged coordinates. `createUpdateEvent` compares before it writes, so that is a no-op
+  // rather than a lie in the feed, and a burst of nudges merges into one change row that keeps
+  // the original `oldValue`.
+  await createUpdateEvent(db, {
+    actorFk: user.id,
+    newEntity: { location: newLocation, name: value.name },
+    object: { id: block.id, type: 'block' },
+    oldEntity: { location: oldLocation, name: block.name },
+    regionFk: block.regionFk,
+  })
 
   return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
 })
@@ -247,16 +218,12 @@ export const setBlockLocation = authedCommand(
 
     // The pin dragged on the map keeps whatever `estimated` flag it had: this move confirms
     // nothing, it only relocates. Clearing the flag is the edit form's job.
-    await createUpdateActivity({
-      db,
-      entityId: block.id,
-      entityType: 'block',
+    await createUpdateEvent(db, {
+      actorFk: user.id,
       newEntity: { location: stringifyCoords(value, existing?.estimated) },
+      object: { id: block.id, type: 'block' },
       oldEntity: { location: existing == null ? null : stringifyCoords(existing, existing.estimated) },
-      parentEntityId: block.areaFk,
-      parentEntityType: 'area',
       regionFk: block.regionFk,
-      userFk: user.id,
     })
 
     return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
@@ -294,16 +261,12 @@ export const estimateBlockLocationFromPhoto = authedCommand(
     await db.update(blocks).set({ geolocationFk: geolocation.id }).where(eq(blocks.id, block.id))
 
     // Always the first pin (the guard above returns when the block has one), so no old value.
-    await insertActivity(db, {
-      columnName: 'location',
-      entityId: block.id,
-      entityType: 'block',
-      newValue: stringifyCoords(value, true),
-      parentEntityId: block.areaFk,
-      parentEntityType: 'area',
+    await createUpdateEvent(db, {
+      actorFk: user.id,
+      newEntity: { location: stringifyCoords(value, true) },
+      object: { id: block.id, type: 'block' },
+      oldEntity: { location: null },
       regionFk: block.regionFk,
-      type: 'updated',
-      userFk: user.id,
     })
   },
 )
@@ -423,19 +386,21 @@ export const deleteBlock = authedCommand(
     // Close the gap the block leaves; the soft-deleted block keeps its own `order` for restore.
     await shiftBlockOrdersDown(db, block.areaFk, block.order)
 
-    await insertActivity(db, {
-      entityId: block.id,
-      entityType: 'block',
-      // What went with it. A deletion is the one card a reader cannot check by following a
-      // link, so the scale of it has to be recorded at the moment it is still knowable.
-      metadata: stringifyDeletionScale({ routes: routeCount.value }),
-      oldValue: block.name,
-      parentEntityId: block.areaFk,
-      parentEntityType: 'area',
-      regionFk: block.regionFk,
-      type: 'deleted',
-      userFk: user.id,
-    })
+    // Soft path only. `events.block_fk` is an immediate foreign key, so an event written after
+    // the row is gone aborts the transaction, and one written before it is cascaded away a
+    // statement later: a mistake inside the grace window leaves no trace either way.
+    if (!erasable) {
+      await insertEvent(db, {
+        actorFk: user.id,
+        // What went with it, recorded while it is still knowable: the count is gone the moment
+        // the routes are stamped. The block's own name is not stored, because the soft delete
+        // keeps the row readable.
+        metadata: stringifyDeletionScale({ routes: routeCount.value }),
+        object: { id: block.id, type: 'block' },
+        regionFk: block.regionFk,
+        verb: 'delete',
+      })
+    }
     await refreshAreaType(db, block.areaFk)
 
     return { data, redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(block.areaFk) }) }
@@ -492,7 +457,7 @@ async function softRestoreBlock(
 
 /** Undo a {@link deleteBlock}: recreate the hard-deleted block (with its pin) or clear the
  *  `deletedAt` the soft delete stamped — either way slotting it back at its original order, and
- *  removing the 'deleted' activity so the timeline reads as if it never happened. */
+ *  erasing the delete event so the timeline reads as if it never happened. */
 export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
     // The snapshot is client-supplied, so re-validate placement the way createBlock does: the target
@@ -516,9 +481,8 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     const blockId = await hardRestoreBlock(db, snapshot, user.id)
 
     await refreshAreaType(db, snapshot.areaFk)
-    // The row is new, so the history has to follow it, or the restored block's own create card
-    // and every edit ever made to it render as tombstones next to the live block.
-    await restoreActivityHistory(db, { entityType: 'block', fromId: snapshot.blockId, toId: blockId })
+    // Nothing to move onto the new id: only a block inside the grace window is hard-deleted, and
+    // `events.block_fk on delete cascade` took its entire log with it.
 
     return {
       data: { blockId },
@@ -535,7 +499,9 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
   await softRestoreBlock(db, snapshot, block)
 
   await refreshAreaType(db, block.areaFk)
-  await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
+  // The delete event and nothing else: the block's own create and every edit ever made to it
+  // still point at this id and stay live.
+  await deleteEvent(db, { object: { id: snapshot.blockId, type: 'block' }, verb: 'delete' })
 
   return {
     data: { blockId: snapshot.blockId },

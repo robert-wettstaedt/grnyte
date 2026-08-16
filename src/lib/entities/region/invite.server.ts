@@ -18,7 +18,7 @@
  */
 import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { activities, regionInvitations, regionMembers, regions, users, userSettings } from '$lib/db/schema'
+import { events, regionInvitations, regionMembers, regions, users, userSettings } from '$lib/db/schema'
 import { inviteEmailContent } from '$lib/email/invite'
 import { sendEmail } from '$lib/email/send.server'
 import type { EmailLocale } from '$lib/email/shell'
@@ -29,7 +29,7 @@ import { and, count, eq, gt } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { authUsers } from 'drizzle-orm/supabase'
 import z from 'zod'
-import { insertActivity } from '../activity/activity.server'
+import { insertEvent } from '../event/event.server'
 import { notify } from '../notification/notification.server'
 import { acceptPath, type UserInvitationItem, type UserRegion } from './dto'
 import { canEditRegion } from './permissions'
@@ -183,13 +183,13 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
       })
 
       // So the join shows up in the region's audit log, the same shape `removeRegionMember` logs.
-      await insertActivity(tx, {
-        columnName: 'invitation',
-        entityId: user.id,
-        entityType: 'user',
+      // Subject and actor are the same person, and that is not a bug: accepting an invitation
+      // is something you do to your own membership.
+      await insertEvent(tx, {
+        actorFk: user.id,
+        object: { id: user.id, type: 'user' },
         regionFk: invitation.regionFk,
-        type: 'updated',
-        userFk: user.id,
+        verb: 'accept',
       })
 
       joined = { invitedByFk: invitation.invitedByFk, regionFk: invitation.regionFk, userFk: user.id }
@@ -442,35 +442,28 @@ export async function resendInvitation(
   // moment it reaches somebody. So: log it only when the region has no record of this address
   // being invited, and log it under whoever actually pressed Resend.
   //
-  // Not left to `insertActivity`'s identity collapse, which is what this used to do by writing
-  // the ORIGINAL inviter's id so the values would match. That collapse deletes the earlier row
-  // and inserts a fresh one, so every resend re-dated somebody else's week-old card to now and
-  // floated it back to the top of the feed, still in their name. A resend is not a new
-  // invitation; when the invitation is already on the record there is nothing to say.
+  // Not left to the fold in `insertEvent`, which is what this used to lean on by writing the
+  // ORIGINAL inviter's id so the values would match. Joining an open event bumps its timestamp,
+  // so every resend re-dated somebody else's card to now and floated it back to the top of the
+  // feed, still in their name - and outside the 15-minute window it would not have joined at all
+  // and would simply have logged a second invitation. A resend is not a new invitation; when the
+  // invitation is already on the record there is nothing to say.
   if (sent && inviterFk != null) {
     const [logged] = await db
-      .select({ id: activities.id })
-      .from(activities)
+      .select({ id: events.id })
+      .from(events)
       .where(
-        and(
-          eq(activities.columnName, 'invitation'),
-          eq(activities.entityType, 'user'),
-          eq(activities.newValue, invitation.email),
-          eq(activities.regionFk, invitation.regionFk),
-          eq(activities.type, 'created'),
-        ),
+        and(eq(events.verb, 'invite'), eq(events.metadata, invitation.email), eq(events.regionFk, invitation.regionFk)),
       )
       .limit(1)
 
     if (logged == null) {
-      await insertActivity(db, {
-        columnName: 'invitation',
-        entityId: inviterFk,
-        entityType: 'user',
-        newValue: invitation.email,
+      await insertEvent(db, {
+        actorFk: inviterFk,
+        metadata: invitation.email,
+        object: { id: inviterFk, type: 'user' },
         regionFk: invitation.regionFk,
-        type: 'created',
-        userFk: inviterFk,
+        verb: 'invite',
       })
     }
   }

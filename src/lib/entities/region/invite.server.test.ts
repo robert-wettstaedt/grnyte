@@ -87,6 +87,9 @@ async function invite(email: string = EMAILS.invitee) {
 async function removeFixtures() {
   // Accepting an invitation tells the inviter, so the fixture region owns notification rows too.
   await sql`delete from public.notifications where region_fk in (select id from public.regions where name = ${REGION})`
+  // Accepting also writes an event, which references the region: it has to go first. `changes`
+  // and `reactions` hang off the event and cascade with it.
+  await sql`delete from public.events where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.region_invitations where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = ${REGION})`
@@ -96,6 +99,7 @@ async function removeFixtures() {
 /** admin@ administers the region, member@ is in it, invitee@ is not. Ten seats unless a test
  *  narrows them. */
 async function reset() {
+  await sql`delete from public.events where region_fk = ${regionId}`
   await sql`delete from public.activities where region_fk = ${regionId}`
   await sql`delete from public.region_invitations where region_fk = ${regionId}`
   await sql`delete from public.region_members where region_fk = ${regionId}`
@@ -201,12 +205,12 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
       select status, accepted_by as "acceptedBy" from public.region_invitations where id = ${id}`
     expect(invitation).toMatchObject({ acceptedBy: users.invitee.userId, status: 'accepted' })
 
-    // The join shows up in the region's audit log, on the invitation the admin sent rather than
-    // on the role: an accept closes out that invitation, it is not a role change.
+    // The join shows up in the region's log as an `accept`, not a role change: accepting closes
+    // out the invitation. Subject and actor are the same person, which is what accepting means.
     const [{ count }] = await sql<{ count: string }[]>`
-      select count(*) from public.activities
-      where region_fk = ${regionId} and type = 'updated' and entity_type = 'user'
-        and entity_id = ${String(users.invitee.userId)} and column_name = 'invitation'`
+      select count(*) from public.events
+      where region_fk = ${regionId} and verb = 'accept'
+        and subject_fk = ${users.invitee.userId} and actor_fk = ${users.invitee.userId}`
     expect(Number(count)).toBe(1)
   })
 
@@ -477,8 +481,8 @@ describe.skipIf(!reachable)('resendInvitation', () => {
 
   /** The invitation cards the region has logged, oldest first. */
   const logged = () => sql<{ createdAt: Date; userFk: number }[]>`
-    select created_at as "createdAt", user_fk as "userFk" from public.activities
-    where region_fk = ${regionId} and column_name = 'invitation' and type = 'created'
+    select created_at as "createdAt", actor_fk as "userFk" from public.events
+    where region_fk = ${regionId} and verb = 'invite'
     order by id`
 
   it('logs the invitation when the first send never did, under whoever resent it', async () => {
@@ -498,8 +502,8 @@ describe.skipIf(!reachable)('resendInvitation', () => {
   it('says nothing when the invitation is already on the record, and leaves its date alone', async () => {
     const { id } = await invite()
     await sql`
-      insert into public.activities (column_name, entity_id, entity_type, new_value, region_fk, type, user_fk, created_at)
-      values ('invitation', ${users.admin.userId}, 'user', ${EMAILS.invitee}, ${regionId}, 'created',
+      insert into public.events (verb, subject_fk, metadata, region_fk, actor_fk, created_at)
+      values ('invite', ${users.admin.userId}, ${EMAILS.invitee}, ${regionId},
               ${users.admin.userId}, now() - interval '7 days')`
     const [before] = await logged()
 

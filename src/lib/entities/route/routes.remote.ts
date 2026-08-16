@@ -21,13 +21,7 @@ import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import z from 'zod'
-import {
-  createUpdateActivity,
-  deleteActivity,
-  insertActivity,
-  restoreActivityHistory,
-} from '../activity/activity.server'
-import { canHardDelete } from '../event/event.server'
+import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
 import { resolveFirstAscensionists } from './firstAscensionist.server'
@@ -164,15 +158,13 @@ export const createRoute = authedForm(
         .values(resolvedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: block.regionFk, routeFk: route.id })))
     }
 
-    await insertActivity(db, {
-      entityId: route.id,
-      entityType: 'route',
-      newValue: route.name,
-      parentEntityId: block.id,
-      parentEntityType: 'block',
+    // Neither the name nor the block is stored: both are reachable through `routes`, which is
+    // what real foreign keys buy over the polymorphic pair and its `parentEntity*` companion.
+    await insertEvent(db, {
+      actorFk: user.id,
+      object: { id: route.id, type: 'route' },
       regionFk: block.regionFk,
-      type: 'created',
-      userFk: user.id,
+      verb: 'create',
     })
 
     afterCommit(() =>
@@ -262,10 +254,8 @@ export const updateRoute = authedForm(
         .values(addedFa.map((fa) => ({ firstAscensionistFk: fa.id, regionFk: route.regionFk, routeFk: route.id })))
     }
 
-    await createUpdateActivity({
-      db,
-      entityId: route.id,
-      entityType: 'route',
+    await createUpdateEvent(db, {
+      actorFk: user.id,
       newEntity: {
         description: value.description,
         firstAscensionists: newFaRows
@@ -278,6 +268,7 @@ export const updateRoute = authedForm(
         rating: value.rating,
         tags: newTags.join(','),
       },
+      object: { id: route.id, type: 'route' },
       oldEntity: {
         description: route.description ?? '',
         firstAscensionists: oldFaRows
@@ -290,10 +281,7 @@ export const updateRoute = authedForm(
         rating: route.rating,
         tags: oldTags.join(','),
       },
-      parentEntityId: route.blockFk,
-      parentEntityType: 'block',
       regionFk: route.regionFk,
-      userFk: user.id,
     })
 
     afterCommit(() =>
@@ -428,16 +416,22 @@ export const deleteRoute = authedCommand(
       data = { mode: 'soft', routeId: id }
     }
 
-    await insertActivity(db, {
-      entityId: route.id,
-      entityType: 'route',
-      oldValue: route.name,
-      parentEntityId: route.blockFk,
-      parentEntityType: 'block',
-      regionFk: route.regionFk,
-      type: 'deleted',
-      userFk: user.id,
-    })
+    // Written on the soft path only, unlike an ascent's deletion where it also depends on who did
+    // it: a route is shared, so its removal is news to the region whoever removed it. The row
+    // survives the soft delete, so the card can still name it.
+    //
+    // Nothing at all for a hard delete: `events.route_fk` is an immediate foreign key, so an
+    // event written after the row is gone aborts the transaction, and one written before it is
+    // cascaded away a statement later. A mistake inside the grace window leaves no trace, which
+    // is the point of the window.
+    if (!erasable) {
+      await insertEvent(db, {
+        actorFk: user.id,
+        object: { id: route.id, type: 'route' },
+        regionFk: route.regionFk,
+        verb: 'delete',
+      })
+    }
 
     return {
       data,
@@ -469,7 +463,7 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
 ])
 
 /** Undo a {@link deleteRoute}: recreate the hard-deleted route (with its tag and first-ascent
- *  links) or clear the soft delete's `deletedAt`, and remove the 'deleted' activity. */
+ *  links) or clear the soft delete's `deletedAt`, erasing the delete event with it. */
 export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
     // The snapshot is client-supplied, so mirror createRoute rather than inserting it verbatim:
@@ -525,11 +519,9 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
       )
     }
 
-    // The row is new, so the history has to follow it. Without this the restored route's own
-    // create card, and every edit ever made to it, keep pointing at the dead id and render as
-    // tombstones next to the live route.
-    await restoreActivityHistory(db, { entityType: 'route', fromId: snapshot.routeId, toId: created.id })
-
+    // Nothing to move onto the new id: only a route inside the grace window is hard-deleted, and
+    // `events.route_fk on delete cascade` took its entire log with it. The route comes back with
+    // no history because it never had any worth keeping.
     return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
   }
 
@@ -540,7 +532,9 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
   }
 
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
-  await deleteActivity(db, { columnName: null, entityId: route.id, entityType: 'route', type: 'deleted' })
+  // The delete event and nothing else: the route's own create and every edit ever made to it
+  // still point at this id and stay live, exactly as they were before the delete.
+  await deleteEvent(db, { object: { id: route.id, type: 'route' }, verb: 'delete' })
 
   return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
 })

@@ -13,7 +13,7 @@ import * as schema from '$lib/db/schema'
 import { reachable, sql } from '$lib/db/testDb'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { canHardDelete, createUpdateEvent, insertEvent } from './event.server'
+import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from './event.server'
 
 let region = 0
 let actor = 0
@@ -218,7 +218,7 @@ describe.skipIf(!usable)('changes merge, undo and empty out', () => {
   })
 })
 
-describe.skipIf(!usable)('only a refinement joins, and only a create or update absorbs', () => {
+describe.skipIf(!usable)('a refinement joins, a repeat collapses, a different verb does neither', () => {
   it('never folds a delete into an open update, so the deletion is still recorded', async () => {
     const edit = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'update' })
     const removal = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'delete' })
@@ -227,11 +227,28 @@ describe.skipIf(!usable)('only a refinement joins, and only a create or update a
     expect(removal.verb).toBe('delete')
   })
 
-  it('gives each add its own event, so two photos are two cards', async () => {
-    const first = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'add' })
-    const second = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'add' })
+  it('never folds an add into an open create, so the upload is still its own card', async () => {
+    const created = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+    const added = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'add' })
 
-    expect(second.id).not.toBe(first.id)
+    expect(added.id).not.toBe(created.id)
+  })
+
+  it('collapses a byte-identical repeat, so three photos off one route is one card', async () => {
+    const removals = []
+    for (let index = 0; index < 3; index++) {
+      removals.push(
+        await insertEvent(db, {
+          actorFk: actor,
+          metadata: 'photo',
+          object: object(),
+          regionFk: region,
+          verb: 'remove',
+        }),
+      )
+    }
+
+    expect(new Set(removals.map((event) => event.id)).size).toBe(1)
   })
 })
 
@@ -296,6 +313,44 @@ describe.skipIf(!usable)('an undone update keeps anything somebody else said', (
     expect(
       await canHardDelete(db, { childless: true, createdAt: new Date(Date.now() - 16 * 60 * 1000), object: object() }),
     ).toBe(false)
+  })
+})
+
+describe.skipIf(!usable)('an undo erases exactly what its mutation logged', () => {
+  const eventsOnRoute = () => db.select().from(schema.events).where(eq(schema.events.routeFk, route))
+
+  it('takes the delete event and leaves the rest of the entity history standing', async () => {
+    const created = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'delete' })
+
+    await deleteEvent(db, { object: object(), verb: 'delete' })
+
+    expect((await eventsOnRoute()).map((row) => row.id)).toEqual([created.id])
+  })
+
+  it('tells an explicit null metadata from an omitted one', async () => {
+    // The shape a revoked invitation and a removed member share: same verb, and only the
+    // metadata says which of them this is.
+    const invitation = await insertEvent(db, {
+      actorFk: actor,
+      metadata: 'lea@example.com',
+      object: object(),
+      regionFk: region,
+      verb: 'remove',
+    })
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'remove' })
+
+    await deleteEvent(db, { metadata: null, object: object(), verb: 'remove' })
+
+    expect((await eventsOnRoute()).map((row) => row.id)).toEqual([invitation.id])
+  })
+
+  it('deletes nothing at all when the filter constrains nothing', async () => {
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+
+    await deleteEvent(db, {})
+
+    expect(await eventsOnRoute()).toHaveLength(1)
   })
 })
 

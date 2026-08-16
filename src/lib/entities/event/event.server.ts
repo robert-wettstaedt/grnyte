@@ -53,6 +53,17 @@ export interface EventChange {
 /** A diff of an entity, as `createUpdateEvent` takes it. */
 export type EventDiff = Record<string, unknown>
 
+/** What {@link deleteEvent} matches on. Every field is optional and an omitted one is
+ *  unconstrained; an explicit `metadata: null` requires the column to BE null, which is the
+ *  difference between a member removal and a revoked invitation. */
+export interface EventFilter {
+  actorFk?: number
+  metadata?: null | string
+  object?: EventObject
+  regionFk?: number
+  verb?: schema.EventVerb
+}
+
 /**
  * Diff an entity, open or continue its event, and record what moved.
  *
@@ -93,16 +104,22 @@ export async function createUpdateEvent(
 }
 
 /**
- * Only a refinement may join an open event, and only a create or an update may absorb one.
+ * Whether this call may continue the open event, by either of the two ways in.
  *
- * The fold exists to merge a burst of edits into the action they refine, not to merge distinct
- * actions. Without this a `delete` five minutes after an `update` on the same object joins it,
- * keeps the verb `update`, and the deletion is never recorded anywhere: the feed reports "Jonas
- * edited Mara's ascent" for a row he removed. `add` and `remove` are likewise distinct events
- * each time, which is why attaching two photos is two cards rather than one that quietly grows.
+ * A refinement: an `update` joins an open `create` or `update`, so a burst of edits merges into
+ * the action it refines. That is what makes "Anna added Traumtanz" absorb its own corrections.
+ *
+ * A repeat: the same verb joins its own kind, which is `insertActivity`'s identity collapse. The
+ * fold key is already every column a caller sets, so a second call landing on it is a
+ * byte-identical row. Three photos removed from one route in one sitting is one card, not three
+ * indistinguishable ones, and inviting the same address twice does not stack up two.
+ *
+ * What neither admits is a DIFFERENT verb joining. Without that a `delete` five minutes after an
+ * `update` on the same object joins it, keeps the verb `update`, and the deletion is never
+ * recorded anywhere: the feed reports "Jonas edited Mara's ascent" for a row he removed.
  */
-const joinable = (verb: schema.EventVerb) => verb === 'update'
-const absorbs = (verb: schema.EventVerb) => verb === 'create' || verb === 'update'
+const joins = (verb: schema.EventVerb, open: schema.Event) =>
+  verb === open.verb || (verb === 'update' && (open.verb === 'create' || open.verb === 'update'))
 
 /**
  * Whether this row may be hard-deleted, or must soft-delete and keep its history.
@@ -141,21 +158,51 @@ export async function canHardDelete(
 }
 
 /**
+ * Erase the events a mutation logged, so an undo leaves the log as if nothing had happened.
+ *
+ * Replaces `deleteActivity` for the same six undo paths. Change rows go with the event through
+ * `changes.event_fk on delete cascade`, so a filter that names the event is enough.
+ *
+ * ponytail: deletes every event matching the filter; a same-object collision is possible but
+ * negligible right after the action being undone. Upgrade = pass the event id back through the
+ * snapshot the client already round-trips.
+ */
+export async function deleteEvent(db: Db, filter: EventFilter): Promise<void> {
+  const conditions = [
+    filter.actorFk == null ? undefined : eq(schema.events.actorFk, filter.actorFk),
+    filter.metadata === undefined
+      ? undefined
+      : filter.metadata === null
+        ? isNull(schema.events.metadata)
+        : eq(schema.events.metadata, filter.metadata),
+    filter.object == null ? undefined : objectMatches(filter.object),
+    filter.regionFk == null ? undefined : eq(schema.events.regionFk, filter.regionFk),
+    filter.verb == null ? undefined : eq(schema.events.verb, filter.verb),
+  ].filter((condition) => condition != null)
+
+  // An unconstrained filter would delete the region's whole log, so it deletes nothing instead.
+  if (conditions.length === 0) {
+    return
+  }
+
+  await db.delete(schema.events).where(and(...conditions))
+}
+
+/**
  * Log that something happened, and return the event it landed on.
  *
  * One event per mutation call, its object the entity the call names. A call that continues an open
  * event on the same object joins it and bumps its timestamp so it returns to the top of the feed,
  * exactly as the per-column fold does today.
  *
- * Replaces `insertActivity`. The repeat-collapse that function performs (deleting an earlier row
- * with identical values before inserting) is not needed here: joining the open event IS the
- * collapse, and it keeps the event's id stable, which is the whole point. A reaction attached to
- * it survives the author saving again.
+ * Replaces `insertActivity`, repeat-collapse included: see {@link joins}. Joining is a better
+ * collapse than that function's delete-then-reinsert, because it keeps the event's id stable, so
+ * a reaction attached to it survives the author saving again.
  */
 export async function insertEvent(db: Db, input: EventInput): Promise<schema.Event> {
-  const open = joinable(input.verb) ? await openEvent(db, input) : undefined
+  const open = await openEvent(db, input)
 
-  if (open != null && absorbs(open.verb)) {
+  if (open != null && joins(input.verb, open)) {
     // The verb is NOT overwritten. A create that gains later edits is still a create; that is
     // what makes "Anna added Traumtanz" absorb its own refinements instead of becoming an update.
     const [bumped] = await db

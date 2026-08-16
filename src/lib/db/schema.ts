@@ -1370,12 +1370,13 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
  *
  * What happened, as opposed to what changed. See CONTEXT.md for the vocabulary.
  *
- * PARTIALLY LIVE, AND THE HALVES DISAGREE. The write path is moving over module by module:
- * ascents, usernames and first-ascensionist claims already write here, everything else still
- * writes `activities`. NOTHING reads `events` yet, so those three no longer appear in the feed or
- * the digest. That gap is deliberate and only tolerable because nothing is deployed; it closes
- * when the readers move over. `activities` keeps its rows until the migration is finished, which
- * is what makes the folding backfill checkable against its source.
+ * WRITTEN BUT NOT READ. The write path has finished moving: every mutation logs here and nothing
+ * writes `activities` any more. NOTHING reads `events` yet, and the readers still read
+ * `activities`, so the feed and the digest currently show only what the backfill put there and
+ * nothing that has happened since - no new card, no new digest entry, and
+ * `user_settings.pushed_up_to_activity_id` stands still. That gap is deliberate and only tolerable
+ * because nothing is deployed; it closes when the readers move over. `activities` keeps its rows
+ * until then, which is what makes the folding backfill checkable against its source.
  *
  *
  */
@@ -1440,9 +1441,14 @@ const eventObjectFields = {
    * Joining, leaving and accepting an invitation are things you do to your own membership, so
    * subject and actor are both you and that is not a bug.
    *
-   * The one degenerate case is `invite`. An invitation names an email address, and the invitee has
-   * no account to point at, so this holds the INVITER and the address lives in `metadata`, which
-   * is what the card renders from. Do not read a subject off an invite event.
+   * The one degenerate case is an invitation, both sending one (`invite`) and withdrawing one
+   * (`remove`). An invitation names an email address, and the invitee has no account to point at,
+   * so this holds the INVITER and the address lives in `metadata`, which is what the card renders
+   * from. Do not read a subject off either.
+   *
+   * That makes `metadata` load-bearing on `remove`, which is also what a member removal writes:
+   * an address means an invitation was withdrawn and this column is the actor, null means a person
+   * was removed and it is them. Reading the verb alone renders "Jonas removed Jonas".
    */
   subjectFk: integer('subject_fk').references((): AnyColumn => users.id),
 }
