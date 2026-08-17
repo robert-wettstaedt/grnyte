@@ -1,7 +1,7 @@
 <!--
   The global activity feed: everything logged across the regions the user belongs to.
 
-  Markup and the filter values. `activityFeed()` owns the window, the mark behind the "N new"
+  Markup and the filter values. `eventFeed()` owns the window, the mark behind the "N new"
   pill, the grouping and the hydration; `ActivityFeed` renders the cards it decides.
 -->
 <script lang="ts">
@@ -12,7 +12,7 @@
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { ActivityCategory } from '$lib/entities/activity/dto'
-  import { activityFeed } from '$lib/entities/activity/feed.svelte'
+  import { eventFeed } from '$lib/entities/event/feed.svelte'
   import { userList } from '$lib/entities/user/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -34,7 +34,7 @@
   let regionFk = $state(asNumber(initial.get('region')))
   let userFk = $state(asNumber(initial.get('user')))
 
-  const feed = activityFeed(() => ({ category, regionFk, userFk }))
+  const feed = eventFeed(() => ({ actorFk: userFk, category, regionFk }))
 
   const regions = $derived(
     global.userRegions.map((membership) => ({

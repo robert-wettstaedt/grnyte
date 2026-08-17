@@ -19,8 +19,7 @@ import type { TopoView } from '$lib/entities/topo/dto'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import type { UserRef } from '$lib/entities/user/dto'
 import { usersByIds } from '$lib/entities/user/resources.svelte'
-import type { Coords } from '$lib/map/map'
-import { decodePath } from '$lib/map/polyline'
+import { decodeApproach } from '$lib/map/polyline'
 import { getGlobalState } from '$lib/state/global.svelte'
 import type { ActivityEntityType, ActivityListItem } from './dto'
 import {
@@ -370,34 +369,9 @@ function answered(input: ActivityHydration, ref: ActivityEntityRef): boolean {
  *
  * ponytail: never evicted. Upgrade = an LRU if a session ever spans enough regions to matter.
  */
-const approachCache = new Map<string, Coords[][]>()
-
 /** The region crumb, then whatever else the row leads with. */
 function crumbs(input: ActivityHydration, regionFk: null | number | undefined, rest: (null | string | undefined)[]) {
   return [regionCrumb(input.userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
-}
-
-/**
- * One stored approach path as coordinates, or nothing when it does not decode.
- *
- * `geoPaths` holds whatever was written to it, and a card that draws a map is not the place
- * to find out that one entry is malformed: the throw would take the whole feed with it.
- */
-function decodeApproach(encoded: string): Coords[][] {
-  const cached = approachCache.get(encoded)
-  if (cached != null) {
-    return cached
-  }
-
-  let decoded: Coords[][]
-  try {
-    decoded = [decodePath(encoded).map(([lat, long]) => ({ lat, long }))]
-  } catch {
-    decoded = []
-  }
-
-  approachCache.set(encoded, decoded)
-  return decoded
 }
 
 /** Rows by their id as text, which is how an activity stores it. */

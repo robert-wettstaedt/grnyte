@@ -17,6 +17,7 @@ import sharp from 'sharp'
 import z from 'zod'
 import { deleteFileRows, removeFileStorage } from './cleanup.server'
 import { requireEditableFile, resolveAttachRegion } from './guards.server'
+import { fileParent } from './mapper'
 import { canDeleteFile } from './permissions'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
 
@@ -33,19 +34,6 @@ const entityFks = (type: FileEntityType, id: number) => ({
  * What a deletion has left to name, since the file row itself is on its way out.
  * `undefined` for an orphan row (all four FKs null), which the feed then simply cannot place.
  */
-const fileParent = (
-  file: Pick<File, 'areaFk' | 'ascentFk' | 'blockFk' | 'routeFk'>,
-): undefined | { entityId: number; entityType: FileEntityType } =>
-  file.routeFk != null
-    ? { entityId: file.routeFk, entityType: 'route' }
-    : file.ascentFk != null
-      ? { entityId: file.ascentFk, entityType: 'ascent' }
-      : file.blockFk != null
-        ? { entityId: file.blockFk, entityType: 'block' }
-        : file.areaFk != null
-          ? { entityId: file.areaFk, entityType: 'area' }
-          : undefined
-
 /**
  * Log an upload. The event's object is the FILE, which is the opposite way round from the delete
  * below, where the file is gone by the time the feed reads it and only the parent is left to
@@ -356,7 +344,7 @@ export const deleteFile = command(
         await insertEvent(db, {
           actorFk: user.id,
           metadata: file.bunnyStreamFk == null ? 'photo' : 'video',
-          object: { id: parent.entityId, type: parent.entityType },
+          object: parent,
           regionFk: file.regionFk,
           verb: 'remove',
         })

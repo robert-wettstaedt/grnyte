@@ -204,6 +204,20 @@
       "when": 1786604900569,
       "tag": "0099_mushy_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1786956735942,
+      "tag": "0100_faulty_the_professor",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1786958039084,
+      "tag": "0101_salty_pandemic",
+      "breakpoints": true
     }
   ]
 }

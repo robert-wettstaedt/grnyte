@@ -114,8 +114,12 @@ export async function createUpdateEvent(
 /**
  * Whether this call may continue the open event, by either of the two ways in.
  *
- * A refinement: an `update` joins an open `create` or `update`, so a burst of edits merges into
- * the action it refines. That is what makes "Anna added Traumtanz" absorb its own corrections.
+ * A refinement: an `update` joins an open `create`, `add` or `update`, so a burst of edits merges
+ * into the action it refines. That is what makes "Anna added Traumtanz" absorb its own corrections,
+ * and it is also what keeps pasting a source link onto a clip you just uploaded from rendering a
+ * second card beside it. The old feed suppressed that pair at read time, in thirty lines of
+ * grouping that had to recognise the shape after the fact; refining the `add` it belongs to is the
+ * same rule the fold already applies everywhere else.
  *
  * A repeat: the same verb joins its own kind, which is `insertActivity`'s identity collapse. The
  * fold key is already every column a caller sets, so a second call landing on it is a
@@ -126,8 +130,10 @@ export async function createUpdateEvent(
  * `update` on the same object joins it, keeps the verb `update`, and the deletion is never
  * recorded anywhere: the feed reports "Jonas edited Mara's ascent" for a row he removed.
  */
+const REFINABLE = new Set<schema.EventVerb>(['add', 'create', 'update'])
+
 const joins = (verb: schema.EventVerb, open: schema.Event) =>
-  verb === open.verb || (verb === 'update' && (open.verb === 'create' || open.verb === 'update'))
+  verb === open.verb || (verb === 'update' && REFINABLE.has(open.verb))
 
 /**
  * Whether this row may be hard-deleted, or must soft-delete and keep its history.

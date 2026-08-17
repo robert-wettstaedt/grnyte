@@ -3,13 +3,12 @@
   global feed renders, narrowed to the rows written about this record.
 
   Its own component so the window it opens is tied to the sheet being open. Mounted from
-  inside `{#if open}`, `activityFeed()` (a 50-row window plus the six by-id fetches that
+  inside `{#if open}`, `eventFeed()` (a 50-row window, one query now that
   hydrate it) starts when the reader asks for the log, not on every detail page view.
 -->
 <script lang="ts">
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { ActivityFeedFilter } from '$lib/entities/activity/feed.svelte'
-  import { activityFeed } from '$lib/entities/activity/feed.svelte'
+  import { eventFeed, type EventFeedFilter } from '$lib/entities/event/feed.svelte'
   import { m } from '$lib/paraglide/messages'
   import ActivityFeed from './ActivityFeed.svelte'
 
@@ -23,16 +22,16 @@
     /** Whether this log mounts the media viewer. Off where the host page already has one. */
     lightbox?: boolean
     /**
-     * Stable across syncs, or the window resets under the reader: `activityFeed` drops its
+     * Stable across syncs, or the window resets under the reader: `eventFeed` drops its
      * limit and its acknowledged mark whenever the filter changes, and a fresh object literal
      * per Zero emit reads as a change. `ActivityMeta` derives one off primitives for this.
      */
-    scope: NonNullable<ActivityFeedFilter['scope']>
+    scope: NonNullable<EventFeedFilter['scope']>
   }
 
   const { emptyLabel, lightbox = true, scope }: Props = $props()
 
-  const feed = activityFeed(() => ({ scope }))
+  const feed = eventFeed(() => ({ scope }))
 </script>
 
 <QueryState resource={feed.resource}>

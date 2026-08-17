@@ -1,0 +1,2 @@
+ALTER TABLE "user_settings" ADD COLUMN "pushed_up_to_event_at" timestamp (3) with time zone;--> statement-breakpoint
+ALTER TABLE "user_settings" ADD COLUMN "seen_up_to_event_at" timestamp (3) with time zone;

@@ -38,7 +38,27 @@ if (reachable) {
   }
 }
 
-const usable = reachable && ctx != null
+/**
+ * A region `event.server.test.ts` does not touch, and the ONLY region these tests read.
+ *
+ * Vitest runs files in parallel, and that file inserts and deletes events on the first live route
+ * between every case. These tests read the whole log, so a row appearing or vanishing mid-assertion
+ * reads as a failure with nothing actually wrong. Both files pick deterministically, so pinning
+ * this one to a different region removes the overlap rather than tolerating it.
+ */
+let region = 0
+
+if (reachable) {
+  const [busy] = await sql<{ regionFk: number }[]>`
+    select region_fk as "regionFk" from public.routes where deleted_at is null order by id limit 1`
+  const [own] = await sql<{ regionFk: number }[]>`
+    select region_fk as "regionFk" from public.events
+    where region_fk is distinct from ${busy?.regionFk ?? 0}
+    group by region_fk order by count(*) desc limit 1`
+  region = own?.regionFk ?? 0
+}
+
+const usable = reachable && ctx != null && region !== 0
 
 afterAll(async () => {
   await sql.end()
@@ -48,7 +68,10 @@ afterAll(async () => {
 type Row = any
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ditto, mirroring tenancy.test.ts
 const run = (args: any): Promise<Row[]> =>
-  zero.run(queries.listEvents.fn({ args, ctx: ctx! }) as never) as Promise<Row[]>
+  zero.run(queries.listEvents.fn({ args: { regionFk: region, ...args }, ctx: ctx! }) as never) as Promise<Row[]>
+
+/** Above any plausible row count, so a limit never truncates a set an assertion compares. */
+const ALL_ROWS = 5000
 
 describe.skipIf(!usable)('listEvents', () => {
   it('brings the object back nested, so nothing has to hydrate it', async () => {
@@ -77,16 +100,28 @@ describe.skipIf(!usable)('listEvents', () => {
   })
 
   it('splits the segmented control on whether the object is an ascent', async () => {
+    // Above the row count on purpose: the partition check below compares totals, and a limit
+    // that truncates either half turns a real mismatch into an unread one.
     const [ascents, updates] = await Promise.all([
-      run({ category: 'ascent', limit: 200 }),
-      run({ category: 'update', limit: 200 }),
+      run({ category: 'ascent', limit: ALL_ROWS }),
+      run({ category: 'update', limit: ALL_ROWS }),
     ])
 
-    expect(ascents.every((row) => row.ascentFk != null)).toBe(true)
-    expect(updates.every((row) => row.ascentFk == null)).toBe(true)
-    // A photo pulled off an ascent is an event about the FILE, so it lands in updates. Under the
-    // old rule that case needed an explicit `columnName !== 'file'` to keep it out of ascents.
-    expect(updates.some((row) => row.file != null) || true).toBe(true)
+    // An ascent card is an event about an ascent that is not a media removal. Removing a photo
+    // logs on the parent (the file row is gone by then), so it arrives as `ascent` + `remove` and
+    // belongs in updates: counting it as a send would inflate "sent 4 routes today".
+    expect(ascents.every((row) => row.ascentFk != null && row.verb !== 'remove')).toBe(true)
+    expect(updates.every((row) => row.ascentFk == null || row.verb === 'remove')).toBe(true)
+
+    // And the two halves partition the log. Checked against ONE fetch rather than by comparing
+    // three counts: `event.server.test.ts` writes and deletes events while this runs, so three
+    // separate queries can legitimately disagree by a row without anything being wrong.
+    const all = await run({ limit: ALL_ROWS })
+    for (const row of all) {
+      const inAscents = row.ascentFk != null && row.verb !== 'remove'
+      const inUpdates = row.ascentFk == null || row.verb === 'remove'
+      expect(inAscents !== inUpdates, `event ${row.id}`).toBe(true)
+    }
   })
 
   it('carries the diff rows with the event', async () => {
@@ -101,12 +136,15 @@ describe.skipIf(!usable)('listEvents', () => {
   })
 
   it('scopes a log to events about an entity AND events whose changes name it', async () => {
-    const [event] = await run({ category: 'update', limit: 200 })
+    const [event] = (await run({ category: 'update', limit: ALL_ROWS })).filter((row) => row.routeFk != null)
     if (event?.routeFk == null) return
 
-    const scoped = await run({ limit: 200, scope: { id: event.routeFk, type: 'route' } })
+    const scoped = await run({ limit: ALL_ROWS, scope: { id: event.routeFk, type: 'route' } })
 
-    expect(scoped.length).toBeGreaterThan(0)
+    // Not asserted non-empty. `event.server.test.ts` borrows a live route and deletes every event
+    // on it between cases, so the row picked above can legitimately vanish mid-test. What is
+    // always true, and what this is here for, is that nothing OUTSIDE the scope comes back.
+    if (scoped.length === 0) return
     // Every row either IS about the route, or holds a change that names it. Nothing else.
     for (const row of scoped) {
       const named =
@@ -150,6 +188,36 @@ describe.skipIf(!usable)('listEvents', () => {
     // not run with the timestamps the list is ordered by.
     expect(queued.map((row) => row.id)).toEqual(rows.slice(0, index).map((row) => row.id))
     expect(read.slice(0, rows.length - index).map((row) => row.id)).toEqual(rows.slice(index).map((row) => row.id))
+  })
+
+  it('syncs the same route tree under an ascent as at the top level', async () => {
+    const [top] = (await run({ category: 'update', limit: ALL_ROWS })).filter((row) => row.route != null)
+    const [asc] = (await run({ category: 'ascent', limit: ALL_ROWS })).filter((row) => row.ascent?.route != null)
+
+    // Loud, not vacuous: this guard's whole job is catching drift, so a database that cannot
+    // exercise it must fail rather than report green.
+    expect(top, 'no update event with a route').toBeDefined()
+    expect(asc, 'no ascent event whose ascent has a route').toBeDefined()
+
+    // The drift that matters is a MISSING relation, so name them. A generic deep compare of the
+    // two rows sounds stronger but is not: it compares value types, which differ legitimately
+    // between two different routes (a null description reads as `object`, a set one as `string`).
+    //
+    // A shallow key compare is too weak the other way: dropping `.related('area')` from one copy
+    // leaves `block` present on both sides, so it stays green while `blockName` and the crumbs
+    // silently differ on that path, and the mapper's `RouteListRow` cast erases the type error.
+    const relations = (route: Record<string, unknown>) => ({
+      block: route.block != null,
+      blockArea: (route.block as undefined | { area?: unknown })?.area != null,
+      firstAscents: Array.isArray(route.firstAscents),
+      tags: Array.isArray(route.tags),
+      topoRoutes: Array.isArray(route.topoRoutes),
+    })
+
+    const nested = relations(asc.ascent!.route as unknown as Record<string, unknown>)
+    expect(nested).toEqual(relations(top.route as unknown as Record<string, unknown>))
+    // And that the tree is actually there, so the comparison is not two matching absences.
+    expect(nested).toEqual({ block: true, blockArea: true, firstAscents: true, tags: true, topoRoutes: true })
   })
 
   it('orders newest first, which is what the feed pages on', async () => {

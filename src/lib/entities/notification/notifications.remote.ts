@@ -49,6 +49,26 @@ export const markFeedSeen = authedCommand(
   },
 )
 
+/**
+ * The event-log twin of {@link markFeedSeen}.
+ *
+ * A timestamp, not an id. Event ids do not run with their timestamps (the backfill emitted them in
+ * island order), so `greatest(id)` would mark a 2024 card as the newest thing read and silence a
+ * digest for everything below it. Millisecond precision, matching `events.created_at`, so a mark
+ * taken off a row compares exactly against the rows it is meant to cover.
+ */
+export const markEventFeedSeen = authedCommand(
+  z.object({ seenAt: z.number().int().positive() }),
+  async ({ seenAt }, { db, user }) => {
+    // Through the shared writer for the same reason: a plain UPDATE against an account with no
+    // settings row affects nothing and reports success, and a watermark that never moves is a
+    // digest that repeats itself every five minutes.
+    await writeUserSettings(db, user, {
+      seenUpToEventAt: sql`greatest(coalesce(${userSettings.seenUpToEventAt}, to_timestamp(0)), to_timestamp(${seenAt} / 1000.0))`,
+    })
+  },
+)
+
 /** What `PushManager.subscribe` hands back, narrowed to what a send needs. */
 const subscriptionSchema = z.object({
   auth: z.string().min(1),

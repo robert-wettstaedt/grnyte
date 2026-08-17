@@ -17,7 +17,7 @@ const DEFAULT_LIMIT = 50
  * 142 while id 496 is dated 2024. An id cut there drops most of the log out of the window on
  * screen and reports the same rows as new.
  */
-const cursor = z.object({ createdAt: z.number(), id: z.number() })
+const cursor = z.object({ createdAt: z.int(), id: z.int() })
 
 /**
  * Everything a card needs, nested.
@@ -34,6 +34,31 @@ const cursor = z.object({ createdAt: z.number(), id: z.number() })
 const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
   const r = relatedRegion(ctx)
 
+  // A route as a card renders it: the same tree `listRoutes` syncs, because the card reuses
+  // `RouteRow`, which wants the grade, the tags and the topo thumb. Anything less renders a real
+  // route with zeroed values, which reads worse than a late one. Declared once. It has to match what `listRoutes` syncs,
+  // because that is what makes the `RouteListRow` cast in the mapper safe: a relation missing on
+  // one path only would zero that route's values there, and the cast erases the type error.
+  //
+  // The parameter is `any` deliberately, and it is the only one in this file. Zero types a
+  // relation callback against the exact query it is attached to, so a callback shared by four
+  // attachment points cannot be written any other way; the alternative is four hand-copies that
+  // drift silently behind the mapper's cast. `queries.test.ts` compares the trees the four
+  // attachments actually produce, which is the check that matters.
+
+  const routeTree = (q: typeof zql.routes) =>
+    r(q)
+      .related('tags', r)
+      .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
+      .related('block', (q) => r(q).related('area', r))
+      .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r)))
+
+  // The cast is what the comment above is about: `routeTree`'s BODY types fine against
+  // `zql.routes`, and only the nominal identity of the callback parameter differs per attachment
+  // point. Casting once here beats four copies of the tree or an `any` that also loses the body.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+  const route = routeTree as any
+
   return (
     zql.events
       // `users` carries no regionFk, so it cannot take `relatedRegion`'s filter; RLS re-checks it.
@@ -42,10 +67,55 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
       .related('area', (q) => r(q).related('parent', r))
       // An ascent card renders its route's name, and the route its block and area: the second and
       // third hops that used to arrive as a separate wave, and the reason a tombstone could flash.
-      .related('ascent', (q) => r(q).related('route', (q) => r(q).related('block', (q) => r(q).related('area', r))))
-      .related('block', (q) => r(q).related('area', r))
-      .related('file', (q) => r(q).related('bunnyStream').related('author'))
-      .related('route', (q) => r(q).related('block', (q) => r(q).related('area', r)))
+      .related('ascent', (q) =>
+        r(q)
+          // The climber's own media and name: a session card renders both, and neither is
+          // readable off the route beneath it.
+          .related('files', (q) => r(q).related('bunnyStream').related('author'))
+          .related('author')
+          // Same tree as the top-level route below. Kept as two copies because the relation
+          // builder's generic will not accept a shared callback; `queries.test.ts` asserts the
+          // two produce the same shape, since the mapper's `RouteListRow` cast would otherwise
+          // hide the drift.
+          .related('route', (q) =>
+            r(q)
+              .related('tags', r)
+              .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
+              .related('block', (q) => r(q).related('area', r))
+              .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r))),
+          ),
+      )
+      // `geolocation` and `topos` are the pin the create card draws as a map thumbnail and the
+      // topo thumb every block row shows. Both were on the old hydrated entity.
+      .related('block', (q) =>
+        r(q)
+          .related('area', r)
+          .related('geolocation', r)
+          .related('topos', (q) => r(q).related('file', r)),
+      )
+      // `ascent` is not for rendering: it carries `createdBy`, which is the discriminator every
+      // ascent-media permission check reads. Without it a clip opened from a feed card falls
+      // through to the EDIT branch and a maintainer could delete somebody else's media.
+      // The parent trees as well as the file itself. An upload card names what the photos landed
+      // on and draws that entity's row beneath them; without these it can do neither, and the
+      // "added 5 photos to Rampe" headline has no source for "Rampe". `ascent` also carries
+      // `createdBy`, the only discriminator in `file/permissions.ts`.
+      .related('file', (q) =>
+        r(q)
+          .related('bunnyStream')
+          .related('author')
+          .related('ascent', (q) => r(q).related('route', route))
+          .related('route', route)
+          .related('block', (q) => r(q).related('area', r))
+          .related('area', (q) => r(q).related('parent', r)),
+      )
+      .related('route', (q) =>
+        r(q)
+          .related('tags', r)
+          .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
+          .related('block', (q) => r(q).related('area', r))
+          .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r))),
+      )
       .related('subject')
   )
 }
@@ -86,13 +156,14 @@ export const eventsQueryDefs = {
         q = q.where('id', 'IN', args.ids)
       }
 
-      // The segmented control. An ascent card is simply an event whose object is an ascent, where
-      // the old rule had to say "entityType is ascent AND columnName is not file" to keep a photo
-      // pulled off an ascent out of it. A photo's object is the file, so it cannot land here.
+      // The segmented control. An ascent card is an event whose object is an ascent, EXCEPT a
+      // media removal: that logs on the parent (the file row is gone by then), so it arrives as
+      // `ascent` + `remove` and is crag housekeeping rather than a send. The old rule spelled the
+      // same exception as `columnName is not file`; only the upload half of it became free.
       if (args.category === 'ascent') {
-        q = q.where('ascentFk', 'IS NOT', null)
+        q = q.where('ascentFk', 'IS NOT', null).where('verb', '!=', 'remove')
       } else if (args.category === 'update') {
-        q = q.where('ascentFk', 'IS', null)
+        q = q.where((q) => q.or(q.cmp('ascentFk', 'IS', null), q.cmp('verb', 'remove')))
       }
 
       // One entity's log: events ABOUT it, plus events whose changes name it. The second half is

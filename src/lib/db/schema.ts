@@ -223,19 +223,28 @@ export const userSettings = table(
     /** Push for the things aimed at you personally: mentions, your ascent, your role. */
     notifyDirected: boolean('notify_directed').notNull().default(true),
 
+    // The `activities` pair, kept until that table goes so an in-flight digest is not lost.
+    pushedUpToActivityId: integer('pushed_up_to_activity_id'),
     /**
      * The broadcast half's bookkeeping, two integers rather than a row per user per activity.
      *
      * `pushedUpTo` is how far a digest has covered this person; `seenUpTo` is how far they have
      * caught up in the feed. The digest counts what is above both, so reading the feed silences
      * the push for what was read, and a push does not repeat itself. Deliberately not foreign
-     * keys: the undo flows delete activity rows, and a watermark must not block that.
+     * keys: the undo flows delete rows, and a watermark must not block that.
      *
-     * Both are set to the current maximum activity id when a device first subscribes, so a
-     * brand-new subscriber's first digest does not read "4,812 updates".
+     * Both are set to the newest event's timestamp when a device first subscribes, so a brand-new
+     * subscriber's first digest does not read "4,812 updates".
+     *
+     * TIMESTAMPS, not ids, unlike the `activities` pair they replace. Event ids do not run with
+     * their timestamps: the backfill emitted them in island order, so an event dated 2024 can hold
+     * a higher id than one from last week, and "everything above this id" would then mean neither
+     * "everything newer" nor anything else useful. Millisecond precision, matching
+     * `events.created_at`, so a mark taken off a row compares exactly against it.
      */
-    pushedUpToActivityId: integer('pushed_up_to_activity_id'),
+    pushedUpToEventAt: timestamp('pushed_up_to_event_at', { precision: 3, withTimezone: true }),
     seenUpToActivityId: integer('seen_up_to_activity_id'),
+    seenUpToEventAt: timestamp('seen_up_to_event_at', { precision: 3, withTimezone: true }),
 
     // null = follow the runtime locale (see isImperialLocale); set = explicit override.
     unitSystem: text('unit_system', { enum: ['metric', 'imperial'] }),
@@ -1459,6 +1468,12 @@ export const events = table(
   'events',
   {
     ...baseFields,
+    // Millisecond precision, unlike every other table's `created_at`. The feed pages on a
+    // `(created_at, id)` cursor, and Zero compares this column as bigint millis: with Postgres'
+    // default microseconds a synced row comes back as `…806.138`, which is not a bigint and
+    // cannot be handed back as a bound. Rounding the cursor instead is not exact either, because
+    // rows inside the rounded millisecond then fall on the wrong side of the cut.
+    createdAt: timestamp('created_at', { precision: 3, withTimezone: true }).notNull().defaultNow(),
     ...baseRegionFields,
     ...eventObjectFields,
 
