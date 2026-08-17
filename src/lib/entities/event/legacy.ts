@@ -1,4 +1,4 @@
-import type { ActivityListItem, ActivityType } from '$lib/entities/activity/dto'
+import type { CatalogueRow, CatalogueType } from '$lib/entities/event/catalogue'
 import type { EventChangeItem, EventListItem } from './mapper'
 
 /**
@@ -41,7 +41,7 @@ function removedColumn(event: EventListItem): string {
   return event.objectType === 'user' ? (event.metadata == null ? 'role' : 'invitation') : 'file'
 }
 
-const TYPE_FOR_VERB: Record<EventListItem['verb'], ActivityType> = {
+const TYPE_FOR_VERB: Record<EventListItem['verb'], CatalogueType> = {
   accept: 'updated',
   add: 'uploaded',
   create: 'created',
@@ -54,7 +54,7 @@ const TYPE_FOR_VERB: Record<EventListItem['verb'], ActivityType> = {
 }
 
 /** One change row as the catalogue reads it: the event's triple with the column that moved. */
-export function legacyChange(event: EventListItem, change: EventChangeItem): ActivityListItem {
+export function legacyChange(event: EventListItem, change: EventChangeItem): CatalogueRow {
   return {
     ...legacyEvent(event),
     columnName: change.columnName,
@@ -73,7 +73,7 @@ export function legacyChange(event: EventListItem, change: EventChangeItem): Act
  * A change row carries its own `columnName`, so an `update` event resolves one entry per change
  * rather than one for the event; {@link legacyChange} is that case.
  */
-export function legacyEvent(event: EventListItem): ActivityListItem {
+export function legacyEvent(event: EventListItem): CatalogueRow {
   return {
     columnName: event.verb === 'remove' ? removedColumn(event) : COLUMN_FOR_VERB[event.verb],
     createdAt: event.createdAt,
@@ -122,7 +122,7 @@ export function legacyEvent(event: EventListItem): ActivityListItem {
  * column. Everything else produces exactly one, and an `update` that somehow carries no changes
  * still produces its own, so a card can never end up with nothing to say.
  */
-export function legacyRows(event: EventListItem): ActivityListItem[] {
+export function legacyRows(event: EventListItem): CatalogueRow[] {
   if (event.verb !== 'update' || event.changes.length === 0) {
     return [legacyEvent(event)]
   }

@@ -55,6 +55,9 @@
    */
   let talking = $state(false)
 
+  /** Owned here rather than in the thread, so collapsing it does not throw away a draft. */
+  let draft = $state('')
+
   /** Step one: the five quick emoji, floating over the card. */
   let quick = $state(false)
   /** Step two: every emoji there is, in the sheet. */
@@ -157,6 +160,7 @@
         talking ? 'text-surface-950-50' : 'text-surface-600-400 hover:text-surface-950-50',
       ]}
       aria-expanded={talking}
+      aria-label={comments.length === 0 ? m.comments_placeholder() : m.comments_show({ count: comments.length })}
       onclick={() => (talking = !talking)}
     >
       <Icon name="messageCircle" size={16} />
@@ -240,6 +244,6 @@
   </div>
 
   {#if talking}
-    <Comments {comments} {eventId} />
+    <Comments body={draft} {comments} {eventId} onbody={(value) => (draft = value)} />
   {/if}
 </div>

@@ -1,15 +1,15 @@
 import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
-import { headlineEntityName } from '$lib/entities/activity/card'
-import type { ActivityEntityType } from '$lib/entities/activity/dto'
-import { activityEntityKey, activityRefs, type ActivityEntityRef } from '$lib/entities/activity/entity'
-import { activityVerb, parseDeletedAscent } from '$lib/entities/activity/verbs'
 import { blockName } from '$lib/entities/block/mapper'
+import { headlineEntityName } from '$lib/entities/event/cardView'
+import type { CatalogueEntityType } from '$lib/entities/event/catalogue'
 import { objectOf } from '$lib/entities/event/dto'
+import { eventEntityKey, eventRefs, type EventEntityRef } from '$lib/entities/event/entity'
 import { groupEvents } from '$lib/entities/event/grouping'
 import { legacyRows } from '$lib/entities/event/legacy'
 import type { EventListItem } from '$lib/entities/event/mapper'
+import { parseDeletedAscent, verbKey } from '$lib/entities/event/verbs'
 import { resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, type Locale } from '$lib/paraglide/runtime'
@@ -57,7 +57,14 @@ export type DigestEvent = Pick<
   | 'routeFk'
   | 'subjectFk'
   | 'verb'
-> & { ascentType?: null | string; createdAt: Date; parentId?: null | number | string; parentType?: null | string }
+> & {
+  ascentType?: null | string
+  /** The first column an update moved, which is what the catalogue keys its sentence on. */
+  changedColumn?: null | string
+  createdAt: Date
+  parentId?: null | number | string
+  parentType?: null | string
+}
 
 /**
  * Render a batch of activities as one headline plus a count of the rest.
@@ -86,7 +93,7 @@ export async function digestCopy(
   // changed column, everything else to one. What the digest reads off them (the refs, the verb,
   // the stored name) is what the card reads.
   const activities = newest.events.flatMap(legacyRows)
-  const refs = activityRefs(activities)
+  const refs = eventRefs(activities)
   // What the card would put a row under, falling back to what the activities are about: an upload
   // names the thing it landed on rather than the file, which has no name worth reading.
   const subject = refs.rows[0] ?? refs.subjects[0]
@@ -99,11 +106,11 @@ export async function digestCopy(
   // gone from `areas` and its name survives only in `oldValue`; an invitation deliberately has no
   // hydrated subject at all. Looking only at what `entityNames` found would announce both of
   // those with `common_unnamed`.
-  const hydrated = subject == null ? undefined : names.get(activityEntityKey(subject))
+  const hydrated = subject == null ? undefined : names.get(eventEntityKey(subject))
   const name = headlineEntityName(lead, hydrated == null ? null : { name: hydrated, row: 'none' })
 
   const title = resolveMessage(
-    activityVerb(lead),
+    verbKey(lead),
     {
       actor: actorNames.get(lead.userFk) ?? '',
       climber: climber?.climberName ?? '',
@@ -125,18 +132,18 @@ export async function digestCopy(
 }
 
 /**
- * The display name of each ref, by {@link activityEntityKey}.
+ * The display name of each ref, by {@link eventEntityKey}.
  *
  * One query per entity kind actually present, with known ids. An ascent borrows its route's name,
  * the same substitution the feed makes, because "an ascent" is not a thing anybody can picture.
  */
 export async function entityNames(
-  refs: readonly ActivityEntityRef[],
+  refs: readonly EventEntityRef[],
   locale: Locale = baseLocale,
 ): Promise<Map<string, string>> {
   const names = new Map<string, string>()
 
-  const idsOf = (type: ActivityEntityType): number[] => [
+  const idsOf = (type: CatalogueEntityType): number[] => [
     ...new Set(refs.flatMap((ref) => (ref.type === type ? [Number(ref.id)] : [])).filter(Number.isInteger)),
   ]
 
@@ -208,7 +215,18 @@ function toEventItem(event: DigestEvent): EventListItem {
     actorName: '',
     // No change rows. The digest renders one headline, which reads the event's own verb; a card's
     // change LINES are the one thing a push deliberately does not list.
-    changes: [],
+    changes:
+      event.changedColumn == null
+        ? []
+        : [
+            {
+              columnName: event.changedColumn,
+              newValue: undefined,
+              objectId: undefined,
+              objectType: undefined,
+              oldValue: undefined,
+            },
+          ],
     // Neither reaches a push: a digest is region activity, and what people said about it is the
     // directed half's business.
     comments: [],

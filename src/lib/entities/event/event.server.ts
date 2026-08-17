@@ -221,7 +221,14 @@ export async function insertEvent(db: Db, input: EventInput): Promise<schema.Eve
   if (open != null && joins(input.verb, open)) {
     // The verb is NOT overwritten. A create that gains later edits is still a create; that is
     // what makes "Anna added Traumtanz" absorb its own refinements instead of becoming an update.
-    await db.update(schema.events).set({ createdAt: new Date() }).where(eq(schema.events.id, open.id))
+    // `clock_timestamp()`, not the Node clock: this is the only code that reassigns the column,
+    // and the INSERT default is the Postgres one. Two clocks on one column means a host trailing
+    // the database by a few hundred milliseconds writes a "refloated" card that sorts BELOW the
+    // rows it was meant to rise above, and can land under a digest watermark that already passed.
+    await db
+      .update(schema.events)
+      .set({ createdAt: sql`clock_timestamp()` })
+      .where(eq(schema.events.id, open.id))
 
     // Deliberately the row as it was BEFORE the bump: `writeChanges` puts that timestamp back when
     // the edit turns out to have undone itself, so a create does not refloat for a no-op save.

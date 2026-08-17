@@ -6,7 +6,7 @@ afterEach(() => overwriteGetLocale(() => 'en'))
 
 describe('splitMessage', () => {
   it('cuts a message around the placeholders the caller renders itself', () => {
-    expect(splitMessage('activity_routeCreated', { person: 'other' }, ['actor', 'name'])).toEqual([
+    expect(splitMessage('event_routeCreated', { person: 'other' }, ['actor', 'name'])).toEqual([
       { part: 'actor' },
       { text: ' added the route ' },
       { part: 'name' },
@@ -20,7 +20,7 @@ describe('splitMessage', () => {
   it('follows the translation s word order, not the call site s', () => {
     overwriteGetLocale(() => 'de')
 
-    expect(splitMessage('activity_routeCreated', { person: 'other' }, ['actor', 'name'])).toEqual([
+    expect(splitMessage('event_routeCreated', { person: 'other' }, ['actor', 'name'])).toEqual([
       { part: 'actor' },
       { text: ' hat die Route ' },
       { part: 'name' },
@@ -32,7 +32,7 @@ describe('splitMessage', () => {
     overwriteGetLocale(() => 'de')
 
     // "Du hast" against "{actor} hat": one string cannot serve both, hence the person variant.
-    expect(splitMessage('activity_routeCreated', { person: 'self' }, ['actor', 'name'])).toEqual([
+    expect(splitMessage('event_routeCreated', { person: 'self' }, ['actor', 'name'])).toEqual([
       { text: 'Du hast die Route ' },
       { part: 'name' },
       { text: ' hinzugefügt' },
@@ -42,6 +42,6 @@ describe('splitMessage', () => {
   it('renders an unknown key as the key rather than blank copy', () => {
     // The cast is the point: `MessageKey` makes this unreachable except where a caller casts
     // deliberately, which `card.ts` does for a verb chain that matched nothing.
-    expect(splitMessage('activity_nope' as MessageKey, {}, ['actor'])).toEqual([{ text: 'activity_nope' }])
+    expect(splitMessage('event_nope' as MessageKey, {}, ['actor'])).toEqual([{ text: 'event_nope' }])
   })
 })

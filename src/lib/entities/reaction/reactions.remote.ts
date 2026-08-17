@@ -4,7 +4,7 @@ import { requireRow } from '$lib/remote/require.server'
 import { and, eq, isNull } from 'drizzle-orm'
 import z from 'zod'
 import { COMMENT_MAX_LENGTH, isEmoji, normalizeEmoji } from './dto'
-import { dropReactionNotification, notifyComment, notifyReaction } from './reaction.server'
+import { dropCommentNotification, dropReactionNotification, notifyComment, notifyReaction } from './reaction.server'
 
 /**
  * Set, change or clear the current user's reaction to one event.
@@ -144,8 +144,8 @@ export const postComment = authedCommand(
  */
 export const deleteComment = authedCommand(
   z.object({ commentId: z.number().int().positive() }),
-  async ({ commentId }, { db, user }) => {
-    await requireRow(
+  async ({ commentId }, { afterCommit, db, user }) => {
+    const comment = await requireRow(
       () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
       // Your own, and still a comment: the emoji half has its own path through `toggleReaction`.
       (row) => row.userFk === user.id && row.type === 'comment',
@@ -153,5 +153,9 @@ export const deleteComment = authedCommand(
     )
 
     await db.update(reactions).set({ deletedAt: new Date() }).where(eq(reactions.id, commentId))
+
+    // And the inbox row about it, which a soft delete cannot cascade away. On the privileged
+    // handle, so it needs a connection this handler is not holding.
+    afterCommit(() => dropCommentNotification({ actorFk: user.id, eventFk: comment.eventFk, reactionFk: commentId }))
   },
 )

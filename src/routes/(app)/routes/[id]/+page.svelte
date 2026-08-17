@@ -3,11 +3,11 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
@@ -349,7 +349,7 @@
         <!-- No lightbox of its own: this page already mounts one (MediaGrid below), and two
              would both match the same `?media` id and stack two viewers. The log's photos are
              this route's, so the page's set already holds them. -->
-        <ActivityMeta
+        <EventMeta
           createdAt={detail.createdAt}
           createdBy={detail.createdBy}
           lightbox={false}

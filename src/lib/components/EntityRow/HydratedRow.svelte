@@ -8,8 +8,8 @@
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import type { ActivityCardRow } from '$lib/entities/activity/card'
-  import type { ActivityEntityType } from '$lib/entities/activity/dto'
+  import type { CardRow } from '$lib/entities/event/cardView'
+  import type { CatalogueEntityType } from '$lib/entities/event/catalogue'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { resolveMessage, type MessageKey } from '$lib/i18n/message'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -19,7 +19,7 @@
   import UserRow from './UserRow.svelte'
 
   interface Props {
-    row: ActivityCardRow
+    row: CardRow
     /** Passed through to the row primitives. `option` is the flat, tighter row for nesting
      *  inside another card; `card` is the bordered list item. */
     variant?: 'card' | 'option'
@@ -30,7 +30,7 @@
   const global = getGlobalState()
 
   /** What a tombstone was, since the entity is no longer there to say so itself. */
-  const ENTITY_LABEL: Record<ActivityEntityType, MessageKey> = {
+  const ENTITY_LABEL: Record<CatalogueEntityType, MessageKey> = {
     area: 'common_area',
     ascent: 'common_ascent',
     block: 'common_block',

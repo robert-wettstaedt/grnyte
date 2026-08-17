@@ -24,6 +24,45 @@ type EventRow = Pick<
 const NOTIFIABLE = new Set<string>(['area', 'ascent', 'block', 'route', 'user'])
 
 /**
+ * Take back, or re-point, the inbox row a comment wrote once that comment is gone.
+ *
+ * The same rule as {@link dropReactionNotification}, and for the same reason: "Bob commented on
+ * your entry", tapped through to a thread with nothing in it, leaves the reader unable to tell
+ * whether they misread it or Bob deleted it.
+ *
+ * Deleting outright is not enough, because one row covers a whole conversation: the inbox holds
+ * one row per (reader, actor, event), pointed at the comment it was written about, and an unread
+ * row keeps pointing at the FIRST one. Somebody who says two things and deletes the first would
+ * otherwise erase the reader's only notice of the second. So the row survives with its pointer
+ * moved to whatever that person still has standing on the card.
+ */
+export async function dropCommentNotification(input: {
+  actorFk: number
+  eventFk: number
+  reactionFk: number
+}): Promise<void> {
+  const remaining = await baseDb.query.reactions.findFirst({
+    columns: { id: true },
+    orderBy: (table, { desc }) => desc(table.id),
+    where: and(
+      eq(reactions.eventFk, input.eventFk),
+      eq(reactions.userFk, input.actorFk),
+      eq(reactions.type, 'comment'),
+      isNull(reactions.deletedAt),
+    ),
+  })
+
+  const rows = and(eq(notifications.reactionFk, input.reactionFk), eq(notifications.sourceType, 'comment'))
+
+  if (remaining == null) {
+    await baseDb.delete(notifications).where(rows)
+    return
+  }
+
+  await baseDb.update(notifications).set({ reactionFk: remaining.id }).where(rows)
+}
+
+/**
  * Take back the inbox row a reaction wrote, once the last reaction behind it is gone.
  *
  * An inbox row about a reaction that no longer exists is a sentence with nothing behind it: the

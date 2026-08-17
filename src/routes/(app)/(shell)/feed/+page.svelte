@@ -2,16 +2,16 @@
   The global activity feed: everything logged across the regions the user belongs to.
 
   Markup and the filter values. `eventFeed()` owns the window, the mark behind the "N new"
-  pill, the grouping and the hydration; `ActivityFeed` renders the cards it decides.
+  pill, the grouping and the hydration; `EventFeed` renders the cards it decides.
 -->
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ActivityFeed from '$lib/components/ActivityFeed/ActivityFeed.svelte'
-  import ActivityFilters from '$lib/components/ActivityFeed/ActivityFilters.svelte'
+  import EventFeed from '$lib/components/EventFeed/EventFeed.svelte'
+  import EventFilters from '$lib/components/EventFeed/EventFilters.svelte'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { ActivityCategory } from '$lib/entities/activity/dto'
+  import type { EventCategory } from '$lib/entities/event/catalogue'
   import { eventFeed } from '$lib/entities/event/feed.svelte'
   import { userList } from '$lib/entities/user/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
@@ -28,7 +28,7 @@
   // blank. Ids are positive integers, so this is the whole grammar.
   const asNumber = (value: null | string) => (value != null && /^\d+$/.test(value) ? Number(value) : undefined)
 
-  let category = $state<ActivityCategory | undefined>(
+  let category = $state<EventCategory | undefined>(
     initial.get('category') === 'ascent' ? 'ascent' : initial.get('category') === 'update' ? 'update' : undefined,
   )
   let regionFk = $state(asNumber(initial.get('region')))
@@ -108,7 +108,7 @@
        nothing on desktop, once installed, or once the nag policy has retired it. -->
   <InstallApp dismissible />
 
-  <ActivityFilters
+  <EventFilters
     bind:category
     currentUserFk={global.user?.id}
     {filtered}
@@ -124,7 +124,7 @@
 
   <QueryState resource={feed.resource}>
     {#snippet ready()}
-      <ActivityFeed
+      <EventFeed
         expandedIds={feed.expandedIds}
         hasMore={feed.hasMore}
         newCount={feed.newCount}

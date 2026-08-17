@@ -77,6 +77,18 @@ export function isDigestDue(oldestAt: number | undefined, newestAt: number | und
 export const DIGEST_SCAN_LIMIT = 500
 
 /**
+ * How far back from "now" a digest scan stops, so a transaction that has not committed yet cannot
+ * be stepped over.
+ *
+ * `events.created_at` is stamped when the row is written and the row becomes visible when its
+ * transaction commits, which is later. A scan that read up to the instant it ran could mark past
+ * an event stamped a second ago and still in flight, and a timestamp watermark never goes back for
+ * it. Ignoring the last half minute costs a digest nothing (it waits for the region to go quiet
+ * anyway) and closes that window for any transaction shorter than this.
+ */
+export const DIGEST_COMMIT_LAG_MS = 30 * 1000
+
+/**
  * How far a person has already been covered, by push or by their own reading.
  *
  * The higher of the two marks: catching up in the feed silences the push for what was read, and a

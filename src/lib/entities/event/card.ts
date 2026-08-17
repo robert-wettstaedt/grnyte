@@ -1,6 +1,6 @@
-import { activityCard, type ActivityCardRow, type ActivityCardView } from '$lib/entities/activity/card'
-import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
-import type { ActivityGroup } from '$lib/entities/activity/grouping'
+import type { CardGroup } from '$lib/entities/event/cardGroup'
+import { cardView, type CardRow, type CardView } from '$lib/entities/event/cardView'
+import type { EventEntity, EventEntityMap, EventEntityRef } from '$lib/entities/event/entity'
 import type { CommentListItem, ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
@@ -17,16 +17,16 @@ import type { EventListItem } from './mapper'
  * on the entity's own page, an event whose row collapsed into a sibling's) falls to the footer, so
  * a reaction that exists is always somewhere a reader can see and take back.
  */
-export interface EventCardView extends ActivityCardView {
+export interface EventCardView extends CardView {
   /**
    * Bars with no row of their own. Empty for most cards.
    *
-   * Optional so a plain `ActivityCardView` still is one of these: the catalogue stories build
+   * Optional so a plain `CardView` still is one of these: the catalogue stories build
    * their cards straight out of fixtures with no events behind them, and a story has nothing to
    * react to.
    */
   bars?: EventReactionBar[]
-  rows: (ActivityCardRow & { bar?: EventReactionBar })[]
+  rows: (CardRow & { bar?: EventReactionBar })[]
 }
 
 /** One event's reactions and its thread, plus the handle both post back. */
@@ -45,7 +45,7 @@ export interface EventReactionBar {
 /**
  * A card, built from events.
  *
- * Deliberately an adapter over `activityCard` rather than a second implementation. That function
+ * Deliberately an adapter over `cardView` rather than a second implementation. That function
  * is 450 lines of decisions nobody wants made twice (which name a headline puts in its slot, when
  * a climber is named, how a removal picks its media word, what a merged create-plus-media card
  * says), and `cases.ts` pins them with fixtures measured in six figures. Reimplementing it against
@@ -64,9 +64,9 @@ export function eventCard(
   group: EventGroup,
   currentUserFk: number | undefined,
   topos?: ReadonlyMap<number, TopoView>,
-  omit?: ActivityEntityRef,
+  omit?: EventEntityRef,
 ): EventCardView {
-  const view = activityCard(toActivityGroup(group), entityMap(group), currentUserFk, topos, omit)
+  const view = cardView(toActivityGroup(group), entityMap(group), currentUserFk, topos, omit)
 
   // Each row claims the event it is about; what is left at the end is what no row speaks for.
   const unclaimed = new Map(group.events.map((event) => [event.id, event]))
@@ -83,22 +83,21 @@ export function eventCard(
     }
   })
 
-  const leftover = [...unclaimed.values()].flatMap((event) => bar(event, currentUserFk) ?? [])
+  const leftover = [...unclaimed.values()].map((event) => bar(event, currentUserFk))
 
   return {
     ...view,
-    // What no row spoke for. A card with no rows at all still offers somewhere to react, which is
-    // what the entity's own page needs: it drops the row that would link back to the page the
-    // reader is already on, and without this nothing there could be reacted to. Otherwise only a
-    // leftover that already carries chips, because a bar nobody can see is a bar nobody can add
-    // to: it exists so a reaction taken on one card cannot go invisible when the window regroups.
+    // What no row spoke for: every leftover that already carries something, so a reaction or a
+    // comment taken on one card cannot go invisible when the window regroups it, PLUS the first
+    // one on a card with no rows at all. That second half is what the entity's own page needs: it
+    // drops the row that would link back to the page the reader is already on, and without it
+    // there would be nothing there to react to or comment under.
     //
     // ponytail: an event past `MAX_ROWS` (the fifth ascent of a session, behind "1 more") gets no
     // bar of its own. Upgrade = render the overflow rows rather than counting them.
-    bars:
-      rows.length === 0
-        ? leftover.slice(0, 1)
-        : leftover.filter((left) => left.chips.length > 0 || left.comments.length > 0),
+    bars: leftover.filter(
+      (left, index) => left.chips.length > 0 || left.comments.length > 0 || (rows.length === 0 && index === 0),
+    ),
     // Same reason as `state` above: a name that is missing is missing for good, where the old pass
     // had to keep the slot pulsing until every fetch had answered.
     entityUnnamed: view.entityName == null,
@@ -107,29 +106,20 @@ export function eventCard(
 }
 
 /**
- * One event's bar, or nothing where there would be nothing in it.
+ * One event's bar.
  *
- * Your own event with no reactions yet has no chips to list and no button to offer, and an empty
- * bar is not invisible: in the footer it draws a rule across the bottom of the card with nothing
- * under it, and between rows it adds a gap.
+ * Always one, your own card included. `readonly` takes the reaction half away there, since nobody
+ * applauds their own event, but the comment button stays: being the person a card is about is the
+ * most likely reason to have something to say under it, and answering somebody is the other. An
+ * earlier version dropped the bar for that case, which left a card of yours with no way into its
+ * own thread until somebody else had started one.
  */
-function bar(event: EventListItem, currentUserFk: number | undefined): EventReactionBar | undefined {
-  const chips = reactionChips(event.reactions, currentUserFk)
-  const readonly = event.actorFk === currentUserFk
-
-  // Your own event with nothing on it yet: no chips to read, no reaction to add (you cannot react
-  // to yourself), and nobody to answer. Talking to yourself under your own card is the one thing
-  // worth leaving out, and an empty bar is not invisible: it draws a rule across the card with
-  // nothing under it, or a gap between rows.
-  if (readonly && chips.length === 0 && event.comments.length === 0) {
-    return undefined
-  }
-
+function bar(event: EventListItem, currentUserFk: number | undefined): EventReactionBar {
   return {
-    chips,
+    chips: reactionChips(event.reactions, currentUserFk),
     comments: event.comments.map((comment) => ({ ...comment, mine: comment.authorFk === currentUserFk })),
     eventId: event.id,
-    readonly,
+    readonly: event.actorFk === currentUserFk,
   }
 }
 
@@ -174,13 +164,13 @@ function claim(
 /**
  * What the hydration pass used to fetch, assembled from what the rows already carried.
  *
- * Keyed the way `activityEntityKey` keys it, because that is what the card looks rows up by. An
+ * Keyed the way `eventEntityKey` keys it, because that is what the card looks rows up by. An
  * event whose object contributes no entity (a file with no parent) is left absent rather than
  * stored as `null`: absent used to mean "still syncing", and nothing syncs any more, so the card's
  * two remaining states collapse onto the one it can still render.
  */
-function entityMap(group: EventGroup): ActivityEntityMap {
-  const entities = new Map<string, ActivityEntity | null>()
+function entityMap(group: EventGroup): EventEntityMap {
+  const entities = new Map<string, EventEntity | null>()
 
   for (const event of group.events) {
     if (event.entity == null) {
@@ -214,12 +204,12 @@ function entityMap(group: EventGroup): ActivityEntityMap {
  * An `update` expands to one row per changed column, which is exactly what the old table stored,
  * so a card that used to hold twelve rows still holds twelve.
  */
-function toActivityGroup(group: EventGroup): ActivityGroup {
+function toActivityGroup(group: EventGroup): CardGroup {
   return {
-    activities: group.events.flatMap(legacyRows),
     createdAt: group.createdAt,
     id: group.id,
     kind: group.kind,
+    rows: group.events.flatMap(legacyRows),
     userFk: group.actorFk,
   }
 }

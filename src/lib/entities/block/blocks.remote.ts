@@ -8,10 +8,10 @@ import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
 import z from 'zod'
-import { stringifyDeletionScale } from '../activity/verbs'
 import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
+import { stringifyDeletionScale } from '../event/verbs'
 import { canDeleteBlock, canEditBlock } from './permissions'
 
 const blockActionSchema = z.object({

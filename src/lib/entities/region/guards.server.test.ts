@@ -38,21 +38,26 @@ let users = {} as Record<Who, SeedUser>
 let regionId = 0
 let otherRegionId = 0
 
-/** The activity `removeRegionMember` writes, which is what `resolveRestore` demands as proof. */
+/**
+ * The event `removeRegionMember` writes, which is what `resolveRestore` demands as proof.
+ *
+ * No `metadata`, which is the discriminator: a revoked invitation writes the same verb about the
+ * same subject with the address in it, and must not read as a removal to restore.
+ */
 const logRemoval = (regionFk: number, userFk: number) => sql`
-  insert into public.activities (type, entity_id, entity_type, column_name, region_fk, user_fk)
-  values ('deleted', ${String(userFk)}, 'user', 'role', ${regionFk}, ${users.admin.userId})`
+  insert into public.events (verb, subject_fk, region_fk, actor_fk)
+  values ('remove', ${userFk}, ${regionFk}, ${users.admin.userId})`
 
 async function removeFixtures() {
   const names = [REGION, OTHER_REGION]
-  await sql`delete from public.activities where region_fk in (select id from public.regions where name = any(${names}))`
+  await sql`delete from public.events where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.regions where name = any(${names})`
 }
 
 /** admin@ is the sole region_admin, member@ is a plain member, second@ is a maintainer. */
 async function seedMembers() {
-  await sql`delete from public.activities where region_fk in (${regionId}, ${otherRegionId})`
+  await sql`delete from public.events where region_fk in (${regionId}, ${otherRegionId})`
   await sql`delete from public.region_members where region_fk in (${regionId}, ${otherRegionId})`
   await sql`
     insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk) values

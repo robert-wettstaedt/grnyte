@@ -1,6 +1,6 @@
 import { entityHref } from '$lib/components/EntitySearch/search.svelte'
-import type { ActivityEntity } from '$lib/entities/activity/entity'
 import { blockName } from '$lib/entities/block/mapper'
+import type { EventEntity } from '$lib/entities/event/entity'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
 import type { CommentListItem, ReactionListItem } from '$lib/entities/reaction/dto'
@@ -25,7 +25,7 @@ export interface EventChangeItem {
 /**
  * One event, ready to render.
  *
- * The shape `ActivityListItem` had, minus everything that existed to work around the polymorphic
+ * The shape `CatalogueRow` had, minus everything that existed to work around the polymorphic
  * pair: no `entityId`/`entityType` to look up, no `parentEntity*` to stand in for a join, and no
  * separate hydration result to marry to it. The entity is `entity`, resolved here, because the row
  * already carried it.
@@ -47,7 +47,7 @@ export interface EventListItem {
    * `undefined` means only that the row is one of the few whose object contributes no entity (a
    * file, which has no page of its own).
    */
-  entity: ActivityEntity | undefined
+  entity: EventEntity | undefined
   id: number
   /** Free-form string the writer attached: a role, an invited address, a topo change. */
   metadata: string | undefined
@@ -71,7 +71,7 @@ export interface EventListItem {
    *
    * Absent for a file, whose entity IS its parent's (the card keys that one under both).
    */
-  parentEntity: ActivityEntity | undefined
+  parentEntity: EventEntity | undefined
   /** The emoji sent on THIS event. A card shows one bar per event, not one per card. */
   reactions: ReactionListItem[]
   regionFk: number
@@ -124,7 +124,7 @@ const EMPTY_OBJECTS = {
   subject: undefined,
 }
 
-function entityOf(row: EventRow, userRegions: RegionMembership[]): ActivityEntity | undefined {
+function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity | undefined {
   const crumbs = (regionFk: null | number | undefined, rest: (null | string | undefined)[]) =>
     [regionCrumb(userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
 
@@ -245,8 +245,8 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): ActivityEntit
  * parent row itself. That keeps it free, and it is enough: a name and a link is all a headline
  * puts in its slot.
  */
-function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): ActivityEntity | undefined {
-  const areaEntity = (area: { id: number; name: string }): ActivityEntity => ({
+function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity | undefined {
+  const areaEntity = (area: { id: number; name: string }): EventEntity => ({
     crumbs: [],
     href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
     name: area.name,
@@ -296,7 +296,7 @@ function parentOf(row: EventRow): undefined | { id: number | string; type: Event
   return undefined
 }
 
-function routeEntity(route: NonNullable<EventRow['route']>, userRegions: RegionMembership[]): ActivityEntity {
+function routeEntity(route: NonNullable<EventRow['route']>, userRegions: RegionMembership[]): EventEntity {
   // The relation syncs the same tree `listRoutes` does (tags, first ascents, block/area, topo),
   // so this is the same row by structure. The two query types are nominally distinct because they
   // are built from different roots, which is the only reason this needs saying.

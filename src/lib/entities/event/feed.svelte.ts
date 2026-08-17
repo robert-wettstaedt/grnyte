@@ -1,4 +1,4 @@
-import type { ActivityEntityRef } from '$lib/entities/activity/entity'
+import type { EventEntityRef } from '$lib/entities/event/entity'
 import { markEventFeedSeen } from '$lib/entities/notification/notifications.remote'
 import { parseTopoChange } from '$lib/entities/topo/change'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
@@ -164,6 +164,6 @@ function isGlobal(filter: EventFeedFilter): boolean {
 }
 
 /** The scope as the card reads it, whose ids are text. */
-function omitRef(scope: EventFeedFilter['scope']): ActivityEntityRef | undefined {
+function omitRef(scope: EventFeedFilter['scope']): EventEntityRef | undefined {
   return scope == null ? undefined : { id: String(scope.id), type: scope.type }
 }

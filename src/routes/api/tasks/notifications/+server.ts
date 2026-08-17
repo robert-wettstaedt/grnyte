@@ -1,10 +1,22 @@
 import { CRON_API_KEY } from '$env/static/private'
 import { db } from '$lib/db/db.server'
-import { ascents, blocks, events, notifications, pushSubscriptions, routes, users, userSettings } from '$lib/db/schema'
+import {
+  areas,
+  ascents,
+  blocks,
+  events,
+  files,
+  notifications,
+  pushSubscriptions,
+  routes,
+  users,
+  userSettings,
+} from '$lib/db/schema'
 import { notificationView } from '$lib/entities/notification/caption'
 import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
 import { readableRegions } from '$lib/entities/notification/notification.server'
 import {
+  DIGEST_COMMIT_LAG_MS,
   DIGEST_SCAN_LIMIT,
   DIGEST_TAG,
   digestFloor,
@@ -15,7 +27,7 @@ import {
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
 import { json } from '@sveltejs/kit'
-import { and, count, eq, gt, inArray, isNull, max, ne, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, lte, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
@@ -157,11 +169,38 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
 }
 
 /**
+ * How far a scan may safely mark, given `created_at` is not unique.
+ *
+ * A full scan can cut inside a group of events sharing one millisecond, and the mark is a
+ * timestamp: advancing to the last row's would put the tied siblings below it forever. So a
+ * truncated scan stops at the last row BEFORE the trailing tie group, which is then re-read next
+ * run. The one case that cannot be handled that way is a whole window of one millisecond, where
+ * stopping short would never advance at all; there the tie is taken whole, which is the lesser
+ * failure (a repeat, not a silence) and needs 500 events inside one millisecond to reach.
+ */
+function safeMark(scanned: readonly { createdAt: Date }[], truncated: boolean): Date {
+  const last = scanned[scanned.length - 1].createdAt
+
+  if (!truncated) {
+    return last
+  }
+
+  const kept = scanned.filter((row) => row.createdAt.getTime() !== last.getTime())
+  return kept.length === 0 ? last : kept[kept.length - 1].createdAt
+}
+
+/**
  * The digest: for each subscriber, whatever region activity has landed above both watermarks.
  *
  * `greatest(pushedUpTo, seenUpTo)` is the floor, so catching up in the feed silences the push for
- * what was read and a push never repeats itself. The watermark moves whether or not a device took
- * the payload, for the same reason the directed half stamps `pushedAt` unconditionally.
+ * what was read. The watermark moves whether or not a device took the payload, for the same reason
+ * the directed half stamps `pushedAt` unconditionally.
+ *
+ * One thing a timestamp floor cannot promise that the old id one could: an event whose author
+ * keeps editing it inside the 15-minute fold window has its `created_at` bumped by the fold, so an
+ * event already counted can rise back above the mark and be counted again. That is one repeat of a
+ * card the reader has genuinely just changed, which is the lesser half of the trade the fold buys
+ * everywhere else, and it is why this no longer claims a push never repeats itself.
  */
 async function sendDigests(nowMs: number): Promise<number> {
   // Only people with a device to push to. Everything below is per-recipient, and this is what
@@ -227,18 +266,35 @@ async function sendDigests(nowMs: number): Promise<number> {
         // than of the event. Without it every send in a digest reads as the generic sentence.
         ascentType: ascents.type,
         blockFk: events.blockFk,
+        // The first column an update moved, which is what the catalogue keys the sentence on: an
+        // update carries no verb of its own beyond "update", so without this a grade change reads
+        // as "edited the route" and a file or membership edit falls all the way through to the
+        // generic sentence.
+        changedColumn: sql<
+          null | string
+        >`(select c.column_name from public.changes c where c.event_fk = ${events.id} order by c.id limit 1)`,
         createdAt: events.createdAt,
         fileFk: events.fileFk,
         id: events.id,
         metadata: events.metadata,
-        // What a burst groups on. Only the two hops the grouping actually keys on: a route's
-        // block and an ascent's route. Without them every edit under one block is its own group,
-        // which inflates the "and 12 more" count the digest reports.
-        parentId: sql<null | number>`coalesce(${blocks.areaFk}, ${routes.blockFk}, ${ascents.routeFk})`,
+        // What a burst groups on, which has to be the same hop `parentOf` reads for the feed: an
+        // area's parent, a block's area, a route's block, an ascent's route, and whatever a file
+        // landed on. Without it every edit under one block is its own group, which inflates the
+        // "and 12 more" count the digest reports; without the FILE half specifically, a submit of
+        // five photos reports one photo and four more, where the card shows one grouped headline.
+        parentId: sql<null | number | string>`coalesce(
+          ${areas.parentFk}::text, ${blocks.areaFk}::text, ${routes.blockFk}::text, ${ascents.routeFk}::text,
+          ${files.routeFk}::text, ${files.ascentFk}::text, ${files.blockFk}::text, ${files.areaFk}::text
+        )`,
         parentType: sql<null | string>`case
+          when ${areas.parentFk} is not null then 'area'
           when ${blocks.areaFk} is not null then 'area'
           when ${routes.blockFk} is not null then 'block'
           when ${ascents.routeFk} is not null then 'route'
+          when ${files.routeFk} is not null then 'route'
+          when ${files.ascentFk} is not null then 'ascent'
+          when ${files.blockFk} is not null then 'block'
+          when ${files.areaFk} is not null then 'area'
         end`,
         regionFk: events.regionFk,
         routeFk: events.routeFk,
@@ -246,18 +302,26 @@ async function sendDigests(nowMs: number): Promise<number> {
         verb: events.verb,
       })
       .from(events)
+      // All on primary keys, and `events_one_object` allows at most one of them to match, so none
+      // of these can multiply a row.
+      .leftJoin(areas, eq(areas.id, events.areaFk))
       .leftJoin(ascents, eq(ascents.id, events.ascentFk))
       .leftJoin(blocks, eq(blocks.id, events.blockFk))
+      .leftJoin(files, eq(files.id, events.fileFk))
       .leftJoin(routes, eq(routes.id, events.routeFk))
       .where(
         and(
           gt(events.createdAt, floor),
+          // Stops short of the last half minute: a row is stamped when it is written and visible
+          // only when its transaction commits, so reading right up to now would let the mark step
+          // over something still in flight. See `DIGEST_COMMIT_LAG_MS`.
+          lte(events.createdAt, new Date(nowMs - DIGEST_COMMIT_LAG_MS)),
           inArray(events.regionFk, regions),
           // Nobody is told about their own edit.
           ne(events.actorFk, subscriber.userFk),
         ),
       )
-      .orderBy(events.createdAt)
+      .orderBy(events.createdAt, events.id)
       // Bounded, because this runs per subscriber every five minutes and `floor` can legitimately
       // be far behind (a fresh account, or somebody who had every category switched off). The
       // digest reports a count and one headline either way, so a longer tail buys nothing.
@@ -272,8 +336,10 @@ async function sendDigests(nowMs: number): Promise<number> {
     // Rows this person has switched off still count as covered. Leaving them behind the watermark
     // means re-reading a growing prefix on every run and, the moment they switch that category
     // back on, one push announcing the entire backlog.
+    const mark = safeMark(queued, queued.length === DIGEST_SCAN_LIMIT)
+
     if (enabled.length === 0) {
-      await advanceWatermark(subscriber.userFk, queued[queued.length - 1].createdAt)
+      await advanceWatermark(subscriber.userFk, mark)
       return false
     }
 
@@ -301,12 +367,24 @@ async function sendDigests(nowMs: number): Promise<number> {
 
     // Whether or not a device took it, and past everything scanned rather than only what was
     // enabled: an offline phone must not build a backlog that all fires at once later.
-    await advanceWatermark(subscriber.userFk, queued[queued.length - 1].createdAt)
+    await advanceWatermark(subscriber.userFk, mark)
 
     return delivered
   }
 
-  return (await inBatches(subscribers, sendDigest)).filter(Boolean).length
+  // Per subscriber, because `inBatches` runs a bare `Promise.all`: one person whose digest throws
+  // (a malformed row, a query that times out) would otherwise take down the whole run, and every
+  // run after it, leaving everybody behind them in the list with no push at all.
+  const guarded = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
+    try {
+      return await sendDigest(subscriber)
+    } catch (error) {
+      console.error(`[notifications] digest failed for user ${subscriber.userFk}`, error)
+      return false
+    }
+  }
+
+  return (await inBatches(subscribers, guarded)).filter(Boolean).length
 }
 
 /**

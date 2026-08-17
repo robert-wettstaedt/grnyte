@@ -1,4 +1,4 @@
-import type { ActivityEntityRef } from '$lib/entities/activity/entity'
+import type { EventEntityRef } from '$lib/entities/event/entity'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import type { MessageKey, MessageOptions } from '$lib/i18n/message'
 import type { NotificationListItem, NotificationSourceType } from './dto'
@@ -27,7 +27,7 @@ export interface NotificationView {
    *
    * The region carries the place in all three, and `regionFk` already holds it.
    */
-  ref: ActivityEntityRef | undefined
+  ref: EventEntityRef | undefined
 }
 
 /** The source types whose subject the caption (and the actor's avatar) has already said. */

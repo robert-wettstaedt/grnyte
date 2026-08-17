@@ -1404,7 +1404,7 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
  *
  * What this replaces: `activityType` plus `columnName`, where `created` + `column_name:
  * 'invitation'` was how we spelled `Invite`. That encoding is why a join contributed nothing to
- * `activityRefs` and why nobody who joined a region ever heard they had been welcomed.
+ * `eventRefs` and why nobody who joined a region ever heard they had been welcomed.
  */
 export const eventVerb: ['create', 'update', 'delete', 'add', 'remove', 'join', 'leave', 'invite', 'accept'] = [
   'create',
@@ -1477,7 +1477,13 @@ export const events = table(
     // default microseconds a synced row comes back as `…806.138`, which is not a bigint and
     // cannot be handed back as a bound. Rounding the cursor instead is not exact either, because
     // rows inside the rounded millisecond then fall on the wrong side of the cut.
-    createdAt: timestamp('created_at', { precision: 3, withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
+      .notNull()
+      // `clock_timestamp()`, not `now()`, which is the TRANSACTION's start. Every mutation runs in
+      // one, so an event written at the end of a long handler would carry the timestamp of that
+      // handler's first statement, and a digest whose watermark had passed that instant meanwhile
+      // would never see it. The feed's cursor reads the same column and has the same stake in it.
+      .default(sql`clock_timestamp()`),
     ...baseRegionFields,
     ...eventObjectFields,
 

@@ -1,748 +1,5 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "activity_areaCreated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You added the area {name}",
-        "person=*": "{actor} added the area {name}"
-      }
-    }
-  ],
-  "activity_areaDeleted": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You deleted the area {name}",
-        "person=*": "{actor} deleted the area {name}"
-      }
-    }
-  ],
-  "activity_areaDeletedFile": [
-    {
-      "declarations": ["input actor", "input media", "input name", "input person"],
-      "selectors": ["person", "media"],
-      "match": {
-        "person=self,media=photo": "You removed a photo from {name}",
-        "person=self,media=video": "You removed a video from {name}",
-        "person=self,media=*": "You removed media from {name}",
-        "person=*,media=photo": "{actor} removed a photo from {name}",
-        "person=*,media=video": "{actor} removed a video from {name}",
-        "person=*,media=*": "{actor} removed media from {name}"
-      }
-    }
-  ],
-  "activity_areaDeletedParkingLocation": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You removed the parking for {name}",
-        "person=*": "{actor} removed the parking for {name}"
-      }
-    }
-  ],
-  "activity_areaUpdated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You edited the area {name}",
-        "person=*": "{actor} edited the area {name}"
-      }
-    }
-  ],
-  "activity_areaUpdatedDescription": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You edited the description of {name}",
-        "person=*": "{actor} edited the description of {name}"
-      }
-    }
-  ],
-  "activity_areaUpdatedName": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You renamed {name}",
-        "person=*": "{actor} renamed {name}"
-      }
-    }
-  ],
-  "activity_areaUpdatedParkingLocation": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You set the parking for {name}",
-        "person=*": "{actor} set the parking for {name}"
-      }
-    }
-  ],
-  "activity_ascentCreated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You logged an ascent of {name}",
-        "person=*": "{actor} logged an ascent of {name}"
-      }
-    }
-  ],
-  "activity_ascentCreatedAttempt": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You attempted {name}",
-        "person=*": "{actor} attempted {name}"
-      }
-    }
-  ],
-  "activity_ascentCreatedFlash": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You flashed {name}",
-        "person=*": "{actor} flashed {name}"
-      }
-    }
-  ],
-  "activity_ascentCreatedRedpoint": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You redpointed {name}",
-        "person=*": "{actor} redpointed {name}"
-      }
-    }
-  ],
-  "activity_ascentCreatedRepeat": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You repeated {name}",
-        "person=*": "{actor} repeated {name}"
-      }
-    }
-  ],
-  "activity_ascentDeleted": [
-    {
-      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner"],
-      "match": {
-        "person=self,owner=self": "You removed your ascent of {name}",
-        "person=self,owner=none": "You removed an ascent of {name}",
-        "person=self,owner=*": "You removed {climber}'s ascent of {name}",
-        "person=*,owner=self": "{actor} removed their own ascent of {name}",
-        "person=*,owner=none": "{actor} removed an ascent of {name}",
-        "person=*,owner=*": "{actor} removed {climber}'s ascent of {name}"
-      }
-    }
-  ],
-  "activity_ascentDeletedFile": [
-    {
-      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner", "media"],
-      "match": {
-        "person=self,owner=self,media=photo": "You removed a photo from your ascent of {name}",
-        "person=self,owner=self,media=video": "You removed a video from your ascent of {name}",
-        "person=self,owner=self,media=*": "You removed media from your ascent of {name}",
-        "person=self,owner=none,media=photo": "You removed a photo from an ascent of {name}",
-        "person=self,owner=none,media=video": "You removed a video from an ascent of {name}",
-        "person=self,owner=none,media=*": "You removed media from an ascent of {name}",
-        "person=self,owner=*,media=photo": "You removed a photo from {climber}'s ascent of {name}",
-        "person=self,owner=*,media=video": "You removed a video from {climber}'s ascent of {name}",
-        "person=self,owner=*,media=*": "You removed media from {climber}'s ascent of {name}",
-        "person=*,owner=self,media=photo": "{actor} removed a photo from their own ascent of {name}",
-        "person=*,owner=self,media=video": "{actor} removed a video from their own ascent of {name}",
-        "person=*,owner=self,media=*": "{actor} removed media from their own ascent of {name}",
-        "person=*,owner=none,media=photo": "{actor} removed a photo from an ascent of {name}",
-        "person=*,owner=none,media=video": "{actor} removed a video from an ascent of {name}",
-        "person=*,owner=none,media=*": "{actor} removed media from an ascent of {name}",
-        "person=*,owner=*,media=photo": "{actor} removed a photo from {climber}'s ascent of {name}",
-        "person=*,owner=*,media=video": "{actor} removed a video from {climber}'s ascent of {name}",
-        "person=*,owner=*,media=*": "{actor} removed media from {climber}'s ascent of {name}"
-      }
-    }
-  ],
-  "activity_ascentUpdated": [
-    {
-      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner"],
-      "match": {
-        "person=self,owner=self": "You edited your ascent of {name}",
-        "person=self,owner=none": "You edited an ascent of {name}",
-        "person=self,owner=*": "You edited {climber}'s ascent of {name}",
-        "person=*,owner=self": "{actor} edited their own ascent of {name}",
-        "person=*,owner=none": "{actor} edited an ascent of {name}",
-        "person=*,owner=*": "{actor} edited {climber}'s ascent of {name}"
-      }
-    }
-  ],
-  "activity_blockCreated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You added the block {name}",
-        "person=*": "{actor} added the block {name}"
-      }
-    }
-  ],
-  "activity_blockDeleted": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You deleted the block {name}",
-        "person=*": "{actor} deleted the block {name}"
-      }
-    }
-  ],
-  "activity_blockDeletedFile": [
-    {
-      "declarations": ["input actor", "input media", "input name", "input person"],
-      "selectors": ["person", "media"],
-      "match": {
-        "person=self,media=photo": "You removed a photo from {name}",
-        "person=self,media=video": "You removed a video from {name}",
-        "person=self,media=*": "You removed media from {name}",
-        "person=*,media=photo": "{actor} removed a photo from {name}",
-        "person=*,media=video": "{actor} removed a video from {name}",
-        "person=*,media=*": "{actor} removed media from {name}"
-      }
-    }
-  ],
-  "activity_blockDeletedLocation": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You removed the location of {name}",
-        "person=*": "{actor} removed the location of {name}"
-      }
-    }
-  ],
-  "activity_blockDeletedTopo": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You removed a topo photo from {name}",
-        "person=*": "{actor} removed a topo photo from {name}"
-      }
-    }
-  ],
-  "activity_blockUpdated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You edited the block {name}",
-        "person=*": "{actor} edited the block {name}"
-      }
-    }
-  ],
-  "activity_blockUpdatedLocation": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You updated the location of {name}",
-        "person=*": "{actor} updated the location of {name}"
-      }
-    }
-  ],
-  "activity_blockUpdatedName": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You renamed {name}",
-        "person=*": "{actor} renamed {name}"
-      }
-    }
-  ],
-  "activity_blockUpdatedTopo": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You updated the topo on {name}",
-        "person=*": "{actor} updated the topo on {name}"
-      }
-    }
-  ],
-  "activity_changeFileRemoved": [
-    {
-      "declarations": ["input media"],
-      "selectors": ["media"],
-      "match": {
-        "media=photo": "Photo removed",
-        "media=video": "Video removed",
-        "media=*": "Media removed"
-      }
-    }
-  ],
-  "activity_changeLocationApproximate": "Approximate",
-  "activity_changeLocationConfirmed": "Approximate pin confirmed",
-  "activity_changeLocationMoved": "Moved {distance}",
-  "activity_changeLocationRemoved": "Location removed",
-  "activity_changeLocationSet": "Pin added",
-  "activity_changeLocationUpdated": "Location updated",
-  "activity_changeTagAdded": "Added {tag}",
-  "activity_changeTagRemoved": "Removed {tag}",
-  "activity_changeTopoLineAdded": "Drew {route}",
-  "activity_changeTopoLineRedrawn": "Redrew {route}",
-  "activity_changeTopoLineRemoved": "Erased {route}",
-  "activity_changeTopoLinesUpdated": "Lines updated",
-  "activity_changeTopoPhotoAdded": "Photo added",
-  "activity_changeTopoPhotoReplaced": "Photo replaced",
-  "activity_changeTopoReordered": "Photos reordered",
-  "activity_changeTopoUpdated": "Topo redrawn",
-  "activity_compareCharacters": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "Compare, {count} character",
-        "countPlural=other": "Compare, {count} characters"
-      }
-    }
-  ],
-  "activity_fieldDateTime": "Date",
-  "activity_fieldDescription": "Description",
-  "activity_fieldFile": [
-    {
-      "declarations": ["input media"],
-      "selectors": ["media"],
-      "match": {
-        "media=photo": "Photo",
-        "media=video": "Video",
-        "media=*": "Media"
-      }
-    }
-  ],
-  "activity_fieldFirstAscensionist": "First ascensionist",
-  "activity_fieldFirstAscensionists": "First ascensionists",
-  "activity_fieldFirstAscentYear": "First ascent year",
-  "activity_fieldGrade": "Grade",
-  "activity_fieldHumidity": "Humidity",
-  "activity_fieldInvitation": "Invitation",
-  "activity_fieldLocation": "Location",
-  "activity_fieldName": "Name",
-  "activity_fieldNotes": "Notes",
-  "activity_fieldParkingLocation": "Parking",
-  "activity_fieldRating": "Rating",
-  "activity_fieldRole": "Role",
-  "activity_fieldSource": "Source",
-  "activity_fieldTags": "Tags",
-  "activity_fieldTemperature": "Temperature",
-  "activity_fieldTopo": "Topo",
-  "activity_fieldType": "Type",
-  "activity_fieldUsername": "Username",
-  "activity_fileUpdatedSource": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You updated the video source on {name}",
-        "person=*": "{actor} updated the video source on {name}"
-      }
-    }
-  ],
-  "activity_fileUploaded": [
-    {
-      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner", "media"],
-      "match": {
-        "person=self,owner=self,media=photo": "You added a photo to your ascent of {name}",
-        "person=self,owner=self,media=video": "You added a video to your ascent of {name}",
-        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
-        "person=self,owner=*,media=photo": "You added a photo to {name}",
-        "person=self,owner=*,media=video": "You added a video to {name}",
-        "person=self,owner=*,media=*": "You added media to {name}",
-        "person=*,owner=self,media=photo": "{actor} added a photo to their ascent of {name}",
-        "person=*,owner=self,media=video": "{actor} added a video to their ascent of {name}",
-        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
-        "person=*,owner=*,media=photo": "{actor} added a photo to {name}",
-        "person=*,owner=*,media=video": "{actor} added a video to {name}",
-        "person=*,owner=*,media=*": "{actor} added media to {name}"
-      }
-    }
-  ],
-  "activity_genericChange": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You made a change to {name}",
-        "person=*": "{actor} made a change to {name}"
-      }
-    }
-  ],
-  "activity_groupEdits": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You edited {name}",
-        "person=*": "{actor} edited {name}"
-      }
-    }
-  ],
-  "activity_groupEditsMultiple": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You and others edited {name}",
-        "person=*": "{actor} and others edited {name}"
-      }
-    }
-  ],
-  "activity_groupRemovals": [
-    {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You deleted entries",
-        "person=*": "{actor} deleted entries"
-      }
-    }
-  ],
-  "activity_groupSession": [
-    {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You logged a session",
-        "person=*": "{actor} logged a session"
-      }
-    }
-  ],
-  "activity_groupUploads": [
-    {
-      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner", "media"],
-      "match": {
-        "person=self,owner=self,media=photo": "You added photos to your ascent of {name}",
-        "person=self,owner=self,media=video": "You added videos to your ascent of {name}",
-        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
-        "person=self,owner=*,media=photo": "You added photos to {name}",
-        "person=self,owner=*,media=video": "You added videos to {name}",
-        "person=self,owner=*,media=*": "You added media to {name}",
-        "person=*,owner=self,media=photo": "{actor} added photos to their ascent of {name}",
-        "person=*,owner=self,media=video": "{actor} added videos to their ascent of {name}",
-        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
-        "person=*,owner=*,media=photo": "{actor} added photos to {name}",
-        "person=*,owner=*,media=video": "{actor} added videos to {name}",
-        "person=*,owner=*,media=*": "{actor} added media to {name}"
-      }
-    }
-  ],
-  "activity_hideChanges": "Hide changes",
-  "activity_metaCreated": "Created {time} by {actor}",
-  "activity_metaCreatedOn": "Created on {time} by {actor}",
-  "activity_metaCreatedOnUnknown": "Created on {time}",
-  "activity_metaCreatedUnknown": "Created {time}",
-  "activity_metaNoChanges": "No changes recorded since.",
-  "activity_metaUpdated": "Updated {time} by {actor}",
-  "activity_metaUpdatedOn": "Updated on {time} by {actor}",
-  "activity_metaUpdatedOnUnknown": "Updated on {time}",
-  "activity_metaUpdatedUnknown": "Updated {time}",
-  "activity_moreEntities": "{count} more",
-  "activity_routeCreated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You added the route {name}",
-        "person=*": "{actor} added the route {name}"
-      }
-    }
-  ],
-  "activity_routeDeleted": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You deleted the route {name}",
-        "person=*": "{actor} deleted the route {name}"
-      }
-    }
-  ],
-  "activity_routeDeletedFile": [
-    {
-      "declarations": ["input actor", "input media", "input name", "input person"],
-      "selectors": ["person", "media"],
-      "match": {
-        "person=self,media=photo": "You removed a photo from {name}",
-        "person=self,media=video": "You removed a video from {name}",
-        "person=self,media=*": "You removed media from {name}",
-        "person=*,media=photo": "{actor} removed a photo from {name}",
-        "person=*,media=video": "{actor} removed a video from {name}",
-        "person=*,media=*": "{actor} removed media from {name}"
-      }
-    }
-  ],
-  "activity_routeUpdated": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You edited the route {name}",
-        "person=*": "{actor} edited the route {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedDescription": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You edited the description of {name}",
-        "person=*": "{actor} edited the description of {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedFirstAscensionists": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed the first ascensionists of {name}",
-        "person=*": "{actor} changed the first ascensionists of {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedFirstAscentYear": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed the first ascent year of {name}",
-        "person=*": "{actor} changed the first ascent year of {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedGradeFk": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed the grade of {name}",
-        "person=*": "{actor} changed the grade of {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedName": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You renamed {name}",
-        "person=*": "{actor} renamed {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedRating": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed the rating of {name}",
-        "person=*": "{actor} changed the rating of {name}"
-      }
-    }
-  ],
-  "activity_routeUpdatedTags": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed the tags of {name}",
-        "person=*": "{actor} changed the tags of {name}"
-      }
-    }
-  ],
-  "activity_showChanges": "Show changes",
-  "activity_summaryAreas": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} area",
-        "countPlural=other": "{count} areas"
-      }
-    }
-  ],
-  "activity_summaryAscents": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} ascent",
-        "countPlural=other": "{count} ascents"
-      }
-    }
-  ],
-  "activity_summaryBlocks": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} block",
-        "countPlural=other": "{count} blocks"
-      }
-    }
-  ],
-  "activity_summaryClimbedOn": "Climbed on {date}",
-  "activity_summaryEdits": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} edit",
-        "countPlural=other": "{count} edits"
-      }
-    }
-  ],
-  "activity_summaryFiles": [
-    {
-      "declarations": ["input count", "input media", "local countPlural = count: plural"],
-      "selectors": ["media", "countPlural"],
-      "match": {
-        "media=photo,countPlural=one": "{count} photo",
-        "media=photo,countPlural=other": "{count} photos",
-        "media=video,countPlural=one": "{count} video",
-        "media=video,countPlural=other": "{count} videos",
-        "media=*,countPlural=one": "{count} file",
-        "media=*,countPlural=other": "{count} files"
-      }
-    }
-  ],
-  "activity_summaryPeople": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} person",
-        "countPlural=other": "{count} people"
-      }
-    }
-  ],
-  "activity_summaryRemovals": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} deletion",
-        "countPlural=other": "{count} deletions"
-      }
-    }
-  ],
-  "activity_summaryRoutes": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} route",
-        "countPlural=other": "{count} routes"
-      }
-    }
-  ],
-  "activity_thisAscent": "This ascent",
-  "activity_userCreatedInvitation": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You invited {name}",
-        "person=*": "{actor} invited {name}"
-      }
-    }
-  ],
-  "activity_userDeletedInvitation": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You revoked the invite for {name}",
-        "person=*": "{actor} revoked the invite for {name}"
-      }
-    }
-  ],
-  "activity_userDeletedMembership": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You left the region",
-        "person=*": "{actor} left the region"
-      }
-    }
-  ],
-  "activity_userDeletedRole": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You removed {name} from the region",
-        "person=*": "{actor} removed {name} from the region"
-      }
-    }
-  ],
-  "activity_userUpdatedFirstAscensionist": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You linked yourself to the first ascensionist {name}",
-        "person=*": "{actor} linked themselves to the first ascensionist {name}"
-      }
-    }
-  ],
-  "activity_userUpdatedInvitation": [
-    {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You joined",
-        "person=*": "{actor} joined"
-      }
-    }
-  ],
-  "activity_userUpdatedRole": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed the role of {name}",
-        "person=*": "{actor} changed the role of {name}"
-      }
-    }
-  ],
-  "activity_userUpdatedUsername": [
-    {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You changed your name",
-        "person=*": "{actor} changed their name"
-      }
-    }
-  ],
-  "activity_valueNotSet": "Not set",
   "areas_addArea": "Add area",
   "areas_addParkingLocation": "Add parking",
   "areas_addSubArea": "Add sub-area",
@@ -960,6 +217,7 @@
   "blocks_viewTopos": "Topos",
   "comments_delete": "Delete comment",
   "comments_empty": "No comments yet",
+  "comments_failed": "That did not send. Try again.",
   "comments_placeholder": "Say something",
   "comments_post": "Post",
   "comments_show": [
@@ -967,7 +225,6 @@
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=zero": "Comment",
         "countPlural=one": "{count} comment",
         "countPlural=*": "{count} comments"
       }
@@ -1068,6 +325,748 @@
   "error_reload": "Reload",
   "error_server_body": "This one's on us, not you. Give it a moment and try again.",
   "error_server_title": "Something went wrong on our end",
+  "event_areaCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added the area {name}",
+        "person=*": "{actor} added the area {name}"
+      }
+    }
+  ],
+  "event_areaDeleted": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted the area {name}",
+        "person=*": "{actor} deleted the area {name}"
+      }
+    }
+  ],
+  "event_areaDeletedFile": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
+      }
+    }
+  ],
+  "event_areaDeletedParkingLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed the parking for {name}",
+        "person=*": "{actor} removed the parking for {name}"
+      }
+    }
+  ],
+  "event_areaUpdated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the area {name}",
+        "person=*": "{actor} edited the area {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedDescription": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the description of {name}",
+        "person=*": "{actor} edited the description of {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedName": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You renamed {name}",
+        "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_areaUpdatedParkingLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You set the parking for {name}",
+        "person=*": "{actor} set the parking for {name}"
+      }
+    }
+  ],
+  "event_ascentCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You logged an ascent of {name}",
+        "person=*": "{actor} logged an ascent of {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedAttempt": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You attempted {name}",
+        "person=*": "{actor} attempted {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedFlash": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You flashed {name}",
+        "person=*": "{actor} flashed {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedRedpoint": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You redpointed {name}",
+        "person=*": "{actor} redpointed {name}"
+      }
+    }
+  ],
+  "event_ascentCreatedRepeat": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You repeated {name}",
+        "person=*": "{actor} repeated {name}"
+      }
+    }
+  ],
+  "event_ascentDeleted": [
+    {
+      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner"],
+      "match": {
+        "person=self,owner=self": "You removed your ascent of {name}",
+        "person=self,owner=none": "You removed an ascent of {name}",
+        "person=self,owner=*": "You removed {climber}'s ascent of {name}",
+        "person=*,owner=self": "{actor} removed their own ascent of {name}",
+        "person=*,owner=none": "{actor} removed an ascent of {name}",
+        "person=*,owner=*": "{actor} removed {climber}'s ascent of {name}"
+      }
+    }
+  ],
+  "event_ascentDeletedFile": [
+    {
+      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You removed a photo from your ascent of {name}",
+        "person=self,owner=self,media=video": "You removed a video from your ascent of {name}",
+        "person=self,owner=self,media=*": "You removed media from your ascent of {name}",
+        "person=self,owner=none,media=photo": "You removed a photo from an ascent of {name}",
+        "person=self,owner=none,media=video": "You removed a video from an ascent of {name}",
+        "person=self,owner=none,media=*": "You removed media from an ascent of {name}",
+        "person=self,owner=*,media=photo": "You removed a photo from {climber}'s ascent of {name}",
+        "person=self,owner=*,media=video": "You removed a video from {climber}'s ascent of {name}",
+        "person=self,owner=*,media=*": "You removed media from {climber}'s ascent of {name}",
+        "person=*,owner=self,media=photo": "{actor} removed a photo from their own ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} removed a video from their own ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} removed media from their own ascent of {name}",
+        "person=*,owner=none,media=photo": "{actor} removed a photo from an ascent of {name}",
+        "person=*,owner=none,media=video": "{actor} removed a video from an ascent of {name}",
+        "person=*,owner=none,media=*": "{actor} removed media from an ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} removed a photo from {climber}'s ascent of {name}",
+        "person=*,owner=*,media=video": "{actor} removed a video from {climber}'s ascent of {name}",
+        "person=*,owner=*,media=*": "{actor} removed media from {climber}'s ascent of {name}"
+      }
+    }
+  ],
+  "event_ascentUpdated": [
+    {
+      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner"],
+      "match": {
+        "person=self,owner=self": "You edited your ascent of {name}",
+        "person=self,owner=none": "You edited an ascent of {name}",
+        "person=self,owner=*": "You edited {climber}'s ascent of {name}",
+        "person=*,owner=self": "{actor} edited their own ascent of {name}",
+        "person=*,owner=none": "{actor} edited an ascent of {name}",
+        "person=*,owner=*": "{actor} edited {climber}'s ascent of {name}"
+      }
+    }
+  ],
+  "event_blockCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added the block {name}",
+        "person=*": "{actor} added the block {name}"
+      }
+    }
+  ],
+  "event_blockDeleted": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted the block {name}",
+        "person=*": "{actor} deleted the block {name}"
+      }
+    }
+  ],
+  "event_blockDeletedFile": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
+      }
+    }
+  ],
+  "event_blockDeletedLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed the location of {name}",
+        "person=*": "{actor} removed the location of {name}"
+      }
+    }
+  ],
+  "event_blockDeletedTopo": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed a topo photo from {name}",
+        "person=*": "{actor} removed a topo photo from {name}"
+      }
+    }
+  ],
+  "event_blockUpdated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the block {name}",
+        "person=*": "{actor} edited the block {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedLocation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You updated the location of {name}",
+        "person=*": "{actor} updated the location of {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedName": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You renamed {name}",
+        "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_blockUpdatedTopo": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You updated the topo on {name}",
+        "person=*": "{actor} updated the topo on {name}"
+      }
+    }
+  ],
+  "event_changeFileRemoved": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Photo removed",
+        "media=video": "Video removed",
+        "media=*": "Media removed"
+      }
+    }
+  ],
+  "event_changeLocationApproximate": "Approximate",
+  "event_changeLocationConfirmed": "Approximate pin confirmed",
+  "event_changeLocationMoved": "Moved {distance}",
+  "event_changeLocationRemoved": "Location removed",
+  "event_changeLocationSet": "Pin added",
+  "event_changeLocationUpdated": "Location updated",
+  "event_changeTagAdded": "Added {tag}",
+  "event_changeTagRemoved": "Removed {tag}",
+  "event_changeTopoLineAdded": "Drew {route}",
+  "event_changeTopoLineRedrawn": "Redrew {route}",
+  "event_changeTopoLineRemoved": "Erased {route}",
+  "event_changeTopoLinesUpdated": "Lines updated",
+  "event_changeTopoPhotoAdded": "Photo added",
+  "event_changeTopoPhotoReplaced": "Photo replaced",
+  "event_changeTopoReordered": "Photos reordered",
+  "event_changeTopoUpdated": "Topo redrawn",
+  "event_compareCharacters": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Compare, {count} character",
+        "countPlural=other": "Compare, {count} characters"
+      }
+    }
+  ],
+  "event_fieldDateTime": "Date",
+  "event_fieldDescription": "Description",
+  "event_fieldFile": [
+    {
+      "declarations": ["input media"],
+      "selectors": ["media"],
+      "match": {
+        "media=photo": "Photo",
+        "media=video": "Video",
+        "media=*": "Media"
+      }
+    }
+  ],
+  "event_fieldFirstAscensionist": "First ascensionist",
+  "event_fieldFirstAscensionists": "First ascensionists",
+  "event_fieldFirstAscentYear": "First ascent year",
+  "event_fieldGrade": "Grade",
+  "event_fieldHumidity": "Humidity",
+  "event_fieldLocation": "Location",
+  "event_fieldName": "Name",
+  "event_fieldNotes": "Notes",
+  "event_fieldParkingLocation": "Parking",
+  "event_fieldRating": "Rating",
+  "event_fieldRole": "Role",
+  "event_fieldSource": "Source",
+  "event_fieldTags": "Tags",
+  "event_fieldTemperature": "Temperature",
+  "event_fieldTopo": "Topo",
+  "event_fieldType": "Type",
+  "event_fieldUsername": "Username",
+  "event_fileUpdatedSource": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You updated the video source on {name}",
+        "person=*": "{actor} updated the video source on {name}"
+      }
+    }
+  ],
+  "event_fileUploaded": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You added a photo to your ascent of {name}",
+        "person=self,owner=self,media=video": "You added a video to your ascent of {name}",
+        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
+        "person=self,owner=*,media=photo": "You added a photo to {name}",
+        "person=self,owner=*,media=video": "You added a video to {name}",
+        "person=self,owner=*,media=*": "You added media to {name}",
+        "person=*,owner=self,media=photo": "{actor} added a photo to their ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} added a video to their ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} added a photo to {name}",
+        "person=*,owner=*,media=video": "{actor} added a video to {name}",
+        "person=*,owner=*,media=*": "{actor} added media to {name}"
+      }
+    }
+  ],
+  "event_genericChange": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You made a change to {name}",
+        "person=*": "{actor} made a change to {name}"
+      }
+    }
+  ],
+  "event_groupEdits": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited {name}",
+        "person=*": "{actor} edited {name}"
+      }
+    }
+  ],
+  "event_groupEditsMultiple": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You and others edited {name}",
+        "person=*": "{actor} and others edited {name}"
+      }
+    }
+  ],
+  "event_groupRemovals": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted entries",
+        "person=*": "{actor} deleted entries"
+      }
+    }
+  ],
+  "event_groupSession": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You logged a session",
+        "person=*": "{actor} logged a session"
+      }
+    }
+  ],
+  "event_groupUploads": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
+      "selectors": ["person", "owner", "media"],
+      "match": {
+        "person=self,owner=self,media=photo": "You added photos to your ascent of {name}",
+        "person=self,owner=self,media=video": "You added videos to your ascent of {name}",
+        "person=self,owner=self,media=*": "You added media to your ascent of {name}",
+        "person=self,owner=*,media=photo": "You added photos to {name}",
+        "person=self,owner=*,media=video": "You added videos to {name}",
+        "person=self,owner=*,media=*": "You added media to {name}",
+        "person=*,owner=self,media=photo": "{actor} added photos to their ascent of {name}",
+        "person=*,owner=self,media=video": "{actor} added videos to their ascent of {name}",
+        "person=*,owner=self,media=*": "{actor} added media to their ascent of {name}",
+        "person=*,owner=*,media=photo": "{actor} added photos to {name}",
+        "person=*,owner=*,media=video": "{actor} added videos to {name}",
+        "person=*,owner=*,media=*": "{actor} added media to {name}"
+      }
+    }
+  ],
+  "event_hideChanges": "Hide changes",
+  "event_metaCreated": "Created {time} by {actor}",
+  "event_metaCreatedOn": "Created on {time} by {actor}",
+  "event_metaCreatedOnUnknown": "Created on {time}",
+  "event_metaCreatedUnknown": "Created {time}",
+  "event_metaNoChanges": "No changes recorded since.",
+  "event_metaUpdated": "Updated {time} by {actor}",
+  "event_metaUpdatedOn": "Updated on {time} by {actor}",
+  "event_metaUpdatedOnUnknown": "Updated on {time}",
+  "event_metaUpdatedUnknown": "Updated {time}",
+  "event_moreEntities": "{count} more",
+  "event_routeCreated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You added the route {name}",
+        "person=*": "{actor} added the route {name}"
+      }
+    }
+  ],
+  "event_routeDeleted": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You deleted the route {name}",
+        "person=*": "{actor} deleted the route {name}"
+      }
+    }
+  ],
+  "event_routeDeletedFile": [
+    {
+      "declarations": ["input actor", "input media", "input name", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "You removed a photo from {name}",
+        "person=self,media=video": "You removed a video from {name}",
+        "person=self,media=*": "You removed media from {name}",
+        "person=*,media=photo": "{actor} removed a photo from {name}",
+        "person=*,media=video": "{actor} removed a video from {name}",
+        "person=*,media=*": "{actor} removed media from {name}"
+      }
+    }
+  ],
+  "event_routeUpdated": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the route {name}",
+        "person=*": "{actor} edited the route {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedDescription": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the description of {name}",
+        "person=*": "{actor} edited the description of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedFirstAscensionists": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the first ascensionists of {name}",
+        "person=*": "{actor} changed the first ascensionists of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedFirstAscentYear": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the first ascent year of {name}",
+        "person=*": "{actor} changed the first ascent year of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedGradeFk": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the grade of {name}",
+        "person=*": "{actor} changed the grade of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedName": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You renamed {name}",
+        "person=*": "{actor} renamed {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedRating": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the rating of {name}",
+        "person=*": "{actor} changed the rating of {name}"
+      }
+    }
+  ],
+  "event_routeUpdatedTags": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the tags of {name}",
+        "person=*": "{actor} changed the tags of {name}"
+      }
+    }
+  ],
+  "event_showChanges": "Show changes",
+  "event_summaryAreas": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} area",
+        "countPlural=other": "{count} areas"
+      }
+    }
+  ],
+  "event_summaryAscents": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} ascent",
+        "countPlural=other": "{count} ascents"
+      }
+    }
+  ],
+  "event_summaryBlocks": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} block",
+        "countPlural=other": "{count} blocks"
+      }
+    }
+  ],
+  "event_summaryClimbedOn": "Climbed on {date}",
+  "event_summaryEdits": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} edit",
+        "countPlural=other": "{count} edits"
+      }
+    }
+  ],
+  "event_summaryFiles": [
+    {
+      "declarations": ["input count", "input media", "local countPlural = count: plural"],
+      "selectors": ["media", "countPlural"],
+      "match": {
+        "media=photo,countPlural=one": "{count} photo",
+        "media=photo,countPlural=other": "{count} photos",
+        "media=video,countPlural=one": "{count} video",
+        "media=video,countPlural=other": "{count} videos",
+        "media=*,countPlural=one": "{count} file",
+        "media=*,countPlural=other": "{count} files"
+      }
+    }
+  ],
+  "event_summaryPeople": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} person",
+        "countPlural=other": "{count} people"
+      }
+    }
+  ],
+  "event_summaryRemovals": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} deletion",
+        "countPlural=other": "{count} deletions"
+      }
+    }
+  ],
+  "event_summaryRoutes": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} route",
+        "countPlural=other": "{count} routes"
+      }
+    }
+  ],
+  "event_thisAscent": "This ascent",
+  "event_userCreatedInvitation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You invited {name}",
+        "person=*": "{actor} invited {name}"
+      }
+    }
+  ],
+  "event_userDeletedInvitation": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You revoked the invite for {name}",
+        "person=*": "{actor} revoked the invite for {name}"
+      }
+    }
+  ],
+  "event_userDeletedMembership": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You left the region",
+        "person=*": "{actor} left the region"
+      }
+    }
+  ],
+  "event_userDeletedRole": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You removed {name} from the region",
+        "person=*": "{actor} removed {name} from the region"
+      }
+    }
+  ],
+  "event_userUpdatedFirstAscensionist": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You linked yourself to the first ascensionist {name}",
+        "person=*": "{actor} linked themselves to the first ascensionist {name}"
+      }
+    }
+  ],
+  "event_userUpdatedInvitation": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You joined",
+        "person=*": "{actor} joined"
+      }
+    }
+  ],
+  "event_userUpdatedRole": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed the role of {name}",
+        "person=*": "{actor} changed the role of {name}"
+      }
+    }
+  ],
+  "event_userUpdatedUsername": [
+    {
+      "declarations": ["input actor", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You changed your name",
+        "person=*": "{actor} changed their name"
+      }
+    }
+  ],
+  "event_valueNotSet": "Not set",
   "explore_noRegionBody": "Areas, topos and routes live inside a region. If somebody invited you, ask them for a fresh link.",
   "explore_noRegionTitle": "You are not in a region yet",
   "explore_openArea": "Open {name}",
@@ -1368,16 +1367,6 @@
   "profile_sortRecent": "Recent",
   "profile_sortSessions": "Sessions",
   "profile_title": "Profile",
-  "push_comments": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} new comment",
-        "countPlural=*": "{count} new comments"
-      }
-    }
-  ],
   "push_deniedBody": "Notifications are blocked for this site. Turn them back on in your browser settings, then come back here.",
   "push_deniedTitle": "Notifications are blocked",
   "push_digestMore": "and {count} more updates",

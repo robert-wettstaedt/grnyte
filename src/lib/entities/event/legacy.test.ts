@@ -1,4 +1,4 @@
-import { activityEntry, activityVerb } from '$lib/entities/activity/verbs'
+import { verbEntry, verbKey } from '$lib/entities/event/verbs'
 import { describe, expect, it } from 'vitest'
 import { event } from './fixture'
 import { legacyEvent, legacyRows } from './legacy'
@@ -12,7 +12,7 @@ import type { EventListItem } from './mapper'
  * Asserted against the real catalogue rather than a copy of the mapping, so a catalogue entry
  * renamed or removed fails here rather than degrading silently on a card.
  */
-const verbOf = (partial: Partial<EventListItem>) => activityVerb(legacyEvent(event(partial)))
+const verbOf = (partial: Partial<EventListItem>) => verbKey(legacyEvent(event(partial)))
 
 describe('legacyEvent', () => {
   it('resolves a catalogue entry for every verb the catalogue covers', () => {
@@ -43,7 +43,7 @@ describe('legacyEvent', () => {
     ]
 
     for (const [label, partial] of cases) {
-      const entry = activityEntry(legacyEvent(event(partial)))
+      const entry = verbEntry(legacyEvent(event(partial)))
       expect(entry, label).toBeDefined()
     }
   })
@@ -52,8 +52,8 @@ describe('legacyEvent', () => {
     // `remove` collapsed six triples in the backfill, so the verb alone cannot invert it. Asserted
     // on the KEY rather than on `toBeDefined`, because the wrong entry is also defined: without
     // the column, a removed photo resolves `route:deleted` and the card reads "deleted the route".
-    expect(verbOf({ metadata: 'photo', objectType: 'route', verb: 'remove' })).toBe('activity_routeDeletedFile')
-    expect(verbOf({ metadata: 'photo', objectType: 'ascent', verb: 'remove' })).toBe('activity_ascentDeletedFile')
+    expect(verbOf({ metadata: 'photo', objectType: 'route', verb: 'remove' })).toBe('event_routeDeletedFile')
+    expect(verbOf({ metadata: 'photo', objectType: 'ascent', verb: 'remove' })).toBe('event_ascentDeletedFile')
     // A user splits on whether an address was recorded: a revoked invitation, or a removed member.
     expect(verbOf({ metadata: 'lea@example.com', objectType: 'user', verb: 'remove' })).not.toBe(
       verbOf({ objectType: 'user', verb: 'remove' }),
@@ -70,10 +70,10 @@ describe('legacyEvent', () => {
   it('leaves a join on the generic verb, which the catalogue rework still owes it', () => {
     const row = legacyEvent(event({ objectType: 'user', verb: 'join' }))
 
-    // A real key either way, so a card can always render something: `activityVerb` degrades where
-    // `activityEntry` misses. What it cannot do is say "welcomed to the region".
-    expect(activityEntry(row)).toBeUndefined()
-    expect(activityVerb(row)).toBeTruthy()
+    // A real key either way, so a card can always render something: `verbKey` degrades where
+    // `verbEntry` misses. What it cannot do is say "welcomed to the region".
+    expect(verbEntry(row)).toBeUndefined()
+    expect(verbKey(row)).toBeTruthy()
   })
 
   it('keeps the three membership verbs the catalogue covers on their own sentences', () => {
@@ -102,7 +102,7 @@ describe('legacyEvent', () => {
 
     expect(rows.map((row) => row.columnName)).toEqual(['name', 'description'])
     // And each resolves its own sentence, which is what the old one-row-per-column shape gave.
-    expect(new Set(rows.map(activityVerb)).size).toBe(2)
+    expect(new Set(rows.map(verbKey)).size).toBe(2)
   })
 
   it('lets a change name a different row than its event, which is what a reorder needs', () => {

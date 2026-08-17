@@ -126,8 +126,9 @@ export async function notify(input: NotifyInput): Promise<void> {
         createdAt: new Date(),
         metadata: sql`excluded.metadata`,
         pushedAt: null,
-        // A second comment on the same card by the same person re-arms the row and points it at
-        // the newer one, which is the line a reader tapping it should land on.
+        // Pointed at the newer line, for the case this SET runs at all: `setWhere` below means a
+        // row the reader has NOT opened yet keeps pointing at the first comment, which is the one
+        // the notification was written about.
         reactionFk: sql`excluded.reaction_fk`,
         readAt: null,
       },

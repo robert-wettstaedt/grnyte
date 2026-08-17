@@ -138,7 +138,14 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
       // scale. Upgrade = a denormalized count column, syncing only your own rows and a page of
       // the thread.
       .related('reactions', (q) =>
-        r(q).where('parentFk', 'IS', null).where('deletedAt', 'IS', null).related('user').orderBy('createdAt', 'asc'),
+        r(q)
+          .where('parentFk', 'IS', null)
+          .where('deletedAt', 'IS', null)
+          .related('user')
+          // The id breaks the tie, so two comments written inside one millisecond keep the order
+          // they were written in rather than an arbitrary one that can change between syncs.
+          .orderBy('createdAt', 'asc')
+          .orderBy('id', 'asc'),
       )
       .related('route', (q) =>
         r(q)

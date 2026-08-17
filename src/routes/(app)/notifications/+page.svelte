@@ -15,9 +15,9 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { ActivityCardRow } from '$lib/entities/activity/card'
-  import { activityEntityKey, type ActivityEntityRef } from '$lib/entities/activity/entity'
-  import { hydrateEntities } from '$lib/entities/activity/hydrate.svelte'
+  import type { CardRow } from '$lib/entities/event/cardView'
+  import { eventEntityKey, type EventEntityRef } from '$lib/entities/event/entity'
+  import { hydrateEntities } from '$lib/entities/event/hydrate.svelte'
   import { notificationView } from '$lib/entities/notification/caption'
   import { markNotificationsRead } from '$lib/entities/notification/notifications.remote'
   import { notificationList } from '$lib/entities/notification/resources.svelte'
@@ -80,8 +80,8 @@
   })
 
   /** A hydrated ref in the shared row's own vocabulary: still syncing, gone, or there. */
-  const rowFor = (ref: ActivityEntityRef): ActivityCardRow => {
-    const entity = hydration.entities.get(activityEntityKey(ref))
+  const rowFor = (ref: EventEntityRef): CardRow => {
+    const entity = hydration.entities.get(eventEntityKey(ref))
     return {
       entity: entity ?? undefined,
       // Unlike an activity row, a notification stores no fallback name for its subject, so a

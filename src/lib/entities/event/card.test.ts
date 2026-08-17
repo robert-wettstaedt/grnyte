@@ -7,7 +7,7 @@ import type { EventListItem } from './mapper'
 /**
  * The card built from events says what the card built from activity rows said.
  *
- * `activityCard` still does the deciding, so these do not re-test its rules; they test the two
+ * `cardView` still does the deciding, so these do not re-test its rules; they test the two
  * things the adapter is responsible for. That the group it hands over expands to the rows the old
  * table stored, and that the entity map it builds puts each entity where the card looks for it.
  * Get either wrong and the card renders a generic sentence with an unnamed slot, which no type
@@ -97,15 +97,16 @@ describe('eventCard', () => {
     expect(view.bars?.map((bar) => bar.eventId)).toEqual([1])
   })
 
-  it('draws no bar at all on your own event until somebody reacts to it', () => {
-    // Nothing to list and nothing to offer, and an empty bar is not invisible: it draws a rule
-    // across the card with nothing under it, or a gap between rows.
+  it('offers no reaction on your own event, but still a way into its thread', () => {
+    // Nobody applauds their own event, so the bar is read-only there. It is still a bar: the
+    // comment button is the way into a thread under a card that is about you, which is the most
+    // likely reason to have something to say in one.
     const own = card([event({ actorFk: 1, entity: routeEntity, objectId: 1, objectType: 'route', verb: 'create' })])
 
-    expect(own.rows[0].bar).toBeUndefined()
-    expect(own.bars).toEqual([])
+    expect(own.rows[0].bar?.readonly).toBe(true)
+    expect(own.rows[0].bar?.chips).toEqual([])
 
-    // Once somebody has, the chips are there to read and the bar offers nothing to add.
+    // With a reaction on it, the chips are there to read and the bar still offers nothing to add.
     const reacted = card([
       event({
         actorFk: 1,

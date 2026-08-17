@@ -2,10 +2,10 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
@@ -155,7 +155,7 @@
 
       <!-- `beside`: this page renders inside the explore panel, so on desktop the log opens as a
            second panel next to it, the way this page's own MoreMenu does. -->
-      <ActivityMeta
+      <EventMeta
         beside
         createdAt={detail.createdAt}
         createdBy={detail.createdBy}

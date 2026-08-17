@@ -20,14 +20,20 @@
   import { now } from '$lib/state/now.svelte'
 
   interface Props {
+    /**
+     * What is in the box, owned by the bar above so it survives the thread being collapsed.
+     * Somebody who types three sentences and taps the toggle by mistake keeps them.
+     */
+    body: string
     comments: CommentListItem[]
     /** The event the thread hangs off, which is the whole handle the server needs. */
     eventId: number
+    onbody: (value: string) => void
   }
 
-  const { comments, eventId }: Props = $props()
+  const { body, comments, eventId, onbody }: Props = $props()
 
-  let body = $state('')
+  let failed = $state(false)
   let sending = $state(false)
 
   async function send() {
@@ -37,21 +43,41 @@
     }
 
     sending = true
+    failed = false
     try {
       await postComment({ body: text, eventId })
       // Cleared only on success, so a refused post leaves the words in the box rather than
       // throwing away something somebody just wrote.
-      body = ''
+      onbody('')
     } catch {
-      // Nothing to undo: the list is drawn from synced rows, so a failed post leaves the thread
-      // exactly as it was, with the text still in the box to try again.
+      // Said out loud, unlike the emoji bar's: a tap that does not land is obvious, a sentence
+      // that does not land looks exactly like one that did until the reader scrolls away.
+      failed = true
     } finally {
       sending = false
     }
   }
+
+  /**
+   * Grow with the text. `field-sizing: content` is not everywhere yet, and a one-line box that
+   * scrolls its own content is how a comment gets written blind.
+   *
+   * Reads `body`, which is what makes the attachment re-run when it changes: a post clears the box
+   * without an `input` event, and a four-line box that stays four lines tall after sending is the
+   * next comment starting in a hole.
+   */
+  const autosize = (node: HTMLTextAreaElement) => {
+    void body
+    node.style.height = 'auto'
+    node.style.height = `${node.scrollHeight}px`
+  }
 </script>
 
 <div class="border-surface-200-800 mt-2 flex flex-col gap-2 border-t pt-2">
+  {#if comments.length === 0}
+    <p class="text-surface-600-400 text-xs">{m.comments_empty()}</p>
+  {/if}
+
   {#each comments as comment (comment.id)}
     <article class="flex gap-2">
       <Avatar name={comment.authorName} size={24} solid loading={comment.authorName.length === 0} />
@@ -91,13 +117,20 @@
   >
     <!-- One row that grows with what is typed, rather than a box sized for an essay: most
          comments are one line, and a three-row textarea under every card is most of a card. -->
+    <!-- The box stays live while a post is in flight; only the button goes. A request that never
+         settles (a wedged connection, a sleeping phone) would otherwise leave the composer dead,
+         holding words nobody can edit or copy out. -->
     <textarea
       class="textarea max-h-32 min-h-9 flex-1 resize-none py-1.5 text-sm"
-      disabled={sending}
       maxlength={COMMENT_MAX_LENGTH}
       placeholder={m.comments_placeholder()}
       rows={1}
-      bind:value={body}
+      value={body}
+      {@attach autosize}
+      oninput={(event) => {
+        autosize(event.currentTarget)
+        onbody(event.currentTarget.value)
+      }}
       onkeydown={(event) => {
         // Enter sends, Shift+Enter breaks the line, which is what every chat box does. Not on a
         // soft keyboard, where Enter IS the line break and there is a send button beside it.
@@ -108,8 +141,17 @@
       }}
     ></textarea>
 
-    <button class="btn-icon preset-filled-primary-500" disabled={sending || body.trim().length === 0} type="submit">
+    <button
+      class="btn-icon preset-filled-primary-500"
+      aria-label={m.comments_post()}
+      disabled={sending || body.trim().length === 0}
+      type="submit"
+    >
       <Icon name="send" size={16} />
     </button>
   </form>
+
+  {#if failed}
+    <p class="text-error-600-400 text-xs">{m.comments_failed()}</p>
+  {/if}
 </div>
