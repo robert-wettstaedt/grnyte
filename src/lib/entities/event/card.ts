@@ -1,5 +1,5 @@
 import { cardView, type CardGroup, type CardRow, type CardView } from '$lib/entities/event/cardView'
-import type { EventEntity, EventEntityMap, EventEntityRef } from '$lib/entities/event/entity'
+import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from '$lib/entities/event/entity'
 import type { CommentListItem, ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
@@ -96,9 +96,6 @@ export function eventCard(
     bars: leftover.filter(
       (left, index) => left.chips.length > 0 || left.comments.length > 0 || (rows.length === 0 && index === 0),
     ),
-    // Same reason as `state` above: a name that is missing is missing for good, where the old pass
-    // had to keep the slot pulsing until every fetch had answered.
-    entityUnnamed: view.entityName == null,
     rows,
   }
 }
@@ -125,19 +122,21 @@ function bar(event: EventListItem, currentUserFk: number | undefined): EventReac
  * Take the event a row is about out of the pool, or nothing if none is left.
  *
  * The event whose OBJECT is that entity, else the one whose parent is: an upload's object is the
- * file, and the row it draws is the thing the photos landed on. Oldest of the candidates rather
- * than newest, which is what keeps a bar still: log an ascent and edit it a minute later and both
- * are one card with one row, and the reader means to congratulate the send rather than the
- * correction. It also stops a bar moving when a sixth photo joins a five-photo card.
+ * file, and the row it draws is the thing the photos landed on. `catalogueRowsFor` in `cardView.ts`
+ * asks the same question over the same two stages, and deliberately answers it differently at the
+ * end: it wants the newest line for a name and the create for an opinion strip, where a bar wants
+ * the OLDEST, which is what keeps it still. Log an ascent and edit it a minute later and both are
+ * one card with one row, and the reader means to congratulate the send rather than the correction;
+ * it also stops a bar moving when a sixth photo joins a five-photo card.
  */
 function claim(
   unclaimed: Map<number, EventListItem>,
   ref: { id: number | string; type: string },
 ): EventListItem | undefined {
-  const key = `${ref.type}:${ref.id}`
+  const key = eventKey(ref)
   const candidates = [...unclaimed.values()]
   const matches = (event: EventListItem, part: undefined | { id: number | string; type: string }) =>
-    part != null && `${part.type}:${part.id}` === key && event != null
+    part != null && eventKey(part) === key && event != null
 
   const byObject = candidates.filter((event) => matches(event, { id: event.objectId, type: event.objectType }))
   const pool = byObject.length > 0 ? byObject : candidates.filter((event) => matches(event, event.parent))
@@ -171,21 +170,23 @@ function entityMap(group: EventGroup): EventEntityMap {
   const entities = new Map<string, EventEntity | null>()
 
   for (const event of group.events) {
-    if (event.entity == null) {
-      continue
+    if (event.entity != null) {
+      entities.set(eventKey({ id: event.objectId, type: event.objectType }), event.entity)
     }
 
-    entities.set(`${event.objectType}:${event.objectId}`, event.entity)
-
-    // The parent too. "Made 12 edits in Nordblock" names the block, and none of those twelve
-    // events is about it; the old pass fetched parents for exactly this reason. An upload's entity
-    // IS its parent's (the mapper borrows it), so a file stores it under both keys, which is what
-    // lets the headline find it whichever way it looks.
+    // The parent too, whether or not the object itself resolved. "Made 12 edits in Nordblock"
+    // names the block, and none of those twelve events is about it; the old pass fetched parents
+    // for exactly this reason. An upload's entity IS its parent's (the mapper borrows it), so a
+    // file stores it under both keys, which is what lets the headline find it whichever way it
+    // looks.
+    //
+    // Skipping the whole event when its object was gone threw the parent away with it: a burst
+    // over two deleted routes had a block name in hand and headlined one of the routes instead.
     //
     // Never over an entry already there: an event ABOUT the parent carries the full entity, and
     // `parentEntity` is only the name and the link.
     if (event.parent != null) {
-      const key = `${event.parent.type}:${event.parent.id}`
+      const key = eventKey(event.parent)
       const parent = event.objectType === 'file' ? event.entity : event.parentEntity
       if (!entities.has(key) && parent != null) {
         entities.set(key, parent)
@@ -194,6 +195,17 @@ function entityMap(group: EventGroup): EventEntityMap {
   }
 
   return entities
+}
+
+/**
+ * The hydration key for anything an EVENT names: its object, or the parent it hangs under.
+ *
+ * The events layer's half of `lineRef`. Ids arrive as numbers here and as text in a ref, so both
+ * sides go through `eventEntityKey` rather than through a template literal written out four times,
+ * one of which had already drifted.
+ */
+function eventKey(ref: { id: number | string; type: string }): string {
+  return eventEntityKey({ id: String(ref.id), type: ref.type })
 }
 
 /**

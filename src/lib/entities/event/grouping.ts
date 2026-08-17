@@ -2,7 +2,7 @@ import { isSameDay } from 'date-fns'
 import type { EventListItem } from './mapper'
 
 export interface EventGroup {
-  /** The actor. `entity` groups can mix actors, so this is the newest event's one. */
+  /** The actor. Every key carries one, so every event in the group shares it. */
   actorFk: number
   /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
   createdAt: number
@@ -30,7 +30,7 @@ export interface EventGroup {
  * - `burst`   one editor's crag edits around the same place, close in time
  * - `removal` one editor's whole-entity deletions around the same place, close in time
  * - `upload`  one uploader's media landing on the same entity, close in time
- * - `entity`  anyone's edits to the same entity, close in time
+ * - `entity`  one person's edits to the same entity, close in time
  * - `single`  a group that ended up with one event
  */
 export type EventGroupKind = 'burst' | 'entity' | 'removal' | 'session' | 'single' | 'upload'
@@ -123,10 +123,15 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
     case 'upload':
       return `${kind}:${region}:${event.actorFk}:${localityKey(event)}`
 
-    // `metadata` is in the key for the same reason the server's fold scopes on it: two
-    // invitations by one person are deliberately two events, and a user object's id is the same
-    // person for every one of them. Without it the client merged back together exactly what the
-    // write path spends effort keeping apart, into a card that can only headline one address.
+    // The ACTOR, like every other kind. A card is one person's doing, and this was the one key
+    // that let two of them share one: an admin granting a role and the member renaming themselves
+    // half an hour later became "Mara Lindqvist and others edited Mara Lindqvist", which names
+    // neither of the two things that happened and credits an avatar to work somebody else did.
+    //
+    // `metadata` is in it for the same reason the server's fold scopes on it: two invitations by
+    // one person are deliberately two events, and a user object's id is the same person for every
+    // one of them. Without it the client merged back together exactly what the write path spends
+    // effort keeping apart, into a card that can only headline one address.
     //
     // The VERB is in it for the same reason, one level up. Two events on one object with two
     // different verbs are two different things, and each resolves its own sentence: an invitation
@@ -136,7 +141,7 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
     // server's fold already merges everything that IS one action (a repeat, or an update refining
     // a create), so what reaches here with two verbs is genuinely two.
     default:
-      return `entity:${region}:${objectKey(event.objectType, event.objectId)}:${event.verb}:${event.metadata ?? ''}`
+      return `entity:${region}:${event.actorFk}:${objectKey(event.objectType, event.objectId)}:${event.verb}:${event.metadata ?? ''}`
   }
 }
 
@@ -144,6 +149,23 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
 function joins(oldest: EventListItem, event: EventListItem, kind: EventGroupKind): boolean {
   const withinWindow = oldest.createdAt - event.createdAt <= BURST_MS
   return kind === 'session' ? withinWindow || isSameDay(oldest.createdAt, event.createdAt) : withinWindow
+}
+
+/**
+ * Whether a group of uploads belongs with the create it landed on.
+ *
+ * Measured against that CREATE rather than against the group holding it, which is the difference
+ * between "these photos came with this climb" and "these photos are near the end of this
+ * afternoon". A session runs all day: anchored on the group, the clip of the morning's first climb
+ * was nine hours from the card's timestamp and stayed a card of its own, while a video added at
+ * nine in the evening folded into a card dated eight in the morning, which never moves (see below)
+ * and so swallowed it. Anchored on the climb it hangs on, both answer the way a reader expects.
+ *
+ * One window, no calendar-day arm. A file is finalized moments after the row it belongs to, so 30
+ * minutes is already generous; anything later is a second visit and gets its own card.
+ */
+function joinsCreate(create: EventListItem, uploads: EventGroup): boolean {
+  return Math.abs(create.createdAt - uploads.createdAt) <= BURST_MS
 }
 
 function kindOf(event: EventListItem): EventGroupKind {
@@ -194,39 +216,36 @@ function localityKey(event: EventListItem): string {
  * uploads key on the route they hang off, so they agree on neither subject nor parent. The link is
  * that one group's subject is the other group's parent, which only shows up once the groups exist.
  *
- * The create moves to the front of the merged group. It is the older event (files are finalized
- * after the entity exists) and the card speaks for whatever comes first, so leaving the order alone
- * would turn "You added the route Kante direkt" into "You added photos to it".
+ * Two shapes of target, and they order differently. A group holding ONE create speaks that create's
+ * sentence, so the create moves to the front (it is the older event, files are finalized after the
+ * entity exists, and the card reads its verb off the front): otherwise "You added the route Kante
+ * direkt" becomes "You added photos to it". A SESSION holds several and speaks for none of them, so
+ * nothing moves and the card stays "You logged a session" with every clip of that sitting on it.
  *
- * Only a `create` target, deliberately. Folding uploads into an edit burst would hide a submit of
- * five photos inside "made 12 edits in Nordblock", which is the exact thing the separate `upload`
- * kind exists to prevent.
+ * Never an edit burst with several creates, deliberately: folding uploads into one would hide a
+ * submit of five photos inside "made 12 edits in Nordblock", which is the exact thing the separate
+ * `upload` kind exists to prevent.
  */
 function mergeCreatedWithMedia(groups: { group: EventGroup; key: string }[]): { group: EventGroup; key: string }[] {
   const merged = new Set<EventGroup>()
   // Indexed by the create each group is about, so an upload finds its half in one lookup instead of
   // rescanning every group on the page for every submit.
-  //
-  // Exactly one create, deliberately. A session that logged three ascents and hung a clip on one of
-  // them is a session: folding the upload in would make the card speak that one ascent's verb ("You
-  // flashed Rampe") and count "1 video" for an afternoon in which the reader did three things.
-  // Nothing is lost by leaving them apart, since the upload keeps its own card naming the ascent it
-  // landed on.
   const byCreate = new Map<string, { create: EventListItem; entry: (typeof groups)[number] }[]>()
 
   for (const entry of groups) {
     const creates = entry.group.events.filter((event) => event.verb === 'create')
-    if (creates.length !== 1) {
+    if (creates.length === 0 || (creates.length > 1 && entry.group.kind !== 'session')) {
       continue
     }
 
-    const create = creates[0]
-    const key = createKey(entry.group.actorFk, create.objectType, create.objectId)
-    const existing = byCreate.get(key)
-    if (existing == null) {
-      byCreate.set(key, [{ create, entry }])
-    } else {
-      existing.push({ create, entry })
+    for (const create of creates) {
+      const key = createKey(entry.group.actorFk, create.objectType, create.objectId)
+      const existing = byCreate.get(key)
+      if (existing == null) {
+        byCreate.set(key, [{ create, entry }])
+      } else {
+        existing.push({ create, entry })
+      }
     }
   }
 
@@ -242,16 +261,19 @@ function mergeCreatedWithMedia(groups: { group: EventGroup; key: string }[]): { 
 
     const target = byCreate
       .get(createKey(group.actorFk, parent.type, parent.id))
-      ?.find(({ entry }) => entry.group !== group && !merged.has(entry.group) && withinBurst(entry.group, group))
+      ?.find(({ create, entry }) => entry.group !== group && !merged.has(entry.group) && joinsCreate(create, group))
 
     if (target != null) {
-      // The create leads, and everything else keeps the newest-first order the rest of the feed
-      // reads in. Sorting the whole thing would bury the create under the uploads it speaks for.
       const { create } = target
-      const rest = [...target.entry.group.events.filter((event) => event !== create), ...group.events].sort(
+      const events = [...target.entry.group.events, ...group.events].sort(
         (a, b) => b.createdAt - a.createdAt || b.id - a.id,
       )
-      target.entry.group.events = [create, ...rest]
+      const lone = events.filter((event) => event.verb === 'create').length === 1
+
+      // The create leads where it speaks for the card, and everything else keeps the newest-first
+      // order the rest of the feed reads in: sorting the whole thing would bury the create under
+      // the uploads it speaks for. A session speaks for itself, so its order is left alone.
+      target.entry.group.events = lone ? [create, ...events.filter((event) => event !== create)] : events
       // `createdAt` deliberately NOT bumped to the upload's. The returned array is in
       // first-event order and nothing re-sorts it, so raising the create's timestamp past its
       // neighbours leaves the card sitting below an older one. The card dates by the action it
@@ -279,8 +301,4 @@ function oldestId(events: readonly EventListItem[]): number {
 
 function sameParent(event: EventListItem, parent: { id: number | string; type: string }): boolean {
   return event.parent?.id === parent.id && event.parent.type === parent.type
-}
-
-function withinBurst(a: EventGroup, b: EventGroup): boolean {
-  return Math.abs(a.createdAt - b.createdAt) <= BURST_MS
 }

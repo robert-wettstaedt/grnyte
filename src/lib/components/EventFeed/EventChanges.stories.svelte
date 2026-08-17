@@ -30,6 +30,8 @@
     line({ actorFk: 1, columnName: 'location', objectType: 'block' }),
     line({ actorFk: 1, columnName: 'topo', objectType: 'block' }),
     line({ actorFk: 1, columnName: 'file', verb: 'remove' }),
+    // The ascent type, which is a glyph and a word rather than the stored enum member.
+    line({ actorFk: 1, columnName: 'type', newValue: 'redpoint', objectType: 'ascent', oldValue: 'attempt' }),
     // The stored enum members, which is what the column really holds: the short forms this
     // fixture used to pass are not roles, so the row silently rendered the raw-value fallback
     // and this story showed the degraded path for every reader who checked it.

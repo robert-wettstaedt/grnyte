@@ -12,7 +12,7 @@ import type { EventGroupKind } from './grouping'
  * feed folds events, and a card expands each of them into its lines.
  */
 export interface CardGroup {
-  /** The actor. `entity` groups can mix actors, so this is the newest event's one. */
+  /** The actor. Every group key carries one, so every line on a card shares it. */
   actorFk: number
   /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
   createdAt: number
@@ -27,7 +27,15 @@ export interface CardGroup {
   rows: CardLine[]
 }
 import { changeViews, storedMedia, type ChangeView, type MediaWord } from './change'
-import { eventEntityKey, eventRefs, type EventEntity, type EventEntityMap, type EventEntityRef } from './entity'
+import {
+  catalogueParentRef,
+  eventEntityKey,
+  eventRefs,
+  lineRef,
+  type EventEntity,
+  type EventEntityMap,
+  type EventEntityRef,
+} from './entity'
 import type { CardLine } from './line'
 import { parseDeletedAscent, parseDeletionScale, verbEntry, verbKey } from './verbs'
 
@@ -57,9 +65,21 @@ export interface CardHeadline {
  * entity has not synced yet, `tombstone` that hydration finished without it, so it is gone.
  */
 export interface CardRow {
+  /**
+   * What THIS ascent was logged with, when one of the lines behind the row logged it.
+   *
+   * Per row rather than per card, because a session is five ascents with five opinions and a
+   * card-level strip could only ever show one of them: four climbers' grades and stars went
+   * missing on every session card. Absent on a row a card merely edited, whose change lines
+   * already say what moved.
+   */
+  ascent: CardAscent | undefined
   entity: EventEntity | undefined
-  /** The name to show on a tombstone, taken off the row that named the entity. */
+  /** The name to show on a tombstone, taken off the newest line that named the entity. */
   name: string | undefined
+  /** What the climber wrote about this ascent, quoted under its row. Unlike {@link ascent} an
+   *  edit card shows it too: the change lines say which number moved and nothing says this. */
+  note: string | undefined
   ref: EventEntityRef
   state: 'entity' | 'skeleton' | 'tombstone'
 }
@@ -76,8 +96,6 @@ export interface CardRow {
 export interface CardView {
   /** The actor's username. Empty while the user row has not synced. */
   actorName: string
-  /** What one logged ascent said about the route, when the card logged exactly one. */
-  ascent: CardAscent | undefined
   /** The expanded half: one decided line per changed column. See `change.ts`. */
   changes: ChangeView[]
   /**
@@ -104,7 +122,6 @@ export interface CardView {
   id: string
   /** Whether the signed-in user is the actor, which makes the card read "You ...". */
   mine: boolean
-  note: string | undefined
   /** Rows beyond {@link MAX_ROWS}, reported as a count instead of rendered. */
   overflowCount: number
   /** The pin a block was placed with, when this is the card that placed it. */
@@ -129,12 +146,12 @@ export type MessagePart =
  * on every card of every sync tick.
  */
 interface CardVerb {
-  /** Distinct actors. More than one, and nobody in particular "edited" the thing. */
-  actors: number
   /** The files on a create-that-picked-up-media, which both halves speak for. */
   media: CardLine[] | undefined
   /** The one verb every row shares, when they share one. */
   shared: MessageKey | undefined
+  /** The clips a session picked up: how many, and which word they agree on. */
+  uploads: undefined | { count: number; media: MediaWord }
 }
 
 /**
@@ -170,21 +187,47 @@ export function cardView(
   const placeName = named(entityOf(place)?.name)
   const firstName = named(entityOf(refs[0])?.name)
 
+  // The clips a session picked up, counted and worded off those lines alone. The card-wide word
+  // answers a different question: it reads every file hanging off every entity on the card, so a
+  // session that added one video to an ascent photographed last week called it "1 media".
+  const uploaded =
+    group.kind === 'session'
+      ? group.rows.filter((activity) => activity.objectType === 'file' && activity.verb === 'add')
+      : []
+  // One word per LINE, `none` for a line whose file is gone. Reading the files the lines resolved
+  // to instead let two clips with one deleted since be counted as two and worded as one, which is
+  // the count-and-word disagreement this exists to prevent.
+  const uploadKinds = new Set(
+    uploaded.map((activity) => {
+      const files = entityOf(lineRef(activity))?.files ?? []
+      return files.length === 1 ? mediaWord(files[0]) : 'none'
+    }),
+  )
+
+  // Once, for both halves of the card. See `CardVerb`.
+  const verb: CardVerb = {
+    media: createdWithMedia(group),
+    shared: sharedVerbKey(group, refs.length),
+    uploads:
+      uploaded.length === 0
+        ? undefined
+        : { count: uploaded.length, media: uploadKinds.size === 1 ? [...uploadKinds][0] : 'none' },
+  }
+  const spoken = spokenLine(group, verb)
+
   const entityName = headlineName({
     firstName,
-    group,
     newest,
     placeName,
-    subject: entityOf(refs[0]),
+    spoken,
+    subject: entityOf(spoken == null ? refs[0] : lineRef(spoken)),
     subjects: refs.length,
   })
 
-  // A missing name is only worth waiting for while something might still answer. Once every
-  // ref it could come from has answered (with a row that has no name, or with nothing at
-  // all), no name is coming and the slot has to say so rather than pulse.
-  const nameRefs = [place, refs[0]].filter((ref): ref is EventEntityRef => ref != null)
-  const entityUnnamed =
-    entityName == null && nameRefs.length > 0 && nameRefs.every((ref) => entityOf(ref) !== undefined)
+  // No name is coming: an entity arrives with its event, so there is no second wave to wait for.
+  // This used to hold the slot pulsing until every ref it could come from had answered, which is
+  // what a separate hydration pass needed; `card.ts` overrode it with exactly this.
+  const entityUnnamed = entityName == null
 
   // Whose ascent the card is about. A region maintainer may edit anyone's, so "an ascent"
   // would leave the reader guessing. The parent is a candidate as well as the subject: an
@@ -216,7 +259,7 @@ export function cardView(
   // records that a file was added: reading the row would leave every upload logged before
   // this saying "photo". The word settles when the file syncs, alongside the name beside it.
   // A removal has no file left to read and so carries the word itself (see `deleteFile`).
-  const kinds = new Set(files.map((file): MediaWord => (file.bunnyStreamFk == null ? 'photo' : 'video')))
+  const kinds = new Set(files.map(mediaWord))
   // A removal card reads its word off every row it holds, not just the newest: a submit that
   // pulled a photo and a video is neither, and `none` is the arm that says "media".
   const removed = new Set(
@@ -235,30 +278,47 @@ export function cardView(
   // in: the pin a block was placed with, and the numbers an ascent was logged with. An edit
   // already renders each of these as its own change line, and a card that merely mentions the
   // entity has no business growing a map.
-  const created = group.rows.flatMap((activity) =>
-    activity.verb === 'create' ? [entityOf({ id: String(activity.objectId), type: activity.objectType })] : [],
-  )
-  // Only when the card created exactly one thing. Two creates have two sets of numbers and no
-  // row to hang either on, and a create-plus-media group is still one create.
+  const created = group.rows.flatMap((activity) => (activity.verb === 'create' ? [entityOf(lineRef(activity))] : []))
+  // Only when the card created exactly one thing. Two creates have two pins and no row to hang
+  // either on, and a create-plus-media group is still one create.
+  //
+  // ponytail: the ascent numbers moved onto their own rows for exactly this reason; the pin has
+  // not, so a burst that placed two blocks still draws the first one's map. Upgrade = a pin per
+  // row, once a card that places two blocks at once is a thing anybody does.
   const lone = created.length === 1 ? created[0] : undefined
-  const ascent = loggedAscent(lone)
+
+  const rows = rowRefs.slice(0, MAX_ROWS).map((ref): CardRow => {
+    const entity = entityOf(ref)
+    // The lines that put this row on the card, not the group's newest line: a burst spanning two
+    // deleted routes must not label both tombstones with the same name, and a session's five rows
+    // each carry their own ascent.
+    const lines = catalogueRowsFor(group.rows, ref)
+    // The newest of them for the name, since a rename's stored name is the one it ended on. The
+    // CREATE for the strip, whichever position it sits in: a log at nine and a correction at six
+    // are two events on one session card and one row, and gating on the newest line left that row
+    // with no grade, no stars and no conditions because an update happened to be on top.
+    const createLine = lines.find((activity) => activity.verb === 'create')
+
+    return {
+      ascent: createLine == null ? undefined : loggedAscent(entity),
+      entity: entity ?? undefined,
+      name: lines[0] == null ? undefined : headlineEntityName(lines[0], null),
+      // No create guard, unlike the strip. An edit card withholds the numbers because its change
+      // lines already say which one moved, and it says nothing at all about what the climber
+      // wrote, so the note is context there rather than a repetition.
+      note: named(entity?.note),
+      ref,
+      state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
+    }
+  })
   // A session logs several ascents at once, so the date is the card's only when they agree on
   // one. Whether it is worth saying is a question about calendar days, not elapsed time: see
   // `calendarDay`.
   const climbDates = new Set(created.map((entity) => entity?.climbedAt))
   const climbedAt = climbDates.size === 1 ? [...climbDates][0] : undefined
 
-  // Once, for both halves of the card. See `CardVerb`.
-  const actors = new Set(group.rows.map((activity) => activity.actorFk)).size
-  const verb: CardVerb = {
-    actors,
-    media: createdWithMedia(group),
-    shared: sharedVerbKey(group, refs.length, actors),
-  }
-
   return {
     actorName: newest.actorName,
-    ascent,
     changes: changeViews(group.rows, { entities, topos }),
     climbedAt: climbedAt != null && climbedAt !== calendarDay(group.createdAt) ? climbedAt : undefined,
     climberName: climber?.climberName ?? recorded?.climberName,
@@ -267,29 +327,22 @@ export function cardView(
     entityUnnamed,
     files,
     headline: {
-      key: group.kind === 'single' ? verbKey(newest) : groupVerbKey(group, verb),
+      key: spoken == null ? groupVerbKey(group) : verbKey(spoken),
       params: { media, owner, person: mine ? 'self' : 'other' },
     },
     id: group.id,
     mine,
-    note: refs.map((ref) => entityOf(ref)?.note).find((value) => value != null && value.length > 0),
     overflowCount: Math.max(0, rowRefs.length - MAX_ROWS),
     pin: lone?.pin,
-    rows: rowRefs.slice(0, MAX_ROWS).map((ref): CardRow => {
-      const entity = entityOf(ref)
-      return {
-        entity: entity ?? undefined,
-        // The row that named this entity, not the group's newest: a burst spanning two
-        // deleted routes must not label both tombstones with the same name.
-        name: headlineEntityName(catalogueRowFor(group.rows, ref), null),
-        ref,
-        state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
-      }
-    }),
+    rows,
+    // Only for a card that speaks one ascent's own sentence. A session says "You logged a
+    // session" over a flash, a repeat and an attempt, and the glyph beside that headline claimed
+    // the whole afternoon was whichever one happened to be newest; each row carries its own.
+    //
     // Declared on the entry, so the cast is reachable only for the four lines that carry an
     // ascent type in `value`.
-    status: verbEntry(newest)?.status === 'ascentType' ? (newest.value as AscentType | undefined) : undefined,
-    summary: summaryParts(group, placeName, media, refs.length, verb),
+    status: spoken != null && verbEntry(spoken)?.status === 'ascentType' ? (spoken.value as AscentType) : undefined,
+    summary: summaryParts(group, placeName, media, spoken, verb),
   }
 }
 
@@ -337,15 +390,33 @@ function calendarDay(at: number): number {
 }
 
 /**
- * The row in `rows` that points at `ref`, which is where its name is stashed.
+ * The lines that put `ref` on the card, in the order the card holds them: those ABOUT it, else
+ * those that named it as their parent.
  *
- * Compared as text on both sides. A ref's id is a string for every object type (see `eventRefs`),
- * where a line's is the number the mapper hands over for five of the six, so `===` matched nothing
- * and every row fell back to `rows[0]`: a card holding two deleted routes labelled both tombstones
- * with the first one's name.
+ * Two stages for the same reason `claim` in `card.ts` has two: an upload is about a file and draws
+ * the row of the thing the photos landed on, so matching on the object alone misses every upload
+ * row. Compared through `lineRef`, which is what makes the numeric id a line carries and the text
+ * id a ref carries comparable at all.
+ *
+ * All of them rather than one, because the callers want different ones: the name comes off the
+ * first (newest, except on a merged card that leads with its create) and the opinion strip off the
+ * create, and a row can hold both (an ascent logged in the morning and corrected in the evening is
+ * two events on one session card).
+ *
+ * Empty rather than the whole list when nothing matches. Falling back to the first line was how a
+ * card holding two deleted routes labelled both tombstones with the first one's name, and a row
+ * nothing on the card speaks for has no name and no strip, which is the honest answer.
  */
-function catalogueRowFor(rows: readonly CardLine[], ref: EventEntityRef): CardLine {
-  return rows.find((activity) => String(activity.objectId) === ref.id && activity.objectType === ref.type) ?? rows[0]
+function catalogueRowsFor(rows: readonly CardLine[], ref: EventEntityRef): CardLine[] {
+  const key = eventEntityKey(ref)
+  const own = rows.filter((activity) => eventEntityKey(lineRef(activity)) === key)
+
+  return own.length > 0
+    ? own
+    : rows.filter((activity) => {
+        const parent = catalogueParentRef(activity)
+        return parent != null && eventEntityKey(parent) === key
+      })
 }
 
 /**
@@ -354,7 +425,11 @@ function catalogueRowFor(rows: readonly CardLine[], ref: EventEntityRef): CardLi
  * and the summary have to recognise one, so the test lives in one place.
  */
 function createdWithMedia(group: CardGroup): CardLine[] | undefined {
-  if (group.rows[0]?.verb !== 'create') {
+  // Exactly one create, and it leads. A session takes uploads too now and keeps its own order, so
+  // a clip that landed between two logged ascents left a create on top of a card holding several:
+  // "You flashed Riss" over three rows, counting one video where the reader did three things.
+  // `mergeCreatedWithMedia` only puts a create at the front when it speaks for the whole card.
+  if (group.rows[0]?.verb !== 'create' || group.rows.filter((activity) => activity.verb === 'create').length !== 1) {
     return undefined
   }
 
@@ -391,24 +466,11 @@ function deletionScaleParts(group: CardGroup): MessagePart[] | undefined {
 }
 
 /**
- * The headline key for a whole card. A single-activity card speaks its own verb; a grouped
- * one summarises, because "redpointed Rampe" would name one of four ascents. The count
- * lives in the summary, so these stay one sentence per key.
+ * The headline key for a card that summarises. What it does NOT cover is a card speaking one
+ * line's own sentence, which {@link spokenLine} answers first. The count lives in the summary,
+ * so these stay one sentence per key.
  */
-function groupVerbKey(group: CardGroup, verb: CardVerb): MessageKey {
-  // Ahead of every kind rule: a create that picked up media is one event with one sentence,
-  // "You flashed Rampe" or "You added the route Kante direkt", the photos below it.
-  // `mergeCreatedWithMedia` put the create first for exactly this. Deciding by kind instead
-  // would answer "session" for the ascent and "edits" for the route, neither of which is what
-  // the reader just did.
-  if (verb.media != null) {
-    return verbKey(group.rows[0])
-  }
-
-  if (verb.shared != null) {
-    return verb.shared
-  }
-
+function groupVerbKey(group: CardGroup): MessageKey {
   if (group.kind === 'session') {
     return 'event_groupSession'
   }
@@ -432,8 +494,7 @@ function groupVerbKey(group: CardGroup, verb: CardVerb): MessageKey {
     return 'event_groupFilesRemoved'
   }
 
-  // Only `entity` groups can mix actors, and then no single person "edited" it.
-  return verb.actors > 1 ? 'event_groupEditsMultiple' : 'event_groupEdits'
+  return 'event_groupEdits'
 }
 
 /**
@@ -444,31 +505,35 @@ function groupVerbKey(group: CardGroup, verb: CardVerb): MessageKey {
  */
 function headlineName({
   firstName,
-  group,
   newest,
   placeName,
+  spoken,
   subject,
   subjects,
 }: {
   firstName: string | undefined
-  group: CardGroup
   newest: CardLine
   placeName: string | undefined
+  spoken: CardLine | undefined
   subject: EventEntity | null | undefined
   subjects: number
 }): string | undefined {
   // An upload names what it was attached to, never the file: a file's own name is a cuid.
-  // This holds for a lone photo as much as for five, so it is decided before `single`.
+  // This holds for a lone photo as much as for five, so it is decided before the rest.
   if (verbEntry(newest)?.names === 'parent') {
     return placeName ?? firstName
   }
 
+  // A card that speaks one line's own sentence names that line's own subject, whether it holds one
+  // line or twelve: "You added the route Kante direkt" over the two photos that came with it, not
+  // over the block they landed in.
+  //
   // An entry with no `tombstone` stores no name to fall back on, by design: an ascent's value
   // column holds its ascent type. Once the ascent is gone there is nothing left on the row, and
   // the parent route is the only true name for it. Entries that DO declare a tombstone are left
   // alone, so a route deleted without a name still says so rather than borrowing its block.
-  if (group.kind === 'single') {
-    return headlineEntityName(newest, subject) ?? (verbEntry(newest)?.tombstone == null ? placeName : undefined)
+  if (spoken != null) {
+    return headlineEntityName(spoken, subject) ?? (verbEntry(spoken)?.tombstone == null ? placeName : undefined)
   }
 
   // A group whose rows all point at ONE entity is about that entity, so it names it. Falling to
@@ -505,6 +570,11 @@ function loggedAscent(entity: EventEntity | null | undefined): CardAscent | unde
     : ascent
 }
 
+/** Photo or video, read off the hydrated file: the row only records that a file was added. */
+function mediaWord(file: MediaFile): MediaWord {
+  return file.bunnyStreamFk == null ? 'photo' : 'video'
+}
+
 /**
  * A name that is actually one. A name column holds `''` as readily as `null` (a route added
  * without a name stores an empty `newValue`), and an empty string reaches the screen as a
@@ -522,12 +592,12 @@ function named(value: null | string | undefined): string | undefined {
  * ascent are a `session` by kind and read as "You logged a session", which is not what
  * happened; four topo saves are a `burst` and read as "edited", which is true of everything.
  *
- * All three guards are load-bearing. Mixed actors have no single person to name. More than one
- * subject has no single entity for the sentence's `{name}`, so it would borrow the parent's and
- * report "You renamed Nordblock" for two renamed routes. Mixed keys have no one verb to speak.
+ * Both guards are load-bearing. More than one subject has no single entity for the sentence's
+ * `{name}`, so it would borrow the parent's and report "You renamed Nordblock" for two renamed
+ * routes. Mixed keys have no one verb to speak.
  */
-function sharedVerbKey(group: CardGroup, subjects: number, actors: number): MessageKey | undefined {
-  if (subjects !== 1 || actors > 1) {
+function sharedVerbKey(group: CardGroup, subjects: number): MessageKey | undefined {
+  if (subjects !== 1) {
     return undefined
   }
 
@@ -535,12 +605,39 @@ function sharedVerbKey(group: CardGroup, subjects: number, actors: number): Mess
   return first != null && rest.every((key) => key === first) ? first : undefined
 }
 
+/**
+ * The line whose OWN sentence the card speaks, or `undefined` for a card that summarises
+ * several.
+ *
+ * Always the first line where there is one, which is what `mergeCreatedWithMedia` puts the
+ * create at the front for. Two things read this: the headline, and the ascent glyph beside the
+ * clock. The glyph used to read the newest line unconditionally, so a session of a flash, a
+ * repeat and an attempt wore whichever glyph sorted first over "You logged a session".
+ */
+function spokenLine(group: CardGroup, verb: CardVerb): CardLine | undefined {
+  // A card of one, a create that picked up media ("You flashed Rampe", the clip below it), and
+  // one person saying one thing about one entity several times over. Everything else is a
+  // summary, because "redpointed Rampe" would name one of four ascents.
+  if (group.kind === 'single' || verb.media != null || verb.shared != null) {
+    return group.rows[0]
+  }
+
+  // One climb logged and then corrected is not a session. The correction is a second event once it
+  // falls outside the 15 minute fold, and the card read "You logged a session" over a sub line
+  // saying "1 ascent", which is the card contradicting itself about how much happened. The create
+  // has a sentence for exactly this and the changes toggle still holds the correction.
+  const creates = group.rows.filter((activity) => activity.verb === 'create')
+  const oneSubject = new Set(group.rows.map((activity) => eventEntityKey(lineRef(activity)))).size === 1
+
+  return group.kind === 'session' && creates.length === 1 && oneSubject ? creates[0] : undefined
+}
+
 /** The sub line under a grouped card's headline. A single card has none. */
 function summaryParts(
   group: CardGroup,
   placeName: string | undefined,
   media: MediaWord,
-  subjects: number,
+  spoken: CardLine | undefined,
   verb: CardVerb,
 ): MessagePart[] | undefined {
   // What a deletion took with it. Its own branch because it is the one summary a `single` card
@@ -567,34 +664,47 @@ function summaryParts(
     return [{ key: 'event_summaryFiles', params: { count: group.rows.length, media } }]
   }
 
-  // Once the headline speaks the change itself ("You edited your ascent of Rampe"), the count
-  // is of edits, whatever kind the group is. "1 ascent" under that sentence counts something
-  // the reader was not asking about.
-  const spoken = verb.shared != null
+  // Once the headline speaks the change itself ("You edited your ascent of Rampe"), the count is of
+  // EDITS, whatever kind the group is: "1 ascent" under that sentence counts something the reader
+  // was not asking about. A create is not an edit, so a card that speaks its create and holds one
+  // correction says "1 edit" rather than counting the log itself.
+  const edits =
+    spoken == null ? undefined : group.rows.length - group.rows.filter((row) => row.verb === 'create').length
 
-  // A session counts ascents, and three edits to one ascent are one ascent, not three. Every
-  // other kind counts rows, which is what it says it counts: edits, files, removals.
-  const count = !spoken && group.kind === 'session' ? subjects : group.rows.length
-  const countKey: MessageKey = spoken
-    ? 'event_summaryEdits'
-    : group.kind === 'session'
-      ? 'event_summaryAscents'
-      : group.kind === 'upload'
-        ? 'event_summaryFiles'
-        : group.kind === 'removal'
-          ? 'event_summaryRemovals'
-          : 'event_summaryEdits'
+  // A session counts ASCENTS, and three edits to one ascent are one ascent, not three. Counted off
+  // the rows rather than off the card's subjects, because a session holds the clips hung on those
+  // climbs too and a file is a subject: counting subjects read "5 ascents" for three climbs and
+  // two videos. Every other kind counts rows, which is what it says it counts: edits, removals.
+  const climbs = new Set(
+    group.rows.flatMap((activity) => (activity.objectType === 'ascent' ? [String(activity.objectId)] : [])),
+  ).size
+  const count = edits ?? (group.kind === 'session' ? climbs : group.rows.length)
+  const countKey: MessageKey =
+    edits != null
+      ? 'event_summaryEdits'
+      : group.kind === 'session'
+        ? 'event_summaryAscents'
+        : group.kind === 'upload'
+          ? 'event_summaryFiles'
+          : group.kind === 'removal'
+            ? 'event_summaryRemovals'
+            : 'event_summaryEdits'
 
-  // Only the file count says what it counted; the other three count one thing each.
-  const parts: MessagePart[] = [{ key: countKey, params: group.kind === 'upload' ? { count, media } : { count } }]
+  // Only the file count says what it counted; the other three count one thing each. A spoken
+  // sentence with nothing to count keeps no sub line at all, the way a card of one does.
+  const parts: MessagePart[] =
+    count === 0 ? [] : [{ key: countKey, params: group.kind === 'upload' ? { count, media } : { count } }]
 
-  // The edits headline already names the place; a session's and a removal's do not.
-  if ((group.kind === 'session' || group.kind === 'removal') && placeName != null) {
+  // A spoken sentence already names its entity, and so does an edits headline. A session's and a
+  // removal's do not.
+  if (spoken == null && (group.kind === 'session' || group.kind === 'removal') && placeName != null) {
     parts.push({ text: placeName })
   }
 
-  if (verb.actors > 1) {
-    parts.push({ key: 'event_summaryPeople', params: { count: verb.actors } })
+  // The clips hung on those climbs, which a session card holds since the merge stopped leaving
+  // them on cards of their own. The count says what it counted, the same as an upload card's.
+  if (group.kind === 'session' && verb.uploads != null) {
+    parts.push({ key: 'event_summaryFiles', params: verb.uploads })
   }
 
   return parts

@@ -268,9 +268,11 @@ describe('headline name', () => {
     expect(card([line({ newValue: '', verb: 'create' })]).entityName).toBeUndefined()
   })
 
-  it('waits for a name only while one might still arrive', () => {
+  it('says a name is missing rather than waiting for one', () => {
+    // Nothing syncs any more: an entity arrives with its event, so a slot with no name in it is
+    // a slot that will never have one and says so instead of pulsing.
     const rows = [line({ oldValue: '', verb: 'delete' })]
-    expect(card(rows).entityUnnamed).toBe(false)
+    expect(card(rows).entityUnnamed).toBe(true)
     expect(card(rows, entityMap([[{ id: '1', type: 'route' }, null]])).entityUnnamed).toBe(true)
     expect(card(rows, entityMap([[{ id: '1', type: 'route' }, route('Rampe')]])).entityUnnamed).toBe(false)
   })
@@ -461,17 +463,17 @@ describe('summary', () => {
     ).toEqual([{ key: 'event_summaryFiles', params: { count: 2, media: 'none' } }])
   })
 
-  it('counts the people when an entity group mixes actors', () => {
-    // Only `entity` groups can mix actors: a burst keys on the actor, so two people editing
-    // the same crag get a card each. `user` rows are what fall through to `entity`.
+  it('speaks one shared verb for a group of one person s edits to one entity', () => {
+    // Every group key carries the actor now, so a card is one person's doing and there is no
+    // "and others" arm left to reach. `grouping.test.ts` holds the guard that keeps it that way.
     const rows = [
       line({ actorFk: 1, columnName: 'role', createdAt: 2, id: 1, objectId: '5', objectType: 'user' }),
-      line({ actorFk: 2, columnName: 'role', createdAt: 1, id: 2, objectId: '5', objectType: 'user' }),
+      line({ actorFk: 1, columnName: 'role', createdAt: 1, id: 2, objectId: '5', objectType: 'user' }),
     ]
     const view = card(rows)
 
-    expect(view.headline.key).toBe('event_groupEditsMultiple')
-    expect(view.summary).toContainEqual({ key: 'event_summaryPeople', params: { count: 2 } })
+    expect(view.headline.key).toBe('event_userUpdatedRole')
+    expect(view.summary).toEqual([{ key: 'event_summaryEdits', params: { count: 2 } }])
   })
 })
 
@@ -773,12 +775,51 @@ describe('create cards', () => {
       ],
     ])
 
-    expect(card([ascentRow({ objectId: '9001' })], entities).ascent).toEqual({
+    // On the ROW, not on the card: a session logs several ascents and each carries its own.
+    expect(card([ascentRow({ objectId: '9001' })], entities).rows[0].ascent).toEqual({
       gradeFk: 14,
       humidity: 45,
       rating: 3,
       temperature: 18,
     })
+  })
+
+  it('gives each ascent of a session its own numbers', () => {
+    const entities = entityMap([
+      [
+        { id: '9001', type: 'ascent' },
+        { ascentGradeFk: 14, ascentType: 'flash', name: 'Rampe', note: 'First go.', row: 'route' },
+      ],
+      [
+        { id: '9002', type: 'ascent' },
+        { ascentGradeFk: 9, ascentRating: 2, ascentType: 'attempt', name: 'Riss', row: 'route' },
+      ],
+    ])
+
+    const rows = card([ascentRow({ objectId: '9001' }), ascentRow({ objectId: '9002' })], entities).rows
+
+    expect(rows.map((row) => [row.ascent?.gradeFk, row.ascent?.rating, row.note])).toEqual([
+      [14, undefined, 'First go.'],
+      [9, 2, undefined],
+    ])
+  })
+
+  it('says nothing about an ascent the card only edited', () => {
+    // The change lines already say which number moved, and the strip would repeat the answer
+    // beside the question.
+    const entities = entityMap([
+      [
+        { id: '9001', type: 'ascent' },
+        { ascentGradeFk: 14, ascentType: 'flash', name: 'Rampe', row: 'route' },
+      ],
+    ])
+
+    const rows = card(
+      [ascentRow({ columnName: 'rating', newValue: '3', objectId: '9001', verb: 'update' })],
+      entities,
+    ).rows
+
+    expect(rows[0].ascent).toBeUndefined()
   })
 
   it('carries nothing for an ascent logged with no opinion at all', () => {
@@ -791,7 +832,7 @@ describe('create cards', () => {
       ],
     ])
 
-    expect(card([ascentRow({ objectId: '9001' })], entities).ascent).toBeUndefined()
+    expect(card([ascentRow({ objectId: '9001' })], entities).rows[0].ascent).toBeUndefined()
   })
 })
 

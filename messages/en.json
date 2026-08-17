@@ -499,6 +499,7 @@
       }
     }
   ],
+  "event_ascentOpinion": "Opinion",
   "event_ascentUpdated": [
     {
       "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
@@ -721,16 +722,6 @@
       "match": {
         "person=self": "You edited {name}",
         "person=*": "{actor} edited {name}"
-      }
-    }
-  ],
-  "event_groupEditsMultiple": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "You and others edited {name}",
-        "person=*": "{actor} and others edited {name}"
       }
     }
   ],
@@ -969,16 +960,6 @@
       }
     }
   ],
-  "event_summaryPeople": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} person",
-        "countPlural=other": "{count} people"
-      }
-    }
-  ],
   "event_summaryRemovals": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -999,7 +980,6 @@
       }
     }
   ],
-  "event_thisAscent": "This ascent",
   "event_userCreatedInvitation": [
     {
       "declarations": ["input actor", "input name", "input person"],

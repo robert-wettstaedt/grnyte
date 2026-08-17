@@ -15,9 +15,8 @@
  *
  * Every claim names the KIND the group should come out as. Read `grouping.ts` beside it: the kind
  * is decided before the card is, and `card.ts` then rewrites `single` to `entity` for a group whose
- * one event carries several change rows, which is why exactly one of these claims (GROUP-08a) names
- * a kind grouping never handed that card. The other claim naming `entity` (GROUP-05b) gets it
- * straight from `groupEvents`, which returns that kind for any multi-event group off the entity key.
+ * one event carries several change rows, which is why the one claim naming `entity` (GROUP-08a)
+ * names a kind grouping never handed that card.
  */
 import type { EventCase } from './types'
 import { ascentEntity, blockEntity, change, eventAgo, fileEntity, ME, photo, routeEntity, video } from './world'
@@ -170,6 +169,71 @@ export const GROUPING_CASES: EventCase[] = [
   },
 
   {
+    action: 'Log three ascents in one sitting, each with your own grade, stars and conditions',
+    domain: 'grouping',
+    events: [
+      eventAgo(420, {
+        actorFk: ME,
+        entity: ascentEntity('Kante direkt', 11, ME, 'flash', {
+          ascentGradeFk: 12,
+          ascentRating: 3,
+          note: 'Straight up first go.',
+          temperature: 9,
+        }),
+        objectId: 9121,
+        objectType: 'ascent',
+        parent: { id: 500, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(424, {
+        actorFk: ME,
+        entity: ascentEntity('Riss', 15, ME, 'redpoint', { ascentGradeFk: 14, ascentRating: 1, temperature: 9 }),
+        objectId: 9122,
+        objectType: 'ascent',
+        parent: { id: 501, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(428, {
+        actorFk: ME,
+        entity: ascentEntity('Dach', 14, ME, 'attempt', { humidity: 70, temperature: 9 }),
+        objectId: 9123,
+        objectType: 'ascent',
+        parent: { id: 502, type: 'route' },
+        verb: 'create',
+      }),
+    ],
+    expected:
+      "One KIND `session` card of 3 ascents, and each row carries what THAT climb was logged with: an Opinion strip under Kante direkt holding your own grade and three stars, with your note quoted below it, one under Riss holding your grade and one star, and one under Dach with no Opinion label at all, since an attempt logged with conditions alone said nothing about grade or stars. All three were logged at the same temperature, and the conditions pill sits outside the label on each of them, because a reading is not a take on the climb. The grades are stored as ids here and render through the reader's own scale, the same as the temperature renders through their units, so what the chips say depends on who is looking. The community numbers stay on the rows themselves, which is what the label is there to tell apart. A card-level strip could only ever have shown the first of the three, and did.",
+    id: 'GROUP-01e',
+    writer: 'ascents.remote.ts:69',
+  },
+
+  {
+    action: 'Log an ascent, then fix its rating twenty minutes later (past the fold window)',
+    domain: 'grouping',
+    events: [
+      eventAgo(400, {
+        actorFk: ME,
+        changes: [change({ columnName: 'rating', newValue: '3', oldValue: '1' })],
+        entity: ascentEntity('Rampe', 12, ME, 'flash', { ascentGradeFk: 13, ascentRating: 3 }),
+        objectId: 9001,
+        objectType: 'ascent',
+      }),
+      eventAgo(420, {
+        actorFk: ME,
+        entity: ascentEntity('Rampe', 12, ME, 'flash', { ascentGradeFk: 13, ascentRating: 3 }),
+        objectId: 9001,
+        objectType: 'ascent',
+        verb: 'create',
+      }),
+    ],
+    expected:
+      'ONE card that still says "You flashed Rampe", with the flash glyph, one row, and "1 edit" as the sub line. Two events (20 minutes is past the 15 minute server fold) about one climb: that is not a session, and the card used to say "You logged a session" over "1 ascent", contradicting itself about how much happened. A card holding one create that every line is about speaks that create\'s sentence, and what it counts is then EDITS, since the log itself is not one. The row keeps its Opinion strip: it is named by an update AND by a create, and the strip comes off the create wherever it sits rather than off whichever line is newest, or an evening correction would take the morning\'s grade and stars off the card that logged them. The Rating line sits behind the changes toggle, and the strip shows where the rating ended up, since it reads the ascent as it stands now.',
+    id: 'GROUP-01f',
+    writer: 'ascents.remote.ts:117',
+  },
+
+  {
     action: 'Edit four routes under Nordblock in one sitting, three fields each',
     domain: 'grouping',
     events: [
@@ -302,8 +366,33 @@ export const GROUPING_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'A KIND `burst` card of 2 edits with TWO tombstone rows, each carrying the name its OWN rename stored: "Rissweg" and "Kante direkt", never the same name twice. The name a tombstone shows comes from the line that named that row, and a rename is the one shape that stores one (its entry declares the new value as the tombstone column), so a card holding two of them is where borrowing the first line\'s name would show. Only reachable degraded, since a route soft deletes and keeps resolving; the backfill can leave an event whose route is gone.',
+      'A KIND `burst` card headlined "You edited Nordblock", with TWO tombstone rows, each carrying the name its OWN rename stored: "Rissweg" and "Kante direkt", never the same name twice. The name a tombstone shows comes from the line that named that row, and a rename is the one shape that stores one (its entry declares the new value as the tombstone column), so a card holding two of them is where borrowing the first line\'s name would show. The block names the card even though neither route resolves, because the events carry it. Only reachable degraded, since a route soft deletes and keeps resolving; the backfill can leave an event whose route is gone.',
     id: 'GROUP-02d',
+    writer: 'routes.remote.ts:257',
+  },
+
+  {
+    action: 'Rename one route twice, twenty minutes apart, and the route is gone',
+    domain: 'grouping',
+    events: [
+      eventAgo(310, {
+        actorFk: ME,
+        changes: [change({ columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante links' })],
+        entity: undefined,
+        objectId: 597,
+        parent: { id: 400, type: 'block' },
+      }),
+      eventAgo(330, {
+        actorFk: ME,
+        changes: [change({ columnName: 'name', newValue: 'Kante links', oldValue: 'Kante' })],
+        entity: undefined,
+        objectId: 597,
+        parent: { id: 400, type: 'block' },
+      }),
+    ],
+    expected:
+      'One card speaking the shared sentence, "You renamed Kante direkt", over a tombstone row of the same name and "2 edits" as the sub line. Two events because 20 minutes is past the fold, one subject, one key, so the card says what happened rather than "You edited Nordblock". The name comes from the newest rename\'s stored value, which is where a route that no longer resolves keeps the name it ended on; the block is the fallback only for an entry that stores no name at all, and a rename is the one that does. Only reachable degraded, the same as the two-tombstone burst above.',
+    id: 'GROUP-02e',
     writer: 'routes.remote.ts:257',
   },
 
@@ -445,8 +534,161 @@ export const GROUPING_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Two cards, and this is the merge deliberately declining: a KIND `single` upload, "You added a video to your ascent of Riss", above a KIND `session` of 3 ascents. Only a group holding EXACTLY one create is a merge target, because folding the clip in would make an afternoon of three climbs speak one ascent\'s verb and count one video.',
+      'ONE KIND `session` card, "You logged a session", sub line "3 ascents · 1 video", the clip in the thumbnail strip and all three climbs as rows. A session takes several creates as a merge target where an edit burst does not: the clip belongs to the sitting the card reports, and leaving it on a card of its own put "You added a video to your ascent of Riss" between the reader and the session it came from. Nothing moves to the front, unlike a lone create: the card speaks for the afternoon rather than for any one climb, so the headline stays the session\'s and the count stays 3 ascents rather than becoming 1 video.',
     id: 'GROUP-03e',
+    writer: 'files.remote.ts:59',
+  },
+  {
+    action: 'Log two ascents and hang a clip on each of them',
+    domain: 'grouping',
+    events: [
+      eventAgo(214, {
+        actorFk: ME,
+        entity: fileEntity(ascentEntity('Riss', 15, ME, 'redpoint'), [video('v3')]),
+        objectId: 'v3',
+        objectType: 'file',
+        parent: { id: 9124, type: 'ascent' },
+        verb: 'add',
+      }),
+      eventAgo(215, {
+        actorFk: ME,
+        entity: fileEntity(ascentEntity('Dach', 14, ME, 'flash'), [video('v4')]),
+        objectId: 'v4',
+        objectType: 'file',
+        parent: { id: 9125, type: 'ascent' },
+        verb: 'add',
+      }),
+      eventAgo(217, {
+        actorFk: ME,
+        entity: ascentEntity('Riss', 15, ME, 'redpoint'),
+        objectId: 9124,
+        objectType: 'ascent',
+        parent: { id: 501, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(219, {
+        actorFk: ME,
+        entity: ascentEntity('Dach', 14, ME, 'flash'),
+        objectId: 9125,
+        objectType: 'ascent',
+        parent: { id: 502, type: 'route' },
+        verb: 'create',
+      }),
+    ],
+    expected:
+      'Still ONE KIND `session` card, "2 ascents · 2 videos": two upload groups, each keyed on the ascent it landed on, both folding into the same session. Two rows, not four, because an upload names the thing it landed on rather than the file, and both clips in one thumbnail strip. The card counts the climbs off the rows rather than off its subjects, since a file is a subject too and counting those read "4 ascents".',
+    id: 'GROUP-03f',
+    writer: 'files.remote.ts:59',
+  },
+
+  {
+    action: 'Log an ascent with a clip, then log another one before the clip has finished uploading',
+    domain: 'grouping',
+    events: [
+      eventAgo(206, {
+        actorFk: ME,
+        entity: ascentEntity('Dach', 14, ME, 'attempt'),
+        objectId: 9127,
+        objectType: 'ascent',
+        parent: { id: 502, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(208, {
+        actorFk: ME,
+        entity: fileEntity(ascentEntity('Riss', 15, ME, 'redpoint'), [video('v5')]),
+        objectId: 'v5',
+        objectType: 'file',
+        parent: { id: 9126, type: 'ascent' },
+        verb: 'add',
+      }),
+      eventAgo(210, {
+        actorFk: ME,
+        entity: ascentEntity('Riss', 15, ME, 'redpoint'),
+        objectId: 9126,
+        objectType: 'ascent',
+        parent: { id: 501, type: 'route' },
+        verb: 'create',
+      }),
+    ],
+    expected:
+      'One KIND `session` card, "You logged a session", sub line "2 ascents · 1 video". The card holds a CREATE at the front, since a file finalizes after the entity it hangs on and the next climb was logged after that, but it is not a create that speaks for the card: only a group holding exactly ONE create is that, and this one holds two. Without that guard the card read "You redpointed Riss" over two ascent rows and counted the video instead of the climbs.',
+    id: 'GROUP-03g',
+    writer: 'files.remote.ts:59',
+  },
+  {
+    action: 'Work a project: three goes on one route in a session, with a clip of the last',
+    domain: 'grouping',
+    events: [
+      eventAgo(190, {
+        actorFk: ME,
+        entity: fileEntity(ascentEntity('Rampe', 12, ME, 'redpoint'), [video('v6')]),
+        objectId: 'v6',
+        objectType: 'file',
+        parent: { id: 9130, type: 'ascent' },
+        verb: 'add',
+      }),
+      eventAgo(192, {
+        actorFk: ME,
+        entity: ascentEntity('Rampe', 12, ME, 'redpoint'),
+        objectId: 9130,
+        objectType: 'ascent',
+        parent: { id: 506, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(196, {
+        actorFk: ME,
+        entity: ascentEntity('Rampe', 12, ME, 'attempt'),
+        objectId: 9129,
+        objectType: 'ascent',
+        parent: { id: 506, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(200, {
+        actorFk: ME,
+        entity: ascentEntity('Rampe', 12, ME, 'attempt'),
+        objectId: 9128,
+        objectType: 'ascent',
+        parent: { id: 506, type: 'route' },
+        verb: 'create',
+      }),
+    ],
+    expected:
+      'One KIND `session` card, sub line "3 ascents · Rampe · 1 video": every ascent hangs off the same route, so the session names the place, and the clip does not take that away. A card names a place only when its whole window agrees on one, and an upload hangs off the ASCENT rather than the route, so it used to count as a disagreement and a session on one project lost its name the moment somebody filmed a go. A line that borrows its parent\'s row says nothing about the place when that parent is already on the card.',
+    id: 'GROUP-03h',
+    writer: 'files.remote.ts:59',
+  },
+  {
+    action: 'Film a go on a route you photographed last week',
+    domain: 'grouping',
+    events: [
+      eventAgo(186, {
+        actorFk: ME,
+        entity: fileEntity(ascentEntity('Riss', 15, ME, 'flash'), [video('v7')]),
+        objectId: 'v7',
+        objectType: 'file',
+        parent: { id: 9131, type: 'ascent' },
+        verb: 'add',
+      }),
+      eventAgo(188, {
+        actorFk: ME,
+        entity: ascentEntity('Riss', 15, ME, 'flash', { files: [video('v7'), photo('p9')] }),
+        objectId: 9131,
+        objectType: 'ascent',
+        parent: { id: 501, type: 'route' },
+        verb: 'create',
+      }),
+      eventAgo(189, {
+        actorFk: ME,
+        entity: ascentEntity('Dach', 14, ME, 'attempt'),
+        objectId: 9132,
+        objectType: 'ascent',
+        parent: { id: 502, type: 'route' },
+        verb: 'create',
+      }),
+    ],
+    expected:
+      'Sub line "2 ascents · 1 video", not "1 media". The count and the word both come off the upload rows themselves; reading the card-wide media word instead asked a different question, since that one reads every file hanging off every entity on the card, and the older photo still on that ascent made the two disagree. Both files show in the thumbnail strip, which is the card saying what it holds rather than what happened.',
+    id: 'GROUP-03i',
     writer: 'files.remote.ts:59',
   },
 
@@ -497,7 +739,7 @@ export const GROUPING_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Two KIND `single` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are `burst` kind, and the burst key carries the actor: two people working on one route never share a card. `event_groupEditsMultiple` is unreachable from a route for that reason, and the next case is where it does appear.',
+      'Two KIND `single` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are `burst` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.',
     id: 'GROUP-05a',
     writer: 'routes.remote.ts:257',
   },
@@ -509,7 +751,7 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(152, { actorFk: 3, metadata: 'photo', objectId: 9001, objectType: 'ascent', verb: 'remove' }),
     ],
     expected:
-      'One KIND `entity` card mixing two actors, which only the entity key allows: a file removal logs on the PARENT (the file row is gone by then), so it arrives as `ascent` + `remove` and `kindOf` keeps it out of the session. Headline "You and others edited Rampe". The sub line is "2 photos" and NOT the "2 people" part, because the file-only branch of `summaryParts` returns before the actor count is appended: the card says two people in words and never counts them.',
+      'TWO KIND `single` cards, "You removed a photo from your ascent of Rampe" and "Sofia Brandt removed a photo from Ada Rossi\'s ascent of Rampe". A file removal logs on the PARENT (the file row is gone by then), so it arrives as `ascent` + `remove` and `kindOf` keeps it out of the session; the entity key carries the actor, so the two removals no longer share a card. Under the old key they did, and the card said "You removed photos" over work two people did, since the file-only branch of the headline ran before the multi-actor one could: it read as one person pulling two photos.',
     id: 'GROUP-05b',
     writer: 'files.remote.ts:344',
   },

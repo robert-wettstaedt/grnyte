@@ -17,6 +17,7 @@
   import AscentTypeBadge from '$lib/entities/ascent/AscentType.svelte'
   import ConditionsPill from '$lib/entities/ascent/ConditionsPill.svelte'
   import type { EventCardView } from '$lib/entities/event/card'
+  import type { CardAscent } from '$lib/entities/event/cardView'
   import { eventEntityKey } from '$lib/entities/event/entity'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -80,6 +81,47 @@
 {#snippet actorName()}{@render strong(view.actorName)}{/snippet}
 
 {#snippet climberName()}{@render strong(view.climberName)}{/snippet}
+
+<!-- What the climber said about the route, which is not what the route says about itself: the
+     row above already carries the community grade and rating, so the two numbers that are an
+     opinion are labelled as one. The conditions sit outside that label, because a temperature
+     is a reading rather than a take on the climb.
+     Rendered under the row it belongs to. An edit card says the same things as change lines;
+     a create has no change list to hold them. -->
+{#snippet ascentStrip(ascent: CardAscent)}
+  {@const rating = ascent.rating != null && ascent.rating > 0 ? ascent.rating : undefined}
+  <!-- The conditions are their own group, at a wider gap than the one inside the label's: sharing
+       a single gap with the grade and the stars read as one labelled run, so a reader could take
+       the temperature for part of the opinion. -->
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
+    <!-- Each half only when it was actually logged. An ascent logged with conditions alone said
+         nothing about grade or stars: an empty grade chip and a row of three empty stars would
+         put words in their mouth, and the label would claim an opinion nobody gave. -->
+    {#if ascent.gradeFk != null || rating != null}
+      <span class="flex items-center gap-2">
+        <span class="text-surface-600-400 text-xs font-semibold">{m.event_ascentOpinion()}</span>
+
+        {#if ascent.gradeFk != null}
+          <RouteGrade
+            band={getGradeBand(ascent.gradeFk)}
+            grade={gradeLabel(global.grades, global.gradingScale, ascent.gradeFk)}
+          />
+        {/if}
+        {#if rating != null}
+          <RouteRating {rating} />
+        {/if}
+      </span>
+    {/if}
+
+    <ConditionsPill humidity={ascent.humidity} temperature={ascent.temperature} />
+  </div>
+{/snippet}
+
+{#snippet noteQuote(note: string)}
+  <blockquote class="border-surface-300-700 text-surface-600-400 border-s-2 ps-2.5 text-sm">
+    <Markdown markdown={note} />
+  </blockquote>
+{/snippet}
 
 <!-- Nothing is coming for this slot (see `entityUnnamed`), so it says so instead of pulsing.
      Same placeholder the route rows use for a route saved without a name. -->
@@ -155,6 +197,16 @@
       {#each view.rows as row (eventEntityKey(row.ref))}
         <HydratedRow {row} />
 
+        <!-- The climber's own numbers and words, under the ascent they are about. A session
+             holds five of each, and one strip for the card could only ever show the first. -->
+        {#if row.ascent != null}
+          {@render ascentStrip(row.ascent)}
+        {/if}
+
+        {#if row.note != null}
+          {@render noteQuote(row.note)}
+        {/if}
+
         <!-- Under the row it belongs to, because that is what the bar is about: a session card is
              five ascents and five events, so a reader congratulates the one send they mean rather
              than the afternoon. Indented to the row's own padding and pushed to the trailing edge,
@@ -175,36 +227,6 @@
         <p class="text-surface-600-400 px-1 text-xs">{m.event_moreEntities({ count: view.overflowCount })}</p>
       {/if}
     </div>
-  {/if}
-
-  <!-- What the climber said about the route, which is not what the route says about itself: the
-       row above already carries the community grade and rating, so this strip is labelled. The
-       edit cards say the same things as change lines; a create has no change list to hold them. -->
-  {#if view.ascent != null}
-    <div class="flex flex-wrap items-center gap-2 px-1">
-      <span class="text-surface-600-400 text-xs font-semibold">{m.event_thisAscent()}</span>
-
-      <!-- Each half only when it was actually logged. The strip shows what the climber said,
-           and an ascent logged with conditions alone said nothing about grade or stars: an
-           empty grade chip and a row of three empty stars would put words in their mouth. -->
-      {#if view.ascent.gradeFk != null}
-        <RouteGrade
-          band={getGradeBand(view.ascent.gradeFk)}
-          grade={gradeLabel(global.grades, global.gradingScale, view.ascent.gradeFk)}
-        />
-      {/if}
-      {#if view.ascent.rating != null && view.ascent.rating > 0}
-        <RouteRating rating={view.ascent.rating} />
-      {/if}
-
-      <ConditionsPill humidity={view.ascent.humidity} temperature={view.ascent.temperature} />
-    </div>
-  {/if}
-
-  {#if view.note}
-    <blockquote class="border-surface-300-700 text-surface-600-400 border-s-2 ps-2.5 text-sm">
-      <Markdown markdown={view.note} />
-    </blockquote>
   {/if}
 
   <!-- One action bar rather than two stacked rows of muted text. The changes toggle leads, because

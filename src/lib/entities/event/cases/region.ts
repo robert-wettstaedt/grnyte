@@ -459,7 +459,7 @@ export const REGION_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'One card mixing two actors, which only an entity group allows: "Mara Lindqvist and others edited Mara Lindqvist", a "2 edits, 2 people" sub line, her profile row once, and both change lines (Username, then Role). Two people did two unrelated things to one person, and the card can only say that somebody edited her.',
+      'Two cards, one per actor: "Mara Lindqvist changed their name" over the Username line, and "You changed the role of Mara Lindqvist" over the Role line, each with her profile row. Two people did two unrelated things to one person, and one card could say neither: it read "Mara Lindqvist and others edited Mara Lindqvist" with a "2 edits, 2 people" sub line, which names an actor who did half of it. The entity key carries the actor now, and it was the last key that did not.',
     id: 'REGION-07e',
     writer: 'users.remote.ts:58',
   },

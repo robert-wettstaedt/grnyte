@@ -7,7 +7,7 @@ import type { MessageKey } from '$lib/i18n/message'
 import { parseCoords, type StoredCoords } from '$lib/map/coords'
 import { haversineMetres, type Coords } from '$lib/map/map'
 import { diffWords } from 'diff'
-import { eventEntityKey, type EventEntityMap } from './entity'
+import { eventEntityKey, lineRef, type EventEntityMap } from './entity'
 import type { CardLine } from './line'
 import { verbEntry, type VerbField } from './verbs'
 
@@ -331,10 +331,7 @@ function locationChange(
     approximate: to?.estimated === true,
     captionKey,
     metres: moved ? haversineMetres(from, to) : undefined,
-    paths:
-      field.cleared === true
-        ? undefined
-        : ctx.entities?.get(eventEntityKey({ id: String(activity.objectId), type: activity.objectType }))?.paths,
+    paths: field.cleared === true ? undefined : ctx.entities?.get(eventEntityKey(lineRef(activity)))?.paths,
     points: locationPoints(from, to),
   }
 }

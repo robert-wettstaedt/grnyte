@@ -499,6 +499,7 @@
       }
     }
   ],
+  "event_ascentOpinion": "Einschätzung",
   "event_ascentUpdated": [
     {
       "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
@@ -721,16 +722,6 @@
       "match": {
         "person=self": "Du hast {name} bearbeitet",
         "person=*": "{actor} hat {name} bearbeitet"
-      }
-    }
-  ],
-  "event_groupEditsMultiple": [
-    {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
-      "match": {
-        "person=self": "Du und andere haben {name} bearbeitet",
-        "person=*": "{actor} und andere haben {name} bearbeitet"
       }
     }
   ],
@@ -969,16 +960,6 @@
       }
     }
   ],
-  "event_summaryPeople": [
-    {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
-      "match": {
-        "countPlural=one": "{count} Person",
-        "countPlural=other": "{count} Personen"
-      }
-    }
-  ],
   "event_summaryRemovals": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -999,7 +980,6 @@
       }
     }
   ],
-  "event_thisAscent": "Diese Begehung",
   "event_userCreatedInvitation": [
     {
       "declarations": ["input actor", "input name", "input person"],

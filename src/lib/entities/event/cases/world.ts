@@ -258,6 +258,12 @@ const WORLD = new Map<string, EventEntity>([
   ['route:501', routeEntity('Riss', 15)],
   ['route:502', routeEntity('Dach', 14)],
   ['route:503', routeEntity('Platte', 8)],
+  // The two routes the world's ascents are ON. An ascent's entity borrows its route's name (that
+  // is what the row renders), so an ascent of Rampe hanging under a route called something else
+  // is a world that cannot happen: the card would name one in its sub line and the other on the
+  // row underneath it.
+  ['route:506', routeEntity('Rampe', 12)],
+  ['route:507', routeEntity('Kante', 9)],
   ['user:1', userEntity(ME)],
   ['user:3', userEntity(3)],
   ['user:5', userEntity(5)],
@@ -266,13 +272,15 @@ const WORLD = new Map<string, EventEntity>([
 /** What the world says a parent is, so a case does not restate the crag's shape per event. */
 const PARENTS = new Map<string, { id: number | string; type: EventObjectType }>([
   ['area:301', { id: 300, type: 'area' }],
-  ['ascent:9001', { id: 500, type: 'route' }],
-  ['ascent:9002', { id: 501, type: 'route' }],
+  ['ascent:9001', { id: 506, type: 'route' }],
+  ['ascent:9002', { id: 507, type: 'route' }],
   ['block:400', { id: 301, type: 'area' }],
   ['route:500', { id: 400, type: 'block' }],
   ['route:501', { id: 400, type: 'block' }],
   ['route:502', { id: 400, type: 'block' }],
   ['route:503', { id: 400, type: 'block' }],
+  ['route:506', { id: 400, type: 'block' }],
+  ['route:507', { id: 400, type: 'block' }],
 ])
 
 function entityOf(type: EventObjectType, id: number | string): EventEntity | undefined {

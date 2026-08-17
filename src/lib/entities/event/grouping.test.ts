@@ -66,16 +66,28 @@ describe('groupEvents', () => {
     expect(groups[1].events.map((e) => e.objectId)).toEqual([1, 2])
   })
 
-  it('groups anyone s edits to the same non crag entity by entity', () => {
+  it('groups one person s edits to the same non crag entity by entity', () => {
+    const groups = groupEvents([
+      event({ actorFk: 1, createdAt: day(1, 12), objectId: 5, objectType: 'user' }),
+      event({ actorFk: 1, createdAt: day(1, 12) - MINUTE, objectId: 5, objectType: 'user' }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('entity')
+    expect(groups[0].actorFk).toBe(1)
+  })
+
+  it('never puts two people on one card', () => {
     const groups = groupEvents([
       event({ actorFk: 1, createdAt: day(1, 12), objectId: 5, objectType: 'user' }),
       event({ actorFk: 2, createdAt: day(1, 12) - MINUTE, objectId: 5, objectType: 'user' }),
     ])
 
-    expect(groups).toHaveLength(1)
-    expect(groups[0].kind).toBe('entity')
-    // Mixed actors: the card credits the newest one.
-    expect(groups[0].actorFk).toBe(1)
+    // The entity key was the last one that did not carry the actor. An admin granting a role and
+    // the member renaming themselves minutes later shared a card that could name neither thing
+    // and credited one avatar with both.
+    expect(groups).toHaveLength(2)
+    expect(groups.map((group) => group.actorFk)).toEqual([1, 2])
   })
 
   it('sorts newest first and dates a group by its newest event', () => {
@@ -164,18 +176,67 @@ describe('groupEvents', () => {
     expect(groups[0].events).toHaveLength(3)
   })
 
-  it('leaves a session alone when a clip landed on one of its ascents', () => {
+  it('folds the clips of a session onto the session card', () => {
     const noon = day(1, 12)
     const groups = groupEvents([
       ascent({ createdAt: noon, objectId: 10 }),
       ascent({ createdAt: noon - MINUTE, objectId: 11 }),
-      // One clip on one of them. Folding it in would make the card speak that ascent's verb and
-      // count one video for an afternoon in which the reader did three things.
+      // One clip on each. Both belong to the same sitting, so both belong on the card that
+      // reports it rather than on cards of their own between the session and the feed.
       upload({ createdAt: noon - 2 * MINUTE, objectId: 'f1', parent: { id: 10, type: 'ascent' } }),
+      upload({ createdAt: noon - 3 * MINUTE, objectId: 'f2', parent: { id: 11, type: 'ascent' } }),
     ])
 
-    expect(groups.map((group) => group.kind)).toEqual(['session', 'single'])
-    expect(groups[0].events).toHaveLength(2)
+    expect(groups.map((group) => group.kind)).toEqual(['session'])
+    expect(groups[0].events).toHaveLength(4)
+    // Nothing moved to the front: a session speaks for itself, where a lone create speaks for
+    // its whole card and has to lead it.
+    expect(groups[0].events.map((event) => event.createdAt)).toEqual([
+      noon,
+      noon - MINUTE,
+      noon - 2 * MINUTE,
+      noon - 3 * MINUTE,
+    ])
+  })
+
+  it('folds a morning clip into a session that ran all day', () => {
+    const groups = groupEvents([
+      ascent({ createdAt: day(1, 18), objectId: 11 }),
+      ascent({ createdAt: day(1, 9), objectId: 10 }),
+      // A minute after the climb it hangs on, and nine hours from the card's own timestamp. The
+      // merge measures against the CREATE, so the clip lands on the session that logged that climb
+      // instead of sitting above it as a card of its own.
+      upload({ createdAt: day(1, 9) + MINUTE, objectId: 'f1', parent: { id: 10, type: 'ascent' } }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['session'])
+    expect(groups[0].events).toHaveLength(3)
+  })
+
+  it('leaves a clip added hours after the climb on a card of its own', () => {
+    const groups = groupEvents([
+      upload({ createdAt: day(1, 21), objectId: 'f1', parent: { id: 10, type: 'ascent' } }),
+      ascent({ createdAt: day(1, 8), objectId: 10 }),
+    ])
+
+    // Same day, same ascent, thirteen hours apart. A card never moves to its newest event (see
+    // `mergeCreatedWithMedia`), so folding this one in would have hidden an upload the reader just
+    // made behind a card dated that morning, where the feed had already carried it past.
+    expect(groups.map((group) => group.kind)).toEqual(['single', 'single'])
+    expect(groups[0].createdAt).toBe(day(1, 21))
+  })
+
+  it('keeps a submit of photos out of an edit burst that created two routes', () => {
+    const noon = day(1, 12)
+    const groups = groupEvents([
+      upload({ createdAt: noon, objectId: 'f1', parent: { id: 50, type: 'route' } }),
+      event({ createdAt: noon - MINUTE, objectId: 50, parent: { id: 7, type: 'block' }, verb: 'create' }),
+      event({ createdAt: noon - 2 * MINUTE, objectId: 51, parent: { id: 7, type: 'block' }, verb: 'create' }),
+    ])
+
+    // A burst is keyed on the place rather than on one sitting's climbs, so a card that merged
+    // the photos in would hide them inside "edited Nordblock". Only a session takes several.
+    expect(groups.map((group) => group.kind)).toEqual(['single', 'burst'])
   })
 
   it('keys a merged card on its oldest event, not on whatever sits last', () => {

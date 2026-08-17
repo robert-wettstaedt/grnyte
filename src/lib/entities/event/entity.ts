@@ -153,7 +153,9 @@ export function catalogueParentRef(activity: CardLine): EventEntityRef | undefin
     : { id: String(activity.parentId), type: activity.parentType }
 }
 
-export function eventEntityKey(ref: EventEntityRef): string {
+/** Structurally typed rather than taking a whole ref: the events layer keys the same map from
+ *  `(objectType, objectId)` pairs whose type it has not narrowed yet. */
+export function eventEntityKey(ref: { id: string; type: string }): string {
   return `${ref.type}:${ref.id}`
 }
 
@@ -162,18 +164,35 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
   const rowRefs = new Map<string, EventEntityRef>()
   const hydrate = new Map<string, EventEntityRef>()
 
+  // An upload whose parent is itself on the card names no place of its own: a clip hangs off an
+  // ascent that is one of the card's own subjects, so it agrees with the others about where this
+  // happened rather than disagreeing. Without this a session on one route lost its name from the
+  // sub line the moment somebody hung a video on one of the climbs.
+  //
+  // Only the entries that borrow their parent's row, and only when that parent is really here. A
+  // line ABOUT the place keeps its vote, or a burst holding an edit to the block its routes sit
+  // under would end up with no place at all.
+  const own = new Set(rows.map((activity) => eventEntityKey(lineRef(activity))))
+  const placed = rows.filter((activity) => {
+    const parent = catalogueParentRef(activity)
+    return parent == null || verbEntry(activity)?.names !== 'parent' || !own.has(eventEntityKey(parent))
+  })
+
   // The first row's parent is the candidate; a later row disagreeing with it means the window
   // spans more than one place and there is none to name.
-  let place = rows.length === 0 ? undefined : catalogueParentRef(rows[0])
+  let place = placed.length === 0 ? undefined : catalogueParentRef(placed[0])
 
-  for (const activity of rows) {
-    const entry = verbEntry(activity)
-    const subject: EventEntityRef = { id: String(activity.objectId), type: activity.objectType }
+  for (const activity of placed) {
     const parent = catalogueParentRef(activity)
-
     if (place != null && (parent?.id !== place.id || parent.type !== place.type)) {
       place = undefined
     }
+  }
+
+  for (const activity of rows) {
+    const entry = verbEntry(activity)
+    const subject = lineRef(activity)
+    const parent = catalogueParentRef(activity)
 
     if (entry?.names !== 'stored') {
       add(subjects, subject)
@@ -191,6 +210,18 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
   }
 
   return { hydrate: [...hydrate.values()], place, rows: [...rowRefs.values()], subjects: [...subjects.values()] }
+}
+
+/**
+ * What a line is ABOUT, as a ref.
+ *
+ * The one place the id becomes text. A line carries the number the mapper handed over for five of
+ * the six object types and a ref is a string for all six, so every site that matched the two
+ * open-coded the conversion and one of them forgot it, which cost every tombstone on a multi-row
+ * card its own name.
+ */
+export function lineRef(activity: CardLine): EventEntityRef {
+  return { id: String(activity.objectId), type: activity.objectType }
 }
 
 /** Keyed insertion order, which is how each role stays newest-first with no duplicates. */

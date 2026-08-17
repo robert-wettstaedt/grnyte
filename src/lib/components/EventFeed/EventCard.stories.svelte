@@ -36,7 +36,6 @@
    */
   const FIELDS: Record<keyof EventCardView, string> = {
     actorName: 'The avatar initials and the bold {actor} in the headline. Pulses while the user row syncs.',
-    ascent: 'The "This ascent" strip: the climber\'s own grade, rating and conditions. Create cards only.',
     bars: 'The reaction bars no row spoke for, rendered in the footer beside the changes toggle.',
     changes: 'The rows behind the "Show changes" toggle, one per changed column.',
     climbedAt: 'A "Climbed on ..." part in the sub line, when the climb date is not the log date.',
@@ -48,11 +47,10 @@
     headline: 'The message key the sentence renders from, plus its person/owner params.',
     id: 'The {#each} key in the feed, so a card keeps its expand state. Never rendered.',
     mine: 'Swaps the avatar for "Me" and picks the "You ..." wording of the same message.',
-    note: 'The quoted block under the rows.',
     overflowCount: 'The "and N more" line under the rows.',
     pin: 'The OSM thumbnail above the rows, on the card that placed a block.',
-    rows: 'The entity rows, capped at four. Each is an entity or a tombstone, and carries its own bar.',
-    status: 'The ascent type badge left of the clock.',
+    rows: 'The entity rows, capped at four. Each is an entity or a tombstone, and carries its own Opinion strip, quoted note and reaction bar.',
+    status: "The ascent type badge left of the clock, on a card that speaks one ascent's own sentence.",
     summary: 'The sub line under the headline, joined with " · ". Grouped cards only.',
   }
 

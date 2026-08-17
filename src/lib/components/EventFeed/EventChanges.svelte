@@ -8,7 +8,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
-  import AscentTypeBadge, { ASCENT_TYPES } from '$lib/entities/ascent/AscentType.svelte'
+  import { ASCENT_TYPES, STATUS } from '$lib/entities/ascent/AscentType.svelte'
+  import AscentTypeGlyph from '$lib/entities/ascent/AscentTypeGlyph.svelte'
   import type { ChangeView, PairFormat, SourceSide } from '$lib/entities/event/change'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -122,15 +123,20 @@
 
 <!-- The glyph the route row and the log form already use, plus the word that picker offers.
      A stored value that is no longer one of the four (a row written before `send` became
-     `redpoint`) has neither, and shows as stored rather than as nothing at all. -->
+     `redpoint`) has neither, and shows as stored rather than as nothing at all.
+
+     The bare glyph rather than the badge, the way the form's type picker draws it: the badge
+     names itself for a screen reader ("Flashed"), and beside a word that already says "Flash"
+     a reader heard the type twice in two different tenses. -->
 {#snippet ascentTypeChip(value: string | undefined)}
   {@const status = ASCENT_TYPES.find((entry) => entry.type === value)}
   {#if status == null}
     {@render chip(value)}
   {:else}
-    <span class="inline-flex items-center gap-1.5">
-      <AscentTypeBadge status={status.type} />
-      <span class="text-surface-950-50 text-xs">{status.label()}</span>
+    <span class="inline-flex max-w-full min-w-0 items-center gap-1.5">
+      <!-- No colour on the wrapper: the glyph paints its own fill and stroke from the type. -->
+      <span class="flex-none"><AscentTypeGlyph info={STATUS[status.type]} /></span>
+      <span class="text-surface-950-50 truncate text-xs">{status.label()}</span>
     </span>
   {/if}
 {/snippet}

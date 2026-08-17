@@ -114,7 +114,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Still one sentence, "You flashed Kante direkt", with what the ascent was logged with underneath: your own grade and stars in their own labelled strip (the route row beside them carries the community numbers), the conditions pill, and the note quoted below. None of that is a change line, because a create writes no change rows; the card reads it off the ascent.',
+      'Still one sentence, "You flashed Kante direkt", with what the ascent was logged with under its own row: your grade and stars behind the Opinion label (the row itself carries the community numbers, which is what the label tells them apart from), then the conditions pill outside that label, since a temperature is a reading rather than a take on the climb, then the note. None of it is a change line, because a create writes no change rows; the card reads it off the ascent.',
     id: 'ASCENT-01f',
     writer: 'ascents.remote.ts:69',
   },
@@ -403,7 +403,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade is visible only in the logged-with strip, which reads the ascent as it stands now.',
+      'ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade shows only as "Opinion 7A" under the route row, read off the ascent as it stands now, which is why the label has to say whose grade that is: the row beside it carries the community one.',
     id: 'ASCENT-02n',
     writer: 'ascents.remote.ts:117',
   },

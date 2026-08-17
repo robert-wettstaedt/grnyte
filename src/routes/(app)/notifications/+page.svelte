@@ -83,10 +83,15 @@
   const rowFor = (ref: EventEntityRef): CardRow => {
     const entity = hydration.entities.get(eventEntityKey(ref))
     return {
+      // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an
+      // ascent it is reporting; a notification is one line telling you it happened, and the
+      // ascent's own screen is one tap away.
+      ascent: undefined,
       entity: entity ?? undefined,
       // Unlike an activity row, a notification stores no fallback name for its subject, so a
       // tombstone here can only say what kind of thing is missing.
       name: undefined,
+      note: undefined,
       ref,
       state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
     }

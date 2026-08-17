@@ -128,7 +128,7 @@ export const TOPO_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'The honest degraded state: "You updated the topo on" with the unnamed placeholder, and the block row as a nameless tombstone. Nothing hydrates, not even the area it hangs under, since the card builds its entity map from the events and skips one that carries no entity. `block:updated:topo` declares no tombstone column, so there is no stored name to fall back on either.',
+      'The block is a nameless tombstone, and the headline falls back to the area it hangs under: "You updated the topo on Westwand". `block:update:topo` declares no tombstone column, so nothing stored can name the block, and an entry with none names its parent rather than leaving the slot empty. The area is there to name because the event carried it even though its own object was gone; skipping the whole event when its object does not resolve is what used to leave this card reading "You updated the topo on" with a placeholder.',
     id: 'TOPO-01e',
     topos: topoViews(700),
     writer: 'topos.remote.ts:44',

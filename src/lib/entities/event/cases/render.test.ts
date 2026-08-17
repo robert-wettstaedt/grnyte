@@ -25,8 +25,6 @@ const render = (caseId: string) => {
     const view = eventCard(group, reader, entry.topos)
 
     return {
-      // What the strip under the headline says a logged ascent recorded.
-      ascent: view.ascent,
       /**
        * Every decided part of a change line, not only its label.
        *
@@ -62,10 +60,30 @@ const render = (caseId: string) => {
         name: view.entityName ?? '?',
       }),
       mine: view.mine,
-      note: view.note,
       overflowCount: view.overflowCount,
       pin: view.pin != null,
-      rows: view.rows.map((row) => `${row.state}:${row.entity?.name ?? row.name ?? '(gone)'}`),
+      /**
+       * Each row, and what hangs off it.
+       *
+       * The opinion strip and the note are per row now, so a session of five ascents carries five
+       * of each. Read as text so the wall stays diffable: a grade is its stored id (the label
+       * needs the reader's scale), stars are stars, and a note is quoted whole, since a card that
+       * attributes one climber's words to another climber's row is the failure worth seeing.
+       */
+      rows: view.rows.map((row) => {
+        const strip = [
+          row.ascent?.gradeFk == null ? undefined : `grade ${row.ascent.gradeFk}`,
+          // Above zero, the way the card narrows it: a cleared rating is stored as 0 and draws
+          // no stars, so printing "0 stars" would claim a strip the card does not render.
+          row.ascent?.rating == null || row.ascent.rating === 0 ? undefined : `${row.ascent.rating} stars`,
+          row.ascent?.temperature == null ? undefined : `${row.ascent.temperature} C`,
+          row.ascent?.humidity == null ? undefined : `${row.ascent.humidity}%`,
+          row.note == null ? undefined : `"${row.note}"`,
+        ].filter((part) => part != null)
+
+        const name = `${row.state}:${row.entity?.name ?? row.name ?? '(gone)'}`
+        return strip.length === 0 ? name : `${name} (${strip.join(', ')})`
+      }),
       /** The ascent glyph, which four catalogue entries exist to set and nothing was asserting. */
       status: view.status,
       summary: (view.summary ?? []).map((part) =>

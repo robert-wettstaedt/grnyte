@@ -4,14 +4,12 @@ exports[`the case catalogue renders what it claims > AREA-01a: /explore -> + -> 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the area Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -29,14 +27,12 @@ exports[`the case catalogue renders what it claims > AREA-01b: /areas/300 -> Mor
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the area Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -54,14 +50,12 @@ exports[`the case catalogue renders what it claims > AREA-01c: Somebody else doe
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt added the area Steinbruch",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -79,7 +73,6 @@ exports[`the case catalogue renders what it claims > AREA-02a: /areas/300/edit -
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Steinbruch",
@@ -94,7 +87,6 @@ exports[`the case catalogue renders what it claims > AREA-02a: /areas/300/edit -
       "files": 0,
       "headline": "You renamed Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -112,7 +104,6 @@ exports[`the case catalogue renders what it claims > AREA-02b: /areas/300/edit -
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Old quarry, shady until noon. Bring a brush.",
@@ -127,7 +118,6 @@ exports[`the case catalogue renders what it claims > AREA-02b: /areas/300/edit -
       "files": 0,
       "headline": "You edited the description of Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -145,7 +135,6 @@ exports[`the case catalogue renders what it claims > AREA-02c: /areas/300/edit -
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Shady until noon.",
@@ -167,7 +156,6 @@ exports[`the case catalogue renders what it claims > AREA-02c: /areas/300/edit -
       "files": 0,
       "headline": "You edited Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -187,7 +175,6 @@ exports[`the case catalogue renders what it claims > AREA-02d: Edit the name, th
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Steinbruch Süd",
@@ -202,7 +189,6 @@ exports[`the case catalogue renders what it claims > AREA-02d: Edit the name, th
       "files": 0,
       "headline": "You renamed Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -227,14 +213,12 @@ exports[`the case catalogue renders what it claims > AREA-03a: /areas/301 -> Mor
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted the area Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -252,14 +236,12 @@ exports[`the case catalogue renders what it claims > AREA-03b: /areas/300 -> Mor
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted the area Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -295,14 +277,12 @@ exports[`the case catalogue renders what it claims > AREA-03e: A deletion whose 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You deleted the area ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -323,7 +303,6 @@ exports[`the case catalogue renders what it claims > AREA-04a: /areas/300 -> map
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -338,7 +317,6 @@ exports[`the case catalogue renders what it claims > AREA-04a: /areas/300 -> map
       "files": 0,
       "headline": "You set the parking for Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -356,7 +334,6 @@ exports[`the case catalogue renders what it claims > AREA-04b: /areas/300 -> map
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -371,7 +348,6 @@ exports[`the case catalogue renders what it claims > AREA-04b: /areas/300 -> map
       "files": 0,
       "headline": "You removed the parking for Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -396,7 +372,6 @@ exports[`the case catalogue renders what it claims > AREA-04d: A parking spot se
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -411,7 +386,6 @@ exports[`the case catalogue renders what it claims > AREA-04d: A parking spot se
       "files": 0,
       "headline": "You set the parking for Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -429,14 +403,12 @@ exports[`the case catalogue renders what it claims > AREA-05a: Two areas created
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the area Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -446,14 +418,12 @@ exports[`the case catalogue renders what it claims > AREA-05a: Two areas created
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the area Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -471,14 +441,12 @@ exports[`the case catalogue renders what it claims > AREA-05b: Two areas created
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You edited Steinbruch",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -499,14 +467,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01a: /routes/500 -> 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You flashed Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -524,14 +490,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01b: /routes/501 -> 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You redpointed Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -549,14 +513,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01c: /routes/502 -> 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You repeated Dach",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -574,14 +536,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01d: /routes/503 -> 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You attempted Platte",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -599,14 +559,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01e: Somebody else l
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -624,29 +582,22 @@ exports[`the case catalogue renders what it claims > ASCENT-01f: /routes/500 -> 
 {
   "cards": [
     {
-      "ascent": {
-        "gradeFk": 13,
-        "humidity": 45,
-        "rating": 3,
-        "temperature": 9,
-      },
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You flashed Kante direkt",
       "mine": true,
-      "note": "Cold hands on the start, then it went first go.",
       "overflowCount": 0,
       "pin": false,
       "rows": [
-        "entity:Kante direkt",
+        "entity:Kante direkt (grade 13, 3 stars, 9 C, 45%, "Cold hands on the start, then it went first go.")",
       ],
       "status": "flash",
       "summary": [],
     },
   ],
-  "expected": "Still one sentence, "You flashed Kante direkt", with what the ascent was logged with underneath: your own grade and stars in their own labelled strip (the route row beside them carries the community numbers), the conditions pill, and the note quoted below. None of that is a change line, because a create writes no change rows; the card reads it off the ascent.",
+  "expected": "Still one sentence, "You flashed Kante direkt", with what the ascent was logged with under its own row: your grade and stars behind the Opinion label (the row itself carries the community numbers, which is what the label tells them apart from), then the conditions pill outside that label, since a temperature is a reading rather than a take on the climb, then the note. None of it is a change line, because a create writes no change rows; the card reads it off the ascent.",
 }
 `;
 
@@ -654,14 +605,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01g: Log an ascent y
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": true,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You redpointed Dach",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -679,21 +628,19 @@ exports[`the case catalogue renders what it claims > ASCENT-01h: Log two ascents
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Riss",
         "entity:Rampe",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
@@ -707,14 +654,12 @@ exports[`the case catalogue renders what it claims > ASCENT-01i: A create whose 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You logged an ascent of ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -732,7 +677,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02a: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "2026-08-11",
@@ -747,7 +691,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02a: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -765,7 +708,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02b: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -780,7 +722,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02b: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -798,7 +739,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02c: /ascents/9010/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "redpoint",
@@ -813,7 +753,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02c: /ascents/9010/e
       "files": 0,
       "headline": "You edited your ascent of Platte",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -831,7 +770,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02d: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": 3,
@@ -846,7 +784,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02d: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -864,7 +801,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02e: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Slippery in the crux. Chalk the second pocket.",
@@ -879,7 +815,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02e: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -897,7 +832,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02f: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "12",
@@ -912,7 +846,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02f: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -930,7 +863,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02g: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "65",
@@ -945,7 +877,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02g: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -963,7 +894,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02h: /ascents/9001/e
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "2026-08-14",
@@ -1020,7 +950,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02h: /ascents/9001/e
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1040,7 +969,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02i: A maintainer op
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1055,7 +983,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02i: A maintainer op
       "files": 0,
       "headline": "You edited Sofia Brandt's ascent of Kante",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1073,7 +1000,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02j: Somebody else c
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": 1,
@@ -1088,7 +1014,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02j: Somebody else c
       "files": 0,
       "headline": "Sofia Brandt edited Ada Rossi's ascent of Rampe",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1106,7 +1031,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02k: Edit the stars,
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": 3,
@@ -1121,7 +1045,6 @@ exports[`the case catalogue renders what it claims > ASCENT-02k: Edit the stars,
       "files": 0,
       "headline": "You edited your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1153,29 +1076,22 @@ exports[`the case catalogue renders what it claims > ASCENT-02n: Log an ascent, 
 {
   "cards": [
     {
-      "ascent": {
-        "gradeFk": 13,
-        "humidity": undefined,
-        "rating": undefined,
-        "temperature": undefined,
-      },
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You flashed Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
-        "entity:Rampe",
+        "entity:Rampe (grade 13)",
       ],
       "status": "flash",
       "summary": [],
     },
   ],
-  "expected": "ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade is visible only in the logged-with strip, which reads the ascent as it stands now.",
+  "expected": "ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade shows only as "Opinion 7A" under the route row, read off the ascent as it stands now, which is why the label has to say whose grade that is: the row beside it carries the community one.",
 }
 `;
 
@@ -1183,14 +1099,12 @@ exports[`the case catalogue renders what it claims > ASCENT-03a: /ascents/9001 -
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You removed your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1208,14 +1122,12 @@ exports[`the case catalogue renders what it claims > ASCENT-03b: A maintainer de
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You removed Sofia Brandt's ascent of Kante",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1247,14 +1159,12 @@ exports[`the case catalogue renders what it claims > ASCENT-03e: Somebody else d
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt removed Ada Rossi's ascent of Rampe",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1272,14 +1182,12 @@ exports[`the case catalogue renders what it claims > ASCENT-03f: A deletion whos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You removed Sofia Brandt's ascent of Kante",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1297,14 +1205,12 @@ exports[`the case catalogue renders what it claims > ASCENT-03g: A deletion whos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You removed Sofia Brandt's ascent of ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1322,14 +1228,12 @@ exports[`the case catalogue renders what it claims > ASCENT-03h: A deletion with
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You removed an ascent of ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1347,14 +1251,12 @@ exports[`the case catalogue renders what it claims > BLOCK-01a: /areas/301 -> Mo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": true,
       "rows": [
@@ -1372,14 +1274,12 @@ exports[`the case catalogue renders what it claims > BLOCK-01b: Same, with the "
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": true,
       "rows": [
@@ -1397,14 +1297,12 @@ exports[`the case catalogue renders what it claims > BLOCK-01c: Add a block, ski
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1422,14 +1320,12 @@ exports[`the case catalogue renders what it claims > BLOCK-01d: Add a block and 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the block Block 3",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": true,
       "rows": [
@@ -1447,7 +1343,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02a: /blocks/400/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Nordblock",
@@ -1462,7 +1357,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02a: /blocks/400/edit
       "files": 0,
       "headline": "You renamed Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1480,7 +1374,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02b: /blocks/400/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1495,7 +1388,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02b: /blocks/400/edit
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1513,7 +1405,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02c: /blocks/400/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1528,7 +1419,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02c: /blocks/400/edit
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1546,7 +1436,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02d: Block page -> th
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1561,7 +1450,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02d: Block page -> th
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1579,7 +1467,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02e: /blocks/400/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1594,7 +1481,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02e: /blocks/400/edit
       "files": 0,
       "headline": "You removed the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1612,7 +1498,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02f: /blocks/400/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1634,7 +1519,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02f: /blocks/400/edit
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1654,7 +1538,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02g: Rename, notice t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Nordblock",
@@ -1669,7 +1552,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02g: Rename, notice t
       "files": 0,
       "headline": "You renamed Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1701,7 +1583,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02j: A block pin clea
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1716,7 +1597,6 @@ exports[`the case catalogue renders what it claims > BLOCK-02j: A block pin clea
       "files": 0,
       "headline": "You removed the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1734,7 +1614,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03a: Block page -> Mo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1749,7 +1628,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03a: Block page -> Mo
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1767,7 +1645,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03b: Block page with 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1782,7 +1659,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03b: Block page with 
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1800,7 +1676,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03c: Move an estimate
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1815,7 +1690,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03c: Move an estimate
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1833,7 +1707,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03d: Nudge the pin, l
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1848,7 +1721,6 @@ exports[`the case catalogue renders what it claims > BLOCK-03d: Nudge the pin, l
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1866,14 +1738,12 @@ exports[`the case catalogue renders what it claims > BLOCK-03e: Add a block, the
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": true,
       "rows": [
@@ -1891,14 +1761,12 @@ exports[`the case catalogue renders what it claims > BLOCK-03f: Add a block, dra
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": true,
       "rows": [
@@ -1916,7 +1784,6 @@ exports[`the case catalogue renders what it claims > BLOCK-04a: /blocks/400/topo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -1931,7 +1798,6 @@ exports[`the case catalogue renders what it claims > BLOCK-04a: /blocks/400/topo
       "files": 0,
       "headline": "You updated the location of Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1956,14 +1822,12 @@ exports[`the case catalogue renders what it claims > BLOCK-05a: Block page -> Mo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -1983,14 +1847,12 @@ exports[`the case catalogue renders what it claims > BLOCK-05b: Delete a block t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2015,14 +1877,12 @@ exports[`the case catalogue renders what it claims > BLOCK-05d: Clear out two ab
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted entries",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2043,14 +1903,12 @@ exports[`the case catalogue renders what it claims > BLOCK-05e: A deletion whose
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You deleted the block ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2091,14 +1949,12 @@ exports[`the case catalogue renders what it claims > BLOCK-08a: Add two blocks t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You edited Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2119,7 +1975,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08b: Rename a block i
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Nordblock",
@@ -2141,7 +1996,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08b: Rename a block i
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2161,7 +2015,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08c: You rename a blo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -2176,7 +2029,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08c: You rename a blo
       "files": 0,
       "headline": "Sofia Brandt updated the location of Nordblock",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2186,7 +2038,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08c: You rename a blo
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Nordblock",
@@ -2201,7 +2052,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08c: You rename a blo
       "files": 0,
       "headline": "You renamed Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2219,14 +2069,12 @@ exports[`the case catalogue renders what it claims > BLOCK-08d: Rename a block, 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted the block Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2238,7 +2086,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08d: Rename a block, 
       ],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Nordblock",
@@ -2253,7 +2100,6 @@ exports[`the case catalogue renders what it claims > BLOCK-08d: Rename a block, 
       "files": 0,
       "headline": "You renamed Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2271,14 +2117,12 @@ exports[`the case catalogue renders what it claims > FILE-01a: /routes/500 -> Ph
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You added a photo to Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2296,14 +2140,12 @@ exports[`the case catalogue renders what it claims > FILE-01b: /routes/500 -> Ph
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 5,
       "headline": "You added photos to Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2323,14 +2165,12 @@ exports[`the case catalogue renders what it claims > FILE-01c: /routes/500 -> Ph
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You added a video to Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2348,14 +2188,12 @@ exports[`the case catalogue renders what it claims > FILE-01d: /routes/500 -> Ph
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 2,
       "headline": "You added media to Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2375,14 +2213,12 @@ exports[`the case catalogue renders what it claims > FILE-01e: Same as FILE-01c,
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You added a video to Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2400,14 +2236,12 @@ exports[`the case catalogue renders what it claims > FILE-01f: /routes/500/ascen
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You added a photo to your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2425,14 +2259,12 @@ exports[`the case catalogue renders what it claims > FILE-01g: Sofia adds a clip
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "Sofia Brandt added a video to their ascent of Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2457,14 +2289,12 @@ exports[`the case catalogue renders what it claims > FILE-01i: Attach an image t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You added a photo to Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2482,14 +2312,12 @@ exports[`the case catalogue renders what it claims > FILE-01j: /blocks/400/route
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 2,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2509,14 +2337,12 @@ exports[`the case catalogue renders what it claims > FILE-01k: /routes/500/ascen
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You flashed Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2550,14 +2376,12 @@ exports[`the case catalogue renders what it claims > FILE-01n: An upload whose f
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You added media to ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -2573,7 +2397,6 @@ exports[`the case catalogue renders what it claims > FILE-02a: /routes/501 -> ta
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": {
@@ -2594,7 +2417,6 @@ exports[`the case catalogue renders what it claims > FILE-02a: /routes/501 -> ta
       "files": 1,
       "headline": "You updated the video source on Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2612,7 +2434,6 @@ exports[`the case catalogue renders what it claims > FILE-02b: Same sheet, repla
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": {
@@ -2633,7 +2454,6 @@ exports[`the case catalogue renders what it claims > FILE-02b: Same sheet, repla
       "files": 1,
       "headline": "You updated the video source on Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2651,7 +2471,6 @@ exports[`the case catalogue renders what it claims > FILE-02c: Same sheet, clear
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": {
@@ -2672,7 +2491,6 @@ exports[`the case catalogue renders what it claims > FILE-02c: Same sheet, clear
       "files": 1,
       "headline": "You updated the video source on Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2697,7 +2515,6 @@ exports[`the case catalogue renders what it claims > FILE-02e: FILE-02b, then co
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": {
@@ -2718,7 +2535,6 @@ exports[`the case catalogue renders what it claims > FILE-02e: FILE-02b, then co
       "files": 1,
       "headline": "You updated the video source on Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2743,14 +2559,12 @@ exports[`the case catalogue renders what it claims > FILE-02g: FILE-01c, then se
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You added a video to Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2768,7 +2582,6 @@ exports[`the case catalogue renders what it claims > FILE-02h: Edit the Source o
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": {
@@ -2789,7 +2602,6 @@ exports[`the case catalogue renders what it claims > FILE-02h: Edit the Source o
       "files": 1,
       "headline": "You updated the video source on Riss",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2821,7 +2633,6 @@ exports[`the case catalogue renders what it claims > FILE-03a: /routes/500 -> ta
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -2836,7 +2647,6 @@ exports[`the case catalogue renders what it claims > FILE-03a: /routes/500 -> ta
       "files": 0,
       "headline": "You removed a photo from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2854,7 +2664,6 @@ exports[`the case catalogue renders what it claims > FILE-03b: Same trash flow o
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -2869,7 +2678,6 @@ exports[`the case catalogue renders what it claims > FILE-03b: Same trash flow o
       "files": 0,
       "headline": "You removed a video from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2887,7 +2695,6 @@ exports[`the case catalogue renders what it claims > FILE-03c: Delete two photos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -2902,7 +2709,6 @@ exports[`the case catalogue renders what it claims > FILE-03c: Delete two photos
       "files": 0,
       "headline": "You removed a photo from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2920,7 +2726,6 @@ exports[`the case catalogue renders what it claims > FILE-03d: Delete a photo an
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -2942,7 +2747,6 @@ exports[`the case catalogue renders what it claims > FILE-03d: Delete a photo an
       "files": 0,
       "headline": "You removed media from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -2962,7 +2766,6 @@ exports[`the case catalogue renders what it claims > FILE-03e: Delete a photo fr
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -2984,7 +2787,6 @@ exports[`the case catalogue renders what it claims > FILE-03e: Delete a photo fr
       "files": 0,
       "headline": "You removed photos",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3005,7 +2807,6 @@ exports[`the case catalogue renders what it claims > FILE-03f: /profile -> an as
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3020,7 +2821,6 @@ exports[`the case catalogue renders what it claims > FILE-03f: /profile -> an as
       "files": 0,
       "headline": "You removed a photo from your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3038,7 +2838,6 @@ exports[`the case catalogue renders what it claims > FILE-03g: A region maintain
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3053,7 +2852,6 @@ exports[`the case catalogue renders what it claims > FILE-03g: A region maintain
       "files": 0,
       "headline": "You removed a photo from Sofia Brandt's ascent of Kante",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3071,7 +2869,6 @@ exports[`the case catalogue renders what it claims > FILE-03h: Delete a photo an
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3086,7 +2883,6 @@ exports[`the case catalogue renders what it claims > FILE-03h: Delete a photo an
       "files": 0,
       "headline": "You removed a video from your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3096,7 +2892,6 @@ exports[`the case catalogue renders what it claims > FILE-03h: Delete a photo an
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3111,7 +2906,6 @@ exports[`the case catalogue renders what it claims > FILE-03h: Delete a photo an
       "files": 0,
       "headline": "You removed a photo from your ascent of Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3129,7 +2923,6 @@ exports[`the case catalogue renders what it claims > FILE-03i: Open a block imag
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3144,7 +2937,6 @@ exports[`the case catalogue renders what it claims > FILE-03i: Open a block imag
       "files": 0,
       "headline": "You removed a photo from Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3162,7 +2954,6 @@ exports[`the case catalogue renders what it claims > FILE-03j: Delete a file who
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3177,7 +2968,6 @@ exports[`the case catalogue renders what it claims > FILE-03j: Delete a file who
       "files": 0,
       "headline": "You removed a photo from Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3202,7 +2992,6 @@ exports[`the case catalogue renders what it claims > FILE-03l: A media removal w
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3217,7 +3006,6 @@ exports[`the case catalogue renders what it claims > FILE-03l: A media removal w
       "files": 0,
       "headline": "You removed media from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3235,14 +3023,12 @@ exports[`the case catalogue renders what it claims > GROUP-01a: /routes/... -> L
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 1,
       "pin": false,
       "rows": [
@@ -3251,7 +3037,7 @@ exports[`the case catalogue renders what it claims > GROUP-01a: /routes/... -> L
         "entity:Dach",
         "entity:Platte",
       ],
-      "status": "flash",
+      "status": undefined,
       "summary": [
         "5 ascents",
       ],
@@ -3265,21 +3051,19 @@ exports[`the case catalogue renders what it claims > GROUP-01b: Log two ascents 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Kante direkt",
         "entity:Riss",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
@@ -3293,21 +3077,19 @@ exports[`the case catalogue renders what it claims > GROUP-01c: Log one ascent, 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Dach",
         "entity:Platte",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
@@ -3321,41 +3103,37 @@ exports[`the case catalogue renders what it claims > GROUP-01d: Two climbers log
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Kante direkt",
         "entity:Riss",
       ],
-      "status": "flash",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt logged a session",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Kante direkt",
         "entity:Riss",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
@@ -3365,11 +3143,70 @@ exports[`the case catalogue renders what it claims > GROUP-01d: Two climbers log
 }
 `;
 
+exports[`the case catalogue renders what it claims > GROUP-01e: Log three ascents in one sitting, each with your own grade, stars and conditions 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You logged a session",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Kante direkt (grade 12, 3 stars, 9 C, "Straight up first go.")",
+        "entity:Riss (grade 14, 1 stars, 9 C)",
+        "entity:Dach (9 C, 70%)",
+      ],
+      "status": undefined,
+      "summary": [
+        "3 ascents",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card of 3 ascents, and each row carries what THAT climb was logged with: an Opinion strip under Kante direkt holding your own grade and three stars, with your note quoted below it, one under Riss holding your grade and one star, and one under Dach with no Opinion label at all, since an attempt logged with conditions alone said nothing about grade or stars. All three were logged at the same temperature, and the conditions pill sits outside the label on each of them, because a reading is not a take on the climb. The grades are stored as ids here and render through the reader's own scale, the same as the temperature renders through their units, so what the chips say depends on who is looking. The community numbers stay on the rows themselves, which is what the label is there to tell apart. A card-level strip could only ever have shown the first of the three, and did.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-01f: Log an ascent, then fix its rating twenty minutes later (past the fold window) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": 3,
+          "before": 1,
+          "caption": undefined,
+          "kind": "rating",
+          "label": "Rating",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You flashed Rampe",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Rampe (grade 13, 3 stars)",
+      ],
+      "status": "flash",
+      "summary": [
+        "1 edit",
+      ],
+    },
+  ],
+  "expected": "ONE card that still says "You flashed Rampe", with the flash glyph, one row, and "1 edit" as the sub line. Two events (20 minutes is past the 15 minute server fold) about one climb: that is not a session, and the card used to say "You logged a session" over "1 ascent", contradicting itself about how much happened. A card holding one create that every line is about speaks that create's sentence, and what it counts is then EDITS, since the log itself is not one. The row keeps its Opinion strip: it is named by an update AND by a create, and the strip comes off the create wherever it sits rather than off whichever line is newest, or an evening correction would take the morning's grade and stars off the card that logged them. The Rating line sits behind the changes toggle, and the strip shows where the rating ended up, since it reads the ascent as it stands now.",
+}
+`;
+
 exports[`the case catalogue renders what it claims > GROUP-02a: Edit four routes under Nordblock in one sitting, three fields each 1`] = `
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3461,7 +3298,6 @@ exports[`the case catalogue renders what it claims > GROUP-02a: Edit four routes
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3484,7 +3320,6 @@ exports[`the case catalogue renders what it claims > GROUP-02b: Edit routes in t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -3513,7 +3348,6 @@ exports[`the case catalogue renders what it claims > GROUP-02b: Edit routes in t
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3527,7 +3361,6 @@ exports[`the case catalogue renders what it claims > GROUP-02b: Edit routes in t
       ],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Verschneidung",
@@ -3549,7 +3382,6 @@ exports[`the case catalogue renders what it claims > GROUP-02b: Edit routes in t
       "files": 0,
       "headline": "You edited Südblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3570,7 +3402,6 @@ exports[`the case catalogue renders what it claims > GROUP-02c: Edit two routes,
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -3592,7 +3423,6 @@ exports[`the case catalogue renders what it claims > GROUP-02c: Edit two routes,
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3605,7 +3435,6 @@ exports[`the case catalogue renders what it claims > GROUP-02c: Edit two routes,
       ],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -3620,7 +3449,6 @@ exports[`the case catalogue renders what it claims > GROUP-02c: Edit two routes,
       "files": 0,
       "headline": "You changed the grade of Dach",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3638,7 +3466,6 @@ exports[`the case catalogue renders what it claims > GROUP-02d: Two renames in o
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -3658,9 +3485,8 @@ exports[`the case catalogue renders what it claims > GROUP-02d: Two renames in o
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
-      "headline": "You edited Kante direkt",
+      "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3673,7 +3499,47 @@ exports[`the case catalogue renders what it claims > GROUP-02d: Two renames in o
       ],
     },
   ],
-  "expected": "A KIND \`burst\` card of 2 edits with TWO tombstone rows, each carrying the name its OWN rename stored: "Rissweg" and "Kante direkt", never the same name twice. The name a tombstone shows comes from the line that named that row, and a rename is the one shape that stores one (its entry declares the new value as the tombstone column), so a card holding two of them is where borrowing the first line's name would show. Only reachable degraded, since a route soft deletes and keeps resolving; the backfill can leave an event whose route is gone.",
+  "expected": "A KIND \`burst\` card headlined "You edited Nordblock", with TWO tombstone rows, each carrying the name its OWN rename stored: "Rissweg" and "Kante direkt", never the same name twice. The name a tombstone shows comes from the line that named that row, and a rename is the one shape that stores one (its entry declares the new value as the tombstone column), so a card holding two of them is where borrowing the first line's name would show. The block names the card even though neither route resolves, because the events carry it. Only reachable degraded, since a route soft deletes and keeps resolving; the backfill can leave an event whose route is gone.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-02e: Rename one route twice, twenty minutes apart, and the route is gone 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Kante direkt",
+          "before": "Kante links",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Name",
+        },
+        {
+          "after": "Kante links",
+          "before": "Kante",
+          "caption": undefined,
+          "kind": "pair",
+          "label": "Name",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You renamed Kante direkt",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "tombstone:Kante direkt",
+      ],
+      "status": undefined,
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One card speaking the shared sentence, "You renamed Kante direkt", over a tombstone row of the same name and "2 edits" as the sub line. Two events because 20 minutes is past the fold, one subject, one key, so the card says what happened rather than "You edited Nordblock". The name comes from the newest rename's stored value, which is where a route that no longer resolves keeps the name it ended on; the block is the fallback only for an entry that stores no name at all, and a rename is the one that does. Only reachable degraded, the same as the two-tombstone burst above.",
 }
 `;
 
@@ -3681,14 +3547,12 @@ exports[`the case catalogue renders what it claims > GROUP-03a: /blocks/400 -> A
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 2,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3708,14 +3572,12 @@ exports[`the case catalogue renders what it claims > GROUP-03b: /routes/500 -> L
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
       "headline": "You flashed Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3735,14 +3597,12 @@ exports[`the case catalogue renders what it claims > GROUP-03c: You add a route,
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 2,
       "headline": "Sofia Brandt added photos to Kante direkt",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3754,14 +3614,12 @@ exports[`the case catalogue renders what it claims > GROUP-03c: You add a route,
       ],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3779,14 +3637,12 @@ exports[`the case catalogue renders what it claims > GROUP-03d: Add a route, com
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 2,
       "headline": "You added photos to Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3798,14 +3654,12 @@ exports[`the case catalogue renders what it claims > GROUP-03d: Add a route, com
       ],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3823,31 +3677,12 @@ exports[`the case catalogue renders what it claims > GROUP-03e: Log three ascent
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 1,
-      "headline": "You added a video to your ascent of Riss",
-      "mine": true,
-      "note": undefined,
-      "overflowCount": 0,
-      "pin": false,
-      "rows": [
-        "entity:Riss",
-      ],
-      "status": undefined,
-      "summary": [],
-    },
-    {
-      "ascent": undefined,
-      "changes": [],
-      "climbedAt": false,
-      "entityUnnamed": false,
-      "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3855,13 +3690,124 @@ exports[`the case catalogue renders what it claims > GROUP-03e: Log three ascent
         "entity:Dach",
         "entity:Platte",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "3 ascents",
+        "1 video",
       ],
     },
   ],
-  "expected": "Two cards, and this is the merge deliberately declining: a KIND \`single\` upload, "You added a video to your ascent of Riss", above a KIND \`session\` of 3 ascents. Only a group holding EXACTLY one create is a merge target, because folding the clip in would make an afternoon of three climbs speak one ascent's verb and count one video.",
+  "expected": "ONE KIND \`session\` card, "You logged a session", sub line "3 ascents · 1 video", the clip in the thumbnail strip and all three climbs as rows. A session takes several creates as a merge target where an edit burst does not: the clip belongs to the sitting the card reports, and leaving it on a card of its own put "You added a video to your ascent of Riss" between the reader and the session it came from. Nothing moves to the front, unlike a lone create: the card speaks for the afternoon rather than for any one climb, so the headline stays the session's and the count stays 3 ascents rather than becoming 1 video.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03f: Log two ascents and hang a clip on each of them 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 2,
+      "headline": "You logged a session",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Riss",
+        "entity:Dach",
+      ],
+      "status": undefined,
+      "summary": [
+        "2 ascents",
+        "2 videos",
+      ],
+    },
+  ],
+  "expected": "Still ONE KIND \`session\` card, "2 ascents · 2 videos": two upload groups, each keyed on the ascent it landed on, both folding into the same session. Two rows, not four, because an upload names the thing it landed on rather than the file, and both clips in one thumbnail strip. The card counts the climbs off the rows rather than off its subjects, since a file is a subject too and counting those read "4 ascents".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03g: Log an ascent with a clip, then log another one before the clip has finished uploading 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 1,
+      "headline": "You logged a session",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Dach",
+        "entity:Riss",
+      ],
+      "status": undefined,
+      "summary": [
+        "2 ascents",
+        "1 video",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card, "You logged a session", sub line "2 ascents · 1 video". The card holds a CREATE at the front, since a file finalizes after the entity it hangs on and the next climb was logged after that, but it is not a create that speaks for the card: only a group holding exactly ONE create is that, and this one holds two. Without that guard the card read "You redpointed Riss" over two ascent rows and counted the video instead of the climbs.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03h: Work a project: three goes on one route in a session, with a clip of the last 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 1,
+      "headline": "You logged a session",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Rampe",
+        "entity:Rampe",
+        "entity:Rampe",
+      ],
+      "status": undefined,
+      "summary": [
+        "3 ascents",
+        "Rampe",
+        "1 video",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card, sub line "3 ascents · Rampe · 1 video": every ascent hangs off the same route, so the session names the place, and the clip does not take that away. A card names a place only when its whole window agrees on one, and an upload hangs off the ASCENT rather than the route, so it used to count as a disagreement and a session on one project lost its name the moment somebody filmed a go. A line that borrows its parent's row says nothing about the place when that parent is already on the card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03i: Film a go on a route you photographed last week 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 2,
+      "headline": "You logged a session",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Riss",
+        "entity:Dach",
+      ],
+      "status": undefined,
+      "summary": [
+        "2 ascents",
+        "1 video",
+      ],
+    },
+  ],
+  "expected": "Sub line "2 ascents · 1 video", not "1 media". The count and the word both come off the upload rows themselves; reading the card-wide media word instead asked a different question, since that one reads every file hanging off every entity on the card, and the older photo still on that ascent made the two disagree. Both files show in the thumbnail strip, which is the card saying what it holds rather than what happened.",
 }
 `;
 
@@ -3869,14 +3815,12 @@ exports[`the case catalogue renders what it claims > GROUP-04a: Clear three aban
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted entries",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3899,14 +3843,12 @@ exports[`the case catalogue renders what it claims > GROUP-04b: Delete a route, 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted entries",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3920,7 +3862,6 @@ exports[`the case catalogue renders what it claims > GROUP-04b: Delete a route, 
       ],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -3935,7 +3876,6 @@ exports[`the case catalogue renders what it claims > GROUP-04b: Delete a route, 
       "files": 0,
       "headline": "You renamed Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3953,7 +3893,6 @@ exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -3968,7 +3907,6 @@ exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers 
       "files": 0,
       "headline": "You renamed Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -3978,7 +3916,6 @@ exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers 
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": 3,
@@ -3993,7 +3930,6 @@ exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers 
       "files": 0,
       "headline": "Sofia Brandt changed the rating of Kante direkt",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4003,7 +3939,7 @@ exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers 
       "summary": [],
     },
   ],
-  "expected": "Two KIND \`single\` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are \`burst\` kind, and the burst key carries the actor: two people working on one route never share a card. \`event_groupEditsMultiple\` is unreachable from a route for that reason, and the next case is where it does appear.",
+  "expected": "Two KIND \`single\` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are \`burst\` kind, and the burst key carries the actor: two people working on one route never share a card. Every other key carries it too now, so this is the rule rather than a property of bursts, and the next case is the one that used to break it.",
 }
 `;
 
@@ -4011,7 +3947,6 @@ exports[`the case catalogue renders what it claims > GROUP-05b: You pull a photo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -4020,6 +3955,22 @@ exports[`the case catalogue renders what it claims > GROUP-05b: You pull a photo
           "kind": "file",
           "label": "Photo",
         },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You removed a photo from your ascent of Rampe",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Rampe",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+    {
+      "changes": [
         {
           "after": undefined,
           "before": undefined,
@@ -4031,21 +3982,18 @@ exports[`the case catalogue renders what it claims > GROUP-05b: You pull a photo
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
-      "headline": "You removed photos",
-      "mine": true,
-      "note": undefined,
+      "headline": "Sofia Brandt removed a photo from Ada Rossi's ascent of Rampe",
+      "mine": false,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Rampe",
       ],
       "status": undefined,
-      "summary": [
-        "2 photos",
-      ],
+      "summary": [],
     },
   ],
-  "expected": "One KIND \`entity\` card mixing two actors, which only the entity key allows: a file removal logs on the PARENT (the file row is gone by then), so it arrives as \`ascent\` + \`remove\` and \`kindOf\` keeps it out of the session. Headline "You and others edited Rampe". The sub line is "2 photos" and NOT the "2 people" part, because the file-only branch of \`summaryParts\` returns before the actor count is appended: the card says two people in words and never counts them.",
+  "expected": "TWO KIND \`single\` cards, "You removed a photo from your ascent of Rampe" and "Sofia Brandt removed a photo from Ada Rossi's ascent of Rampe". A file removal logs on the PARENT (the file row is gone by then), so it arrives as \`ascent\` + \`remove\` and \`kindOf\` keeps it out of the session; the entity key carries the actor, so the two removals no longer share a card. Under the old key they did, and the card said "You removed photos" over work two people did, since the file-only branch of the headline ran before the multi-actor one could: it read as one person pulling two photos.",
 }
 `;
 
@@ -4053,41 +4001,37 @@ exports[`the case catalogue renders what it claims > GROUP-06a: Log ascents in t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Kante direkt",
         "entity:Riss",
       ],
-      "status": "flash",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You logged a session",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Sonnenplatte",
         "entity:Kaminriss",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
@@ -4101,7 +4045,6 @@ exports[`the case catalogue renders what it claims > GROUP-07a: Rename six route
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -4151,7 +4094,6 @@ exports[`the case catalogue renders what it claims > GROUP-07a: Rename six route
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 2,
       "pin": false,
       "rows": [
@@ -4174,7 +4116,6 @@ exports[`the case catalogue renders what it claims > GROUP-08a: Rename a route, 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -4196,7 +4137,6 @@ exports[`the case catalogue renders what it claims > GROUP-08a: Rename a route, 
       "files": 0,
       "headline": "You edited Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4216,14 +4156,12 @@ exports[`the case catalogue renders what it claims > GROUP-08b: Log an ascent, t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You flashed Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4241,7 +4179,6 @@ exports[`the case catalogue renders what it claims > GROUP-08c: Delete three pho
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -4256,7 +4193,6 @@ exports[`the case catalogue renders what it claims > GROUP-08c: Delete three pho
       "files": 0,
       "headline": "You removed a photo from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4274,7 +4210,6 @@ exports[`the case catalogue renders what it claims > GROUP-08d: Delete a photo a
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -4296,7 +4231,6 @@ exports[`the case catalogue renders what it claims > GROUP-08d: Delete a photo a
       "files": 0,
       "headline": "You removed media from Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4316,14 +4250,12 @@ exports[`the case catalogue renders what it claims > REGION-01a: /settings -> Re
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You invited lea.hofer@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4346,14 +4278,12 @@ exports[`the case catalogue renders what it claims > REGION-01c: Invite the same
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You invited lea.hofer@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4369,14 +4299,12 @@ exports[`the case catalogue renders what it claims > REGION-01d: Invite two diff
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You invited noa.frei@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4384,14 +4312,12 @@ exports[`the case catalogue renders what it claims > REGION-01d: Invite two diff
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You invited lea.hofer@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4407,14 +4333,12 @@ exports[`the case catalogue renders what it claims > REGION-01e: The first send 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt invited lea.hofer@example.com",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4437,14 +4361,12 @@ exports[`the case catalogue renders what it claims > REGION-02a: /settings/regio
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You revoked the invite for lea.hofer@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4460,14 +4382,12 @@ exports[`the case catalogue renders what it claims > REGION-02b: Invite an addre
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You revoked the invite for lea.hofer@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4475,14 +4395,12 @@ exports[`the case catalogue renders what it claims > REGION-02b: Invite an addre
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You invited lea.hofer@example.com",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4498,14 +4416,12 @@ exports[`the case catalogue renders what it claims > REGION-02c: Sofia invites t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Mara Lindqvist revoked the invite for lea.hofer@example.com",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4513,14 +4429,12 @@ exports[`the case catalogue renders what it claims > REGION-02c: Sofia invites t
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt invited lea.hofer@example.com",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4543,14 +4457,12 @@ exports[`the case catalogue renders what it claims > REGION-03a: Follow the emai
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "Mara Lindqvist joined",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4573,7 +4485,6 @@ exports[`the case catalogue renders what it claims > REGION-04a: /settings/regio
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "region_maintainer",
@@ -4588,7 +4499,6 @@ exports[`the case catalogue renders what it claims > REGION-04a: /settings/regio
       "files": 0,
       "headline": "You changed the role of Mara Lindqvist",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4606,7 +4516,6 @@ exports[`the case catalogue renders what it claims > REGION-04b: Change the same
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "region_admin",
@@ -4621,7 +4530,6 @@ exports[`the case catalogue renders what it claims > REGION-04b: Change the same
       "files": 0,
       "headline": "You changed the role of Mara Lindqvist",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4646,7 +4554,6 @@ exports[`the case catalogue renders what it claims > REGION-04d: Change the same
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "region_admin",
@@ -4661,7 +4568,6 @@ exports[`the case catalogue renders what it claims > REGION-04d: Change the same
       "files": 0,
       "headline": "You changed the role of Mara Lindqvist",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4671,7 +4577,6 @@ exports[`the case catalogue renders what it claims > REGION-04d: Change the same
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "region_maintainer",
@@ -4686,7 +4591,6 @@ exports[`the case catalogue renders what it claims > REGION-04d: Change the same
       "files": 0,
       "headline": "You changed the role of Mara Lindqvist",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4704,14 +4608,12 @@ exports[`the case catalogue renders what it claims > REGION-05a: /settings/regio
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You removed Mara Lindqvist from the region",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4727,14 +4629,12 @@ exports[`the case catalogue renders what it claims > REGION-05b: Remove one memb
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You removed Sofia Brandt from the region",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4742,14 +4642,12 @@ exports[`the case catalogue renders what it claims > REGION-05b: Remove one memb
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You removed Mara Lindqvist from the region",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4772,14 +4670,12 @@ exports[`the case catalogue renders what it claims > REGION-06a: /settings/regio
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Mara Lindqvist left the region",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4802,14 +4698,12 @@ exports[`the case catalogue renders what it claims > REGION-06c: Leave a region,
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "Mara Lindqvist joined",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4817,14 +4711,12 @@ exports[`the case catalogue renders what it claims > REGION-06c: Leave a region,
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Mara Lindqvist left the region",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -4840,7 +4732,6 @@ exports[`the case catalogue renders what it claims > REGION-07a: /settings -> Ac
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Mara Lindqvist",
@@ -4855,7 +4746,6 @@ exports[`the case catalogue renders what it claims > REGION-07a: /settings -> Ac
       "files": 0,
       "headline": "Mara Lindqvist changed their name",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4873,7 +4763,6 @@ exports[`the case catalogue renders what it claims > REGION-07b: The same rename
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Mara Lindqvist",
@@ -4888,7 +4777,6 @@ exports[`the case catalogue renders what it claims > REGION-07b: The same rename
       "files": 0,
       "headline": "Mara Lindqvist changed their name",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4898,7 +4786,6 @@ exports[`the case catalogue renders what it claims > REGION-07b: The same rename
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Mara Lindqvist",
@@ -4913,7 +4800,6 @@ exports[`the case catalogue renders what it claims > REGION-07b: The same rename
       "files": 0,
       "headline": "Mara Lindqvist changed their name",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4923,7 +4809,6 @@ exports[`the case catalogue renders what it claims > REGION-07b: The same rename
       "summary": [],
     },
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Mara Lindqvist",
@@ -4938,7 +4823,6 @@ exports[`the case catalogue renders what it claims > REGION-07b: The same rename
       "files": 0,
       "headline": "Mara Lindqvist changed their name",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4963,7 +4847,6 @@ exports[`the case catalogue renders what it claims > REGION-07d: Rename twice in
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Mara Lindqvist",
@@ -4978,7 +4861,6 @@ exports[`the case catalogue renders what it claims > REGION-07d: Rename twice in
       "files": 0,
       "headline": "Mara Lindqvist changed their name",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -4996,7 +4878,6 @@ exports[`the case catalogue renders what it claims > REGION-07e: An admin change
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Mara Lindqvist",
@@ -5005,6 +4886,22 @@ exports[`the case catalogue renders what it claims > REGION-07e: An admin change
           "kind": "pair",
           "label": "Username",
         },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "Mara Lindqvist changed their name",
+      "mine": false,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Mara Lindqvist",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+    {
+      "changes": [
         {
           "after": "region_maintainer",
           "before": "region_user",
@@ -5016,22 +4913,18 @@ exports[`the case catalogue renders what it claims > REGION-07e: An admin change
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
-      "headline": "Mara Lindqvist and others edited Mara Lindqvist",
-      "mine": false,
-      "note": undefined,
+      "headline": "You changed the role of Mara Lindqvist",
+      "mine": true,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Mara Lindqvist",
       ],
       "status": undefined,
-      "summary": [
-        "2 edits",
-        "2 people",
-      ],
+      "summary": [],
     },
   ],
-  "expected": "One card mixing two actors, which only an entity group allows: "Mara Lindqvist and others edited Mara Lindqvist", a "2 edits, 2 people" sub line, her profile row once, and both change lines (Username, then Role). Two people did two unrelated things to one person, and the card can only say that somebody edited her.",
+  "expected": "Two cards, one per actor: "Mara Lindqvist changed their name" over the Username line, and "You changed the role of Mara Lindqvist" over the Role line, each with her profile row. Two people did two unrelated things to one person, and one card could say neither: it read "Mara Lindqvist and others edited Mara Lindqvist" with a "2 edits, 2 people" sub line, which names an actor who did half of it. The entity key carries the actor now, and it was the last key that did not.",
 }
 `;
 
@@ -5039,7 +4932,6 @@ exports[`the case catalogue renders what it claims > REGION-08a: /blocks/400/rou
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "M. Lindqvist",
@@ -5054,7 +4946,6 @@ exports[`the case catalogue renders what it claims > REGION-08a: /blocks/400/rou
       "files": 0,
       "headline": "Mara Lindqvist linked themselves to the first ascensionist Mara Lindqvist",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5072,7 +4963,6 @@ exports[`the case catalogue renders what it claims > REGION-08b: A first ascensi
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "M. Lindqvist",
@@ -5087,7 +4977,6 @@ exports[`the case catalogue renders what it claims > REGION-08b: A first ascensi
       "files": 0,
       "headline": "Mara Lindqvist linked themselves to the first ascensionist Mara Lindqvist",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5119,14 +5008,12 @@ exports[`the case catalogue renders what it claims > REGION-09a: A membership th
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Mara Lindqvist made a change to Mara Lindqvist",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5144,14 +5031,12 @@ exports[`the case catalogue renders what it claims > REGION-10a: A member remova
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You removed ? from the region",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -5167,14 +5052,12 @@ exports[`the case catalogue renders what it claims > ROUTE-01a: /blocks/400 -> +
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5192,14 +5075,12 @@ exports[`the case catalogue renders what it claims > ROUTE-01b: Somebody else ad
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Tomas Kessler added the route Dach",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5217,14 +5098,12 @@ exports[`the case catalogue renders what it claims > ROUTE-01c: Add a route and 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the route Unnamed",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5242,14 +5121,12 @@ exports[`the case catalogue renders what it claims > ROUTE-01d: Add a route, the
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5267,14 +5144,12 @@ exports[`the case catalogue renders what it claims > ROUTE-01e: Add two routes t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5295,7 +5170,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02a: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Kante direkt",
@@ -5310,7 +5184,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02a: /routes/500/edit
       "files": 0,
       "headline": "You renamed Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5328,7 +5201,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02b: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -5343,7 +5215,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02b: /routes/500/edit
       "files": 0,
       "headline": "You changed the grade of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5361,7 +5232,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02c: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": 2,
@@ -5376,7 +5246,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02c: /routes/500/edit
       "files": 0,
       "headline": "You changed the rating of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5394,7 +5263,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02d: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -5409,7 +5277,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02d: /routes/500/edit
       "files": 0,
       "headline": "You changed the tags of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5427,7 +5294,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02e: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": [
@@ -5447,7 +5313,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02e: /routes/500/edit
       "files": 0,
       "headline": "You changed the first ascensionists of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5465,7 +5330,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02f: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "1987",
@@ -5480,7 +5344,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02f: /routes/500/edit
       "files": 0,
       "headline": "You changed the first ascent year of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5498,7 +5361,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02g: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -5513,7 +5375,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02g: /routes/500/edit
       "files": 0,
       "headline": "You changed the first ascent year of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5531,7 +5392,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02h: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Steep off the ground, easier above the roof. Brush the crux hold.",
@@ -5546,7 +5406,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02h: /routes/500/edit
       "files": 0,
       "headline": "You edited the description of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5564,7 +5423,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02i: /routes/500/edit
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Steep off the ground, easier above the roof.",
@@ -5623,7 +5481,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02i: /routes/500/edit
       "files": 0,
       "headline": "You edited Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5643,7 +5500,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02j: Change the grade
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -5658,7 +5514,6 @@ exports[`the case catalogue renders what it claims > ROUTE-02j: Change the grade
       "files": 0,
       "headline": "You changed the grade of Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5690,14 +5545,12 @@ exports[`the case catalogue renders what it claims > ROUTE-03a: /routes/500 -> M
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5715,14 +5568,12 @@ exports[`the case catalogue renders what it claims > ROUTE-03b: A maintainer del
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt deleted the route Riss",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5740,14 +5591,12 @@ exports[`the case catalogue renders what it claims > ROUTE-03c: Delete two route
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You deleted entries",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5769,14 +5618,12 @@ exports[`the case catalogue renders what it claims > ROUTE-03d: A deletion whose
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "You deleted the route ?",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5815,14 +5662,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01a: Open the feed a
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5840,14 +5685,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01b: Feed -> somebod
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5865,14 +5708,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01c: Three people ea
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5890,14 +5731,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01d: Tap 🔥 on a c
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5915,14 +5754,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01e: Your own card, 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You added the route Kante direkt",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5940,14 +5777,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01f: The same card, 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Ada Rossi added the route Kante direkt",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -5965,21 +5800,19 @@ exports[`the case catalogue renders what it claims > SOCIAL-01g: A session of tw
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt logged a session",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
         "entity:Kante",
         "entity:Dach",
       ],
-      "status": "redpoint",
+      "status": undefined,
       "summary": [
         "2 ascents",
       ],
@@ -5993,14 +5826,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01h: React to a card
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt removed Mara Lindqvist from the region",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -6016,7 +5847,6 @@ exports[`the case catalogue renders what it claims > SOCIAL-01i: React to the ne
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Sharp arête, tape the fingers.",
@@ -6038,7 +5868,6 @@ exports[`the case catalogue renders what it claims > SOCIAL-01i: React to the ne
       "files": 0,
       "headline": "Sofia Brandt edited Kante direkt",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6058,14 +5887,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01j: A card that has
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6083,14 +5910,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01k: React to an upl
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": true,
       "files": 0,
       "headline": "Sofia Brandt added media to ?",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -6106,14 +5931,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-01l: Hold a chip who
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6131,14 +5954,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-02a: Tap the chip yo
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6156,7 +5977,6 @@ exports[`the case catalogue renders what it claims > SOCIAL-02b: Take back the r
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": "Sharp arête, tape the fingers.",
@@ -6178,7 +5998,6 @@ exports[`the case catalogue renders what it claims > SOCIAL-02b: Take back the r
       "files": 0,
       "headline": "Sofia Brandt edited Kante direkt",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6198,14 +6017,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-03a: Feed -> card ->
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6223,14 +6040,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-03b: Three people an
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6248,14 +6063,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-03c: Answer somebody
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6273,14 +6086,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-03d: Somebody commen
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "You flashed Rampe",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6298,14 +6109,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-03e: Open a thread w
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6323,14 +6132,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-04a: Thread -> your 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt redpointed Kante",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6348,14 +6155,12 @@ exports[`the case catalogue renders what it claims > SOCIAL-04b: Delete the only
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [],
       "climbedAt": false,
       "entityUnnamed": false,
       "files": 0,
       "headline": "Sofia Brandt removed Mara Lindqvist from the region",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [],
@@ -6371,7 +6176,6 @@ exports[`the case catalogue renders what it claims > TOPO-01a: /blocks/400/topos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6386,7 +6190,6 @@ exports[`the case catalogue renders what it claims > TOPO-01a: /blocks/400/topos
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6404,7 +6207,6 @@ exports[`the case catalogue renders what it claims > TOPO-01b: Somebody else add
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6419,7 +6221,6 @@ exports[`the case catalogue renders what it claims > TOPO-01b: Somebody else add
       "files": 0,
       "headline": "Sofia Brandt updated the topo on Nordblock",
       "mine": false,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6437,7 +6238,6 @@ exports[`the case catalogue renders what it claims > TOPO-01c: Pick two images i
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6459,7 +6259,6 @@ exports[`the case catalogue renders what it claims > TOPO-01c: Pick two images i
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6479,7 +6278,6 @@ exports[`the case catalogue renders what it claims > TOPO-01d: Expand the card b
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6494,7 +6292,6 @@ exports[`the case catalogue renders what it claims > TOPO-01d: Expand the card b
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6512,7 +6309,6 @@ exports[`the case catalogue renders what it claims > TOPO-01e: A photo added to 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6523,11 +6319,10 @@ exports[`the case catalogue renders what it claims > TOPO-01e: A photo added to 
         },
       ],
       "climbedAt": false,
-      "entityUnnamed": true,
+      "entityUnnamed": false,
       "files": 0,
-      "headline": "You updated the topo on ?",
+      "headline": "You updated the topo on Westwand",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6537,7 +6332,7 @@ exports[`the case catalogue renders what it claims > TOPO-01e: A photo added to 
       "summary": [],
     },
   ],
-  "expected": "The honest degraded state: "You updated the topo on" with the unnamed placeholder, and the block row as a nameless tombstone. Nothing hydrates, not even the area it hangs under, since the card builds its entity map from the events and skips one that carries no entity. \`block:updated:topo\` declares no tombstone column, so there is no stored name to fall back on either.",
+  "expected": "The block is a nameless tombstone, and the headline falls back to the area it hangs under: "You updated the topo on Westwand". \`block:update:topo\` declares no tombstone column, so nothing stored can name the block, and an entry with none names its parent rather than leaving the slot empty. The area is there to name because the event carried it even though its own object was gone; skipping the whole event when its object does not resolve is what used to leave this card reading "You updated the topo on" with a placeholder.",
 }
 `;
 
@@ -6545,7 +6340,6 @@ exports[`the case catalogue renders what it claims > TOPO-02a: /blocks/400/topos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6560,7 +6354,6 @@ exports[`the case catalogue renders what it claims > TOPO-02a: /blocks/400/topos
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6578,7 +6371,6 @@ exports[`the case catalogue renders what it claims > TOPO-03a: /blocks/400/topos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6593,7 +6385,6 @@ exports[`the case catalogue renders what it claims > TOPO-03a: /blocks/400/topos
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6611,7 +6402,6 @@ exports[`the case catalogue renders what it claims > TOPO-03b: Drag two photos a
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6626,7 +6416,6 @@ exports[`the case catalogue renders what it claims > TOPO-03b: Drag two photos a
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6644,7 +6433,6 @@ exports[`the case catalogue renders what it claims > TOPO-04a: /blocks/400/topos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6659,7 +6447,6 @@ exports[`the case catalogue renders what it claims > TOPO-04a: /blocks/400/topos
       "files": 0,
       "headline": "You removed a topo photo from Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6677,7 +6464,6 @@ exports[`the case catalogue renders what it claims > TOPO-04b: Delete a photo, t
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6699,7 +6485,6 @@ exports[`the case catalogue renders what it claims > TOPO-04b: Delete a photo, t
       "files": 0,
       "headline": "You edited Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6726,7 +6511,6 @@ exports[`the case catalogue renders what it claims > TOPO-05a: /blocks/400/topos
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6741,7 +6525,6 @@ exports[`the case catalogue renders what it claims > TOPO-05a: /blocks/400/topos
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6759,7 +6542,6 @@ exports[`the case catalogue renders what it claims > TOPO-05b: Drag an existing 
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6774,7 +6556,6 @@ exports[`the case catalogue renders what it claims > TOPO-05b: Drag an existing 
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6792,7 +6573,6 @@ exports[`the case catalogue renders what it claims > TOPO-05c: Select a drawn ro
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6807,7 +6587,6 @@ exports[`the case catalogue renders what it claims > TOPO-05c: Select a drawn ro
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6825,7 +6604,6 @@ exports[`the case catalogue renders what it claims > TOPO-05d: Draw one line, dr
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6840,7 +6618,6 @@ exports[`the case catalogue renders what it claims > TOPO-05d: Draw one line, dr
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6865,7 +6642,6 @@ exports[`the case catalogue renders what it claims > TOPO-05f: Draw a line and S
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6880,7 +6656,6 @@ exports[`the case catalogue renders what it claims > TOPO-05f: Draw a line and S
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6905,7 +6680,6 @@ exports[`the case catalogue renders what it claims > TOPO-05h: The same undo, on
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6920,7 +6694,6 @@ exports[`the case catalogue renders what it claims > TOPO-05h: The same undo, on
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6938,7 +6711,6 @@ exports[`the case catalogue renders what it claims > TOPO-05i: Read an erase who
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6953,7 +6725,6 @@ exports[`the case catalogue renders what it claims > TOPO-05i: Read an erase who
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
@@ -6978,7 +6749,6 @@ exports[`the case catalogue renders what it claims > TOPO-05k: A topo row carrie
 {
   "cards": [
     {
-      "ascent": undefined,
       "changes": [
         {
           "after": undefined,
@@ -6993,7 +6763,6 @@ exports[`the case catalogue renders what it claims > TOPO-05k: A topo row carrie
       "files": 0,
       "headline": "You updated the topo on Nordblock",
       "mine": true,
-      "note": undefined,
       "overflowCount": 0,
       "pin": false,
       "rows": [
