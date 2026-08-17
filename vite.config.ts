@@ -12,6 +12,13 @@ const json = readFileSync(file, 'utf8')
 const pkg = JSON.parse(json)
 
 export default defineConfig({
+  // The emoji picker fetches its data at runtime, so this JSON has to stay JSON. Without this it
+  // goes through Vite's JSON plugin and the dev server answers the fetch with an ES module, which
+  // the picker reports as "Could not load emoji" - a 200 whose body is JavaScript.
+  //
+  // Imported as an asset rather than copied into `static/`, so the ~450KB per locale stays out of
+  // the repo, gets a hashed filename, and can never drift from the installed package.
+  assetsInclude: ['**/emoji-picker-element-data/**/*.json'],
   define: {
     __APP_REPO__: JSON.stringify(pkg.repository.url),
   },

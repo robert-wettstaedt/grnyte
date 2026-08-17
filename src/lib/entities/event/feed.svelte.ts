@@ -1,11 +1,11 @@
-import type { ActivityCardView } from '$lib/entities/activity/card'
 import type { ActivityEntityRef } from '$lib/entities/activity/entity'
 import { markEventFeedSeen } from '$lib/entities/notification/notifications.remote'
+import { parseTopoChange } from '$lib/entities/topo/change'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import { getGlobalState } from '$lib/state/global.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { SvelteSet } from 'svelte/reactivity'
-import { eventCard } from './card'
+import { eventCard, type EventCardView } from './card'
 import type { EventObjectType } from './dto'
 import { groupEvents } from './grouping'
 import type { EventListItem } from './mapper'
@@ -42,7 +42,7 @@ export interface EventFeedResult {
   /** The window on screen, for `QueryState` to read loading, error and empty off. */
   readonly resource: QueryResource<EventListItem[]>
   /** The cards, newest first, each already decided. */
-  readonly views: ActivityCardView[]
+  readonly views: EventCardView[]
 }
 
 /** Rows per window, and what one "load older" adds. It also caps the pill's count: past a page of
@@ -73,18 +73,23 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
   const groups = $derived(groupEvents(events.data))
 
   const expandedIds = new SvelteSet<string>()
-  // Only the open cards, and only their blocks: a topo photo is drawn by the change list behind
-  // the toggle and by nothing else.
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt wholesale per derivation
-  const expandedBlockIds = $derived([
-    ...new Set(
-      groups
-        .filter((group) => expandedIds.has(group.id))
-        .flatMap((group) => group.events)
-        .flatMap((event) => (event.objectType === 'block' ? [Number(event.objectId)] : []))
-        .filter(Number.isInteger),
-    ),
-  ])
+  // Only the open cards, and among those only the events that say a topo photo changed, which
+  // `parseTopoChange` reads off the metadata. Taking every block event would sync that block's
+  // whole topo tree (its topos and their files) for a card that merely renamed it, which is the
+  // cost the "open cards only" rule exists to avoid in the first place.
+  //
+  // Deduped by `indexOf` rather than through a Set, which the lint rule would want to be a
+  // `SvelteSet`: this is rebuilt whole on every derivation, so reactivity on it buys nothing.
+  const expandedBlockIds = $derived(
+    groups
+      .filter((group) => expandedIds.has(group.id))
+      .flatMap((group) => group.events)
+      .flatMap((event) =>
+        event.objectType === 'block' && parseTopoChange(event.metadata) != null ? [Number(event.objectId)] : [],
+      )
+      .filter(Number.isInteger)
+      .filter((id, index, all) => all.indexOf(id) === index),
+  )
 
   const topos = toposByBlockIds(() => expandedBlockIds)
 

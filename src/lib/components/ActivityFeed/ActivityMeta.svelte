@@ -14,7 +14,8 @@
   import Modal from '$lib/components/Modal/Modal.svelte'
   import type { ActivityEntityType } from '$lib/entities/activity/dto'
   import { activityMeta } from '$lib/entities/activity/meta'
-  import { activityList } from '$lib/entities/activity/resources.svelte'
+  import { legacyEvent } from '$lib/entities/event/legacy'
+  import { eventList } from '$lib/entities/event/resources.svelte'
   import { usersByIds } from '$lib/entities/user/resources.svelte'
   import { resolveMessage } from '$lib/i18n/message'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
@@ -64,7 +65,11 @@
 
   // One row is the whole question. The sheet opens its own window when it opens, so a reader
   // who never taps this never syncs the log.
-  const latest = activityList(() => ({ limit: 1, scope }))
+  const latest = eventList(() => ({ limit: 1, scope }))
+  // Through the catalogue adapter, because `activityMeta` reads the old triple. It only asks
+  // whether the newest row is the record appearing or a change to it, which `legacyEvent` answers
+  // the same way for an event as the row it replaced.
+  const latestRow = $derived(latest.data[0] == null ? undefined : legacyEvent(latest.data[0]))
 
   // Only ever needed when the log came back empty, which is the one case the row cannot answer
   // from a row's own `user` relation. An empty id list is how a resource is switched off here.
@@ -75,7 +80,7 @@
   const line = $derived(
     latest.status !== 'ready'
       ? undefined
-      : activityMeta({ createdAt, creatorName: creator.data[0]?.username, latest: latest.data[0], now: now() }),
+      : activityMeta({ createdAt, creatorName: creator.data[0]?.username, latest: latestRow, now: now() }),
   )
 
   const label = $derived(

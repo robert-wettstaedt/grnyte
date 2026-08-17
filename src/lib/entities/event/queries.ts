@@ -17,7 +17,11 @@ const DEFAULT_LIMIT = 50
  * 142 while id 496 is dated 2024. An id cut there drops most of the log out of the window on
  * screen and reports the same rows as new.
  */
-const cursor = z.object({ createdAt: z.int(), id: z.int() })
+// `createdAt` is deliberately not `z.int()`. The column is `timestamp(3)`, so a fresh replica only
+// ever yields whole milliseconds, but a replica populated before that narrowing still holds
+// fractional values (an `ALTER TABLE ... SET DATA TYPE` emits nothing over logical replication).
+// Validating them away would blank the feed rather than degrade it.
+const cursor = z.object({ createdAt: z.number(), id: z.int() })
 
 /**
  * Everything a card needs, nested.
@@ -104,10 +108,34 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
         r(q)
           .related('bunnyStream')
           .related('author')
-          .related('ascent', (q) => r(q).related('route', route))
+          // The parent trees carry what the parent's own card carries, because an upload BORROWS
+          // its parent's entity: `author` is where "added a photo to Mara's ascent of Rampe" gets
+          // Mara, and a block's `geolocation` and `topos` are the pin and the thumb its row draws.
+          // Thinner here than at the top level, an upload card rendered a degraded version of the
+          // very entity it names.
+          .related('ascent', (q) => r(q).related('author').related('route', route))
           .related('route', route)
-          .related('block', (q) => r(q).related('area', r))
+          .related('block', (q) =>
+            r(q)
+              .related('area', r)
+              .related('geolocation', r)
+              .related('topos', (q) => r(q).related('file', r)),
+          )
           .related('area', (q) => r(q).related('parent', r)),
+      )
+      // The emoji half only, and only the live rows: a comment renders inside the card rather than
+      // as a chip on it, and a cleared reaction stays in the table because the one-per-person index
+      // is partial on `deleted_at is null`. `user` is the name the long press popover lists.
+      //
+      // ponytail: an event with 200 reactions ships 200 rows to every reader. Fine at community
+      // scale. Upgrade = a denormalized count column, syncing only your own row.
+      .related('reactions', (q) =>
+        r(q)
+          .where('type', 'emoji')
+          .where('deletedAt', 'IS', null)
+          .related('user')
+          .orderBy('createdAt', 'asc')
+          .orderBy('id', 'asc'),
       )
       .related('route', (q) =>
         r(q)
@@ -172,7 +200,11 @@ export const eventsQueryDefs = {
       // in the feed.
       if (args.scope != null) {
         const column = EVENT_OBJECT_COLUMNS[args.scope.type]
-        const { id } = args.scope
+        // Five of the six columns are `integer`, so a caller's string id has to become a number
+        // here: Zero compares by value and by type, and `'16080' === 16080` is false, which is an
+        // entity's whole log coming back empty rather than erroring. Only `file` keys on text, and
+        // every caller passes a string, because the polymorphic column this replaces was text.
+        const id = args.scope.type === 'file' ? String(args.scope.id) : Number(args.scope.id)
         q = q.where((q) =>
           q.or(
             q.cmp(column, id),

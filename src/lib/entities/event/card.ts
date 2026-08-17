@@ -1,9 +1,44 @@
-import { activityCard, type ActivityCardView } from '$lib/entities/activity/card'
+import { activityCard, type ActivityCardRow, type ActivityCardView } from '$lib/entities/activity/card'
 import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
 import type { ActivityGroup } from '$lib/entities/activity/grouping'
+import type { ReactionChip } from '$lib/entities/reaction/dto'
+import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventGroup } from './grouping'
 import { legacyRows } from './legacy'
+import type { EventListItem } from './mapper'
+
+/**
+ * A card, plus where its reactions go.
+ *
+ * One bar per EVENT, not per card. That is what per-ascent granularity buys: a session of five
+ * ascents is five events, so a reader can congratulate the one send they mean rather than the
+ * afternoon. A bar rides the row its event named; anything left over (a card whose row was omitted
+ * on the entity's own page, an event whose row collapsed into a sibling's) falls to the footer, so
+ * a reaction that exists is always somewhere a reader can see and take back.
+ */
+export interface EventCardView extends ActivityCardView {
+  /**
+   * Bars with no row of their own. Empty for most cards.
+   *
+   * Optional so a plain `ActivityCardView` still is one of these: the catalogue stories build
+   * their cards straight out of fixtures with no events behind them, and a story has nothing to
+   * react to.
+   */
+  bars?: EventReactionBar[]
+  rows: (ActivityCardRow & { bar?: EventReactionBar })[]
+}
+
+/** One event's reactions, and the handle the toggle posts back. */
+export interface EventReactionBar {
+  chips: ReactionChip[]
+  eventId: number
+  /**
+   * The reader's own event, so the bar lists its chips and offers nothing to add.
+   * `toggleReaction` refuses the same case; this is what stops the button being there to press.
+   */
+  readonly: boolean
+}
 
 /**
  * A card, built from events.
@@ -28,16 +63,49 @@ export function eventCard(
   currentUserFk: number | undefined,
   topos?: ReadonlyMap<number, TopoView>,
   omit?: ActivityEntityRef,
-): ActivityCardView {
+): EventCardView {
   const view = activityCard(toActivityGroup(group), entityMap(group), currentUserFk, topos, omit)
+
+  // Keyed by event id, and taken as each row claims one: what is left at the end is what no row
+  // speaks for. `sourceId` is the id of the row that named the entity, which in the legacy shape
+  // an event expands into, so it is the event's own id.
+  const unclaimed = new Map(group.events.map((event) => [event.id, bar(event, currentUserFk)]))
+
+  const rows = view.rows.map((row) => {
+    const claimed = row.sourceId == null ? undefined : unclaimed.get(row.sourceId)
+    if (claimed != null) {
+      unclaimed.delete(claimed.eventId)
+    }
+
+    return {
+      ...row,
+      bar: claimed,
+      // Never pending. The entity arrives with its event, so there is no second wave to wait for
+      // and no skeleton state to render.
+      state: row.state === 'skeleton' ? ('tombstone' as const) : row.state,
+    }
+  })
 
   return {
     ...view,
-    // Never pending. The entity arrives with its event, so a name that is missing is missing for
-    // good, where the old pass had to keep the slot pulsing until every fetch had answered.
+    // A card with one event always offers somewhere to react, even when its row was dropped (the
+    // entity's own log omits the row that would link back to the page the reader is on). A leftover
+    // on a card with several only appears when it already carries chips, because a bar nobody can
+    // see is a bar nobody can add to: what it exists for is that a reaction taken on one card
+    // cannot become invisible when the window regroups.
+    bars: [...unclaimed.values()].filter((left) => left.chips.length > 0 || group.events.length === 1),
+    // Same reason as `state` above: a name that is missing is missing for good, where the old pass
+    // had to keep the slot pulsing until every fetch had answered.
     entityUnnamed: view.entityName == null,
-    // For the same reason there is no skeleton state to render.
-    rows: view.rows.map((row) => (row.state === 'skeleton' ? { ...row, state: 'tombstone' as const } : row)),
+    rows,
+  }
+}
+
+function bar(event: EventListItem, currentUserFk: number | undefined): EventReactionBar {
+  return {
+    chips: reactionChips(event.reactions, currentUserFk),
+    eventId: event.id,
+    readonly: event.actorFk === currentUserFk,
   }
 }
 
@@ -60,13 +128,17 @@ function entityMap(group: EventGroup): ActivityEntityMap {
     entities.set(`${event.objectType}:${event.objectId}`, event.entity)
 
     // The parent too. "Made 12 edits in Nordblock" names the block, and none of those twelve
-    // events is about it; the old pass fetched parents for exactly this reason. An upload's
-    // entity IS its parent's (the mapper borrows it), so this stores it under both keys, which is
-    // what lets the headline find it whichever way it looks.
+    // events is about it; the old pass fetched parents for exactly this reason. An upload's entity
+    // IS its parent's (the mapper borrows it), so a file stores it under both keys, which is what
+    // lets the headline find it whichever way it looks.
+    //
+    // Never over an entry already there: an event ABOUT the parent carries the full entity, and
+    // `parentEntity` is only the name and the link.
     if (event.parent != null) {
       const key = `${event.parent.type}:${event.parent.id}`
-      if (!entities.has(key) && event.objectType === 'file') {
-        entities.set(key, event.entity)
+      const parent = event.objectType === 'file' ? event.entity : event.parentEntity
+      if (!entities.has(key) && parent != null) {
+        entities.set(key, parent)
       }
     }
   }

@@ -3,6 +3,8 @@ import type { ActivityEntity } from '$lib/entities/activity/entity'
 import { blockName } from '$lib/entities/block/mapper'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
+import type { ReactionListItem } from '$lib/entities/reaction/dto'
+import { toReaction } from '$lib/entities/reaction/mapper'
 import type { RegionMembership } from '$lib/entities/region/dto'
 import { regionCrumb } from '$lib/entities/region/mapper'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
@@ -57,6 +59,19 @@ export interface EventListItem {
    * cannot disagree with the row it describes.
    */
   parent: undefined | { id: number | string; type: EventObjectType }
+  /**
+   * The parent, resolved, for the headline that names it.
+   *
+   * "Made 12 edits in Nordblock" names the block, and none of those twelve events is about it:
+   * the old hydration pass fetched parents for exactly this reason. Read off the relation the row
+   * already carried, so it costs no query. Thinner than {@link entity} on purpose, since nothing
+   * renders it as a row; only the headline and the session summary read its name.
+   *
+   * Absent for a file, whose entity IS its parent's (the card keys that one under both).
+   */
+  parentEntity: ActivityEntity | undefined
+  /** The emoji sent on THIS event. A card shows one bar per event, not one per card. */
+  reactions: ReactionListItem[]
   regionFk: number
   verb: EventVerb
 }
@@ -99,6 +114,8 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
     objectId: object?.id ?? 0,
     objectType: object?.type ?? 'area',
     parent: parentOf(row),
+    parentEntity: parentEntityOf(row, userRegions),
+    reactions: (row.reactions ?? []).map(toReaction),
     regionFk: row.regionFk,
     verb: row.verb,
   }
@@ -232,6 +249,46 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): ActivityEntit
     return parent == null ? { files, name: '', row: 'none' } : { ...parent, files }
   }
 
+  return undefined
+}
+
+/**
+ * The parent as an entity, for the one slot that names it: a burst headline, a session summary.
+ *
+ * Deliberately built from the relation the object already carries rather than by asking for the
+ * parent row itself. That keeps it free, and it is enough: a name and a link is all a headline
+ * puts in its slot.
+ */
+function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): ActivityEntity | undefined {
+  const areaEntity = (area: { id: number; name: string }): ActivityEntity => ({
+    crumbs: [],
+    href: entityHref({ id: area.id, label: area.name, type: 'areas' }),
+    name: area.name,
+    row: 'area',
+  })
+
+  if (row.area?.parent != null) {
+    return areaEntity(row.area.parent)
+  }
+
+  if (row.block?.area != null) {
+    return areaEntity(row.block.area)
+  }
+
+  if (row.route?.block != null) {
+    const block = row.route.block
+    // `blockName`, not `block.name`: blocks are routinely nameless, and a headline naming the
+    // empty string reads as a missing name rather than as "Block 3".
+    const name = blockName(block.name, block.order)
+    return { crumbs: [], href: entityHref({ id: block.id, label: name, type: 'blocks' }), name, row: 'block' }
+  }
+
+  if (row.ascent?.route != null) {
+    return routeEntity(row.ascent.route, userRegions)
+  }
+
+  // A file's own entity is already its parent's, and a user has no parent: a person's region
+  // membership is not a place.
   return undefined
 }
 
