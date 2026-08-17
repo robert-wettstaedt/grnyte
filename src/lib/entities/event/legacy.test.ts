@@ -67,6 +67,37 @@ describe('legacyEvent', () => {
     expect(legacyEvent(event({ metadata: 'video', objectType: 'route', verb: 'remove' })).oldValue).toBe('video')
   })
 
+  it('tells the three actions that share the add verb apart by what the writer recorded', () => {
+    // `add` covers an upload, a parking pin and a claimed first ascent. The verb alone cannot say
+    // which, so the object and the metadata do: guessing produced a triple with no entry at all,
+    // and both the pin and the claim fell through to "made a change".
+    expect(verbOf({ metadata: '47.1,8.5', objectType: 'area', verb: 'add' })).toBe('event_areaUpdatedParkingLocation')
+    expect(verbOf({ metadata: 'Wolfgang Güllich', objectType: 'user', verb: 'add' })).toBe(
+      'event_userUpdatedFirstAscensionist',
+    )
+    expect(verbOf({ objectId: 'f1', objectType: 'file', verb: 'add' })).toBe('event_fileUploaded')
+  })
+
+  it('tells a cleared pin and a pulled topo photo from a removed file', () => {
+    // All three are `remove`, and the fallback is `file`: a cleared parking pin read "removed
+    // media from Steinbruch" and a pulled topo photo said the same about its block.
+    expect(verbOf({ metadata: '~47.1,8.5', objectType: 'area', verb: 'remove' })).toBe(
+      'event_areaDeletedParkingLocation',
+    )
+    expect(verbOf({ metadata: '{"action":"photoRemoved","topoId":700}', objectType: 'block', verb: 'remove' })).toBe(
+      'event_blockDeletedTopo',
+    )
+    expect(verbOf({ metadata: 'photo', objectType: 'route', verb: 'remove' })).toBe('event_routeDeletedFile')
+  })
+
+  it('reads a topo edit that moved no column of its own off its metadata', () => {
+    // A photo added or the order changed writes no change row at all, so without the metadata the
+    // event resolves a bare `block:updated`, which the catalogue has no entry for.
+    expect(verbOf({ metadata: '{"action":"photoAdded","topoId":700}', objectType: 'block', verb: 'update' })).toBe(
+      'event_blockUpdatedTopo',
+    )
+  })
+
   it('leaves a join on the generic verb, which the catalogue rework still owes it', () => {
     const row = legacyEvent(event({ objectType: 'user', verb: 'join' }))
 

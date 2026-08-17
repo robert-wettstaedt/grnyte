@@ -127,8 +127,16 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
     // invitations by one person are deliberately two events, and a user object's id is the same
     // person for every one of them. Without it the client merged back together exactly what the
     // write path spends effort keeping apart, into a card that can only headline one address.
+    //
+    // The VERB is in it for the same reason, one level up. Two events on one object with two
+    // different verbs are two different things, and each resolves its own sentence: an invitation
+    // and its withdrawal, or somebody leaving a region and coming back. Merged, the card can
+    // speak neither and falls to "edited {name}" with a count, which for a membership reads as
+    // "Mara edited Mara, 2 edits" and for an invitation asserts an edit to an email address. The
+    // server's fold already merges everything that IS one action (a repeat, or an update refining
+    // a create), so what reaches here with two verbs is genuinely two.
     default:
-      return `entity:${region}:${objectKey(event.objectType, event.objectId)}:${event.metadata ?? ''}`
+      return `entity:${region}:${objectKey(event.objectType, event.objectId)}:${event.verb}:${event.metadata ?? ''}`
   }
 }
 

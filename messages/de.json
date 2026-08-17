@@ -734,6 +734,20 @@
       }
     }
   ],
+  "event_groupFilesRemoved": [
+    {
+      "declarations": ["input actor", "input media", "input person"],
+      "selectors": ["person", "media"],
+      "match": {
+        "person=self,media=photo": "Du hast Fotos entfernt",
+        "person=self,media=video": "Du hast Videos entfernt",
+        "person=self,media=*": "Du hast Medien entfernt",
+        "person=*,media=photo": "{actor} hat Fotos entfernt",
+        "person=*,media=video": "{actor} hat Videos entfernt",
+        "person=*,media=*": "{actor} hat Medien entfernt"
+      }
+    }
+  ],
   "event_groupRemovals": [
     {
       "declarations": ["input actor", "input person"],

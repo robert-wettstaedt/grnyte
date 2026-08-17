@@ -1,19 +1,9 @@
 <script module lang="ts">
-  import type { CardView } from '$lib/entities/event/cardView'
+  import type { EventCardView } from '$lib/entities/event/card'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import EventCard from './EventCard.svelte'
-  import {
-    activity,
-    entityMap,
-    groups,
-    ME,
-    sampleWeekView as mine,
-    photo,
-    sampleWeek,
-    sampleWeekGroups,
-    view,
-  } from './fixtures'
+  import { ascentEntity, eventAgo, eventViews, sampleWeekView as mine, photo, sampleWeekGroups } from './fixtures'
 
   const { Story } = defineMeta({
     component: EventCard,
@@ -26,33 +16,34 @@
   // consistent data set. `mine()` renders one as the card the signed-in climber would see.
   const pick = (predicate: (group: (typeof sampleWeekGroups)[number]) => boolean) => sampleWeekGroups.find(predicate)!
 
-  const flash = pick((group) => group.rows[0].entityId === '9001')
-  const session = pick((group) => group.kind === 'session' && group.rows.length > 1)
+  const flash = pick((group) => group.events[0].objectId === 9001)
+  const session = pick((group) => group.kind === 'session')
   const burst = pick((group) => group.kind === 'burst')
-  const topo = pick((group) => group.rows[0].columnName === 'topo')
+  const topo = pick((group) => group.events[0].objectType === 'block')
   const uploads = pick((group) => group.kind === 'upload')
-  const videoSource = pick((group) => group.rows[0].columnName === 'source')
-  const newArea = pick((group) => group.rows[0].entityType === 'area')
-  const gradeChange = pick((group) => group.rows[0].columnName === 'gradeFk' && group.kind === 'single')
-  const photoRemoved = pick((group) => group.rows[0].columnName === 'file')
-  const deletedRoute = pick((group) => group.rows[0].entityId === '599')
-  const roleGrant = pick((group) => group.rows[0].entityType === 'user')
-  const unsynced = pick((group) => group.rows[0].entityId === '9099')
+  const videoSource = pick((group) => group.events[0].changes[0]?.columnName === 'source')
+  const newArea = pick((group) => group.events[0].objectType === 'area')
+  const gradeChange = pick((group) => group.kind === 'single' && group.events[0].changes[0]?.columnName === 'gradeFk')
+  const photoRemoved = pick((group) => group.events[0].verb === 'remove')
+  const deletedRoute = pick((group) => group.events[0].verb === 'delete')
+  const roleGrant = pick((group) => group.events[0].objectType === 'user')
+  const unresolved = pick((group) => group.events[0].entity == null && group.events[0].verb === 'add')
 
   /**
-   * Every field of {@link CardView} and the part of the card it comes out as. A
+   * Every field of {@link EventCardView} and the part of the card it comes out as. A
    * `Record` rather than a list, so a field added to the view is a type error here: the
    * anatomy cannot quietly go out of date.
    */
-  const FIELDS: Record<keyof CardView, string> = {
+  const FIELDS: Record<keyof EventCardView, string> = {
     actorName: 'The avatar initials and the bold {actor} in the headline. Pulses while the user row syncs.',
     ascent: 'The "This ascent" strip: the climber\'s own grade, rating and conditions. Create cards only.',
+    bars: 'The reaction bars no row spoke for, rendered in the footer beside the changes toggle.',
     changes: 'The rows behind the "Show changes" toggle, one per changed column.',
     climbedAt: 'A "Climbed on ..." part in the sub line, when the climb date is not the log date.',
     climberName: "The bold {climber}. Only the messages about somebody else's ascent have that slot.",
     createdAt: 'The relative clock, top right. The view carries the timestamp, the component formats it.',
     entityName: "The bold {name} in the headline. A grouped card borrows its shared parent's name.",
-    entityUnnamed: 'Swaps that bold slot for the `common_unnamed` placeholder once no name is coming.',
+    entityUnnamed: 'Swaps that bold slot for the `common_unnamed` placeholder once no name resolved.',
     files: 'The scrollable thumbnail strip under the header.',
     headline: 'The message key the sentence renders from, plus its person/owner params.',
     id: 'The {#each} key in the feed, so a card keeps its expand state. Never rendered.',
@@ -60,7 +51,7 @@
     note: 'The quoted block under the rows.',
     overflowCount: 'The "and N more" line under the rows.',
     pin: 'The OSM thumbnail above the rows, on the card that placed a block.',
-    rows: 'The entity rows, capped at four. Each is an entity, a skeleton or a tombstone.',
+    rows: 'The entity rows, capped at four. Each is an entity or a tombstone, and carries its own bar.',
     status: 'The ascent type badge left of the clock.',
     summary: 'The sub line under the headline, joined with " · ". Grouped cards only.',
   }
@@ -99,7 +90,7 @@
           <tr class="border-surface-200-800 border-t align-top">
             <td class="text-surface-950-50 py-1.5 pe-3 font-mono">{field}</td>
             <td class="text-surface-600-400 py-1.5 pe-3 font-mono">
-              {show(args.view[field as keyof CardView])}
+              {show(args.view[field as keyof EventCardView])}
             </td>
             <td class="text-surface-600-400 py-1.5">{hint}</td>
           </tr>
@@ -109,7 +100,7 @@
   </div>
 {/snippet}
 
-<!-- What each field of `CardView` turns into, read off a real card. One single and
+<!-- What each field of `EventCardView` turns into, read off a real card. One single and
      one grouped card, because each fills what the other leaves unset: the status, note and
      photos here, the summary, overflow count and changes there. -->
 <Story
@@ -126,16 +117,18 @@
   template={anatomy}
 />
 
-<!-- An ascent with the ascent's photos and notes: the fullest single card there is. -->
+<!-- An ascent with the ascent's photos and notes, reacted to and talked under: the fullest
+     single card there is, and the bar carrying both halves at once. -->
 <Story name="Flash with photos" args={{ view: mine(flash) }} />
 
-<!-- Four ascents logged in one sitting fold into one session card. -->
+<!-- Four ascents logged in one sitting fold into one session card, and the 💪 sits under the one
+     ascent it was sent to rather than under the afternoon. -->
 <Story name="Session" args={{ view: mine(session) }} />
 
 <!-- Twelve edits across six routes of one block, capped at four rows. Expand for the diff. -->
 <Story name="Edit burst" args={{ view: mine(burst) }} />
 
-<!-- Five photos from one submit as one card, not five: the rows agree on the block. -->
+<!-- Five photos from one submit as one card, not five: the events agree on the block. -->
 <Story name="Photo upload" args={{ view: mine(uploads) }} />
 
 <!-- A reposted clip's credit corrected. Points at the file like an upload does, so the card
@@ -147,37 +140,40 @@
 
 <Story name="New area" args={{ view: mine(newArea) }} />
 
-<!-- Your own row: solid avatar and the "You …" variant of the same message. -->
+<!-- Your own row: solid avatar, the "You …" variant of the same message, and a read-only bar
+     that lists its chips and offers nothing to add. -->
 <Story name="Yours (grade change)" args={{ view: mine(gradeChange) }} />
 
 <Story name="Photo removed" args={{ view: mine(photoRemoved) }} />
 
-<!-- Hydration finished without the route: a tombstone, named from the delete row itself. -->
+<!-- A delete whose route resolves to nothing: a tombstone row, and no name stored on the delete
+     to label it with. -->
 <Story name="Deleted entity" args={{ view: mine(deletedRoute) }} />
 
 <Story name="Role change" args={{ view: mine(roleGrant) }} />
 
-<!-- The entity has not synced yet: a skeleton row and a placeholder in the headline. -->
-<Story name="Not yet synced" args={{ view: mine(unsynced) }} />
+<!-- Nothing syncs late any more: an entity arrives with its event, so the old skeleton card is
+     now the card whose object resolves to nothing at all. An orphaned upload: the placeholder in
+     the headline, no thumbnail, and the bar falling to the footer for want of a row. -->
+<Story name="Not yet synced" args={{ view: mine(unresolved) }} />
 
-<!-- Nobody signed in (the share/logged-out case): every card speaks in the third person. -->
-<Story name="Someone else" args={{ view: view(gradeChange, sampleWeek.entities) }} />
+<!-- Nobody signed in (the share/logged-out case): every card speaks in the third person, and
+     every bar is read-only, since there is nobody to react as. -->
+<Story name="Someone else" args={{ view: mine(gradeChange, undefined) }} />
 
-<!-- The actor's user row has not synced either: a pulsing avatar rather than "?". -->
+<!-- The actor's user row has not synced: a pulsing avatar rather than "?". -->
 <Story
   name="Unknown actor"
   args={{
-    view: view(
-      groups([
-        activity(4, { entityId: '9001', entityType: 'ascent', newValue: 'redpoint', type: 'created', userFk: 99 }),
-      ])[0],
-      entityMap([
-        [
-          { id: '9001', type: 'ascent' },
-          { ascentType: 'redpoint', files: [photo('f9')], href: '#', name: 'Rampe', row: 'none' },
-        ],
-      ]),
-      ME,
-    ),
+    view: eventViews([
+      eventAgo(4, {
+        actorFk: 99,
+        entity: ascentEntity('Rampe', 12, 99, 'redpoint', { files: [photo('f9')] }),
+        objectId: 9199,
+        objectType: 'ascent',
+        parent: { id: 502, type: 'route' },
+        verb: 'create',
+      }),
+    ])[0],
   }}
 />

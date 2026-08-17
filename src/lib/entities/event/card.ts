@@ -205,11 +205,18 @@ function entityMap(group: EventGroup): EventEntityMap {
  * so a card that used to hold twelve rows still holds twelve.
  */
 function toActivityGroup(group: EventGroup): CardGroup {
+  const rows = group.events.flatMap(legacyRows)
+
   return {
     createdAt: group.createdAt,
     id: group.id,
-    kind: group.kind,
-    rows: group.events.flatMap(legacyRows),
+    // `single` means the card speaks ONE row's sentence, and the card decides that on what it
+    // holds rather than on how many events produced it. One event that moved two columns is two
+    // rows: under the old shape those were two activity rows and the card said "2 edits", and
+    // calling it single because one event carries them names whichever column sorts first and
+    // hides the rest.
+    kind: rows.length === 1 ? 'single' : group.kind === 'single' ? 'entity' : group.kind,
+    rows,
     userFk: group.actorFk,
   }
 }

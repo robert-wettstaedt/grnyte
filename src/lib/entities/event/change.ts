@@ -457,13 +457,19 @@ function topoChange(
   const view = change.topoId == null ? undefined : ctx.topos?.get(change.topoId)
   const chips = (lines: TopoLineState[]) => lines.map(({ name, routeFk }): TopoLineChip => ({ name, routeFk }))
 
+  // A redraw with no stored pair has nothing to say about lines: the photo would be drawn with an
+  // empty overlay under "Lines updated", which reads as a wall that was cleared when in fact every
+  // line is still on it. Drawing nothing is what the four photo actions already do without a view.
+  const blank = change.action === 'lines' && activity.oldValue == null && activity.newValue == null
+
   return {
     added: chips(diff.added),
     captionKey: topoCaption(change.action, diff),
-    image: view == null ? undefined : { height: view.imageHeight, path: view.imagePath, width: view.imageWidth },
+    image:
+      view == null || blank ? undefined : { height: view.imageHeight, path: view.imagePath, width: view.imageWidth },
     // A redraw draws both of its ends; the four photo actions have no pair to show and draw the
     // photo as it stands. Nothing to draw at all without the photo.
-    lines: view == null ? [] : change.action === 'lines' ? redrawLines(diff, view) : currentLines(view),
+    lines: view == null || blank ? [] : change.action === 'lines' ? redrawLines(diff, view) : currentLines(view),
     redrawn: chips(diff.redrawn),
     removed: chips(diff.removed),
   }

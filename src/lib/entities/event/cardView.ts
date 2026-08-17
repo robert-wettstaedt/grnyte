@@ -394,6 +394,15 @@ function groupVerbKey(group: CardGroup, verb: CardVerb): MessageKey {
     return 'event_groupRemovals'
   }
 
+  // A card that only pulled files says so, in the media word the sub line is already counting in.
+  // Without this the headline reads "You edited Nordblock" over "2 photos", which is byte for byte
+  // what an UPLOAD card says: the reader sees photos gained where two are gone for good. Not
+  // `event_groupRemovals` either, which is about entities ("You deleted entries") and reads as a
+  // route or a block having gone rather than a photo.
+  if (group.rows.every((row) => row.columnName === 'file' && row.type === 'deleted')) {
+    return 'event_groupFilesRemoved'
+  }
+
   // Only `entity` groups can mix actors, and then no single person "edited" it.
   return verb.actors > 1 ? 'event_groupEditsMultiple' : 'event_groupEdits'
 }

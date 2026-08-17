@@ -1,241 +1,315 @@
-import type { CardGroup } from '$lib/entities/event/cardGroup'
-import type { CatalogueRow } from '$lib/entities/event/catalogue'
+import { eventCard, type EventCardView } from '$lib/entities/event/card'
 import {
-  activityAgo as activity,
-  entityMap,
-  groups,
+  ascentEntity,
+  blockEntity,
+  change,
+  eventAgo,
+  fileEntity,
   ME,
   PEOPLE,
   photo,
+  routeEntity,
   topoLines,
   topoMetadata,
-  topos,
+  topoViews,
   video,
-  view,
-} from '$lib/entities/event/catalogue.fixture'
-import type { EventEntity, EventEntityMap, EventEntityRef } from '$lib/entities/event/entity'
+} from '$lib/entities/event/cases/world'
+import { groupEvents, type EventGroup } from '$lib/entities/event/grouping'
+import type { EventListItem } from '$lib/entities/event/mapper'
+import type { CommentListItem, ReactionListItem } from '$lib/entities/reaction/dto'
 import type { TopoView } from '$lib/entities/topo/dto'
 
-/**
- * The design's sample week, built from the same `(entityType, type, columnName)` triples the
- * mutation layer actually writes and folded by the real `groupCatalogueRows`.
- *
- * The builders themselves live in `$lib/entities/event/catalogue.fixture`, beside the module they
- * describe, and are re-exported here so a story needs one import. What is left in this file is
- * only the week: story material, and the one thing the tests have no use for.
- */
 export {
-  activityAgo as activity,
-  changes,
-  entityMap,
-  groups,
+  ascentEntity,
+  eventAgo,
   ME,
   PEOPLE,
   photo,
   topoLines,
   topoMetadata,
-  topos,
+  topoViews as topos,
   video,
-  view,
-} from '$lib/entities/event/catalogue.fixture'
+} from '$lib/entities/event/cases/world'
+/**
+ * The design's sample week, as the EVENTS the mutation layer really writes, folded by the real
+ * `groupEvents` and decided by the real `eventCard`.
+ *
+ * The builders live in `$lib/entities/event/cases/world`, beside the catalogue that reviews them,
+ * and are re-exported here so a story needs one import. What is left in this file is only the
+ * week: story material, and the one thing the cases have no use for, since a case states one
+ * action and this states a feed.
+ *
+ * Two events carry reactions and one carries a thread, deliberately. A card built without them
+ * renders a bar the app never shows empty in practice, and the whole point of the week is that a
+ * story shows what the feed shows.
+ *
+ * The two old-shape builders below (`activity`, `changes`) are still `CatalogueRow`s, because
+ * `EventChanges` is a change-line component that takes `ChangeView`s directly and has no events
+ * behind it. They come from `catalogue.fixture`, which the unit tests share.
+ */
+export { activityAgo as activity, changes } from '$lib/entities/event/catalogue.fixture'
 
 const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try after brushing the top.'
 
-/** An ascent's route row, plus whose ascent it is (so the headline can say). */
-function ascent(name: string, gradeFk: number, climberFk: number, extra: Partial<EventEntity> = {}): EventEntity {
-  return route(name, gradeFk, { climberFk, climberName: PEOPLE[climberFk], ...extra })
+const KANTE = { name: 'Kante direkt', routeFk: 501 }
+const RAMPE = { name: 'Rampe', routeFk: 502 }
+
+/**
+ * One comment in a thread, `minutesAgo` before the run.
+ *
+ * No `mine`: the mapper does not know who is reading, and `eventCard` fills it in per line from
+ * the author against the reader.
+ */
+function comment(id: number, authorFk: number, body: string, minutesAgo: number): Omit<CommentListItem, 'mine'> {
+  return { authorFk, authorName: PEOPLE[authorFk] ?? '', body, createdAt: Date.now() - minutesAgo * 60_000, id }
 }
 
-function route(name: string, gradeFk: number, extra: Partial<EventEntity> = {}): EventEntity {
-  return {
-    crumbs: ['Westwand', 'Nordblock'],
-    href: '#',
-    name,
-    route: { description: '', gradeFk, name, rating: 2, tags: [] },
-    row: 'route',
-    ...extra,
-  }
+/** One person's one emoji on one event. */
+function reaction(emoji: string, userFk: number): ReactionListItem {
+  return { emoji, userFk, userName: PEOPLE[userFk] ?? '' }
 }
 
 /**
- * The week from the design: a flash with photos, a four-ascent session, a twelve-edit
- * burst, a topo redraw, a new area, a grade change, a removed photo, a deleted route
- * (tombstone), a role grant and an ascent that has not hydrated yet (skeleton).
+ * The week from the design: a flash with photos, a four-ascent session, a five-photo submit, a
+ * twelve-edit burst, a topo redraw, a corrected video credit, a new area, a grade change, a
+ * removed photo, a deleted route, a role grant, and one card whose object resolves to nothing.
  */
-export const sampleWeek: {
-  entities: EventEntityMap
-  rows: CatalogueRow[]
-  topos: ReadonlyMap<number, TopoView>
-} = (() => {
-  const rows: CatalogueRow[] = [
-    // Flash, with the ascent's photos and notes.
-    activity(12, { entityId: '9001', entityType: 'ascent', newValue: 'flash', type: 'created', userFk: 2 }),
-
-    // One climber's session: four ascents logged in one sitting.
-    ...['redpoint', 'redpoint', 'flash', 'attempt'].map((ascentType, index) =>
-      activity(180 + index * 5, {
-        entityId: String(9002 + index),
-        entityType: 'ascent',
-        newValue: ascentType,
-        type: 'created',
-        userFk: 3,
-      }),
-    ),
-
-    // Five photos from one submit. Each is its own row pointing at its own file, and they
-    // fold into one card because they agree on the block they landed on.
-    ...Array.from({ length: 5 }, (_, index) =>
-      activity(240 + index, {
-        entityId: `f-up-${index}`,
-        entityType: 'file',
-        parentEntityId: '400',
-        parentEntityType: 'block',
-        type: 'uploaded',
-        userFk: 3,
-      }),
-    ),
-
-    // A twelve-edit burst across six routes of one block: two edits each, and never the
-    // same value twice, so the expanded diff reads like a real afternoon of tidying up.
-    ...Array.from({ length: 12 }, (_, index) =>
-      activity(300 + index * 2, {
-        columnName: ['name', 'gradeFk', 'rating', 'tags', 'firstAscensionists', 'description'][index % 6],
-        entityId: String(500 + (index % 6)),
-        newValue: [
-          'Kante direkt',
-          String(9 + index),
-          String((index % 3) + 1),
-          `SD,highball,line-${index}`,
-          `Ada Rossi,Klimber ${index}`,
-          `Sit start on crimps, then the ${index}th sloper.`,
-        ][index % 6],
-        oldValue: ['Kante', String(8 + index), String(index % 3), 'SD', 'Ada Rossi', 'Stand start.'][index % 6],
-        parentEntityId: '400',
-        parentEntityType: 'block',
-        userFk: 4,
-      }),
-    ),
-
-    activity(360, {
-      columnName: 'topo',
-      entityId: '400',
-      entityType: 'block',
-      metadata: topoMetadata('lines', 700),
-      newValue: topoLines([
-        { name: 'Kante direkt', routeFk: 501 },
-        { name: 'Rampe', routeFk: 502 },
-      ]),
-      oldValue: topoLines([{ name: 'Kante direkt', routeFk: 501 }]),
-      parentEntityId: '300',
-      parentEntityType: 'area',
-      userFk: 5,
+export const sampleWeek: { events: EventListItem[]; topos: ReadonlyMap<number, TopoView> } = {
+  events: [
+    // The fullest single card there is: an ascent with its photos and notes, reacted to and
+    // talked under, so the bar shows both halves at once.
+    eventAgo(12, {
+      actorFk: 2,
+      comments: [
+        comment(901, 3, 'Is the second crimp still wet after the rain?', 9),
+        comment(902, 2, 'Dry by mid afternoon. The topout is the slow bit.', 5),
+      ],
+      entity: ascentEntity('Rampe', 12, 2, 'flash', { files: [photo('f1'), photo('f2')], note: NOTES }),
+      objectId: 9001,
+      objectType: 'ascent',
+      reactions: [reaction('🔥', 3), reaction('🔥', 4), reaction('💪', ME)],
+      verb: 'create',
     }),
 
-    // A reposted beta clip credited to the wrong site, fixed after the fact. Points at the
-    // file (so the card draws the clip) and names the route it hangs on as its parent, the
-    // way an upload does, but stays its own card rather than joining one.
-    activity(400, {
-      columnName: 'source',
-      entityId: 'f-vid-1',
-      entityType: 'file',
-      newValue: 'https://vimeo.com/912345',
-      oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      parentEntityId: '501',
-      parentEntityType: 'route',
-      userFk: 2,
+    // One climber's session: four ascents logged in one sitting, with a reaction on exactly one
+    // of them. That is what a bar per event buys, and the session card is where it shows.
+    eventAgo(180, {
+      actorFk: 3,
+      objectId: 9002,
+      objectType: 'ascent',
+      reactions: [reaction('💪', ME)],
+      verb: 'create',
+    }),
+    eventAgo(185, {
+      actorFk: 3,
+      entity: ascentEntity('Verschneidung', 11, 3, 'redpoint'),
+      objectId: 9003,
+      objectType: 'ascent',
+      parent: { id: 506, type: 'route' },
+      parentEntity: routeEntity('Verschneidung', 11),
+      verb: 'create',
+    }),
+    eventAgo(190, {
+      actorFk: 3,
+      entity: ascentEntity('Traverse', 6, 3, 'flash'),
+      objectId: 9004,
+      objectType: 'ascent',
+      parent: { id: 507, type: 'route' },
+      parentEntity: routeEntity('Traverse', 6),
+      verb: 'create',
+    }),
+    eventAgo(195, {
+      actorFk: 3,
+      entity: ascentEntity('Sitzstart', 16, 3, 'attempt'),
+      objectId: 9005,
+      objectType: 'ascent',
+      parent: { id: 508, type: 'route' },
+      parentEntity: routeEntity('Sitzstart', 16),
+      verb: 'create',
+    }),
+
+    // Five photos from one submit. Each is its own event pointing at its own file, and they fold
+    // into one card because they agree on the block they landed on.
+    ...Array.from({ length: 5 }, (_, index) =>
+      eventAgo(240 + index, {
+        actorFk: 3,
+        entity: fileEntity(blockEntity(), [photo(`up-${index}`)]),
+        objectId: `f-up-${index}`,
+        objectType: 'file',
+        parent: { id: 400, type: 'block' },
+        verb: 'add',
+      }),
+    ),
+
+    // A twelve-edit burst across six routes of one block: one event per route, two columns each,
+    // and never the same column twice in a row, so the expanded diff reads like a real afternoon
+    // of tidying up. Six events rather than twelve, because the server folds a second call on one
+    // route into the event already open for it.
+    eventAgo(300, {
+      actorFk: 4,
+      changes: [
+        change({ columnName: 'gradeFk', newValue: '12', oldValue: '11' }),
+        change({ columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante' }),
+      ],
+      objectId: 500,
+      objectType: 'route',
+    }),
+    eventAgo(304, {
+      actorFk: 4,
+      changes: [
+        change({ columnName: 'rating', newValue: '3', oldValue: '1' }),
+        change({ columnName: 'tags', newValue: 'SD,highball', oldValue: 'SD' }),
+      ],
+      objectId: 501,
+      objectType: 'route',
+    }),
+    eventAgo(308, {
+      actorFk: 4,
+      changes: [
+        change({
+          columnName: 'description',
+          newValue: 'Sit start on the crimps, then the obvious sloper.',
+          oldValue: 'Stand start.',
+        }),
+        change({ columnName: 'firstAscensionists', newValue: 'Ada Rossi,Jonas Weber', oldValue: 'Ada Rossi' }),
+      ],
+      objectId: 502,
+      objectType: 'route',
+    }),
+    eventAgo(312, {
+      actorFk: 4,
+      changes: [
+        change({ columnName: 'gradeFk', newValue: '9', oldValue: '8' }),
+        change({ columnName: 'rating', newValue: '2', oldValue: '3' }),
+      ],
+      objectId: 503,
+      objectType: 'route',
+    }),
+    eventAgo(316, {
+      actorFk: 4,
+      changes: [
+        change({ columnName: 'name', newValue: 'Schuppe direkt', oldValue: 'Schuppe' }),
+        change({ columnName: 'tags', newValue: 'SD,traverse', oldValue: 'traverse' }),
+      ],
+      entity: routeEntity('Schuppe direkt', 13),
+      objectId: 504,
+      objectType: 'route',
+      parent: { id: 400, type: 'block' },
+    }),
+    eventAgo(320, {
+      actorFk: 4,
+      changes: [
+        change({
+          columnName: 'description',
+          newValue: 'Sit start under the nose, then the rail out right.',
+          oldValue: '',
+        }),
+        change({
+          columnName: 'firstAscensionists',
+          newValue: 'Mara Lindqvist,Sofia Brandt',
+          oldValue: 'Mara Lindqvist',
+        }),
+      ],
+      entity: routeEntity('Nase', 10),
+      objectId: 505,
+      objectType: 'route',
+      parent: { id: 400, type: 'block' },
+    }),
+
+    // A second line drawn onto the block's topo. `metadata` says which of the five topo edits it
+    // was, and the change line draws the photo with the new line solid over the old one.
+    eventAgo(360, {
+      actorFk: 5,
+      changes: [change({ columnName: 'topo', newValue: topoLines([KANTE, RAMPE]), oldValue: topoLines([KANTE]) })],
+      metadata: topoMetadata('lines', 700),
+      objectId: 400,
+      objectType: 'block',
+    }),
+
+    // A reposted beta clip credited to the wrong site, fixed after the fact. Points at the file,
+    // so the card draws the clip and borrows the route's name, but stays its own card rather than
+    // joining the uploads: an edit to a clip is housekeeping, not a submit.
+    eventAgo(400, {
+      actorFk: 2,
+      changes: [
+        change({
+          columnName: 'source',
+          newValue: 'https://vimeo.com/912345',
+          oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        }),
+      ],
+      entity: fileEntity(routeEntity('Riss', 15), [video('vid-1', 'https://vimeo.com/912345')]),
+      objectId: 'f-vid-1',
+      objectType: 'file',
+      parent: { id: 501, type: 'route' },
     }),
 
     // Yesterday.
-    activity(26 * 60, { entityId: '300', entityType: 'area', newValue: 'Steinbruch', type: 'created', userFk: 3 }),
-    activity(28 * 60, {
-      columnName: 'gradeFk',
-      entityId: '501',
-      newValue: '15',
-      oldValue: '11',
-      parentEntityId: '401',
-      parentEntityType: 'block',
-      userFk: ME,
+    eventAgo(26 * 60, { actorFk: 3, objectId: 300, objectType: 'area', verb: 'create' }),
+    // Your own event, so the bar lists its chips and offers nothing to add: nobody applauds their
+    // own edit. The comment button stays, which is the point of keeping the bar at all.
+    eventAgo(28 * 60, {
+      actorFk: ME,
+      changes: [change({ columnName: 'gradeFk', newValue: '15', oldValue: '11' })],
+      objectId: 501,
+      objectType: 'route',
+      reactions: [reaction('👍', 3), reaction('👍', 4), reaction('🤔', 5)],
     }),
-    activity(30 * 60, { columnName: 'file', entityId: '502', type: 'deleted', userFk: 5 }),
-    activity(32 * 60, {
-      entityId: '599',
-      oldValue: 'Altweg',
-      parentEntityId: '401',
-      parentEntityType: 'block',
-      type: 'deleted',
-      userFk: 4,
-    }),
+    // A photo pulled off a route. The file row is gone by then, so the event logs on the route and
+    // says which kind of media it was in `metadata`.
+    eventAgo(30 * 60, { actorFk: 5, metadata: 'photo', objectId: 502, objectType: 'route', verb: 'remove' }),
+    // A route nothing can resolve any more: no parent to fall back on and no name stored on the
+    // delete, so the headline takes the unnamed placeholder and the row is a tombstone.
+    eventAgo(32 * 60, { actorFk: 4, entity: undefined, objectId: 599, objectType: 'route', verb: 'delete' }),
 
     // Two days back.
-    activity(50 * 60, {
-      columnName: 'role',
-      entityId: '5',
-      entityType: 'user',
-      newValue: 'maintainer',
-      oldValue: 'user',
-      userFk: 3,
+    eventAgo(50 * 60, {
+      actorFk: 3,
+      changes: [change({ columnName: 'role', newValue: 'region_maintainer', oldValue: 'region_user' })],
+      objectId: 5,
+      objectType: 'user',
     }),
-    // Not hydrated: renders as a skeleton row while its ascent syncs.
-    activity(52 * 60, { entityId: '9099', entityType: 'ascent', newValue: 'redpoint', type: 'created', userFk: 2 }),
-  ]
-
-  const entities = entityMap([
-    [
-      { id: '9001', type: 'ascent' },
-      ascent('Rampe', 12, 2, { ascentType: 'flash', files: [photo('f1'), photo('f2')], note: NOTES }),
-    ],
-    [{ id: '9002', type: 'ascent' }, ascent('Kante', 9, 3, { ascentType: 'redpoint' })],
-    [{ id: '9003', type: 'ascent' }, ascent('Verschneidung', 11, 3, { ascentType: 'redpoint' })],
-    [{ id: '9004', type: 'ascent' }, ascent('Traverse', 6, 3, { ascentType: 'flash' })],
-    [{ id: '9005', type: 'ascent' }, ascent('Sitzstart', 16, 3, { ascentType: 'attempt' })],
-    ...Array.from({ length: 6 }, (_, index): [EventEntityRef, EventEntity] => [
-      { id: String(500 + index), type: 'route' },
-      route(['Kante direkt', 'Riss', 'Dach', 'Platte', 'Schuppe', 'Nase'][index], 8 + index),
-    ]),
-    [
-      { id: '400', type: 'block' },
-      { crumbs: ['Westwand'], href: '#', name: 'Nordblock', row: 'block' },
-    ],
-    // A hydrated upload: the card names the block it landed on, renders the photo in the
-    // media strip, and shows no row of its own, since a file has nothing to link to.
-    ...Array.from({ length: 5 }, (_, index): [EventEntityRef, EventEntity] => [
-      { id: `f-up-${index}`, type: 'file' },
-      { files: [photo(`up-${index}`)], name: 'Nordblock', row: 'none' },
-    ]),
-    [
-      { id: '300', type: 'area' },
-      { description: 'Old quarry, shady until noon.', href: '#', name: 'Steinbruch', row: 'area' },
-    ],
-    // The clip whose credit was fixed. Like an upload it contributes the media and no row of
-    // its own; the headline names the route, hydrated as its parent.
-    [
-      { id: 'f-vid-1', type: 'file' },
-      { files: [video('vid-1', 'https://vimeo.com/912345')], name: 'Riss', row: 'none' },
-    ],
-    [{ id: '501', type: 'route' }, route('Riss', 15)],
-    [{ id: '502', type: 'route' }, route('Dach', 14)],
-    // Hydration finished without it: the route is gone.
-    [{ id: '599', type: 'route' }, null],
-    [
-      { id: '5', type: 'user' },
-      { href: '#', name: 'Mara Lindqvist', row: 'user' },
-    ],
-  ])
-
-  return { entities, rows, topos: topos() }
-})()
+    // An upload whose file resolves to nothing: no name, no thumbnail and no row. Nothing syncs
+    // late any more, so this is what is left of the old skeleton card, and it is a state the app
+    // really produces for an orphaned file row.
+    eventAgo(52 * 60, {
+      actorFk: 2,
+      entity: undefined,
+      objectId: 'f-orphan',
+      objectType: 'file',
+      parent: undefined,
+      verb: 'add',
+    }),
+  ],
+  topos: topoViews(),
+}
 
 /** The week folded by the real grouping rules, which is where every card below starts. */
-export const sampleWeekGroups: CardGroup[] = groups(sampleWeek.rows)
+export const sampleWeekGroups: EventGroup[] = groupEvents(sampleWeek.events)
 
 /**
- * One group as the card the page would show it as, seen as the signed-in climber. The card story
- * picks single groups out of the week and the feed story takes them all, and both were passing
- * the same `ME` and the same topo views by hand.
+ * The same week with nothing resolved, which is the honest version of the old "not hydrated yet"
+ * state: an entity arrives with its event now, so a card that cannot name its object never gets
+ * one later. Every row is a tombstone and every headline takes the placeholder, and the list still
+ * holds its shape, which is what the story is about.
  */
-export const sampleWeekView = (group: CardGroup, entities: EventEntityMap = sampleWeek.entities) =>
-  view(group, entities, ME, sampleWeek.topos)
+export const unresolvedWeek: EventListItem[] = sampleWeek.events.map((event) => ({
+  ...event,
+  entity: undefined,
+  parentEntity: undefined,
+}))
 
-/** The whole week as cards. `entities` is overridable so a story can show it un-hydrated. */
-export const sampleWeekViews = (entities?: EventEntityMap) =>
-  sampleWeekGroups.map((group) => sampleWeekView(group, entities))
+/** Cards for a set of events, folded and decided exactly as the feed does. */
+export const eventViews = (events: readonly EventListItem[], currentUserFk: number | undefined = ME) =>
+  groupEvents(events).map((group) => eventCard(group, currentUserFk, sampleWeek.topos))
+
+/**
+ * One group as the card the page would show it as, seen as the signed-in climber by default. The
+ * card story picks single groups out of the week and the feed story takes them all, and both were
+ * passing the same reader and the same topo views by hand.
+ */
+export const sampleWeekView = (group: EventGroup, currentUserFk: number | undefined = ME): EventCardView =>
+  eventCard(group, currentUserFk, sampleWeek.topos)
+
+/** The whole week as cards. The events are overridable so a story can show it unresolved. */
+export const sampleWeekViews = (events: readonly EventListItem[] = sampleWeek.events) => eventViews(events)

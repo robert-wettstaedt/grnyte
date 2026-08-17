@@ -1,0 +1,3963 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the case catalogue renders what it claims > AREA-01a: /explore -> + -> New area in {Region} -> /areas/add -> name -> Create area 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the area Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You added the area Steinbruch". A create declares no field, so no change line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-01b: /areas/300 -> More -> Add area -> name -> Create area 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the area Westwand",
+      "rows": [
+        "Westwand",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same sentence for a child area, "You added the area Westwand". The parent is the crumb on its row, not part of the headline.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-01c: Somebody else does the same, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt added the area Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Third person, "Sofia Brandt added the area Steinbruch", with her avatar rather than "Me".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-02a: /areas/300/edit -> Name -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You renamed Steinbruch", with one change line labelled Name: Steinbruch Nord to Steinbruch. The rename sentence names no entity type and carries the NEW name, so the old one exists only on the line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-02b: /areas/300/edit -> Description -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Description",
+      ],
+      "headline": "You edited the description of Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You edited the description of Steinbruch". The change line is prose, so it collapses behind a Compare toggle rather than showing a before/after pair inline.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-02c: /areas/300/edit -> Name AND description -> Save (one call, two columns) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Description",
+        "Name",
+      ],
+      "headline": "You edited Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "ONE card, not two: one event with two change rows. The headline drops to the shared "You edited Steinbruch" with a "2 edits" sub line, and both lines sit behind the toggle.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-02d: Edit the name, then edit it again within the 15-minute fold window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one card with one line, showing the ORIGINAL old value against the LATEST new one. Two cards here would mean the fold is not working.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-02e: Edit the name back to where it started inside the window 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The fold deletes a change row that returns to its old value, and an event left with no changes deletes itself.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-03a: /areas/301 -> More -> Delete area (an empty one) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the area Westwand",
+      "rows": [
+        "Westwand",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You deleted the area Westwand". Nothing went with it, so the sub line counts nothing.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-03b: /areas/300 -> More -> Delete area (with children) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the area Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [
+        "1 area",
+        "2 blocks",
+        "9 routes",
+      ],
+    },
+  ],
+  "expected": "Single card naming what went with it: 1 area, 2 blocks and 9 routes, counted while they were still knowable. The area itself is soft-deleted, so its name still resolves.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-03c: Delete an area created less than 15 minutes ago (the grace window) 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the create card is gone too: inside the window a childless area is hard-deleted and its events cascade away. A mistake leaves no trace.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-03d: Undo a deletion, from the toast 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the deletion card disappears: \`deleteEvent\` removes the event the delete wrote rather than logging a second action.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-03e: A deletion whose area cannot be resolved (an orphan the backfill left behind) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the area ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [
+        "1 block",
+        "3 routes",
+      ],
+    },
+  ],
+  "expected": "The honest degraded state: "You deleted the area" with the unnamed placeholder, since a delete event stores no name of its own and there is no row left to read one from. Only reachable for pre-migration rows.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-04a: /areas/300 -> map -> long press -> Set parking 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Parking",
+      ],
+      "headline": "You set the parking for Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You set the parking for Steinbruch", with the coordinates as its change line. Resolved off the metadata: the verb \`add\` alone reads as an upload.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-04b: /areas/300 -> map -> parking marker -> Remove 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Parking",
+      ],
+      "headline": "You removed the parking for Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed the parking for Steinbruch". Same discriminator as above: without the coordinates this reads as removed media.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-04c: Undo removing the parking spot 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the removal card goes with it, exactly as the deletion undo does.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-05a: Two areas created in one sitting, in the same region 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the area Westwand",
+      "rows": [
+        "Westwand",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "You added the area Steinbruch",
+      "rows": [
+        "Steinbruch",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two top-level areas share no parent, so they do NOT fold: two separate create cards. Grouping keys a burst on the place, and there is none here.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > AREA-05b: Two areas created under one parent in one sitting 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You edited Steinbruch",
+      "rows": [
+        "Ostwand",
+        "Westwand",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One burst card: same actor, same parent, minutes apart. "You edited Steinbruch" with a "2 edits" sub line, and both new areas as rows.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01a: /routes/500 -> Log ascent -> Flash -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You flashed Rampe", with the flash glyph on the route row. The type is not on the event: \`legacy.ts\` reads it back off the resolved ascent and the catalogue keys the sentence on it, which is why this family has four entries and not one.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01b: /routes/501 -> Log ascent -> Redpoint -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You redpointed Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same write, different type, different verb: "You redpointed Riss".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01c: /routes/502 -> Log ascent -> Repeat -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You repeated Dach",
+      "rows": [
+        "Dach",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""You repeated Dach". A repeat is a send like the two above, and reads as one.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01d: /routes/503 -> Log ascent -> Attempt -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You attempted Platte",
+      "rows": [
+        "Platte",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""You attempted Platte". The fourth type is not a send, and the card says so in the verb and in the glyph rather than in a note somewhere.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01e: Somebody else logs an ascent, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Third person, "Sofia Brandt redpointed Kante". A create names nobody but the actor: the climber and the actor are the same person here, and there is no sentence arm that could say otherwise.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01f: /routes/500 -> Log ascent -> Flash, plus your grade, stars, conditions and notes -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one sentence, "You flashed Kante direkt", with what the ascent was logged with underneath: your own grade and stars in their own labelled strip (the route row beside them carries the community numbers), the conditions pill, and the note quoted below. None of that is a change line, because a create writes no change rows; the card reads it off the ascent.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01g: Log an ascent you climbed four days ago (the date field, backdated) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You redpointed Dach",
+      "rows": [
+        "Dach",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You redpointed Dach", dated by when it was LOGGED, with the climb date called out separately because the two fall on different calendar days. Compared as calendar days rather than as elapsed time, so a genuine one-day backdate still shows and an evening log does not.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01h: Log two ascents in one sitting, minutes apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Riss",
+        "Rampe",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+  ],
+  "expected": "ONE session card, "You logged a session", with "2 ascents" as the sub line and both routes as rows. No place is named, because the two ascents hang off different routes and the card only names a place its whole window agrees on. A session folds more readily than anything else: same day is enough, so this stays one card even hours apart, as long as the calendar day holds.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-01i: A create whose ascent does not resolve (the degraded state) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged an ascent of ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The vaguer sentence, "You logged an ascent of Unnamed", with no status glyph and a tombstone row. This is the ONLY way to reach \`event_ascentCreated\`: the type that scopes the four real sentences is read off the resolved ascent, so a create with nothing to read from falls through to the degraded key. Not reachable while \`events.ascent_fk\` holds, since it cascades; this is what the card degrades to if the relation ever arrives empty.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02a: /ascents/9001/edit -> Date -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Date",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You edited your ascent of Rampe", with one change line labelled Date. Both chips are the stored \`YYYY-MM-DD\` read as a calendar day and formatted in the reader's locale, not as an instant, which is what keeps a date off the day before west of Greenwich.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02b: /ascents/9001/edit -> Your grade -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Grade",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same headline, "You edited your ascent of Rampe": every ascent column shares one sentence, and the expanded half is what says which one moved. The line is a Grade pair, drawn as two grade chips resolved through the region's grading scale rather than as the stored ids. Clearing the grade instead stores null and the chip reads Not set.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02c: /ascents/9010/edit -> Type: Attempt to Redpoint -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Type",
+      ],
+      "headline": "You edited your ascent of Platte",
+      "rows": [
+        "Platte",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One Type line under "You edited your ascent of Platte". Its entry declares the plain text format, so the two chips print the stored enum members, "attempt" and "redpoint", rather than the words the log form offers. Compare the role column, which has a format of its own for exactly this reason. The row beside it shows the glyph for the type the ascent ended up with.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02d: /ascents/9001/edit -> Stars -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Rating",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One Rating line, drawn as two rows of stars. An unset rating coerces to zero stars rather than to Not set, since a reader cannot tell an unrated route from one rated nothing and an empty row of stars says both.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02e: /ascents/9001/edit -> Notes -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Notes",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One Notes line. Prose, like an area description, so it collapses behind a Compare toggle with a word level diff instead of showing two chips side by side. Saving the editor untouched reserialises with a trailing newline, which the diff deliberately does not count as an edit.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02f: /ascents/9001/edit -> Conditions -> Temperature -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Temperature",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One Temperature line. The column stores Celsius and the chips are formatted through the reader's unit preference, so the same event reads in Fahrenheit for a reader who set that.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02g: /ascents/9001/edit -> Conditions -> Humidity -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Humidity",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One Humidity line, the other half of the conditions pill, formatted as a percentage. Same headline again: seven columns, one sentence.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02h: /ascents/9001/edit -> change all seven fields -> Save (one call, seven columns) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Date",
+        "Grade",
+        "Humidity",
+        "Notes",
+        "Rating",
+        "Temperature",
+        "Type",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [
+        "7 edits",
+      ],
+    },
+  ],
+  "expected": "ONE card with seven change lines. Unlike an area, the headline does NOT drop to the generic "You edited Rampe": all seven columns resolve the same key, so the shared sentence survives and the card still says "You edited your ascent of Rampe", with "7 edits" as the sub line. One write, seven rows, in the order the diff declares them.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02i: A maintainer opens somebody else's log and corrects it 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Grade",
+      ],
+      "headline": "You edited Sofia Brandt's ascent of Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The sentence names whose log it was: "You edited Sofia Brandt's ascent of Kante". The climber comes off the resolved ascent, and the owner slot is decided against the ACTOR, so this is the arm that separates an edit of your own from an edit of somebody else's. The climber is also notified, which an edit of your own is not.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02j: Somebody else corrects YOUR ascent, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Rating",
+      ],
+      "headline": "Sofia Brandt edited Ada Rossi's ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""Sofia Brandt edited Ada Rossi's ascent of Rampe", read by Ada Rossi. The card names the reader in the third person rather than saying "your ascent": the owner slot compares the climber against the actor, never against the reader, and only the actor slot knows who is looking. Worth deciding on: the reader is the one person on this card who does not need telling whose ascent it is.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02k: Edit the stars, then edit them again within the 15-minute fold window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Rating",
+      ],
+      "headline": "You edited your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one card with one Rating line, showing the ORIGINAL old value against the LATEST new one. Two cards, or two lines, would mean the fold is not working. The event also floats back to the top of the feed on the second save.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02l: Edit the stars back to where they started, inside the window 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The change row is deleted once it ends where it began, and an update event left holding no rows deletes itself. The climber is still notified, though: a save that moved something and then moved it back is an edit somebody made.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02m: Open the edit form and save without touching anything 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and no event row either: the diff is empty, so the writer returns before it opens one. Different from the case above, which opens an event and then deletes it. This one also announces nothing, which is the point: without the guard an empty save would take the (actor, ascent, kind) slot in the notification index and swallow the real edit that followed it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-02n: Log an ascent, then correct its grade a minute later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "ONE card, still "You flashed Rampe", refloated to the time of the correction. NO change line: the row exists in the database, but a create is one catalogue row whatever it carries, so the card never expands it. The corrected grade is visible only in the logged-with strip, which reads the ascent as it stands now.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03a: /ascents/9001 -> Delete -> Confirm (your own, logged more than 15 minutes ago) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You deleted your ascent of Rampe". Past the grace window the ascent soft-deletes and its create event stays, so the "You flashed Rampe" card is still on the feed: without this one the log would show a send that no longer exists and nothing would ever correct it. Inside the window there is no card at all, because the cascade takes the create with it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03b: A maintainer deletes somebody else's ascent, logged more than 15 minutes ago 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed Sofia Brandt's ascent of Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed Sofia Brandt's ascent of Kante". The row is a LIVE route row, not a tombstone: a soft-deleted ascent is still synced by the feed query, which filters no \`deletedAt\`, so the card can still show what was removed. There is no undo here and no toast offering one, so nothing ever deletes this event again.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03c: Delete your own ascent within 15 minutes of logging it (the grace window) 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the create card is gone too: inside the window the ascent is hard-deleted and its events cascade away with it, media rows included. A mistake leaves no trace. Reacting to the create card closes the window, because somebody else's words are not part of the mistake.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03d: A maintainer deletes somebody else's ascent within 15 minutes of them logging it 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the climber's own create card disappears from the feed. The grace window asks how OLD the row is and whether anybody responded, never who is deleting it, and the delete event is written only for the rows that survive as tombstones. The climber is still notified, so the only record of it is in their inbox. Worth deciding on: this is the one path where one person can erase another person's log with nothing left on the feed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03e: Somebody else deletes YOUR ascent, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt removed Ada Rossi's ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""Sofia Brandt removed Ada Rossi's ascent of Rampe", read by Ada Rossi. Same third-person naming as the edit case: the sentence has an arm for the actor removing their own ascent, but none for the reader's. Note that two of the six arms of this sentence are unreachable in the app at all, since the writer only logs a delete when the actor is NOT the climber.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03f: A deletion whose climber has no readable user row (metadata is null) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed Sofia Brandt's ascent of Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still "You removed Sofia Brandt's ascent of Kante". The name lookup failed and the writer stored no metadata, but the soft-deleted ascent itself resolves and carries both the climber and their name, so the card loses nothing. The metadata is belt and braces for as long as that stays true.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03g: A deletion whose ascent no longer resolves, with the climber written down 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed Sofia Brandt's ascent of ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The metadata is now the only source: "You removed Sofia Brandt's ascent of Unnamed", with a tombstone row. The name of the ROUTE is lost, because a delete event stores none and the parent is read off the ascent that is no longer there, but the one thing a card about somebody else's log must not get wrong is still right. This is the state the fallback was written for.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ASCENT-03h: A deletion with neither an ascent nor metadata (fully degraded) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed an ascent of ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The honest floor: "You removed an ascent of Unnamed". Nothing is left to say whose it was, so the sentence takes its no-owner arm rather than guessing. Only reachable when both halves fail at once, which is why the writer records the climber even though the row usually survives.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-01a: /areas/301 -> More -> Add block -> name -> Set location on the map -> Create block 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You added the block Nordblock", with a map thumbnail of the pin. A create declares no column, so no change line; the map is the one thing a create card adds, and it draws the pin as it stands TODAY rather than the coordinates the create was made with, which it never stored.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-01b: Same, with the "rough guess" toggle left on 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The same sentence. Only the thumbnail differs: an estimated pin is drawn dashed, the way the real map draws one, which is the reader's cue that the block page will be showing its "confirm the spot" banner.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-01c: Add a block, skip the location, answer the confirm dialog with "Save anyway" 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same headline, no map at all. The pin is read off the block rather than off the event, so a block with none renders the card with nothing where the thumbnail would be.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-01d: Add a block and leave the name empty (blank names are allowed, unlike duplicates) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the block Block 3",
+      "rows": [
+        "Block 3",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""You added the block Block 3". The positional fallback, not the unnamed placeholder: nameless blocks are normal, so the card names it the way every other screen does.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02a: /blocks/400/edit -> Name -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You renamed Nordblock", with one change line: Nordwand to Nordblock. The form resubmits the current pin on every save, and the diff drops it because it did not move, so a rename writes one row rather than two.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02b: /blocks/400/edit -> the location field -> pick a new spot on the map -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the location of Nordblock". The change line draws both pins on one thumbnail, the old one faded, captioned with how far it moved (about 70 m here). No approach path: only areas carry those, so a block's location line is a bare map.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02c: /blocks/400/edit on a block with no pin -> Use current location -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same headline, different caption: with nothing on the old side the line reads "Pin added" and draws one pin. The device fix is stored unflagged, so the pin is solid rather than dashed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02d: Block page -> the "Approximate location" banner -> /blocks/400/edit -> untick "rough guess" -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the location of Nordblock", captioned "Approximate pin confirmed". A pin that did not move must not say "Moved 0 m", and the chip that marks a pin approximate keys on the new side, so it is gone here.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02e: /blocks/400/edit -> the location field -> Remove -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You removed the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Honest and slightly wrong: "You updated the location of Nordblock", captioned "Location updated", with the old pin drawn as gone. The catalogue HAS a sentence for a cleared block pin ("You removed the location of Nordblock", with the dedicated cleared-pin caption), but nothing can reach it: the form writes verb \`update\` whatever the pin did, and only a \`deleted\` row resolves that entry. This is the case to argue about.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02f: /blocks/400/edit -> rename AND move the pin -> Save (one submit, two columns) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+        "Name",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "ONE card, not two: one event with two change rows. Neither sentence can speak for the other, so the headline drops to the shared "You edited Nordblock" with a "2 edits" sub line, and both lines (Location, then Name) sit behind the card's "Show changes" toggle. Not a Compare toggle: that one is the prose diff's own control, and neither a location nor a name line has one.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02g: Rename, notice the typo, rename again inside the 15-minute fold window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one card with one line, showing the ORIGINAL old value against the LATEST new one. Two cards here would mean the fold is not working. The card dates from the second save: joining an open event bumps its timestamp so it returns to the top of the feed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02h: Rename the block back to what it was called, inside the window 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The fold deletes a change row that returns to its old value, and an \`update\` left holding no changes deletes itself, reactions permitting.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-02i: /blocks/400/edit -> Save without touching anything 1`] = `
+{
+  "cards": [],
+  "expected": "Nothing written, so no card and no refloat of whatever card is already there. Worth stating because the form POSTS both columns every time: the name and the pin it resubmits are compared before anything is logged, so an accidental save is not an edit.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-03a: Block page -> More -> Move on the map -> drag the pin -> Done 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Indistinguishable from the same move made in the edit form (BLOCK-02b): "You updated the location of Nordblock", captioned with the distance. Two screens, one sentence, which is right here since the reader did the same thing.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-03b: Block page with no pin -> "Add location" -> place the pin -> Done 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""Pin added", solid rather than dashed: the picker never sets the rough-guess flag, so a first pin placed here is a claim rather than a guess.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-03c: Move an estimated pin on the map (the block was pinned from a photo, see BLOCK-04a) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Captioned "Moved", with the approximate chip still on it, and the block keeps its warning banner. Compare BLOCK-02d: only the form's checkbox takes the flag off, which is the distinction worth checking on the wall.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-03d: Nudge the pin, look at it, nudge it again a minute later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One card, one line, from where the pin started to where it ended. The intermediate spot was never somewhere the block was left, so it is not on the card and the distance is measured end to end.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-03e: Add a block, then fix its pin two minutes later from the map 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One card, "You added the block Nordblock", dated from the nudge rather than the create. The correction is INVISIBLE: only an \`update\` expands into one row per column, so a create that absorbed a change row renders exactly one sentence and no change line. The map redraws at the corrected spot, which is the only trace. Arguable both ways: it keeps a card per action, and it silently drops a recorded edit.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-03f: Add a block, drag the pin, drag it back to exactly where you placed it 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The create card, unchanged and NOT refloated to the top. The undone change row is deleted, and the event survives holding nothing because it is a create rather than an update, so the timestamp the join bumped is put back.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-04a: /blocks/400/topos/edit -> add a topo photo whose EXIF carries GPS, on a block with no pin 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "You updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""You updated the location of Nordblock", captioned "Pin added" with the approximate chip. The reader never asked for this: they uploaded a photo, and the card credits them with a location edit. Rarely stands alone either, since the topo upload writes its own events on the same block and a burst keys on the actor plus the place.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-04b: The same upload onto a block that already has a pin 1`] = `
+{
+  "cards": [],
+  "expected": "Nothing, by the guard above the write: an existing pin is never overridden by a guess, so the backfill is safe to fire on every topo upload and silent on all but the first.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-05a: Block page -> More -> Delete block (it has routes, so it soft-deletes) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [
+        "9 routes",
+      ],
+    },
+  ],
+  "expected": "Single card, "You deleted the block Nordblock", with "9 routes" underneath. The count is written down at delete time because it stops being knowable a statement later; the block's own name is not, because a soft delete leaves the row readable.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-05b: Delete a block that has a topo but no live routes, an hour after somebody added it 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same sentence, no sub line: a scale of zero is stored as nothing at all, so this card and a card written before the counting existed are the same card. The topo is what kept it off the hard path, and the card says nothing about it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-05c: Delete a bare block you added five minutes ago (the grace window) 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the create card is gone too: inside the window a childless, unreacted block is hard-deleted and \`events.block_fk\` cascades its whole log away. A mistake leaves no trace.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-05d: Clear out two abandoned blocks in one area, one after the other 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted entries",
+      "rows": [
+        "Südblock",
+        "Nordblock",
+      ],
+      "summary": [
+        "12 routes",
+      ],
+    },
+  ],
+  "expected": "One removal card: same actor, same area, minutes apart. "You deleted entries", which names nothing on purpose (whatever it named is what was just deleted), with both blocks as rows and the scales SUMMED to "12 routes". Note what is missing: the card does not say "2 removals", because the deletion scale takes the sub line over from the count.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-05e: A deletion whose block cannot be resolved (a pre-migration orphan) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the block ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [
+        "4 routes",
+      ],
+    },
+  ],
+  "expected": "The honest degraded state: "You deleted the block" with the unnamed placeholder, and "4 routes" still under it. A block delete stores no name of its own, deliberately, so there is nothing to fall back on once the row is really gone. Only reachable for backfilled rows.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-06a: Undo a block deletion, from the toast (the soft path) 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the deletion card disappears: the undo erases the event the delete wrote rather than logging a second action. Only that one event. The block's create and every edit ever made to it still point at the same id and stay on the wall.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-06b: Undo a block deletion that took the hard path (deleted inside the grace window) 1`] = `
+{
+  "cards": [],
+  "expected": "Nothing to erase and nothing restored to the log: the hard delete already cascaded the block's events away, and the restore inserts a brand new row with a new id. The block comes back at its old order; its history does not.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-07a: /areas/301 -> reorder blocks -> drag into a new order (or "sort by distance") -> Save 1`] = `
+{
+  "cards": [],
+  "expected": "Silent, deliberately or not. Reordering rewrites \`order\` on every block in the area and writes no event, so a reader who had the area open sees nothing move in the feed. The one on this list most worth arguing about, since the same action on a topo IS logged.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-08a: Add two blocks to one area in one sitting 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You edited Westwand",
+      "rows": [
+        "Südblock",
+        "Nordblock",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One burst card: same actor, same area, minutes apart. "You edited Westwand" (the area, since no single block is the subject) with a "2 edits" sub line and both blocks as rows. No map thumbnail: two creates have two pins and no row to hang either on, so the card that draws one is only ever the card that created one thing.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-08b: Rename a block in the edit form, then move its pin from the map three minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+        "Location",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "Same headline and sub line as BLOCK-02f, "You edited Nordblock" with "2 edits", even though the reader used two screens. The only difference is the order of the two change lines, Name then Location here because the rows are read back in the order the two calls wrote them, against 02f's Location then Name from one submit diffing \`{ location, name }\`: nothing a reader could read as two screens, and the timestamp is the second call's. This is the server fold rather than the client grouping, so it holds even if the two land in different feed windows.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-08c: You rename a block while somebody else moves its pin, in the same minute 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Location",
+      ],
+      "headline": "Sofia Brandt updated the location of Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "TWO cards, two minutes apart: "Sofia Brandt updated the location of Nordblock" and "You renamed Nordblock". The actor is in the server fold key and in the burst key, so two people working on one block never share an event or a card, which is what keeps "You" honest.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > BLOCK-08d: Rename a block, then decide it should not exist and delete it four minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the block Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [
+        "2 routes",
+      ],
+    },
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "TWO cards, kept apart twice over. The server refuses to let a \`delete\` join an open \`update\`, which would have reported the removal as an edit; and the feed keeps deletions out of edit bursts, so "You deleted the block Nordblock" cannot end up buried inside a card counting edits.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01a: /routes/500 -> Photos & videos -> + -> Upload photos -> pick 1 JPG (finalizes on pick) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a photo to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single upload card, "You added a photo to Kante direkt". The name is borrowed from the parent route (a file id is a cuid and a file has no page), the word "photo" is read off the hydrated file rather than off the event, the photo fills the media strip and the route is the row underneath. An upload declares no column, so no change line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01b: /routes/500 -> Photos & videos -> + -> Upload photos -> multi-select 5 JPGs 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added photos to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "5 photos",
+      ],
+    },
+  ],
+  "expected": "ONE upload card holding five events: "You added photos to Kante direkt" with a "5 photos" sub line. Five media tiles and exactly one row, because all five borrow the same parent and the row list dedupes on it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01c: /routes/500 -> Photos & videos -> + -> Upload a video -> Choose a video -> Source empty -> Add video 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a video to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single upload card, "You added a video to Kante direkt". Same sentence as FILE-01a with one word swapped, and the word comes off the file's \`bunnyStreamFk\`: the event itself records only that something was added.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01d: /routes/500 -> Photos & videos -> add a photo and a video within the same minute 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added media to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 files",
+      ],
+    },
+  ],
+  "expected": "One upload card of two, and neither word survives: the two files disagree, so the headline falls to "You added media to Kante direkt" and the sub line counts "2 files" rather than photos or videos.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01e: Same as FILE-01c, typing a valid URL into Source before Add video 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a video to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The same card as FILE-01c, to the byte. The credit lands on \`bunny_streams.source\` inside the finalize, which writes one upload event and no diff, so the feed never says where the clip came from. Only a source corrected LATER gets a sentence (FILE-02a).",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01f: /routes/500/ascents/add -> drop a photo on Photos & videos -> Save (the ascent already exists) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a photo to your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single upload card, "You added a photo to your ascent of Rampe". The ascent branch of the sentence is chosen by \`climberFk\` on the borrowed entity, and "your" because the climber is the actor.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01g: Sofia adds a clip to her own ascent, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt added a video to their ascent of Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Third person on both slots, "Sofia Brandt added a video to their ascent of Kante". The reader is not the actor, and the actor IS the climber, which is the arm that says "their" rather than naming her twice.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01h: /blocks/400/topos/edit -> Add photo -> pick an image 1`] = `
+{
+  "cards": [],
+  "expected": "No upload card at all, on purpose. Every image on a block is a topo image, and the \`createTopo\` or \`replaceTopoImage\` that follows says strictly more about the same upload (it names the action and draws the photo with its lines), so logging both would be two cards for one pick. Attach a non-topo photo to a block one day and this is the line that has to change.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01i: Attach an image to an AREA (the command accepts \`entityType: area\`; no screen passes it) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a photo to Westwand",
+      "rows": [
+        "Westwand",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single upload card, "You added a photo to Westwand", with the area as its row. Listed because the branch exists and is unreachable from the UI rather than forbidden: \`files.area_fk\` and \`finalizeImage\` both take it, and only the pickers never ask for it. Reachable by calling the command directly.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01j: /blocks/400/routes/add -> fill the name -> drop 2 photos -> Add (one submit) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 photos",
+      ],
+    },
+  ],
+  "expected": "ONE card, not two: "You added the route Kante direkt" with a "2 photos" sub line and both photos in the strip. The create leads the merged group, so the card speaks the create's verb and dates from it rather than from the finalizes that followed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01k: /routes/500/ascents/add -> pick Flash -> drop an .mp4 -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [
+        "1 video",
+      ],
+    },
+  ],
+  "expected": "One card, "You flashed Rampe" with the flash glyph and a "1 video" sub line. The upload merges into the send rather than sitting beside it as "You added a video to your ascent of Rampe". The clip arrives twice (once as the ascent's media, once as the upload's own) and the strip shows it once, deduped on the file id.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01l: /routes/500 -> + -> pick a photo -> cancel the tile (X) before it finalizes, or close the tab mid-upload 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The event is written inside the finalize, which never runs; the staged object sits in the private bucket until the cleanup task sweeps it. A finalize that fails and is retried from the toast mints a fresh cuid, so a retry leaves one event either, never two.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01m: Post a forged or foreign Bunny GUID straight to the finalize endpoint 1`] = `
+{
+  "cards": [],
+  "expected": "No card. \`verifyUpload\` answers 403 before the insert, so the feed cannot be seeded with somebody else's stream.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-01n: An upload whose file row does not resolve for this reader 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added media to ?",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "The honest degraded state, and the emptiest card the feed can draw: "You added media to" with the unnamed placeholder in the name slot, no media tile and no row at all. Everything an upload card shows is borrowed from the file (the word, the name, the row, the picture), so a file that resolves to nothing leaves the sentence standing alone. Not reachable by acting in the app: an upload event and its file arrive in one snapshot, and deleting the file takes the event with it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02a: /routes/501 -> tap a video thumb -> ?media={fileId} -> chain icon -> paste a URL -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Source",
+      ],
+      "headline": "You updated the video source on Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the video source on Riss": the file borrows its parent's name here too, so the sentence names the route and the clip is the thing on the card. One change line, labelled Source, reading the italic "Not set" against a host chip for www.youtube.com. The full URL is never rendered as text, only as the chip's link target and its tooltip, because a reader only wants to know where it came from.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02b: Same sheet, replace the existing Source URL with another one -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Source",
+      ],
+      "headline": "You updated the video source on Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same card as FILE-02a with two host chips on the line, www.youtube.com to vimeo.com.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02c: Same sheet, clear the Source field entirely -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Source",
+      ],
+      "headline": "You updated the video source on Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still "You updated the video source on Riss": there is no separate verb for clearing one, unlike a parking pin, which has its own removal sentence. The line reads the host chip against "Not set".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02d: Same sheet, Save with the Source text untouched (or with only whitespace added) 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The UPDATE still runs, but the diff finds nothing that moved, so no event is opened at all: \`createUpdateEvent\` returns before it writes.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02e: FILE-02b, then correct the Source again within the 15-minute fold window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Source",
+      ],
+      "headline": "You updated the video source on Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One card with one line, showing where the credit STARTED against where it ended: www.youtube.com to www.instagram.com. The vimeo.com it passed through is erased, because the second call merges onto the same change row rather than adding one. Two cards here would mean the fold is not working.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02f: FILE-02b, then within 15 minutes set the Source back to the URL it started with 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The change row returns to its old value and is deleted, and an \`update\` event left holding no changes deletes itself, so a credit fixed and unfixed leaves no trace. It survives only if somebody has already reacted or commented, which would otherwise take their words with it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02g: FILE-01c, then set the Source on that same clip within 15 minutes of uploading it 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a video to Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One card, and it is the UPLOAD card: "You added a video to Riss". An \`update\` refines an open \`add\` on the same object, so the edit joins the upload instead of opening a card beside it, and the upload keeps its verb. Two consequences worth arguing about: the card floats back to the top of the feed as if the upload had just happened, and the source change row IS stored under that event but renders nowhere, because only an \`update\` expands its changes into lines. A source pasted with the upload (FILE-01e) is likewise silent, so the two paths at least agree.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02h: Edit the Source of a legacy clip whose stored credit is free text rather than a URL 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Source",
+      ],
+      "headline": "You updated the video source on Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same card, and the chip shows the raw stored string instead of a host: nothing parses as a URL, so there is no hostname to credit. Today's form only accepts a URL, so this is reachable for stored rows rather than for a new edit.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02i: Open an ascent clip in the media viewer and look for the chain (Edit source) button 1`] = `
+{
+  "cards": [],
+  "expected": "No card, because there is no button: the affordance is gated on the file NOT belonging to an ascent. An ascent clip is your own footage, so there is nobody to credit, and no ascent clip can ever carry a source line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-02j: Call the source mutation against an image rather than a video 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The command answers 400 ("Only videos carry a source") before it touches anything, so a photo cannot grow a credit line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03a: /routes/500 -> tap a photo thumb -> trash -> Delete media -> Delete 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed a photo from Kante direkt", with one muted change line reading "Photo removed" under the label Photo. The word comes off the event, not off a file: there is no file left to ask, which is also why the card shows no thumbnail of what went. The photo's own upload card is gone as well, cascaded away with the row. Nothing here can be taken back: the toast says "Media deleted" and offers no undo, and no code path deletes a removal event.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03b: Same trash flow on a video attached to the route 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a video from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same shape as FILE-03a with the other stored word: "You removed a video from Kante direkt", line "Video removed", label Video.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03c: Delete two photos from one route in the same sitting (two trips through the viewer) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "ONE event and one card, "You removed a photo from Kante direkt". The second removal is byte-identical to the first (same actor, same route, same word), so it joins the open event and only bumps its timestamp. The card therefore cannot say two, which is deliberate: three indistinguishable "Photo removed" cards say no more than one.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03d: Delete a photo and then a video from the same route, a minute apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+        "Media",
+      ],
+      "headline": "You removed media from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 files",
+      ],
+    },
+  ],
+  "expected": "Two events, because the media word scopes the fold, and one card, because a crag burst does not key on it: "You removed media from Kante direkt" with a "2 files" sub line. Both rows share the sentence, so the headline keeps the removal verb rather than falling to "edited", and neither word wins, so both the headline and the count reach for the neutral one. Two change lines, Video removed and Photo removed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03e: Delete a photo from Kante direkt and a photo from Riss, both in Nordblock, minutes apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+        "Media",
+      ],
+      "headline": "You removed photos",
+      "rows": [
+        "Riss",
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 photos",
+      ],
+    },
+  ],
+  "expected": "One card, and the removals lose their own sentence: a burst keys on the block both routes hang under, and two subjects leave no single entity to name, so it reads "You edited Nordblock" with a "2 photos" sub line and one "Photo removed" line per route. The sub line is the only thing on the headline half that still says these were media. Worth arguing about: "edited" is the vaguest true thing to say about two deletions.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03f: /profile -> an ascent photo -> trash -> Delete media -> Delete 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed a photo from your ascent of Rampe". Media housekeeping on an ascent is deliberately kept out of the session card, so this never lands inside "You logged a session" and inflates what the afternoon looked like.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03g: A region maintainer clears a photo off somebody else's ascent 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from Sofia Brandt's ascent of Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed a photo from Sofia Brandt's ascent of Kante". Naming the climber is the whole point of the ascent arm: a card about somebody else's log must not read as if the actor were tidying their own.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03h: Delete a photo and then a video from the same ascent, a minute apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a video from your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from your ascent of Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "TWO cards, one per word, where the same pair on a route (FILE-03d) is one. An ascent groups as an entity rather than as a crag burst, and that key carries the metadata, so the client keeps apart exactly what the write path kept apart. Defensible either way, but the two shapes disagree with each other.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03i: Open a block image at /f/{fileId} (its id read out of the database) -> trash -> Delete 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed a photo from Nordblock", with the block as its row. The topo editor deletes its photos through its own mutation and writes a topo card instead, so this is the one way a block file removal reaches the feed, and it says nothing about the lines that were drawn on it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03j: Delete a file whose parent is an AREA (the counterpart of FILE-01i) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from Westwand",
+      "rows": [
+        "Westwand",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed a photo from Westwand". Same verb an area's parking removal uses, told apart by what is in the metadata: coordinates mean a pin, a media word means a file. Without that the card would announce a pulled photo as a removed parking spot.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03k: Delete a file that hangs off nothing (an orphan row with all four foreign keys null) 1`] = `
+{
+  "cards": [],
+  "expected": "No card. There is no parent to log against, and the file itself is on its way out, so the deletion is silent. The same orphan renders while it is alive as a nameless media-only entity: tiles, no name, no row.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > FILE-03l: A media removal written before the word was stored (backfilled rows, no path today) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed media from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed media from Kante direkt", line "Media removed", label Media. The vaguest of the three arms, and the honest one: the row never recorded what it was and the file cannot be asked.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-01a: /routes/... -> Log ascent -> Save, five times through one afternoon 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+        "Dach",
+        "Platte",
+      ],
+      "summary": [
+        "5 ascents",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card, "You logged a session", with a "5 ascents" sub line. Five routes means the window agrees on no shared parent, so the sub line names no place: a session summary appends one only when every event points at the same one. Four rows render and the fifth collapses into "1 more", and that fifth ascent keeps no reaction bar, since a bar rides a rendered row.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-01b: Log two ascents eight minutes apart, with local midnight somewhere between them 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card of 2 ascents. The session key holds no calendar day and \`joins\` takes the 30 minute window first, so a log that runs past local midnight stays one card instead of splitting in two. Whether midnight really falls between these two depends on when the wall is read, which is the honest state of this case: nothing in the fixtures can pin an event to a clock time.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-01c: Log one ascent, climb for another hour and a half, log the next 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Dach",
+        "Platte",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card of 2 ascents, held together by the \`isSameDay\` arm alone: 100 minutes is well past the 30 minute window, and only a session has that second arm. Read close to local midnight the older event falls on the previous day and this becomes two KIND \`single\` cards, which makes it the one claim on this wall the clock can change.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-01d: Two climbers log their afternoon in the same session, seen from one feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+    {
+      "changes": [],
+      "headline": "Sofia Brandt logged a session",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+  ],
+  "expected": "Two KIND \`session\` cards of 2 ascents each, interleaved minute by minute in the feed: the session key carries the actor, so climbing together never merges two logbooks. "You logged a session" and "Sofia Brandt logged a session".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-02a: Edit four routes under Nordblock in one sitting, three fields each 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Grade",
+        "Name",
+        "Rating",
+        "Grade",
+        "Name",
+        "Rating",
+        "Grade",
+        "Name",
+        "Rating",
+        "Grade",
+        "Name",
+        "Rating",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+        "Dach",
+        "Platte",
+      ],
+      "summary": [
+        "12 edits",
+      ],
+    },
+  ],
+  "expected": "One KIND \`burst\` card, "You edited Nordblock", with a "12 edits" sub line. Four events, twelve edits: the count is change ROWS, because \`legacyRows\` expands an update into one row per column and the card counts what it holds. All four routes are the shared parent of every event, so the headline names the block rather than any one route, and four rows fit with nothing left over.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-02b: Edit routes in two blocks alternately, one minute apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+        "Rating",
+        "Grade",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+        "Dach",
+      ],
+      "summary": [
+        "3 edits",
+      ],
+    },
+    {
+      "changes": [
+        "Name",
+        "Grade",
+      ],
+      "headline": "You edited Südblock",
+      "rows": [
+        "Verschneidung",
+        "Kamin",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "Two cards, though every event is a minute from the next: a KIND \`burst\` of 3 edits in Nordblock and a KIND \`burst\` of 2 edits in Südblock. The burst key carries the locality, so an editor working across two blocks gets one card per place rather than one card that can only headline one of them.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-02c: Edit two routes, walk off, come back 40 minutes later and edit a third 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+        "Rating",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+    {
+      "changes": [
+        "Grade",
+      ],
+      "headline": "You changed the grade of Dach",
+      "rows": [
+        "Dach",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "A KIND \`burst\` card of the two edits three minutes apart, and a KIND \`single\` card for the one 42 minutes earlier. The window is measured against the group's oldest member so far rather than against its newest, so a burst can stretch as long as no gap inside it exceeds 30 minutes, and this gap does.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03a: /blocks/400 -> Add route -> pick two photos -> Create route 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 photos",
+      ],
+    },
+  ],
+  "expected": "One card, not two. \`mergeCreatedWithMedia\` folds the upload group into the group holding the create it landed on, and the merged group keeps the CREATE group's kind, which for a route created under a block is KIND \`burst\`. The create is moved to the front, so the headline is "You added the route Kante direkt" with a "2 photos" sub line, both photos above one route row. The create half is written by routes.remote.ts:163.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03b: /routes/500 -> Log ascent -> attach a clip -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [
+        "1 video",
+      ],
+    },
+  ],
+  "expected": "One KIND \`session\` card holding the create and the upload: the same merge, into a session group this time, because a lone ascent create is a session of one. The headline is the create's own sentence, "You flashed Rampe", with a "1 video" sub line, not "You logged a session". The create half is written by ascents.remote.ts:69.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03c: You add a route, somebody else photographs it a minute later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt added photos to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 photos",
+      ],
+    },
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards, the newer one on top: a KIND \`upload\`, "Sofia Brandt added photos to Kante direkt" with a "2 photos" sub line, above a KIND \`single\` create, "You added the route Kante direkt". The merge looks up the create by actor as well as by object, so somebody else's photos never disappear into your create.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03d: Add a route, come back half an hour later and upload the photos 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added photos to Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 photos",
+      ],
+    },
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards again, this time on the clock: the two groups are 36 minutes apart and \`withinBurst\` compares their newest events against the same 30 minutes the rest of grouping uses. A KIND \`upload\` of "2 photos" on top, "You added photos to Kante direkt", and the KIND \`single\` create below it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-03e: Log three ascents, hang a clip on one of them 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added a video to your ascent of Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Riss",
+        "Dach",
+        "Platte",
+      ],
+      "summary": [
+        "3 ascents",
+      ],
+    },
+  ],
+  "expected": "Two cards, and this is the merge deliberately declining: a KIND \`single\` upload, "You added a video to your ascent of Riss", above a KIND \`session\` of 3 ascents. Only a group holding EXACTLY one create is a merge target, because folding the clip in would make an afternoon of three climbs speak one ascent's verb and count one video.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-04a: Clear three abandoned routes out of Nordblock, one after another 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted entries",
+      "rows": [
+        "Riss",
+        "Dach",
+        "Platte",
+      ],
+      "summary": [
+        "3 deletions",
+        "Nordblock",
+      ],
+    },
+  ],
+  "expected": "One KIND \`removal\` card, "You deleted entries", with a "3 deletions" sub line followed by "Nordblock". \`deleteRoute\` records no scale, so nothing is counted beyond the rows themselves. The routes soft delete once they are past the grace window, so each row still renders as the live route rather than as a tombstone.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-04b: Delete a route, rename the next one, delete a third, inside three minutes 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted entries",
+      "rows": [
+        "Riss",
+        "Dach",
+      ],
+      "summary": [
+        "2 deletions",
+        "Nordblock",
+      ],
+    },
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards from three events a minute apart: a KIND \`removal\` of "2 deletions" in Nordblock, and a KIND \`single\` rename between them. \`kindOf\` sends a \`delete\` to its own kind before the crag rule can claim it, so a deletion is never something a reader has to find inside "made 3 edits in Nordblock".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-05a: Two maintainers edit the same route within two minutes 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [
+        "Rating",
+      ],
+      "headline": "Sofia Brandt changed the rating of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two KIND \`single\` cards, "You renamed Kante direkt" and "Sofia Brandt changed the rating of Kante direkt". A route is a crag object, so both events are \`burst\` kind, and the burst key carries the actor: two people working on one route never share a card. \`event_groupEditsMultiple\` is unreachable from a route for that reason, and the next case is where it does appear.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-05b: You pull a photo off your ascent, a maintainer pulls another off the same one 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+        "Media",
+      ],
+      "headline": "You removed photos",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [
+        "2 photos",
+      ],
+    },
+  ],
+  "expected": "One KIND \`entity\` card mixing two actors, which only the entity key allows: a file removal logs on the PARENT (the file row is gone by then), so it arrives as \`ascent\` + \`remove\` and \`kindOf\` keeps it out of the session. Headline "You and others edited Rampe". The sub line is "2 photos" and NOT the "2 people" part, because the file-only branch of \`summaryParts\` returns before the actor count is appended: the card says two people in words and never counts them.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-06a: Log ascents in two regions on the same afternoon, alternating 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+    {
+      "changes": [],
+      "headline": "You logged a session",
+      "rows": [
+        "Sonnenplatte",
+        "Kaminriss",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+  ],
+  "expected": "Two KIND \`session\` cards of 2 ascents each, one per region, interleaved in the feed. Every group key carries the region: without it these four fold into one "4 ascents" card that belongs to neither place. Nobody climbs in two regions in one afternoon, but a person who moved does, and the same guard is what keeps two roles in two regions from becoming one card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-07a: Rename six routes in Nordblock in one sitting 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+        "Name",
+        "Name",
+        "Name",
+        "Name",
+        "Name",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Kante direkt",
+        "Riss",
+        "Dach",
+        "Platte",
+      ],
+      "summary": [
+        "6 edits",
+      ],
+    },
+  ],
+  "expected": "One KIND \`burst\` card, "You edited Nordblock", sub line "6 edits". Six subjects and MAX_ROWS is 4, so four route rows render and the card ends with "2 more" (\`event_moreEntities\`). The two rows behind that count carry no reaction bar of their own: a bar rides a rendered row, and only an event that already holds a reaction or a comment falls through to the footer.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-08a: Rename a route, then fix its grade five minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Grade",
+        "Name",
+      ],
+      "headline": "You edited Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One card out of ONE event: inside the 15 minute server fold the second save joins the open event instead of writing a new one, so there is nothing for grouping to group. \`groupEvents\` calls it \`single\` and \`card.ts\` rewrites that to KIND \`entity\`, because the event expands to two change rows and a card that spoke one row's sentence would name whichever column sorts first. Headline "You edited Kante direkt", sub line "2 edits", and the Grade and Name lines behind the card's Show changes toggle. Not a Compare toggle: that one belongs to a prose line and counts its characters, and a grade and a name render their before/after pair inline.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-08b: Log an ascent, then correct its notes and rating three minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One KIND \`single\` card, "You flashed Rampe", and the corrections are invisible: an \`update\` joins an open \`create\` and the verb stays \`create\`, but \`legacyRows\` expands changes only for an \`update\`, so the two rows the fold saved render as nothing at all. The card also sits at the CORRECTION's time, since joining bumps the open event back to the top of the feed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-08c: Delete three photos off one route from the media viewer, one after another 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+      ],
+      "headline": "You removed a photo from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One KIND \`single\` card, "You removed a photo from Kante direkt". Three files but one event: the fold key is (actor, object, region, metadata) and every one of these writes the same \`photo\`, so the second and third join the first. The sentence stays singular and nothing on the card counts three, which is the trade the fold makes for one card a reader can tell apart from two identical ones.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > GROUP-08d: Delete a photo and a video off one route, two minutes apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Media",
+        "Media",
+      ],
+      "headline": "You removed media from Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 files",
+      ],
+    },
+  ],
+  "expected": "One KIND \`burst\` card of two events: \`metadata\` scopes the server fold, so a photo and a video stay apart there and then group on the client as crag edits under Nordblock. Both rows resolve the same sentence, so the card speaks it rather than a group verb, with the mixed media word: "You removed media from Kante direkt", sub line "2 files".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-01a: /settings -> Regions -> {Region} -> Invite someone -> email address -> Invite 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You invited lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You invited lea.hofer@example.com". The address is read off the row rather than off an entity, so no profile row is drawn and there is no change line: the headline already is the address.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-01b: The same invite, with Resend failing to accept the mail 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The event is written only inside \`if (sent)\`, so a failed send leaves a live invitation and a silent log rather than announcing a mail nobody received.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-01c: Invite the same address again within 15 minutes (a second Invite on a live invitation) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You invited lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one card, not two. The fold key is the actor, the region, the object and the metadata, and \`invite\` joins its own kind, so the open event is re-dated to now and keeps its id. Two cards here would mean the repeat collapse is not working.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-01d: Invite two different addresses minutes apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You invited noa.frei@example.com",
+      "rows": [],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "You invited lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards, minutes apart and never one. Both events name the same subject (the inviter), so only the metadata keeps them apart, and the group key carries it for exactly this reason: one card could headline one address only.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-01e: The first send failed, so somebody else presses Resend on the pending invitation row 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt invited lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Sofia Brandt invited lea.hofer@example.com", logged in the name of the person who pressed Resend rather than the original inviter. Same sentence as REGION-01a, and no change line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-01f: Resend an invitation the region has already logged 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and nothing moves. A resend is not a new invitation, so the write is skipped rather than left to the fold: joining the open event would re-date somebody else's card to now and float it back to the top, and past the window it would log a second invitation instead.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-02a: /settings/regions/{id} -> the pending invitation row -> Revoke invitation 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You revoked the invite for lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You revoked the invite for lea.hofer@example.com". A \`remove\` hands its metadata to \`oldValue\`, and the stored-name rule reads \`newValue ?? oldValue\`, so the address still lands in the headline. No row and no change line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-02b: Invite an address, then revoke it a few minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You revoked the invite for lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "You invited lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "ONE card holding both, which is worth deciding on. Two events on the server (a \`remove\` does not join an open \`invite\`), but the group key is subject plus metadata and both carry the inviter and the address. The two sentences differ, so no shared verb survives: the headline degrades to "You edited lea.hofer@example.com" with a "2 edits" sub line, and neither the invitation nor the revoke is named.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-02c: Sofia invites the address, then Mara revokes it from the same screen 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Mara Lindqvist revoked the invite for lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "Sofia Brandt invited lea.hofer@example.com",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards, "Mara Lindqvist revoked the invite for lea.hofer@example.com" over "Sofia Brandt invited lea.hofer@example.com". They cannot join even though they are minutes apart and about one address: the subject is the ACTOR on both, so the two keys differ. The mirror image of REGION-02b.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-02d: Revoke an invitation, then Undo from the toast 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the revoke card disappears. The filter is the address, the region and the verb but not the actor, so any admin undoing it erases the record; the invitation card survives, carrying a different verb.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-03a: Follow the emailed link to /invite/accept?token={uuid} -> Join {Region} 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Mara Lindqvist joined",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Mara Lindqvist joined". No change line, and no profile row either: the sentence lives on the invitation entry, which declares \`names: stored\`, so the joiner is kept out of the card refs even though the event resolves her perfectly well. Worth deciding, since this is the one membership card whose subject is still there to link to.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-03b: Reopen the accept link, or double tap Join, while already an active member 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The membership insert and the event share the \`existing == null\` branch, so a reopened link marks the invitation used and writes nothing.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-04a: /settings/regions/{id} -> another member's row -> Role -> pick a different role 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Role",
+      ],
+      "headline": "You changed the role of Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You changed the role of Mara Lindqvist", with one change line labelled Role reading User to Maintainer. The stored values are the enum members, and the role formatter is what makes the chips read like the member list. The subject is somebody else and is still in the region, so her profile row is drawn under it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-04b: Change the same member from User to Maintainer, then to Admin, inside the 15-minute window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Role",
+      ],
+      "headline": "You changed the role of Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one card with one line, User to Admin. The intermediate Maintainer is erased, which is the point: it was never a role she was left holding.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-04c: Change a role, then change it back inside the window 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The change row that returned to its old value is deleted, and an update left with no changes deletes itself.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-04d: Change the same person's role in one region, then in a second region, inside the window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Role",
+      ],
+      "headline": "You changed the role of Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [
+        "Role",
+      ],
+      "headline": "You changed the role of Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards, one per region. Both the write fold and the group key carry the region, which they have to: a person holds a different role in each, and one card could report only one of them. Nothing on either card says WHICH region, so they read alike apart from the roles.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-05a: /settings/regions/{id} -> a member's row -> below the rule -> Remove 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed Mara Lindqvist from the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed Mara Lindqvist from the region". The headline names her off the resolved subject, and no profile row is drawn: she is out of the region, so the link would be a dead end. No change line either, deliberately, since the removal stores no old and new pair.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-05b: Remove one member, then remove a second one minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed Sofia Brandt from the region",
+      "rows": [],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "You removed Mara Lindqvist from the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Two cards, never one "deleted entries" card. A membership ends with \`remove\`, not \`delete\`, so neither event is grouped as a removal, and the key is per person: the reader is told each name rather than a count.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-05c: Remove a member, then Undo from the toast 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the removal card goes with it. The filter demands \`metadata: null\`, which is what keeps it off a revoked invitation on the same subject, and it is scoped to the region, so a removal from a second region survives.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-06a: /settings/regions/{id} -> your own member row -> Leave region -> confirm 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Mara Lindqvist left the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Mara Lindqvist left the region". The sentence names only the actor, who is also the subject, so there is no name slot to fill, no row and no change line. Leaving has its own verb precisely so this does not read as "Mara removed Mara".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-06b: Leave a region you are the sole remaining admin of (the row is not rendered, so this is the API's answer) 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The last-admin check runs before the event, and both statements share the transaction, so nothing is logged for an attempt that cannot succeed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-06c: Leave a region, get invited back, and accept within half an hour 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Mara Lindqvist joined",
+      "rows": [],
+      "summary": [],
+    },
+    {
+      "changes": [],
+      "headline": "Mara Lindqvist left the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "One card holding both, and the sentence it settles on is poor: neither event carries metadata, so they share a key, and their two sentences differ, so the headline falls back to "Mara Lindqvist edited Mara Lindqvist" with a "2 edits" sub line. Neither the departure nor the return is named, and the card has no rows at all.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-07a: /settings -> Account -> Username -> type a new name -> Save, as a member of one region 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Username",
+      ],
+      "headline": "Mara Lindqvist changed their name",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Mara Lindqvist changed their name", with one change line labelled Username reading mara.l to Mara Lindqvist. The headline has no name slot, and the actor name is always the CURRENT one, so a reader who only knew the old name has to read the change line to connect the two.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-07b: The same rename by somebody who belongs to three regions 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Username",
+      ],
+      "headline": "Mara Lindqvist changed their name",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [
+        "Username",
+      ],
+      "headline": "Mara Lindqvist changed their name",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+    {
+      "changes": [
+        "Username",
+      ],
+      "headline": "Mara Lindqvist changed their name",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Three identical cards, one per region, because the feed is region-scoped and a rename is news in each. A reader who shares two of those regions sees the same sentence twice, since nothing on a card says which region it belongs to. Worth deciding: this is the case that argues for a region label.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-07c: Rename yourself while belonging to no region at all 1`] = `
+{
+  "cards": [],
+  "expected": "No card anywhere. The loop has nothing to run over, so the users row is renamed and the feed says nothing, which is correct: there is nobody the name was news to.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-07d: Rename twice inside the 15-minute window, mara to mara.l to Mara Lindqvist 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Username",
+      ],
+      "headline": "Mara Lindqvist changed their name",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One card with one line, mara to Mara Lindqvist. The same per-column fold the role change gets, and renaming back to the starting name inside the window would leave no card at all.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-07e: An admin changes your role, and you rename yourself within half an hour 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Username",
+        "Role",
+      ],
+      "headline": "Mara Lindqvist and others edited Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [
+        "2 edits",
+        "2 people",
+      ],
+    },
+  ],
+  "expected": "One card mixing two actors, which only an entity group allows: "Mara Lindqvist and others edited Mara Lindqvist", a "2 edits, 2 people" sub line, her profile row once, and both change lines (Username, then Role). Two people did two unrelated things to one person, and the card can only say that somebody edited her.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-08a: /blocks/400/routes/add -> First ascensionists -> Me -> Save, the first ever claim in that region 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "First ascensionist",
+      ],
+      "headline": "Mara Lindqvist linked themselves to the first ascensionist Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Mara Lindqvist linked themselves to the first ascensionist Mara Lindqvist", with her profile row and one change line labelled First ascensionist. Two things to look at. The headline names the ACCOUNT twice, never the claimed climbing name in metadata, because the entry reads a hydrated subject rather than a stored value. And the change line, declared as a text pair, has nothing to show: the adapter hands metadata to the value columns only for an invitation, so both chips render the not-set placeholder. Under the old rows the name was in new_value and that line read Not set to M. Lindqvist.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-08b: Claim yourself as first ascensionist again, on another route in the same region 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The submitted climber matches the row that now exists, so no row is created and nothing is logged: a claim binds an account to a climbing identity once ever, per region.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-08c: Submit a first ascensionist with somebody else's userFk forged into the payload 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The claim is dropped to null unless it is the caller's own, so the climber row is created unlinked and there is no account to have "linked themselves" to anything.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-09a: A membership that predates the migration, carried over as the \`join\` verb 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Mara Lindqvist made a change to Mara Lindqvist",
+      "rows": [
+        "Mara Lindqvist",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The honest degraded state, and the only verb with no writer: nothing in the app emits \`join\`, and the catalogue has no entry for what it resolves to, nor a vaguer verb for that entity. It falls all the way through to the generic sentence, "Mara Lindqvist made a change to Mara Lindqvist", with her profile row under it and no change line. The rename step is what owes it a sentence.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > REGION-10a: A member removal whose subject the reader cannot resolve 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You removed ? from the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "The honest degraded state: the card keeps the sentence and loses the name, "You removed ... from the region" with the unnamed placeholder in the slot. A removal stores no name of its own, because metadata is exactly what tells it apart from a revoked invitation and so has to stay null. Reachable when a departed member falls outside what the reader may sync.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-01a: /blocks/400 -> + -> Add route -> name, grade -> Create route 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You added the route Kante direkt". A create declares no column, so no change line: the grade and stars it was created with are only on the route row underneath.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-01b: Somebody else adds a route to the same block, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Tomas Kessler added the route Dach",
+      "rows": [
+        "Dach",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Third person, "Tomas Kessler added the route Dach", with his avatar rather than "Me".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-01c: Add a route and leave the name empty (the form allows it) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the route Unnamed",
+      "rows": [
+        "Unnamed",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You added the route Unnamed", with the placeholder in the name slot rather than an empty gap.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-01d: Add a route, then fix its grade two minutes later 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One card, "You added the route Kante direkt", and NO grade line: \`legacyRows\` expands change rows only for an \`update\`, so a create absorbs its own corrections and shows none of them. The card reads as if the route had been added at 11 all along.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-01e: Add two routes to Nordblock in one sitting 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Riss",
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One burst card, keyed on the block both routes hang under: "You edited Nordblock" with a "2 edits" sub line and both routes as rows. The card says "edited" although both events are creates, because two subjects leave no shared sentence to speak.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02a: /routes/500/edit -> Name -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Name",
+      ],
+      "headline": "You renamed Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You renamed Kante direkt", naming the route as it stands now, with one change line: Kante to Kante direkt. No "the route" in this sentence: a rename names the thing alone, and an area rename renders the same bare sentence.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02b: /routes/500/edit -> Grade -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Grade",
+      ],
+      "headline": "You changed the grade of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You changed the grade of Kante direkt". The change line draws two grade chips, each coloured by its band and labelled through the reader's grading scale, so neither side shows the stored id.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02c: /routes/500/edit -> Rating -> two stars -> Save (it had none) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Rating",
+      ],
+      "headline": "You changed the rating of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You changed the rating of Kante direkt", with two rows of stars: an empty one and a two-star one. The missing old value reads as zero stars rather than "Not set", because an unrated route and a route rated zero are the same thing to a reader.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02d: /routes/500/edit -> Tags -> add benchmark, drop high -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Tags",
+      ],
+      "headline": "You changed the tags of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You changed the tags of Kante direkt". The change line is the only one with no before/after pair: it lists "Added benchmark" and "Removed high" as two chips, and says nothing about SD, which did not move.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02e: /routes/500/edit -> First ascensionists -> add Tomas -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "First ascensionists",
+      ],
+      "headline": "You changed the first ascensionists of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You changed the first ascensionists of Kante direkt". Both sides render as chips, one per person, so the reader compares two lists rather than two comma-strings. Nothing marks WHICH name is the new one: Mara appears on both sides unchanged.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02f: /routes/500/edit -> First ascent year -> 1987 -> Save (it had none) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "First ascent year",
+      ],
+      "headline": "You changed the first ascent year of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You changed the first ascent year of Kante direkt", with a plain text pair: an italic "Not set" chip against 1987.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02g: /routes/500/edit -> First ascent year -> clear the field -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "First ascent year",
+      ],
+      "headline": "You changed the first ascent year of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same sentence as setting it, "You changed the first ascent year of Kante direkt": the catalogue keys on the column, not on the direction. Only the change line says which way it went, 1987 against the italic "Not set".",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02h: /routes/500/edit -> Description -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Description",
+      ],
+      "headline": "You edited the description of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You edited the description of Kante direkt". The change line is prose, so it collapses behind a toggle counting the new text's characters and expands to a word-level diff rather than two paragraphs side by side.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02i: /routes/500/edit -> change every field -> Save (one call, seven columns) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Description",
+        "First ascensionists",
+        "First ascent year",
+        "Grade",
+        "Name",
+        "Rating",
+        "Tags",
+      ],
+      "headline": "You edited Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "7 edits",
+      ],
+    },
+  ],
+  "expected": "ONE card, not seven. Each column has its own sentence, so there is no shared one to speak, and the headline drops to "You edited Kante direkt" with a "7 edits" sub line. Every line is still there behind the toggle, each in its own shape: grade chips, stars, tag chips, people chips, two text pairs and the prose toggle.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02j: Change the grade, then change it again within the 15-minute fold window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Grade",
+      ],
+      "headline": "You changed the grade of Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still one card with one grade line, showing where the grade STARTED against where it ended. Two cards, or a line reading 9 to 11, would mean the fold is not working.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02k: Change the grade back to where it started inside the window 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The fold deletes a change row that returns to its old value, and an event left holding no changes deletes itself, so the earlier card disappears rather than gaining a second line.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-02l: Open the edit form and save without touching anything 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and no event either: the diff is empty, so \`createUpdateEvent\` returns before it writes anything. Reserialising a description in the editor does not count as an edit, which is what keeps merely opening a route off the feed.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-03a: /routes/500 -> More -> Delete route (it has ascents, so the soft path) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You deleted the route Kante direkt", with no sub line: a route deletion records no scale, unlike an area's, because a route has nothing under it to count. The row survives the soft delete, so the name still resolves and the row underneath still draws the route.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-03b: A maintainer deletes a route you added 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt deleted the route Riss",
+      "rows": [
+        "Riss",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Third person, "Sofia Brandt deleted the route Riss". The card names who deleted it and never whose route it was: unlike an ascent deletion, nothing about the author is stored, because a route belongs to the region rather than to the person who added it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-03c: Delete two routes off one block in one sitting 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted entries",
+      "rows": [
+        "Riss",
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 deletions",
+        "Nordblock",
+      ],
+    },
+  ],
+  "expected": "One removal card, "You deleted entries", with "2 deletions" and Nordblock as its sub line and both routes as rows. Deliberately NOT folded into an edit burst on the same block: a deletion is the one thing a reader must not have to infer from a card about edits.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-03d: A deletion whose route cannot be resolved (an orphan the backfill left behind) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You deleted the route ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The honest degraded state: "You deleted the route" with the unnamed placeholder, and a tombstone row. A route delete stores no name of its own, and its catalogue entry declares a tombstone column, so the headline does not fall back to the block it sat on the way an ascent deletion falls back to its route. An area deletion degrades exactly the same way. Not reachable through the app, since the soft delete keeps the row readable.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-04a: Delete a route added less than 15 minutes ago, with no ascents, files or topo lines 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the create card is gone too: inside the grace window a bare route is hard-deleted, \`events.route_fk on delete cascade\` takes its whole log with it, and the insert at :428 is skipped because writing an event either side of the delete would abort or cascade away. A mistake leaves no trace.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-05a: Undo a soft deletion, from the toast 1`] = `
+{
+  "cards": [],
+  "expected": "No card, and the deletion card disappears: \`deleteEvent\` removes the event the delete wrote rather than logging a second action. The route's own create and every edit ever made to it still point at this id and stay exactly where they were.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > ROUTE-05b: Undo a hard deletion (the grace-window one), from the toast 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all, and none comes back either. The restore inserts a brand new route row and writes no event, so the route returns with an empty history: nothing to move onto the new id, because the cascade took the old one. A reader sees a route that has always been there and was never added by anybody.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01a: Open the feed and read a card nobody has touched 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "Sofia Brandt redpointed Kante". The bar is still there under the route row: an empty comment button (no count) and the add-reaction button. Nothing falls to the footer, and with no change lines to toggle the footer is not rendered at all.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01b: Feed -> somebody else's card -> add a reaction -> 💪 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One chip, "💪 1", on the row the ascent named. Not pressed: the reader is not one of the reactors, so it reads as an outline rather than the primary fill. A hold on it lists Tomas Kessler.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01c: Three people each send a different emoji to one card 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Three chips of one each, in the order they arrived: 👍, 💪, 🔥. One bar, one row, wrapping to a second line on a narrow phone rather than widening the card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01d: Tap 🔥 on a card two other people have already reacted to 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""🔥 2" pressed (primary fill, aria-pressed) because the reader is one of the two, and "💪 1" unpressed beside it. Tapping the pressed one clears it, which is the same call that set it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01e: Your own card, four people have reacted to it 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""You added the route Kante direkt" with "🔥 4" to read and nothing to add: the bar is read-only on your own event, so the add button is gone and the chip does not toggle. The comment button stays, which is the point of keeping the bar at all.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01f: The same card, read by one of the four reactors 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Ada Rossi added the route Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same card, "Ada Rossi added the route Kante direkt", read by Tomas: the bar is NOT read-only, so the add button is back and "🔥 4" is pressed because he is one of the four. A hold on the chip opens the popover, which lists all four names in arrival order.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01g: A session of two ascents, and you react to only one of them 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt logged a session",
+      "rows": [
+        "Kante",
+        "Dach",
+      ],
+      "summary": [
+        "2 ascents",
+      ],
+    },
+  ],
+  "expected": "ONE card, "Sofia Brandt logged a session", "2 ascents", with two rows. The 💪 sits under the Kante row alone and the Dach row carries an empty bar of its own. This is what per-event bars buy: the reaction names the send, not the afternoon.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01h: React to a card that renders no rows at all (a member removal) 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt removed Mara Lindqvist from the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": ""Sofia Brandt removed Mara Lindqvist from the region" with no row under it: the catalogue entry declares \`row: none\`, since a profile link for somebody out of the region is a dead end. The bar has nowhere to ride, so it falls to the footer, which is the only reason there is a footer here at all.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01i: React to the newer of two edits that folded into one card 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Description",
+        "Name",
+      ],
+      "headline": "Sofia Brandt edited Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One card, "Sofia Brandt edited Kante direkt", "2 edits", with ONE row for the route. The row bar belongs to the OLDER event (the rename), so the 👍 has no row to sit on and renders in the footer instead. Two bars on one card, which is the leftover rule keeping a reaction somewhere the reader can see it and take it back.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01j: A card that has been reacted to and talked under 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One bar carrying both: "🔥 2", "👍 1", and a comment button reading 2. The thread is still closed, since the count is what says there is something to read, and both halves post back to the same event id.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01k: React to an upload whose file resolves to no entity 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt added media to ?",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": ""Sofia Brandt added media to Unnamed", in the italic placeholder, with no thumbnail and no row. The bar falls to the footer under the no-rows rule, so the reaction is still readable and still revocable on a card that can say almost nothing about itself.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-01l: Hold a chip whose reactors include somebody whose user row has not synced 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The chip counts "🔥 3", because the count is of rows rather than of names. The popover lists two names and one blank line, which is what an unsynced reactor renders as: the list has no loading state of its own.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-02a: Tap the chip you sent, to take it back 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The chip is gone and the card is not: unlike an event undo, taking back a reaction removes a row on \`reactions\` and leaves what it was about alone. The bar stays under the route row, back to the comment and add buttons alone.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-02b: Take back the reaction that was the only thing on a leftover bar 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Description",
+        "Name",
+      ],
+      "headline": "Sofia Brandt edited Kante direkt",
+      "rows": [
+        "Kante direkt",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "SOCIAL-01i with the 👍 cleared. The footer bar disappears entirely, because a leftover with no chips and no comments is filtered out, and the card has a row so the no-rows rule does not save it. The footer is still drawn, holding the Show changes toggle on its own.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-03a: Feed -> card -> comment button -> type -> Post 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The comment button reads 1 and the thread stays CLOSED: a feed of open threads is not a feed. Opened, one line by Tomas Kessler with his avatar and a relative time, no delete control (it is not the reader's), and the composer under it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-03b: Three people answer each other under one card 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Button reads 3. The thread is flat, oldest first, three avatars and three names; nothing is indented, because nothing writes a reply today. No delete control on any of them.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-03c: Answer somebody under a card, then look at your own line 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Two lines, and only the second carries the trash control: \`mine\` is filled in per comment from the author against the reader, so the delete offer follows the line rather than the card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-03d: Somebody comments on YOUR card, and you answer 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "You flashed Rampe",
+      "rows": [
+        "Rampe",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": ""You flashed Rampe" with a read-only bar: no add button, since nobody applauds their own event, but the comment button is there reading 1 and the composer opens under it. Being the person a card is about is the most likely reason to have something to say under it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-03e: Open a thread whose author has not synced yet 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The body is readable and the name is not: a blank name line and a pulsing avatar, which is the loading state \`Avatar\` takes for an empty name. The count on the button is 1 either way, since it counts rows rather than resolved people.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-04a: Thread -> your own comment -> trash 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt redpointed Kante",
+      "rows": [
+        "Kante",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The reader's line is gone and the button drops to 1. Soft on the server, but a soft-deleted row does not sync, so the thread is simply shorter; the card itself is untouched, exactly as a cleared reaction leaves it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > SOCIAL-04b: Delete the only comment on a card that has no rows 1`] = `
+{
+  "cards": [
+    {
+      "changes": [],
+      "headline": "Sofia Brandt removed Mara Lindqvist from the region",
+      "rows": [],
+      "summary": [],
+    },
+  ],
+  "expected": "SOCIAL-01h with everything cleared off it. The footer bar STAYS, empty: a card with no rows always keeps its first bar, or there would be nothing on the entity's own page to react to or comment under. The mirror of SOCIAL-02b, where the same empty bar is dropped because the card has a row.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-01a: /blocks/400/topos/edit -> Add photo -> pick an image 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the topo on Nordblock", with one change line labelled Topo: the caption "Photo added" over the photo as it stands, its two lines drawn solid. One card rather than two, since the upload behind it logs nothing for a block.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-01b: Somebody else adds a photo, seen from your feed 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "Sofia Brandt updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Third person, "Sofia Brandt updated the topo on Nordblock", with her avatar. The change line is the same one: who is reading only decides the sentence.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-01c: Pick two images in one go, so two topos are created minutes apart 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "Two events, because the photo is in the metadata and the server fold keys on it, but ONE card: a burst keys on the actor and the place, and the block is one place. Both rows resolve the same sentence, so the headline stays "You updated the topo on Nordblock", with a "2 edits" sub line and a change line per photo.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-01d: Expand the card before its photo has synced, or after the photo has been deleted 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Same headline and the same "Photo added" caption, and nothing drawn: the feed fetches topo photos only for expanded cards, and only live ones. A photo action carries no state of its own, so with the photo missing the caption is all that is left.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-01e: A photo added to a block that does not resolve 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on ?",
+      "rows": [
+        "(gone)",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The honest degraded state: "You updated the topo on" with the unnamed placeholder, and the block row as a nameless tombstone. Nothing hydrates, not even the area it hangs under, since the card builds its entity map from the events and skips one that carries no entity. \`block:updated:topo\` declares no tombstone column, so there is no stored name to fall back on either.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-02a: /blocks/400/topos/edit -> photo menu -> Replace photo -> pick an image 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the topo on Nordblock", caption "Photo replaced". The picture is the topo as it stands, so it is the NEW photo with the lines that survived the swap. The old image is not shown anywhere: the row stores no pair, and the file is gone by the time anyone reads the card.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-03a: /blocks/400/topos/edit -> drag a photo to a new position in the strip 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the topo on Nordblock", caption "Photos reordered", nothing drawn: a reorder is about the strip rather than any one photo in it, so it stores no topo id and there is nothing to fetch. The order itself is not stored either, so the card cannot say what moved where.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-03b: Drag two photos around, one after the other, inside the 15-minute window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "ONE event and one card, not two. Both drags write byte-identical metadata on the same block, so the second joins the open event and only bumps its timestamp, floating the card back to the top. Nothing on it says the strip was rearranged twice.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-04a: /blocks/400/topos/edit -> photo menu -> Delete photo -> confirm 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You removed a topo photo from Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You removed a topo photo from Nordblock". Its own sentence rather than "updated the topo", the way a cleared pin gets one. The change line borrows the sentence a removed route photo gets and reads "Photo removed" (the markup passes the word, since a topo is always an image), and draws nothing: the photo is gone, so no case can supply one.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-04b: Delete a photo, then add a better one, in the same sitting 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+        "Topo",
+      ],
+      "headline": "You edited Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [
+        "2 edits",
+      ],
+    },
+  ],
+  "expected": "One card. Pulling a topo photo is \`remove\`, not \`delete\`, so it bursts with the edits rather than opening a deletion card. The two rows resolve different sentences, so the headline drops to the shared "You edited Nordblock" with "2 edits", over both change lines: Photo added on the new picture, then Photo removed with nothing to draw.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-04c: Delete a topo whose row names no block 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. \`insertTopoActivity\` returns before writing when the topo has no block, because the feed would have nowhere to put a change that hangs off nothing. Only reachable for a \`topos\` row with a null \`block_fk\`; the editor only ever creates them under a block.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05a: /blocks/400/topos/edit -> pick a route -> draw a line -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You updated the topo on Nordblock", one change line: a green "Drew Kante direkt" chip and NO caption, since the chips are the sentence once there are any. The photo is drawn with the new line solid and no ghost under it: nothing moved, the line arrived.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05b: Drag an existing line to a better position -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One change line with a neutral "Redrew Kante direkt" chip, and the photo drawn twice over: where the save left the line, solid, and where it used to be, dashed underneath. The ghost keeps its own id (the route id, negated) so it does not collide with the live line sitting on top of it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05c: Select a drawn route -> Clear its line -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "One change line with a red "Erased Rampe" chip. The line that survived draws solid and the erased one draws dashed under it, which is the only place that line still exists: its row is deleted, and the state on the change row is what remembers it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05d: Draw one line, drag another, clear a third, then Save once 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "ONE change line, not three: a save is one column moving once, and the chips carry the detail. Green "Drew Platte", neutral "Redrew Rampe", red "Erased Kante direkt", over a photo with two solid lines and two ghosts. Platte draws in the ungraded neutral, since a line takes its colour from the photo as it stands and this photo carries no line for that route.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05e: Open the editor, move nothing, press Save 1`] = `
+{
+  "cards": [],
+  "expected": "No card. The two encoded states match, so \`createUpdateEvent\` writes neither event nor change row. The encoding sorts by route for exactly this reason: unsorted, the same drawing would read as a change every time the rows came back in a different order.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05f: Draw a line and Save, then nudge it and Save again inside the 15-minute window 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "Still ONE card with ONE change line. The second save joins the open event (same actor, same block, same metadata, inside the window) rather than opening a second. The chip reads "Drew Kante direkt" and not "Redrew": to the stored pair the line was never anywhere else. Two cards here would mean the fold is not working.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05g: Drag a line, Save, drag it back to where it was, Save again inside the window 1`] = `
+{
+  "cards": [],
+  "expected": "No card at all. The folded change row ends where it started, so it is deleted, and an \`update\` event left holding no changes deletes itself. The photo is back where it was and so is the log.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05h: The same undo, on an event somebody has already reacted to 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The card survives holding nothing, because deleting the event would cascade somebody else's reaction away. "You updated the topo on Nordblock", and a change line with no chips and no pair, which is the one path to the "Lines updated" caption. Its timestamp is put back too, so it does not float up for an edit that undid itself. The reaction that kept it alive is not part of this claim; the card is.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05i: Read an erase whose photo has since been deleted 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The chips still say it: a red "Erased Rampe", with nothing drawn above them. The chips are decided off the row and the picture off the photo, so losing the photo costs the drawing and not the story. Unlike a photo action (TOPO-01d), which has nothing but the picture to lose.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05j: Save lines on a topo whose row names no block 1`] = `
+{
+  "cards": [],
+  "expected": "No card, same reason as the delete: \`saveTopoLines\` skips the event entirely when \`block_fk\` is null. The lines are still saved, so the drawing changes and the feed says nothing about it.",
+}
+`;
+
+exports[`the case catalogue renders what it claims > TOPO-05k: A topo row carried over from before the writers recorded which action they were 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        "Topo",
+      ],
+      "headline": "You updated the topo on Nordblock",
+      "rows": [
+        "Nordblock",
+      ],
+      "summary": [],
+    },
+  ],
+  "expected": "The vaguest topo sentence there is: "You updated the topo on Nordblock" over a change line reading "Topo redrawn", with no photo and no chips, even though the row holds a real pair. Without metadata nothing knows which of the five actions it was or which photo it happened on, and the column on the change row is the only reason the line renders at all. Only reachable for backfilled rows.",
+}
+`;

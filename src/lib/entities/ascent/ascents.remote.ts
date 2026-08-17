@@ -230,13 +230,15 @@ export const deleteAscent = command(
 
       await recalcUserGradeAndRating(db, ascent.routeFk)
 
-      // Only when somebody else did it. Deleting your own log entry is not news: the card
-      // disappearing IS what deleting means, and announcing it defeats the point. A maintainer
-      // clearing up another person's log is accountability and stays on the record.
+      // Whoever did it, once the ascent is old enough to soft-delete. The card does NOT disappear
+      // when you delete your own: an event outlives what it describes, so the "You flashed Rampe"
+      // card stays on the feed, reactable, reading its grade and note off a row that is gone from
+      // the logbook and the grade recalc. Saying nothing left that card standing as the only
+      // account of a send that no longer exists.
       //
-      // Nothing at all is written for a mistake, because the cascade just removed the event this
-      // would hang beside.
-      if (!erasable && user.id !== ascent.createdBy) {
+      // Nothing at all is written for a mistake inside the grace window, because the cascade just
+      // removed the event this would hang beside, which is what makes that path leave no trace.
+      if (!erasable) {
         // Whose ascent this was, in metadata: on a soft delete the row survives so the card could
         // read it, but the climber's NAME still cannot be read off an ascent, and the sentence
         // needs it ("Jonas removed Mara's ascent of Rampe").

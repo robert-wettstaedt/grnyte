@@ -1,5 +1,8 @@
-import type { CatalogueRow, CatalogueType } from '$lib/entities/event/catalogue'
+import type { CatalogueEntityType, CatalogueRow, CatalogueType } from '$lib/entities/event/catalogue'
+import { parseTopoChange } from '$lib/entities/topo/change'
+import { parseCoords } from '$lib/map/coords'
 import type { EventChangeItem, EventListItem } from './mapper'
+import { verbEntry } from './verbs'
 
 /**
  * An event as the verb catalogue still reads it.
@@ -18,45 +21,13 @@ import type { EventChangeItem, EventListItem } from './mapper'
  * this file; nothing else imports the legacy shape by then.
  */
 
-/** Columns the old shape used to encode an action that is now a verb of its own. */
-const COLUMN_FOR_VERB: Partial<Record<EventListItem['verb'], string>> = {
-  accept: 'invitation',
-  invite: 'invitation',
-  join: 'role',
-  leave: 'membership',
-}
-
-/**
- * `remove` is the one arm the verb alone cannot invert.
- *
- * The backfill collapsed six triples onto it (`*:deleted` with any column), so going back needs
- * the object as well. Without this a photo pulled off a route resolves `route:deleted` and the
- * card reads "Ada deleted the route Rampe" for a removed photo, which is the worst sentence in
- * the catalogue to render by accident.
- *
- * `user` splits on whether an address was recorded, which is the same discriminator the region
- * code and the mapper already use to tell a revoked invitation from a removed member.
- */
-function removedColumn(event: EventListItem): string {
-  return event.objectType === 'user' ? (event.metadata == null ? 'role' : 'invitation') : 'file'
-}
-
-const TYPE_FOR_VERB: Record<EventListItem['verb'], CatalogueType> = {
-  accept: 'updated',
-  add: 'uploaded',
-  create: 'created',
-  delete: 'deleted',
-  invite: 'created',
-  join: 'created',
-  leave: 'deleted',
-  remove: 'deleted',
-  update: 'updated',
-}
-
 /** One change row as the catalogue reads it: the event's triple with the column that moved. */
 export function legacyChange(event: EventListItem, change: EventChangeItem): CatalogueRow {
+  const base = legacyEvent(event)
+  const entityType = (change.objectType ?? event.objectType) as CatalogueEntityType
+
   return {
-    ...legacyEvent(event),
+    ...base,
     columnName: change.columnName,
     // A change may name a different row than its event does, which is what lets a reorder's three
     // change rows each name their own block.
@@ -64,6 +35,10 @@ export function legacyChange(event: EventListItem, change: EventChangeItem): Cat
     entityType: change.objectType ?? event.objectType,
     newValue: change.newValue,
     oldValue: change.oldValue,
+    // A cleared column is its own sentence where the catalogue has one. Without this a block whose
+    // pin was removed reads "You updated the location of Nordblock", and the entry that says it
+    // was removed is unreachable.
+    type: clears(entityType, change.columnName, change.newValue ?? undefined) ? 'deleted' : base.type,
   }
 }
 
@@ -74,8 +49,10 @@ export function legacyChange(event: EventListItem, change: EventChangeItem): Cat
  * rather than one for the event; {@link legacyChange} is that case.
  */
 export function legacyEvent(event: EventListItem): CatalogueRow {
+  const { columnName, type } = triple(event)
+
   return {
-    columnName: event.verb === 'remove' ? removedColumn(event) : COLUMN_FOR_VERB[event.verb],
+    columnName,
     createdAt: event.createdAt,
     entityId: String(event.objectId),
     entityType: event.objectType,
@@ -109,7 +86,7 @@ export function legacyEvent(event: EventListItem): CatalogueRow {
         ? undefined
         : event.parent.type,
     regionFk: event.regionFk,
-    type: TYPE_FOR_VERB[event.verb],
+    type,
     userFk: event.actorFk,
     userName: event.actorName,
   }
@@ -130,13 +107,105 @@ export function legacyRows(event: EventListItem): CatalogueRow[] {
   return event.changes.map((change) => legacyChange(event, change))
 }
 
+/**
+ * Whether the catalogue has a separate sentence for CLEARING this column.
+ *
+ * Four columns do, and each says something a reader cannot infer from the update sentence: a pin
+ * removed is not a pin moved, and "updated the location" on a block that no longer has one reads
+ * as still pinned. The old shape spelled the difference at the write site by choosing the type;
+ * an event carries only the column and its new value, so the choice moves here.
+ */
+function clears(entityType: CatalogueEntityType, columnName: string, newValue: string | undefined): boolean {
+  return (newValue == null || newValue.length === 0) && verbEntry({ columnName, entityType, type: 'deleted' }) != null
+}
+
+/**
+ * The `(type, columnName)` pair an event resolves to.
+ *
+ * This is the whole difficulty of the adapter. The backfill derived a verb FROM a column, and
+ * several columns collapsed onto one verb: `add` covers an upload, a parking pin and a claimed
+ * first ascent, and `remove` covers six triples. Going back needs the object AND what the writer
+ * wrote in `metadata`, which is exactly what distinguishes them at the write site.
+ *
+ * Guessing instead is not a vague sentence, it is a wrong one: a removed parking pin resolved
+ * `area:deleted:file` and the card read "removed media from Steinbruch", and a claimed first
+ * ascent resolved a triple with no entry at all and fell through to "made a change".
+ */
+function triple(event: EventListItem): { columnName?: string; type: CatalogueType } {
+  const { metadata, objectType, verb } = event
+
+  switch (verb) {
+    // Three different actions, told apart by what the writer recorded: a pin is coordinates, a
+    // claimed first ascent is a name on a user, and everything else is a file landing somewhere.
+    case 'add':
+      if (objectType === 'area' && parseCoords(metadata) != null) {
+        return { columnName: 'parking location', type: 'updated' }
+      }
+      if (objectType === 'user') {
+        return { columnName: 'first ascensionist', type: 'updated' }
+      }
+      return { type: 'uploaded' }
+
+    // A membership removal and a revoked invitation share the verb and the subject, and the
+    // address is what tells them apart, which is the same discriminator the region code uses.
+    case 'remove':
+      if (objectType === 'user') {
+        return { columnName: metadata == null ? 'role' : 'invitation', type: 'deleted' }
+      }
+      if (objectType === 'area' && parseCoords(metadata) != null) {
+        return { columnName: 'parking location', type: 'deleted' }
+      }
+      if (objectType === 'block' && parseTopoChange(metadata) != null) {
+        return { columnName: 'topo', type: 'deleted' }
+      }
+      // A block's pin, cleared. Backfilled rows carry the coordinates here, and without this they
+      // land on `block:deleted:file` and read as media removed from the block.
+      if (objectType === 'block' && parseCoords(metadata) != null) {
+        return { columnName: 'location', type: 'deleted' }
+      }
+      return { columnName: 'file', type: 'deleted' }
+
+    // A topo edit that moved no column of its own (a photo added, the order changed) says which
+    // it was in `metadata`. One that DID move a column carries a change row, and `legacyChange`
+    // overrides this with it.
+    case 'update':
+      return objectType === 'block' && parseTopoChange(metadata) != null
+        ? { columnName: 'topo', type: 'updated' }
+        : { type: 'updated' }
+
+    case 'accept':
+      return { columnName: 'invitation', type: 'updated' }
+
+    case 'create':
+      return { type: 'created' }
+
+    case 'delete':
+      return { type: 'deleted' }
+
+    case 'invite':
+      return { columnName: 'invitation', type: 'created' }
+
+    // Backfill only: nothing writes it, and the catalogue has no entry for it, so it degrades to
+    // the vaguer verb for its entity. See `legacy.test.ts`.
+    case 'join':
+      return { columnName: 'role', type: 'created' }
+
+    case 'leave':
+      return { columnName: 'membership', type: 'deleted' }
+  }
+}
+
 /** The value column, for the families the catalogue keys on a value rather than a column. */
 function valueOf(event: EventListItem): string | undefined {
   if (event.objectType === 'ascent' && event.verb === 'create') {
     return event.entity?.ascentType
   }
 
-  // Not value-scoped, but read directly by `names: 'stored'`, which resolves an invitation's
-  // address off the row rather than off an entity because the invitee has no account.
-  return event.verb === 'invite' || event.verb === 'accept' ? event.metadata : undefined
+  // Not value-scoped, but read directly by the renderers that show a STORED value rather than a
+  // resolved one: an invitation's address (the invitee has no account to resolve) and a claimed
+  // first ascensionist's name. Without the second, the card that exists to record which climbing
+  // identity was claimed renders "Not set" on both sides of its own change line.
+  return event.verb === 'invite' || event.verb === 'accept' || (event.verb === 'add' && event.objectType === 'user')
+    ? event.metadata
+    : undefined
 }
