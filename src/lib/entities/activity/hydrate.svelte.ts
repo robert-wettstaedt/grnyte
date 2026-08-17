@@ -14,21 +14,14 @@ import type { RegionMembership } from '$lib/entities/region/dto'
 import { regionCrumb } from '$lib/entities/region/mapper'
 import type { RouteListItem } from '$lib/entities/route/dto'
 import { routesByIds } from '$lib/entities/route/resources.svelte'
-import { parseTopoChange } from '$lib/entities/topo/change'
 import type { TopoView } from '$lib/entities/topo/dto'
 import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import type { UserRef } from '$lib/entities/user/dto'
 import { usersByIds } from '$lib/entities/user/resources.svelte'
 import { decodeApproach } from '$lib/map/polyline'
 import { getGlobalState } from '$lib/state/global.svelte'
-import type { ActivityEntityType, ActivityListItem } from './dto'
-import {
-  activityEntityKey,
-  activityRefs,
-  type ActivityEntity,
-  type ActivityEntityMap,
-  type ActivityEntityRef,
-} from './entity'
+import type { ActivityEntityType } from './dto'
+import { activityEntityKey, type ActivityEntity, type ActivityEntityMap, type ActivityEntityRef } from './entity'
 
 /**
  * The second pass the polymorphic `entityId` forces (see `entity.ts`): collect the ids a window
@@ -204,34 +197,6 @@ const KINDS = {
       row: 'user',
     }),
   }),
-}
-
-/**
- * Fetch and join the entities a window of activities points at.
- *
- * Reads `userRegions` off the global state, so call it during component initialisation
- * like any other resource factory.
- */
-export function activityEntities(
-  activities: () => readonly ActivityListItem[],
-  /**
-   * The rows whose cards are open. Only those pull topo photos: a photo is drawn by the
-   * change list alone, which lives behind the card's own toggle, so syncing the whole topo
-   * tree of every block in the window would charge a reader who never expands anything, and
-   * charge them again on each "load older".
-   */
-  expanded: () => readonly ActivityListItem[] = () => [],
-): ActivityHydrationResult {
-  return hydrateEntities(
-    () => activityRefs(activities()).hydrate,
-    // The blocks whose open rows say a topo photo changed.
-    () =>
-      expanded()
-        .flatMap((activity) =>
-          activity.entityType === 'block' && parseTopoChange(activity.metadata) != null ? [activity.entityId] : [],
-        )
-        .map(Number),
-  )
 }
 
 /** Join fetched rows onto the refs that asked for them. Pure: see the module comment. */

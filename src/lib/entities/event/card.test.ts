@@ -97,16 +97,34 @@ describe('eventCard', () => {
     expect(view.bars?.map((bar) => bar.eventId)).toEqual([1])
   })
 
-  it('offers no add button on your own event', () => {
-    const view = card([event({ actorFk: 1, entity: routeEntity, objectId: 1, objectType: 'route', verb: 'create' })])
+  it('draws no bar at all on your own event until somebody reacts to it', () => {
+    // Nothing to list and nothing to offer, and an empty bar is not invisible: it draws a rule
+    // across the card with nothing under it, or a gap between rows.
+    const own = card([event({ actorFk: 1, entity: routeEntity, objectId: 1, objectType: 'route', verb: 'create' })])
 
-    expect(view.rows[0].bar?.readonly).toBe(true)
+    expect(own.rows[0].bar).toBeUndefined()
+    expect(own.bars).toEqual([])
+
+    // Once somebody has, the chips are there to read and the bar offers nothing to add.
+    const reacted = card([
+      event({
+        actorFk: 1,
+        entity: routeEntity,
+        objectId: 1,
+        objectType: 'route',
+        reactions: [{ emoji: '🔥', userFk: 3, userName: 'mara' }],
+        verb: 'create',
+      }),
+    ])
+
+    expect(reacted.rows[0].bar?.readonly).toBe(true)
+    expect(reacted.rows[0].bar?.chips).toHaveLength(1)
   })
 
-  it('keeps a reaction visible when its event lost its row to a sibling', () => {
-    // Two events about the same route in one card: they share the single row, so only the newer
-    // one's bar rides it. A chip on the older one still has to be somewhere a reader can take it
-    // back, which is what the footer bars are for.
+  it('hangs a row bar on the oldest event about that entity, not the newest', () => {
+    // Log an ascent and correct it a minute later: one card, one row, two events. The reader means
+    // the send, so the bar under the row is the create. Taking the newest instead would also move
+    // an existing bar every time somebody edited the thing again.
     const noon = new Date(2026, 0, 1, 12).getTime()
     const edit = (id: number, at: number, reactions: { emoji: string; userFk: number; userName: string }[]) =>
       event({ actorFk: 2, createdAt: at, entity: routeEntity, id, objectId: 1, objectType: 'route', reactions })
@@ -114,7 +132,43 @@ describe('eventCard', () => {
     const view = card([edit(21, noon, []), edit(20, noon - 60_000, [{ emoji: '🔥', userFk: 3, userName: 'mara' }])])
 
     expect(view.rows).toHaveLength(1)
-    expect(view.bars?.map((bar) => bar.eventId)).toEqual([20])
+    expect(view.rows[0].bar?.eventId).toBe(20)
+    expect(view.rows[0].bar?.chips).toHaveLength(1)
+    // The other event has no row and nothing on it, so it draws nothing.
+    expect(view.bars).toEqual([])
+  })
+
+  it('keeps a reaction visible when its event has no row of its own', () => {
+    // Three events about one entity share the single row. Whichever two miss out still have to put
+    // a chip somewhere a reader can see it and take it back.
+    const noon = new Date(2026, 0, 1, 12).getTime()
+    const edit = (id: number, at: number, reactions: { emoji: string; userFk: number; userName: string }[]) =>
+      event({ actorFk: 2, createdAt: at, entity: routeEntity, id, objectId: 1, objectType: 'route', reactions })
+
+    const view = card([
+      edit(22, noon, []),
+      edit(21, noon - 60_000, [{ emoji: '🔥', userFk: 3, userName: 'mara' }]),
+      edit(20, noon - 120_000, []),
+    ])
+
+    expect(view.rows[0].bar?.eventId).toBe(20)
+    expect(view.bars?.map((bar) => bar.eventId)).toEqual([21])
+  })
+
+  it('gives a card with no rows one bar rather than none', () => {
+    // The entity's own page drops the row that would link back to it. Without a bar in the footer
+    // nothing on that page could be reacted to at all.
+    const noon = new Date(2026, 0, 1, 12).getTime()
+    const edit = (id: number, at: number) =>
+      event({ actorFk: 2, createdAt: at, entity: routeEntity, id, objectId: 1, objectType: 'route' })
+
+    const view = eventCard(groupEvents([edit(21, noon), edit(20, noon - 60_000)])[0], 1, undefined, {
+      id: '1',
+      type: 'route',
+    })
+
+    expect(view.rows).toHaveLength(0)
+    expect(view.bars).toHaveLength(1)
   })
 
   it('names the place off the parent alone, with no event about it on the card', () => {

@@ -937,7 +937,7 @@ export const ascents = table(
             WHERE
               u.id = created_by
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
+          ) AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -954,7 +954,7 @@ export const ascents = table(
             WHERE
               u.id = created_by
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
+          ) AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -1049,7 +1049,7 @@ export const files = table(
             WHERE
               a.id = ascent_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
+          ) AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -1067,7 +1067,7 @@ export const files = table(
             WHERE
               a.id = ascent_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
+          ) AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -1132,7 +1132,7 @@ export const bunnyStreams = table(
             WHERE
               f.id = file_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
+          ) AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),
@@ -1151,7 +1151,7 @@ export const bunnyStreams = table(
             WHERE
               f.id = file_fk
               AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND EXISTS (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
+          ) AND (SELECT authorize_in_region('${REGION_PERMISSION_READ}', region_fk))
         `),
       ),
     ),

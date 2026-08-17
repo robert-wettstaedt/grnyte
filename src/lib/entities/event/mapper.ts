@@ -11,7 +11,7 @@ import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
 import { decodeApproach } from '$lib/map/polyline'
 import type { queries } from '$lib/zero/queries'
 import type { QueryRow } from '$lib/zero/types'
-import { EVENT_OBJECT_COLUMNS, type EventObjectType } from './dto'
+import { objectOf, type EventObjectType } from './dto'
 
 export interface EventChangeItem {
   columnName: string
@@ -79,23 +79,6 @@ export interface EventListItem {
 export type EventRow = QueryRow<typeof queries.listEvents>
 
 export type EventVerb = EventRow['verb']
-
-/** Which of the six object columns this row set. The CHECK guarantees exactly one. */
-export function objectOf(row: {
-  [K in (typeof EVENT_OBJECT_COLUMNS)[EventObjectType]]?: null | number | string
-}): undefined | { id: number | string; type: EventObjectType } {
-  for (const [type, column] of Object.entries(EVENT_OBJECT_COLUMNS) as [
-    EventObjectType,
-    (typeof EVENT_OBJECT_COLUMNS)[EventObjectType],
-  ][]) {
-    const id = row[column]
-    if (id != null) {
-      return { id, type }
-    }
-  }
-
-  return undefined
-}
 
 /** A synced row as the feed renders it. */
 export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventListItem {

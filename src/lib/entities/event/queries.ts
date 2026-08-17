@@ -123,15 +123,20 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           )
           .related('area', (q) => r(q).related('parent', r)),
       )
-      // The emoji half only, and only the live rows: a comment renders inside the card rather than
-      // as a chip on it, and a cleared reaction stays in the table because the one-per-person index
-      // is partial on `deleted_at is null`. `user` is the name the long press popover lists.
+      // The emoji half only, hanging directly off the event, and only the live rows. A comment
+      // renders inside the card rather than as a chip on it; an emoji whose `parent_fk` is set is
+      // a reaction to a COMMENT, and `event_fk` stays set all the way down the thread, so without
+      // that filter it would be counted as a chip on the card; and a cleared reaction stays in the
+      // table, because the one-per-person index is partial on `deleted_at is null`.
+      //
+      // `user` is the name the long press popover lists.
       //
       // ponytail: an event with 200 reactions ships 200 rows to every reader. Fine at community
       // scale. Upgrade = a denormalized count column, syncing only your own row.
       .related('reactions', (q) =>
         r(q)
           .where('type', 'emoji')
+          .where('parentFk', 'IS', null)
           .where('deletedAt', 'IS', null)
           .related('user')
           .orderBy('createdAt', 'asc')

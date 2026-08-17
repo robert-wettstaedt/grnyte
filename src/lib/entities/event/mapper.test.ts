@@ -16,8 +16,9 @@ import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
 import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, describe, expect, it } from 'vitest'
+import { objectOf } from './dto'
 import { eventRow } from './fixture'
-import { objectOf, toEvent, type EventRow } from './mapper'
+import { toEvent, type EventRow } from './mapper'
 
 const zero = zeroPostgresJS(schema, sql as unknown as Parameters<typeof zeroPostgresJS>[1])
 

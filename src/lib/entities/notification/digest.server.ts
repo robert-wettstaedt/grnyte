@@ -2,11 +2,14 @@ import { db as baseDb } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
 import { headlineEntityName } from '$lib/entities/activity/card'
-import { toActivityListItem, type ActivityEntityType, type ActivityListItem } from '$lib/entities/activity/dto'
+import type { ActivityEntityType } from '$lib/entities/activity/dto'
 import { activityEntityKey, activityRefs, type ActivityEntityRef } from '$lib/entities/activity/entity'
-import { groupActivities } from '$lib/entities/activity/grouping'
 import { activityVerb, parseDeletedAscent } from '$lib/entities/activity/verbs'
 import { blockName } from '$lib/entities/block/mapper'
+import { objectOf } from '$lib/entities/event/dto'
+import { groupEvents } from '$lib/entities/event/grouping'
+import { legacyRows } from '$lib/entities/event/legacy'
+import type { EventListItem } from '$lib/entities/event/mapper'
 import { resolveMessage } from '$lib/i18n/message'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, type Locale } from '$lib/paraglide/runtime'
@@ -15,9 +18,9 @@ import { eq, inArray } from 'drizzle-orm'
 /**
  * The digest sentence, rendered from the same catalogue the feed card renders.
  *
- * No hydration layer, because two of the three ingredients are already free: `groupActivities` is
- * pure and takes plain rows, and `activityVerb` is a pure lookup on one row. Only the entity NAME
- * is missing, and that is one flat `select id, name` for the single entity the headline names.
+ * No hydration layer, because two of the three ingredients are already free: `groupEvents` is pure
+ * and takes plain rows, and the catalogue lookup is pure on one row. Only the entity NAME is
+ * missing, and that is one flat `select id, name` for the single entity the headline names.
  *
  * Deliberately no region name and no grades. Naming the region only pays off for multi-region
  * members, and for exactly those a batch can span several regions, which is where the phrasing
@@ -25,27 +28,36 @@ import { eq, inArray } from 'drizzle-orm'
  * strings substituted at send time; not reintroducing that.
  */
 
-/** What the digest needs off an `activities` row. A row from the table satisfies it. */
-export type DigestActivity = Pick<
-  schema.Activity,
-  | 'columnName'
-  | 'entityId'
-  | 'entityType'
-  | 'id'
-  | 'metadata'
-  | 'newValue'
-  | 'oldValue'
-  | 'parentEntityId'
-  | 'parentEntityType'
-  | 'regionFk'
-  | 'type'
-  | 'userFk'
-> & { createdAt: Date }
-
 export interface DigestCopy {
   body: string | undefined
   title: string
 }
+
+/**
+ * What the digest needs off an `events` row, which a row straight from the table satisfies.
+ *
+ * The six object columns rather than the polymorphic pair, so `objectOf` reads the object here the
+ * same way the feed's mapper reads it off a synced row.
+ *
+ * `ascentType` is not a column of `events`: the catalogue keys a logged ascent on the type
+ * (`ascent:created:flash`), which used to live in `activities.new_value` and is now a column of
+ * the ascent itself. The caller joins it, because without it every send in the digest degrades to
+ * the generic sentence.
+ */
+export type DigestEvent = Pick<
+  schema.Event,
+  | 'actorFk'
+  | 'areaFk'
+  | 'ascentFk'
+  | 'blockFk'
+  | 'fileFk'
+  | 'id'
+  | 'metadata'
+  | 'regionFk'
+  | 'routeFk'
+  | 'subjectFk'
+  | 'verb'
+> & { ascentType?: null | string; createdAt: Date; parentId?: null | number | string; parentType?: null | string }
 
 /**
  * Render a batch of activities as one headline plus a count of the rest.
@@ -55,29 +67,32 @@ export interface DigestCopy {
  * nobody finishes reading.
  */
 export async function digestCopy(
-  activities: readonly DigestActivity[],
+  events: readonly DigestEvent[],
   actorNames: ReadonlyMap<number, string>,
   locale: Locale,
 ): Promise<DigestCopy | undefined> {
-  if (activities.length === 0) {
+  if (events.length === 0) {
     return undefined
   }
 
-  const rows = activities.map(toListItem)
-  const groups = groupActivities(rows)
+  const groups = groupEvents(events.map(toEventItem))
   const [newest] = groups
 
   if (newest == null) {
     return undefined
   }
 
-  const refs = activityRefs(newest.activities)
+  // Through the catalogue adapter, exactly as the card does: an update expands to one row per
+  // changed column, everything else to one. What the digest reads off them (the refs, the verb,
+  // the stored name) is what the card reads.
+  const activities = newest.events.flatMap(legacyRows)
+  const refs = activityRefs(activities)
   // What the card would put a row under, falling back to what the activities are about: an upload
   // names the thing it landed on rather than the file, which has no name worth reading.
   const subject = refs.rows[0] ?? refs.subjects[0]
   const names = await entityNames(subject == null ? [] : [subject], locale)
 
-  const lead = newest.activities[0]
+  const lead = activities[0]
   const climber = parseDeletedAscent(lead.metadata ?? undefined)
 
   // Through the same precedence the feed card uses, not the database alone. A deleted area is
@@ -104,7 +119,7 @@ export async function digestCopy(
     { locale },
   )
 
-  const rest = activities.length - newest.activities.length
+  const rest = events.length - newest.events.length
 
   return { body: rest > 0 ? m.push_digestMore({ count: rest }, { locale }) : undefined, title }
 }
@@ -182,9 +197,35 @@ export async function entityNames(
   return names
 }
 
-/** An `activities` row in the shape the pure grouping and catalogue functions read. */
-function toListItem(activity: DigestActivity): ActivityListItem {
-  // No actor name: the digest passes actors in separately, keyed by id, because one batch spans
-  // several of them and only the headline's is ever read.
-  return toActivityListItem({ ...activity, createdAt: activity.createdAt.getTime(), userName: '' })
+/** A stored event in the shape the pure grouping and catalogue functions read. */
+function toEventItem(event: DigestEvent): EventListItem {
+  const object = objectOf(event)
+
+  return {
+    actorFk: event.actorFk,
+    // No actor name: the digest passes actors in separately, keyed by id, because one batch spans
+    // several of them and only the headline's is ever read.
+    actorName: '',
+    // No change rows. The digest renders one headline, which reads the event's own verb; a card's
+    // change LINES are the one thing a push deliberately does not list.
+    changes: [],
+    createdAt: event.createdAt.getTime(),
+    // Only what the catalogue reads off an entity, which is the ascent type. Everything else it
+    // needs is resolved by name, further up.
+    entity: event.ascentType == null ? undefined : { ascentType: event.ascentType as never, name: '', row: 'none' },
+    id: event.id,
+    metadata: event.metadata ?? undefined,
+    objectId: object?.id ?? 0,
+    objectType: object?.type ?? 'area',
+    // What a burst groups on, joined by the caller. Without it every edit under one block is its
+    // own group, which only ever inflates the "and 12 more" count.
+    parent:
+      event.parentId == null || event.parentType == null
+        ? undefined
+        : { id: event.parentId, type: event.parentType as never },
+    parentEntity: undefined,
+    reactions: [],
+    regionFk: event.regionFk,
+    verb: event.verb,
+  }
 }

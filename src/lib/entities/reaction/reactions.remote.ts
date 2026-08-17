@@ -3,7 +3,7 @@ import { authedCommand } from '$lib/remote/authed.server'
 import { requireRow } from '$lib/remote/require.server'
 import { and, eq, isNull } from 'drizzle-orm'
 import z from 'zod'
-import { isEmoji } from './dto'
+import { isEmoji, normalizeEmoji } from './dto'
 
 /**
  * Set, change or clear the current user's reaction to one event.
@@ -20,7 +20,9 @@ import { isEmoji } from './dto'
  */
 export const toggleReaction = authedCommand(
   z.object({
-    emoji: z.string().refine(isEmoji, 'not a single emoji'),
+    // Normalised BEFORE validating, because most of the picker's emoji arrive carrying a variation
+    // selector the character does not need, which RGI does not match. See `normalizeEmoji`.
+    emoji: z.string().transform(normalizeEmoji).refine(isEmoji, 'not a single emoji'),
     eventId: z.number().int().positive(),
   }),
   async ({ emoji, eventId }, { db, user }) => {
@@ -35,40 +37,45 @@ export const toggleReaction = authedCommand(
       'Event not found',
     )
 
-    // Clear whatever I hold here first, whichever emoji it is, and let the row say what it was.
-    // Soft, because the table soft-deletes: `reactions_one_emoji_idx` is partial on
-    // `deleted_at is null`, so a cleared row leaves the slot free without losing what it said.
-    const cleared = await db
-      .update(reactions)
-      .set({ deletedAt: new Date() })
-      .where(
-        and(
-          eq(reactions.eventFk, eventId),
-          eq(reactions.userFk, user.id),
-          eq(reactions.type, 'emoji'),
-          isNull(reactions.parentFk),
-          isNull(reactions.deletedAt),
-        ),
-      )
-      .returning({ body: reactions.body })
+    // One transaction, because the clear and the insert are one act. Apart, a failing insert
+    // (a lost connection, a racing tap) leaves the reader holding nothing when they meant to
+    // change their mind, and are told nothing about it.
+    return db.transaction(async (tx) => {
+      // Clear whatever I hold here first, whichever emoji it is, and let the row say what it was.
+      // Soft, because the table soft-deletes: `reactions_one_emoji_idx` is partial on
+      // `deleted_at is null`, so a cleared row leaves the slot free without losing what it said.
+      const cleared = await tx
+        .update(reactions)
+        .set({ deletedAt: new Date() })
+        .where(
+          and(
+            eq(reactions.eventFk, eventId),
+            eq(reactions.userFk, user.id),
+            eq(reactions.type, 'emoji'),
+            isNull(reactions.parentFk),
+            isNull(reactions.deletedAt),
+          ),
+        )
+        .returning({ body: reactions.body })
 
-    // The same emoji means "take it back". A different one is a change of mind, and falls through
-    // to the insert below now that the slot is free.
-    if (cleared.some((row) => row.body === emoji)) {
-      return { data: false }
-    }
+      // The same emoji means "take it back". A different one is a change of mind, and falls
+      // through to the insert below now that the slot is free.
+      if (cleared.some((row) => row.body === emoji)) {
+        return { data: false }
+      }
 
-    await db.insert(reactions).values({
-      authUserFk: user.authUserFk,
-      body: emoji,
-      eventFk: eventId,
-      // Off the event, never off the request: the INSERT policy binds the row to a region the
-      // caller may read, and a submitted one would only be checked against itself.
-      regionFk: event.regionFk,
-      type: 'emoji',
-      userFk: user.id,
+      await tx.insert(reactions).values({
+        authUserFk: user.authUserFk,
+        body: emoji,
+        eventFk: eventId,
+        // Off the event, never off the request: the INSERT policy binds the row to a region the
+        // caller may read, and a submitted one would only be checked against itself.
+        regionFk: event.regionFk,
+        type: 'emoji',
+        userFk: user.id,
+      })
+
+      return { data: true }
     })
-
-    return { data: true }
   },
 )

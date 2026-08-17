@@ -66,34 +66,34 @@ export function eventCard(
 ): EventCardView {
   const view = activityCard(toActivityGroup(group), entityMap(group), currentUserFk, topos, omit)
 
-  // Keyed by event id, and taken as each row claims one: what is left at the end is what no row
-  // speaks for. `sourceId` is the id of the row that named the entity, which in the legacy shape
-  // an event expands into, so it is the event's own id.
-  const unclaimed = new Map(group.events.map((event) => [event.id, bar(event, currentUserFk)]))
+  // Each row claims the event it is about; what is left at the end is what no row speaks for.
+  const unclaimed = new Map(group.events.map((event) => [event.id, event]))
 
   const rows = view.rows.map((row) => {
-    const claimed = row.sourceId == null ? undefined : unclaimed.get(row.sourceId)
-    if (claimed != null) {
-      unclaimed.delete(claimed.eventId)
-    }
+    const claimed = claim(unclaimed, row.ref)
 
     return {
       ...row,
-      bar: claimed,
+      bar: claimed == null ? undefined : bar(claimed, currentUserFk),
       // Never pending. The entity arrives with its event, so there is no second wave to wait for
       // and no skeleton state to render.
       state: row.state === 'skeleton' ? ('tombstone' as const) : row.state,
     }
   })
 
+  const leftover = [...unclaimed.values()].flatMap((event) => bar(event, currentUserFk) ?? [])
+
   return {
     ...view,
-    // A card with one event always offers somewhere to react, even when its row was dropped (the
-    // entity's own log omits the row that would link back to the page the reader is on). A leftover
-    // on a card with several only appears when it already carries chips, because a bar nobody can
-    // see is a bar nobody can add to: what it exists for is that a reaction taken on one card
-    // cannot become invisible when the window regroups.
-    bars: [...unclaimed.values()].filter((left) => left.chips.length > 0 || group.events.length === 1),
+    // What no row spoke for. A card with no rows at all still offers somewhere to react, which is
+    // what the entity's own page needs: it drops the row that would link back to the page the
+    // reader is already on, and without this nothing there could be reacted to. Otherwise only a
+    // leftover that already carries chips, because a bar nobody can see is a bar nobody can add
+    // to: it exists so a reaction taken on one card cannot go invisible when the window regroups.
+    //
+    // ponytail: an event past `MAX_ROWS` (the fifth ascent of a session, behind "1 more") gets no
+    // bar of its own. Upgrade = render the overflow rows rather than counting them.
+    bars: rows.length === 0 ? leftover.slice(0, 1) : leftover.filter((left) => left.chips.length > 0),
     // Same reason as `state` above: a name that is missing is missing for good, where the old pass
     // had to keep the slot pulsing until every fetch had answered.
     entityUnnamed: view.entityName == null,
@@ -101,12 +101,60 @@ export function eventCard(
   }
 }
 
-function bar(event: EventListItem, currentUserFk: number | undefined): EventReactionBar {
-  return {
-    chips: reactionChips(event.reactions, currentUserFk),
-    eventId: event.id,
-    readonly: event.actorFk === currentUserFk,
+/**
+ * One event's bar, or nothing where there would be nothing in it.
+ *
+ * Your own event with no reactions yet has no chips to list and no button to offer, and an empty
+ * bar is not invisible: in the footer it draws a rule across the bottom of the card with nothing
+ * under it, and between rows it adds a gap.
+ */
+function bar(event: EventListItem, currentUserFk: number | undefined): EventReactionBar | undefined {
+  const chips = reactionChips(event.reactions, currentUserFk)
+  const readonly = event.actorFk === currentUserFk
+
+  if (readonly && chips.length === 0) {
+    return undefined
   }
+
+  return { chips, eventId: event.id, readonly }
+}
+
+/**
+ * Take the event a row is about out of the pool, or nothing if none is left.
+ *
+ * The event whose OBJECT is that entity, else the one whose parent is: an upload's object is the
+ * file, and the row it draws is the thing the photos landed on. Oldest of the candidates rather
+ * than newest, which is what keeps a bar still: log an ascent and edit it a minute later and both
+ * are one card with one row, and the reader means to congratulate the send rather than the
+ * correction. It also stops a bar moving when a sixth photo joins a five-photo card.
+ */
+function claim(
+  unclaimed: Map<number, EventListItem>,
+  ref: { id: number | string; type: string },
+): EventListItem | undefined {
+  const key = `${ref.type}:${ref.id}`
+  const candidates = [...unclaimed.values()]
+  const matches = (event: EventListItem, part: undefined | { id: number | string; type: string }) =>
+    part != null && `${part.type}:${part.id}` === key && event != null
+
+  const byObject = candidates.filter((event) => matches(event, { id: event.objectId, type: event.objectType }))
+  const pool = byObject.length > 0 ? byObject : candidates.filter((event) => matches(event, event.parent))
+
+  const oldest = pool.reduce<EventListItem | undefined>(
+    (lowest, event) =>
+      lowest == null ||
+      event.createdAt < lowest.createdAt ||
+      (event.createdAt === lowest.createdAt && event.id < lowest.id)
+        ? event
+        : lowest,
+    undefined,
+  )
+
+  if (oldest != null) {
+    unclaimed.delete(oldest.id)
+  }
+
+  return oldest
 }
 
 /**

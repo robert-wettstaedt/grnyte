@@ -1,9 +1,8 @@
 import { CRON_API_KEY } from '$env/static/private'
 import { db } from '$lib/db/db.server'
-import { activities, notifications, pushSubscriptions, users, userSettings } from '$lib/db/schema'
-import { isAscentActivity } from '$lib/entities/activity/dto'
+import { ascents, blocks, events, notifications, pushSubscriptions, routes, users, userSettings } from '$lib/db/schema'
 import { notificationView } from '$lib/entities/notification/caption'
-import { digestCopy, type DigestActivity } from '$lib/entities/notification/digest.server'
+import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
 import { readableRegions } from '$lib/entities/notification/notification.server'
 import {
   DIGEST_SCAN_LIMIT,
@@ -85,27 +84,30 @@ async function inBatches<T, R>(items: readonly T[], task: (item: T) => Promise<R
 
 const BATCH_SIZE = 4
 
-/** Move a person's push watermark forward, never back. */
-async function advanceWatermark(userFk: number, activityId: number): Promise<void> {
+/** Move a person's push watermark forward, never back. A timestamp, matching `events.created_at`. */
+async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> {
   await db
     .update(userSettings)
-    .set({ pushedUpToActivityId: sql`greatest(coalesce(${userSettings.pushedUpToActivityId}, 0), ${activityId})` })
+    .set({
+      pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt})`,
+    })
     .where(eq(userSettings.userFk, userFk))
 }
 
-/** Which switch governs an activity. Everything that is not an ascent or a person is a crag edit,
+/** Which switch governs an event. Everything that is not an ascent or a person is a crag edit,
  *  which is what `notify_moderations` always actually meant before it was renamed. */
 function categoryEnabled(
-  activity: Pick<DigestActivity, 'columnName' | 'entityType'>,
+  event: Pick<DigestEvent, 'ascentFk' | 'subjectFk' | 'verb'>,
   settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyCragEdits: boolean | null },
 ): boolean {
-  // Through the feed's own definition rather than a copy of it, so the switch cannot come to mean
-  // something the segmented control does not.
-  if (isAscentActivity(activity)) {
+  // The same rule the feed's segmented control applies (`queries.ts`): an ascent card is an event
+  // about an ascent, EXCEPT a media removal, which logs on the parent because the file row is gone
+  // by then and is crag housekeeping rather than a send.
+  if (event.ascentFk != null && event.verb !== 'remove') {
     return settings.notifyAscents !== false
   }
 
-  if (activity.entityType === 'user') {
+  if (event.subjectFk != null) {
     return settings.notifyCommunity !== false
   }
 
@@ -143,8 +145,8 @@ async function sendDigests(nowMs: number): Promise<number> {
       notifyAscents: userSettings.notifyAscents,
       notifyCommunity: userSettings.notifyCommunity,
       notifyCragEdits: userSettings.notifyCragEdits,
-      pushedUpTo: userSettings.pushedUpToActivityId,
-      seenUpTo: userSettings.seenUpToActivityId,
+      pushedUpTo: userSettings.pushedUpToEventAt,
+      seenUpTo: userSettings.seenUpToEventAt,
       userFk: pushSubscriptions.userFk,
     })
     .from(pushSubscriptions)
@@ -167,7 +169,7 @@ async function sendDigests(nowMs: number): Promise<number> {
   // scan below had even started.
   const regionsByUser = await readableRegions(userFks)
   // The starting line for anybody who has never had a watermark, see below.
-  const [{ newestActivityId }] = await db.select({ newestActivityId: max(activities.id) }).from(activities)
+  const [{ newestEventAt }] = await db.select({ newestEventAt: max(events.createdAt) }).from(events)
 
   const sendDigest = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
     // Both marks null means never initialised, which is NOT the same as "caught up to nothing":
@@ -178,11 +180,11 @@ async function sendDigests(nowMs: number): Promise<number> {
     // those), and anybody whose settings row is created afterwards by a writer that is not
     // `subscribeToPush`. First sight is the starting line, exactly as it is for a new subscriber.
     if (subscriber.pushedUpTo == null && subscriber.seenUpTo == null) {
-      await advanceWatermark(subscriber.userFk, newestActivityId ?? 0)
+      await advanceWatermark(subscriber.userFk, newestEventAt ?? new Date(0))
       return false
     }
 
-    const floor = digestFloor(subscriber.pushedUpTo, subscriber.seenUpTo)
+    const floor = new Date(digestFloor(subscriber.pushedUpTo?.getTime(), subscriber.seenUpTo?.getTime()))
     const regions = regionsByUser.get(subscriber.userFk) ?? []
 
     if (regions.length === 0) {
@@ -191,33 +193,44 @@ async function sendDigests(nowMs: number): Promise<number> {
 
     const queued = await db
       .select({
-        columnName: activities.columnName,
-        createdAt: activities.createdAt,
-        entityId: activities.entityId,
-        entityType: activities.entityType,
-        id: activities.id,
-        metadata: activities.metadata,
-        newValue: activities.newValue,
-        // The name of a DELETED entity lives nowhere else: `entityNames` finds nothing for it, and
-        // the headline then falls back to whichever value column the verb says carries the name.
-        // Leaving it out renders every deletion with `common_unnamed`.
-        oldValue: activities.oldValue,
-        parentEntityId: activities.parentEntityId,
-        parentEntityType: activities.parentEntityType,
-        regionFk: activities.regionFk,
-        type: activities.type,
-        userFk: activities.userFk,
+        actorFk: events.actorFk,
+        areaFk: events.areaFk,
+        ascentFk: events.ascentFk,
+        // The catalogue keys a logged ascent on its type, which is a column of the ascent rather
+        // than of the event. Without it every send in a digest reads as the generic sentence.
+        ascentType: ascents.type,
+        blockFk: events.blockFk,
+        createdAt: events.createdAt,
+        fileFk: events.fileFk,
+        id: events.id,
+        metadata: events.metadata,
+        // What a burst groups on. Only the two hops the grouping actually keys on: a route's
+        // block and an ascent's route. Without them every edit under one block is its own group,
+        // which inflates the "and 12 more" count the digest reports.
+        parentId: sql<null | number>`coalesce(${blocks.areaFk}, ${routes.blockFk}, ${ascents.routeFk})`,
+        parentType: sql<null | string>`case
+          when ${blocks.areaFk} is not null then 'area'
+          when ${routes.blockFk} is not null then 'block'
+          when ${ascents.routeFk} is not null then 'route'
+        end`,
+        regionFk: events.regionFk,
+        routeFk: events.routeFk,
+        subjectFk: events.subjectFk,
+        verb: events.verb,
       })
-      .from(activities)
+      .from(events)
+      .leftJoin(ascents, eq(ascents.id, events.ascentFk))
+      .leftJoin(blocks, eq(blocks.id, events.blockFk))
+      .leftJoin(routes, eq(routes.id, events.routeFk))
       .where(
         and(
-          gt(activities.id, floor),
-          inArray(activities.regionFk, regions),
+          gt(events.createdAt, floor),
+          inArray(events.regionFk, regions),
           // Nobody is told about their own edit.
-          ne(activities.userFk, subscriber.userFk),
+          ne(events.actorFk, subscriber.userFk),
         ),
       )
-      .orderBy(activities.id)
+      .orderBy(events.createdAt)
       // Bounded, because this runs per subscriber every five minutes and `floor` can legitimately
       // be far behind (a fresh account, or somebody who had every category switched off). The
       // digest reports a count and one headline either way, so a longer tail buys nothing.
@@ -227,13 +240,13 @@ async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const enabled = queued.filter((activity) => categoryEnabled(activity, subscriber))
+    const enabled = queued.filter((event) => categoryEnabled(event, subscriber))
 
     // Rows this person has switched off still count as covered. Leaving them behind the watermark
     // means re-reading a growing prefix on every run and, the moment they switch that category
     // back on, one push announcing the entire backlog.
     if (enabled.length === 0) {
-      await advanceWatermark(subscriber.userFk, queued[queued.length - 1].id)
+      await advanceWatermark(subscriber.userFk, queued[queued.length - 1].createdAt)
       return false
     }
 
@@ -243,7 +256,7 @@ async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const actorNames = await namesOf(enabled.map((activity) => activity.userFk))
+    const actorNames = await namesOf(enabled.map((event) => event.actorFk))
     const copy = await digestCopy(enabled, actorNames, contactLocale(subscriber.contactLocale))
     if (copy == null) {
       return false
@@ -261,7 +274,7 @@ async function sendDigests(nowMs: number): Promise<number> {
 
     // Whether or not a device took it, and past everything scanned rather than only what was
     // enabled: an offline phone must not build a backlog that all fires at once later.
-    await advanceWatermark(subscriber.userFk, queued[queued.length - 1].id)
+    await advanceWatermark(subscriber.userFk, queued[queued.length - 1].createdAt)
 
     return delivered
   }

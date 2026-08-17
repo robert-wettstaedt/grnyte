@@ -20,3 +20,20 @@ export const EVENT_OBJECT_COLUMNS = {
 } as const satisfies Record<string, keyof Event>
 
 export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
+
+/** Which of the six object columns this row set. The CHECK guarantees exactly one. */
+export function objectOf(row: {
+  [K in (typeof EVENT_OBJECT_COLUMNS)[EventObjectType]]?: null | number | string
+}): undefined | { id: number | string; type: EventObjectType } {
+  for (const [type, column] of Object.entries(EVENT_OBJECT_COLUMNS) as [
+    EventObjectType,
+    (typeof EVENT_OBJECT_COLUMNS)[EventObjectType],
+  ][]) {
+    const id = row[column]
+    if (id != null) {
+      return { id, type }
+    }
+  }
+
+  return undefined
+}

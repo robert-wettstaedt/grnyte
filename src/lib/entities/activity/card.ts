@@ -39,15 +39,6 @@ export interface ActivityCardRow {
   /** The name to show on a tombstone, taken off the row that named the entity. */
   name: string | undefined
   ref: ActivityEntityRef
-  /**
-   * The id of the row that named this entity, which is the event id once the feed builds cards
-   * from events. It is what a reaction hangs off: a session of five ascents is five events and
-   * five rows, so the bar under each row belongs to that ascent rather than to the whole card.
-   *
-   * Optional because the same row shape is rendered outside a card: an inbox item is about an
-   * entity with no log row behind it, and has nothing to react to.
-   */
-  sourceId?: number
   state: 'entity' | 'skeleton' | 'tombstone'
 }
 
@@ -273,14 +264,12 @@ export function activityCard(
     pin: lone?.pin,
     rows: rowRefs.slice(0, MAX_ROWS).map((ref): ActivityCardRow => {
       const entity = entityOf(ref)
-      // The row that named this entity, not the group's newest: a burst spanning two
-      // deleted routes must not label both tombstones with the same name.
-      const source = activityFor(group.activities, ref)
       return {
         entity: entity ?? undefined,
-        name: headlineEntityName(source, null),
+        // The row that named this entity, not the group's newest: a burst spanning two
+        // deleted routes must not label both tombstones with the same name.
+        name: headlineEntityName(activityFor(group.activities, ref), null),
         ref,
-        sourceId: source.id,
         state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
       }
     }),

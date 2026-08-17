@@ -26,7 +26,7 @@
   import { toggleReaction } from '$lib/entities/reaction/reactions.remote'
   import { m } from '$lib/paraglide/messages'
   import type { Attachment } from 'svelte/attachments'
-  import { MediaQuery, SvelteSet } from 'svelte/reactivity'
+  import { MediaQuery } from 'svelte/reactivity'
   import { scale } from 'svelte/transition'
   import EmojiPicker from './EmojiPicker.svelte'
   import ReactionChip from './ReactionChip.svelte'
@@ -48,8 +48,14 @@
   let quick = $state(false)
   /** Step two: every emoji there is, in the sheet. */
   let picking = $state(false)
-  /** Emoji currently in flight, so one chip cannot be tapped twice into a race with itself. */
-  const pending = new SvelteSet<string>()
+  /**
+   * Whether a toggle is in flight, for the WHOLE bar rather than per emoji.
+   *
+   * One per person per event, so two emoji tapped in quick succession are two handlers racing over
+   * one row: both would find nothing to clear, both would insert, and the second would hit the
+   * unique index. Per emoji, that race is exactly what the guard let through.
+   */
+  let busy = $state(false)
 
   /** The row grows out of the button it came from, which is motion that explains where it is. Off
    *  when the reader has asked for less of it: `transition:` runs from JS and honours no query. */
@@ -60,18 +66,22 @@
   let adder = $state<HTMLButtonElement>()
 
   async function toggle(emoji: string) {
-    if (pending.has(emoji)) {
+    if (busy) {
       return
     }
 
     // No optimistic write: the chip arrives back through Zero like every other read in the app,
     // and reconciling a local guess against that sync is more machinery than one round trip is
-    // worth. Disabling the chip meanwhile is what stops it reading as broken.
-    pending.add(emoji)
+    // worth. Disabling the bar meanwhile is what stops it reading as broken.
+    busy = true
     try {
       await toggleReaction({ emoji, eventId })
+    } catch {
+      // Swallowed on purpose, and the reason it can be: nothing changed. The chip is drawn from
+      // synced rows, so a refused toggle leaves the bar exactly as the reader found it rather
+      // than showing something that did not happen. Rethrowing would only reach `window.onerror`.
     } finally {
-      pending.delete(emoji)
+      busy = false
     }
   }
 
@@ -121,7 +131,7 @@
      a line of its own, orphaning the changes toggle above it and the add button below. -->
 <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1">
   {#each reactions as chip (chip.emoji)}
-    <ReactionChip {chip} disabled={pending.has(chip.emoji)} ontoggle={() => void toggle(chip.emoji)} {readonly} />
+    <ReactionChip {chip} disabled={busy} ontoggle={() => void toggle(chip.emoji)} {readonly} />
   {/each}
 
   {#if !readonly}
@@ -153,7 +163,7 @@
             <button
               type="button"
               class="hover:bg-surface-200-800 rounded-full px-1.5 py-1 text-lg/none"
-              disabled={pending.has(emoji)}
+              disabled={busy}
               in:scale={{ delay: still.current ? 0 : index * 25, duration: still.current ? 0 : 150, start: 0.4 }}
               onclick={() => pick(emoji)}
             >

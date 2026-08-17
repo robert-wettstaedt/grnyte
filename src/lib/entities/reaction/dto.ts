@@ -47,3 +47,19 @@ export const QUICK_REACTIONS = ['👍', '👎', '💪', '🔥', '🤔'] as const
 export function isEmoji(value: string): boolean {
   return /^\p{RGI_Emoji}$/v.test(value)
 }
+
+/**
+ * Drop a variation selector that says what the character already says.
+ *
+ * The picker's data stores 152 of its emoji with a trailing U+FE0F even where the base character
+ * is `Emoji_Presentation` on its own: its thumbs up is `U+1F44D U+FE0F`. RGI does not match those
+ * (`Basic_Emoji` is emoji-presentation alone OR emoji-plus-FE0F, never both), so validating them
+ * as sent rejects most of the picker; storing them as sent files a second chip beside the quick
+ * row's identical-looking one.
+ *
+ * Only where it is redundant. `U+2764 U+FE0F` is a red heart and `U+2764` alone is a text glyph,
+ * so stripping unconditionally would change what the reader sees.
+ */
+export function normalizeEmoji(value: string): string {
+  return value.replaceAll(/(\p{Emoji_Presentation})\uFE0F/gu, '$1')
+}

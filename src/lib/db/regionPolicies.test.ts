@@ -325,6 +325,126 @@ describe.skipIf(!reachable)('activities RLS', () => {
   })
 })
 
+/**
+ * The own-row policies on the event log and what hangs off it.
+ *
+ * Every other predicate on a reaction is one the caller satisfies by stating it (their own
+ * `auth.uid()`, their own `user_fk`, the event's region), which leaves the permission check as the
+ * difference between "a member of this region" and "anybody with an account".
+ *
+ * Worth knowing while reading these: the region half is not the only thing standing there.
+ * Postgres also applies the SELECT policy to an UPDATE or DELETE that reads the row it is changing,
+ * and a policy's own subqueries run under RLS too, so the event lookup inside the reaction policies
+ * hides the event from an outsider by itself. That is why these assertions still passed while the
+ * permission check was written as `EXISTS (SELECT authorize_in_region(...))`, which is
+ * unconditionally true because a scalar select returns one row whatever that row says. What they
+ * pin is the behaviour, not that one predicate.
+ */
+describe.skipIf(!reachable)('reactions and events RLS', () => {
+  /** An event in the fixture region, over the superuser connection so RLS is not in the way. */
+  const seedEvent = async (): Promise<number> => {
+    const [{ id }] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, subject_fk)
+      values ('join', ${users.regionAdmin.userId}, ${regionId}, ${users.regionAdmin.userId})
+      returning id`
+    return id
+  }
+
+  it('lets a member react to an event in their region', async () => {
+    const eventId = await seedEvent()
+
+    const rows = await as(
+      'regionUser',
+      (tx) => tx`
+        insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
+        values (${eventId}, '💪', 'emoji', ${regionId}, ${users.regionUser.authId}, ${users.regionUser.userId})
+        returning id`,
+    )
+
+    expect(rows).toHaveLength(1)
+    await sql`delete from public.events where id = ${eventId}`
+  })
+
+  it('does not let an outsider react in a region they are not in', async () => {
+    const eventId = await seedEvent()
+
+    await expectInsertRefused(() =>
+      as(
+        'outsider',
+        (tx) => tx`
+          insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
+          values (${eventId}, '👎', 'emoji', ${regionId}, ${users.outsider.authId}, ${users.outsider.userId})`,
+      ),
+    )
+
+    await sql`delete from public.events where id = ${eventId}`
+  })
+
+  it('does not let somebody react under another member s name', async () => {
+    const eventId = await seedEvent()
+
+    await expectInsertRefused(() =>
+      as(
+        'regionUser',
+        (tx) => tx`
+          insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
+          values (${eventId}, '🔥', 'emoji', ${regionId}, ${users.regionUser.authId}, ${users.regionAdmin.userId})`,
+      ),
+    )
+
+    await sql`delete from public.events where id = ${eventId}`
+  })
+
+  it('does not let a reaction be filed in a region the event is not in', async () => {
+    const eventId = await seedEvent()
+
+    // The reactor is a member of the fixture region but states the other one, which is what would
+    // sync the row to people who cannot see the event and hide it from those who can.
+    await expectInsertRefused(() =>
+      as(
+        'regionUser',
+        (tx) => tx`
+          insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk)
+          values (${eventId}, '🤔', 'emoji', ${otherRegionId}, ${users.regionUser.authId}, ${users.regionUser.userId})`,
+      ),
+    )
+
+    await sql`delete from public.events where id = ${eventId}`
+  })
+
+  /**
+   * An ex-member (or a member whose role lost `region.read`) keeps no write access to what they
+   * logged while they were in: not to rewrite their own history, and not to delete it.
+   */
+  it('stops an author rewriting their own event once they are out of the region', async () => {
+    const [{ id }] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, subject_fk)
+      values ('join', ${users.outsider.userId}, ${regionId}, ${users.outsider.userId})
+      returning id`
+
+    const updated = await as('outsider', (tx) => tx`update public.events set metadata = 'x' where id = ${id}`)
+    const deleted = await as('outsider', (tx) => tx`delete from public.events where id = ${id}`)
+
+    expect(updated.count).toBe(0)
+    expect(deleted.count).toBe(0)
+
+    await sql`delete from public.events where id = ${id}`
+  })
+
+  it('lets the author update their own event while they are still in the region', async () => {
+    const [{ id }] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, subject_fk)
+      values ('join', ${users.regionUser.userId}, ${regionId}, ${users.regionUser.userId})
+      returning id`
+
+    const result = await as('regionUser', (tx) => tx`update public.events set metadata = 'x' where id = ${id}`)
+
+    expect(result.count).toBe(1)
+
+    await sql`delete from public.events where id = ${id}`
+  })
+})
+
 describe.skipIf(!reachable)('region_invitations RLS', () => {
   it('lets any member of the region read its invitations', async () => {
     const result = await as(

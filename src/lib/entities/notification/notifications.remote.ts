@@ -1,6 +1,6 @@
 import { command } from '$app/server'
 import { db as baseDb } from '$lib/db/db.server'
-import { activities, notifications, pushSubscriptions, userSettings } from '$lib/db/schema'
+import { events, notifications, pushSubscriptions, userSettings } from '$lib/db/schema'
 import { writeUserSettings } from '$lib/entities/user/settings.server'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
@@ -29,30 +29,12 @@ export const markNotificationsRead = authedCommand(z.void(), async (_, { db, use
 })
 
 /**
- * Move the feed's "how far have I caught up" watermark.
+ * Move the feed's "how far have I caught up" watermark. The feed acknowledges on every mount.
  *
- * Only ever forward. The feed acknowledges on every mount, and a scoped feed that somehow reached
- * here with a lower id must not undo a global one; `greatest` makes the write idempotent rather
- * than making every caller remember the rule.
- */
-export const markFeedSeen = authedCommand(
-  // `.int()` because the value ends up inside `greatest(...)` against an int4 column, and a float
-  // or an id past 2^31 turns a settings write into a Postgres 22003 rather than a no-op.
-  z.object({ activityId: z.number().int().positive() }),
-  async ({ activityId }, { db, user }) => {
-    // Through the shared writer, which creates the row when it is missing. A plain UPDATE against
-    // an account with no settings row affects nothing and reports success, and a watermark that
-    // never moves is a digest that repeats itself every five minutes.
-    await writeUserSettings(db, user, {
-      seenUpToActivityId: sql`greatest(coalesce(${userSettings.seenUpToActivityId}, 0), ${activityId})`,
-    })
-  },
-)
-
-/**
- * The event-log twin of {@link markFeedSeen}.
+ * Only ever forward. A scoped feed must not undo the global one, so `greatest` makes the write
+ * idempotent rather than making every caller remember the rule.
  *
- * A timestamp, not an id. Event ids do not run with their timestamps (the backfill emitted them in
+ * A timestamp, not an id, unlike the `activities` mark it replaces. Event ids do not run with their timestamps (the backfill emitted them in
  * island order), so `greatest(id)` would mark a 2024 card as the newest thing read and silence a
  * digest for everything below it. Millisecond precision, matching `events.created_at`, so a mark
  * taken off a row compares exactly against the rows it is meant to cover.
@@ -140,10 +122,17 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
       })
 
     if (existing == null) {
-      const [{ newest }] = await db.select({ newest: max(activities.id) }).from(activities)
+      const [{ newest }] = await db.select({ newest: max(events.createdAt) }).from(events)
       // Through the shared writer: a settings row that does not exist yet would otherwise swallow
       // this silently, and the first digest would then count the region's entire history.
-      await writeUserSettings(db, user, { pushedUpToActivityId: newest ?? 0, seenUpToActivityId: newest ?? 0 })
+      //
+      // Both marks, and both as the newest event's TIMESTAMP: the digest counts what is above
+      // either, and the pair it counts against is the event one. `to_timestamp(0)` rather than
+      // null when the log is empty, because null is what the cron reads as "never initialised".
+      await writeUserSettings(db, user, {
+        pushedUpToEventAt: newest ?? new Date(0),
+        seenUpToEventAt: newest ?? new Date(0),
+      })
     }
   })
 })

@@ -43,13 +43,16 @@
           ? 'border-primary-500 bg-primary-500/15 text-primary-700-300'
           : 'border-surface-200-800 text-surface-600-400 hover:text-surface-950-50',
       ]}
-      aria-label={m.reactions_who({ emoji: chip.emoji })}
       aria-pressed={readonly ? undefined : chip.mine}
       {disabled}
       onclick={() => !readonly && ontoggle()}
       {@attach createContextAttachment((active) => (showing = active))}
     >
-      <span aria-hidden="true">{chip.emoji}</span>
+      <!-- No `aria-label` on the button, deliberately. Its primary action is the toggle, not the
+           popover, and naming it "Reacted with 👍" both mislabelled that and hid the count: an
+           accessible name replaces the content it is set on. Left alone, the name is the emoji's
+           own (which every screen reader announces) followed by the number beside it. -->
+      <span>{chip.emoji}</span>
       <span>{chip.count}</span>
     </button>
   {/snippet}

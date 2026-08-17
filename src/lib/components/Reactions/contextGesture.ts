@@ -39,6 +39,11 @@ export const createContextAttachment =
         return
       }
 
+      // Cleared here rather than only by the click it was set for: a hold that completes but
+      // never produces one (the finger drifts before lifting, or the sheet opening cancels the
+      // pointer) would otherwise leave the flag set, and the NEXT tap on this chip is the one
+      // that gets eaten.
+      swallowClick = false
       origin = { x: event.clientX, y: event.clientY }
       timer = window.setTimeout(() => {
         cancel()
