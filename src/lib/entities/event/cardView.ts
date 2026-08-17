@@ -1,9 +1,22 @@
 import type { AscentType } from '$lib/entities/ascent/dto'
-import type { MediaFile } from '$lib/entities/file/dto'
+import { mediaWord, type MediaFile } from '$lib/entities/file/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { MessageKey } from '$lib/i18n/message'
+import { calendarDay } from '$lib/i18n/relativeTime'
+import { changeViews, storedMedia, type ChangeView, type MediaWord } from './change'
+import {
+  catalogueParentRef,
+  eventEntityKey,
+  eventRefs,
+  lineRef,
+  type EventEntity,
+  type EventEntityMap,
+  type EventEntityRef,
+} from './entity'
 import type { EventGroupKind } from './grouping'
+import type { CardLine } from './line'
+import { parseDeletedAscent, parseDeletionScale, verbEntry, verbKey } from './verbs'
 
 /**
  * What a card renders: the lines one group of events produced, and how it presents them.
@@ -26,18 +39,6 @@ export interface CardGroup {
    */
   rows: CardLine[]
 }
-import { changeViews, storedMedia, type ChangeView, type MediaWord } from './change'
-import {
-  catalogueParentRef,
-  eventEntityKey,
-  eventRefs,
-  lineRef,
-  type EventEntity,
-  type EventEntityMap,
-  type EventEntityRef,
-} from './entity'
-import type { CardLine } from './line'
-import { parseDeletedAscent, parseDeletionScale, verbEntry, verbKey } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
 const MAX_ROWS = 4
@@ -376,20 +377,6 @@ export function headlineEntityName(activity: CardLine, entity: EventEntity | nul
 }
 
 /**
- * The calendar day a moment falls on, as a UTC-midnight stamp, read in the reader's timezone.
- *
- * The stored climb date is a calendar date and arrives as UTC midnight; `createdAt` is a
- * moment. Comparing them as a distance in milliseconds answers a different question and gets
- * it wrong on both sides of UTC: an afternoon log in Hawaii sits more than a day past its own
- * climb date, and a genuine one-day back-date in New Zealand sits less than one from a later
- * one. Both are calendar dates to the reader, so both are compared as such.
- */
-function calendarDay(at: number): number {
-  const date = new Date(at)
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-}
-
-/**
  * The lines that put `ref` on the card, in the order the card holds them: those ABOUT it, else
  * those that named it as their parent.
  *
@@ -568,11 +555,6 @@ function loggedAscent(entity: EventEntity | null | undefined): CardAscent | unde
     ascent.temperature == null
     ? undefined
     : ascent
-}
-
-/** Photo or video, read off the hydrated file: the row only records that a file was added. */
-function mediaWord(file: MediaFile): MediaWord {
-  return file.bunnyStreamFk == null ? 'photo' : 'video'
 }
 
 /**

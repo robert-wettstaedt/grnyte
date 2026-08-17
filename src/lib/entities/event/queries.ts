@@ -40,15 +40,14 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
 
   // A route as a card renders it: the same tree `listRoutes` syncs, because the card reuses
   // `RouteRow`, which wants the grade, the tags and the topo thumb. Anything less renders a real
-  // route with zeroed values, which reads worse than a late one. Declared once. It has to match what `listRoutes` syncs,
-  // because that is what makes the `RouteListRow` cast in the mapper safe: a relation missing on
-  // one path only would zero that route's values there, and the cast erases the type error.
+  // route with zeroed values, which reads worse than a late one. It has to match what `listRoutes`
+  // syncs, because that is what makes the `RouteListRow` cast in the mapper safe: a relation
+  // missing on one path only would zero that route's values there, and the cast erases the type
+  // error, which is how three hand-copies of this tree sat here disagreeing.
   //
-  // The parameter is `any` deliberately, and it is the only one in this file. Zero types a
-  // relation callback against the exact query it is attached to, so a callback shared by four
-  // attachment points cannot be written any other way; the alternative is four hand-copies that
-  // drift silently behind the mapper's cast. `queries.test.ts` compares the trees the four
-  // attachments actually produce, which is the check that matters.
+  // Declared once, and the `any` below is what lets it be. Zero types a relation callback against
+  // the exact query it is attached to, so a callback shared by four attachment points cannot be
+  // written any other way.
 
   const routeTree = (q: typeof zql.routes) =>
     r(q)
@@ -77,20 +76,15 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           // readable off the route beneath it.
           .related('files', (q) => r(q).related('bunnyStream').related('author'))
           .related('author')
-          // Same tree as the top-level route below. Kept as two copies because the relation
-          // builder's generic will not accept a shared callback; `queries.test.ts` asserts the
-          // two produce the same shape, since the mapper's `RouteListRow` cast would otherwise
-          // hide the drift.
-          .related('route', (q) =>
-            r(q)
-              .related('tags', r)
-              .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
-              .related('block', (q) => r(q).related('area', r))
-              .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r))),
-          ),
+          // The same tree every other route attachment gets, through the one cast above.
+          .related('route', route),
       )
       // `geolocation` and `topos` are the pin the create card draws as a map thumbnail and the
       // topo thumb every block row shows. Both were on the old hydrated entity.
+      // Written out here and once more under `file` below, unlike the route tree: the block
+      // relation is the only one the mapper reads WITHOUT a cast of its own, so sharing it
+      // through the `any` above would take `topos` down to `any[]` and the entity's thumbnail
+      // with it.
       .related('block', (q) =>
         r(q)
           .related('area', r)
@@ -147,13 +141,7 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           .orderBy('createdAt', 'asc')
           .orderBy('id', 'asc'),
       )
-      .related('route', (q) =>
-        r(q)
-          .related('tags', r)
-          .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
-          .related('block', (q) => r(q).related('area', r))
-          .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r))),
-      )
+      .related('route', route)
       .related('subject')
   )
 }
@@ -194,10 +182,9 @@ export const eventsQueryDefs = {
         q = q.where('id', 'IN', args.ids)
       }
 
-      // The segmented control. An ascent card is an event whose object is an ascent, EXCEPT a
-      // media removal: that logs on the parent (the file row is gone by then), so it arrives as
-      // `ascent` + `remove` and is crag housekeeping rather than a send. The old rule spelled the
-      // same exception as `columnName is not file`; only the upload half of it became free.
+      // The segmented control, as a where-clause: a Zero query cannot call a predicate, so this
+      // is the one mirror of `isAscentEvent` rather than another copy of the reasoning. Read that
+      // for why a media removal is the exception.
       if (args.category === 'ascent') {
         q = q.where('ascentFk', 'IS NOT', null).where('verb', '!=', 'remove')
       } else if (args.category === 'update') {

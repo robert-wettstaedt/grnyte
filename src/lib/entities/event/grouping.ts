@@ -1,4 +1,5 @@
 import { isSameDay } from 'date-fns'
+import { isAscentEvent } from './dto'
 import type { EventListItem } from './mapper'
 
 export interface EventGroup {
@@ -189,13 +190,11 @@ function kindOf(event: EventListItem): EventGroupKind {
   }
 
   // A photo added to or pulled off an ascent is media housekeeping, not a send, and must stay out
-  // of the session card or it inflates "sent 4 routes today".
-  //
-  // Only half of that is free. An UPLOAD's object is the file, so it never reaches here. A REMOVAL
-  // logs on the parent, because the file row is gone by then, so it arrives as `ascent` + `remove`
-  // and does need saying out loud, exactly as the old `columnName !== 'file'` guard did.
+  // of the session card or it inflates "sent 4 routes today". An UPLOAD's object is the file, so
+  // it never reaches here; a REMOVAL logs on the parent and does, which is the exception
+  // `isAscentEvent` carries for all three readers of this rule.
   if (event.objectType === 'ascent') {
-    return event.verb === 'remove' ? 'entity' : 'session'
+    return isAscentEvent({ ascent: true, verb: event.verb }) ? 'session' : 'entity'
   }
 
   return CRAG_OBJECT_TYPES.has(event.objectType) ? 'burst' : 'entity'

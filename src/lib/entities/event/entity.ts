@@ -104,19 +104,17 @@ export interface EventEntityRef {
 /**
  * Which refs a window of activities points at, in each of the roles a card reads them in.
  *
- * One pass rather than four collectors. Every role answers the same question ("which ref, and
- * in what capacity") from the same three declarations on a catalogue entry, and split across
- * four functions each was free to read them differently: the card asked for subjects and rows
- * separately, hydration asked for a third combination, and the shared parent was a private
- * fifth copy of the guard in `card.ts`. Together they also walked and deduped the same list
- * three times per card, on every sync tick.
+ * One pass rather than three collectors. Every role answers the same question ("which ref, and in
+ * what capacity") from the same declarations on a catalogue entry, and split across functions each
+ * was free to read them differently: the card asked for subjects and rows separately and the
+ * shared parent was a private copy of the guard in `card.ts`. Together they also walked and
+ * deduped the same list per card, on every sync tick.
+ *
+ * There is no "everything to fetch" role any more. That list existed for a hydration pass that
+ * went and got the entities a window pointed at; an event carries its own, so the only question
+ * left is what the card says about them.
  */
 export interface EventRefs {
-  /**
-   * Everything to fetch: the subjects plus every parent any row names. "Made 12 edits in
-   * Nordblock" needs the block, and none of those twelve rows is *about* the block.
-   */
-  hydrate: EventEntityRef[]
   /**
    * The place the whole window agrees on, when it has one. That is what a burst headline names;
    * a window spanning two parents has no such place and falls back to its first subject.
@@ -162,7 +160,6 @@ export function eventEntityKey(ref: { id: string; type: string }): string {
 export function eventRefs(rows: readonly CardLine[]): EventRefs {
   const subjects = new Map<string, EventEntityRef>()
   const rowRefs = new Map<string, EventEntityRef>()
-  const hydrate = new Map<string, EventEntityRef>()
 
   // An upload whose parent is itself on the card names no place of its own: a clip hangs off an
   // ascent that is one of the card's own subjects, so it agrees with the others about where this
@@ -196,11 +193,6 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
 
     if (entry?.names !== 'stored') {
       add(subjects, subject)
-      add(hydrate, subject)
-    }
-
-    if (parent != null) {
-      add(hydrate, parent)
     }
 
     if (entry?.row !== 'none' && entry?.names !== 'stored') {
@@ -209,7 +201,7 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
     }
   }
 
-  return { hydrate: [...hydrate.values()], place, rows: [...rowRefs.values()], subjects: [...subjects.values()] }
+  return { place, rows: [...rowRefs.values()], subjects: [...subjects.values()] }
 }
 
 /**

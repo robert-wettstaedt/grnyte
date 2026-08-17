@@ -3,6 +3,7 @@ import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type BunnyStream, type File } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
+import { mediaWord } from '$lib/entities/file/dto'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
 import { authedCommand } from '$lib/remote/authed.server'
@@ -343,7 +344,7 @@ export const deleteFile = command(
       if (parent != null) {
         await insertEvent(db, {
           actorFk: user.id,
-          metadata: file.bunnyStreamFk == null ? 'photo' : 'video',
+          metadata: mediaWord(file),
           object: parent,
           regionFk: file.regionFk,
           verb: 'remove',

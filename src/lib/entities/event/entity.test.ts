@@ -29,7 +29,7 @@ describe('eventRefs', () => {
   it('leaves a stored subject out of every role', () => {
     const refs = eventRefs([line({ columnName: 'invitation', objectId: '7', objectType: 'user', verb: 'invite' })])
 
-    expect(refs).toMatchObject({ hydrate: [], rows: [], subjects: [] })
+    expect(refs).toMatchObject({ rows: [], subjects: [] })
   })
 
   // A file's name is a cuid and its only page is the media viewer, so the row worth showing is
@@ -47,25 +47,16 @@ describe('eventRefs', () => {
 
     expect(refs.subjects).toEqual([{ id: 'f-1', type: 'file' }])
     expect(refs.rows).toEqual([{ id: '500', type: 'route' }])
-    // Both, because the card draws the photo off the file and names the route.
-    expect(refs.hydrate).toEqual([
-      { id: 'f-1', type: 'file' },
-      { id: '500', type: 'route' },
-    ])
   })
 
   // A removed member is out of the region, so a row offering their profile is a dead end. The
-  // headline still names them, so the person is still fetched.
-  it('fetches a removed member without giving them a row', () => {
+  // headline still names them, so they stay a subject.
+  it('keeps a removed member as a subject without giving them a row', () => {
     const refs = eventRefs([
       line({ columnName: 'role', newValue: 'Mara', objectId: '5', objectType: 'user', verb: 'remove' }),
     ])
 
-    expect(refs).toMatchObject({
-      hydrate: [{ id: '5', type: 'user' }],
-      rows: [],
-      subjects: [{ id: '5', type: 'user' }],
-    })
+    expect(refs).toMatchObject({ rows: [], subjects: [{ id: '5', type: 'user' }] })
   })
 
   it('names the place when every row agrees on one parent', () => {
@@ -90,6 +81,6 @@ describe('eventRefs', () => {
   })
 
   it('has nothing at all for no activities', () => {
-    expect(eventRefs([])).toEqual({ hydrate: [], place: undefined, rows: [], subjects: [] })
+    expect(eventRefs([])).toEqual({ place: undefined, rows: [], subjects: [] })
   })
 })

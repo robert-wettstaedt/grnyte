@@ -48,3 +48,11 @@ export interface MediaFile {
   /** EXIF-oriented pixel size of the original image; aspect ratio only. */
   width: number | undefined
 }
+
+/**
+ * Which word a file is: the one test, so the sentence a removal STORES and the sentence a feed
+ * card SAYS can never disagree about the same row.
+ */
+export function mediaWord(file: { bunnyStreamFk: null | string | undefined }): 'photo' | 'video' {
+  return file.bunnyStreamFk == null ? 'photo' : 'video'
+}

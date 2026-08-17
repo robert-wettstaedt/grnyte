@@ -12,6 +12,8 @@ import {
   users,
   userSettings,
 } from '$lib/db/schema'
+import { isAscentEvent } from '$lib/entities/event/dto'
+import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
 import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
 import { readableRegions } from '$lib/entities/notification/notification.server'
@@ -112,10 +114,7 @@ function categoryEnabled(
   event: Pick<DigestEvent, 'ascentFk' | 'subjectFk' | 'verb'>,
   settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyCragEdits: boolean | null },
 ): boolean {
-  // The same rule the feed's segmented control applies (`queries.ts`): an ascent card is an event
-  // about an ascent, EXCEPT a media removal, which logs on the parent because the file row is gone
-  // by then and is crag housekeeping rather than a send.
-  if (event.ascentFk != null && event.verb !== 'remove') {
+  if (isAscentEvent({ ascent: event.ascentFk != null, verb: event.verb })) {
     return settings.notifyAscents !== false
   }
 
@@ -257,14 +256,22 @@ async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const queued = await db
+    const rows = await db
       .select({
         actorFk: events.actorFk,
         areaFk: events.areaFk,
+        // The eight fks the parent hop reads, handed to `eventParentRef` below rather than
+        // resolved in SQL. What a burst groups on has to be the hop the FEED reads, and a
+        // `coalesce` and a `case` kept in step with it by hand is a push that groups differently
+        // from the cards it summarises. Without a parent at all, every edit under one block is its
+        // own group, which inflates the "and 12 more" the digest reports.
+        areaParentFk: areas.parentFk,
         ascentFk: events.ascentFk,
+        ascentRouteFk: ascents.routeFk,
         // The catalogue keys a logged ascent on its type, which is a column of the ascent rather
         // than of the event. Without it every send in a digest reads as the generic sentence.
         ascentType: ascents.type,
+        blockAreaFk: blocks.areaFk,
         blockFk: events.blockFk,
         // The first column an update moved, which is what the catalogue keys the sentence on: an
         // update carries no verb of its own beyond "update", so without this a grade change reads
@@ -274,29 +281,15 @@ async function sendDigests(nowMs: number): Promise<number> {
           null | string
         >`(select c.column_name from public.changes c where c.event_fk = ${events.id} order by c.id limit 1)`,
         createdAt: events.createdAt,
+        fileAreaFk: files.areaFk,
+        fileAscentFk: files.ascentFk,
+        fileBlockFk: files.blockFk,
         fileFk: events.fileFk,
+        fileRouteFk: files.routeFk,
         id: events.id,
         metadata: events.metadata,
-        // What a burst groups on, which has to be the same hop `parentOf` reads for the feed: an
-        // area's parent, a block's area, a route's block, an ascent's route, and whatever a file
-        // landed on. Without it every edit under one block is its own group, which inflates the
-        // "and 12 more" count the digest reports; without the FILE half specifically, a submit of
-        // five photos reports one photo and four more, where the card shows one grouped headline.
-        parentId: sql<null | number | string>`coalesce(
-          ${areas.parentFk}::text, ${blocks.areaFk}::text, ${routes.blockFk}::text, ${ascents.routeFk}::text,
-          ${files.routeFk}::text, ${files.ascentFk}::text, ${files.blockFk}::text, ${files.areaFk}::text
-        )`,
-        parentType: sql<null | string>`case
-          when ${areas.parentFk} is not null then 'area'
-          when ${blocks.areaFk} is not null then 'area'
-          when ${routes.blockFk} is not null then 'block'
-          when ${ascents.routeFk} is not null then 'route'
-          when ${files.routeFk} is not null then 'route'
-          when ${files.ascentFk} is not null then 'ascent'
-          when ${files.blockFk} is not null then 'block'
-          when ${files.areaFk} is not null then 'area'
-        end`,
         regionFk: events.regionFk,
+        routeBlockFk: routes.blockFk,
         routeFk: events.routeFk,
         subjectFk: events.subjectFk,
         verb: events.verb,
@@ -327,9 +320,37 @@ async function sendDigests(nowMs: number): Promise<number> {
       // digest reports a count and one headline either way, so a longer tail buys nothing.
       .limit(DIGEST_SCAN_LIMIT)
 
-    if (queued.length === 0) {
+    if (rows.length === 0) {
       return false
     }
+
+    // The parent, resolved by the same function the feed's mapper calls.
+    const queued = rows.map(
+      ({
+        areaParentFk,
+        ascentRouteFk,
+        blockAreaFk,
+        fileAreaFk,
+        fileAscentFk,
+        fileBlockFk,
+        fileRouteFk,
+        routeBlockFk,
+        ...event
+      }) => {
+        const parent = eventParentRef({
+          areaParentFk,
+          ascentRouteFk,
+          blockAreaFk,
+          file:
+            event.fileFk == null
+              ? undefined
+              : { areaFk: fileAreaFk, ascentFk: fileAscentFk, blockFk: fileBlockFk, routeFk: fileRouteFk },
+          routeBlockFk,
+        })
+
+        return { ...event, parentId: parent?.id, parentType: parent?.type }
+      },
+    )
 
     const enabled = queued.filter((event) => categoryEnabled(event, subscriber))
 

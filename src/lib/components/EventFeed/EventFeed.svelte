@@ -9,8 +9,8 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
-  import type { CardView } from '$lib/entities/event/cardView'
-  import { formatDay } from '$lib/i18n/relativeTime'
+  import type { EventCardView } from '$lib/entities/event/card'
+  import { calendarDay, formatDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
@@ -38,7 +38,7 @@
     onLoadOlder?: () => void
     onMergeNew?: () => void
     /** The cards, newest first, already decided by `cardView`. */
-    views: readonly CardView[]
+    views: readonly EventCardView[]
   }
 
   const {
@@ -51,22 +51,14 @@
     views,
   }: Props = $props()
 
-  /**
-   * `createdAt` is a moment, but a divider labels a calendar day. Take the local
-   * calendar date and re-express it as a UTC midnight, which is what `formatDay` reads
-   * (and what the profile's sessions already key on).
-   */
-  const dayOf = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-  }
+  // `createdAt` is a moment, but a divider labels a calendar day. See `calendarDay`.
 
   // A divider goes above the first card of each day, so the list stays one flat sequence
   // rather than nested per-day arrays (which would break the "N new" merge at a boundary).
   const rows = $derived(
     views.map((view, index) => {
-      const day = dayOf(view.createdAt)
-      return { day, startsDay: index === 0 || dayOf(views[index - 1].createdAt) !== day, view }
+      const day = calendarDay(view.createdAt)
+      return { day, startsDay: index === 0 || calendarDay(views[index - 1].createdAt) !== day, view }
     }),
   )
 

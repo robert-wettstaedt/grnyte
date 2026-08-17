@@ -1,4 +1,19 @@
 /**
+ * The local calendar day a moment falls on, as the UTC-midnight stamp every date-only value in
+ * the app is stored and formatted as.
+ *
+ * One conversion, because getting it wrong is invisible until somebody reads the app from another
+ * timezone: a moment formatted in UTC lands on the day before for every reader west of Greenwich,
+ * and a date-only value compared as a distance in milliseconds is a day out on both sides of it.
+ * The feed's dividers, the inbox's, the contribution calendar and a card's climb line all ask this
+ * same question and each used to answer it in its own two lines.
+ */
+export function calendarDay(at: number): number {
+  const local = new Date(at)
+  return Date.UTC(local.getFullYear(), local.getMonth(), local.getDate())
+}
+
+/**
  * The absolute form of a date-only value: "Aug 3, 2026".
  *
  * In UTC, because the value names a calendar date stored as UTC midnight; formatting it in the
@@ -21,9 +36,7 @@ export function formatDay(timestamp: number, now: number, locale: string): strin
   // viewer's local day. Compare both as UTC midnights of their calendar dates, and
   // format the absolute date in UTC, so neither the time of day nor the timezone
   // can shift the label by a day.
-  const local = new Date(now)
-  const today = Date.UTC(local.getFullYear(), local.getMonth(), local.getDate())
-  const days = Math.round((timestamp - today) / DAY)
+  const days = Math.round((timestamp - calendarDay(now)) / DAY)
   if (Math.abs(days) >= 7) {
     return formatDate(timestamp, locale)
   }

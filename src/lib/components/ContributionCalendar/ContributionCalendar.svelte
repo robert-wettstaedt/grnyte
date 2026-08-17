@@ -1,5 +1,6 @@
 <script lang="ts">
   import { GRADE_COLORS } from '$lib/entities/grade/color'
+  import { calendarDay } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
@@ -22,13 +23,9 @@
     day: number
   }
 
-  // A calendar date (an ascent's `dateTime`) is a UTC-midnight millis; align "today"
-  // the same way (the viewer's local calendar date as UTC midnight) so the current
-  // day lands in the right cell regardless of timezone. Mirrors i18n/formatDay.
-  const today = $derived.by(() => {
-    const local = new Date(now())
-    return Date.UTC(local.getFullYear(), local.getMonth(), local.getDate())
-  })
+  // A calendar date (an ascent's `dateTime`) is UTC-midnight millis; align "today" the same way
+  // so the current day lands in the right cell regardless of timezone.
+  const today = $derived(calendarDay(now()))
 
   // Columns = weeks (Monday-first), rows = weekdays. The grid starts on the Monday
   // 52 weeks before this week and runs to today; future cells are omitted.

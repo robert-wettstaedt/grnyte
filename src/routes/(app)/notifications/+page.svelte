@@ -23,7 +23,7 @@
   import { notificationList } from '$lib/entities/notification/resources.svelte'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { resolveMessage } from '$lib/i18n/message'
-  import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { calendarDay, formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -50,19 +50,17 @@
     notifications.data.map((notification) => ({ notification, view: notificationView(notification) })),
   )
 
-  /** Local calendar day as the UTC midnight `formatDay` reads, exactly as the feed's dividers. */
-  const dayOf = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-  }
+  // Local calendar day, exactly as the feed's dividers. See `calendarDay`.
 
   // Same day dividers as the feed, decided the same way: a flat sequence with a flag on the first
   // row of each day, rather than nested per-day arrays.
   const rows = $derived(
     views.map((entry, index) => ({
       ...entry,
-      day: dayOf(entry.notification.createdAt),
-      startsDay: index === 0 || dayOf(views[index - 1].notification.createdAt) !== dayOf(entry.notification.createdAt),
+      day: calendarDay(entry.notification.createdAt),
+      startsDay:
+        index === 0 ||
+        calendarDay(views[index - 1].notification.createdAt) !== calendarDay(entry.notification.createdAt),
     })),
   )
 

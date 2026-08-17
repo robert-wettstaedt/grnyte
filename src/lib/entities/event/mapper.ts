@@ -124,6 +124,39 @@ const EMPTY_OBJECTS = {
   subject: undefined,
 }
 
+/**
+ * What the object hangs off, read through its own foreign key.
+ *
+ * A file is the awkward one: it has four possible parents and names whichever it landed on, which
+ * is why an upload card says "added 5 photos to Rampe". That precedence is `fileParent`, shared
+ * with the write path so the event's object and the feed's grouping key cannot disagree.
+ */
+/**
+ * The one hop up from an event's object: an area's parent, a block's area, a route's block, an
+ * ascent's route, and whatever a file landed on.
+ *
+ * Exported because the push digest asks the same question of the same rows and used to answer it
+ * in raw SQL, a `coalesce` and a `case` that had to be kept in step with this by hand. The digest
+ * groups a burst on what it gets back, so the two drifting means a push that groups differently
+ * from the feed it is summarising.
+ */
+export function eventParentRef(fks: {
+  areaParentFk: null | number | undefined
+  ascentRouteFk: null | number | undefined
+  blockAreaFk: null | number | undefined
+  file: null | Parameters<typeof fileParent>[0] | undefined
+  routeBlockFk: null | number | undefined
+}): undefined | { id: number | string; type: EventObjectType } {
+  if (fks.areaParentFk != null) return { id: fks.areaParentFk, type: 'area' }
+  if (fks.blockAreaFk != null) return { id: fks.blockAreaFk, type: 'area' }
+  if (fks.routeBlockFk != null) return { id: fks.routeBlockFk, type: 'block' }
+  if (fks.ascentRouteFk != null) return { id: fks.ascentRouteFk, type: 'route' }
+  if (fks.file != null) return fileParent(fks.file)
+
+  // A user has none: a person's region membership is not a place.
+  return undefined
+}
+
 function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity | undefined {
   const crumbs = (regionFk: null | number | undefined, rest: (null | string | undefined)[]) =>
     [regionCrumb(userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)
@@ -278,22 +311,14 @@ function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): EventEn
   return undefined
 }
 
-/**
- * What the object hangs off, read through its own foreign key.
- *
- * A file is the awkward one: it has four possible parents and names whichever it landed on, which
- * is why an upload card says "added 5 photos to Rampe". That precedence is `fileParent`, shared
- * with the write path so the event's object and the feed's grouping key cannot disagree.
- */
 function parentOf(row: EventRow): undefined | { id: number | string; type: EventObjectType } {
-  if (row.area?.parentFk != null) return { id: row.area.parentFk, type: 'area' }
-  if (row.block?.areaFk != null) return { id: row.block.areaFk, type: 'area' }
-  if (row.route?.blockFk != null) return { id: row.route.blockFk, type: 'block' }
-  if (row.ascent?.routeFk != null) return { id: row.ascent.routeFk, type: 'route' }
-  if (row.file != null) return fileParent(row.file)
-
-  // A user has none: a person's region membership is not a place.
-  return undefined
+  return eventParentRef({
+    areaParentFk: row.area?.parentFk,
+    ascentRouteFk: row.ascent?.routeFk,
+    blockAreaFk: row.block?.areaFk,
+    file: row.file,
+    routeBlockFk: row.route?.blockFk,
+  })
 }
 
 function routeEntity(route: NonNullable<EventRow['route']>, userRegions: RegionMembership[]): EventEntity {

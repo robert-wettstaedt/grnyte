@@ -24,6 +24,20 @@ export type EventCategory = 'ascent' | 'update'
 
 export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
 
+/**
+ * Whether an event is a SEND rather than crag housekeeping: about an ascent, and not a media
+ * removal.
+ *
+ * A removal logs on the parent, because the file row is gone by then, so it arrives as an ascent
+ * event and is the one exception. Three places ask this and each used to spell it out: the feed's
+ * segmented control (as a Zero where-clause, which cannot call a predicate and mirrors this
+ * instead), the client's grouping, and the digest's category switch. The last two disagreeing
+ * means a push announcing a send that the feed files under edits.
+ */
+export function isAscentEvent(event: { ascent: boolean; verb: Event['verb'] }): boolean {
+  return event.ascent && event.verb !== 'remove'
+}
+
 /** Which of the six object columns this row set. The CHECK guarantees exactly one. */
 export function objectOf(row: {
   [K in (typeof EVENT_OBJECT_COLUMNS)[EventObjectType]]?: null | number | string

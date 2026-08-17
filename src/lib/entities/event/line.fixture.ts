@@ -1,9 +1,10 @@
 import type { TopoView } from '$lib/entities/topo/dto'
 import { cardView, type CardGroup, type CardView } from './cardView'
+// The cast comes from the case wall, so a name in a unit test and the same id on the wall are
+// the same person. Two lists drifting would make one file's "Sofia Brandt" another's stranger.
+import { ME, PEOPLE } from './cases/world'
 import { changeViews, type ChangeView } from './change'
 import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from './entity'
-import type { CardLine } from './line'
-
 /**
  * The line fixtures the card layer's own unit tests build on.
  *
@@ -14,17 +15,9 @@ import type { CardLine } from './line'
  *
  * Not imported by the app.
  */
+import type { CardLine } from './line'
 
-/** The signed-in climber, so a card reads "You ...". */
-export const ME = 1
-
-export const PEOPLE: Record<number, string> = {
-  2: 'Tomas Kessler',
-  3: 'Sofia Brandt',
-  4: 'Jonas Weber',
-  5: 'Mara Lindqvist',
-  [ME]: 'Ada Rossi',
-}
+export { ME, PEOPLE }
 
 let nextId = 1
 
