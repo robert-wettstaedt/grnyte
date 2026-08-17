@@ -1,7 +1,7 @@
 import { activityCard, type ActivityCardRow, type ActivityCardView } from '$lib/entities/activity/card'
 import type { ActivityEntity, ActivityEntityMap, ActivityEntityRef } from '$lib/entities/activity/entity'
 import type { ActivityGroup } from '$lib/entities/activity/grouping'
-import type { ReactionChip } from '$lib/entities/reaction/dto'
+import type { CommentListItem, ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventGroup } from './grouping'
@@ -29,9 +29,11 @@ export interface EventCardView extends ActivityCardView {
   rows: (ActivityCardRow & { bar?: EventReactionBar })[]
 }
 
-/** One event's reactions, and the handle the toggle posts back. */
+/** One event's reactions and its thread, plus the handle both post back. */
 export interface EventReactionBar {
   chips: ReactionChip[]
+  /** The thread under this event, oldest first. */
+  comments: CommentListItem[]
   eventId: number
   /**
    * The reader's own event, so the bar lists its chips and offers nothing to add.
@@ -93,7 +95,10 @@ export function eventCard(
     //
     // ponytail: an event past `MAX_ROWS` (the fifth ascent of a session, behind "1 more") gets no
     // bar of its own. Upgrade = render the overflow rows rather than counting them.
-    bars: rows.length === 0 ? leftover.slice(0, 1) : leftover.filter((left) => left.chips.length > 0),
+    bars:
+      rows.length === 0
+        ? leftover.slice(0, 1)
+        : leftover.filter((left) => left.chips.length > 0 || left.comments.length > 0),
     // Same reason as `state` above: a name that is missing is missing for good, where the old pass
     // had to keep the slot pulsing until every fetch had answered.
     entityUnnamed: view.entityName == null,
@@ -112,11 +117,20 @@ function bar(event: EventListItem, currentUserFk: number | undefined): EventReac
   const chips = reactionChips(event.reactions, currentUserFk)
   const readonly = event.actorFk === currentUserFk
 
-  if (readonly && chips.length === 0) {
+  // Your own event with nothing on it yet: no chips to read, no reaction to add (you cannot react
+  // to yourself), and nobody to answer. Talking to yourself under your own card is the one thing
+  // worth leaving out, and an empty bar is not invisible: it draws a rule across the card with
+  // nothing under it, or a gap between rows.
+  if (readonly && chips.length === 0 && event.comments.length === 0) {
     return undefined
   }
 
-  return { chips, eventId: event.id, readonly }
+  return {
+    chips,
+    comments: event.comments.map((comment) => ({ ...comment, mine: comment.authorFk === currentUserFk })),
+    eventId: event.id,
+    readonly,
+  }
 }
 
 /**

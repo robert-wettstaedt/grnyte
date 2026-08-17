@@ -204,7 +204,7 @@ export const userSettings = table(
     id: baseFields.id,
 
     /**
-     * The four push switches. They govern PUSH and nothing else: a directed event always lands in
+     * The six push switches. They govern PUSH and nothing else: a directed event always lands in
      * the inbox and a broadcast one always lands in the feed, whatever these say. There is
      * deliberately no way to turn the inbox off, because the point is that people discover
      * updates; this is only about not being disturbed while they do.
@@ -213,6 +213,8 @@ export const userSettings = table(
      * subscriber who then receives nothing reads it as broken, and a second opt-in buys nothing.
      */
     notifyAscents: boolean('notify_ascents').notNull().default(true),
+    /** Push when somebody comments on a card you are part of: yours, or one you commented on. */
+    notifyComments: boolean('notify_comments').notNull().default(true),
     notifyCommunity: boolean('notify_community').notNull().default(true),
     /**
      * Renamed from `notify_moderations`, which is what it always actually governed: 1.0's
@@ -222,6 +224,8 @@ export const userSettings = table(
     notifyCragEdits: boolean('notify_crag_edits').notNull().default(true),
     /** Push for the things aimed at you personally: mentions, your ascent, your role. */
     notifyDirected: boolean('notify_directed').notNull().default(true),
+    /** Push when somebody reacts to something you logged or edited. */
+    notifyReactions: boolean('notify_reactions').notNull().default(true),
 
     // The `activities` pair, kept until that table goes so an in-flight digest is not lost.
     pushedUpToActivityId: integer('pushed_up_to_activity_id'),
@@ -1785,17 +1789,34 @@ export const reactionsRelations = relations(reactions, ({ many, one }) => ({
  * a photo to somebody else's ascent is refused outright by `resolveAttachRegion`, so a source
  * type for it could never fire. Add it back here the day that gate relaxes.
  */
-export const notificationSourceType: ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted'] =
-  ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted']
+export const notificationSourceType: [
+  'mention',
+  'ascent_edited',
+  'ascent_deleted',
+  'role_changed',
+  'invite_accepted',
+  'reaction',
+  'comment',
+] = ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted', 'reaction', 'comment']
 
 /**
- * The entity kinds a notification points at. A subset of `activities.entity_type`, and stored the
- * same way, so the feed's hydration layer resolves both.
+ * The entity kinds a notification points at. A subset of the event object types, and stored the
+ * same way, so the inbox resolves them through the same rows the feed does.
  *
- * No `block`: the only thing that points at a non-ascent entity is a mention, and mentions come
- * out of markdown bodies. Blocks have none. Add it here the day they get a description.
+ * `block` joined the list with reactions: a reaction is about a CARD, and a card is about whatever
+ * its event is, which for a crag edit is routinely a block. Mentions still cannot produce one,
+ * since they come out of markdown bodies and blocks have none.
+ *
+ * Still no `file`: it has no page to point at, and an upload's notification names the thing the
+ * photos landed on instead, which is what the card names too.
  */
-export const notificationEntityType: ['area', 'ascent', 'route', 'user'] = ['area', 'ascent', 'route', 'user']
+export const notificationEntityType: ['area', 'ascent', 'block', 'route', 'user'] = [
+  'area',
+  'ascent',
+  'block',
+  'route',
+  'user',
+]
 
 /**
  * Things aimed at one person: a mention, somebody editing your ascent, a role change.
@@ -1827,11 +1848,30 @@ export const notifications = table(
       .references((): AnyColumn => authUsers.id),
     entityId: text('entity_id').notNull(),
     entityType: text('entity_type', { enum: notificationEntityType }).notNull(),
+    /**
+     * Which card, for the two source types that are about one: a reaction and a comment.
+     *
+     * `entity_id`/`entity_type` stay set beside it, and are still what the inbox row links to and
+     * renders. This says WHICH event was reacted to, so two reactions on two events about the same
+     * route are two rows rather than one collapsing into the other through
+     * `notifications_source_idx`.
+     *
+     * Cascades. A hard delete inside the grace window takes the event away, and an inbox row about
+     * a card that no longer exists is a dead end.
+     */
+    eventFk: integer('event_fk').references((): AnyColumn => events.id, { onDelete: 'cascade' }),
     /** Whatever the sentence needs that the entity can no longer answer, e.g. the route name of
      *  a deleted ascent. */
     metadata: text('metadata'),
     /** null = never delivered by push. Set by the cron once it has gone out. */
     pushedAt: timestamp('pushed_at', { withTimezone: true }),
+    /**
+     * Where inside the card, for a comment: the row it is about, so the inbox can say which one
+     * and a future permalink can scroll to it. Null on a reaction, whose row IS the event.
+     *
+     * Cascades with the comment for the same reason `event_fk` does.
+     */
+    reactionFk: integer('reaction_fk').references((): AnyColumn => reactions.id, { onDelete: 'cascade' }),
     /** null = unread. */
     readAt: timestamp('read_at', { withTimezone: true }),
     sourceType: text('source_type', { enum: notificationSourceType }).notNull(),
@@ -1847,13 +1887,20 @@ export const notifications = table(
     // actor into the first (two photos on your ascent are one notification, which is what you
     // want; a role set back and forth is one, which is the price). Upgrade = a nonce column if
     // anybody misses the second one.
-    uniqueIndex('notifications_source_idx').on(
-      table.userFk,
-      table.sourceType,
-      table.entityType,
-      table.entityId,
-      table.actorFk,
-    ),
+    uniqueIndex('notifications_source_idx')
+      .on(table.userFk, table.sourceType, table.entityType, table.entityId, table.actorFk)
+      .where(sql`event_fk is null`),
+
+    // The same rule for the rows that are about a CARD, keyed on the card instead of on the entity
+    // pair, which the event already determines. Two reactions on two events about one route have
+    // to stay two inbox rows; without the event in the key the second would collapse into the
+    // first and the reader would hear about one of them.
+    //
+    // Two partial indexes rather than one over `coalesce(event_fk, 0)`, because an upsert has to
+    // name its conflict target and drizzle can only name columns.
+    uniqueIndex('notifications_event_source_idx')
+      .on(table.userFk, table.sourceType, table.actorFk, table.eventFk)
+      .where(sql`event_fk is not null`),
     index('notifications_user_fk_read_at_idx').on(table.userFk, table.readAt),
     index('notifications_region_fk_idx').on(table.regionFk),
     // The cron's only query over this table, and it runs every five minutes. Partial on BOTH
@@ -1892,6 +1939,8 @@ export type Notification = InferSelectModel<typeof notifications>
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   actor: one(users, { fields: [notifications.actorFk], references: [users.id], relationName: 'notification-actor' }),
   authUser: one(authUsers, { fields: [notifications.authUserFk], references: [authUsers.id] }),
+  event: one(events, { fields: [notifications.eventFk], references: [events.id] }),
+  reaction: one(reactions, { fields: [notifications.reactionFk], references: [reactions.id] }),
   region: one(regions, { fields: [notifications.regionFk], references: [regions.id] }),
   user: one(users, { fields: [notifications.userFk], references: [users.id], relationName: 'notification-user' }),
 }))

@@ -154,6 +154,20 @@ describe.skipIf(!usable)('listEvents', () => {
     }
   })
 
+  it('takes a scope id as text, which is how every caller states it', async () => {
+    // The old log keyed on `entity_id text`, so every caller passes `String(id)` and still does.
+    // Five of the six object columns are integers and Zero compares by value AND type, so an
+    // uncoerced string matches nothing: every area, block and route log comes back empty.
+    const [event] = (await run({ limit: ALL_ROWS })).filter((row) => row.routeFk != null)
+    if (event?.routeFk == null) return
+
+    const asText = await run({ limit: ALL_ROWS, scope: { id: String(event.routeFk), type: 'route' } })
+    const asNumber = await run({ limit: ALL_ROWS, scope: { id: event.routeFk, type: 'route' } })
+
+    expect(asText.map((row: { id: number }) => row.id)).toEqual(asNumber.map((row: { id: number }) => row.id))
+    expect(asText.length).toBeGreaterThan(0)
+  })
+
   it('takes a cuid for a file scope, the one object not keyed on a serial', async () => {
     const rows = await run({ limit: 200 })
     const withFile = rows.find((row) => row.fileFk != null)

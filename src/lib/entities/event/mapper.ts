@@ -3,8 +3,8 @@ import type { ActivityEntity } from '$lib/entities/activity/entity'
 import { blockName } from '$lib/entities/block/mapper'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
 import { toGeolocation } from '$lib/entities/geolocation/mapper'
-import type { ReactionListItem } from '$lib/entities/reaction/dto'
-import { toReaction } from '$lib/entities/reaction/mapper'
+import type { CommentListItem, ReactionListItem } from '$lib/entities/reaction/dto'
+import { toComment, toReaction } from '$lib/entities/reaction/mapper'
 import type { RegionMembership } from '$lib/entities/region/dto'
 import { regionCrumb } from '$lib/entities/region/mapper'
 import { toRouteListItem, type RouteListRow } from '$lib/entities/route/mapper'
@@ -35,6 +35,8 @@ export interface EventListItem {
   /** The actor's username; empty while the user row has not synced. */
   actorName: string
   changes: EventChangeItem[]
+  /** What people said under this event, oldest first. Never a reply: those do not sync here. */
+  comments: Omit<CommentListItem, 'mine'>[]
   createdAt: number
   /**
    * What the event is about, already resolved.
@@ -88,6 +90,7 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
     actorFk: row.actorFk,
     actorName: row.actor?.username ?? '',
     changes: (row.changes ?? []).map(toEventChange),
+    comments: (row.reactions ?? []).filter((reaction) => reaction.type === 'comment').map(toComment),
     createdAt: row.createdAt ?? 0,
     entity: entityOf(row, userRegions),
     id: row.id,
@@ -98,7 +101,7 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
     objectType: object?.type ?? 'area',
     parent: parentOf(row),
     parentEntity: parentEntityOf(row, userRegions),
-    reactions: (row.reactions ?? []).map(toReaction),
+    reactions: (row.reactions ?? []).filter((reaction) => reaction.type === 'emoji').map(toReaction),
     regionFk: row.regionFk,
     verb: row.verb,
   }

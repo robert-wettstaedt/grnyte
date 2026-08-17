@@ -958,6 +958,21 @@
   "blocks_order_title": "Blöcke neu ordnen",
   "blocks_viewRoutes": "Routen",
   "blocks_viewTopos": "Topos",
+  "comments_delete": "Kommentar löschen",
+  "comments_empty": "Noch keine Kommentare",
+  "comments_placeholder": "Sag etwas",
+  "comments_post": "Senden",
+  "comments_show": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=zero": "Kommentieren",
+        "countPlural=one": "{count} Kommentar",
+        "countPlural=*": "{count} Kommentare"
+      }
+    }
+  ],
   "common_add": "Hinzufügen",
   "common_adjust": "Anpassen",
   "common_any": "Beliebig",
@@ -1258,11 +1273,13 @@
   "media_unmute": "Ton einschalten",
   "notifications_ascentDeleted": "{actor} hat deine Begehung gelöscht",
   "notifications_ascentEdited": "{actor} hat deine Begehung bearbeitet",
+  "notifications_comment": "{actor} hat deinen Eintrag kommentiert",
   "notifications_empty": "Noch nichts für dich",
   "notifications_emptyAction": "Zurück zum Feed",
   "notifications_emptyBody": "Erwähnungen, Änderungen an deinen Begehungen und Rollenwechsel landen hier.",
   "notifications_inviteAccepted": "{actor} hat deine Einladung angenommen",
   "notifications_mention": "{actor} hat dich erwähnt",
+  "notifications_reaction": "{actor} hat auf deinen Eintrag reagiert",
   "notifications_roleChanged": "{actor} hat dich zu {role} gemacht",
   "notifications_roleChangedPlain": "{actor} hat deine Rolle geändert",
   "notifications_title": "Benachrichtigungen",
@@ -1351,6 +1368,16 @@
   "profile_sortRecent": "Neueste",
   "profile_sortSessions": "Sessions",
   "profile_title": "Profil",
+  "push_comments": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} neuer Kommentar",
+        "countPlural=*": "{count} neue Kommentare"
+      }
+    }
+  ],
   "push_deniedBody": "Benachrichtigungen sind für diese Seite blockiert. Aktiviere sie in deinen Browser-Einstellungen und komm dann zurück.",
   "push_deniedTitle": "Benachrichtigungen sind blockiert",
   "push_digestMore": "und {count} weitere Updates",
@@ -1581,12 +1608,16 @@
   "settings_notificationsTypes": "Push senden bei",
   "settings_notifyAscents": "Begehungen",
   "settings_notifyAscentsHint": "Wenn jemand aus deiner Community eine Begehung einträgt",
+  "settings_notifyComments": "Kommentare",
+  "settings_notifyCommentsHint": "Wenn jemand einen Eintrag kommentiert, den du geschrieben hast oder in dem du mitredest",
   "settings_notifyCommunity": "Community",
   "settings_notifyCommunityHint": "Wenn jemand beitritt oder sich eine Rolle ändert",
   "settings_notifyCragEdits": "Fels-Änderungen",
   "settings_notifyCragEditsHint": "Neue Gebiete, Blöcke, Routen, Topos und Fotos",
   "settings_notifyDirected": "An dich gerichtet",
   "settings_notifyDirectedHint": "Erwähnungen, Änderungen an deinen Begehungen, deine Rolle",
+  "settings_notifyReactions": "Reaktionen",
+  "settings_notifyReactionsHint": "Wenn jemand auf etwas reagiert, das du eingetragen oder bearbeitet hast",
   "settings_notifyScope": "Alle Geräte",
   "settings_passwordIncorrect": "Aktuelles Passwort ist falsch",
   "settings_push": "Push auf diesem Gerät",

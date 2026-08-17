@@ -31,9 +31,11 @@ export interface UserSettings {
    * open. Only the settings screen reads them, and it defaults each to the column's own default.
    */
   notifyAscents?: boolean
+  notifyComments?: boolean
   notifyCommunity?: boolean
   notifyCragEdits?: boolean
   notifyDirected?: boolean
+  notifyReactions?: boolean
   /** Explicit metric/imperial override; null follows the runtime locale. */
   unitSystem: null | UnitSystem
 }

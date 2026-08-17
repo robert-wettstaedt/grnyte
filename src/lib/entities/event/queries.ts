@@ -123,24 +123,22 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           )
           .related('area', (q) => r(q).related('parent', r)),
       )
-      // The emoji half only, hanging directly off the event, and only the live rows. A comment
-      // renders inside the card rather than as a chip on it; an emoji whose `parent_fk` is set is
-      // a reaction to a COMMENT, and `event_fk` stays set all the way down the thread, so without
-      // that filter it would be counted as a chip on the card; and a cleared reaction stays in the
-      // table, because the one-per-person index is partial on `deleted_at is null`.
+      // Both halves of the table, split by `type` in the mapper: the emoji become the card's chips
+      // and the comments its thread. One relation rather than two, because Zero attaches a
+      // relation once per name and the split is free on the client.
       //
-      // `user` is the name the long press popover lists.
+      // Only rows hanging DIRECTLY off the event, and only live ones. `event_fk` stays set all the
+      // way down a thread, so a row with a `parent_fk` is a reply or a reaction to a comment, and
+      // counting one as a chip would put it on the card. A cleared row stays in the table, because
+      // the one-per-person index is partial on `deleted_at is null`.
       //
-      // ponytail: an event with 200 reactions ships 200 rows to every reader. Fine at community
-      // scale. Upgrade = a denormalized count column, syncing only your own row.
+      // `user` is the author's name: the chips' long press popover and every comment's byline.
+      //
+      // ponytail: an event with 200 of these ships 200 rows to every reader. Fine at community
+      // scale. Upgrade = a denormalized count column, syncing only your own rows and a page of
+      // the thread.
       .related('reactions', (q) =>
-        r(q)
-          .where('type', 'emoji')
-          .where('parentFk', 'IS', null)
-          .where('deletedAt', 'IS', null)
-          .related('user')
-          .orderBy('createdAt', 'asc')
-          .orderBy('id', 'asc'),
+        r(q).where('parentFk', 'IS', null).where('deletedAt', 'IS', null).related('user').orderBy('createdAt', 'asc'),
       )
       .related('route', (q) =>
         r(q)

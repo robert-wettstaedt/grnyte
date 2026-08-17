@@ -38,9 +38,11 @@ export function toUserSettings(row: UserSettingsRow): undefined | UserSettings {
     // true rather than false matches the column, so a settings row that has not synced yet renders
     // the switches the way they will actually be.
     notifyAscents: row.notifyAscents ?? true,
+    notifyComments: row.notifyComments ?? true,
     notifyCommunity: row.notifyCommunity ?? true,
     notifyCragEdits: row.notifyCragEdits ?? true,
     notifyDirected: row.notifyDirected ?? true,
+    notifyReactions: row.notifyReactions ?? true,
     unitSystem: row.unitSystem ?? null,
   }
 }

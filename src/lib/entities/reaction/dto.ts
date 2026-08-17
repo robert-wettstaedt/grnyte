@@ -14,6 +14,26 @@ export interface ReactionChip {
   names: string[]
 }
 
+/**
+ * How long a comment may be, matching the `reactions_body_fits_type` CHECK.
+ *
+ * Stated here rather than only in the database so the composer can count down to the same number
+ * the constraint enforces, instead of failing the write at 5001 characters.
+ */
+export const COMMENT_MAX_LENGTH = 5000
+
+/** One comment under a card, ready to render. */
+export interface CommentListItem {
+  authorFk: number
+  /** The author's username; empty while the user row has not synced. */
+  authorName: string
+  body: string
+  createdAt: number
+  id: number
+  /** Whether the signed-in user wrote it, which is what the delete control reads. */
+  mine: boolean
+}
+
 /** One person's one emoji on one event. */
 export interface ReactionListItem {
   emoji: string

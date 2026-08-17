@@ -13,7 +13,7 @@ import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
 import { db as baseDb } from '$lib/db/db.server'
 import { notifications, regionMembers, rolePermissions } from '$lib/db/schema'
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { NotificationEntityType, NotificationSourceType } from './dto'
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
@@ -28,8 +28,15 @@ export interface NotifyInput {
   actorFk: number
   entityId: number | string
   entityType: NotificationEntityType
+  /**
+   * Which card, for the source types that are about one. Part of the idempotency key, so two
+   * reactions on two events about the same route stay two rows.
+   */
+  eventFk?: number
   /** Whatever the sentence needs that the entity cannot answer, e.g. the granted role. */
   metadata?: string
+  /** Which comment, so the inbox can point at the row rather than at the card. */
+  reactionFk?: number
   regionFk: number
   sourceType: NotificationSourceType
   /** Candidate recipients, filtered down to the ones who can actually read the region. */
@@ -96,7 +103,9 @@ export async function notify(input: NotifyInput): Promise<void> {
         authUserFk: recipient.authUserFk,
         entityId: String(input.entityId),
         entityType: input.entityType,
+        eventFk: input.eventFk,
         metadata: input.metadata,
+        reactionFk: input.reactionFk,
         regionFk: input.regionFk,
         sourceType: input.sourceType,
         userFk: recipient.userFk,
@@ -113,15 +122,33 @@ export async function notify(input: NotifyInput): Promise<void> {
     // has been read the reader is done with it, so the same thing happening again is news: the row
     // goes back to unread and undelivered, with a fresh timestamp for the push debounce to count.
     .onConflictDoUpdate({
-      set: { createdAt: new Date(), metadata: sql`excluded.metadata`, pushedAt: null, readAt: null },
+      set: {
+        createdAt: new Date(),
+        metadata: sql`excluded.metadata`,
+        pushedAt: null,
+        // A second comment on the same card by the same person re-arms the row and points it at
+        // the newer one, which is the line a reader tapping it should land on.
+        reactionFk: sql`excluded.reaction_fk`,
+        readAt: null,
+      },
       setWhere: isNotNull(notifications.readAt),
-      target: [
-        notifications.userFk,
-        notifications.sourceType,
-        notifications.entityType,
-        notifications.entityId,
-        notifications.actorFk,
-      ],
+      // Whichever of the two partial indexes this row falls under (see `schema.ts`): a row about
+      // a card is keyed on the card, everything else on the entity pair.
+      ...(input.eventFk == null
+        ? {
+            target: [
+              notifications.userFk,
+              notifications.sourceType,
+              notifications.entityType,
+              notifications.entityId,
+              notifications.actorFk,
+            ],
+            targetWhere: isNull(notifications.eventFk),
+          }
+        : {
+            target: [notifications.userFk, notifications.sourceType, notifications.actorFk, notifications.eventFk],
+            targetWhere: isNotNull(notifications.eventFk),
+          }),
     })
 }
 

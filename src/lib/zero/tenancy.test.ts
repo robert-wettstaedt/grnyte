@@ -88,6 +88,8 @@ const regionsIn = (rows: { regionFk?: null | number }[]) =>
 
 async function removeFixtures() {
   const names = [REGION_A, REGION_B]
+  await sql`delete from public.reactions where region_fk in (select id from public.regions where name = any(${names}))`
+  await sql`delete from public.events where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.areas where name = any(${[AREA_A, AREA_B]})`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = any(${names}))`
   await sql`delete from public.regions where name = any(${names})`
@@ -147,6 +149,38 @@ describe.skipIf(!reachable)('region content never crosses the tenancy boundary',
     // return nothing at all for a region the user is not in.
     expect(regionsIn(rows)).not.toContain(regionA)
     expect(regionsIn(rows).filter((regionFk) => regionFk !== regionB)).toEqual([])
+  })
+
+  /**
+   * The sweep above wraps a bare table, so nothing in it nests a `related()`. A nested relation is
+   * filtered by a second mechanism (`relatedRegion` inside the query definition), and a relation
+   * added without it would sync rows from a region the reader is not in while the top-level row is
+   * perfectly legitimate.
+   *
+   * Asserted on the one relation where the mismatch is reachable at all: a reaction carries its
+   * own `region_fk`, and while RLS refuses to write one that disagrees with its event, the sync
+   * path never sees RLS. Written here over the superuser connection, exactly as a bug or a bad
+   * backfill would produce it.
+   */
+  it('filters a nested relation by region too, not only the row it hangs off', async () => {
+    const [{ id: eventId }] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, subject_fk)
+      values ('join', ${users.insider.userId}, ${regionA}, ${users.insider.userId})
+      returning id`
+
+    await sql`
+      insert into public.reactions (event_fk, body, type, region_fk, auth_user_fk, user_fk) values
+        (${eventId}, '👍', 'emoji', ${regionA}, ${users.insider.authId}, ${users.insider.userId}),
+        (${eventId}, '🔥', 'emoji', ${regionB}, ${users.outsider.authId}, ${users.outsider.userId})`
+
+    const rows = await run<{ id: number; reactions: { regionFk: number }[] }[]>(
+      queries.listEvents,
+      { ids: [eventId] },
+      await ctxFor('insider'),
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(regionsIn(rows[0].reactions)).toEqual([regionA])
   })
 
   it('hides a region record from everyone who is not a member of it', async () => {

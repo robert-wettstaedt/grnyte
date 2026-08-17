@@ -232,6 +232,20 @@
       "when": 1786962641180,
       "tag": "0103_dusty_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1786963486459,
+      "tag": "0104_absent_lady_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1786963921557,
+      "tag": "0105_wandering_jazinda",
+      "breakpoints": true
     }
   ]
 }

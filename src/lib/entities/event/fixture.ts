@@ -14,6 +14,7 @@ export function event(partial: Partial<EventListItem>): EventListItem {
     actorFk: 1,
     actorName: 'ada',
     changes: [],
+    comments: [],
     createdAt: 0,
     entity: undefined,
     id: 1,

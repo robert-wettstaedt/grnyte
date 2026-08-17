@@ -114,6 +114,33 @@ function categoryEnabled(
   return settings.notifyCragEdits !== false
 }
 
+/**
+ * Whether this person wants a push for this row.
+ *
+ * A reaction and a comment have switches of their own, because they arrive at a different rhythm
+ * than the rest of the directed half: a busy card can produce several in an evening, and somebody
+ * who wants to hear about a mention on their ascent may not want to hear about every 👍. Anything
+ * else is `notifyDirected`, which is the switch it always was.
+ *
+ * Only PUSH. Every one of these rows is in the inbox whatever the switches say.
+ */
+function directedWanted(row: {
+  notifyComments: boolean | null
+  notifyDirected: boolean | null
+  notifyReactions: boolean | null
+  sourceType: string
+}): boolean {
+  if (row.sourceType === 'reaction') {
+    return row.notifyReactions !== false
+  }
+
+  if (row.sourceType === 'comment') {
+    return row.notifyComments !== false
+  }
+
+  return row.notifyDirected !== false
+}
+
 /** Usernames by id, for the digest headline's actor slot. */
 async function namesOf(userFks: readonly number[]): Promise<Map<number, string>> {
   const ids = [...new Set(userFks)]
@@ -304,7 +331,9 @@ async function sendDirected(nowMs: number): Promise<number> {
       entityType: notifications.entityType,
       id: notifications.id,
       metadata: notifications.metadata,
+      notifyComments: userSettings.notifyComments,
       notifyDirected: userSettings.notifyDirected,
+      notifyReactions: userSettings.notifyReactions,
       regionFk: notifications.regionFk,
       sourceType: notifications.sourceType,
       userFk: notifications.userFk,
@@ -319,7 +348,7 @@ async function sendDirected(nowMs: number): Promise<number> {
     return 0
   }
 
-  const wanted = ready.filter((row) => row.notifyDirected !== false)
+  const wanted = ready.filter(directedWanted)
 
   // The same re-check the digest half makes, for the same reason. A member removed from the region
   // (or whose role lost `region.read`) between the fan-out and now would otherwise be pushed the

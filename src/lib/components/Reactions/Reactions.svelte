@@ -22,16 +22,19 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { QUICK_REACTIONS, type ReactionChip as Chip } from '$lib/entities/reaction/dto'
+  import { QUICK_REACTIONS, type ReactionChip as Chip, type CommentListItem } from '$lib/entities/reaction/dto'
   import { toggleReaction } from '$lib/entities/reaction/reactions.remote'
   import { m } from '$lib/paraglide/messages'
   import type { Attachment } from 'svelte/attachments'
   import { MediaQuery } from 'svelte/reactivity'
   import { scale } from 'svelte/transition'
+  import Comments from './Comments.svelte'
   import EmojiPicker from './EmojiPicker.svelte'
   import ReactionChip from './ReactionChip.svelte'
 
   interface Props {
+    /** The thread under this event, which the comment button opens. */
+    comments: CommentListItem[]
     /** The event these hang off. An event has an id, so this is the whole handle. */
     eventId: number
     reactions: Chip[]
@@ -42,7 +45,15 @@
     readonly?: boolean
   }
 
-  const { eventId, reactions, readonly = false }: Props = $props()
+  const { comments, eventId, reactions, readonly = false }: Props = $props()
+
+  /**
+   * Whether the thread is open.
+   *
+   * Closed by default even when there are comments, so a feed of cards stays a feed: the count on
+   * the button is what says there is something to read. It opens itself only when the reader asks.
+   */
+  let talking = $state(false)
 
   /** Step one: the five quick emoji, floating over the card. */
   let quick = $state(false)
@@ -128,82 +139,107 @@
 <!-- `flex-1` and a trailing alignment, which is what keeps a card with a dozen chips readable: the
      bar takes the width its footer has left, wraps its own rows inside it, and keeps every row
      flush to the same edge the add button is on. Left to size itself it would wrap as a block onto
-     a line of its own, orphaning the changes toggle above it and the add button below. -->
-<div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1">
-  {#each reactions as chip (chip.emoji)}
-    <ReactionChip {chip} disabled={busy} ontoggle={() => void toggle(chip.emoji)} {readonly} />
-  {/each}
+     a line of its own, orphaning the changes toggle above it and the add button below.
+     `flex-col` around it, because the thread belongs under the bar it was opened from. -->
+<div class="flex min-w-0 flex-1 flex-col">
+  <div class="flex flex-wrap items-center justify-end gap-1">
+    {#each reactions as chip (chip.emoji)}
+      <ReactionChip {chip} disabled={busy} ontoggle={() => void toggle(chip.emoji)} {readonly} />
+    {/each}
 
-  {#if !readonly}
-    <div class="relative flex">
-      <button
-        bind:this={adder}
-        type="button"
-        class="text-surface-600-400 hover:text-surface-950-50 flex items-center p-1"
-        aria-expanded={quick}
-        aria-label={m.reactions_add()}
-        onclick={() => (quick = !quick)}
-      >
-        <Icon name="smilePlus" size={16} />
-      </button>
+    <!-- Always, and on your own card too: being the person a card is about is the most likely
+       reason to have something to say under it. The count is the affordance, so a thread with
+       nothing in it still reads as an invitation rather than as a decoration. -->
+    <button
+      type="button"
+      class={[
+        'flex items-center gap-1 p-1 text-xs',
+        talking ? 'text-surface-950-50' : 'text-surface-600-400 hover:text-surface-950-50',
+      ]}
+      aria-expanded={talking}
+      onclick={() => (talking = !talking)}
+    >
+      <Icon name="messageCircle" size={16} />
+      {#if comments.length > 0}
+        <span>{comments.length}</span>
+      {/if}
+    </button>
 
-      {#if quick}
-        <!-- Anchored to the button's trailing edge and opening upward, over the card it belongs to:
+    {#if !readonly}
+      <div class="relative flex">
+        <button
+          bind:this={adder}
+          type="button"
+          class="text-surface-600-400 hover:text-surface-950-50 flex items-center p-1"
+          aria-expanded={quick}
+          aria-label={m.reactions_add()}
+          onclick={() => (quick = !quick)}
+        >
+          <Icon name="smilePlus" size={16} />
+        </button>
+
+        {#if quick}
+          <!-- Anchored to the button's trailing edge and opening upward, over the card it belongs to:
            downward it would cover the next card in the feed, which is somebody else's business.
            Fixed emoji, and in this order for everyone. A recents row reorders, so the button under
            your thumb would mean something different this week than last, and for five
            fingertip-sized targets that is how the wrong one gets sent. The full picker keeps its
            own frequently-used list, which is where a personal favourite lives. -->
-        <div
-          class="border-surface-200-800 bg-surface-50-950 absolute inset-e-0 bottom-full z-10 mb-1 flex origin-bottom-right items-center gap-0.5 rounded-full border p-0.5 shadow-lg"
-          transition:scale={{ duration: still.current ? 0 : 140, opacity: 0, start: 0.85 }}
-          {@attach dismiss}
-        >
-          {#each QUICK_REACTIONS as emoji, index (emoji)}
-            <button
-              type="button"
-              class="hover:bg-surface-200-800 rounded-full px-1.5 py-1 text-lg/none"
-              disabled={busy}
-              in:scale={{ delay: still.current ? 0 : index * 25, duration: still.current ? 0 : 150, start: 0.4 }}
-              onclick={() => pick(emoji)}
-            >
-              {emoji}
-            </button>
-          {/each}
+          <div
+            class="border-surface-200-800 bg-surface-50-950 absolute inset-e-0 bottom-full z-10 mb-1 flex origin-bottom-right items-center gap-0.5 rounded-full border p-0.5 shadow-lg"
+            transition:scale={{ duration: still.current ? 0 : 140, opacity: 0, start: 0.85 }}
+            {@attach dismiss}
+          >
+            {#each QUICK_REACTIONS as emoji, index (emoji)}
+              <button
+                type="button"
+                class="hover:bg-surface-200-800 rounded-full px-1.5 py-1 text-lg/none"
+                disabled={busy}
+                in:scale={{ delay: still.current ? 0 : index * 25, duration: still.current ? 0 : 150, start: 0.4 }}
+                onclick={() => pick(emoji)}
+              >
+                {emoji}
+              </button>
+            {/each}
 
-          <!-- `h-*` on the card and `h-full` on the picker (which ships a fixed 400px of its own):
+            <!-- `h-*` on the card and `h-full` on the picker (which ships a fixed 400px of its own):
              the sheet is shorter than that, and a picker that overflows its own scroll area gets
              a second scrollbar wrapped around the one it already has. -->
-          <Modal
-            backdrop
-            bind:open={picking}
-            contentClass="h-[27rem] w-auto"
-            fill
-            panel={false}
-            snapPoints={[0.6]}
-            title={m.reactions_pick()}
-          >
-            {#snippet trigger(props)}
-              <button
-                {...props}
-                type="button"
-                class={[
-                  props.class,
-                  'text-surface-600-400 hover:bg-surface-200-800 hover:text-surface-950-50 rounded-full p-1.5',
-                ]}
-                aria-label={m.reactions_all()}
-                onclick={() => (picking = !picking)}
-              >
-                <Icon name="plus" size={16} />
-              </button>
-            {/snippet}
+            <Modal
+              backdrop
+              bind:open={picking}
+              contentClass="h-[27rem] w-auto"
+              fill
+              panel={false}
+              snapPoints={[0.6]}
+              title={m.reactions_pick()}
+            >
+              {#snippet trigger(props)}
+                <button
+                  {...props}
+                  type="button"
+                  class={[
+                    props.class,
+                    'text-surface-600-400 hover:bg-surface-200-800 hover:text-surface-950-50 rounded-full p-1.5',
+                  ]}
+                  aria-label={m.reactions_all()}
+                  onclick={() => (picking = !picking)}
+                >
+                  <Icon name="plus" size={16} />
+                </button>
+              {/snippet}
 
-            {#if picking}
-              <EmojiPicker onpick={pick} />
-            {/if}
-          </Modal>
-        </div>
-      {/if}
-    </div>
+              {#if picking}
+                <EmojiPicker onpick={pick} />
+              {/if}
+            </Modal>
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
+
+  {#if talking}
+    <Comments {comments} {eventId} />
   {/if}
 </div>

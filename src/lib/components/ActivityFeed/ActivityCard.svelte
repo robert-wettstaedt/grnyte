@@ -161,7 +161,12 @@
              where the add button sits under the thumb. -->
         {#if row.bar != null}
           <div class="flex px-1">
-            <Reactions eventId={row.bar.eventId} reactions={row.bar.chips} readonly={row.bar.readonly} />
+            <Reactions
+              comments={row.bar.comments}
+              eventId={row.bar.eventId}
+              reactions={row.bar.chips}
+              readonly={row.bar.readonly}
+            />
           </div>
         {/if}
       {/each}
@@ -227,7 +232,7 @@
 
       <div class="flex min-w-0 flex-1 flex-col items-end gap-1">
         {#each bars as bar (bar.eventId)}
-          <Reactions eventId={bar.eventId} reactions={bar.chips} readonly={bar.readonly} />
+          <Reactions comments={bar.comments} eventId={bar.eventId} reactions={bar.chips} readonly={bar.readonly} />
         {/each}
       </div>
     </footer>

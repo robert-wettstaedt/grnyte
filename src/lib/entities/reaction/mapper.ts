@@ -1,8 +1,11 @@
-import type { ReactionChip, ReactionListItem } from './dto'
+import type { CommentListItem, ReactionChip, ReactionListItem } from './dto'
 
-/** A reaction as Zero syncs it: the row plus the joined reactor. */
+/** A reaction as Zero syncs it: the row plus the joined author. */
 export interface ReactionRow {
   body: string
+  createdAt?: null | number
+  id: number
+  type: string
   user?: undefined | { username: string }
   userFk: number
 }
@@ -32,6 +35,18 @@ export function reactionChips(
   }
 
   return [...chips.values()]
+}
+
+/** Whose comment it is stays out of here: `mine` needs the reader, which the mapper has no
+ *  business knowing. The card fills it in, where the current user is already a parameter. */
+export function toComment(row: ReactionRow): Omit<CommentListItem, 'mine'> {
+  return {
+    authorFk: row.userFk,
+    authorName: row.user?.username ?? '',
+    body: row.body,
+    createdAt: row.createdAt ?? 0,
+    id: row.id,
+  }
 }
 
 export function toReaction(row: ReactionRow): ReactionListItem {

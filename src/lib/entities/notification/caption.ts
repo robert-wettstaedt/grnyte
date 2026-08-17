@@ -38,8 +38,10 @@ const NO_ROW = new Set<NotificationSourceType>(['ascent_deleted', 'invite_accept
 const KEYS: Record<NotificationSourceType, MessageKey> = {
   ascent_deleted: 'notifications_ascentDeleted',
   ascent_edited: 'notifications_ascentEdited',
+  comment: 'notifications_comment',
   invite_accepted: 'notifications_inviteAccepted',
   mention: 'notifications_mention',
+  reaction: 'notifications_reaction',
   role_changed: 'notifications_roleChanged',
 }
 

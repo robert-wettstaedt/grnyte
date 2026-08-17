@@ -958,6 +958,21 @@
   "blocks_order_title": "Reorder blocks",
   "blocks_viewRoutes": "Routes",
   "blocks_viewTopos": "Topos",
+  "comments_delete": "Delete comment",
+  "comments_empty": "No comments yet",
+  "comments_placeholder": "Say something",
+  "comments_post": "Post",
+  "comments_show": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=zero": "Comment",
+        "countPlural=one": "{count} comment",
+        "countPlural=*": "{count} comments"
+      }
+    }
+  ],
   "common_add": "Add",
   "common_adjust": "Adjust",
   "common_any": "Any",
@@ -1258,11 +1273,13 @@
   "media_unmute": "Unmute",
   "notifications_ascentDeleted": "{actor} deleted your ascent",
   "notifications_ascentEdited": "{actor} edited your ascent",
+  "notifications_comment": "{actor} commented on your entry",
   "notifications_empty": "Nothing for you yet",
   "notifications_emptyAction": "Back to the feed",
   "notifications_emptyBody": "Mentions, changes to your ascents and role updates land here.",
   "notifications_inviteAccepted": "{actor} accepted your invitation",
   "notifications_mention": "{actor} mentioned you",
+  "notifications_reaction": "{actor} reacted to your entry",
   "notifications_roleChanged": "{actor} made you {role}",
   "notifications_roleChangedPlain": "{actor} changed your role",
   "notifications_title": "Notifications",
@@ -1351,6 +1368,16 @@
   "profile_sortRecent": "Recent",
   "profile_sortSessions": "Sessions",
   "profile_title": "Profile",
+  "push_comments": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} new comment",
+        "countPlural=*": "{count} new comments"
+      }
+    }
+  ],
   "push_deniedBody": "Notifications are blocked for this site. Turn them back on in your browser settings, then come back here.",
   "push_deniedTitle": "Notifications are blocked",
   "push_digestMore": "and {count} more updates",
@@ -1581,12 +1608,16 @@
   "settings_notificationsTypes": "Send me a push about",
   "settings_notifyAscents": "Ascents",
   "settings_notifyAscentsHint": "When somebody in your community logs a climb",
+  "settings_notifyComments": "Comments",
+  "settings_notifyCommentsHint": "When somebody comments on an entry you wrote or joined",
   "settings_notifyCommunity": "Community",
   "settings_notifyCommunityHint": "When somebody joins or their role changes",
   "settings_notifyCragEdits": "Crag edits",
   "settings_notifyCragEditsHint": "New areas, blocks, routes, topos and photos",
   "settings_notifyDirected": "Aimed at you",
   "settings_notifyDirectedHint": "Mentions, changes to your ascents, your role",
+  "settings_notifyReactions": "Reactions",
+  "settings_notifyReactionsHint": "When somebody reacts to something you logged or edited",
   "settings_notifyScope": "All devices",
   "settings_passwordIncorrect": "Current password is incorrect",
   "settings_push": "Push on this device",

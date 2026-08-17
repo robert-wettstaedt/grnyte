@@ -209,6 +209,9 @@ function toEventItem(event: DigestEvent): EventListItem {
     // No change rows. The digest renders one headline, which reads the event's own verb; a card's
     // change LINES are the one thing a push deliberately does not list.
     changes: [],
+    // Neither reaches a push: a digest is region activity, and what people said about it is the
+    // directed half's business.
+    comments: [],
     createdAt: event.createdAt.getTime(),
     // Only what the catalogue reads off an entity, which is the ascent type. Everything else it
     // needs is resolved by name, further up.
