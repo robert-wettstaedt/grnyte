@@ -19,6 +19,9 @@ export const EVENT_OBJECT_COLUMNS = {
   user: 'subjectFk',
 } as const satisfies Record<string, keyof Event>
 
+/** What the feed's segmented control filters on: ascents versus every other kind of edit. */
+export type EventCategory = 'ascent' | 'update'
+
 export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
 
 /** Which of the six object columns this row set. The CHECK guarantees exactly one. */

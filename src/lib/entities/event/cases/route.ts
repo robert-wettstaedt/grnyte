@@ -65,7 +65,7 @@ export const ROUTE_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'One card, "You added the route Kante direkt", and NO grade line: `legacyRows` expands change rows only for an `update`, so a create absorbs its own corrections and shows none of them. The card reads as if the route had been added at 11 all along.',
+      'One card, "You added the route Kante direkt", and NO grade line: `eventLines` expands change rows only for an `update`, so a create absorbs its own corrections and shows none of them. The card reads as if the route had been added at 11 all along.',
     id: 'ROUTE-01d',
     writer: 'routes.remote.ts:257',
   },

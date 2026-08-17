@@ -9,7 +9,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { CardRow } from '$lib/entities/event/cardView'
-  import type { CatalogueEntityType } from '$lib/entities/event/catalogue'
+  import type { EventObjectType } from '$lib/entities/event/dto'
   import { gradeLabel } from '$lib/entities/grade/label'
   import { resolveMessage, type MessageKey } from '$lib/i18n/message'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -30,7 +30,7 @@
   const global = getGlobalState()
 
   /** What a tombstone was, since the entity is no longer there to say so itself. */
-  const ENTITY_LABEL: Record<CatalogueEntityType, MessageKey> = {
+  const ENTITY_LABEL: Record<EventObjectType, MessageKey> = {
     area: 'common_area',
     ascent: 'common_ascent',
     block: 'common_block',

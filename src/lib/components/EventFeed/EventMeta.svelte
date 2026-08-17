@@ -12,8 +12,8 @@
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import type { CatalogueEntityType } from '$lib/entities/event/catalogue'
-  import { legacyEvent } from '$lib/entities/event/legacy'
+  import type { EventObjectType } from '$lib/entities/event/dto'
+  import { eventLines } from '$lib/entities/event/line'
   import { metaLine } from '$lib/entities/event/meta'
   import { eventList } from '$lib/entities/event/resources.svelte'
   import { usersByIds } from '$lib/entities/user/resources.svelte'
@@ -46,7 +46,7 @@
      * four pages would be thrown back to the newest one by an edit somebody else made.
      */
     scopeId: string
-    scopeType: CatalogueEntityType
+    scopeType: EventObjectType
   }
 
   let {
@@ -66,10 +66,9 @@
   // One row is the whole question. The sheet opens its own window when it opens, so a reader
   // who never taps this never syncs the log.
   const latest = eventList(() => ({ limit: 1, scope }))
-  // Through the catalogue adapter, because `metaLine` reads the old triple. It only asks
-  // whether the newest row is the record appearing or a change to it, which `legacyEvent` answers
-  // the same way for an event as the row it replaced.
-  const latestRow = $derived(latest.data[0] == null ? undefined : legacyEvent(latest.data[0]))
+  // Through the line builder, because `metaLine` reads a card line rather than an event. It only
+  // asks whether the newest one is the record appearing or a change to it.
+  const latestRow = $derived(latest.data[0] == null ? undefined : eventLines(latest.data[0])[0])
 
   // Only ever needed when the log came back empty, which is the one case the row cannot answer
   // from a row's own `user` relation. An empty id list is how a resource is switched off here.

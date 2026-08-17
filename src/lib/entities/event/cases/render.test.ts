@@ -25,14 +25,49 @@ const render = (caseId: string) => {
     const view = eventCard(group, reader, entry.topos)
 
     return {
-      changes: view.changes.map((change) => resolveMessage(change.field.labelKey, { media: 'none' })),
+      // What the strip under the headline says a logged ascent recorded.
+      ascent: view.ascent,
+      /**
+       * Every decided part of a change line, not only its label.
+       *
+       * The label alone was too little: two entries can share one and differ in the renderer they
+       * declare, so swapping a "location set" field for a "location gone" field was invisible on
+       * all 245 cards. `captionKey` is what a location or topo line actually reads out.
+       */
+      changes: view.changes.map((change) => ({
+        after: 'after' in change ? change.after : undefined,
+        before: 'before' in change ? change.before : undefined,
+        caption:
+          'captionKey' in change && change.captionKey != null
+            ? // The params the component passes: a moved pin reads its distance, and a topo caption
+              // borrows the media word a pulled photo uses. Passing neither rendered "Moved undefined".
+              resolveMessage(change.captionKey, {
+                distance: 'metres' in change && change.metres != null ? `${change.metres} m` : '',
+                media: 'photo',
+              })
+            : undefined,
+        kind: change.kind,
+        // Through the line's OWN params, not a hardcoded word: `event_fieldFile` selects on
+        // `media`, so passing 'none' rendered "Media" for every removal.
+        label: resolveMessage(change.field.labelKey, change.labelParams),
+      })),
+      climbedAt: view.climbedAt != null,
+      /** Missing for good, which reads differently from a name that is simply absent. */
+      entityUnnamed: view.entityUnnamed,
+      files: view.files.length,
       headline: resolveMessage(view.headline.key, {
         ...view.headline.params,
         actor: view.actorName,
         climber: view.climberName ?? '',
         name: view.entityName ?? '?',
       }),
-      rows: view.rows.map((row) => row.entity?.name ?? row.name ?? '(gone)'),
+      mine: view.mine,
+      note: view.note,
+      overflowCount: view.overflowCount,
+      pin: view.pin != null,
+      rows: view.rows.map((row) => `${row.state}:${row.entity?.name ?? row.name ?? '(gone)'}`),
+      /** The ascent glyph, which four catalogue entries exist to set and nothing was asserting. */
+      status: view.status,
       summary: (view.summary ?? []).map((part) =>
         part.key == null ? part.text : resolveMessage(part.key, part.params),
       ),

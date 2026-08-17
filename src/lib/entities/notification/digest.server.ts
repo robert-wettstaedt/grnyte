@@ -3,11 +3,10 @@ import * as schema from '$lib/db/schema'
 import { areas, ascents, blocks, routes, users } from '$lib/db/schema'
 import { blockName } from '$lib/entities/block/mapper'
 import { headlineEntityName } from '$lib/entities/event/cardView'
-import type { CatalogueEntityType } from '$lib/entities/event/catalogue'
-import { objectOf } from '$lib/entities/event/dto'
+import { objectOf, type EventObjectType } from '$lib/entities/event/dto'
 import { eventEntityKey, eventRefs, type EventEntityRef } from '$lib/entities/event/entity'
 import { groupEvents } from '$lib/entities/event/grouping'
-import { legacyRows } from '$lib/entities/event/legacy'
+import { eventLines } from '$lib/entities/event/line'
 import type { EventListItem } from '$lib/entities/event/mapper'
 import { parseDeletedAscent, verbKey } from '$lib/entities/event/verbs'
 import { resolveMessage } from '$lib/i18n/message'
@@ -92,7 +91,7 @@ export async function digestCopy(
   // Through the catalogue adapter, exactly as the card does: an update expands to one row per
   // changed column, everything else to one. What the digest reads off them (the refs, the verb,
   // the stored name) is what the card reads.
-  const activities = newest.events.flatMap(legacyRows)
+  const activities = newest.events.flatMap(eventLines)
   const refs = eventRefs(activities)
   // What the card would put a row under, falling back to what the activities are about: an upload
   // names the thing it landed on rather than the file, which has no name worth reading.
@@ -112,7 +111,7 @@ export async function digestCopy(
   const title = resolveMessage(
     verbKey(lead),
     {
-      actor: actorNames.get(lead.userFk) ?? '',
+      actor: actorNames.get(lead.actorFk) ?? '',
       climber: climber?.climberName ?? '',
       media: 'none',
       name: name ?? m.common_unnamed({}, { locale }),
@@ -143,7 +142,7 @@ export async function entityNames(
 ): Promise<Map<string, string>> {
   const names = new Map<string, string>()
 
-  const idsOf = (type: CatalogueEntityType): number[] => [
+  const idsOf = (type: EventObjectType): number[] => [
     ...new Set(refs.flatMap((ref) => (ref.type === type ? [Number(ref.id)] : [])).filter(Number.isInteger)),
   ]
 

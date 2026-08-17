@@ -211,7 +211,7 @@ export const GROUPING_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'One KIND `burst` card, "You edited Nordblock", with a "12 edits" sub line. Four events, twelve edits: the count is change ROWS, because `legacyRows` expands an update into one row per column and the card counts what it holds. All four routes are the shared parent of every event, so the headline names the block rather than any one route, and four rows fit with nothing left over.',
+      'One KIND `burst` card, "You edited Nordblock", with a "12 edits" sub line. Four events, twelve edits: the count is change ROWS, because `eventLines` expands an update into one line per column and the card counts what it holds. All four routes are the shared parent of every event, so the headline names the block rather than any one route, and four rows fit with nothing left over.',
     id: 'GROUP-02a',
     writer: 'routes.remote.ts:257',
   },
@@ -279,6 +279,31 @@ export const GROUPING_CASES: EventCase[] = [
     expected:
       "A KIND `burst` card of the two edits three minutes apart, and a KIND `single` card for the one 42 minutes earlier. The window is measured against the group's oldest member so far rather than against its newest, so a burst can stretch as long as no gap inside it exceeds 30 minutes, and this gap does.",
     id: 'GROUP-02c',
+    writer: 'routes.remote.ts:257',
+  },
+
+  {
+    action: 'Two renames in one sitting, neither route still resolvable',
+    domain: 'grouping',
+    events: [
+      eventAgo(320, {
+        actorFk: ME,
+        changes: [change({ columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante' })],
+        entity: undefined,
+        objectId: 598,
+        parent: { id: 400, type: 'block' },
+      }),
+      eventAgo(322, {
+        actorFk: ME,
+        changes: [change({ columnName: 'name', newValue: 'Rissweg', oldValue: 'Riss' })],
+        entity: undefined,
+        objectId: 599,
+        parent: { id: 400, type: 'block' },
+      }),
+    ],
+    expected:
+      'A KIND `burst` card of 2 edits with TWO tombstone rows, each carrying the name its OWN rename stored: "Rissweg" and "Kante direkt", never the same name twice. The name a tombstone shows comes from the line that named that row, and a rename is the one shape that stores one (its entry declares the new value as the tombstone column), so a card holding two of them is where borrowing the first line\'s name would show. Only reachable degraded, since a route soft deletes and keeps resolving; the backfill can leave an event whose route is gone.',
+    id: 'GROUP-02d',
     writer: 'routes.remote.ts:257',
   },
 
@@ -615,7 +640,7 @@ export const GROUPING_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'One KIND `single` card, "You flashed Rampe", and the corrections are invisible: an `update` joins an open `create` and the verb stays `create`, but `legacyRows` expands changes only for an `update`, so the two rows the fold saved render as nothing at all. The card also sits at the CORRECTION\'s time, since joining bumps the open event back to the top of the feed.',
+      'One KIND `single` card, "You flashed Rampe", and the corrections are invisible: an `update` joins an open `create` and the verb stays `create`, but `eventLines` expands changes only for an `update`, so the two rows the fold saved render as nothing at all. The card also sits at the CORRECTION\'s time, since joining bumps the open event back to the top of the feed.',
     id: 'GROUP-08b',
     writer: 'ascents.remote.ts:117',
   },

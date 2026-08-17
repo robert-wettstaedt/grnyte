@@ -49,7 +49,7 @@ export const PIN = { lat: 47.123456, long: 8.56789 }
  *
  * Deliberately the real clock rather than a fixed stamp: the wall is read by eye and a card that
  * says "5 minutes ago" is half of what it is showing. Anything asserting on these has to
- * normalise the clock away instead (see `cases.test.ts`).
+ * normalise the clock away instead (see `coverage.test.ts`).
  */
 const base = Date.now()
 

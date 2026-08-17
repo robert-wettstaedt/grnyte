@@ -29,7 +29,7 @@ export const ASCENT_CASES: EventCase[] = [
     domain: 'ascent',
     events: [eventAgo(420, { actorFk: ME, objectId: 9001, objectType: 'ascent', verb: 'create' })],
     expected:
-      'Single card, "You flashed Rampe", with the flash glyph on the route row. The type is not on the event: `legacy.ts` reads it back off the resolved ascent and the catalogue keys the sentence on it, which is why this family has four entries and not one.',
+      'Single card, "You flashed Rampe", with the flash glyph on the route row. The type is not on the event: `line.ts` reads it back off the resolved ascent and the catalogue keys the sentence on it, which is why this family has four entries and not one.',
     id: 'ASCENT-01a',
     writer: 'ascents.remote.ts:69',
   },
@@ -220,7 +220,7 @@ export const ASCENT_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'One Type line under "You edited your ascent of Platte". Its entry declares the plain text format, so the two chips print the stored enum members, "attempt" and "redpoint", rather than the words the log form offers. Compare the role column, which has a format of its own for exactly this reason. The row beside it shows the glyph for the type the ascent ended up with.',
+      'One Type line under "You edited your ascent of Platte", drawn as the same glyph and word the log form\'s type picker offers: the attempt ring, then the redpoint tick. Its own change kind rather than a text pair, because the column stores `attempt` and `redpoint` and printing those put an English enum member under a German headline. A value that is no longer one of the four (a row written before `send` became `redpoint`) has no glyph and falls back to a plain chip of what was stored. The row beside it shows the glyph for the type the ascent ended up with.',
     id: 'ASCENT-02c',
     writer: 'ascents.remote.ts:117',
   },

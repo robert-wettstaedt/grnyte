@@ -3,10 +3,32 @@ import type { MediaFile } from '$lib/entities/file/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { MessageKey } from '$lib/i18n/message'
-import type { CardGroup } from './cardGroup'
-import type { CatalogueRow } from './catalogue'
+import type { EventGroupKind } from './grouping'
+
+/**
+ * What a card renders: the lines one group of events produced, and how it presents them.
+ *
+ * Built by `eventCard` from an `EventGroup`. There is no second grouping function any more: the
+ * feed folds events, and a card expands each of them into its lines.
+ */
+export interface CardGroup {
+  /** The actor. `entity` groups can mix actors, so this is the newest event's one. */
+  actorFk: number
+  /** Epoch millis of the group's newest event: what the feed sorts and dates by. */
+  createdAt: number
+  /** Keying id for `{#each}`, carried through from the event group. */
+  id: string
+  kind: EventGroupKind
+  /**
+   * Newest first, with one deliberate exception: a group that merged an upload into the create it
+   * belongs to leads with that create, since the headline reads the card's verb off the front.
+   * Never empty.
+   */
+  rows: CardLine[]
+}
 import { changeViews, storedMedia, type ChangeView, type MediaWord } from './change'
 import { eventEntityKey, eventRefs, type EventEntity, type EventEntityMap, type EventEntityRef } from './entity'
+import type { CardLine } from './line'
 import { parseDeletedAscent, parseDeletionScale, verbEntry, verbKey } from './verbs'
 
 /** A card never lists more than a handful of rows; the rest collapse into a count. */
@@ -110,7 +132,7 @@ interface CardVerb {
   /** Distinct actors. More than one, and nobody in particular "edited" the thing. */
   actors: number
   /** The files on a create-that-picked-up-media, which both halves speak for. */
-  media: CatalogueRow[] | undefined
+  media: CardLine[] | undefined
   /** The one verb every row shares, when they share one. */
   shared: MessageKey | undefined
 }
@@ -179,11 +201,11 @@ export function cardView(
   // somebody else's log must not say, and four of the six arms were unreachable.
   const climber = [refs[0], place].map(entityOf).find((entity) => entity?.climberFk != null)
   const recorded = group.rows
-    .map((activity) => (activity.entityType === 'ascent' ? parseDeletedAscent(activity.metadata) : undefined))
+    .map((activity) => (activity.objectType === 'ascent' ? parseDeletedAscent(activity.metadata) : undefined))
     .find((entry) => entry != null)
   const climberFk = climber?.climberFk ?? recorded?.climberFk
-  const owner = climberFk == null ? 'none' : climberFk === newest.userFk ? 'self' : 'other'
-  const mine = currentUserFk != null && group.userFk === currentUserFk
+  const owner = climberFk == null ? 'none' : climberFk === newest.actorFk ? 'self' : 'other'
+  const mine = currentUserFk != null && group.actorFk === currentUserFk
 
   // Keyed by id: a merged create-plus-media group holds the ascent AND the file it landed on,
   // and the ascent hydrates with that same file hanging off it, so the flat list would carry
@@ -214,7 +236,7 @@ export function cardView(
   // already renders each of these as its own change line, and a card that merely mentions the
   // entity has no business growing a map.
   const created = group.rows.flatMap((activity) =>
-    activity.type === 'created' ? [entityOf({ id: activity.entityId, type: activity.entityType })] : [],
+    activity.verb === 'create' ? [entityOf({ id: String(activity.objectId), type: activity.objectType })] : [],
   )
   // Only when the card created exactly one thing. Two creates have two sets of numbers and no
   // row to hang either on, and a create-plus-media group is still one create.
@@ -227,7 +249,7 @@ export function cardView(
   const climbedAt = climbDates.size === 1 ? [...climbDates][0] : undefined
 
   // Once, for both halves of the card. See `CardVerb`.
-  const actors = new Set(group.rows.map((activity) => activity.userFk)).size
+  const actors = new Set(group.rows.map((activity) => activity.actorFk)).size
   const verb: CardVerb = {
     actors,
     media: createdWithMedia(group),
@@ -235,7 +257,7 @@ export function cardView(
   }
 
   return {
-    actorName: newest.userName,
+    actorName: newest.actorName,
     ascent,
     changes: changeViews(group.rows, { entities, topos }),
     climbedAt: climbedAt != null && climbedAt !== calendarDay(group.createdAt) ? climbedAt : undefined,
@@ -264,9 +286,9 @@ export function cardView(
         state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
       }
     }),
-    // Declared on the entry, so the cast is reachable only for the four rows that really do
-    // store an ascent type in `newValue`.
-    status: verbEntry(newest)?.status === 'ascentType' ? (newest.newValue as AscentType | undefined) : undefined,
+    // Declared on the entry, so the cast is reachable only for the four lines that carry an
+    // ascent type in `value`.
+    status: verbEntry(newest)?.status === 'ascentType' ? (newest.value as AscentType | undefined) : undefined,
     summary: summaryParts(group, placeName, media, refs.length, verb),
   }
 }
@@ -280,7 +302,7 @@ export function cardView(
  * invitation deliberately has no hydrated subject at all, so a digest that consulted the database
  * alone would announce both with `common_unnamed`.
  */
-export function headlineEntityName(activity: CatalogueRow, entity: EventEntity | null | undefined): string | undefined {
+export function headlineEntityName(activity: CardLine, entity: EventEntity | null | undefined): string | undefined {
   const entry = verbEntry(activity)
 
   // A stored subject is never the hydrated one: an invitation names an address the invitee
@@ -314,9 +336,16 @@ function calendarDay(at: number): number {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-/** The row in `rows` that points at `ref`, which is where its name is stashed. */
-function catalogueRowFor(rows: readonly CatalogueRow[], ref: EventEntityRef): CatalogueRow {
-  return rows.find((activity) => activity.entityId === ref.id && activity.entityType === ref.type) ?? rows[0]
+/**
+ * The row in `rows` that points at `ref`, which is where its name is stashed.
+ *
+ * Compared as text on both sides. A ref's id is a string for every object type (see `eventRefs`),
+ * where a line's is the number the mapper hands over for five of the six, so `===` matched nothing
+ * and every row fell back to `rows[0]`: a card holding two deleted routes labelled both tombstones
+ * with the first one's name.
+ */
+function catalogueRowFor(rows: readonly CardLine[], ref: EventEntityRef): CardLine {
+  return rows.find((activity) => String(activity.objectId) === ref.id && activity.objectType === ref.type) ?? rows[0]
 }
 
 /**
@@ -324,12 +353,12 @@ function catalogueRowFor(rows: readonly CatalogueRow[], ref: EventEntityRef): Ca
  * when that is not what the group is. `mergeCreatedWithMedia` builds these; both the headline
  * and the summary have to recognise one, so the test lives in one place.
  */
-function createdWithMedia(group: CardGroup): CatalogueRow[] | undefined {
-  if (group.rows[0]?.type !== 'created') {
+function createdWithMedia(group: CardGroup): CardLine[] | undefined {
+  if (group.rows[0]?.verb !== 'create') {
     return undefined
   }
 
-  const files = group.rows.filter((activity) => activity.entityType === 'file')
+  const files = group.rows.filter((activity) => activity.objectType === 'file')
   return files.length > 0 ? files : undefined
 }
 
@@ -343,7 +372,7 @@ function deletionScaleParts(group: CardGroup): MessagePart[] | undefined {
   const totals = { areas: 0, blocks: 0, routes: 0 }
 
   for (const activity of group.rows) {
-    const scale = activity.type === 'deleted' ? parseDeletionScale(activity.metadata) : undefined
+    const scale = activity.verb === 'delete' ? parseDeletionScale(activity.metadata) : undefined
     totals.areas += scale?.areas ?? 0
     totals.blocks += scale?.blocks ?? 0
     totals.routes += scale?.routes ?? 0
@@ -399,7 +428,7 @@ function groupVerbKey(group: CardGroup, verb: CardVerb): MessageKey {
   // what an UPLOAD card says: the reader sees photos gained where two are gone for good. Not
   // `event_groupRemovals` either, which is about entities ("You deleted entries") and reads as a
   // route or a block having gone rather than a photo.
-  if (group.rows.every((row) => row.columnName === 'file' && row.type === 'deleted')) {
+  if (group.rows.every((row) => row.columnName === 'file' && row.verb === 'remove')) {
     return 'event_groupFilesRemoved'
   }
 
@@ -423,7 +452,7 @@ function headlineName({
 }: {
   firstName: string | undefined
   group: CardGroup
-  newest: CatalogueRow
+  newest: CardLine
   placeName: string | undefined
   subject: EventEntity | null | undefined
   subjects: number
@@ -534,7 +563,7 @@ function summaryParts(
   // Same idea from the other end: a card that only pulled files counts files. "2 edits" under
   // "You removed media from Kante direkt" reaches for the generic word for a card that already
   // knows it is about media, and `media` is the mixed-aware one the headline computed.
-  if (group.rows.every((activity) => activity.columnName === 'file' && activity.type === 'deleted')) {
+  if (group.rows.every((activity) => activity.columnName === 'file' && activity.verb === 'remove')) {
     return [{ key: 'event_summaryFiles', params: { count: group.rows.length, media } }]
   }
 

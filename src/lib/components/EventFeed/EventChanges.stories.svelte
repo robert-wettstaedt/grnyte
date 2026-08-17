@@ -2,7 +2,7 @@
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import EventChanges from './EventChanges.svelte'
-  import { activity, changes, topoLines, topoMetadata, topos } from './fixtures'
+  import { changes, line, topoLines, topoMetadata, topos } from './fixtures'
 
   const { Story } = defineMeta({
     component: EventChanges,
@@ -15,37 +15,37 @@
 
   // One row per renderer in the field registry, so a change to fields.ts shows up here.
   const everyRenderer = [
-    activity(1, { columnName: 'gradeFk', newValue: '15', oldValue: '11', userFk: 1 }),
-    activity(2, { columnName: 'rating', newValue: '3', oldValue: '1', userFk: 1 }),
-    activity(3, { columnName: 'tags', newValue: 'SD,highball', oldValue: 'SD,traverse', userFk: 1 }),
-    activity(4, {
+    line({ actorFk: 1, columnName: 'gradeFk', newValue: '15', oldValue: '11' }),
+    line({ actorFk: 1, columnName: 'rating', newValue: '3', oldValue: '1' }),
+    line({ actorFk: 1, columnName: 'tags', newValue: 'SD,highball', oldValue: 'SD,traverse' }),
+    line({
+      actorFk: 1,
       columnName: 'firstAscensionists',
       newValue: 'Ada Rossi,Jonas Weber',
       oldValue: 'Ada Rossi',
-      userFk: 1,
     }),
-    activity(5, { columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante', userFk: 1 }),
-    activity(6, { columnName: 'description', newValue: LOREM, oldValue: 'Stand start.', userFk: 1 }),
-    activity(7, { columnName: 'firstAscentYear', newValue: '1998', userFk: 1 }),
-    activity(8, { columnName: 'location', entityType: 'block', userFk: 1 }),
-    activity(9, { columnName: 'topo', entityType: 'block', userFk: 1 }),
-    activity(10, { columnName: 'file', type: 'deleted', userFk: 1 }),
+    line({ actorFk: 1, columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante' }),
+    line({ actorFk: 1, columnName: 'description', newValue: LOREM, oldValue: 'Stand start.' }),
+    line({ actorFk: 1, columnName: 'firstAscentYear', newValue: '1998' }),
+    line({ actorFk: 1, columnName: 'location', objectType: 'block' }),
+    line({ actorFk: 1, columnName: 'topo', objectType: 'block' }),
+    line({ actorFk: 1, columnName: 'file', verb: 'remove' }),
     // The stored enum members, which is what the column really holds: the short forms this
     // fixture used to pass are not roles, so the row silently rendered the raw-value fallback
     // and this story showed the degraded path for every reader who checked it.
-    activity(11, {
+    line({
+      actorFk: 1,
       columnName: 'role',
-      entityType: 'user',
       newValue: 'region_maintainer',
+      objectType: 'user',
       oldValue: 'region_user',
-      userFk: 1,
     }),
-    activity(12, {
+    line({
+      actorFk: 1,
       columnName: 'source',
-      entityType: 'file',
       newValue: 'https://vimeo.com/912345',
+      objectType: 'file',
       oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      userFk: 1,
     }),
   ]
 
@@ -55,33 +55,33 @@
   // The five topo edits, which wrote one indistinguishable "Topo redrawn" row between them
   // until they started naming themselves in `metadata`.
   const topoEdits = [
-    activity(1, {
+    line({
+      actorFk: 1,
       columnName: 'topo',
-      entityType: 'block',
       metadata: topoMetadata('lines', 700),
       newValue: topoLines([KANTE, RAMPE]),
+      objectType: 'block',
       oldValue: topoLines([KANTE, { name: 'Altweg', routeFk: 503 }]),
-      userFk: 1,
     }),
-    activity(2, {
+    line({
+      actorFk: 1,
       columnName: 'topo',
-      entityType: 'block',
       metadata: topoMetadata('lines', 700),
       newValue: topoLines([KANTE], true),
+      objectType: 'block',
       oldValue: topoLines([KANTE]),
-      userFk: 1,
     }),
-    activity(3, { columnName: 'topo', entityType: 'block', metadata: topoMetadata('photoAdded', 700), userFk: 1 }),
-    activity(4, {
+    line({ actorFk: 1, columnName: 'topo', metadata: topoMetadata('photoAdded', 700), objectType: 'block' }),
+    line({
+      actorFk: 1,
       columnName: 'topo',
-      entityType: 'block',
       metadata: topoMetadata('photoRemoved', 701),
-      type: 'deleted',
-      userFk: 1,
+      objectType: 'block',
+      verb: 'remove',
     }),
-    activity(5, { columnName: 'topo', entityType: 'block', metadata: topoMetadata('reordered'), userFk: 1 }),
+    line({ actorFk: 1, columnName: 'topo', metadata: topoMetadata('reordered'), objectType: 'block' }),
     // A row from before any of that: no metadata, so it degrades to the vaguer sentence.
-    activity(6, { columnName: 'topo', entityType: 'block', userFk: 1 }),
+    line({ actorFk: 1, columnName: 'topo', objectType: 'block' }),
   ]
 
   // A real description edit: three paragraphs, one sentence changed in the middle one. This is
@@ -99,11 +99,11 @@ Move left into the scoop, then a long pull to the sloper. The topout is friendli
 Bring a second pad for the landing under the arete.`
 
   const proseChanges = changes([
-    activity(1, {
+    line({
+      actorFk: 1,
       columnName: 'description',
       newValue: DESCRIPTION_AFTER,
       oldValue: DESCRIPTION_BEFORE,
-      userFk: 1,
     }),
   ])
 
@@ -114,10 +114,10 @@ Bring a second pad for the landing under the arete.`
 
   // What an ascent edit looks like: conditions and the ascent type, not crag data.
   const ascentEdit = [
-    activity(1, { columnName: 'type', entityType: 'ascent', newValue: 'redpoint', oldValue: 'attempt', userFk: 1 }),
-    activity(2, { columnName: 'temperature', entityType: 'ascent', newValue: '4', oldValue: '11', userFk: 1 }),
-    activity(3, { columnName: 'humidity', entityType: 'ascent', newValue: '45', userFk: 1 }),
-    activity(4, { columnName: 'notes', entityType: 'ascent', newValue: LOREM, userFk: 1 }),
+    line({ actorFk: 1, columnName: 'type', newValue: 'redpoint', objectType: 'ascent', oldValue: 'attempt' }),
+    line({ actorFk: 1, columnName: 'temperature', newValue: '4', objectType: 'ascent', oldValue: '11' }),
+    line({ actorFk: 1, columnName: 'humidity', newValue: '45', objectType: 'ascent' }),
+    line({ actorFk: 1, columnName: 'notes', newValue: LOREM, objectType: 'ascent' }),
   ]
 </script>
 
@@ -136,12 +136,12 @@ Bring a second pad for the landing under the arete.`
   name="Missing values"
   args={{
     changes: changes([
-      activity(1, { columnName: 'gradeFk', newValue: '9', userFk: 1 }),
-      activity(2, {
+      line({ actorFk: 1, columnName: 'gradeFk', newValue: '9' }),
+      line({
+        actorFk: 1,
         columnName: 'source',
-        entityType: 'file',
+        objectType: 'file',
         oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        userFk: 1,
       }),
     ]),
   }}
@@ -150,7 +150,7 @@ Bring a second pad for the landing under the arete.`
 <!-- Rows whose column has no registry entry render nothing at all. -->
 <Story
   name="Nothing renderable"
-  args={{ changes: changes([activity(1, { entityType: 'area', type: 'created', userFk: 1 })]) }}
+  args={{ changes: changes([line({ actorFk: 1, objectType: 'area', verb: 'create' })]) }}
 />
 
 <!-- A description edit where only a clause in the middle paragraph moved. Rendered as two
@@ -171,8 +171,8 @@ Bring a second pad for the landing under the arete.`
   name="Prose set and cleared"
   args={{
     changes: changes([
-      activity(1, { columnName: 'description', newValue: DESCRIPTION_BEFORE, userFk: 1 }),
-      activity(2, { columnName: 'description', oldValue: DESCRIPTION_BEFORE, userFk: 1 }),
+      line({ actorFk: 1, columnName: 'description', newValue: DESCRIPTION_BEFORE }),
+      line({ actorFk: 1, columnName: 'description', oldValue: DESCRIPTION_BEFORE }),
     ]),
   }}
   template={proseTemplate}

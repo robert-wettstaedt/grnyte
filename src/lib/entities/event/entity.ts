@@ -3,16 +3,19 @@ import type { MediaFile } from '$lib/entities/file/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
 import type { RouteListItem } from '$lib/entities/route/dto'
 import type { Coords } from '$lib/map/map'
-import type { CatalogueEntityType, CatalogueRow } from './catalogue'
+import type { EventObjectType } from './dto'
+import type { CardLine } from './line'
 import { verbEntry } from './verbs'
 
 /**
  * The hydration contract: what the feed has to fetch, and the shape it hands back.
  *
- * `activities.entityId` is `text` and `entityType` is polymorphic, so Zero cannot join a
- * row to the entity it describes. The ids are collected here, fetched through the
- * per-entity list resources, and joined in memory. What a card then *says* about those
- * entities lives in `card.ts`.
+ * An event names its object polymorphically, so Zero cannot join a row to the entity it
+ * describes. The ids are collected here, fetched through the per-entity list resources, and
+ * joined in memory. What a card then *says* about those entities lives in `card.ts`.
+ *
+ * A ref's id is a STRING for every object type, where a line carries the number the mapper
+ * handed over for five of the six. Everything that matches the two compares them as text.
  */
 
 /** The slice of a route an activity card's row renders. A `RouteListItem` satisfies it. */
@@ -95,7 +98,7 @@ export type EventEntityMap = ReadonlyMap<string, EventEntity | null>
 /** The polymorphic `(entityType, entityId)` pair an activity points at. */
 export interface EventEntityRef {
   id: string
-  type: CatalogueEntityType
+  type: EventObjectType
 }
 
 /**
@@ -144,17 +147,17 @@ export interface EventRefs {
  * Both halves have to be present to mean anything, and that guard was written out at four
  * separate call sites, each free to disagree with the others about what a half-filled pair is.
  */
-export function catalogueParentRef(activity: CatalogueRow): EventEntityRef | undefined {
-  return activity.parentEntityId == null || activity.parentEntityType == null
+export function catalogueParentRef(activity: CardLine): EventEntityRef | undefined {
+  return activity.parentId == null || activity.parentType == null
     ? undefined
-    : { id: activity.parentEntityId, type: activity.parentEntityType }
+    : { id: String(activity.parentId), type: activity.parentType }
 }
 
 export function eventEntityKey(ref: EventEntityRef): string {
   return `${ref.type}:${ref.id}`
 }
 
-export function eventRefs(rows: readonly CatalogueRow[]): EventRefs {
+export function eventRefs(rows: readonly CardLine[]): EventRefs {
   const subjects = new Map<string, EventEntityRef>()
   const rowRefs = new Map<string, EventEntityRef>()
   const hydrate = new Map<string, EventEntityRef>()
@@ -165,7 +168,7 @@ export function eventRefs(rows: readonly CatalogueRow[]): EventRefs {
 
   for (const activity of rows) {
     const entry = verbEntry(activity)
-    const subject: EventEntityRef = { id: activity.entityId, type: activity.entityType }
+    const subject: EventEntityRef = { id: String(activity.objectId), type: activity.objectType }
     const parent = catalogueParentRef(activity)
 
     if (place != null && (parent?.id !== place.id || parent.type !== place.type)) {

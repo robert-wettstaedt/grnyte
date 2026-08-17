@@ -12,6 +12,7 @@
 import { ascentTypeEnum } from '$lib/db/schema'
 import { describe, expect, it } from 'vitest'
 import { changeViews } from './change'
+import { line } from './line.fixture'
 import {
   parseDeletedAscent,
   parseDeletionScale,
@@ -22,13 +23,13 @@ import {
   type VerbEntry,
 } from './verbs'
 
-// The catalogue is `as const`, so its element type is a union in which only some members
-// declare `columnName` or `newValue`. Reads of those two go through `WRITTEN_ROWS`,
-// which is the same rows widened to `Partial<CatalogueRow>`.
+// The catalogue is `as const`, so its element type is a union in which only some members declare
+// `columnName` or `value`. Reads of those two go through `WRITTEN_ROWS`, the same entries widened
+// to `Partial<VerbEntry>`.
 describe('VERBS', () => {
   it('lists exactly the ascent types the enum defines', () => {
-    const written = WRITTEN_ROWS.filter((verb) => verb.entityType === 'ascent' && verb.type === 'created').map(
-      (verb) => verb.newValue,
+    const written = WRITTEN_ROWS.filter((entry) => entry.objectType === 'ascent' && entry.verb === 'create').map(
+      (entry) => entry.value,
     )
 
     // Both directions: a renamed value leaves a card pointing at a dead message key, and a
@@ -68,20 +69,22 @@ describe('VERBS', () => {
     const decoded = fields.map((verb) => {
       const [change] = changeViews([
         {
+          actorFk: 1,
+          actorName: 'ada',
+          cleared: false,
           columnName: verb.columnName,
           createdAt: 0,
-          entityId: '1',
-          entityType: verb.entityType,
           id: 1,
           metadata: undefined,
           newValue: undefined,
+          objectId: '1',
+          objectType: verb.objectType,
           oldValue: undefined,
-          parentEntityId: undefined,
-          parentEntityType: undefined,
+          parentId: undefined,
+          parentType: undefined,
           regionFk: 1,
-          type: verb.type,
-          userFk: 1,
-          userName: 'ada',
+          value: verb.value,
+          verb: verb.verb,
         },
       ])
 
@@ -149,24 +152,18 @@ describe('parseDeletedAscent', () => {
 })
 
 describe('verbKey', () => {
-  const activity = (partial: Partial<Omit<VerbEntry, 'key'>>): Omit<VerbEntry, 'key'> => ({
-    entityType: 'route',
-    type: 'updated',
-    ...partial,
-  })
-
   it('degrades an unwritten update column to the entity verb', () => {
     // Vaguer, but still true: something about the route changed.
-    expect(verbKey(activity({ columnName: 'retired' }))).toBe('event_routeUpdated')
+    expect(verbKey(line({ columnName: 'retired' }))).toBe('event_routeUpdated')
   })
 
   it('never degrades a delete to "deleted the entity"', () => {
     // `favorite` deletes are legacy rows: no mutation writes them today. Degrading one to
     // `event_routeDeleted` would claim a route that is still there is gone.
-    expect(verbKey(activity({ columnName: 'favorite', type: 'deleted' }))).toBe('event_genericChange')
+    expect(verbKey(line({ columnName: 'favorite', verb: 'delete' }))).toBe('event_genericChange')
   })
 
   it('falls back to the generic verb when the entity has no vaguer one either', () => {
-    expect(verbKey(activity({ columnName: 'role', entityType: 'user', type: 'created' }))).toBe('event_genericChange')
+    expect(verbKey(line({ columnName: 'role', objectType: 'user', verb: 'create' }))).toBe('event_genericChange')
   })
 })

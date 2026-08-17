@@ -227,6 +227,22 @@ export const AREA_CASES: EventCase[] = [
     writer: 'areas.remote.ts:507',
   },
   {
+    action: 'A parking spot set BEFORE the events cutover, as the backfill migrated it',
+    domain: 'area',
+    events: [
+      eventAgo(118, {
+        actorFk: ME,
+        changes: [change({ columnName: 'parking location', newValue: '47.123456,8.567890' })],
+        objectId: 300,
+        objectType: 'area',
+      }),
+    ],
+    expected:
+      'The same card as AREA-04a, "You set the parking for Steinbruch", from a different shape. The live writer emits `add` with the coordinates in metadata; the backfill mapped every old `updated` row to the `update` verb whatever its column was, so history arrives as an update carrying a change row. The catalogue holds both shapes, and without the second this fell through to "made a change".',
+    id: 'AREA-04d',
+    writer: null,
+  },
+  {
     action: 'Undo removing the parking spot',
     domain: 'area',
     events: [],

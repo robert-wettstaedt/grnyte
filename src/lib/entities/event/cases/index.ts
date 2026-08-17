@@ -6,7 +6,7 @@
  * the wall renders them through the real `groupEvents` and `eventCard` instead. What is on screen
  * is what the app renders; a case that folds into two cards shows two.
  *
- * `cases.test.ts` reads every `insertEvent` and `createUpdateEvent` call in the app and fails when
+ * `coverage.test.ts` reads every `insertEvent` and `createUpdateEvent` call in the app and fails when
  * a `(verb, object)` pair or a diffed column has no case here, so this cannot quietly fall behind
  * the write path.
  *

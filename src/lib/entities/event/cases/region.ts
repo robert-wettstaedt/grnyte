@@ -1,7 +1,7 @@
 /**
  * Every card an action on a REGION MEMBERSHIP can produce.
  *
- * The awkward domain, and the reason `legacy.ts` reads the object and the metadata rather than the
+ * The awkward domain, and the reason `line.ts` reads the object and the metadata rather than the
  * verb alone: six different actions write about a `user`, and three of them share a verb. An
  * invitation and a revoked invitation both point `subject_fk` at the INVITER, degenerately, and
  * carry the address in `metadata`; a member removal writes the same `remove` verb with the removed
@@ -182,7 +182,7 @@ export const REGION_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'ONE card holding both, which is worth deciding on. Two events on the server (a `remove` does not join an open `invite`), but the group key is subject plus metadata and both carry the inviter and the address. The two sentences differ, so no shared verb survives: the headline degrades to "You edited lea.hofer@example.com" with a "2 edits" sub line, and neither the invitation nor the revoke is named.',
+      'TWO cards, "You revoked the invite for lea.hofer@example.com" over "You invited lea.hofer@example.com". Two events on the server (a `remove` does not join an open `invite`), and the client keeps them apart because the group key carries the verb: without that they shared the key (same subject, same address) and neither sentence survived, so the card read "You edited lea.hofer@example.com, 2 edits", asserting an edit to an email address.',
     id: 'REGION-02b',
     writer: 'regions.remote.ts:313',
   },
@@ -208,7 +208,7 @@ export const REGION_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Two cards, "Mara Lindqvist revoked the invite for lea.hofer@example.com" over "Sofia Brandt invited lea.hofer@example.com". They cannot join even though they are minutes apart and about one address: the subject is the ACTOR on both, so the two keys differ. The mirror image of REGION-02b.',
+      'Two cards, "Mara Lindqvist revoked the invite for lea.hofer@example.com" over "Sofia Brandt invited lea.hofer@example.com". Two reasons here rather than one: the subject is the ACTOR on both, so the keys differ by actor, and the verb is in the key as well. REGION-02b is the same pair by one person, and stays two cards on the verb alone.',
     id: 'REGION-02c',
     writer: 'regions.remote.ts:313',
   },
@@ -365,7 +365,7 @@ export const REGION_CASES: EventCase[] = [
       eventAgo(125, { actorFk: 5, entity: departed(5), objectId: 5, objectType: 'user', verb: 'leave' }),
     ],
     expected:
-      'One card holding both, and the sentence it settles on is poor: neither event carries metadata, so they share a key, and their two sentences differ, so the headline falls back to "Mara Lindqvist edited Mara Lindqvist" with a "2 edits" sub line. Neither the departure nor the return is named, and the card has no rows at all.',
+      'Two cards, "Mara Lindqvist joined" over "Mara Lindqvist left the region", each with its own sentence. Neither event carries metadata, so the verb is the only thing keeping them apart: without it in the group key they merged and the card read "Mara Lindqvist edited Mara Lindqvist, 2 edits", naming neither the departure nor the return.',
     id: 'REGION-06c',
     writer: 'regions.remote.ts:541',
   },
@@ -479,9 +479,25 @@ export const REGION_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Single card, "Mara Lindqvist linked themselves to the first ascensionist Mara Lindqvist", with her profile row and one change line labelled First ascensionist. Two things to look at. The headline names the ACCOUNT twice, never the claimed climbing name in metadata, because the entry reads a hydrated subject rather than a stored value. And the change line, declared as a text pair, has nothing to show: the adapter hands metadata to the value columns only for an invitation, so both chips render the not-set placeholder. Under the old rows the name was in new_value and that line read Not set to M. Lindqvist.',
+      'Single card, "Mara Lindqvist linked themselves to the first ascensionist Mara Lindqvist", with her profile row and one change line labelled First ascensionist reading Not set to M. Lindqvist. One thing left to look at: the headline names the ACCOUNT twice and never the claimed climbing name, because the entry reads a hydrated subject where the line reads the stored value. The line itself is right, and was not: it rendered the not-set placeholder on both sides until the stored name was handed to the value the renderer reads.',
     id: 'REGION-08a',
     writer: 'firstAscensionist.server.ts:65',
+  },
+  {
+    action: 'A first ascensionist claimed BEFORE the events cutover, as the backfill migrated it',
+    domain: 'region',
+    events: [
+      eventAgo(78, {
+        actorFk: 5,
+        changes: [change({ columnName: 'first ascensionist', newValue: 'M. Lindqvist' })],
+        objectId: 5,
+        objectType: 'user',
+      }),
+    ],
+    expected:
+      'The same card as REGION-08a from the shape migrated history carries: an `update` with a change row rather than an `add` with the name in metadata. Found in the running app, where every claim made before the cutover read "You made a change to admin" and showed no change line at all. The catalogue holds both shapes now.',
+    id: 'REGION-08b',
+    writer: null,
   },
   {
     action: 'Claim yourself as first ascensionist again, on another route in the same region',
@@ -489,7 +505,7 @@ export const REGION_CASES: EventCase[] = [
     events: [],
     expected:
       'No card. The submitted climber matches the row that now exists, so no row is created and nothing is logged: a claim binds an account to a climbing identity once ever, per region.',
-    id: 'REGION-08b',
+    id: 'REGION-08c',
     writer: 'firstAscensionist.server.ts:48',
   },
   {
@@ -498,7 +514,7 @@ export const REGION_CASES: EventCase[] = [
     events: [],
     expected:
       'No card. The claim is dropped to null unless it is the caller\'s own, so the climber row is created unlinked and there is no account to have "linked themselves" to anything.',
-    id: 'REGION-08c',
+    id: 'REGION-08d',
     writer: 'firstAscensionist.server.ts:43',
   },
 

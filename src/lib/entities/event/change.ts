@@ -7,8 +7,8 @@ import type { MessageKey } from '$lib/i18n/message'
 import { parseCoords, type StoredCoords } from '$lib/map/coords'
 import { haversineMetres, type Coords } from '$lib/map/map'
 import { diffWords } from 'diff'
-import type { CatalogueRow } from './catalogue'
 import { eventEntityKey, type EventEntityMap } from './entity'
+import type { CardLine } from './line'
 import { verbEntry, type VerbField } from './verbs'
 
 /**
@@ -33,8 +33,9 @@ export interface ChangeContext {
   topos?: ReadonlyMap<number, TopoView>
 }
 
-/** Which of the ten shapes a change line takes. Declared by the catalogue, in `verbs.ts`. */
+/** Which of the eleven shapes a change line takes. Declared by the catalogue, in `verbs.ts`. */
 export type ChangeKind =
+  | 'ascentType'
   | 'chips'
   | 'file'
   | 'grade'
@@ -90,6 +91,7 @@ export type ChangeView = ChangeBase &
     | { after: SourceSide; before: SourceSide; kind: 'source' }
     | { after: string[]; before: string[]; kind: 'chips' }
     | { after: string | undefined; before: string | undefined; format: PairFormat; kind: 'pair' }
+    | { after: string | undefined; before: string | undefined; kind: 'ascentType' }
     | { after: string | undefined; before: string | undefined; kind: 'prose'; segments: ProseSegment[] | undefined }
     | { afterFk: number | undefined; beforeFk: number | undefined; kind: 'grade' }
     | {
@@ -163,13 +165,13 @@ interface ChangeBase {
 }
 
 /**
- * The change lines a set of activity rows renders, in the order they arrive.
+ * The change lines a set of card lines renders, in the order they arrive.
  *
  * A row whose catalogue entry declares no `field` contributes nothing: it carries no old/new
  * pair worth showing, which is a fact about the event rather than about the column (a role
  * change has a pair, a member removal writes the same column and has none).
  */
-export function changeViews(rows: readonly CatalogueRow[], ctx: ChangeContext = {}): ChangeView[] {
+export function changeViews(rows: readonly CardLine[], ctx: ChangeContext = {}): ChangeView[] {
   return rows.flatMap((activity) => {
     const field = verbEntry(activity)?.field
     return field == null ? [] : [changeView(activity, field, ctx)]
@@ -185,7 +187,7 @@ export function storedMedia(value: null | string | undefined): MediaWord {
   return value === 'photo' || value === 'video' ? value : 'none'
 }
 
-function changeView(activity: CatalogueRow, field: VerbField, ctx: ChangeContext): ChangeView {
+function changeView(activity: CardLine, field: VerbField, ctx: ChangeContext): ChangeView {
   const base: ChangeBase = {
     field,
     id: `${activity.id}:${activity.columnName ?? ''}`,
@@ -193,6 +195,13 @@ function changeView(activity: CatalogueRow, field: VerbField, ctx: ChangeContext
   }
 
   switch (field.kind) {
+    // The stored enum member, unresolved: the four types are drawn as the same glyph the route
+    // row and the log form draw, and the markup owns that mapping. A value that is no longer a
+    // type (a row written before `send` became `redpoint`) has no glyph and falls back to a
+    // plain chip there, which is why this is not narrowed to `AscentType` here.
+    case 'ascentType':
+      return { ...base, after: activity.newValue, before: activity.oldValue, kind: 'ascentType' }
+
     case 'chips':
       return { ...base, after: list(activity.newValue), before: list(activity.oldValue), kind: 'chips' }
 
@@ -270,7 +279,7 @@ function gradeFk(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-/** `tags` and `firstAscensionists` are stored comma-joined on the activity row. */
+/** `tags` and `firstAscensionists` are stored comma-joined in the change's value. */
 function list(value: string | undefined): string[] {
   return (value ?? '')
     .split(',')
@@ -289,7 +298,7 @@ function list(value: string | undefined): string[] {
  * the way to a parking spot nobody can park at any more is the way to nowhere.
  */
 function locationChange(
-  activity: CatalogueRow,
+  activity: CardLine,
   field: VerbField,
   ctx: ChangeContext,
 ): {
@@ -325,7 +334,7 @@ function locationChange(
     paths:
       field.cleared === true
         ? undefined
-        : ctx.entities?.get(eventEntityKey({ id: activity.entityId, type: activity.entityType }))?.paths,
+        : ctx.entities?.get(eventEntityKey({ id: String(activity.objectId), type: activity.objectType }))?.paths,
     points: locationPoints(from, to),
   }
 }
@@ -430,7 +439,7 @@ function topoCaption(action: string, diff: TopoLineDiff): MessageKey | undefined
  * when the photo is gone, because "Erased Rampe" is still the story.
  */
 function topoChange(
-  activity: CatalogueRow,
+  activity: CardLine,
   ctx: ChangeContext,
 ): {
   added: TopoLineChip[]

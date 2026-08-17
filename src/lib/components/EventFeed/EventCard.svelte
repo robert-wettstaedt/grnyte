@@ -1,5 +1,5 @@
 <!--
-  One feed card: whatever `groupCatalogueRows` folded into a group, whether that is a single
+  One feed card: whatever `groupEvents` folded into a group, whether that is a single
   edit or a session of four ascents.
 
   What the card *says* is decided by `cardView()` and arrives as a view; this file is

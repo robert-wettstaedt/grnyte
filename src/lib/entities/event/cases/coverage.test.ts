@@ -16,6 +16,8 @@ import { eventVerb } from '$lib/db/schema'
 import { readFileSync } from 'node:fs'
 import { globSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { eventLines } from '../line'
+import { VERBS as CATALOGUE, verbEntry, WRITTEN_ROWS } from '../verbs'
 import { EVENT_CASES } from './index'
 
 /** The nine verbs, off the schema: what a quoted word on a `verb:` line has to be to be one. */
@@ -149,6 +151,39 @@ describe('the case catalogue is read off the write path', () => {
     )
 
     expect(wrong).toEqual([])
+  })
+
+  it('shows every sentence the catalogue holds, so none of them is dead or unreviewed', () => {
+    // The other direction of the same question. The assertions above ask whether the app can write
+    // something the wall does not show; this asks whether the wall shows everything the app can
+    // SAY. An entry nothing reaches is either a sentence no writer can produce any more, or one
+    // that ships unreviewed because no card on the wall renders it.
+    // On the ENTRY rather than on its message key: several entries share a key (a photo pulled off
+    // a route and one pulled off an ascent read the same), so comparing keys would report an entry
+    // as covered because a different one happens to say the same thing.
+    const shown = new Set(EVENT_CASES.flatMap((entry) => entry.events.flatMap(eventLines)).map(verbEntry))
+
+    // Through `WRITTEN_ROWS`, which is the same entries widened: `VERBS` is `as const`, so its
+    // element type is a union whose create and delete members declare no `columnName` at all.
+    const unreached = CATALOGUE.filter((entry) => !shown.has(entry)).map((entry) => {
+      const written = WRITTEN_ROWS.find((row) => row.key === entry.key && row.verb === entry.verb)
+      return `${entry.objectType}:${entry.verb}${written?.columnName == null ? '' : `:${written.columnName}`}`
+    })
+
+    expect(unreached).toEqual([])
+  })
+
+  it('leaves exactly two lines with no sentence of their own, both of them documented', () => {
+    // A line that resolves nothing falls through to "made a change", which is what the catalogue
+    // exists to avoid. Two do, and both are cases about that: an ascent create whose ascent does
+    // not resolve has no type to scope its sentence by, and `join` is a verb nothing writes any
+    // more, kept only by migrated history. Anything else appearing here is a card that lost its
+    // sentence.
+    const unresolved = EVENT_CASES.flatMap((entry) =>
+      entry.events.flatMap(eventLines).flatMap((line) => (verbEntry(line) == null ? [entry.id] : [])),
+    )
+
+    expect(unresolved.sort()).toEqual(['ASCENT-01i', 'REGION-09a'])
   })
 
   it('gives every case a unique id', () => {

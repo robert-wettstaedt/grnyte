@@ -1,6 +1,6 @@
 import type { MessageKey } from '$lib/i18n/message'
 import { isDatedMoment } from '$lib/i18n/relativeTime'
-import type { CatalogueRow } from './catalogue'
+import type { CardLine } from './line'
 
 /**
  * The one line a detail page shows above its log: who last touched this record, and when.
@@ -28,7 +28,7 @@ export interface MetaSource {
    */
   creatorName: string | undefined
   /** The newest row in scope, or `undefined` when nothing has been logged about this entity. */
-  latest: CatalogueRow | undefined
+  latest: CardLine | undefined
   /**
    * The clock. Injected rather than read here so this stays pure, and because the sentence has
    * to know which form the time will take: `formatUploadedAt` switches to a date after a week,
@@ -55,11 +55,10 @@ const KEYS = {
 
 export function metaLine({ createdAt, creatorName, latest, now }: MetaSource): MetaLine | undefined {
   if (latest != null) {
-    // A `created` row is the record appearing, not a change to it; everything else in scope is a
-    // change. `columnName` tells them apart without a second lookup: only column-level rows carry
-    // one, and an upload is `type: 'uploaded'`, so it can never be mistaken for the creation.
-    const created = latest.type === 'created' && latest.columnName == null
-    return line(created, latest.userName, latest.createdAt, now)
+    // A create is the record appearing, not a change to it; every other verb in scope is a change.
+    // The verb says so outright now, where the old shape had to read a column being absent.
+    const created = latest.verb === 'create'
+    return line(created, latest.actorName, latest.createdAt, now)
   }
 
   // Nothing logged at all: an entity imported before the log existed, so its own columns are all

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activity } from './catalogue.fixture'
+import { line } from './line.fixture'
 import { metaLine } from './meta'
 
 const NOW = new Date(2026, 2, 6, 12).getTime()
@@ -16,15 +16,17 @@ describe('metaLine', () => {
     expect(
       metaLine({
         ...imported,
-        latest: activity({ columnName: 'gradeFk', createdAt: RECENT, type: 'updated', userName: 'mara' }),
+        latest: line({ actorName: 'mara', columnName: 'gradeFk', createdAt: RECENT, verb: 'update' }),
       }),
     ).toEqual({ actor: 'mara', key: 'event_metaUpdated', timestamp: RECENT })
   })
 
   it('reads the entity s own creation row as a creation', () => {
-    expect(
-      metaLine({ ...imported, latest: activity({ createdAt: RECENT, type: 'created', userName: 'mara' }) }),
-    ).toEqual({ actor: 'mara', key: 'event_metaCreated', timestamp: RECENT })
+    expect(metaLine({ ...imported, latest: line({ actorName: 'mara', createdAt: RECENT, verb: 'create' }) })).toEqual({
+      actor: 'mara',
+      key: 'event_metaCreated',
+      timestamp: RECENT,
+    })
   })
 
   // The two halves of a photo. An upload points at the file and names the entity as its parent;
@@ -33,12 +35,12 @@ describe('metaLine', () => {
     expect(
       metaLine({
         ...imported,
-        latest: activity({
+        latest: line({
+          actorName: 'mara',
           createdAt: RECENT,
-          entityType: 'file',
-          parentEntityType: 'route',
-          type: 'uploaded',
-          userName: 'mara',
+          objectType: 'file',
+          parentType: 'route',
+          verb: 'add',
         }),
       })?.key,
     ).toBe('event_metaUpdated')
@@ -48,7 +50,7 @@ describe('metaLine', () => {
     expect(
       metaLine({
         ...imported,
-        latest: activity({ columnName: 'file', createdAt: RECENT, type: 'deleted', userName: 'mara' }),
+        latest: line({ actorName: 'mara', columnName: 'file', createdAt: RECENT, verb: 'remove' }),
       })?.key,
     ).toBe('event_metaUpdated')
   })
@@ -56,7 +58,7 @@ describe('metaLine', () => {
   // Past a week `formatUploadedAt` renders a date, and "Updated Jan 12, 2026 by mara" is missing
   // its preposition. German splits the same way ("vor 2 Tagen" against "am 12. Jan. 2026").
   it('takes the preposition once the time reads as a date', () => {
-    expect(metaLine({ ...imported, latest: activity({ createdAt: OLD.getTime(), userName: 'mara' }) })?.key).toBe(
+    expect(metaLine({ ...imported, latest: line({ actorName: 'mara', createdAt: OLD.getTime() }) })?.key).toBe(
       'event_metaUpdatedOn',
     )
   })
@@ -74,7 +76,7 @@ describe('metaLine', () => {
   })
 
   it('drops the actor from the sentence while the row s user has not synced', () => {
-    expect(metaLine({ ...imported, latest: activity({ createdAt: RECENT, userName: '' }) })?.key).toBe(
+    expect(metaLine({ ...imported, latest: line({ actorName: '', createdAt: RECENT }) })?.key).toBe(
       'event_metaUpdatedUnknown',
     )
   })

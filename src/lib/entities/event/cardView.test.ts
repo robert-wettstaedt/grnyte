@@ -1,27 +1,39 @@
 import { describe, expect, it } from 'vitest'
-import { groupCatalogueRows } from './cardGroup'
-import { cardView } from './cardView'
-import type { CatalogueRow } from './catalogue'
-import { activity, entityMap } from './catalogue.fixture'
+import { cardView, type CardGroup } from './cardView'
 import type { EventEntity, EventEntityMap } from './entity'
 import type { EventEntityRef } from './entity'
+import type { CardLine } from './line'
+import { entityMap, group, line } from './line.fixture'
 import { WRITTEN_ROWS } from './verbs'
 
 /** The card for a set of activities, folded exactly as the feed folds them. */
-function card(rows: CatalogueRow[], entities?: EventEntityMap, currentUserFk?: number, omit?: EventEntityRef) {
-  return cardView(groupCatalogueRows(rows)[0], entities, currentUserFk, undefined, omit)
+/**
+ * The card those lines make.
+ *
+ * `kind` is an INPUT here, where the feed reads it off `groupEvents`. These are unit tests of what
+ * a card decides given a kind, so stating it is the point rather than a shortcut: `grouping.ts`
+ * has its own tests for which kind a set of events gets.
+ */
+function card(
+  rows: CardLine[],
+  entities?: EventEntityMap,
+  currentUserFk?: number,
+  omit?: EventEntityRef,
+  kind?: CardGroup['kind'],
+) {
+  return cardView(group(rows, kind), entities, currentUserFk, undefined, omit)
 }
 
 const route = (name: string): EventEntity => ({ name, row: 'route' })
 
 /** One logged ascent, which groups into a session keyed on the climber alone. */
-function ascentRow(partial: Partial<CatalogueRow>): CatalogueRow {
-  return activity({
-    entityType: 'ascent',
-    newValue: 'flash',
-    parentEntityType: 'route',
-    type: 'created',
-    userFk: 3,
+function ascentRow(partial: Partial<CardLine>): CardLine {
+  return line({
+    actorFk: 3,
+    objectType: 'ascent',
+    parentType: 'route',
+    value: 'flash',
+    verb: 'create',
     ...partial,
   })
 }
@@ -30,36 +42,34 @@ function ascentRow(partial: Partial<CatalogueRow>): CatalogueRow {
  * Crag edits under one block, which is what makes them one burst: the key is the actor plus
  * the parent, so rows without a shared parent would each get their own card.
  */
-function burstRows(count: number, partial: (index: number) => Partial<CatalogueRow>): CatalogueRow[] {
-  return Array.from({ length: count }, (_, index) =>
-    activity({ parentEntityId: '400', parentEntityType: 'block', ...partial(index) }),
-  )
+function burstRows(count: number, partial: (index: number) => Partial<CardLine>): CardLine[] {
+  return Array.from({ length: count }, (_, index) => line({ parentId: '400', parentType: 'block', ...partial(index) }))
 }
 
 describe('headline keys', () => {
   it('takes a single card s verb from the column that changed', () => {
-    expect(card([activity({ columnName: 'gradeFk' })]).headline.key).toBe('event_routeUpdatedGradeFk')
+    expect(card([line({ columnName: 'gradeFk' })]).headline.key).toBe('event_routeUpdatedGradeFk')
   })
 
   it('reads a new ascent s verb from its ascent type rather than a column', () => {
-    expect(card([activity({ entityType: 'ascent', newValue: 'redpoint', type: 'created' })]).headline.key).toBe(
+    expect(card([line({ objectType: 'ascent', value: 'redpoint', verb: 'create' })]).headline.key).toBe(
       'event_ascentCreatedRedpoint',
     )
   })
 
   it('uses the whole-entity verb when nothing scopes the change', () => {
-    expect(card([activity({ type: 'deleted' })]).headline.key).toBe('event_routeDeleted')
+    expect(card([line({ verb: 'delete' })]).headline.key).toBe('event_routeDeleted')
   })
 
   it('summarises a group rather than speaking one of its rows verbs', () => {
-    const rows = burstRows(2, (index) => ({ columnName: 'name', entityId: String(index) }))
+    const rows = burstRows(2, (index) => ({ columnName: 'name', objectId: String(index) }))
     expect(card(rows).headline.key).toBe('event_groupEdits')
   })
 
   // One person, one entity, one kind of change. "Edited" is true of four topo saves and of
   // three photo removals alike, and says nothing about either.
   it('speaks the shared verb when a group is one kind of change on one entity', () => {
-    const rows = burstRows(4, () => ({ columnName: 'topo', entityId: '400', entityType: 'block' as const }))
+    const rows = burstRows(4, () => ({ columnName: 'topo', objectId: '400', objectType: 'block' as const }))
     expect(card(rows).headline.key).toBe('event_blockUpdatedTopo')
   })
 
@@ -68,8 +78,8 @@ describe('headline keys', () => {
   it('falls back to the summary verb when one kind of change spans two entities', () => {
     const rows = burstRows(2, (index) => ({
       columnName: 'topo',
-      entityId: String(400 + index),
-      entityType: 'block' as const,
+      objectId: String(400 + index),
+      objectType: 'block' as const,
     }))
     expect(card(rows).headline.key).toBe('event_groupEdits')
   })
@@ -77,9 +87,9 @@ describe('headline keys', () => {
   it('says media when a grouped removal took both a photo and a video', () => {
     const rows = burstRows(2, (index) => ({
       columnName: 'file',
-      entityId: '500',
+      objectId: '500',
       oldValue: index === 0 ? 'video' : 'photo',
-      type: 'deleted' as const,
+      verb: 'remove' as const,
     }))
 
     expect(card(rows).headline).toMatchObject({ key: 'event_routeDeletedFile', params: { media: 'none' } })
@@ -88,27 +98,28 @@ describe('headline keys', () => {
   // A route added with two photos is one event: its own verb, and a summary counting the media
   // rather than calling the create itself an edit.
   it('speaks the create s verb and counts the media when a create picked up files', () => {
-    const created = activity({
+    const created = line({
       createdAt: 100,
-      entityId: '9',
       id: 1,
       newValue: 'Kante',
-      parentEntityId: '400',
-      parentEntityType: 'block',
-      type: 'created',
+      objectId: '9',
+      parentId: '400',
+      parentType: 'block',
+      verb: 'create',
     })
     const files = [1, 2].map((index) =>
-      activity({
+      line({
         createdAt: 100 + index,
-        entityId: `f${index}`,
-        entityType: 'file',
         id: index + 1,
-        parentEntityId: '9',
-        parentEntityType: 'route',
-        type: 'uploaded',
+        objectId: `f${index}`,
+        objectType: 'file',
+        parentId: '9',
+        parentType: 'route',
+        verb: 'add',
       }),
     )
-    const view = card([...files, created])
+    // The create leads, which is what the feed's merge does: a card speaks the verb at its front.
+    const view = card([created, ...files], undefined, undefined, undefined, 'upload')
 
     expect(view.headline.key).toBe('event_routeCreated')
     expect(view.summary).toEqual([{ key: 'event_summaryFiles', params: { count: 2, media: 'none' } }])
@@ -118,7 +129,7 @@ describe('headline keys', () => {
   // says what actually happened, the count is of edits.
   it('speaks the change and counts edits when a session is really edits to one ascent', () => {
     const rows = ['type', 'gradeFk', 'notes'].map((columnName, index) =>
-      activity({ columnName, createdAt: 100 - index, entityId: '9001', entityType: 'ascent', id: index + 1 }),
+      line({ columnName, createdAt: 100 - index, id: index + 1, objectId: '9001', objectType: 'ascent' }),
     )
     const view = card(rows)
 
@@ -129,23 +140,25 @@ describe('headline keys', () => {
   // A real session still counts ascents, and an ascent edited as well as logged is one ascent.
   it('counts ascents rather than rows in a genuine session', () => {
     const rows = [
-      activity({ createdAt: 100, entityId: '9001', entityType: 'ascent', id: 1, newValue: 'flash', type: 'created' }),
-      activity({ columnName: 'gradeFk', createdAt: 99, entityId: '9001', entityType: 'ascent', id: 2 }),
-      activity({ createdAt: 98, entityId: '9002', entityType: 'ascent', id: 3, newValue: 'redpoint', type: 'created' }),
+      line({ createdAt: 100, id: 1, objectId: '9001', objectType: 'ascent', value: 'flash', verb: 'create' }),
+      line({ columnName: 'gradeFk', createdAt: 99, id: 2, objectId: '9001', objectType: 'ascent' }),
+      line({ createdAt: 98, id: 3, objectId: '9002', objectType: 'ascent', value: 'redpoint', verb: 'create' }),
     ]
 
-    expect(card(rows).summary).toEqual([{ key: 'event_summaryAscents', params: { count: 2 } }])
+    expect(card(rows, undefined, undefined, undefined, 'session').summary).toEqual([
+      { key: 'event_summaryAscents', params: { count: 2 } },
+    ])
   })
 
   // A deletion is the one card whose subject cannot be followed, so the scale of it is the
   // only thing that can answer "how bad was that".
   it('reports what a deletion took with it, summed over the card', () => {
     const rows = burstRows(2, (index) => ({
-      entityId: String(index),
-      entityType: 'area' as const,
       metadata: JSON.stringify({ blocks: index + 1, routes: 10 }),
-      parentEntityType: 'area' as const,
-      type: 'deleted' as const,
+      objectId: String(index),
+      objectType: 'area' as const,
+      parentType: 'area' as const,
+      verb: 'delete' as const,
     }))
 
     expect(card(rows).summary).toEqual([
@@ -155,27 +168,29 @@ describe('headline keys', () => {
   })
 
   it('leaves a deletion logged before the counts existed exactly as it was', () => {
-    const rows = [activity({ type: 'deleted' })]
+    const rows = [line({ verb: 'delete' })]
     expect(card(rows).summary).toBeUndefined()
   })
 
   // A topo row's metadata shares the column and is not JSON.
   it('ignores metadata that is not a deletion scale', () => {
-    const rows = [activity({ columnName: 'topo', entityType: 'block', metadata: 'lines:700', type: 'deleted' })]
+    const rows = [line({ columnName: 'topo', metadata: 'lines:700', objectType: 'block', verb: 'remove' })]
     expect(card(rows).summary).toBeUndefined()
   })
 
   it('says a group of deletions deleted rather than edited', () => {
-    const rows = burstRows(2, (index) => ({ entityId: String(index), type: 'deleted' as const }))
-    expect(card(rows).headline.key).toBe('event_groupRemovals')
-    expect(card(rows).summary).toEqual([{ key: 'event_summaryRemovals', params: { count: 2 } }])
+    const rows = burstRows(2, (index) => ({ objectId: String(index), verb: 'delete' as const }))
+    expect(card(rows, undefined, undefined, undefined, 'removal').headline.key).toBe('event_groupRemovals')
+    expect(card(rows, undefined, undefined, undefined, 'removal').summary).toEqual([
+      { key: 'event_summaryRemovals', params: { count: 2 } },
+    ])
   })
 
   // The catalogue is type-checked against paraglide, so this is about the lookup rather than
   // the keys: a row the mutation layer writes must find its own entry, not degrade past it.
   it('resolves every activity the mutation layer writes to its catalogue entry', () => {
     const degraded = WRITTEN_ROWS.map((partial) => ({
-      key: card([activity(partial)]).headline.key,
+      key: card([line(partial)]).headline.key,
       partial,
     })).filter(({ key }) => key === 'event_genericChange')
 
@@ -185,36 +200,36 @@ describe('headline keys', () => {
 
 describe('headline name', () => {
   it('prefers the hydrated entity', () => {
-    const rows = [activity({ oldValue: 'Altweg', type: 'deleted' })]
+    const rows = [line({ oldValue: 'Altweg', verb: 'delete' })]
     expect(card(rows, entityMap([[{ id: '1', type: 'route' }, route('Rampe')]])).entityName).toBe('Rampe')
   })
 
   it('falls back to the name a create or delete row stashed', () => {
     const gone = entityMap([[{ id: '1', type: 'route' }, null]])
-    expect(card([activity({ newValue: 'Neuweg', type: 'created' })], gone).entityName).toBe('Neuweg')
-    expect(card([activity({ oldValue: 'Altweg', type: 'deleted' })], gone).entityName).toBe('Altweg')
+    expect(card([line({ newValue: 'Neuweg', verb: 'create' })], gone).entityName).toBe('Neuweg')
+    expect(card([line({ oldValue: 'Altweg', verb: 'delete' })], gone).entityName).toBe('Altweg')
   })
 
   it('never borrows a column value that is not a name', () => {
     // A grade id in the headline would read as "changed the grade of 15".
-    expect(card([activity({ columnName: 'gradeFk', newValue: '15' })]).entityName).toBeUndefined()
-    expect(card([activity({ columnName: 'name', newValue: 'Kante direkt' })]).entityName).toBe('Kante direkt')
+    expect(card([line({ columnName: 'gradeFk', newValue: '15' })]).entityName).toBeUndefined()
+    expect(card([line({ columnName: 'name', newValue: 'Kante direkt' })]).entityName).toBe('Kante direkt')
   })
 
   it('never reads an ascent row, whose values are ascent types', () => {
-    expect(card([activity({ entityType: 'ascent', newValue: 'flash', type: 'created' })]).entityName).toBeUndefined()
+    expect(card([line({ objectType: 'ascent', value: 'flash', verb: 'create' })]).entityName).toBeUndefined()
   })
 
   // A deleted ascent stores no name of its own, so the route it hung on is the only true name
   // left. Without this the card fell to `common_unnamed` for an ascent whose route is right there.
   it('borrows the parent when the entry stores no name to fall back on', () => {
     const rows = [
-      activity({
-        entityId: '9001',
-        entityType: 'ascent',
-        parentEntityId: '501',
-        parentEntityType: 'route',
-        type: 'deleted',
+      line({
+        objectId: '9001',
+        objectType: 'ascent',
+        parentId: '501',
+        parentType: 'route',
+        verb: 'delete',
       }),
     ]
     const entities = entityMap([
@@ -228,7 +243,7 @@ describe('headline name', () => {
   // The guard on the above: a route DOES stash its name, so a missing one is genuinely missing
   // and must not be filled in with the block it hung on.
   it('never borrows the parent for an entry that does stash a name', () => {
-    const rows = [activity({ oldValue: '', parentEntityId: '400', parentEntityType: 'block', type: 'deleted' })]
+    const rows = [line({ oldValue: '', parentId: '400', parentType: 'block', verb: 'delete' })]
     const entities = entityMap([
       [{ id: '1', type: 'route' }, null],
       [
@@ -243,18 +258,18 @@ describe('headline name', () => {
 
   it('borrows a user row s value, which is the person', () => {
     expect(
-      card([activity({ columnName: 'invitation', entityType: 'user', newValue: 'sofia@example.com', type: 'created' })])
+      card([line({ columnName: 'invitation', newValue: 'sofia@example.com', objectType: 'user', verb: 'invite' })])
         .entityName,
     ).toBe('sofia@example.com')
   })
 
   it('treats an empty name column as no name at all', () => {
     // A route added without a name stores `''`, which reached the screen as a blank slot.
-    expect(card([activity({ newValue: '', type: 'created' })]).entityName).toBeUndefined()
+    expect(card([line({ newValue: '', verb: 'create' })]).entityName).toBeUndefined()
   })
 
   it('waits for a name only while one might still arrive', () => {
-    const rows = [activity({ oldValue: '', type: 'deleted' })]
+    const rows = [line({ oldValue: '', verb: 'delete' })]
     expect(card(rows).entityUnnamed).toBe(false)
     expect(card(rows, entityMap([[{ id: '1', type: 'route' }, null]])).entityUnnamed).toBe(true)
     expect(card(rows, entityMap([[{ id: '1', type: 'route' }, route('Rampe')]])).entityUnnamed).toBe(false)
@@ -262,8 +277,8 @@ describe('headline name', () => {
 
   it('names the place a burst agrees on', () => {
     const rows = [
-      activity({ columnName: 'name', entityId: '1', id: 1, parentEntityId: '400', parentEntityType: 'block' }),
-      activity({ columnName: 'rating', entityId: '2', id: 2, parentEntityId: '400', parentEntityType: 'block' }),
+      line({ columnName: 'name', id: 1, objectId: '1', parentId: '400', parentType: 'block' }),
+      line({ columnName: 'rating', id: 2, objectId: '2', parentId: '400', parentType: 'block' }),
     ]
     const entities = entityMap([
       [
@@ -279,8 +294,8 @@ describe('headline name', () => {
     // A session keys on the climber alone, so two ascents on two routes share a card while
     // disagreeing about where they happened. It then falls back to its first entity.
     const rows = [
-      ascentRow({ createdAt: 2, entityId: '9001', id: 1, parentEntityId: '5' }),
-      ascentRow({ createdAt: 1, entityId: '9002', id: 2, parentEntityId: '6' }),
+      ascentRow({ createdAt: 2, id: 1, objectId: '9001', parentId: '5' }),
+      ascentRow({ createdAt: 1, id: 2, objectId: '9002', parentId: '6' }),
     ]
     const entities = entityMap([
       [{ id: '5', type: 'route' }, route('Westwand')],
@@ -294,10 +309,10 @@ describe('headline name', () => {
 describe('rows', () => {
   it('is a skeleton while the entity has not synced, a tombstone once it is gone', () => {
     const rows = burstRows(2, (index) => ({
-      entityId: String(index + 1),
       id: 2 - index,
+      objectId: String(index + 1),
       oldValue: 'Altweg',
-      type: 'deleted',
+      verb: 'delete',
     }))
     const view = card(rows, entityMap([[{ id: '1', type: 'route' }, null]]))
 
@@ -307,10 +322,10 @@ describe('rows', () => {
   it('names a tombstone from the row that named it, not the group s newest', () => {
     // Both routes are gone; labelling both with the newest row's name would be a lie.
     const rows = burstRows(2, (index) => ({
-      entityId: String(index + 1),
       id: 2 - index,
+      objectId: String(index + 1),
       oldValue: ['Neuweg', 'Altweg'][index],
-      type: 'deleted',
+      verb: 'delete',
     }))
     const entities = entityMap([
       [{ id: '1', type: 'route' }, null],
@@ -321,7 +336,7 @@ describe('rows', () => {
   })
 
   it('collapses everything past the fourth row into a count', () => {
-    const view = card(burstRows(6, (index) => ({ columnName: 'name', entityId: String(index), id: 6 - index })))
+    const view = card(burstRows(6, (index) => ({ columnName: 'name', id: 6 - index, objectId: String(index) })))
 
     expect(view.rows).toHaveLength(4)
     expect(view.overflowCount).toBe(2)
@@ -329,7 +344,7 @@ describe('rows', () => {
 
   // The scoped log renders on the entity's own page, where every row is a link back to it.
   it('drops the row for the entity the card is rendered on', () => {
-    const view = card([activity({ columnName: 'gradeFk', entityId: '7' })], undefined, undefined, {
+    const view = card([line({ columnName: 'gradeFk', objectId: '7' })], undefined, undefined, {
       id: '7',
       type: 'route',
     })
@@ -340,14 +355,14 @@ describe('rows', () => {
   })
 
   it('keeps the rows that are not the entity the card is rendered on', () => {
-    const rows = burstRows(2, (index) => ({ columnName: 'name', entityId: String(index + 1), id: 2 - index }))
+    const rows = burstRows(2, (index) => ({ columnName: 'name', id: 2 - index, objectId: String(index + 1) }))
     const view = card(rows, undefined, undefined, { id: '1', type: 'route' })
 
     expect(view.rows.map((row) => row.ref.id)).toEqual(['2'])
   })
 
   it('counts the overflow after the omitted row is gone', () => {
-    const rows = burstRows(6, (index) => ({ columnName: 'name', entityId: String(index), id: 6 - index }))
+    const rows = burstRows(6, (index) => ({ columnName: 'name', id: 6 - index, objectId: String(index) }))
     const view = card(rows, undefined, undefined, { id: '0', type: 'route' })
 
     expect(view.rows).toHaveLength(4)
@@ -359,27 +374,27 @@ describe('rows', () => {
 describe('summary', () => {
   const session = (count: number) =>
     Array.from({ length: count }, (_, index) =>
-      activity({
+      line({
+        actorFk: 3,
         createdAt: index * 60_000,
-        entityId: String(9000 + index),
-        entityType: 'ascent',
         id: index,
-        newValue: 'redpoint',
-        parentEntityId: '5',
-        parentEntityType: 'route',
-        type: 'created',
-        userFk: 3,
+        objectId: String(9000 + index),
+        objectType: 'ascent',
+        parentId: '5',
+        parentType: 'route',
+        value: 'redpoint',
+        verb: 'create',
       }),
     )
 
   it('has none on a single card', () => {
-    expect(card([activity({})]).summary).toBeUndefined()
+    expect(card([line({})]).summary).toBeUndefined()
   })
 
   it('counts a session and names the place it happened', () => {
     const entities = entityMap([[{ id: '5', type: 'route' }, route('Westwand')]])
 
-    expect(card(session(3), entities).summary).toEqual([
+    expect(card(session(3), entities, undefined, undefined, 'session').summary).toEqual([
       { key: 'event_summaryAscents', params: { count: 3 } },
       { text: 'Westwand' },
     ])
@@ -387,21 +402,21 @@ describe('summary', () => {
 
   it('does not repeat the place an edits headline already named', () => {
     const rows = [
-      activity({
+      line({
         columnName: 'name',
         createdAt: 2,
-        entityId: '1',
         id: 1,
-        parentEntityId: '400',
-        parentEntityType: 'block',
+        objectId: '1',
+        parentId: '400',
+        parentType: 'block',
       }),
-      activity({
+      line({
         columnName: 'rating',
         createdAt: 1,
-        entityId: '2',
         id: 2,
-        parentEntityId: '400',
-        parentEntityType: 'block',
+        objectId: '2',
+        parentId: '400',
+        parentType: 'block',
       }),
     ]
     const entities = entityMap([
@@ -417,21 +432,26 @@ describe('summary', () => {
   })
 
   it('counts files, not edits, on a card that only removed media', () => {
-    const removal = (partial: Partial<CatalogueRow>) =>
-      activity({
+    const removal = (partial: Partial<CardLine>) =>
+      line({
         columnName: 'file',
-        entityId: '500',
-        parentEntityId: '400',
-        parentEntityType: 'block',
-        type: 'deleted',
+        objectId: '500',
+        parentId: '400',
+        parentType: 'block',
+        verb: 'remove',
         ...partial,
       })
 
     // Two photos off one route: the card knows it is about media, so "2 edits" reaches for
     // the generic word when it has the specific one.
     expect(
-      card([removal({ createdAt: 2, id: 1, oldValue: 'photo' }), removal({ createdAt: 1, id: 2, oldValue: 'photo' })])
-        .summary,
+      card(
+        [removal({ createdAt: 2, id: 1, oldValue: 'photo' }), removal({ createdAt: 1, id: 2, oldValue: 'photo' })],
+        undefined,
+        undefined,
+        undefined,
+        'entity',
+      ).summary,
     ).toEqual([{ key: 'event_summaryFiles', params: { count: 2, media: 'photo' } }])
 
     // A photo and a video agree on neither word, which is the arm that says "files".
@@ -445,8 +465,8 @@ describe('summary', () => {
     // Only `entity` groups can mix actors: a burst keys on the actor, so two people editing
     // the same crag get a card each. `user` rows are what fall through to `entity`.
     const rows = [
-      activity({ columnName: 'role', createdAt: 2, entityId: '5', entityType: 'user', id: 1, userFk: 1 }),
-      activity({ columnName: 'role', createdAt: 1, entityId: '5', entityType: 'user', id: 2, userFk: 2 }),
+      line({ actorFk: 1, columnName: 'role', createdAt: 2, id: 1, objectId: '5', objectType: 'user' }),
+      line({ actorFk: 2, columnName: 'role', createdAt: 1, id: 2, objectId: '5', objectType: 'user' }),
     ]
     const view = card(rows)
 
@@ -457,13 +477,13 @@ describe('summary', () => {
 
 describe('person and owner', () => {
   it('reads as yours when you are the actor', () => {
-    expect(card([activity({ userFk: 7 })], undefined, 7).headline.params.person).toBe('self')
-    expect(card([activity({ userFk: 7 })], undefined, 8).headline.params.person).toBe('other')
-    expect(card([activity({ userFk: 7 })]).headline.params.person).toBe('other')
+    expect(card([line({ actorFk: 7 })], undefined, 7).headline.params.person).toBe('self')
+    expect(card([line({ actorFk: 7 })], undefined, 8).headline.params.person).toBe('other')
+    expect(card([line({ actorFk: 7 })]).headline.params.person).toBe('other')
   })
 
   it('says whose ascent it is, and says nothing about one it cannot resolve', () => {
-    const rows = [activity({ entityId: '9', entityType: 'ascent', userFk: 7 })]
+    const rows = [line({ actorFk: 7, objectId: '9', objectType: 'ascent' })]
     const own = entityMap([
       [
         { id: '9', type: 'ascent' },
@@ -489,13 +509,13 @@ describe('person and owner', () => {
     // the one thing a card about somebody else's log must not say.
     const removal = (climberFk: number) =>
       card([
-        activity({
-          entityId: '9',
-          entityType: 'ascent',
+        line({
+          actorFk: 7,
           metadata: JSON.stringify({ climberFk, climberName: 'Ada Rossi' }),
+          objectId: '9',
+          objectType: 'ascent',
           oldValue: 'flash',
-          type: 'deleted',
-          userFk: 7,
+          verb: 'delete',
         }),
       ])
 
@@ -504,7 +524,7 @@ describe('person and owner', () => {
     expect(removal(3).climberName).toBe('Ada Rossi')
     // A row from before the climber was recorded still degrades to the vaguer sentence.
     expect(
-      card([activity({ entityId: '9', entityType: 'ascent', type: 'deleted', userFk: 7 })]).headline.params.owner,
+      card([line({ actorFk: 7, objectId: '9', objectType: 'ascent', verb: 'delete' })]).headline.params.owner,
     ).toBe('none')
   })
 
@@ -512,13 +532,13 @@ describe('person and owner', () => {
     // The row points at the file, so the ascent is only ever the parent. Without it the card
     // says "added a video to Karma" for something added to a climber's own ascent of it.
     const rows = [
-      activity({
-        entityId: 'f1',
-        entityType: 'file',
-        parentEntityId: '9',
-        parentEntityType: 'ascent',
-        type: 'uploaded',
-        userFk: 7,
+      line({
+        actorFk: 7,
+        objectId: 'f1',
+        objectType: 'file',
+        parentId: '9',
+        parentType: 'ascent',
+        verb: 'add',
       }),
     ]
     const entities = entityMap([
@@ -538,13 +558,13 @@ describe('person and owner', () => {
 })
 
 describe('uploads', () => {
-  const upload = (partial: Partial<CatalogueRow>) =>
-    activity({
-      entityType: 'file',
-      parentEntityId: '400',
-      parentEntityType: 'block',
-      type: 'uploaded',
-      userFk: 3,
+  const upload = (partial: Partial<CardLine>) =>
+    line({
+      actorFk: 3,
+      objectType: 'file',
+      parentId: '400',
+      parentType: 'block',
+      verb: 'add',
       ...partial,
     })
 
@@ -561,15 +581,15 @@ describe('uploads', () => {
 
   it('names what the photo landed on, never the file', () => {
     // A file's own id is a cuid, so borrowing it for the headline would read as noise.
-    const view = card([upload({ entityId: 'f1', id: 1 })], block)
+    const view = card([upload({ id: 1, objectId: 'f1' })], block)
 
     expect(view.headline.key).toBe('event_fileUploaded')
     expect(view.entityName).toBe('Nordblock')
   })
 
   it('summarises a submit rather than naming one of its photos', () => {
-    const rows = [1, 2, 3].map((n) => upload({ createdAt: 60_000 * n, entityId: `f${n}`, id: n }))
-    const view = card(rows, block)
+    const rows = [1, 2, 3].map((n) => upload({ createdAt: 60_000 * n, id: n, objectId: `f${n}` }))
+    const view = card(rows, block, undefined, undefined, 'upload')
 
     expect(view.headline.key).toBe('event_groupUploads')
     expect(view.summary).toEqual([{ key: 'event_summaryFiles', params: { count: 3, media: 'none' } }])
@@ -583,7 +603,7 @@ describe('uploads', () => {
       { id, type: 'file' },
       { files: [{ bunnyStreamFk: video ? 'guid' : undefined, id } as never], name: '', row: 'none' },
     ]
-    const rows = [1, 2].map((n) => upload({ createdAt: 60_000 * n, entityId: `f${n}`, id: n }))
+    const rows = [1, 2].map((n) => upload({ createdAt: 60_000 * n, id: n, objectId: `f${n}` }))
     const mediaOf = (entries: Parameters<typeof entityMap>[0]) => card(rows, entityMap(entries)).headline.params.media
 
     expect(mediaOf([file('f1', true), file('f2', true)])).toBe('video')
@@ -598,8 +618,8 @@ describe('uploads', () => {
     // with it directly. The thumbnails are keyed by file id, so a second copy is a crash.
     const clip = [{ bunnyStreamFk: 'guid', id: 'f1' }] as never
     const rows = [
-      ascentRow({ createdAt: 0, entityId: '9001', id: 1, parentEntityId: '500' }),
-      upload({ createdAt: 60_000, entityId: 'f1', id: 2, parentEntityId: '9001', parentEntityType: 'ascent' }),
+      ascentRow({ createdAt: 0, id: 1, objectId: '9001', parentId: '500' }),
+      upload({ createdAt: 60_000, id: 2, objectId: 'f1', parentId: '9001', parentType: 'ascent' }),
     ]
     const entities = entityMap([
       [
@@ -617,7 +637,7 @@ describe('uploads', () => {
 
   it('takes a removal s word off the row, since the file it named is gone', () => {
     const removal = (oldValue: string | undefined) =>
-      card([activity({ columnName: 'file', entityId: '9', entityType: 'ascent', oldValue, type: 'deleted' })]).headline
+      card([line({ columnName: 'file', objectId: '9', objectType: 'ascent', oldValue, verb: 'remove' })]).headline
         .params.media
 
     expect(removal('video')).toBe('video')
@@ -639,7 +659,7 @@ describe('uploads', () => {
         { files: [{ id: 'f1' } as never], name: 'Nordblock', row: 'none' },
       ],
     ])
-    const view = card([upload({ entityId: 'f1', id: 1 })], entities)
+    const view = card([upload({ id: 1, objectId: 'f1' })], entities)
 
     expect(view.rows.map((row) => row.ref)).toEqual([{ id: '400', type: 'block' }])
     expect(view.rows.map((row) => row.entity?.row)).toEqual(['block'])
@@ -659,7 +679,7 @@ describe('uploads', () => {
       ]),
     ])
     const view = card(
-      Array.from({ length: 3 }, (_, index) => upload({ entityId: `f${index}`, id: index + 1 })),
+      Array.from({ length: 3 }, (_, index) => upload({ id: index + 1, objectId: `f${index}` })),
       entities,
     )
 
@@ -676,14 +696,8 @@ describe('uploads', () => {
         { name: 'Mara Lindqvist', row: 'user' },
       ],
     ])
-    const removed = card(
-      [activity({ columnName: 'role', entityId: '5', entityType: 'user', type: 'deleted' })],
-      entities,
-    )
-    const left = card(
-      [activity({ columnName: 'membership', entityId: '5', entityType: 'user', type: 'deleted' })],
-      entities,
-    )
+    const removed = card([line({ columnName: 'role', objectId: '5', objectType: 'user', verb: 'remove' })], entities)
+    const left = card([line({ columnName: 'membership', objectId: '5', objectType: 'user', verb: 'leave' })], entities)
 
     expect(removed.rows).toEqual([])
     expect(removed.entityName).toBe('Mara Lindqvist')
@@ -696,19 +710,19 @@ describe('uploads', () => {
 describe('changes', () => {
   it('carries a line per column the catalogue knows, and none for a create', () => {
     const rows = [
-      activity({ columnName: 'gradeFk', createdAt: 2, id: 1 }),
-      activity({ columnName: 'somethingNobodyWrites', createdAt: 1, id: 2 }),
+      line({ columnName: 'gradeFk', createdAt: 2, id: 1 }),
+      line({ columnName: 'somethingNobodyWrites', createdAt: 1, id: 2 }),
     ]
 
     expect(card(rows).changes.map((change) => change.kind)).toEqual(['grade'])
-    expect(card([activity({ type: 'created' })]).changes).toEqual([])
+    expect(card([line({ verb: 'create' })]).changes).toEqual([])
   })
 })
 
 describe('create cards', () => {
   const pin = { estimated: false, id: 1, lat: 47.1, long: 8.5 }
-  const blockRow = (partial: Partial<CatalogueRow> = {}) =>
-    activity({ entityId: '400', entityType: 'block', newValue: 'Nordblock', type: 'created', ...partial })
+  const blockRow = (partial: Partial<CardLine> = {}) =>
+    line({ newValue: 'Nordblock', objectId: '400', objectType: 'block', verb: 'create', ...partial })
 
   it('draws the pin a block was placed with', () => {
     const entities = entityMap([
@@ -740,9 +754,7 @@ describe('create cards', () => {
       ],
     ])
 
-    expect(
-      card([blockRow({ columnName: 'name', newValue: 'Sudblock', type: 'updated' })], entities).pin,
-    ).toBeUndefined()
+    expect(card([blockRow({ columnName: 'name', newValue: 'Sudblock', verb: 'update' })], entities).pin).toBeUndefined()
   })
 
   it("carries the climber's own grade, rating and conditions", () => {
@@ -761,7 +773,7 @@ describe('create cards', () => {
       ],
     ])
 
-    expect(card([ascentRow({ entityId: '9001' })], entities).ascent).toEqual({
+    expect(card([ascentRow({ objectId: '9001' })], entities).ascent).toEqual({
       gradeFk: 14,
       humidity: 45,
       rating: 3,
@@ -779,7 +791,7 @@ describe('create cards', () => {
       ],
     ])
 
-    expect(card([ascentRow({ entityId: '9001' })], entities).ascent).toBeUndefined()
+    expect(card([ascentRow({ objectId: '9001' })], entities).ascent).toBeUndefined()
   })
 })
 
@@ -790,7 +802,7 @@ describe('climb date', () => {
   const LOGGED = 3 * DAY + 9 * HOUR
   const logged = (climbedAt: number | undefined, createdAt = LOGGED) =>
     card(
-      [ascentRow({ createdAt, entityId: '9001' })],
+      [ascentRow({ createdAt, objectId: '9001' })],
       entityMap([
         [
           { id: '9001', type: 'ascent' },
@@ -840,8 +852,8 @@ describe('climb date', () => {
 
   it('stays quiet when a session spans two climb dates', () => {
     const rows = [
-      ascentRow({ createdAt: LOGGED, entityId: '9001', id: 1 }),
-      ascentRow({ createdAt: LOGGED - 60_000, entityId: '9002', id: 2 }),
+      ascentRow({ createdAt: LOGGED, id: 1, objectId: '9001' }),
+      ascentRow({ createdAt: LOGGED - 60_000, id: 2, objectId: '9002' }),
     ]
     const entities = entityMap([
       [

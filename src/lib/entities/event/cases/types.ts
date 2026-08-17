@@ -8,7 +8,7 @@ export type CaseDomain = 'area' | 'ascent' | 'block' | 'file' | 'grouping' | 're
  *
  * A case states the EVENTS a writer emits, not rows arranged to produce a screenshot, and names
  * the write site that emits them. That pairing is what makes this a catalogue rather than a
- * gallery: `cases.test.ts` reads every `insertEvent` and `createUpdateEvent` call in the app and
+ * gallery: `coverage.test.ts` reads every `insertEvent` and `createUpdateEvent` call in the app and
  * fails if a `(verb, object)` pair or a diffed column has no case here, so a new writer cannot
  * ship without a card to review.
  */

@@ -8,6 +8,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Topo from '$lib/components/Topo/Topo.svelte'
+  import AscentTypeBadge, { ASCENT_TYPES } from '$lib/entities/ascent/AscentType.svelte'
   import type { ChangeView, PairFormat, SourceSide } from '$lib/entities/event/change'
   import { getGradeBand } from '$lib/entities/grade/color'
   import { gradeLabel } from '$lib/entities/grade/label'
@@ -119,6 +120,21 @@
   {/if}
 {/snippet}
 
+<!-- The glyph the route row and the log form already use, plus the word that picker offers.
+     A stored value that is no longer one of the four (a row written before `send` became
+     `redpoint`) has neither, and shows as stored rather than as nothing at all. -->
+{#snippet ascentTypeChip(value: string | undefined)}
+  {@const status = ASCENT_TYPES.find((entry) => entry.type === value)}
+  {#if status == null}
+    {@render chip(value)}
+  {:else}
+    <span class="inline-flex items-center gap-1.5">
+      <AscentTypeBadge status={status.type} />
+      <span class="text-surface-950-50 text-xs">{status.label()}</span>
+    </span>
+  {/if}
+{/snippet}
+
 {#snippet gradeChip(gradeFk: number | undefined)}
   {#if gradeFk == null}
     {@render chip(undefined)}
@@ -128,7 +144,11 @@
 {/snippet}
 
 {#snippet value(change: ChangeView)}
-  {#if change.kind === 'grade'}
+  {#if change.kind === 'ascentType'}
+    {@render ascentTypeChip(change.before)}
+    {@render arrow()}
+    {@render ascentTypeChip(change.after)}
+  {:else if change.kind === 'grade'}
     {@render gradeChip(change.beforeFk)}
     {@render arrow()}
     {@render gradeChip(change.afterFk)}

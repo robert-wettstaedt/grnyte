@@ -2,9 +2,9 @@ import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from '$lib/e
 import type { TopoView } from '$lib/entities/topo/dto'
 import { stringifyCoords } from '$lib/map/coords'
 import { describe, expect, it } from 'vitest'
-import type { CatalogueRow } from './catalogue'
-import { activity, entityMap } from './catalogue.fixture'
 import { changeViews, storedMedia, type ChangeContext, type ChangeView } from './change'
+import type { CardLine } from './line'
+import { entityMap, line } from './line.fixture'
 
 /**
  * What a change line says, asserted against message keys and raw values rather than against
@@ -16,8 +16,8 @@ import { changeViews, storedMedia, type ChangeContext, type ChangeView } from '.
  */
 
 /** The one change a row decodes to. Every test here is about a single row. */
-function change(partial: Partial<CatalogueRow>, ctx?: ChangeContext): ChangeView {
-  const [only] = changeViews([activity(partial)], ctx)
+function change(partial: Partial<CardLine>, ctx?: ChangeContext): ChangeView {
+  const [only] = changeViews([line(partial)], ctx)
   return only
 }
 
@@ -28,7 +28,7 @@ function change(partial: Partial<CatalogueRow>, ctx?: ChangeContext): ChangeView
  */
 function changeOf<K extends ChangeView['kind']>(
   kind: K,
-  partial: Partial<CatalogueRow>,
+  partial: Partial<CardLine>,
   ctx?: ChangeContext,
 ): Extract<ChangeView, { kind: K }> {
   const view = change(partial, ctx)
@@ -65,8 +65,8 @@ const LINE = (routeFk: number, name: string, x: number) => ({
 describe('changeViews', () => {
   it('keeps only the columns the catalogue knows', () => {
     const rows = [
-      activity({ columnName: 'gradeFk', createdAt: 2, id: 1 }),
-      activity({ columnName: 'somethingNobodyWrites', createdAt: 1, id: 2 }),
+      line({ columnName: 'gradeFk', createdAt: 2, id: 1 }),
+      line({ columnName: 'somethingNobodyWrites', createdAt: 1, id: 2 }),
     ]
 
     expect(changeViews(rows).map((entry) => entry.id)).toEqual(['1:gradeFk'])
@@ -76,9 +76,9 @@ describe('changeViews', () => {
     // An update expands to one line per column and every one of them carries the event's id, so
     // the id alone is a duplicate key: Svelte takes the whole page down to the error boundary.
     const rows = [
-      activity({ columnName: 'gradeFk', id: 7 }),
-      activity({ columnName: 'rating', id: 7 }),
-      activity({ columnName: 'name', id: 7 }),
+      line({ columnName: 'gradeFk', id: 7 }),
+      line({ columnName: 'rating', id: 7 }),
+      line({ columnName: 'name', id: 7 }),
     ]
 
     const ids = changeViews(rows).map((entry) => entry.id)
@@ -87,12 +87,12 @@ describe('changeViews', () => {
   })
 
   it('has none for a create row, which changed no column', () => {
-    expect(changeViews([activity({ type: 'created' })])).toEqual([])
+    expect(changeViews([line({ verb: 'create' })])).toEqual([])
   })
 
   // The label reads `media` and every other label ignores it, so it has to be on every line.
   it('carries the stored media word as the label params', () => {
-    expect(change({ columnName: 'file', oldValue: 'video', type: 'deleted' }).labelParams).toEqual({ media: 'video' })
+    expect(change({ columnName: 'file', oldValue: 'video', verb: 'remove' }).labelParams).toEqual({ media: 'video' })
     expect(change({ columnName: 'gradeFk', newValue: '11' }).labelParams).toEqual({ media: 'none' })
   })
 })
@@ -108,11 +108,11 @@ describe('pair', () => {
   })
 
   it('declares the format its catalogue entry picked', () => {
-    expect(change({ columnName: 'dateTime', entityType: 'ascent', newValue: '2026-04-21' }).kind).toBe('pair')
-    expect(change({ columnName: 'temperature', entityType: 'ascent', newValue: '4' })).toMatchObject({
+    expect(change({ columnName: 'dateTime', newValue: '2026-04-21', objectType: 'ascent' }).kind).toBe('pair')
+    expect(change({ columnName: 'temperature', newValue: '4', objectType: 'ascent' })).toMatchObject({
       format: 'temperature',
     })
-    expect(change({ columnName: 'role', entityType: 'user', newValue: 'region_maintainer' })).toMatchObject({
+    expect(change({ columnName: 'role', newValue: 'region_maintainer', objectType: 'user' })).toMatchObject({
       format: 'role',
     })
   })
@@ -195,7 +195,7 @@ describe('prose', () => {
 })
 
 describe('location', () => {
-  const pin = (partial: Partial<CatalogueRow>) => change({ columnName: 'location', entityType: 'block', ...partial })
+  const pin = (partial: Partial<CardLine>) => change({ columnName: 'location', objectType: 'block', ...partial })
 
   it('says a pin was set when there was none before', () => {
     expect(pin({ newValue: stringifyCoords({ lat: 47.1, long: 8.5 }) })).toMatchObject({
@@ -209,8 +209,8 @@ describe('location', () => {
   it('reports the distance in raw metres when the pin moved', () => {
     const moved = changeOf('location', {
       columnName: 'location',
-      entityType: 'block',
       newValue: stringifyCoords({ lat: 47.11, long: 8.5 }),
+      objectType: 'block',
       oldValue: stringifyCoords({ lat: 47.1, long: 8.5 }),
     })
 
@@ -243,10 +243,10 @@ describe('location', () => {
   it('draws the old pin as gone when the location was cleared', () => {
     expect(
       change({
+        cleared: true,
         columnName: 'location',
-        entityType: 'block',
+        objectType: 'block',
         oldValue: stringifyCoords({ lat: 47.1, long: 8.5 }),
-        type: 'deleted',
       }),
     ).toMatchObject({
       captionKey: 'event_changeLocationRemoved',
@@ -267,12 +267,15 @@ describe('location', () => {
         { name: 'Westwand', paths, row: 'area' },
       ],
     ])
-    const parking = (partial: Partial<CatalogueRow>) =>
-      change({ columnName: 'parking location', entityId: '301', entityType: 'area', ...partial }, { entities })
+    const parking = (partial: Partial<CardLine>) =>
+      change(
+        { columnName: 'parking location', objectId: '301', objectType: 'area', verb: 'add', ...partial },
+        { entities },
+      )
 
     expect(parking({ newValue: '47.1,8.5' })).toMatchObject({ paths })
     // The pin is gone, so the walk to it is not worth drawing.
-    expect(parking({ oldValue: '47.1,8.5', type: 'deleted' })).toMatchObject({ paths: undefined })
+    expect(parking({ oldValue: '47.1,8.5', verb: 'remove' })).toMatchObject({ paths: undefined })
   })
 })
 
@@ -281,8 +284,8 @@ describe('source', () => {
     expect(
       change({
         columnName: 'source',
-        entityType: 'file',
         newValue: 'https://vimeo.com/912345',
+        objectType: 'file',
         oldValue: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       }),
     ).toMatchObject({
@@ -297,8 +300,8 @@ describe('source', () => {
     expect(
       change({
         columnName: 'source',
-        entityType: 'file',
         newValue: 'javascript://example.com/%0aalert(1)',
+        objectType: 'file',
       }),
     ).toMatchObject({ after: { host: undefined, value: 'javascript://example.com/%0aalert(1)' } })
   })
@@ -306,21 +309,21 @@ describe('source', () => {
 
 describe('file', () => {
   it('reads the word off the row, since the file itself is gone', () => {
-    expect(change({ columnName: 'file', oldValue: 'photo', type: 'deleted' })).toMatchObject({
+    expect(change({ columnName: 'file', oldValue: 'photo', verb: 'remove' })).toMatchObject({
       kind: 'file',
       media: 'photo',
     })
   })
 
   it('says media for a row written before the word was stored', () => {
-    expect(change({ columnName: 'file', type: 'deleted' })).toMatchObject({ media: 'none' })
+    expect(change({ columnName: 'file', verb: 'remove' })).toMatchObject({ media: 'none' })
     expect(storedMedia('nonsense')).toBe('none')
   })
 })
 
 describe('topo', () => {
-  const topo = (partial: Partial<CatalogueRow>, topos?: ReadonlyMap<number, TopoView>) =>
-    changeOf('topo', { columnName: 'topo', entityType: 'block', ...partial }, { topos })
+  const topo = (partial: Partial<CardLine>, topos?: ReadonlyMap<number, TopoView>) =>
+    changeOf('topo', { columnName: 'topo', objectType: 'block', ...partial }, { topos })
 
   const metadata = (action: TopoAction, topoId?: number) => stringifyTopoChange({ action, topoId })
 
@@ -329,7 +332,7 @@ describe('topo', () => {
     expect(topo({ metadata: metadata('photoReplaced', 700) }).captionKey).toBe('event_changeTopoPhotoReplaced')
     expect(topo({ metadata: metadata('reordered') }).captionKey).toBe('event_changeTopoReordered')
     // The same sentence a pulled route photo gets: it is the same event to a reader.
-    expect(topo({ metadata: metadata('photoRemoved', 701), type: 'deleted' }).captionKey).toBe(
+    expect(topo({ columnName: 'topo', metadata: metadata('photoRemoved', 701), verb: 'remove' }).captionKey).toBe(
       'event_changeFileRemoved',
     )
   })

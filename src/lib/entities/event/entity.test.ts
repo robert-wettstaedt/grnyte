@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { activity } from './catalogue.fixture'
 import { eventRefs } from './entity'
+import { line } from './line.fixture'
 
 /**
  * The four roles one pass answers. Each was its own collector, and each rule below is the reason
@@ -12,10 +12,10 @@ describe('eventRefs', () => {
   it('lists each subject once, in the order the activities arrive', () => {
     expect(
       eventRefs([
-        activity({ entityId: '2', id: 1 }),
-        activity({ entityId: '3', id: 2 }),
-        activity({ entityId: '2', id: 3 }),
-        activity({ entityId: '2', entityType: 'block', id: 4 }),
+        line({ id: 1, objectId: '2' }),
+        line({ id: 2, objectId: '3' }),
+        line({ id: 3, objectId: '2' }),
+        line({ id: 4, objectId: '2', objectType: 'block' }),
       ]).subjects,
     ).toEqual([
       { id: '2', type: 'route' },
@@ -27,7 +27,7 @@ describe('eventRefs', () => {
   // An invitation names an address the invitee has no account for and points `entityId` at the
   // inviter, so hydrating it rendered "Jonas invited Jonas".
   it('leaves a stored subject out of every role', () => {
-    const refs = eventRefs([activity({ columnName: 'invitation', entityId: '7', entityType: 'user', type: 'created' })])
+    const refs = eventRefs([line({ columnName: 'invitation', objectId: '7', objectType: 'user', verb: 'invite' })])
 
     expect(refs).toMatchObject({ hydrate: [], rows: [], subjects: [] })
   })
@@ -36,12 +36,12 @@ describe('eventRefs', () => {
   // the thing it was attached to, which is what the row already names as its parent.
   it('gives an upload the parent as its row and keeps the file as its subject', () => {
     const refs = eventRefs([
-      activity({
-        entityId: 'f-1',
-        entityType: 'file',
-        parentEntityId: '500',
-        parentEntityType: 'route',
-        type: 'uploaded',
+      line({
+        objectId: 'f-1',
+        objectType: 'file',
+        parentId: '500',
+        parentType: 'route',
+        verb: 'add',
       }),
     ])
 
@@ -58,7 +58,7 @@ describe('eventRefs', () => {
   // headline still names them, so the person is still fetched.
   it('fetches a removed member without giving them a row', () => {
     const refs = eventRefs([
-      activity({ columnName: 'role', entityId: '5', entityType: 'user', newValue: 'Mara', type: 'deleted' }),
+      line({ columnName: 'role', newValue: 'Mara', objectId: '5', objectType: 'user', verb: 'remove' }),
     ])
 
     expect(refs).toMatchObject({
@@ -69,26 +69,23 @@ describe('eventRefs', () => {
   })
 
   it('names the place when every row agrees on one parent', () => {
-    const underBlock = { parentEntityId: '400', parentEntityType: 'block' } as const
+    const underBlock = { parentId: '400', parentType: 'block' } as const
 
     expect(
-      eventRefs([activity({ entityId: '500', ...underBlock }), activity({ entityId: '501', ...underBlock })]),
+      eventRefs([line({ objectId: '500', ...underBlock }), line({ objectId: '501', ...underBlock })]),
     ).toMatchObject({ place: { id: '400', type: 'block' } })
   })
 
   it('has no place when the rows span two parents, or when a row names none', () => {
     expect(
       eventRefs([
-        activity({ entityId: '500', parentEntityId: '400', parentEntityType: 'block' }),
-        activity({ entityId: '501', parentEntityId: '401', parentEntityType: 'block' }),
+        line({ objectId: '500', parentId: '400', parentType: 'block' }),
+        line({ objectId: '501', parentId: '401', parentType: 'block' }),
       ]).place,
     ).toBeUndefined()
 
     expect(
-      eventRefs([
-        activity({ entityId: '500', parentEntityId: '400', parentEntityType: 'block' }),
-        activity({ entityId: '501' }),
-      ]).place,
+      eventRefs([line({ objectId: '500', parentId: '400', parentType: 'block' }), line({ objectId: '501' })]).place,
     ).toBeUndefined()
   })
 

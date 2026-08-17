@@ -1,11 +1,10 @@
-import type { CardGroup } from '$lib/entities/event/cardGroup'
-import { cardView, type CardRow, type CardView } from '$lib/entities/event/cardView'
+import { cardView, type CardGroup, type CardRow, type CardView } from '$lib/entities/event/cardView'
 import type { EventEntity, EventEntityMap, EventEntityRef } from '$lib/entities/event/entity'
 import type { CommentListItem, ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventGroup } from './grouping'
-import { legacyRows } from './legacy'
+import { eventLines } from './line'
 import type { EventListItem } from './mapper'
 
 /**
@@ -48,7 +47,7 @@ export interface EventReactionBar {
  * Deliberately an adapter over `cardView` rather than a second implementation. That function
  * is 450 lines of decisions nobody wants made twice (which name a headline puts in its slot, when
  * a climber is named, how a removal picks its media word, what a merged create-plus-media card
- * says), and `cases.ts` pins them with fixtures measured in six figures. Reimplementing it against
+ * says), and the case wall pins them with 250 cards. Reimplementing it against
  * the new shape would mean reproducing all of that from scratch and re-deriving the tests, with
  * every difference showing up as a wrong sentence on a card rather than as a failure.
  *
@@ -56,9 +55,8 @@ export interface EventReactionBar {
  * the hydration map that used to arrive separately is built here from what the rows already
  * carried. Everything downstream is unchanged, which is the point.
  *
- * ponytail: this and `legacy.ts` retire together when the catalogue is rekeyed on the verb during
- * the rename. Until then the feed runs the card code it has always run, so switching it over
- * cannot regress a sentence.
+ * The catalogue is keyed on the verb now and the adapter is gone: `line.ts` expands an event into
+ * the lines a card speaks, and this hands them to the decider.
  */
 export function eventCard(
   group: EventGroup,
@@ -66,7 +64,7 @@ export function eventCard(
   topos?: ReadonlyMap<number, TopoView>,
   omit?: EventEntityRef,
 ): EventCardView {
-  const view = cardView(toActivityGroup(group), entityMap(group), currentUserFk, topos, omit)
+  const view = cardView(toCardGroup(group), entityMap(group), currentUserFk, topos, omit)
 
   // Each row claims the event it is about; what is left at the end is what no row speaks for.
   const unclaimed = new Map(group.events.map((event) => [event.id, event]))
@@ -199,24 +197,24 @@ function entityMap(group: EventGroup): EventEntityMap {
 }
 
 /**
- * The group as the card reads it: every event expanded into the legacy rows it stands for.
+ * The group as the card reads it: every event expanded into the lines it speaks.
  *
- * An `update` expands to one row per changed column, which is exactly what the old table stored,
- * so a card that used to hold twelve rows still holds twelve.
+ * An `update` expands to one line per changed column, which is what a card renders one of, so a
+ * card holding twelve edits holds twelve lines.
  */
-function toActivityGroup(group: EventGroup): CardGroup {
-  const rows = group.events.flatMap(legacyRows)
+function toCardGroup(group: EventGroup): CardGroup {
+  const rows = group.events.flatMap(eventLines)
 
   return {
+    actorFk: group.actorFk,
     createdAt: group.createdAt,
     id: group.id,
     // `single` means the card speaks ONE row's sentence, and the card decides that on what it
     // holds rather than on how many events produced it. One event that moved two columns is two
-    // rows: under the old shape those were two activity rows and the card said "2 edits", and
+    // lines: under the old shape those were two stored rows and the card said "2 edits", and
     // calling it single because one event carries them names whichever column sorts first and
     // hides the rest.
     kind: rows.length === 1 ? 'single' : group.kind === 'single' ? 'entity' : group.kind,
     rows,
-    userFk: group.actorFk,
   }
 }

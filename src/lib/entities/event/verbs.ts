@@ -1,7 +1,8 @@
 import type { IconName } from '$lib/components/Icon/icons'
 import type { MessageKey } from '$lib/i18n/message'
-import type { CatalogueEntityType, CatalogueRow, CatalogueType } from './catalogue'
 import type { ChangeKind, PairFormat } from './change'
+import type { EventObjectType } from './dto'
+import type { EventVerb } from './mapper'
 
 /**
  * Whose ascent a deletion took, as its row recorded it.
@@ -146,7 +147,10 @@ const FIELD = {
   tags: { icon: 'bookmark', kind: 'tags', labelKey: 'event_fieldTags' },
   temperature: { format: 'temperature', icon: 'info', kind: 'pair', labelKey: 'event_fieldTemperature' },
   topo: { icon: 'route', kind: 'topo', labelKey: 'event_fieldTopo' },
-  type: { format: 'text', icon: 'pickaxe', kind: 'pair', labelKey: 'event_fieldType' },
+  /** Its own kind, not a text pair: the stored member (`redpoint`) is neither localised nor
+   *  what the rest of the app shows for it, and a card whose row already carries the glyph
+   *  read "attempt to redpoint" in English under a German headline. */
+  type: { icon: 'pickaxe', kind: 'ascentType', labelKey: 'event_fieldType' },
   username: { format: 'text', icon: 'user', kind: 'pair', labelKey: 'event_fieldUsername' },
 } as const satisfies Record<string, VerbField>
 
@@ -156,9 +160,16 @@ const FIELD = {
  * the rest is presentation.
  */
 export interface VerbEntry {
-  /** The column that changed, on the rows that name one. */
+  /**
+   * Whether this entry is the one for CLEARING the column rather than setting it.
+   *
+   * One entry needs it: a block's pin. Removing a pin is written as an update whose value went
+   * away, not as its own verb, and "updated the location" on a block that no longer has one reads
+   * as still pinned. Every other cleared column has a verb of its own.
+   */
+  cleared?: true
+  /** The column that changed, on the entries that name one. */
   columnName?: string
-  entityType: CatalogueEntityType
   /**
    * How the expanded half renders this row's old/new pair. Absent means the row carries no
    * pair worth showing, which is a fact about the event and not about the column: a role
@@ -176,8 +187,7 @@ export interface VerbEntry {
    * thing named: an upload points at a file whose name is a cuid.
    */
   names?: 'parent' | 'stored'
-  /** A new ascent scopes its verb by the ascent type it stores here, not by a column. */
-  newValue?: string
+  objectType: EventObjectType
   /**
    * Whether the card renders an entity row for the subject at all.
    *
@@ -190,302 +200,338 @@ export interface VerbEntry {
   row?: 'none'
   /** Whether the card shows an ascent status glyph, read off `newValue`. */
   status?: 'ascentType'
-  /** Which value column carries the name once the subject is gone. */
+  /** Which value carries the name once the subject is gone. */
   tombstone?: 'newValue' | 'oldValue'
-  type: CatalogueType
+  /** A new ascent scopes its entry by the ascent type rather than by a column. */
+  value?: string
+  verb: EventVerb
 }
 
 /**
- * Every `(entityType, type, columnName)` triple the mutation layer writes today, read off the
- * `insertEvent` call sites (through `legacy.ts`), paired with everything the feed says
+ * Every `(objectType, verb, columnName)` an event can carry, read off the
+ * `insertEvent` call sites, paired with everything the feed says
  * about it.
  *
- * The keys are literals rather than a composed `activity_${entityType}${capitalize(type)}...`
+ * The message keys are literals rather than a composed `event_${objectType}${capitalize(verb)}...`
  * string, and that is the point of the file: a composed key is a `string` all the way to the
  * screen, so a message that was never written (or was renamed, or dropped) only shows up as
  * its own key printed on a card. Spelled out, the same mistake is a type error, because
  * `MessageKey` is the union of what paraglide actually compiled.
  *
  * Add a row here when a writer starts producing a new triple. What guarantees a triple resolves is
- * `verbs.test.ts`, which feeds the whole catalogue back through the lookup, plus `legacy.test.ts`,
- * which asserts that every verb an event can carry lands on an entry.
+ * `verbs.test.ts`, which feeds the whole catalogue back through the lookup, plus
+ * `cases/coverage.test.ts`, which reads every write site in the app and fails when one has no card.
  */
 export const VERBS = [
-  { entityType: 'area', key: 'event_areaCreated', tombstone: 'newValue', type: 'created' },
+  { key: 'event_areaCreated', objectType: 'area', tombstone: 'newValue', verb: 'create' },
   {
     columnName: 'description',
-    entityType: 'area',
     field: FIELD.description,
     key: 'event_areaUpdatedDescription',
-    type: 'updated',
+    objectType: 'area',
+    verb: 'update',
   },
   {
     columnName: 'name',
-    entityType: 'area',
     field: FIELD.name,
     key: 'event_areaUpdatedName',
+    objectType: 'area',
     tombstone: 'newValue',
-    type: 'updated',
+    verb: 'update',
   },
   {
     columnName: 'parking location',
-    entityType: 'area',
     field: FIELD.parkingLocation,
     key: 'event_areaUpdatedParkingLocation',
-    type: 'updated',
+    objectType: 'area',
+    verb: 'add',
+  },
+  // The same sentence for the shape MIGRATED history carries. The live writer emits `add` with the
+  // coordinates in metadata; the backfill mapped every `updated` row to the `update` verb whatever
+  // its column was, so a pin set before the cutover arrives as an update with a change row. Both
+  // are the same action to a reader, and without this the older one falls through to "made a
+  // change", which is what this catalogue exists to prevent.
+  {
+    columnName: 'parking location',
+    field: FIELD.parkingLocation,
+    key: 'event_areaUpdatedParkingLocation',
+    objectType: 'area',
+    verb: 'update',
   },
   {
     columnName: 'parking location',
-    entityType: 'area',
     field: FIELD.parkingLocationGone,
     key: 'event_areaDeletedParkingLocation',
-    type: 'deleted',
+    objectType: 'area',
+    verb: 'remove',
   },
-  { entityType: 'area', key: 'event_areaDeleted', tombstone: 'oldValue', type: 'deleted' },
+  { key: 'event_areaDeleted', objectType: 'area', tombstone: 'oldValue', verb: 'delete' },
 
   {
-    entityType: 'block',
     key: 'event_blockCreated',
+    objectType: 'block',
     tombstone: 'newValue',
-    type: 'created',
+    verb: 'create',
   },
   {
     columnName: 'location',
-    entityType: 'block',
     field: FIELD.location,
     key: 'event_blockUpdatedLocation',
-    type: 'updated',
+    objectType: 'block',
+    verb: 'update',
   },
   {
+    cleared: true,
     columnName: 'location',
-    entityType: 'block',
     field: FIELD.locationGone,
     key: 'event_blockDeletedLocation',
-    type: 'deleted',
+    objectType: 'block',
+    verb: 'update',
+  },
+  // The same sentence for the shape migrated history carries. The backfill mapped a deleted row
+  // WITH a column to `remove`, keeping the coordinates in metadata, so a pin cleared before the
+  // cutover arrives as `block:remove:location` rather than as an update whose value went away.
+  {
+    columnName: 'location',
+    field: FIELD.locationGone,
+    key: 'event_blockDeletedLocation',
+    objectType: 'block',
+    verb: 'remove',
   },
   {
     columnName: 'name',
-    entityType: 'block',
     field: FIELD.name,
     key: 'event_blockUpdatedName',
+    objectType: 'block',
     tombstone: 'newValue',
-    type: 'updated',
+    verb: 'update',
   },
-  { columnName: 'topo', entityType: 'block', field: FIELD.topo, key: 'event_blockUpdatedTopo', type: 'updated' },
+  { columnName: 'topo', field: FIELD.topo, key: 'event_blockUpdatedTopo', objectType: 'block', verb: 'update' },
   // A pulled photo is its own sentence, the way a cleared pin is: "updated the topo" for a
   // deletion is true only in the sense that everything is an update.
-  { columnName: 'topo', entityType: 'block', field: FIELD.topo, key: 'event_blockDeletedTopo', type: 'deleted' },
-  { entityType: 'block', key: 'event_blockDeleted', tombstone: 'oldValue', type: 'deleted' },
+  { columnName: 'topo', field: FIELD.topo, key: 'event_blockDeletedTopo', objectType: 'block', verb: 'remove' },
+  { key: 'event_blockDeleted', objectType: 'block', tombstone: 'oldValue', verb: 'delete' },
 
-  { entityType: 'route', key: 'event_routeCreated', tombstone: 'newValue', type: 'created' },
+  { key: 'event_routeCreated', objectType: 'route', tombstone: 'newValue', verb: 'create' },
   {
     columnName: 'description',
-    entityType: 'route',
     field: FIELD.description,
     key: 'event_routeUpdatedDescription',
-    type: 'updated',
+    objectType: 'route',
+    verb: 'update',
   },
   {
     columnName: 'firstAscensionists',
-    entityType: 'route',
     field: FIELD.firstAscensionists,
     key: 'event_routeUpdatedFirstAscensionists',
-    type: 'updated',
+    objectType: 'route',
+    verb: 'update',
   },
   {
     columnName: 'firstAscentYear',
-    entityType: 'route',
     field: FIELD.firstAscentYear,
     key: 'event_routeUpdatedFirstAscentYear',
-    type: 'updated',
+    objectType: 'route',
+    verb: 'update',
   },
   {
     columnName: 'gradeFk',
-    entityType: 'route',
     field: FIELD.grade,
     key: 'event_routeUpdatedGradeFk',
-    type: 'updated',
+    objectType: 'route',
+    verb: 'update',
   },
   {
     columnName: 'name',
-    entityType: 'route',
     field: FIELD.name,
     key: 'event_routeUpdatedName',
+    objectType: 'route',
     tombstone: 'newValue',
-    type: 'updated',
+    verb: 'update',
   },
   {
     columnName: 'rating',
-    entityType: 'route',
     field: FIELD.rating,
     key: 'event_routeUpdatedRating',
-    type: 'updated',
+    objectType: 'route',
+    verb: 'update',
   },
-  { columnName: 'tags', entityType: 'route', field: FIELD.tags, key: 'event_routeUpdatedTags', type: 'updated' },
-  { entityType: 'route', key: 'event_routeDeleted', tombstone: 'oldValue', type: 'deleted' },
+  { columnName: 'tags', field: FIELD.tags, key: 'event_routeUpdatedTags', objectType: 'route', verb: 'update' },
+  { key: 'event_routeDeleted', objectType: 'route', tombstone: 'oldValue', verb: 'delete' },
 
   // A new ascent's value column holds its ascent type, never a name, so no `tombstone`: a
   // deleted ascent's card says "an ascent" rather than borrowing "redpoint" as one.
   {
-    entityType: 'ascent',
     key: 'event_ascentCreatedAttempt',
-    newValue: 'attempt',
+    objectType: 'ascent',
     status: 'ascentType',
-    type: 'created',
+    value: 'attempt',
+    verb: 'create',
   },
   {
-    entityType: 'ascent',
     key: 'event_ascentCreatedFlash',
-    newValue: 'flash',
+    objectType: 'ascent',
     status: 'ascentType',
-    type: 'created',
+    value: 'flash',
+    verb: 'create',
   },
   {
-    entityType: 'ascent',
     key: 'event_ascentCreatedRedpoint',
-    newValue: 'redpoint',
+    objectType: 'ascent',
     status: 'ascentType',
-    type: 'created',
+    value: 'redpoint',
+    verb: 'create',
   },
   {
-    entityType: 'ascent',
     key: 'event_ascentCreatedRepeat',
-    newValue: 'repeat',
+    objectType: 'ascent',
     status: 'ascentType',
-    type: 'created',
+    value: 'repeat',
+    verb: 'create',
   },
   // An ascent's columns share one sentence: "edited the ascent of X" reads the same whether the
   // grade or the humidity moved, and the expanded half names the column anyway.
   {
     columnName: 'dateTime',
-    entityType: 'ascent',
     field: FIELD.dateTime,
     key: 'event_ascentUpdated',
-    type: 'updated',
+    objectType: 'ascent',
+    verb: 'update',
   },
-  { columnName: 'gradeFk', entityType: 'ascent', field: FIELD.grade, key: 'event_ascentUpdated', type: 'updated' },
+  { columnName: 'gradeFk', field: FIELD.grade, key: 'event_ascentUpdated', objectType: 'ascent', verb: 'update' },
   {
     columnName: 'humidity',
-    entityType: 'ascent',
     field: FIELD.humidity,
     key: 'event_ascentUpdated',
-    type: 'updated',
+    objectType: 'ascent',
+    verb: 'update',
   },
-  { columnName: 'notes', entityType: 'ascent', field: FIELD.notes, key: 'event_ascentUpdated', type: 'updated' },
-  { columnName: 'rating', entityType: 'ascent', field: FIELD.rating, key: 'event_ascentUpdated', type: 'updated' },
+  { columnName: 'notes', field: FIELD.notes, key: 'event_ascentUpdated', objectType: 'ascent', verb: 'update' },
+  { columnName: 'rating', field: FIELD.rating, key: 'event_ascentUpdated', objectType: 'ascent', verb: 'update' },
   {
     columnName: 'temperature',
-    entityType: 'ascent',
     field: FIELD.temperature,
     key: 'event_ascentUpdated',
-    type: 'updated',
+    objectType: 'ascent',
+    verb: 'update',
   },
-  { columnName: 'type', entityType: 'ascent', field: FIELD.type, key: 'event_ascentUpdated', type: 'updated' },
-  { entityType: 'ascent', key: 'event_ascentDeleted', type: 'deleted' },
+  { columnName: 'type', field: FIELD.type, key: 'event_ascentUpdated', objectType: 'ascent', verb: 'update' },
+  { key: 'event_ascentDeleted', objectType: 'ascent', verb: 'delete' },
 
   // Uploads point at the file and name what it was attached to as the parent; deletes are the
   // other way round, because by then the file is gone and only the parent is left to name.
-  { entityType: 'file', key: 'event_fileUploaded', names: 'parent', type: 'uploaded' },
+  { key: 'event_fileUploaded', names: 'parent', objectType: 'file', verb: 'add' },
   // A source edit points at the file too, so the card can draw the clip it is about, and
   // borrows the same parent name: the file's own is a cuid either way.
   {
     columnName: 'source',
-    entityType: 'file',
     field: FIELD.source,
     key: 'event_fileUpdatedSource',
     names: 'parent',
-    type: 'updated',
+    objectType: 'file',
+    verb: 'update',
   },
   {
     columnName: 'file',
-    entityType: 'area',
     field: FIELD.file,
     key: 'event_areaDeletedFile',
-    type: 'deleted',
+    objectType: 'area',
+    verb: 'remove',
   },
   {
     columnName: 'file',
-    entityType: 'ascent',
     field: FIELD.file,
     key: 'event_ascentDeletedFile',
-    type: 'deleted',
+    objectType: 'ascent',
+    verb: 'remove',
   },
   {
     columnName: 'file',
-    entityType: 'block',
     field: FIELD.file,
     key: 'event_blockDeletedFile',
-    type: 'deleted',
+    objectType: 'block',
+    verb: 'remove',
   },
   {
     columnName: 'file',
-    entityType: 'route',
     field: FIELD.file,
     key: 'event_routeDeletedFile',
-    type: 'deleted',
+    objectType: 'route',
+    verb: 'remove',
   },
 
   {
     columnName: 'first ascensionist',
-    entityType: 'user',
     field: FIELD.firstAscensionist,
     key: 'event_userUpdatedFirstAscensionist',
+    objectType: 'user',
     tombstone: 'newValue',
-    type: 'updated',
+    verb: 'add',
+  },
+  // Migrated history again, for the same reason as the parking pin above: a claim made before the
+  // cutover arrives as an `update` carrying the name in a change row rather than as an `add`
+  // carrying it in metadata.
+  {
+    columnName: 'first ascensionist',
+    field: FIELD.firstAscensionist,
+    key: 'event_userUpdatedFirstAscensionist',
+    objectType: 'user',
+    tombstone: 'newValue',
+    verb: 'update',
   },
   // The three invitation rows name an address the invitee has no account for, and point
   // `entityId` at the inviter. `names: 'stored'` is what keeps hydration off that person.
   // No `field` either: the headline already is the address, so a change line would repeat it.
   {
     columnName: 'invitation',
-    entityType: 'user',
     key: 'event_userCreatedInvitation',
     names: 'stored',
-    type: 'created',
+    objectType: 'user',
+    verb: 'invite',
   },
   {
     columnName: 'invitation',
-    entityType: 'user',
     key: 'event_userUpdatedInvitation',
     names: 'stored',
-    type: 'updated',
+    objectType: 'user',
+    verb: 'accept',
   },
   {
     columnName: 'invitation',
-    entityType: 'user',
     key: 'event_userDeletedInvitation',
     names: 'stored',
-    type: 'deleted',
+    objectType: 'user',
+    verb: 'remove',
   },
   {
     columnName: 'role',
-    entityType: 'user',
     field: FIELD.role,
     key: 'event_userUpdatedRole',
+    objectType: 'user',
     tombstone: 'newValue',
-    type: 'updated',
+    verb: 'update',
   },
   // No `field`: a removal stores no old/new pair, and the shared-by-column registry used to
   // give it one anyway, rendering "Role: maintainer to Not set" under "removed from the region".
   {
     columnName: 'role',
-    entityType: 'user',
     key: 'event_userDeletedRole',
+    objectType: 'user',
     row: 'none',
     tombstone: 'newValue',
-    type: 'deleted',
+    verb: 'remove',
   },
   // Leaving is its own event. It shared `role` with being removed until migration 0094, which
   // is why the feed used to say "Mara removed Mara from the region". No `tombstone`: the
   // sentence names only the actor, who is also the subject.
-  { columnName: 'membership', entityType: 'user', key: 'event_userDeletedMembership', row: 'none', type: 'deleted' },
+  { columnName: 'membership', key: 'event_userDeletedMembership', objectType: 'user', row: 'none', verb: 'leave' },
   {
     columnName: 'username',
-    entityType: 'user',
     field: FIELD.username,
     key: 'event_userUpdatedUsername',
+    objectType: 'user',
     tombstone: 'newValue',
-    type: 'updated',
+    verb: 'update',
   },
 ] as const satisfies readonly VerbEntry[]
 
@@ -495,14 +541,14 @@ export const VERBS = [
  * Widened first: only some `as const` members declare the presentation fields, and a union
  * cannot be destructured on a key its every member does not have.
  */
-export const WRITTEN_ROWS: Partial<CatalogueRow>[] = (VERBS as readonly VerbEntry[]).map(
+export const WRITTEN_ROWS: Partial<VerbEntry>[] = (VERBS as readonly VerbEntry[]).map(
   ({ field: _field, key: _key, names: _names, status: _status, tombstone: _tombstone, ...written }) => written,
 )
 
 /** The columns declared for `<entityType> updated`, which is what a column diff may emit. */
-export type DeclaredColumn<E extends CatalogueEntityType> = Extract<
+export type DeclaredColumn<E extends EventObjectType> = Extract<
   (typeof VERBS)[number],
-  { columnName: string; entityType: E; type: 'updated' }
+  { columnName: string; objectType: E; verb: 'update' }
 >['columnName']
 
 /** What a mutation may write: one member per catalogue entry, literals intact. */
@@ -540,12 +586,12 @@ type Triple<T> = T extends { columnName: string }
  * gone, so degrading a removed photo to "deleted the route" would be a lie rather than a
  * vaguer truth. Those fall straight through to {@link GENERIC}.
  */
-const DEGRADED: Partial<Record<`${CatalogueEntityType}:${CatalogueType}`, MessageKey>> = {
-  'area:updated': 'event_areaUpdated',
-  'ascent:created': 'event_ascentCreated',
-  'ascent:updated': 'event_ascentUpdated',
-  'block:updated': 'event_blockUpdated',
-  'route:updated': 'event_routeUpdated',
+const DEGRADED: Partial<Record<`${EventObjectType}:${EventVerb}`, MessageKey>> = {
+  'area:update': 'event_areaUpdated',
+  'ascent:create': 'event_ascentCreated',
+  'ascent:update': 'event_ascentUpdated',
+  'block:update': 'event_blockUpdated',
+  'route:update': 'event_routeUpdated',
 }
 
 /** True of any row whatsoever, which is all that is left to say about one nothing above matches. */
@@ -559,7 +605,7 @@ const GENERIC: MessageKey = 'event_genericChange'
  * `const` this sits in the temporal dead zone until its own line runs.
  */
 const VALUE_SCOPED = new Set<string>(
-  VERBS.filter((verb) => 'newValue' in verb).map((verb) => `${verb.entityType}:${verb.type}`),
+  VERBS.filter((entry) => 'value' in entry).map((entry) => `${entry.objectType}:${entry.verb}`),
 )
 
 /** The index holds the whole entry, so the sentence, the field, the name slot and the status
@@ -570,33 +616,46 @@ const BY_ID = new Map<string, VerbEntry>(VERBS.map((verb) => [verbId(verb), verb
  * The fields that pick an entry. Both a stored row and a catalogue entry satisfy it, which is
  * how `verbs.test.ts` can feed the catalogue back in to prove every entry is reachable.
  */
-export type VerbLookup = Partial<Pick<VerbEntry, 'columnName' | 'newValue'>> & Pick<VerbEntry, 'entityType' | 'type'>
+export type VerbLookup = Partial<Pick<VerbEntry, 'columnName' | 'value'>> &
+  Pick<VerbEntry, 'objectType' | 'verb'> & { cleared?: boolean }
 
 /**
  * The catalogue entry a stored row matches, or `undefined` for a row no writer can emit.
  *
  * Deliberately takes the wide shape rather than {@link DeclaredRow}: it reads stored
- * rows, including legacy ones like `route:updated:retired` that no current writer produces
+ * lines, including ones from migrated history like `route:update:retired` that no current writer produces
  * and that DEGRADED and GENERIC exist for. Narrow seam for writing, wide seam for reading.
  */
-export function verbEntry(activity: VerbLookup): undefined | VerbEntry {
-  return BY_ID.get(verbId(activity))
+export function verbEntry(line: VerbLookup): undefined | VerbEntry {
+  // A cleared column first, then the plain entry: only one column has both, and every other
+  // cleared value belongs to the same sentence as a set one ("edited the description" covers a
+  // description that was emptied).
+  // The plain key is the FALLBACK, so it has to be built without the flag: only one column has a
+  // cleared entry, and every other emptied value belongs to the same sentence as a set one
+  // ("edited the description" covers a description that was emptied).
+  return (line.cleared === true ? BY_ID.get(verbId(line)) : undefined) ?? BY_ID.get(verbId({ ...line, cleared: false }))
 }
 
 /**
  * The sentence a row renders as: its catalogue entry, the vaguer verb for its entity, or the
  * generic one. Always a key paraglide has, so nothing can print itself onto a card.
  */
-export function verbKey(activity: VerbLookup): MessageKey {
+export function verbKey(line: VerbLookup): MessageKey {
   return (
-    verbEntry(activity)?.key ??
-    (activity.type === 'deleted' ? undefined : DEGRADED[`${activity.entityType}:${activity.type}`]) ??
+    verbEntry(line)?.key ??
+    // A deletion never degrades to the vaguer verb for its entity: "edited" for something that is
+    // gone is worse than saying nothing specific at all.
+    (line.verb === 'delete' || line.verb === 'remove' ? undefined : DEGRADED[`${line.objectType}:${line.verb}`]) ??
     GENERIC
   )
 }
 
-/** Built the same way for the catalogue and for a row, so the two can only match or both fail. */
-function verbId(verb: VerbLookup): string {
-  const scope = VALUE_SCOPED.has(`${verb.entityType}:${verb.type}`) ? verb.newValue : verb.columnName
-  return scope == null ? `${verb.entityType}:${verb.type}` : `${verb.entityType}:${verb.type}:${scope}`
+/** Built the same way for the catalogue and for a line, so the two can only match or both fail. */
+function verbId(line: VerbLookup): string {
+  const base = `${line.objectType}:${line.verb}`
+  // A logged ascent is scoped by the type it recorded rather than by a column, which is how each
+  // of the four gets its own sentence and status glyph.
+  const scope = VALUE_SCOPED.has(base) ? line.value : line.columnName
+  const key = scope == null ? base : `${base}:${scope}`
+  return line.cleared === true ? `${key}:cleared` : key
 }

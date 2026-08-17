@@ -2,7 +2,7 @@ import type { UserAscentDetail } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
 import type { RouteListItem } from '$lib/entities/route/dto'
 import { describe, expect, it } from 'vitest'
-import type { CatalogueEntityType } from './catalogue'
+import type { EventObjectType } from './dto'
 import { eventEntityKey, type EventEntityRef } from './entity'
 import { eventEntityMap, type EntityHydration } from './hydrate.svelte'
 
@@ -33,7 +33,7 @@ function hydration(input: Partial<EntityHydration> & Pick<EntityHydration, 'refs
     ascents: [],
     blocks: [],
     files: [],
-    ready: new Set<CatalogueEntityType>(),
+    ready: new Set<EventObjectType>(),
     routes: [],
     userRegions: [],
     users: [],
@@ -57,7 +57,7 @@ function photo(id: string): MediaFile {
   }
 }
 
-function ref(type: CatalogueEntityType, id: string): EventEntityRef {
+function ref(type: EventObjectType, id: string): EventEntityRef {
   return { id, type }
 }
 
@@ -77,7 +77,7 @@ function route(id: number, name: string): RouteListItem {
   }
 }
 
-const get = (map: ReturnType<typeof eventEntityMap>, type: CatalogueEntityType, id: string) =>
+const get = (map: ReturnType<typeof eventEntityMap>, type: EventObjectType, id: string) =>
   map.get(eventEntityKey(ref(type, id)))
 
 describe('eventEntityMap', () => {

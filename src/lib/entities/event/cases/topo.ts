@@ -21,10 +21,10 @@
  *   states no `topos` is therefore not a missing fixture: it is what the card draws before the
  *   photo query answers, and permanently once the photo is gone.
  *
- * `coverage.test.ts` reads the write sites as text and takes `verb` only when it is a literal.
- * Line 44 computes it (`action === 'photoRemoved' ? 'remove' : 'update'`), so the audit reports
- * that site as `?:block`, which no case can carry since `?` is not a verb. Both verbs the site
- * really writes are covered below.
+ * `coverage.test.ts` reads the write sites as text, and this endpoint is the one that picks its
+ * verb with a ternary (`action === 'photoRemoved' ? 'remove' : 'update'`). The audit reads every
+ * quoted word on that line and keeps the ones the schema lists as verbs, so it demands a case for
+ * BOTH, which is what the cases below are.
  */
 import type { EventCase } from './types'
 import { change, eventAgo, ME, topoLines, topoMetadata, topoViews } from './world'

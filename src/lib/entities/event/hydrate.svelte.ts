@@ -20,7 +20,7 @@ import type { UserRef } from '$lib/entities/user/dto'
 import { usersByIds } from '$lib/entities/user/resources.svelte'
 import { decodeApproach } from '$lib/map/polyline'
 import { getGlobalState } from '$lib/state/global.svelte'
-import type { CatalogueEntityType } from './catalogue'
+import type { EventObjectType } from './dto'
 import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from './entity'
 
 /**
@@ -51,7 +51,7 @@ export interface EntityHydration {
    * answered yet; one that is in here but missing from its list was answered with nothing.
    * {@link KINDS} says which other kinds a ref waits for on top of its own.
    */
-  ready: ReadonlySet<CatalogueEntityType>
+  ready: ReadonlySet<EventObjectType>
   refs: readonly EventEntityRef[]
   routes: readonly RouteListItem[]
   /** Drives the region crumb, which only shows for a user who spans more than one region. */
@@ -79,7 +79,7 @@ interface EntityKind<Row> {
    * can be called gone. An ascent's row is its route's, so an ascent whose route is still in
    * flight would otherwise flash a tombstone for something standing right there.
    */
-  needs?: readonly CatalogueEntityType[]
+  needs?: readonly EventObjectType[]
   /** Whether the table this kind lives in keys on a number. `files` keys on a cuid. */
   numeric: boolean
   /** The fetched rows, indexed by id as text, which is how an activity stores it. */
@@ -101,7 +101,7 @@ interface EntityKind<Row> {
  * one place that needs the real row type casts for it, right where it knows the kind (see
  * `KINDS.ascent`), and everywhere else the map is opaque.
  */
-type JoinTables = Record<CatalogueEntityType, ReadonlyMap<string, never>>
+type JoinTables = Record<EventObjectType, ReadonlyMap<string, never>>
 
 /** Declares one kind, so `Row` is inferred from `rows` and checked against `toEntity`. */
 function kind<Row>(spec: EntityKind<Row>): EntityKind<Row> {
@@ -111,7 +111,7 @@ function kind<Row>(spec: EntityKind<Row>): EntityKind<Row> {
 /**
  * The kinds, one entry each.
  *
- * Not held against a `Record<CatalogueEntityType, ...>`: a constraint wide enough to accept six
+ * Not held against a `Record<EventObjectType, ...>`: a constraint wide enough to accept six
  * differently shaped rows accepts anything, and the exhaustiveness is already checked where it
  * matters, by `KINDS[ref.type]` in {@link eventEntityMap}. A missing kind is an error there.
  */
@@ -242,7 +242,7 @@ export function hydrateEntities(
   const refs = $derived(refsOf())
   // `entityId` is text for every kind; the numeric tables get the ids that survive parsing, so a
   // malformed row can't widen a query with a NaN.
-  const idsOf = (type: CatalogueEntityType) => {
+  const idsOf = (type: EventObjectType) => {
     const ids = refs.flatMap((ref) => (ref.type === type ? [ref.id] : []))
     return KINDS[type].numeric ? [...new Set(ids.map(Number))].filter(Number.isInteger) : [...new Set(ids)]
   }
@@ -347,7 +347,7 @@ function index<T extends { id: number }>(rows: readonly T[]): Map<string, T> {
 /** Each kind's rows, indexed, keyed by kind. Built off `KINDS` itself, so a kind added there is
  *  indexed here without a second list to remember. */
 function indexed(input: EntityHydration): JoinTables {
-  const types = Object.keys(KINDS) as CatalogueEntityType[]
+  const types = Object.keys(KINDS) as EventObjectType[]
   return Object.fromEntries(types.map((type) => [type, KINDS[type].rows(input)])) as JoinTables
 }
 

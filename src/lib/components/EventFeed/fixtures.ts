@@ -43,11 +43,10 @@ export {
  * renders a bar the app never shows empty in practice, and the whole point of the week is that a
  * story shows what the feed shows.
  *
- * The two old-shape builders below (`activity`, `changes`) are still `CatalogueRow`s, because
+ * The two builders below (`line`, `changes`) state a card LINE rather than an event, because
  * `EventChanges` is a change-line component that takes `ChangeView`s directly and has no events
- * behind it. They come from `catalogue.fixture`, which the unit tests share.
+ * behind it. They come from `line.fixture`, which the card layer's unit tests share.
  */
-export { activityAgo as activity, changes } from '$lib/entities/event/catalogue.fixture'
 
 const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try after brushing the top.'
 
@@ -313,3 +312,6 @@ export const sampleWeekView = (group: EventGroup, currentUserFk: number | undefi
 
 /** The whole week as cards. The events are overridable so a story can show it unresolved. */
 export const sampleWeekViews = (events: readonly EventListItem[] = sampleWeek.events) => eventViews(events)
+
+// The change-line stories render `ChangeView`s with no event behind them, so they state lines.
+export { changes, line } from '$lib/entities/event/line.fixture'

@@ -11,7 +11,7 @@
   import EventFilters from '$lib/components/EventFeed/EventFilters.svelte'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { EventCategory } from '$lib/entities/event/catalogue'
+  import type { EventCategory } from '$lib/entities/event/dto'
   import { eventFeed } from '$lib/entities/event/feed.svelte'
   import { userList } from '$lib/entities/user/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'

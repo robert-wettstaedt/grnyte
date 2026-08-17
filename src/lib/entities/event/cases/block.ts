@@ -182,9 +182,26 @@ export const BLOCK_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'Honest and slightly wrong: "You updated the location of Nordblock", captioned "Location updated", with the old pin drawn as gone. The catalogue HAS a sentence for a cleared block pin ("You removed the location of Nordblock", with the dedicated cleared-pin caption), but nothing can reach it: the form writes verb `update` whatever the pin did, and only a `deleted` row resolves that entry. This is the case to argue about.',
+      'Single card, "You removed the location of Nordblock", captioned "Location removed", with the old pin drawn as gone. The form writes verb `update` whatever the pin did, so what reaches the cleared sentence is the VALUE going away: the catalogue holds one entry marked `cleared` and the lookup tries it first. It read "You updated the location" until then, which a reader takes as still pinned.',
     id: 'BLOCK-02e',
     writer: 'blocks.remote.ts:182',
+  },
+  {
+    action: 'A block pin cleared BEFORE the events cutover, as the backfill migrated it',
+    domain: 'block',
+    events: [
+      eventAgo(183, {
+        actorFk: ME,
+        metadata: '47.123456,8.567890',
+        objectId: 400,
+        objectType: 'block',
+        verb: 'remove',
+      }),
+    ],
+    expected:
+      'The same card as BLOCK-02e, "You removed the location of Nordblock", from the shape history carries: the backfill mapped a deleted row with a column to `remove` and kept the coordinates in metadata, where the live form is an update whose value went away. Without the second entry this read "made a change to Nordblock", and the coordinates are what tell it apart from a removed photo.',
+    id: 'BLOCK-02j',
+    writer: null,
   },
   {
     action: '/blocks/400/edit -> rename AND move the pin -> Save (one submit, two columns)',

@@ -6,7 +6,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import type { EventCategory } from '$lib/entities/event/catalogue'
+  import type { EventCategory } from '$lib/entities/event/dto'
   import { UNREAD_CAP } from '$lib/entities/notification/resources.svelte'
   import type { UserRegion } from '$lib/entities/region/dto'
   import type { UserListItem } from '$lib/entities/user/dto'
