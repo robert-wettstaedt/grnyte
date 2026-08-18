@@ -679,8 +679,8 @@ exports[`the case catalogue renders what it claims > ASCENT-02a: /ascents/9001/e
     {
       "changes": [
         {
-          "after": "2026-08-11",
-          "before": "2026-08-12",
+          "after": "2026-05-02",
+          "before": "2026-05-01",
           "caption": undefined,
           "kind": "pair",
           "label": "Date",
@@ -896,8 +896,8 @@ exports[`the case catalogue renders what it claims > ASCENT-02h: /ascents/9001/e
     {
       "changes": [
         {
-          "after": "2026-08-14",
-          "before": "2026-08-13",
+          "after": "2026-05-04",
+          "before": "2026-05-03",
           "caption": undefined,
           "kind": "pair",
           "label": "Date",

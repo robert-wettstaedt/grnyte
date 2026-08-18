@@ -26,6 +26,7 @@ import {
   pgTable as table,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   type AnyPgColumn as AnyColumn,
@@ -203,6 +204,12 @@ export const userSettings = table(
       .default('FB'),
     id: baseFields.id,
 
+    // The `activities` pair, kept until that table goes so an in-flight digest is not lost. Named
+    // `legacy_` since nothing reads them any more: the digest and the feed both mark their place
+    // with the `*_up_to_event_at` timestamps below, and these two only still exist so a cutover
+    // that has to look backwards can.
+    legacyPushedUpToActivityId: integer('legacy_pushed_up_to_activity_id'),
+    legacySeenUpToActivityId: integer('legacy_seen_up_to_activity_id'),
     /**
      * The six push switches. They govern PUSH and nothing else: a directed event always lands in
      * the inbox and a broadcast one always lands in the feed, whatever these say. There is
@@ -222,13 +229,11 @@ export const userSettings = table(
      * flag covered every crag edit. The name now records that.
      */
     notifyCragEdits: boolean('notify_crag_edits').notNull().default(true),
+
     /** Push for the things aimed at you personally: mentions, your ascent, your role. */
     notifyDirected: boolean('notify_directed').notNull().default(true),
     /** Push when somebody reacts to something you logged or edited. */
     notifyReactions: boolean('notify_reactions').notNull().default(true),
-
-    // The `activities` pair, kept until that table goes so an in-flight digest is not lost.
-    pushedUpToActivityId: integer('pushed_up_to_activity_id'),
     /**
      * The broadcast half's bookkeeping, two integers rather than a row per user per activity.
      *
@@ -247,7 +252,6 @@ export const userSettings = table(
      * `events.created_at`, so a mark taken off a row compares exactly against it.
      */
     pushedUpToEventAt: timestamp('pushed_up_to_event_at', { precision: 3, withTimezone: true }),
-    seenUpToActivityId: integer('seen_up_to_activity_id'),
     seenUpToEventAt: timestamp('seen_up_to_event_at', { precision: 3, withTimezone: true }),
 
     // null = follow the runtime locale (see isImperialLocale); set = explicit override.
@@ -1419,12 +1423,12 @@ export const eventVerb: ['create', 'update', 'delete', 'add', 'remove', 'join', 
 ]
 
 /**
- * The AS2 object columns, shared verbatim by `events` and `changes`.
+ * The AS2 object columns, shared verbatim by `events`, `changes` and `notifications`.
  *
- * Six nullable foreign keys rather than one polymorphic `(type, id)` pair. That pair is what
- * `hydrate.svelte.ts` exists to work around: `entity_id` is `text`, the type varies, and Zero
- * cannot join it, so the feed runs seven queries and reconciles them by hand. Real keys arrive
- * nested in one query.
+ * Six nullable foreign keys rather than one polymorphic `(type, id)` pair. That pair could not be
+ * joined by Zero at all, so every screen that had one ran a query per entity type and reconciled
+ * the answers by hand, in a pass that also had to model "not here yet" separately from "gone".
+ * Real keys arrive nested in one query, and that pass is deleted.
  *
  * `on delete cascade` on the five ENTITY keys is what makes the 15-minute grace window work: a
  * mistake deleted inside it is hard-deleted and takes its events with it, leaving no trace, while
@@ -1806,25 +1810,6 @@ export const notificationSourceType: [
 ] = ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted', 'reaction', 'comment']
 
 /**
- * The entity kinds a notification points at. A subset of the event object types, and stored the
- * same way, so the inbox resolves them through the same rows the feed does.
- *
- * `block` joined the list with reactions: a reaction is about a CARD, and a card is about whatever
- * its event is, which for a crag edit is routinely a block. Mentions still cannot produce one,
- * since they come out of markdown bodies and blocks have none.
- *
- * Still no `file`: it has no page to point at, and an upload's notification names the thing the
- * photos landed on instead, which is what the card names too.
- */
-export const notificationEntityType: ['area', 'ascent', 'block', 'route', 'user'] = [
-  'area',
-  'ascent',
-  'block',
-  'route',
-  'user',
-]
-
-/**
  * Things aimed at one person: a mention, somebody editing your ascent, a role change.
  *
  * Deliberately NOT where region activity lives. Broadcast events are already on screen in the
@@ -1852,12 +1837,22 @@ export const notifications = table(
     authUserFk: uuid('auth_user_fk')
       .notNull()
       .references((): AnyColumn => authUsers.id),
-    entityId: text('entity_id').notNull(),
-    entityType: text('entity_type', { enum: notificationEntityType }).notNull(),
+    /**
+     * What the row is about, in the same six columns an event uses, so the inbox can nest the
+     * object the way the feed does instead of joining a polymorphic pair in memory.
+     *
+     * At most one, not exactly one: a row whose object was already gone when the backfill ran
+     * carries none, keeps its sentence and simply offers no entity row underneath it, which is
+     * what the three source types that never had one already look like.
+     *
+     * `file_fk` exists to keep the shape identical to `events`, and `objectOf` with it. Nothing
+     * writes it: a reaction on an upload notifies about the thing the photos landed on.
+     */
+    ...eventObjectFields,
     /**
      * Which card, for the two source types that are about one: a reaction and a comment.
      *
-     * `entity_id`/`entity_type` stay set beside it, and are still what the inbox row links to and
+     * The object columns stay set beside it, and are still what the inbox row links to and
      * renders. This says WHICH event was reacted to, so two reactions on two events about the same
      * route are two rows rather than one collapsing into the other through
      * `notifications_source_idx`.
@@ -1893,20 +1888,30 @@ export const notifications = table(
     // actor into the first (two photos on your ascent are one notification, which is what you
     // want; a role set back and forth is one, which is the price). Upgrade = a nonce column if
     // anybody misses the second one.
-    uniqueIndex('notifications_source_idx')
-      .on(table.userFk, table.sourceType, table.entityType, table.entityId, table.actorFk)
-      .where(sql`event_fk is null`),
-
-    // The same rule for the rows that are about a CARD, keyed on the card instead of on the entity
-    // pair, which the event already determines. Two reactions on two events about one route have
-    // to stay two inbox rows; without the event in the key the second would collapse into the
-    // first and the reader would hear about one of them.
     //
-    // Two partial indexes rather than one over `coalesce(event_fk, 0)`, because an upsert has to
-    // name its conflict target and drizzle can only name columns.
-    uniqueIndex('notifications_event_source_idx')
-      .on(table.userFk, table.sourceType, table.actorFk, table.eventFk)
-      .where(sql`event_fk is not null`),
+    // The card is in the key beside the object, which is what keeps two reactions on two events
+    // about one route two rows rather than one; on a row that is not about a card, `event_fk` is
+    // null and the object is what separates them.
+    //
+    // NULLS NOT DISTINCT is load-bearing, and it is why this is one constraint rather than the two
+    // partial indexes it replaced: five of the six object columns are null on every row, and the
+    // default would make every row unique against every other and dedupe nothing. It also has to
+    // be a CONSTRAINT rather than an index, because a partial unique index cannot say it.
+    unique('notifications_source_idx')
+      .on(
+        table.userFk,
+        table.sourceType,
+        table.actorFk,
+        table.eventFk,
+        table.areaFk,
+        table.ascentFk,
+        table.blockFk,
+        table.fileFk,
+        table.routeFk,
+        table.subjectFk,
+      )
+      .nullsNotDistinct(),
+    check('notifications_at_most_one_object', sql.raw(`num_nonnulls(${EVENT_OBJECT_COLUMNS}) <= 1`)),
     index('notifications_user_fk_read_at_idx').on(table.userFk, table.readAt),
     index('notifications_region_fk_idx').on(table.regionFk),
     // The cron's only query over this table, and it runs every five minutes. Partial on BOTH
@@ -1944,10 +1949,22 @@ export type Notification = InferSelectModel<typeof notifications>
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   actor: one(users, { fields: [notifications.actorFk], references: [users.id], relationName: 'notification-actor' }),
+  // The same six the event carries, named the same way, so the inbox nests its object through the
+  // relation the feed already reads rather than joining a polymorphic pair in memory.
+  area: one(areas, { fields: [notifications.areaFk], references: [areas.id] }),
+  ascent: one(ascents, { fields: [notifications.ascentFk], references: [ascents.id] }),
   authUser: one(authUsers, { fields: [notifications.authUserFk], references: [authUsers.id] }),
+  block: one(blocks, { fields: [notifications.blockFk], references: [blocks.id] }),
   event: one(events, { fields: [notifications.eventFk], references: [events.id] }),
+  file: one(files, { fields: [notifications.fileFk], references: [files.id] }),
   reaction: one(reactions, { fields: [notifications.reactionFk], references: [reactions.id] }),
   region: one(regions, { fields: [notifications.regionFk], references: [regions.id] }),
+  route: one(routes, { fields: [notifications.routeFk], references: [routes.id] }),
+  subject: one(users, {
+    fields: [notifications.subjectFk],
+    references: [users.id],
+    relationName: 'notification-subject',
+  }),
   user: one(users, { fields: [notifications.userFk], references: [users.id], relationName: 'notification-user' }),
 }))
 

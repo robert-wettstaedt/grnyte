@@ -309,7 +309,7 @@ describe('headline name', () => {
 })
 
 describe('rows', () => {
-  it('is a skeleton while the entity has not synced, a tombstone once it is gone', () => {
+  it('is a tombstone whether the entity is absent or explicitly gone', () => {
     const rows = burstRows(2, (index) => ({
       id: 2 - index,
       objectId: String(index + 1),
@@ -318,7 +318,7 @@ describe('rows', () => {
     }))
     const view = card(rows, entityMap([[{ id: '1', type: 'route' }, null]]))
 
-    expect(view.rows.map((row) => row.state)).toEqual(['tombstone', 'skeleton'])
+    expect(view.rows.map((row) => row.state)).toEqual(['tombstone', 'tombstone'])
   })
 
   it('names a tombstone from the row that named it, not the group s newest', () => {

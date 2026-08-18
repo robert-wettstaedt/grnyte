@@ -16,9 +16,9 @@
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import type { CardRow } from '$lib/entities/event/cardView'
-  import { eventEntityKey, type EventEntityRef } from '$lib/entities/event/entity'
-  import { hydrateEntities } from '$lib/entities/event/hydrate.svelte'
+  import type { EventEntityRef } from '$lib/entities/event/entity'
   import { notificationView } from '$lib/entities/notification/caption'
+  import type { NotificationListItem } from '$lib/entities/notification/dto'
   import { markNotificationsRead } from '$lib/entities/notification/notifications.remote'
   import { notificationList } from '$lib/entities/notification/resources.svelte'
   import { regionCrumb } from '$lib/entities/region/mapper'
@@ -34,7 +34,9 @@
 
   const global = getGlobalState()
 
-  const notifications = notificationList()
+  // The regions are handed in rather than read inside the resource: the badge builds the same
+  // resource from `setGlobalState`, where the context does not exist yet. See `notificationList`.
+  const notifications = notificationList(undefined, () => global.userRegions)
 
   /**
    * Which rows were unread when the reader got here.
@@ -64,11 +66,6 @@
     })),
   )
 
-  // The same second pass the feed makes, for the same reason: `entityId` is polymorphic text, so
-  // Zero cannot join a row to the thing it is about. A role change contributes no ref: its
-  // subject is the reader, so the row would be their own name.
-  const hydration = hydrateEntities(() => views.flatMap((entry) => (entry.view.ref == null ? [] : [entry.view.ref])))
-
   $effect(() => {
     for (const { notification } of views) {
       if (notification.readAt == null) {
@@ -77,23 +74,26 @@
     }
   })
 
-  /** A hydrated ref in the shared row's own vocabulary: still syncing, gone, or there. */
-  const rowFor = (ref: EventEntityRef): CardRow => {
-    const entity = hydration.entities.get(eventEntityKey(ref))
-    return {
-      // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an
-      // ascent it is reporting; a notification is one line telling you it happened, and the
-      // ascent's own screen is one tap away.
-      ascent: undefined,
-      entity: entity ?? undefined,
-      // Unlike an activity row, a notification stores no fallback name for its subject, so a
-      // tombstone here can only say what kind of thing is missing.
-      name: undefined,
-      note: undefined,
-      ref,
-      state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
-    }
-  }
+  /**
+   * The notification's own object, in the shared row's vocabulary.
+   *
+   * The entity arrives nested with the row now, so there is no waiting and no third state: it is
+   * either here or it is gone. A row whose object was already deleted when the typed columns were
+   * backfilled has no ref at all and draws nothing (see `notificationView`).
+   */
+  const rowFor = (notification: NotificationListItem, ref: EventEntityRef): CardRow => ({
+    // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an ascent it
+    // is reporting; a notification is one line telling you it happened, and the ascent's own
+    // screen is one tap away.
+    ascent: undefined,
+    entity: notification.entity,
+    // Unlike an event, a notification stores no fallback name for its subject, so a tombstone here
+    // can only say what kind of thing is missing.
+    name: undefined,
+    note: undefined,
+    ref,
+    state: notification.entity == null ? 'tombstone' : 'entity',
+  })
 
   // Opening the inbox is the act of reading it, so the whole thing is stamped once, here, rather
   // than per row. `onMount` and not an `$effect` on the list: re-stamping whenever the list
@@ -167,7 +167,7 @@
               </header>
 
               {#if view.ref != null}
-                <HydratedRow row={rowFor(view.ref)} />
+                <HydratedRow row={rowFor(notification, view.ref)} />
               {/if}
             </article>
           {/each}

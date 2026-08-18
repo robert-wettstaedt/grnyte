@@ -72,13 +72,7 @@ export function eventCard(
   const rows = view.rows.map((row) => {
     const claimed = claim(unclaimed, row.ref)
 
-    return {
-      ...row,
-      bar: claimed == null ? undefined : bar(claimed, currentUserFk),
-      // Never pending. The entity arrives with its event, so there is no second wave to wait for
-      // and no skeleton state to render.
-      state: row.state === 'skeleton' ? ('tombstone' as const) : row.state,
-    }
+    return { ...row, bar: claimed == null ? undefined : bar(claimed, currentUserFk) }
   })
 
   const leftover = [...unclaimed.values()].map((event) => bar(event, currentUserFk))

@@ -6,10 +6,10 @@ const notification = (over: Partial<NotificationListItem> = {}): NotificationLis
   actorFk: 2,
   actorName: 'Anna',
   createdAt: 0,
-  entityId: '42',
-  entityType: 'route',
+  entity: undefined,
   id: 1,
   metadata: undefined,
+  object: { id: 42, type: 'route' },
   readAt: undefined,
   regionFk: 1,
   sourceType: 'mention',
@@ -30,7 +30,7 @@ describe('notificationView', () => {
 
   it('names the granted role', () => {
     const view = notificationView(
-      notification({ entityType: 'user', metadata: 'region_maintainer', sourceType: 'role_changed' }),
+      notification({ metadata: 'region_maintainer', object: { id: 5, type: 'user' }, sourceType: 'role_changed' }),
     )
 
     expect(view.key).toBe('notifications_roleChanged')
@@ -43,14 +43,16 @@ describe('notificationView', () => {
    * promotion. Falling back to the role-less sentence is still true.
    */
   it.each(['app_admin', 'region_overlord', undefined])('falls back to the plain sentence for %s', (metadata) => {
-    const view = notificationView(notification({ entityType: 'user', metadata, sourceType: 'role_changed' }))
+    const view = notificationView(
+      notification({ metadata, object: { id: 5, type: 'user' }, sourceType: 'role_changed' }),
+    )
 
     expect(view.key).toBe('notifications_roleChangedPlain')
     expect(view.params.role).toBeUndefined()
   })
 
   it('hands the row its subject to hydrate', () => {
-    expect(notificationView(notification({ entityId: '9', entityType: 'ascent' })).ref).toEqual({
+    expect(notificationView(notification({ object: { id: 9, type: 'ascent' } })).ref).toEqual({
       id: '9',
       type: 'ascent',
     })
@@ -62,7 +64,7 @@ describe('notificationView', () => {
   it.each(['ascent_deleted', 'invite_accepted', 'role_changed'] as NotificationSourceType[])(
     'renders no row for %s',
     (sourceType) => {
-      expect(notificationView(notification({ entityType: 'user', sourceType })).ref).toBeUndefined()
+      expect(notificationView(notification({ object: { id: 5, type: 'user' }, sourceType })).ref).toBeUndefined()
     },
   )
 })

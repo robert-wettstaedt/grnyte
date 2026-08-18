@@ -208,8 +208,7 @@ export async function acceptInvitation({ authUserId, email, token }: AcceptInvit
     // points at the person who joined.
     await notify({
       actorFk: joined.userFk,
-      entityId: joined.userFk,
-      entityType: 'user',
+      object: { id: joined.userFk, type: 'user' },
       regionFk: joined.regionFk,
       sourceType: 'invite_accepted',
       userFks: [joined.invitedByFk],

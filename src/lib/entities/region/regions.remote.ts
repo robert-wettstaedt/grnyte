@@ -430,9 +430,8 @@ export const updateRegionMemberRole = authedCommand(
     afterCommit(() =>
       notify({
         actorFk: user.id,
-        entityId: userFk,
-        entityType: 'user',
         metadata: role,
+        object: { id: userFk, type: 'user' },
         regionFk,
         sourceType: 'role_changed',
         userFks: [userFk],

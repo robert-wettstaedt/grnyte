@@ -12,7 +12,7 @@ import {
   users,
   userSettings,
 } from '$lib/db/schema'
-import { isAscentEvent } from '$lib/entities/event/dto'
+import { isAscentEvent, objectOf } from '$lib/entities/event/dto'
 import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
 import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
@@ -424,17 +424,21 @@ async function sendDirected(nowMs: number): Promise<number> {
   const due = await db
     .select({
       actorName: actor.username,
+      areaFk: notifications.areaFk,
+      ascentFk: notifications.ascentFk,
+      blockFk: notifications.blockFk,
       contactLocale: userSettings.contactLocale,
       createdAt: notifications.createdAt,
-      entityId: notifications.entityId,
-      entityType: notifications.entityType,
+      fileFk: notifications.fileFk,
       id: notifications.id,
       metadata: notifications.metadata,
       notifyComments: userSettings.notifyComments,
       notifyDirected: userSettings.notifyDirected,
       notifyReactions: userSettings.notifyReactions,
       regionFk: notifications.regionFk,
+      routeFk: notifications.routeFk,
       sourceType: notifications.sourceType,
+      subjectFk: notifications.subjectFk,
       userFk: notifications.userFk,
     })
     .from(notifications)
@@ -464,9 +468,10 @@ async function sendDirected(nowMs: number): Promise<number> {
     const view = notificationView(
       {
         actorName: row.actorName,
-        entityId: row.entityId,
-        entityType: row.entityType,
         metadata: row.metadata ?? undefined,
+        // The same derivation the inbox makes: whichever typed column is set says what the row is
+        // about. The push only needs it for the sentence, which never asks what type it was.
+        object: objectOf(row),
         sourceType: row.sourceType,
       },
       { locale },

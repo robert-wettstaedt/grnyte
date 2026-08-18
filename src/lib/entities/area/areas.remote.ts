@@ -84,8 +84,7 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
     notifyMentions({
       actorFk: user.id,
       body: value.description,
-      entityId: createdArea.id,
-      entityType: 'area',
+      object: { id: createdArea.id, type: 'area' },
       regionFk: createdArea.regionFk,
     }),
   )
@@ -127,8 +126,7 @@ export const updateArea = authedForm(
       notifyMentions({
         actorFk: user.id,
         body: value.description,
-        entityId: area.id,
-        entityType: 'area',
+        object: { id: area.id, type: 'area' },
         previousBody: area.description,
         regionFk: area.regionFk,
       }),

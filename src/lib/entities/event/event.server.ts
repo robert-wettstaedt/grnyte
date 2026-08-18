@@ -252,6 +252,23 @@ export async function insertEvent(db: Db, input: EventInput): Promise<schema.Eve
 }
 
 /**
+ * `area_fk = 12`, and null for the other five. The CHECK requires exactly one to be set.
+ *
+ * Exported so `notify()` can write the same object into `notifications`, which mirrors these six
+ * columns exactly: reusing this beats a second copy of the id/type-to-column mapping drifting out
+ * of step with {@link EVENT_OBJECT_COLUMNS}.
+ */
+export function objectColumns(
+  object: EventObject,
+): Pick<schema.InsertEvent, (typeof EVENT_OBJECT_COLUMNS)[EventObjectType]> {
+  const column = EVENT_OBJECT_COLUMNS[object.type]
+  // `file_fk` is text and the rest are integers, which is the whole reason six columns beat one
+  // polymorphic pair: each id keeps its own type instead of everything becoming text.
+  const value = object.type === 'file' ? String(object.id) : Number(object.id)
+  return { [column]: value } as never
+}
+
+/**
  * Whether a row is young enough to be deleted without trace.
  *
  * Deleted inside 15 minutes of creation, it was a mistake: it is hard-deleted and takes its events
@@ -348,15 +365,6 @@ export async function writeChanges(db: Db, event: schema.Event, changes: readonl
   }
 
   return moved.length > 0
-}
-
-/** `area_fk = 12`, and null for the other five. The CHECK requires exactly one to be set. */
-function objectColumns(object: EventObject): Pick<schema.InsertEvent, (typeof EVENT_OBJECT_COLUMNS)[EventObjectType]> {
-  const column = EVENT_OBJECT_COLUMNS[object.type]
-  // `file_fk` is text and the rest are integers, which is the whole reason six columns beat one
-  // polymorphic pair: each id keeps its own type instead of everything becoming text.
-  const value = object.type === 'file' ? String(object.id) : Number(object.id)
-  return { [column]: value } as never
 }
 
 /** The equality test for "the same object", spelled once so the fold and its callers agree. */

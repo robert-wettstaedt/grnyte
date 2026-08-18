@@ -35,6 +35,30 @@ const cursor = z.object({ createdAt: z.number(), id: z.int() })
  * Five of the six object relations are null on any given row (`events_one_object` guarantees it),
  * so this costs no more to sync than naming the one that is set would.
  */
+/**
+ * A route as a card renders it, ready to hand to `.related('route', ...)`.
+ *
+ * Exported because the inbox nests the same tree: a notification points at the same six object
+ * types an event does, and its row is drawn by the same `RouteRow`. A third hand-copy of this
+ * tree would be a third thing to keep in step with `listRoutes`, which is what the `RouteListRow`
+ * cast in the mapper makes silent when it drifts.
+ */
+export const relatedRouteTree = (ctx: Parameters<typeof relatedRegion>[0]) => {
+  const r = relatedRegion(ctx)
+
+  const routeTree = (q: typeof zql.routes) =>
+    r(q)
+      .related('tags', r)
+      .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
+      .related('block', (q) => r(q).related('area', r))
+      .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r)))
+
+  // Zero types a relation callback against the exact query it is attached to, so a callback shared
+  // by several attachment points cannot be written any other way. See the note in `withObject`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+  return routeTree as any
+}
+
 const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
   const r = relatedRegion(ctx)
 
@@ -45,22 +69,10 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
   // missing on one path only would zero that route's values there, and the cast erases the type
   // error, which is how three hand-copies of this tree sat here disagreeing.
   //
-  // Declared once, and the `any` below is what lets it be. Zero types a relation callback against
-  // the exact query it is attached to, so a callback shared by four attachment points cannot be
-  // written any other way.
-
-  const routeTree = (q: typeof zql.routes) =>
-    r(q)
-      .related('tags', r)
-      .related('firstAscents', (q) => r(q).related('firstAscensionist', r))
-      .related('block', (q) => r(q).related('area', r))
-      .related('topoRoutes', (q) => r(q).related('topo', (q) => r(q).related('file', r)))
-
-  // The cast is what the comment above is about: `routeTree`'s BODY types fine against
-  // `zql.routes`, and only the nominal identity of the callback parameter differs per attachment
-  // point. Casting once here beats four copies of the tree or an `any` that also loses the body.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
-  const route = routeTree as any
+  // Declared once (see `relatedRouteTree`), and its `any` is what lets it be: Zero types a
+  // relation callback against the exact query it is attached to, so a callback shared by four
+  // attachment points, and by the inbox's query, cannot be written any other way.
+  const route = relatedRouteTree(ctx)
 
   return (
     zql.events

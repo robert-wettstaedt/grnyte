@@ -16,12 +16,14 @@ import type { EventCase } from './types'
 import { ascentEntity, change, eventAgo, ME, PEOPLE, utcDay } from './world'
 
 /**
- * The `YYYY-MM-DD` the form submits and the `date` column stores, `daysAgo` back.
+ * The `YYYY-MM-DD` the form submits and the `date` column stores.
  *
- * Derived rather than written out, so the two chips on a date line stay near the card's own clock
- * instead of drifting into last year as the file ages.
+ * Fixed dates rather than "n days back", unlike every other clock on this wall: these two are the
+ * only values a snapshot records verbatim, so deriving them from today rewrote the wall at every
+ * midnight and failed the run that crossed one. What the case claims is how a stored calendar date
+ * is read and formatted, which any date demonstrates.
  */
-const day = (daysAgo: number) => new Date(utcDay(daysAgo)).toISOString().slice(0, 10)
+const day = (index: 0 | 1 | 2 | 3) => ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04'][index]
 
 export const ASCENT_CASES: EventCase[] = [
   {
@@ -180,7 +182,7 @@ export const ASCENT_CASES: EventCase[] = [
     events: [
       eventAgo(360, {
         actorFk: ME,
-        changes: [change({ columnName: 'dateTime', newValue: day(6), oldValue: day(5) })],
+        changes: [change({ columnName: 'dateTime', newValue: day(1), oldValue: day(0) })],
         objectId: 9001,
         objectType: 'ascent',
       }),
@@ -301,7 +303,7 @@ export const ASCENT_CASES: EventCase[] = [
       eventAgo(325, {
         actorFk: ME,
         changes: [
-          change({ columnName: 'dateTime', newValue: day(3), oldValue: day(4) }),
+          change({ columnName: 'dateTime', newValue: day(3), oldValue: day(2) }),
           change({ columnName: 'gradeFk', newValue: '13', oldValue: '11' }),
           change({ columnName: 'humidity', newValue: '55', oldValue: '35' }),
           change({ columnName: 'notes', newValue: 'Went second go, low crux.', oldValue: 'Went first go.' }),

@@ -9,8 +9,8 @@ import { db as baseDb } from '$lib/db/db.server'
 import type * as schema from '$lib/db/schema'
 import { files, notifications, reactions } from '$lib/db/schema'
 import { objectOf } from '$lib/entities/event/dto'
+import type { EventObject } from '$lib/entities/event/event.server'
 import { fileParent } from '$lib/entities/file/mapper'
-import type { NotificationEntityType } from '$lib/entities/notification/dto'
 import { notify } from '$lib/entities/notification/notification.server'
 import { and, eq, isNull } from 'drizzle-orm'
 
@@ -103,9 +103,7 @@ export async function dropReactionNotification(input: { actorFk: number; eventFk
  * photos landed on, which is what the card names too. That parent costs the one query this
  * function makes, and only for uploads.
  */
-export async function eventSubject(
-  event: EventRow,
-): Promise<undefined | { entityId: number | string; entityType: NotificationEntityType }> {
+export async function eventSubject(event: EventRow): Promise<EventObject | undefined> {
   const object = objectOf(event)
 
   if (object == null) {
@@ -117,14 +115,11 @@ export async function eventSubject(
       columns: { areaFk: true, ascentFk: true, blockFk: true, routeFk: true },
       where: eq(files.id, String(object.id)),
     })
-    const parent = file == null ? undefined : fileParent(file)
 
-    return parent == null ? undefined : { entityId: parent.id, entityType: parent.type as NotificationEntityType }
+    return file == null ? undefined : fileParent(file)
   }
 
-  return NOTIFIABLE.has(object.type)
-    ? { entityId: object.id, entityType: object.type as NotificationEntityType }
-    : undefined
+  return NOTIFIABLE.has(object.type) ? { id: object.id, type: object.type } : undefined
 }
 
 /**
@@ -152,9 +147,9 @@ export async function notifyComment(input: {
     .where(and(eq(reactions.eventFk, input.event.id), eq(reactions.type, 'comment'), isNull(reactions.deletedAt)))
 
   await notify({
-    ...subject,
     actorFk: input.actorFk,
     eventFk: input.event.id,
+    object: subject,
     reactionFk: input.reactionFk,
     regionFk: input.event.regionFk,
     sourceType: 'comment',
@@ -176,9 +171,9 @@ export async function notifyReaction(input: { actorFk: number; event: EventRow }
   }
 
   await notify({
-    ...subject,
     actorFk: input.actorFk,
     eventFk: input.event.id,
+    object: subject,
     regionFk: input.event.regionFk,
     sourceType: 'reaction',
     userFks: [input.event.actorFk],

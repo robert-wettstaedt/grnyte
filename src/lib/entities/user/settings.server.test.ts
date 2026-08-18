@@ -21,7 +21,8 @@ let user = {} as SeedUser
 
 /** The shape the callers use: a watermark that only ever moves forward, evaluated by the database
  *  rather than by whoever read the row a moment ago. */
-const watermark = (activityId: number) => raw`greatest(coalesce(${userSettings.seenUpToActivityId}, 0), ${activityId})`
+const watermark = (activityId: number) =>
+  raw`greatest(coalesce(${userSettings.legacySeenUpToActivityId}, 0), ${activityId})`
 
 const settingsRow = async () => {
   const [row] = await db.select().from(userSettings).where(eq(userSettings.userFk, user.userId))
@@ -55,16 +56,24 @@ afterAll(async () => {
 
 describe.skipIf(!reachable)('writeUserSettings', () => {
   it('creates the missing row, expression and all', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
+    await writeUserSettings(
+      db,
+      { authUserFk: user.authId, id: user.userId },
+      { legacySeenUpToActivityId: watermark(42) },
+    )
 
     const row = await settingsRow()
-    expect(row.seenUpToActivityId).toBe(42)
+    expect(row.legacySeenUpToActivityId).toBe(42)
   })
 
   /** The client reads settings through `users.user_settings_fk`, so a row nothing points at is a
    *  row nothing can see. */
   it('links the new row to its user', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
+    await writeUserSettings(
+      db,
+      { authUserFk: user.authId, id: user.userId },
+      { legacySeenUpToActivityId: watermark(42) },
+    )
 
     const row = await settingsRow()
     const [owner] = await db.select({ settingsFk: users.userSettingsFk }).from(users).where(eq(users.id, user.userId))
@@ -73,10 +82,18 @@ describe.skipIf(!reachable)('writeUserSettings', () => {
   })
 
   it('updates the row when it is already there', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(99) })
+    await writeUserSettings(
+      db,
+      { authUserFk: user.authId, id: user.userId },
+      { legacySeenUpToActivityId: watermark(42) },
+    )
+    await writeUserSettings(
+      db,
+      { authUserFk: user.authId, id: user.userId },
+      { legacySeenUpToActivityId: watermark(99) },
+    )
 
-    expect((await settingsRow()).seenUpToActivityId).toBe(99)
+    expect((await settingsRow()).legacySeenUpToActivityId).toBe(99)
     // One row, not a second one beside it.
     expect(await db.select().from(userSettings).where(eq(userSettings.userFk, user.userId))).toHaveLength(1)
   })
@@ -84,10 +101,18 @@ describe.skipIf(!reachable)('writeUserSettings', () => {
   /** What `greatest` is there for: a scoped feed acknowledging an older id must not undo a newer
    *  acknowledgement. */
   it('leaves a watermark alone when the new value is behind it', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(7) })
+    await writeUserSettings(
+      db,
+      { authUserFk: user.authId, id: user.userId },
+      { legacySeenUpToActivityId: watermark(42) },
+    )
+    await writeUserSettings(
+      db,
+      { authUserFk: user.authId, id: user.userId },
+      { legacySeenUpToActivityId: watermark(7) },
+    )
 
-    expect((await settingsRow()).seenUpToActivityId).toBe(42)
+    expect((await settingsRow()).legacySeenUpToActivityId).toBe(42)
   })
 
   it('writes a plain value too', async () => {

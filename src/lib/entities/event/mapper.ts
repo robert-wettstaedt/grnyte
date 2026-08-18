@@ -157,6 +157,24 @@ export function eventParentRef(fks: {
   return undefined
 }
 
+/**
+ * The entity a row renders, built from the object relation it already carried.
+ *
+ * Structural rather than typed on `EventRow`, because the inbox nests the same six relations on
+ * `notifications` and has to draw the same row from them. A notification carries no verb, which
+ * only reaches the invitation branch below: those two source types name their subject in the
+ * sentence and never draw a row at all.
+ */
+export function toEventEntity(
+  row: Pick<EventRow, 'area' | 'ascent' | 'block' | 'file' | 'route' | 'subject'> & {
+    metadata?: null | string
+    verb?: EventRow['verb']
+  },
+  userRegions: RegionMembership[],
+): EventEntity | undefined {
+  return entityOf(row as EventRow, userRegions)
+}
+
 function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity | undefined {
   const crumbs = (regionFk: null | number | undefined, rest: (null | string | undefined)[]) =>
     [regionCrumb(userRegions, regionFk), ...rest].filter((crumb): crumb is string => crumb != null)

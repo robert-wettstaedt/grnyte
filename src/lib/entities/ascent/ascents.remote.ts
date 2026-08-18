@@ -77,8 +77,7 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { after
     notifyMentions({
       actorFk: user.id,
       body: value.notes,
-      entityId: ascent.id,
-      entityType: 'ascent',
+      object: { id: ascent.id, type: 'ascent' },
       regionFk: route.regionFk,
     }),
   )
@@ -149,8 +148,7 @@ export const updateAscent = authedForm(
       afterCommit(() =>
         notify({
           actorFk: user.id,
-          entityId: ascent.id,
-          entityType: 'ascent',
+          object: { id: ascent.id, type: 'ascent' },
           regionFk: ascent.regionFk,
           sourceType: 'ascent_edited',
           userFks: [ascent.createdBy],
@@ -162,8 +160,7 @@ export const updateAscent = authedForm(
       notifyMentions({
         actorFk: user.id,
         body: value.notes,
-        entityId: ascent.id,
-        entityType: 'ascent',
+        object: { id: ascent.id, type: 'ascent' },
         previousBody: ascent.notes,
         regionFk: ascent.regionFk,
       }),
@@ -277,8 +274,7 @@ export const deleteAscent = command(
     // deleted ascent behind forever. Nothing sweeps those up later.
     await notify({
       actorFk: user.id,
-      entityId: routeFk,
-      entityType: 'route',
+      object: { id: routeFk, type: 'route' },
       regionFk,
       sourceType: 'ascent_deleted',
       userFks: [climberFk],

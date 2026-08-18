@@ -27,7 +27,13 @@ import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
 import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { authenticatedUserCan, regionMemberCan, regionTables, type QueryContext } from './permissions'
+import {
+  authenticatedUserCan,
+  regionMemberCan,
+  regionTables,
+  unsyncedRegionTables,
+  type QueryContext,
+} from './permissions'
 import { zql } from './zero-schema.gen'
 
 const REGION_A = '__tenancy_a__'
@@ -289,10 +295,13 @@ describe('the region-scoped table list', () => {
     // `regionTables` is what decides which queries get filtered, and until now the only thing
     // keeping it complete was a comment. A migration that adds a `region_fk` to a new table
     // regenerates the Zero schema and fails here, rather than shipping the table unfiltered.
+    //
+    // The unsynced list is the other half: a table may be left off `regionTables` only by being
+    // named there, which is a decision in code rather than an omission nobody notices.
     const withRegionFk = Object.entries(schema.tables)
       .filter(([, table]) => 'regionFk' in table.columns)
       .map(([name]) => name)
 
-    expect([...regionTables].sort()).toEqual(withRegionFk.sort())
+    expect([...regionTables, ...unsyncedRegionTables].sort()).toEqual(withRegionFk.sort())
   })
 })

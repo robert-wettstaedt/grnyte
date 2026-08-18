@@ -1,10 +1,10 @@
 <!--
-  One hydrated entity as a row, in whichever of its three shapes it is in: still syncing
-  (a skeleton), hydration finished without it (a tombstone), or there (the row for its kind).
+  One entity as a row, in whichever of its two shapes it is in: the row for its kind, or a
+  tombstone once the thing it names is gone.
 
-  Shared by the feed card and the notification inbox. Both hold the same thing - a polymorphic
-  `(entityType, entityId)` ref that Zero cannot join, resolved in a second pass - and both have
-  to render all three states, so the branch lives here rather than once per screen.
+  Shared by the feed card and the notification inbox. Both now carry the entity nested on the row
+  that names it, so neither has a pending state to draw; the branch lives here rather than once per
+  screen because both still have to say what a missing thing WAS.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -42,12 +42,7 @@
   }
 </script>
 
-{#if row.state === 'skeleton'}
-  <div class="flex items-center gap-2.5 px-1 py-2" aria-busy="true">
-    <span class="bg-surface-200-800 size-13 flex-none animate-pulse rounded-xl"></span>
-    <span class="bg-surface-200-800 h-3.5 w-32 animate-pulse rounded"></span>
-  </div>
-{:else if row.state === 'tombstone'}
+{#if row.state === 'tombstone'}
   <div class="text-surface-600-400 flex items-center gap-2.5 px-1 py-2 text-sm">
     <span class="bg-surface-200-800/60 grid size-13 flex-none place-items-center rounded-xl">
       <Icon name="trash" size={20} />

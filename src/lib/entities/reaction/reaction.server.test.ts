@@ -130,7 +130,7 @@ beforeEach(async () => {
 
 describe.skipIf(!reachable)('eventSubject', () => {
   it('points an inbox row at the event s own object', async () => {
-    expect(await eventSubject(event())).toEqual({ entityId: routeId, entityType: 'route' })
+    expect(await eventSubject(event())).toEqual({ id: routeId, type: 'route' })
   })
 
   it('has nothing to point at for an event with no object', async () => {

@@ -89,9 +89,9 @@ export interface EventEntity {
 }
 
 /**
- * Hydration result, keyed by {@link eventEntityKey}. A missing key means the entity
- * has not synced yet (the card renders a skeleton); an explicit `null` means hydration
- * finished without it, so it is gone (the card renders a tombstone).
+ * The entities a set of lines names, keyed by {@link eventEntityKey}. A missing key and an
+ * explicit `null` mean the same thing: the row is gone and the card draws a tombstone. They are
+ * not two states any more, since an entity arrives nested with the row that names it.
  */
 export type EventEntityMap = ReadonlyMap<string, EventEntity | null>
 

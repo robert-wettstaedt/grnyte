@@ -62,8 +62,9 @@ export interface CardHeadline {
 }
 
 /**
- * One entity row on a card, and which of the three shapes it takes. `skeleton` means the
- * entity has not synced yet, `tombstone` that hydration finished without it, so it is gone.
+ * One entity row on a card, and which of its two shapes it takes: the row for its kind, or a
+ * tombstone once the thing it names is gone. There is no pending state, because an entity arrives
+ * nested with the row that names it and there is no second wave to wait for.
  */
 export interface CardRow {
   /**
@@ -82,7 +83,7 @@ export interface CardRow {
    *  edit card shows it too: the change lines say which number moved and nothing says this. */
   note: string | undefined
   ref: EventEntityRef
-  state: 'entity' | 'skeleton' | 'tombstone'
+  state: 'entity' | 'tombstone'
 }
 
 /**
@@ -111,10 +112,9 @@ export interface CardView {
   /** The entity the headline names, which a group borrows from its shared parent. */
   entityName: string | undefined
   /**
-   * Whether {@link entityName} is missing for good rather than still syncing: everything it
-   * could come from has answered, and none of it held a name. Without this the headline
-   * pulses as a skeleton forever for an entity that was deleted without its name ever being
-   * stored, or one that was added without a name at all.
+   * Whether {@link entityName} is missing for good, which it always is when it is missing at all:
+   * nothing arrives later. The markup draws the unnamed placeholder rather than a pulsing slot,
+   * for an entity deleted without its name ever being stored or added without one.
    */
   entityUnnamed: boolean
   files: MediaFile[]
@@ -309,7 +309,9 @@ export function cardView(
       // wrote, so the note is context there rather than a repetition.
       note: named(entity?.note),
       ref,
-      state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
+      // Absent and explicitly null mean the same thing now: the entity arrived with its event or
+      // it is gone, and nothing is still on its way.
+      state: entity == null ? 'tombstone' : 'entity',
     }
   })
   // A session logs several ascents at once, so the date is the card's only when they agree on

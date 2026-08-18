@@ -171,8 +171,7 @@ export const createRoute = authedForm(
       notifyMentions({
         actorFk: user.id,
         body: value.description,
-        entityId: route.id,
-        entityType: 'route',
+        object: { id: route.id, type: 'route' },
         regionFk: block.regionFk,
       }),
     )
@@ -288,8 +287,7 @@ export const updateRoute = authedForm(
       notifyMentions({
         actorFk: user.id,
         body: value.description,
-        entityId: route.id,
-        entityType: 'route',
+        object: { id: route.id, type: 'route' },
         previousBody: route.description,
         regionFk: route.regionFk,
       }),

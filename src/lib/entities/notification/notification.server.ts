@@ -13,8 +13,9 @@ import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
 import { db as baseDb } from '$lib/db/db.server'
 import { notifications, regionMembers, rolePermissions } from '$lib/db/schema'
-import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
-import type { NotificationEntityType, NotificationSourceType } from './dto'
+import { objectColumns, type EventObject } from '$lib/entities/event/event.server'
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import type { NotificationSourceType } from './dto'
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
 export interface NotificationRecipient {
@@ -26,8 +27,6 @@ export interface NotificationRecipient {
 export interface NotifyInput {
   /** Who caused it. Dropped from the recipients, so nobody is told about their own edit. */
   actorFk: number
-  entityId: number | string
-  entityType: NotificationEntityType
   /**
    * Which card, for the source types that are about one. Part of the idempotency key, so two
    * reactions on two events about the same route stay two rows.
@@ -35,6 +34,8 @@ export interface NotifyInput {
   eventFk?: number
   /** Whatever the sentence needs that the entity cannot answer, e.g. the granted role. */
   metadata?: string
+  /** What the row is about. Written into whichever of the six typed columns matches its type. */
+  object: EventObject
   /** Which comment, so the inbox can point at the row rather than at the card. */
   reactionFk?: number
   regionFk: number
@@ -101,14 +102,13 @@ export async function notify(input: NotifyInput): Promise<void> {
       recipients.map((recipient) => ({
         actorFk: input.actorFk,
         authUserFk: recipient.authUserFk,
-        entityId: String(input.entityId),
-        entityType: input.entityType,
         eventFk: input.eventFk,
         metadata: input.metadata,
         reactionFk: input.reactionFk,
         regionFk: input.regionFk,
         sourceType: input.sourceType,
         userFk: recipient.userFk,
+        ...objectColumns(input.object),
       })),
     )
     // The unique index collapses the same event fired twice in a row, e.g. a double submit, or a
@@ -133,23 +133,22 @@ export async function notify(input: NotifyInput): Promise<void> {
         readAt: null,
       },
       setWhere: isNotNull(notifications.readAt),
-      // Whichever of the two partial indexes this row falls under (see `schema.ts`): a row about
-      // a card is keyed on the card, everything else on the entity pair.
-      ...(input.eventFk == null
-        ? {
-            target: [
-              notifications.userFk,
-              notifications.sourceType,
-              notifications.entityType,
-              notifications.entityId,
-              notifications.actorFk,
-            ],
-            targetWhere: isNull(notifications.eventFk),
-          }
-        : {
-            target: [notifications.userFk, notifications.sourceType, notifications.actorFk, notifications.eventFk],
-            targetWhere: isNotNull(notifications.eventFk),
-          }),
+      // The whole key, in one target rather than the two partial ones this replaced: the card and
+      // the object are both in it, and the nulls compare equal (see `notifications_source_idx`),
+      // so a row that is about a card is separated by the card and a row that is not is separated
+      // by the object.
+      target: [
+        notifications.userFk,
+        notifications.sourceType,
+        notifications.actorFk,
+        notifications.eventFk,
+        notifications.areaFk,
+        notifications.ascentFk,
+        notifications.blockFk,
+        notifications.fileFk,
+        notifications.routeFk,
+        notifications.subjectFk,
+      ],
     })
 }
 
@@ -168,8 +167,7 @@ export async function notifyMentions(input: {
   actorFk: number
   /** The markdown as stored. `null`/`undefined` (a cleared description) mentions nobody. */
   body: null | string | undefined
-  entityId: number | string
-  entityType: NotificationEntityType
+  object: EventObject
   /**
    * The body this save replaced. Anybody named in it has already been told, so they are dropped.
    * Omitted when creating, where there is nothing to have been told about yet. A name that is
