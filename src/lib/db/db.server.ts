@@ -24,24 +24,38 @@ export function createDrizzle<
       async (tx) => {
         // Supabase exposes auth.uid() and auth.jwt()
         // https://supabase.com/docs/guides/database/postgres/row-level-security#helper-functions
+        //
+        // Bound parameters, not interpolation. The token is signed, but its contents are not
+        // trustworthy: `user_metadata` is part of the access token and any account can put what it
+        // likes in there (`PUT /auth/v1/user`). `JSON.stringify` escapes double quotes and not
+        // single ones, so a claim carrying an apostrophe used to close the SQL literal it was
+        // pasted into, on the connection that holds every write privilege in the schema.
+        //
+        // One statement, three settings: parameters travel on the extended protocol, which refuses
+        // multi-statement strings, and `set_config('role', ..., true)` is what `SET LOCAL ROLE` is
+        // underneath, so the role travels as a parameter too rather than as interpolated text.
         try {
-          await tx.execute(sql`
-          -- auth.jwt()
-          select set_config('request.jwt.claims', '${sql.raw(JSON.stringify(token))}', TRUE);
-          -- auth.uid()
-          select set_config('request.jwt.claim.sub', '${sql.raw(token.sub ?? '')}', TRUE);
-          -- set local role
-          set local role ${sql.raw(token.role ?? 'anon')};
-          `)
+          await tx.execute(
+            sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
+                       set_config('request.jwt.claim.sub', ${token.sub ?? ''}, true),
+                       set_config('role', ${token.role ?? 'anon'}, true)`,
+          )
           const result = await transaction(tx)
           return result
         } finally {
-          await tx.execute(sql`
-            -- reset
-            select set_config('request.jwt.claims', NULL, TRUE);
-            select set_config('request.jwt.claim.sub', NULL, TRUE);
-            reset role;
-            `)
+          // Best-effort, and swallowed on purpose: a handler that tripped a policy leaves the
+          // transaction aborted, and these statements would then fail with 25P02 and replace the
+          // 42501 the caller actually needs to see. Everything set above is transaction-scoped, so
+          // the rollback undoes it either way; this is only tidiness for a pooled connection.
+          try {
+            await tx.execute(
+              sql`select set_config('request.jwt.claims', NULL, true),
+                         set_config('request.jwt.claim.sub', NULL, true),
+                         set_config('role', NULL, true)`,
+            )
+          } catch {
+            // already unwound
+          }
         }
       },
       ...rest,
