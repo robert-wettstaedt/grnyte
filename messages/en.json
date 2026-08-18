@@ -215,11 +215,17 @@
   "blocks_order_title": "Reorder blocks",
   "blocks_viewRoutes": "Routes",
   "blocks_viewTopos": "Topos",
+  "comments_cancelReply": "Cancel reply",
   "comments_delete": "Delete comment",
+  "comments_deleted": "Comment deleted",
   "comments_empty": "No comments yet",
+  "comments_emptyBody": "Be the first to say something.",
   "comments_failed": "That did not send. Try again.",
+  "comments_loadEarlier": "Show earlier comments",
   "comments_placeholder": "Say something",
   "comments_post": "Post",
+  "comments_reply": "Reply",
+  "comments_replyingTo": "Replying to {name}",
   "comments_show": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -230,6 +236,8 @@
       }
     }
   ],
+  "comments_title": "Comments",
+  "comments_tooLong": "That is too long. Keep it under {max} characters.",
   "common_add": "Add",
   "common_adjust": "Adjust",
   "common_any": "Any",
@@ -790,6 +798,8 @@
   "event_metaUpdatedOnUnknown": "Updated on {time}",
   "event_metaUpdatedUnknown": "Updated {time}",
   "event_moreEntities": "{count} more",
+  "event_notFound": "This entry is gone",
+  "event_notFoundBody": "It was deleted, or it belongs to a community you are not in.",
   "event_routeCreated": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -1267,6 +1277,8 @@
   "notifications_ascentDeleted": "{actor} deleted your ascent",
   "notifications_ascentEdited": "{actor} edited your ascent",
   "notifications_comment": "{actor} commented on your entry",
+  "notifications_commentReaction": "{actor} reacted to your comment",
+  "notifications_commentReply": "{actor} replied to you",
   "notifications_empty": "Nothing for you yet",
   "notifications_emptyAction": "Back to the feed",
   "notifications_emptyBody": "Mentions, changes to your ascents and role updates land here.",

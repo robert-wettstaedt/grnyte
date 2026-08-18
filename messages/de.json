@@ -215,11 +215,17 @@
   "blocks_order_title": "Blöcke neu ordnen",
   "blocks_viewRoutes": "Routen",
   "blocks_viewTopos": "Topos",
+  "comments_cancelReply": "Antwort abbrechen",
   "comments_delete": "Kommentar löschen",
+  "comments_deleted": "Kommentar gelöscht",
   "comments_empty": "Noch keine Kommentare",
+  "comments_emptyBody": "Sag als Erste:r etwas dazu.",
   "comments_failed": "Das wurde nicht gesendet. Versuch es nochmal.",
+  "comments_loadEarlier": "Ältere Kommentare anzeigen",
   "comments_placeholder": "Sag etwas",
   "comments_post": "Senden",
+  "comments_reply": "Antworten",
+  "comments_replyingTo": "Antwort an {name}",
   "comments_show": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
@@ -230,6 +236,8 @@
       }
     }
   ],
+  "comments_title": "Kommentare",
+  "comments_tooLong": "Das ist zu lang. Bitte unter {max} Zeichen bleiben.",
   "common_add": "Hinzufügen",
   "common_adjust": "Anpassen",
   "common_any": "Beliebig",
@@ -790,6 +798,8 @@
   "event_metaUpdatedOnUnknown": "Aktualisiert am {time}",
   "event_metaUpdatedUnknown": "Aktualisiert {time}",
   "event_moreEntities": "{count} weitere",
+  "event_notFound": "Dieser Eintrag ist weg",
+  "event_notFoundBody": "Er wurde gelöscht, oder er gehört zu einer Community, in der du nicht bist.",
   "event_routeCreated": [
     {
       "declarations": ["input actor", "input name", "input person"],
@@ -1267,6 +1277,8 @@
   "notifications_ascentDeleted": "{actor} hat deine Begehung gelöscht",
   "notifications_ascentEdited": "{actor} hat deine Begehung bearbeitet",
   "notifications_comment": "{actor} hat deinen Eintrag kommentiert",
+  "notifications_commentReaction": "{actor} hat auf deinen Kommentar reagiert",
+  "notifications_commentReply": "{actor} hat dir geantwortet",
   "notifications_empty": "Noch nichts für dich",
   "notifications_emptyAction": "Zurück zum Feed",
   "notifications_emptyBody": "Erwähnungen, Änderungen an deinen Begehungen und Rollenwechsel landen hier.",

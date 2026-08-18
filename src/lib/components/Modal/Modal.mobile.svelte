@@ -20,6 +20,9 @@
     trigger,
   }: Props = $props()
 
+  /** Whether the press that is about to become a click went down on the scrim itself. */
+  let pressedOnOverlay = $state(false)
+
   // Keep the sheet (and the focused field) above the on-screen keyboard.
   //
   // svelte-bottom-sheet anchors the sheet to `bottom: 0` of the *layout* viewport
@@ -140,11 +143,28 @@
     {#if backdrop}
       <!-- Scrim behind the sheet; tap to dismiss. stopPropagation keeps the tap from
            reaching the map panel's document-click handler (which would collapse it). -->
+      <!-- Closes only when the press STARTED on the scrim.
+
+           A tap is two events with a layout in between, and on a phone that layout moves: the
+           on-screen keyboard opens or closes, a suggestion list under the finger unmounts, the
+           sheet re-snaps. The release then happens over the scrim even though the finger went
+           down on something inside the sheet, and a plain `onclick` here reads that as "tapped
+           outside" and dismisses the whole sheet. That is the shape of choosing an `@` mention
+           closing a comment thread. The library itself has no outside-click close at all; this
+           handler is the only one, so this is where the guard belongs. -->
       <BottomSheet.Overlay
         class={nested ? 'modal-overlay modal-overlay-nested' : 'modal-overlay'}
         onclick={(event) => {
           event.stopPropagation()
-          open = false
+
+          if (pressedOnOverlay) {
+            open = false
+          }
+
+          pressedOnOverlay = false
+        }}
+        onpointerdown={(event) => {
+          pressedOnOverlay = event.target === event.currentTarget
         }}
       />
     {/if}

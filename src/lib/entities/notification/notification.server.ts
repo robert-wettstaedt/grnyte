@@ -163,10 +163,21 @@ export async function notify(input: NotifyInput): Promise<void> {
  * conflict. Leaning on it re-pushed a months-old mention every time anyone touched the entity for
  * any other reason. Comparing the two bodies needs no row at all.
  */
-export async function notifyMentions(input: {
+export async function notifyMentions({
+  exclude,
+  ...input
+}: {
   actorFk: number
   /** The markdown as stored. `null`/`undefined` (a cleared description) mentions nobody. */
   body: null | string | undefined
+  /** The card this body hangs under, when it is a comment rather than a description. */
+  eventFk?: number
+  /**
+   * People this body names who are being told something more specific about it elsewhere, so the
+   * mention is not a second row saying less. A comment that answers Ada and names her tells her
+   * she was answered; see `notifyComment`.
+   */
+  exclude?: readonly number[]
   object: EventObject
   /**
    * The body this save replaced. Anybody named in it has already been told, so they are dropped.
@@ -174,10 +185,15 @@ export async function notifyMentions(input: {
    * removed and later written again is a fresh mention, and notifies again.
    */
   previousBody?: null | string
+  /** The comment this body IS, so the inbox row can point at the line rather than the card. */
+  reactionFk?: number
   regionFk: number
 }): Promise<void> {
+  const skip = new Set(exclude ?? [])
   const before = new Set(input.previousBody == null ? [] : getReferences(input.previousBody).users)
-  const userFks = (input.body == null ? [] : getReferences(input.body).users).filter((userFk) => !before.has(userFk))
+  const userFks = (input.body == null ? [] : getReferences(input.body).users).filter(
+    (userFk) => !before.has(userFk) && !skip.has(userFk),
+  )
 
   if (userFks.length === 0) {
     return
@@ -222,4 +238,86 @@ export async function readableRegions(userFks: readonly number[]): Promise<Map<n
   }
 
   return byUser
+}
+
+/**
+ * Move the inbox rows that were written about one thing onto whatever stands in for it, or take them
+ * back when nothing does.
+ *
+ * Here rather than in the module whose row went away, because what an inbox row IS lives here: one
+ * row per (reader, actor, event, object) per source type, pointed at the line it was written about.
+ * The caller owns only the question this cannot answer, which is which line may stand in for the one
+ * that is gone, and answers it per reader because the sentence is per reader: "Ada answered you",
+ * re-pointed at a line of Ada's that answers somebody else, is a claim about something that did not
+ * happen.
+ *
+ * Deleting outright is not enough, because one row covers a whole conversation: an unread row keeps
+ * pointing at the FIRST line it was written about, so somebody who says two things and deletes the
+ * first would otherwise erase the reader's only notice of the second.
+ */
+export async function repointNotifications(input: {
+  /** The line that went away. */
+  reactionFk: number
+  /** What should carry the row now, per row, or `undefined` to take it back. */
+  replacement: (row: { sourceType: NotificationSourceType; userFk: number }) => number | undefined
+  /** Which sentences this is about. A source type left out here is left alone. */
+  sourceTypes: readonly NotificationSourceType[]
+}): Promise<void> {
+  const rows = await baseDb.query.notifications.findMany({
+    columns: { id: true, sourceType: true, userFk: true },
+    where: and(
+      eq(notifications.reactionFk, input.reactionFk),
+      inArray(notifications.sourceType, [...input.sourceTypes]),
+    ),
+  })
+
+  /** Grouped by where they are going, so a thread of readers costs one statement per destination. */
+  const moves = new Map<number, number[]>()
+  const gone: number[] = []
+
+  for (const row of rows) {
+    const to = input.replacement(row)
+
+    if (to == null) {
+      gone.push(row.id)
+    } else {
+      moves.set(to, [...(moves.get(to) ?? []), row.id])
+    }
+  }
+
+  if (gone.length > 0) {
+    await baseDb.delete(notifications).where(inArray(notifications.id, gone))
+  }
+
+  for (const [reactionFk, ids] of moves) {
+    await baseDb.update(notifications).set({ reactionFk }).where(inArray(notifications.id, ids))
+  }
+}
+
+/**
+ * Take back the rows one actor wrote about one event, for a sentence that no longer has anything
+ * behind it.
+ *
+ * An inbox row about a reaction that no longer exists is a sentence with nothing behind it: the
+ * reader taps "Ada reacted to your entry", finds no chip, and has no way to tell whether they
+ * misread it or Ada thought better of it. Scoped to this actor's rows on this event, so somebody
+ * else's keeps its own.
+ */
+export async function retractNotifications(input: {
+  actorFk: number
+  eventFk: number
+  /** The line it was about, when the sentence is about one: an emoji on a comment names that comment. */
+  reactionFk?: number
+  sourceType: NotificationSourceType
+}): Promise<void> {
+  await baseDb
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.eventFk, input.eventFk),
+        eq(notifications.actorFk, input.actorFk),
+        eq(notifications.sourceType, input.sourceType),
+        input.reactionFk == null ? undefined : eq(notifications.reactionFk, input.reactionFk),
+      ),
+    )
 }

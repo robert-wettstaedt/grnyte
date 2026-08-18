@@ -118,7 +118,10 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
         : {
             children: [strong],
             type: 'link',
-            url: isUser ? `/users/${name}` : `/${type}/${id}`,
+            // By id, like every other type, even though a mention READS as a name: `/users/[id]`
+            // parses its parameter with `Number()`, so a username landed on a page querying for
+            // `NaN` and every mention in the app rendered a link to a 404.
+            url: `/${type}/${id}`,
           },
     ]
   }

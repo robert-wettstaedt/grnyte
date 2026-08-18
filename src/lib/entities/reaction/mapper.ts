@@ -3,6 +3,8 @@ import type { CommentListItem, ReactionChip, ReactionListItem } from './dto'
 /** A reaction as Zero syncs it: the row plus the joined author. */
 export interface ReactionRow {
   body: string
+  /** The answers, on a top-level comment. Absent on a reply and on every emoji row. */
+  children?: readonly ReactionRow[]
   createdAt?: null | number
   id: number
   type: string
@@ -37,15 +39,27 @@ export function reactionChips(
   return [...chips.values()]
 }
 
-/** Whose comment it is stays out of here: `mine` needs the reader, which the mapper has no
- *  business knowing. The card fills it in, where the current user is already a parameter. */
-export function toComment(row: ReactionRow): Omit<CommentListItem, 'mine'> {
+/**
+ * One comment, with its answers under it.
+ *
+ * The reader is a parameter rather than something the mapper reaches for, the way `toEvent` takes
+ * the regions: `mine` is what the delete control reads, and it is the only field here that is
+ * about who is looking rather than about the row.
+ */
+export function toComment(row: ReactionRow, currentUserFk: number | undefined): CommentListItem {
+  const children = row.children ?? []
+
   return {
     authorFk: row.userFk,
     authorName: row.user?.username ?? '',
     body: row.body,
     createdAt: row.createdAt ?? 0,
     id: row.id,
+    mine: row.userFk === currentUserFk,
+    // Both hang off `parent_fk` and arrive through one relation, so the split is here rather than
+    // in the query. See `listComments`.
+    reactions: reactionChips(children.filter((child) => child.type === 'emoji').map(toReaction), currentUserFk),
+    replies: children.filter((child) => child.type === 'comment').map((child) => toComment(child, currentUserFk)),
   }
 }
 

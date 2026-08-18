@@ -75,10 +75,22 @@ the emoji half, and comments are "Comments". Do not assume `event.reactions` is 
 bar. Stream's vocabulary, and the shape is what lets a reaction target a comment through
 one foreign key instead of a polymorphic pair.
 
+**target**
+What a reaction hangs off: the event, or one comment under it (`parent_fk`). One emoji per person
+per target, which is what `reactions_one_emoji_idx` spells as `coalesce(parent_fk, 0)`, so a reader
+holds one on the card and one more on each comment. The unit the toggle guards against a double tap
+is the target, never the emoji.
+
+**reply**
+A comment with a `parent_fk`. One level only: answering a reply files under that reply's own
+parent, so a thread is a list of comments each with a flat list of answers, never a tree.
+"Reply" is the UI word too.
+
 **subscriber**
 Who hears about a comment: the event's actor, plus every distinct author of a comment on
 it, minus whoever is writing. Derived at fan-out, never stored. A reply notifies the whole
-thread, not only the parent's author.
+thread, not only the parent's author, but each person gets exactly one row and the most
+specific sentence they qualify for: answered, then named, then the plain thread line.
 
 ## Activity feed
 

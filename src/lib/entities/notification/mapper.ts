@@ -18,11 +18,13 @@ export function toNotification(row: NotificationRow, userRegions: RegionMembersh
     // six relations. A row whose object was already gone when the columns were backfilled carries
     // none, which reads as no row rather than as a tombstone: there is nothing left to name.
     entity: entityOf(row, userRegions),
+    eventFk: row.eventFk ?? undefined,
     id: row.id,
     metadata: row.metadata ?? undefined,
     // What the row is ABOUT, as the ref the caption hands to the entity row. Derived from whichever
     // of the columns is set rather than stored twice.
     object: objectOf(row),
+    reactionFk: row.reactionFk ?? undefined,
     readAt: row.readAt ?? undefined,
     regionFk: row.regionFk,
     sourceType: row.sourceType,

@@ -129,22 +129,24 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           )
           .related('area', (q) => r(q).related('parent', r)),
       )
-      // Both halves of the table, split by `type` in the mapper: the emoji become the card's chips
-      // and the comments its thread. One relation rather than two, because Zero attaches a
-      // relation once per name and the split is free on the client.
+      // The emoji half only. Comments used to ride this relation too and made it the most
+      // expensive thing on the feed: a body is up to 5000 characters, the window is 50 events and
+      // `eventFeed` runs two queries over it, so every conversation in the region synced to every
+      // reader to render a count. The count is `events.comment_count` now and the thread is
+      // `listComments`, fetched when somebody opens it.
+      //
+      // An emoji stays eager: it is at most 16 characters, the chips need every row to say who
+      // reacted and whether you did, and there is at most one per person per event.
       //
       // Only rows hanging DIRECTLY off the event, and only live ones. `event_fk` stays set all the
-      // way down a thread, so a row with a `parent_fk` is a reply or a reaction to a comment, and
-      // counting one as a chip would put it on the card. A cleared row stays in the table, because
-      // the one-per-person index is partial on `deleted_at is null`.
+      // way down a thread, so a row with a `parent_fk` is a reaction to a comment, and counting
+      // one as a chip would put it on the card. A cleared row stays in the table, because the
+      // one-per-person index is partial on `deleted_at is null`.
       //
-      // `user` is the author's name: the chips' long press popover and every comment's byline.
-      //
-      // ponytail: an event with 200 of these ships 200 rows to every reader. Fine at community
-      // scale. Upgrade = a denormalized count column, syncing only your own rows and a page of
-      // the thread.
+      // `user` is the reactor's name, which the chips' long press popover lists.
       .related('reactions', (q) =>
         r(q)
+          .where('type', 'emoji')
           .where('parentFk', 'IS', null)
           .where('deletedAt', 'IS', null)
           .related('user')

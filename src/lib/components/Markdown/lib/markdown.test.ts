@@ -37,6 +37,39 @@ describe('Markdown Conversion', () => {
     expect(html).toContain('<a href="https://example.com">Link text</a>')
   })
 
+  it('should keep a relative link, which resolves against our own origin', async () => {
+    const html = await convertMarkdownToHtml('[Routes](/routes/12)')
+    expect(html).toContain('<a href="/routes/12">Routes</a>')
+  })
+
+  it.each([
+    ['javascript:alert(1)'],
+    ['JaVaScRiPt:alert(1)'],
+    ['data:text/html;base64,PHNjcmlwdD4='],
+    ['vbscript:msgbox(1)'],
+  ])('should refuse the scheme in %s and leave the words behind', async (url) => {
+    const html = await convertMarkdownToHtml(`[tap here](${url})`)
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
+  it('should emit no link for a scheme broken across a line, which is not a link to begin with', async () => {
+    const html = await convertMarkdownToHtml('[tap here](java\nscript:alert(1))')
+    expect(html).not.toContain('href')
+  })
+
+  it('should refuse an unsafe image source, keeping its alt text', async () => {
+    const html = await convertMarkdownToHtml('![the crux](javascript:alert(1))')
+    expect(html).not.toContain('<img')
+    expect(html).toContain('the crux')
+  })
+
+  it('should refuse an unsafe scheme in the sync pipeline too', () => {
+    const html = convertMarkdownToHtmlSync('[tap here](javascript:alert(1))', [])
+    expect(html).not.toContain('href')
+    expect(html).toContain('<strong>tap here</strong>')
+  })
+
   it('should handle null input', async () => {
     const html = await convertMarkdownToHtml(null)
     expect(html).toBe('')
@@ -65,10 +98,12 @@ describe('Markdown Conversion', () => {
     expect(html).toContain('!users:123!')
   })
 
-  it('resolves a users reference to an @username link', async () => {
+  it('resolves a users reference to an @username link on the user s id', async () => {
     const markdown = '!users:123!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
-    expect(html).toContain('<a href="/users/foo"><strong>@foo</strong></a>')
+    // Reads as a name, points at an id: `/users/[id]` parses its parameter with `Number()`, so
+    // the username this used to link to resolved to `NaN` and every mention was a link to a 404.
+    expect(html).toContain('<a href="/users/123"><strong>@foo</strong></a>')
   })
 
   it('should handle references without db', async () => {
@@ -226,10 +261,10 @@ describe('Markdown grade badges', () => {
 })
 
 describe('Markdown users references (sync path)', () => {
-  it('renders an enriched users reference as an @username link', () => {
+  it('renders an enriched users reference as an @username link on the user s id', () => {
     const enriched = `!users:5:${btoa('alice')}!`
     const html = convertMarkdownToHtmlSync(enriched, [])
-    expect(html).toContain('<a href="/users/alice"><strong>@alice</strong></a>')
+    expect(html).toContain('<a href="/users/5"><strong>@alice</strong></a>')
   })
 
   it('renders an enriched users reference as strong (no link) when enclosed', () => {

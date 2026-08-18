@@ -4,7 +4,7 @@ import { requireRow } from '$lib/remote/require.server'
 import { and, eq, isNull } from 'drizzle-orm'
 import z from 'zod'
 import { COMMENT_MAX_LENGTH, isEmoji, normalizeEmoji } from './dto'
-import { dropCommentNotification, dropReactionNotification, notifyComment, notifyReaction } from './reaction.server'
+import { dropComment, dropReactionNotification, notifyComment, notifyReaction, restoreReplies } from './reaction.server'
 
 /**
  * Set, change or clear the current user's reaction to one event.
@@ -21,22 +21,37 @@ import { dropCommentNotification, dropReactionNotification, notifyComment, notif
  */
 export const toggleReaction = authedCommand(
   z.object({
+    /** A comment on that event, when the reaction is on what somebody SAID rather than on the card. */
+    commentId: z.number().int().positive().optional(),
     // Normalised BEFORE validating, because most of the picker's emoji arrive carrying a variation
     // selector the character does not need, which RGI does not match. See `normalizeEmoji`.
     emoji: z.string().transform(normalizeEmoji).refine(isEmoji, 'not a single emoji'),
     eventId: z.number().int().positive(),
   }),
-  async ({ emoji, eventId }, { afterCommit, db, user }) => {
+  async ({ commentId, emoji, eventId }, { afterCommit, db, user }) => {
     // Read under RLS, so an event in a region the reactor cannot open is simply not here and this
     // is a 404 rather than a reaction on something unreadable. The gate reads the STORED row, so
     // neither the self-check nor the region the reaction is stamped with comes from the request.
     const event = await requireRow(
       () => db.query.events.findFirst({ where: eq(events.id, eventId) }),
-      // Nobody applauds their own event. One actor per event, so this is the whole rule; the old
-      // shape had to pick the author of a card's oldest row out of several.
-      (row) => row.actorFk !== user.id,
+      // Nobody applauds their own event, and nobody applauds their own comment either. Which of
+      // the two is being reacted to decides whose authorship is checked, so the card's rule only
+      // applies when the reaction is on the card.
+      (row) => commentId != null || row.actorFk !== user.id,
       'Event not found',
     )
+
+    // The comment being reacted to, read under RLS and checked against what is STORED: live, a
+    // comment, on this event, and not the reactor's own.
+    const comment =
+      commentId == null
+        ? undefined
+        : await requireRow(
+            () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
+            (row) =>
+              row.type === 'comment' && row.eventFk === eventId && row.deletedAt == null && row.userFk !== user.id,
+            'Comment not found',
+          )
 
     // One transaction, because the clear and the insert are one act. Apart, a failing insert
     // (a lost connection, a racing tap) leaves the reader holding nothing when they meant to
@@ -53,7 +68,9 @@ export const toggleReaction = authedCommand(
             eq(reactions.eventFk, eventId),
             eq(reactions.userFk, user.id),
             eq(reactions.type, 'emoji'),
-            isNull(reactions.parentFk),
+            // The slot is per TARGET, which the unique index spells as `coalesce(parent_fk, 0)`:
+            // one emoji on the card, and one more on each comment under it.
+            comment == null ? isNull(reactions.parentFk) : eq(reactions.parentFk, comment.id),
             isNull(reactions.deletedAt),
           ),
         )
@@ -64,7 +81,7 @@ export const toggleReaction = authedCommand(
       if (cleared.some((row) => row.body === emoji)) {
         // And the inbox row goes with it: see `dropReactionNotification`. On the privileged
         // handle, so it needs a connection this transaction is not holding.
-        afterCommit(() => dropReactionNotification({ actorFk: user.id, eventFk: eventId }))
+        afterCommit(() => dropReactionNotification({ actorFk: user.id, commentFk: comment?.id, eventFk: eventId }))
         return { data: false }
       }
 
@@ -72,6 +89,7 @@ export const toggleReaction = authedCommand(
         authUserFk: user.authUserFk,
         body: emoji,
         eventFk: eventId,
+        parentFk: comment?.id ?? null,
         // Off the event, never off the request: the INSERT policy binds the row to a region the
         // caller may read, and a submitted one would only be checked against itself.
         regionFk: event.regionFk,
@@ -81,7 +99,7 @@ export const toggleReaction = authedCommand(
 
       // Last, and outside the transaction: `notify` runs on the privileged handle, because there
       // is no INSERT policy on `notifications` and deliberately cannot be one.
-      afterCommit(() => notifyReaction({ actorFk: user.id, event }))
+      afterCommit(() => notifyReaction({ actorFk: user.id, comment, event }))
 
       return { data: true }
     })
@@ -97,16 +115,22 @@ export const toggleReaction = authedCommand(
  * Unlike a reaction, this is allowed on your OWN event. A card is a conversation, and being the
  * person it is about is the most likely reason to have something to say in it.
  *
- * ponytail: flat. `parent_fk` is in the schema and the fan-out already reaches everybody in the
- * thread, so a reply UI is additive; what it would need is an indent and a target. Nothing today
- * writes a comment with a parent, and the feed's chips deliberately do not sync one.
+ * Markdown, with the same `!type:id!` references every description carries, so a comment can name
+ * the route it is about and the person it is answering. That is why it notifies twice: the thread
+ * hears about the comment, and anybody newly named hears about the mention.
+ *
+ * One level of replies. `parentId` names the comment being answered; answering a REPLY re-points
+ * at that reply's own parent, so the stored shape is a list of comments each with a flat list of
+ * answers. A tree is unreadable on a phone and the second level is where the indent runs out.
  */
 export const postComment = authedCommand(
   z.object({
     body: z.string().trim().min(1).max(COMMENT_MAX_LENGTH),
     eventId: z.number().int().positive(),
+    /** The comment being answered. Absent for a new top-level comment. */
+    parentId: z.number().int().positive().optional(),
   }),
-  async ({ body, eventId }, { afterCommit, db, user }) => {
+  async ({ body, eventId, parentId }, { afterCommit, db, user }) => {
     // Read under RLS, exactly as the toggle does: an event the commenter cannot open is not here,
     // and the region the row is stamped with is the stored one rather than a submitted one.
     const event = await requireRow(
@@ -115,12 +139,28 @@ export const postComment = authedCommand(
       'Event not found',
     )
 
+    // The parent, also read under RLS and also checked against what is STORED: that it is a live
+    // comment, and that it hangs off the event this reply claims. Without the second test a reply
+    // could be filed under a comment on another card, where nobody in either thread would see it.
+    const parent =
+      parentId == null
+        ? undefined
+        : await requireRow(
+            () => db.query.reactions.findFirst({ where: eq(reactions.id, parentId) }),
+            (row) => row.type === 'comment' && row.eventFk === eventId && row.deletedAt == null,
+            'Comment not found',
+          )
+
+    // Answering a reply files under what that reply answers. See the one-level note above.
+    const parentFk = parent == null ? null : (parent.parentFk ?? parent.id)
+
     const [row] = await db
       .insert(reactions)
       .values({
         authUserFk: user.authUserFk,
         body,
         eventFk: eventId,
+        parentFk,
         regionFk: event.regionFk,
         type: 'comment',
         userFk: user.id,
@@ -130,7 +170,19 @@ export const postComment = authedCommand(
     // Everybody already in the conversation, worked out from the comments themselves rather than
     // from a subscription table. Runs after the insert, so the author of THIS comment is among the
     // candidates and is dropped by `notify` as the actor.
-    afterCommit(() => notifyComment({ actorFk: user.id, event, reactionFk: row.id }))
+    //
+    // One row per person: whoever is answered is told they were answered and NOT told a second
+    // time that somebody commented, and whoever is named is told they were named instead of both.
+    // See `notifyComment`.
+    afterCommit(() =>
+      notifyComment({
+        actorFk: user.id,
+        body,
+        event,
+        parentAuthorFk: parent?.userFk,
+        reactionFk: row.id,
+      }),
+    )
 
     return { data: row.id }
   },
@@ -147,15 +199,54 @@ export const deleteComment = authedCommand(
   async ({ commentId }, { afterCommit, db, user }) => {
     const comment = await requireRow(
       () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
-      // Your own, and still a comment: the emoji half has its own path through `toggleReaction`.
-      (row) => row.userFk === user.id && row.type === 'comment',
+      // Your own, still a comment, and still standing: the emoji half has its own path through
+      // `toggleReaction`, and re-stamping an already-cleared row would re-fire the notification
+      // drop for a comment that has been gone for a week.
+      (row) => row.userFk === user.id && row.type === 'comment' && row.deletedAt == null,
       'Comment not found',
     )
 
     await db.update(reactions).set({ deletedAt: new Date() }).where(eq(reactions.id, commentId))
 
-    // And the inbox row about it, which a soft delete cannot cascade away. On the privileged
-    // handle, so it needs a connection this handler is not holding.
-    afterCommit(() => dropCommentNotification({ actorFk: user.id, eventFk: comment.eventFk, reactionFk: commentId }))
+    // The answers under it, and the inbox rows about all of them, which a soft delete cannot
+    // cascade away. On the privileged handle, so it needs a connection this handler is not
+    // holding: the answers belong to other people and RLS here is your own rows. See `dropComment`.
+    afterCommit(() => dropComment({ actorFk: user.id, eventFk: comment.eventFk, reactionFk: commentId }))
+
+    // The id back, so the caller can offer Undo. See `restoreComment`.
+    return { data: commentId }
+  },
+)
+
+/**
+ * Put a comment back, for the Undo the delete offers.
+ *
+ * A soft delete is what makes this a one-line restore rather than a re-insert: the row, its id,
+ * its replies and any reactions on it never left, so nothing that pointed at it has to be rebuilt.
+ *
+ * Deliberately silent: the thread is not re-notified. Undo happens seconds after a delete that
+ * already took the inbox row back, and telling everybody a second time about a sentence they were
+ * told about a moment ago is worse than the one lost notification of somebody who mis-tapped.
+ */
+export const restoreComment = authedCommand(
+  z.object({ commentId: z.number().int().positive() }),
+  async ({ commentId }, { afterCommit, db, user }) => {
+    const comment = await requireRow(
+      () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
+      // Cleared, yours, and a comment. Restoring somebody else's, or a row that is not deleted, is
+      // not an undo of anything this person did.
+      (row) => row.userFk === user.id && row.type === 'comment' && row.deletedAt != null,
+      'Comment not found',
+    )
+
+    await db.update(reactions).set({ deletedAt: null }).where(eq(reactions.id, commentId))
+
+    // And the answers the delete took with it. Without this, undo puts back a head whose thread is
+    // still cleared: `dropComment` soft-deletes the replies too, and they never come back on their
+    // own because their authors did not delete them and cannot see them to try.
+    //
+    // Privileged, for the same reason the cascade is: those rows belong to other people, and RLS
+    // on this connection is your own rows.
+    afterCommit(() => restoreReplies({ deletedAt: comment.deletedAt as Date, reactionFk: commentId }))
   },
 )

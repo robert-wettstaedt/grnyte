@@ -228,7 +228,7 @@ function toEventItem(event: DigestEvent): EventListItem {
           ],
     // Neither reaches a push: a digest is region activity, and what people said about it is the
     // directed half's business.
-    comments: [],
+    commentCount: 0,
     createdAt: event.createdAt.getTime(),
     // Only what the catalogue reads off an entity, which is the ascent type. Everything else it
     // needs is resolved by name, further up.

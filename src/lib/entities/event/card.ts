@@ -1,6 +1,6 @@
 import { cardView, type CardGroup, type CardRow, type CardView } from '$lib/entities/event/cardView'
 import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from '$lib/entities/event/entity'
-import type { CommentListItem, ReactionChip } from '$lib/entities/reaction/dto'
+import type { ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
 import type { EventGroup } from './grouping'
@@ -28,17 +28,19 @@ export interface EventCardView extends CardView {
   rows: (CardRow & { bar?: EventReactionBar })[]
 }
 
-/** One event's reactions and its thread, plus the handle both post back. */
+/** One event's reactions and the way into its thread, plus the handle both post back. */
 export interface EventReactionBar {
   chips: ReactionChip[]
-  /** The thread under this event, oldest first. */
-  comments: CommentListItem[]
+  /** How many comments the button says are under there. The thread itself loads on open. */
+  commentCount: number
   eventId: number
   /**
    * The reader's own event, so the bar lists its chips and offers nothing to add.
    * `toggleReaction` refuses the same case; this is what stops the button being there to press.
    */
   readonly: boolean
+  /** Whose community this happened in, so the thread's composer can scope its `@` picker. */
+  regionFk: number
 }
 
 /**
@@ -88,7 +90,7 @@ export function eventCard(
     // ponytail: an event past `MAX_ROWS` (the fifth ascent of a session, behind "1 more") gets no
     // bar of its own. Upgrade = render the overflow rows rather than counting them.
     bars: leftover.filter(
-      (left, index) => left.chips.length > 0 || left.comments.length > 0 || (rows.length === 0 && index === 0),
+      (left, index) => left.chips.length > 0 || left.commentCount > 0 || (rows.length === 0 && index === 0),
     ),
     rows,
   }
@@ -106,9 +108,10 @@ export function eventCard(
 function bar(event: EventListItem, currentUserFk: number | undefined): EventReactionBar {
   return {
     chips: reactionChips(event.reactions, currentUserFk),
-    comments: event.comments.map((comment) => ({ ...comment, mine: comment.authorFk === currentUserFk })),
+    commentCount: event.commentCount,
     eventId: event.id,
     readonly: event.actorFk === currentUserFk,
+    regionFk: event.regionFk,
   }
 }
 

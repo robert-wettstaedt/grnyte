@@ -14,26 +14,17 @@
  * Claims are derived by reading `card.ts`, `Reactions.svelte`, `ReactionChip.svelte` and
  * `Comments.svelte`, so they say what those DO, not what they should.
  */
-import type { CommentListItem, ReactionListItem } from '$lib/entities/reaction/dto'
+import type { ReactionListItem } from '$lib/entities/reaction/dto'
 import type { EventCase } from './types'
 import { ascentEntity, change, eventAgo, ME, PEOPLE } from './world'
 
-/**
- * One comment in a thread, `minutesAgo` before the run.
+/*
+ * A case states `commentCount` and never the comments themselves.
  *
- * No `mine`: the mapper deliberately does not know who is reading, and `bar()` fills it in from
- * `authorFk` against the reader. A case that stated it would be describing a shape the app never
- * hands over.
+ * That is the shape the card actually gets: the thread is no longer part of an event's relation
+ * tree, so what a card knows about a conversation is the number on `events.comment_count`. What
+ * the words look like belongs to the thread, which loads when a reader opens it.
  */
-function comment(
-  id: number,
-  authorFk: number,
-  body: string,
-  minutesAgo: number,
-  authorName = PEOPLE[authorFk] ?? '',
-): Omit<CommentListItem, 'mine'> {
-  return { authorFk, authorName, body, createdAt: Date.now() - minutesAgo * 60_000, id }
-}
 
 /**
  * One person's one emoji on one event.
@@ -216,10 +207,7 @@ export const SOCIAL_CASES: EventCase[] = [
     events: [
       eventAgo(280, {
         actorFk: 3,
-        comments: [
-          comment(901, 2, 'Is the second clip still the crux with the new bolt?', 275),
-          comment(902, 3, 'Not any more, it is the move off the ledge.', 270),
-        ],
+        commentCount: 2,
         objectId: 9002,
         objectType: 'ascent',
         reactions: [reaction('🔥', 2), reaction('🔥', 4), reaction('👍', 5)],
@@ -227,7 +215,7 @@ export const SOCIAL_CASES: EventCase[] = [
       }),
     ],
     expected:
-      'One bar carrying both: "🔥 2", "👍 1", and a comment button reading 2. The thread is still closed, since the count is what says there is something to read, and both halves post back to the same event id.',
+      'One bar carrying both: "🔥 2", "👍 1", and a comment button reading 2. The emoji arrive with the card and the two sentences do not: the count comes off `events.comment_count`, and the thread is fetched when the button opens it. Both halves post back to the same event id.',
     id: 'SOCIAL-01j',
     writer: 'reactions.remote.ts:71',
   },
@@ -316,14 +304,14 @@ export const SOCIAL_CASES: EventCase[] = [
     events: [
       eventAgo(80, {
         actorFk: 3,
-        comments: [comment(910, 2, 'Nice one, that hold was still wet last week.', 78)],
+        commentCount: 1,
         objectId: 9002,
         objectType: 'ascent',
         verb: 'create',
       }),
     ],
     expected:
-      "The comment button reads 1 and the thread stays CLOSED: a feed of open threads is not a feed. Opened, one line by Tomas Kessler with his avatar and a relative time, no delete control (it is not the reader's), and the composer under it.",
+      "The comment button reads 1 and nothing under it has loaded: the number is a column on the event, and the thread is a query the button fires. Opened, it is a sheet on a phone and a right-hand aside on a desktop, with one line by Tomas Kessler, his avatar, a relative time, a Reply control, no delete control (it is not the reader's), and the composer pinned at the bottom.",
     id: 'SOCIAL-03a',
     writer: 'reactions.remote.ts:118',
   },
@@ -333,19 +321,14 @@ export const SOCIAL_CASES: EventCase[] = [
     events: [
       eventAgo(60, {
         actorFk: 3,
-        // Oldest first, which is the order the thread renders and the order the mapper hands over.
-        comments: [
-          comment(920, 2, 'Did the flake survive the winter?', 58),
-          comment(921, 5, 'It did, but it sounds hollow now.', 55),
-          comment(922, 4, 'Tape the second one, I would not pull sideways on it.', 52),
-        ],
+        commentCount: 3,
         objectId: 9002,
         objectType: 'ascent',
         verb: 'create',
       }),
     ],
     expected:
-      'Button reads 3. The thread is flat, oldest first, three avatars and three names; nothing is indented, because nothing writes a reply today. No delete control on any of them.',
+      'Button reads 3. The thread renders oldest first, three avatars and three names. A reply to any of them indents under it against a rule, one level and no deeper: answering a reply files under the same comment, so the shape stays a list of comments with a flat list of answers. No delete control on any of these, none being the reader s.',
     id: 'SOCIAL-03b',
     writer: 'reactions.remote.ts:118',
   },
@@ -355,17 +338,14 @@ export const SOCIAL_CASES: EventCase[] = [
     events: [
       eventAgo(45, {
         actorFk: 3,
-        comments: [
-          comment(930, 5, 'Which start did you use, the sit or the stand?', 43),
-          comment(931, ME, 'Sit start, from the block under the arête.', 40),
-        ],
+        commentCount: 2,
         objectId: 9002,
         objectType: 'ascent',
         verb: 'create',
       }),
     ],
     expected:
-      'Two lines, and only the second carries the trash control: `mine` is filled in per comment from the author against the reader, so the delete offer follows the line rather than the card.',
+      'Two lines, and only the second carries the trash control: `mine` is filled in per comment from the author against the reader, so the delete offer follows the line rather than the card. Every line carries Reply, own lines included.',
     id: 'SOCIAL-03c',
     writer: 'reactions.remote.ts:118',
   },
@@ -375,14 +355,14 @@ export const SOCIAL_CASES: EventCase[] = [
     events: [
       eventAgo(30, {
         actorFk: ME,
-        comments: [comment(940, 3, 'Congratulations, that one took you a while.', 28)],
+        commentCount: 1,
         objectId: 9001,
         objectType: 'ascent',
         verb: 'create',
       }),
     ],
     expected:
-      '"You flashed Rampe" with a read-only bar: no add button, since nobody applauds their own event, but the comment button is there reading 1 and the composer opens under it. Being the person a card is about is the most likely reason to have something to say under it.',
+      '"You flashed Rampe" with a read-only bar: no add button, since nobody applauds their own event, but the comment button is there reading 1 and opens the thread with its composer. Being the person a card is about is the most likely reason to have something to say under it.',
     id: 'SOCIAL-03d',
     writer: 'reactions.remote.ts:118',
   },
@@ -393,7 +373,7 @@ export const SOCIAL_CASES: EventCase[] = [
       eventAgo(25, {
         actorFk: 3,
         // `toComment` falls back to the empty string, the same way a reactor's name does.
-        comments: [comment(950, 6, 'Second the grade, felt soft for the number.', 23)],
+        commentCount: 1,
         objectId: 9002,
         objectType: 'ascent',
         verb: 'create',
@@ -411,14 +391,14 @@ export const SOCIAL_CASES: EventCase[] = [
     events: [
       eventAgo(20, {
         actorFk: 3,
-        comments: [comment(960, 5, 'Which start did you use, the sit or the stand?', 18)],
+        commentCount: 1,
         objectId: 9002,
         objectType: 'ascent',
         verb: 'create',
       }),
     ],
     expected:
-      "The reader's line is gone and the button drops to 1. Soft on the server, but a soft-deleted row does not sync, so the thread is simply shorter; the card itself is untouched, exactly as a cleared reaction leaves it.",
+      "The reader's line is gone and the button drops by one. Soft on the server, but a soft-deleted row does not sync, so the thread is simply shorter, and the count follows because the trigger on `reactions` decrements the card as the row leaves. The card itself is untouched, exactly as a cleared reaction leaves it.",
     id: 'SOCIAL-04a',
     writer: 'reactions.remote.ts:155',
   },

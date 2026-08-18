@@ -22,54 +22,40 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Modal from '$lib/components/Modal/Modal.svelte'
-  import { QUICK_REACTIONS, type ReactionChip as Chip, type CommentListItem } from '$lib/entities/reaction/dto'
-  import { toggleReaction } from '$lib/entities/reaction/reactions.remote'
+  import type { EventReactionBar } from '$lib/entities/event/card'
+  import { QUICK_REACTIONS } from '$lib/entities/reaction/dto'
   import { m } from '$lib/paraglide/messages'
-  import type { Attachment } from 'svelte/attachments'
   import { MediaQuery } from 'svelte/reactivity'
   import { scale } from 'svelte/transition'
-  import Comments from './Comments.svelte'
+  import CommentSheet from './CommentSheet.svelte'
+  import { dismissOutside } from './dismiss'
   import EmojiPicker from './EmojiPicker.svelte'
   import ReactionChip from './ReactionChip.svelte'
+  import { createReactionToggle } from './toggle.svelte'
 
   interface Props {
-    /** The thread under this event, which the comment button opens. */
-    comments: CommentListItem[]
-    /** The event these hang off. An event has an id, so this is the whole handle. */
-    eventId: number
-    reactions: Chip[]
     /**
-     * The reader's own event, so they may read its reactions but not add one. `toggleReaction`
-     * refuses the same case; this is what stops the button being there to press.
+     * What the card knows about the conversation under it: the chips, the count, whose event it is
+     * and where it happened. The whole DTO rather than its fields, so a field added to the bar is
+     * added in one place. See `EventReactionBar`.
      */
-    readonly?: boolean
+    bar: EventReactionBar
+    /**
+     * Whether the bar offers a way into the thread. Off on the event's own page, where the
+     * thread is already rendered in flow under the card.
+     */
+    showComments?: boolean
   }
 
-  const { comments, eventId, reactions, readonly = false }: Props = $props()
-
-  /**
-   * Whether the thread is open.
-   *
-   * Closed by default even when there are comments, so a feed of cards stays a feed: the count on
-   * the button is what says there is something to read. It opens itself only when the reader asks.
-   */
-  let talking = $state(false)
-
-  /** Owned here rather than in the thread, so collapsing it does not throw away a draft. */
-  let draft = $state('')
+  const { bar, showComments = true }: Props = $props()
 
   /** Step one: the five quick emoji, floating over the card. */
   let quick = $state(false)
   /** Step two: every emoji there is, in the sheet. */
   let picking = $state(false)
-  /**
-   * Whether a toggle is in flight, for the WHOLE bar rather than per emoji.
-   *
-   * One per person per event, so two emoji tapped in quick succession are two handlers racing over
-   * one row: both would find nothing to clear, both would insert, and the second would hit the
-   * unique index. Per emoji, that race is exactly what the guard let through.
-   */
-  let busy = $state(false)
+
+  /** One in flight at a time, for the whole bar. See `createReactionToggle`. */
+  const reaction = createReactionToggle(() => ({ eventId: bar.eventId }))
 
   /** The row grows out of the button it came from, which is motion that explains where it is. Off
    *  when the reader has asked for less of it: `transition:` runs from JS and honours no query. */
@@ -79,64 +65,26 @@
    *  press would close it and then reopen it through the toggle below. */
   let adder = $state<HTMLButtonElement>()
 
-  async function toggle(emoji: string) {
-    if (busy) {
-      return
-    }
-
-    // No optimistic write: the chip arrives back through Zero like every other read in the app,
-    // and reconciling a local guess against that sync is more machinery than one round trip is
-    // worth. Disabling the bar meanwhile is what stops it reading as broken.
-    busy = true
-    try {
-      await toggleReaction({ emoji, eventId })
-    } catch {
-      // Swallowed on purpose, and the reason it can be: nothing changed. The chip is drawn from
-      // synced rows, so a refused toggle leaves the bar exactly as the reader found it rather
-      // than showing something that did not happen. Rethrowing would only reach `window.onerror`.
-    } finally {
-      busy = false
-    }
-  }
-
   function pick(emoji: string) {
     quick = false
     picking = false
-    void toggle(emoji)
+    void reaction.toggle(emoji)
   }
 
   /**
-   * The quick row has no scrim of its own and the card behind it stays live, so nothing else
-   * dismisses it. Listeners rather than markup handlers, because a `<div>` that answers keys is a
-   * control Svelte would (rightly) want a role on, and this one is only a container.
+   * Nothing else dismisses the quick row, so this does. The add button does not count as outside,
+   * and neither does anything while the full picker is up: it is portaled, so every tap inside it
+   * reads as one outside this row, and Escape belongs to whichever layer is on top.
+   *
+   * The document listeners take no focus of their own. The add button keeps it and the row is the
+   * next thing in tab order, so a keyboard reaches the emoji by pressing Tab, which is also why
+   * nothing here calls `focus()`. Doing so drew a focus ring on every tap that opened it.
    */
-  const dismiss: Attachment<HTMLElement> = (node) => {
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node
-      // The full picker is portaled, so every tap inside it reads as one outside this row.
-      if (!picking && !node.contains(target) && !adder?.contains(target)) {
-        quick = false
-      }
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      // One layer per press: while the full picker is up, Escape is its own to answer.
-      if (event.key === 'Escape' && !picking) {
-        quick = false
-      }
-    }
-
-    // Both on the document: the row takes no focus of its own. The add button keeps it and the row
-    // is the next thing in tab order, so a keyboard reaches the emoji by pressing Tab, which is
-    // also why nothing here calls `focus()`. Doing so drew a focus ring on every tap that opened it.
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }
+  const dismiss = dismissOutside(() => (quick = false), {
+    escape: true,
+    ignore: () => [adder],
+    paused: () => picking,
+  })
 </script>
 
 <!-- `flex-1` and a trailing alignment, which is what keeps a card with a dozen chips readable: the
@@ -146,30 +94,20 @@
      `flex-col` around it, because the thread belongs under the bar it was opened from. -->
 <div class="flex min-w-0 flex-1 flex-col">
   <div class="flex flex-wrap items-center justify-end gap-1">
-    {#each reactions as chip (chip.emoji)}
-      <ReactionChip {chip} disabled={busy} ontoggle={() => void toggle(chip.emoji)} {readonly} />
+    {#each bar.chips as chip (chip.emoji)}
+      <ReactionChip
+        {chip}
+        disabled={reaction.busy}
+        ontoggle={() => void reaction.toggle(chip.emoji)}
+        readonly={bar.readonly}
+      />
     {/each}
 
-    <!-- Always, and on your own card too: being the person a card is about is the most likely
-       reason to have something to say under it. The count is the affordance, so a thread with
-       nothing in it still reads as an invitation rather than as a decoration. -->
-    <button
-      type="button"
-      class={[
-        'flex items-center gap-1 p-1 text-xs',
-        talking ? 'text-surface-950-50' : 'text-surface-600-400 hover:text-surface-950-50',
-      ]}
-      aria-expanded={talking}
-      aria-label={comments.length === 0 ? m.comments_placeholder() : m.comments_show({ count: comments.length })}
-      onclick={() => (talking = !talking)}
-    >
-      <Icon name="messageCircle" size={16} />
-      {#if comments.length > 0}
-        <span>{comments.length}</span>
-      {/if}
-    </button>
+    {#if showComments}
+      <CommentSheet commentCount={bar.commentCount} eventId={bar.eventId} regionFk={bar.regionFk} />
+    {/if}
 
-    {#if !readonly}
+    {#if !bar.readonly}
       <div class="relative flex">
         <button
           bind:this={adder}
@@ -198,7 +136,7 @@
               <button
                 type="button"
                 class="hover:bg-surface-200-800 rounded-full px-1.5 py-1 text-lg/none"
-                disabled={busy}
+                disabled={reaction.busy}
                 in:scale={{ delay: still.current ? 0 : index * 25, duration: still.current ? 0 : 150, start: 0.4 }}
                 onclick={() => pick(emoji)}
               >
@@ -242,8 +180,4 @@
       </div>
     {/if}
   </div>
-
-  {#if talking}
-    <Comments body={draft} {comments} {eventId} onbody={(value) => (draft = value)} />
-  {/if}
 </div>
