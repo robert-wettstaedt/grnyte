@@ -228,7 +228,7 @@ async function sendDigests(nowMs: number): Promise<number> {
   const userFks = subscribers.map((row) => row.userFk)
   const subscriptions = await subscriptionsFor(userFks)
   const unread = await unreadCounts(userFks)
-  // Membership alone is not the rule: the `activities` SELECT policy also requires a role that
+  // Membership alone is not the rule: the `events` SELECT policy also requires a role that
   // holds `region.read`, and a digest naming entities the reader cannot open would be worse than
   // no digest. Once for the batch, because asking per subscriber was a round trip each before the
   // scan below had even started.

@@ -47,7 +47,7 @@ export interface NotifyInput {
 /**
  * Which of `userFks` may be told about something in `regionFk`, minus the actor.
  *
- * Mirrors the `activities` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
+ * Mirrors the `events` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
  * which resolves to an active `region_members` row whose role holds that permission), because
  * anything looser notifies somebody about a region they cannot open. Exported so the test can
  * hold it against who can really `SELECT` the row rather than trusting this to have got it right.
@@ -188,7 +188,7 @@ export async function notifyMentions(input: {
 
 /**
  * The regions each of these people may actually be told about: active membership AND a role that
- * holds `region.read`, which is what the `activities` SELECT policy requires.
+ * holds `region.read`, which is what the `events` SELECT policy requires.
  *
  * Same rule as {@link notificationRecipients}, from the other end. Push needs it because "the
  * regions I am a member of" is a looser set: revoke `region.read` from a role and its members

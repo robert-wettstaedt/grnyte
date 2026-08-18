@@ -6,7 +6,7 @@
  * functions it calls. Two things are worth proving:
  *
  * 1. **The recipient set is exactly who can read the region.** `notificationRecipients` mirrors
- *    the `activities` SELECT policy by hand, and a hand-written mirror is the kind of thing that
+ *    the `events` SELECT policy by hand, and a hand-written mirror is the kind of thing that
  *    drifts silently. So it is not asserted against a list written out here: it is asserted
  *    against who can really `SELECT` a row in that region, impersonated the way `createDrizzle`
  *    does. Loosen the helper and this fails.
