@@ -32,6 +32,36 @@ A schema change is a fixed sequence, not just a `schema.ts` edit.
 
 `npm run generate` runs 2+4 together; `.env` `DATABASE_URL` (supabase pooler) is the target.
 
+## One migration per unshipped feature
+
+While the feature is still on its branch and not deployed, its schema is **one** migration file, not
+one per work session. If a later phase changes what an earlier phase added — adds a column then
+drops it, renames it, tightens a constraint — fold the change back into the original `NNNN_*.sql`
+and delete the follow-up file, then regenerate the `drizzle/meta` snapshot so it matches. Nobody has
+run the first version, so there is no history to preserve; a column that is added in 0099 and
+removed in 0101 is noise for every future reader.
+
+Stop folding once the migration has run anywhere but a local/throwaway DB. From then on it is
+append-only.
+
+Not every schema edit even needs SQL: changing RLS policy composition, grants or triggers that are
+re-emitted by `setup-table-permissions` on every `npm run migrate` produces no migration at all.
+Check whether `generate:drizzle` actually wrote a file before assuming it did.
+
+## A rename or drop is a data move
+
+`generate:drizzle` writes `ADD COLUMN` + `DROP COLUMN` for a rename and calls it done — the rows are
+your problem. Before dropping anything:
+
+- **Move the data first**, in the same migration, above the drop. Renaming three user-settings
+  columns without the `UPDATE` silently resets every existing user to the default.
+- **Grep for readers of the old column**, including cron/task routes and generated Zero queries. A
+  dropped bookkeeping column (`activities.notified`, watermarks, `*_up_to_*` ids) usually means some
+  job's "already handled" test now returns nothing, so the next run re-processes the whole table and
+  re-notifies everyone.
+- **A nullable column that nothing writes is a bug, not a migration.** If a phase adds
+  `deleted_at`-style state, the writer, the read filters and the delete path land with it.
+
 ## Gotchas
 
 - **`generate:zero` warns "Column X uses a database default the Zero client will not be able to use"

@@ -52,6 +52,27 @@ The media viewer and topo are touch/gesture-heavy, so verifying them needs more 
 - **Don't network-throttle to isolate render/load timing** — Slow 3G stalls Zero's sync so the app never
   boots. Verify load-order logic structurally (DOM/state) instead.
 
+## Catalogue sweep (Storybook)
+
+Driving the app proves one path works. When a change affects **every state of one thing** — the
+wording of every event kind, every change-line shape, every entity row variant — drive the catalogue
+instead: one story per case, all on screen at once. That is what caught nearly every copy and
+fallback bug in the feed work; clicking through the app would have needed dozens of setups.
+
+- `npm run storybook` (:6006, opens no browser). Stories are `*.stories.svelte`, co-located.
+- The pattern to copy: `src/lib/entities/event/catalogue.ts` enumerates the cases,
+  `catalogue.fixture.ts` builds a row per case, `EventCatalogue.stories.svelte` renders them. A new
+  case is one entry in the catalogue, not a new story.
+- Sweep it in the browser with the chrome-devtools MCP against the story iframe
+  (`/iframe.html?id=<story-id>`), reading rendered text rather than trusting the fixture.
+- What to look for: empty or `undefined` names, a case that renders no card at all, two cases that
+  render identically, an untranslated key leaking through, copy that says the wrong actor.
+- **Prove a refactor changed nothing**: fingerprint every story before and after (walk them in a
+  hidden same-origin iframe, collecting `innerText` + `svg path` `d` + `img`/`href`) and diff. The
+  how-to lives in memory (`storybook-fingerprint-equivalence`).
+- Stories are part of the change: no duplicate story for a case the catalogue already covers, and a
+  story that references a deleted fixture or a retired entity gets deleted with it.
+
 ## DB assertions
 
 For persistence/RLS checks, query Postgres directly (connection string in memory / `.env`). Verify the
