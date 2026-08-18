@@ -38,6 +38,8 @@ import {
   createBasicTablePolicies,
   getAuthorizedInRegionPolicyConfig,
   getAuthorizedPolicyConfig,
+  getConsistentMemberPolicyConfig,
+  getDeniedPolicyConfig,
   getOwnEntryPolicyConfig,
   getOwnEventChildPolicyConfig,
   getOwnEventPolicyConfig,
@@ -278,7 +280,11 @@ export const userSettings = table(
   },
   (table) => [
     index('user_settings_auth_user_fk_idx').on(table.authUserFk),
-    index('user_settings_user_fk_idx').on(table.userFk),
+    // One settings row per person, enforced rather than assumed. The readers are what make it
+    // matter: the client reads settings through `users.user_settings_fk` while the digest reads them
+    // by `user_fk`, so two rows meant the app and the push job could disagree about somebody's
+    // preferences, and which one a `findFirst` returned was undefined.
+    uniqueIndex('user_settings_user_fk_idx').on(table.userFk),
 
     policy(`users can insert own users_settings`, getOwnEntryPolicyConfig('insert')),
     policy(`users can read own users_settings`, getOwnEntryPolicyConfig('select')),
@@ -346,7 +352,15 @@ export const regions = table(
   (table) => [
     index('regions_name_idx').on(table.name),
 
-    policy('authenticated users can create regions', getPolicyConfig('insert', sql`true`)),
+    // Nobody creates a region through RLS, app admins included. `createRegionForUser` runs on the
+    // privileged handle because it has to count what a caller already owns and enforce
+    // MAX_OWNED_REGIONS inside the same transaction, and the policy that used to sit here was
+    // `true`, which enforced nothing and existed only as a way around that cap.
+    //
+    // Restrictive, not merely absent: the app.admin policy below is `all`, and permissive policies
+    // are OR-ed, so dropping this one alone would leave the same hole open for the one role most
+    // likely to be talked into using it.
+    policy('nobody inserts regions', getDeniedPolicyConfig('insert')),
     policy(`${APP_PERMISSION_ADMIN} can fully access regions`, getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN)),
     policy(
       `users can read regions they are members of`,
@@ -413,9 +427,13 @@ export const regionMembers = table(
       `${APP_PERMISSION_ADMIN} can fully access region_members`,
       getAuthorizedPolicyConfig('all', APP_PERMISSION_ADMIN),
     ),
+    // The permission AND the row's two identity columns agreeing. `authorize_in_region` resolves
+    // through `auth_user_fk` while every relation joins on `user_fk`, so a row naming different
+    // people in each is one account holding another's rights in a region, under the wrong name in
+    // the member list. Not bound to the caller: adding other people is the point of the table.
     policy(
       `${REGION_PERMISSION_ADMIN} can manage region_members`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN),
+      getConsistentMemberPolicyConfig('all', REGION_PERMISSION_ADMIN),
     ),
     // Scoped to the reader's own regions, not `true`: this table is what tenancy is made of, and a
     // blanket read let any signed-in user enumerate every region's membership - who is in it, their
@@ -716,7 +734,11 @@ export const routeExternalResources = table(
     index('route_external_resources_route_fk_idx').on(table.routeFk),
     index('route_external_resources_region_fk_idx').on(table.regionFk),
 
-    ...createBasicTablePolicies('route_external_resources'),
+    // Nothing inserts these: 1.0's sync against 8a.nu, 27crags and theCrag was never ported, so the
+    // rows that exist came with the data and the app only ever reads them, clears the links and
+    // deletes them. An insert policy would be a standing permission for a writer that does not
+    // exist; porting the sync means adding it back deliberately.
+    ...createBasicTablePolicies('route_external_resources', ['insert']),
   ],
 ).enableRLS()
 export type InsertRouteExternalResource = InferInsertModel<typeof routeExternalResources>
@@ -767,7 +789,7 @@ export const routeExternalResource8a = table(
 
     zlaggableSlug: text('zlaggable_slug'),
   },
-  () => createBasicTablePolicies('route_external_resource_8a'),
+  () => createBasicTablePolicies('route_external_resource_8a', ['insert', 'update']),
 ).enableRLS()
 export type InsertRouteExternalResource8a = InferInsertModel<typeof routeExternalResource8a>
 export type RouteExternalResource8a = InferSelectModel<typeof routeExternalResource8a>
@@ -803,7 +825,7 @@ export const routeExternalResource27crags = table(
 
     url: text('url'),
   },
-  () => createBasicTablePolicies('route_external_resource_27crags'),
+  () => createBasicTablePolicies('route_external_resource_27crags', ['insert', 'update']),
 ).enableRLS()
 export type InsertRouteExternalResource27crags = InferInsertModel<typeof routeExternalResource27crags>
 export type RouteExternalResource27crags = InferSelectModel<typeof routeExternalResource27crags>
@@ -834,7 +856,7 @@ export const routeExternalResourceTheCrag = table(
 
     url: text('url'),
   },
-  () => createBasicTablePolicies('route_external_resource_the_crag'),
+  () => createBasicTablePolicies('route_external_resource_the_crag', ['insert', 'update']),
 ).enableRLS()
 export type InsertRouteExternalResourceTheCrag = InferInsertModel<typeof routeExternalResourceTheCrag>
 export type RouteExternalResourceTheCrag = InferSelectModel<typeof routeExternalResourceTheCrag>
@@ -2049,7 +2071,9 @@ export const favorites = table(
       `${REGION_PERMISSION_READ} can read favorites`,
       getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
     ),
-    policy(`users can update own favorites`, getOwnEntryPolicyConfig('update')),
+    // No update policy: saving is an insert and unsaving is a delete, so nothing in the app has ever
+    // updated a favorite. What the policy did do was let a caller take their own row and rewrite its
+    // `user_fk` to somebody else, which is the same forgery the insert policy refuses.
     policy(`users can delete own favorites`, getOwnEntryPolicyConfig('delete')),
   ],
 ).enableRLS()

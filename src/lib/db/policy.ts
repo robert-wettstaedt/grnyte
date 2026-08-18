@@ -11,6 +11,28 @@ export const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
   using: sql`true`,
 }
 
+/**
+ * Refuses a command outright, whatever else permits it.
+ *
+ * Restrictive rather than permissive, because permissive policies are OR-ed: a table whose other
+ * policy is an `all` one for app admins still accepts inserts from them, so "nobody writes this
+ * through RLS" would quietly mean "nobody except the role most likely to be asked to". Restrictive
+ * policies are AND-ed, so `false` is final.
+ *
+ * Only for tables whose writes belong to the privileged handle because the operation carries an
+ * invariant RLS cannot see: `regions` has to count what a caller already owns before letting them
+ * own another.
+ */
+export const getDeniedPolicyConfig = (policyFor: PgPolicyConfig['for']): PgPolicyConfig => ({
+  as: 'restrictive',
+  for: policyFor,
+  to: authenticatedRole,
+  // Postgres rejects USING on an INSERT policy (there is no existing row to filter) and WITH CHECK
+  // on SELECT or DELETE (they write no row), so each side is set only where it is legal.
+  ...(policyFor === 'insert' ? {} : { using: sql`false` }),
+  ...(policyFor === 'select' || policyFor === 'delete' ? {} : { withCheck: sql`false` }),
+})
+
 export const getPolicyConfig = (policyFor: PgPolicyConfig['for'], check: SQL): PgPolicyConfig => {
   const config: PgPolicyConfig = { for: policyFor, to: authenticatedRole }
 
@@ -158,21 +180,65 @@ export const getOwnReactionPolicyConfig = (policyFor: PgPolicyConfig['for'], per
         `),
   )
 
-export const createBasicTablePolicies = (tableName: string) => [
-  policy(
-    `${REGION_PERMISSION_READ} can read ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
-  ),
-  policy(
-    `${REGION_PERMISSION_EDIT} can insert ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
-  ),
-  policy(
-    `${REGION_PERMISSION_EDIT} can update ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
-  ),
-  policy(
-    `${REGION_PERMISSION_DELETE} can delete ${tableName}`,
-    getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
-  ),
-]
+/**
+ * A membership row written by somebody with the permission, for somebody who is who the row says.
+ *
+ * Not the caller: adding other people is the entire point of the table. What has to hold is that the
+ * row's two identity columns agree, because `authorize_in_region` resolves permissions through
+ * `auth_user_fk` while every relation and the whole app joins on `user_fk`. A row where they name
+ * different people is one account silently holding another's rights inside a region, displayed under
+ * the wrong name in the member list.
+ */
+export const getConsistentMemberPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+  getPolicyConfig(
+    policyFor,
+    sql.raw(`
+          (SELECT authorize_in_region('${permission}', region_fk))
+          AND EXISTS (
+            SELECT
+              1
+            FROM
+              public.users u
+            WHERE
+              u.id = user_fk
+              AND u.auth_user_fk = region_members.auth_user_fk
+          )
+        `),
+  )
+
+/**
+ * `omit` drops the commands no code path performs. A policy is a standing permission, so one nothing
+ * exercises is surface with no purpose: it cannot break anything by being absent today, and it is
+ * the thing that has to be right if somebody reaches for the table tomorrow. Leaving it out means a
+ * future writer adds it deliberately rather than inheriting it.
+ */
+export const createBasicTablePolicies = (
+  tableName: string,
+  // Write commands only: the read policy is what every caller of this wants, and `all` is not one of
+  // the four it emits, so neither belongs in a list saying what to leave out.
+  omit: Exclude<PgPolicyConfig['for'], 'all' | 'select'>[] = [],
+) =>
+  [
+    policy(
+      `${REGION_PERMISSION_READ} can read ${tableName}`,
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+    ),
+    omit.includes('insert')
+      ? undefined
+      : policy(
+          `${REGION_PERMISSION_EDIT} can insert ${tableName}`,
+          getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
+        ),
+    omit.includes('update')
+      ? undefined
+      : policy(
+          `${REGION_PERMISSION_EDIT} can update ${tableName}`,
+          getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
+        ),
+    omit.includes('delete')
+      ? undefined
+      : policy(
+          `${REGION_PERMISSION_DELETE} can delete ${tableName}`,
+          getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+        ),
+  ].filter((entry) => entry != null)
