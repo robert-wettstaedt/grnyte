@@ -1,6 +1,6 @@
 {
   "id": "d43c58c4-c585-4274-af73-9cfdb6c85d09",
-  "prevId": "2ecdac19-4309-4ff1-ba24-63e25c431a1d",
+  "prevId": "97d71043-4a1d-4c0b-a986-c56b70a72226",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6271,18 +6271,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
-        },
-        "legacy_pushed_up_to_activity_id": {
-          "name": "legacy_pushed_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "legacy_seen_up_to_activity_id": {
-          "name": "legacy_seen_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
         },
         "pushed_up_to_event_at": {
           "name": "pushed_up_to_event_at",

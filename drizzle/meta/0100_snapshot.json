@@ -6062,18 +6062,6 @@
           "notNull": true,
           "default": true
         },
-        "pushed_up_to_activity_id": {
-          "name": "pushed_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seen_up_to_activity_id": {
-          "name": "seen_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "unit_system": {
           "name": "unit_system",
           "type": "text",

@@ -6157,18 +6157,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "legacy_pushed_up_to_activity_id": {
-          "name": "legacy_pushed_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "legacy_seen_up_to_activity_id": {
-          "name": "legacy_seen_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "notify_ascents": {
           "name": "notify_ascents",
           "type": "boolean",

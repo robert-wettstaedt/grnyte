@@ -6260,18 +6260,6 @@
           "notNull": true,
           "default": true
         },
-        "legacy_pushed_up_to_activity_id": {
-          "name": "legacy_pushed_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "legacy_seen_up_to_activity_id": {
-          "name": "legacy_seen_up_to_activity_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "pushed_up_to_event_at": {
           "name": "pushed_up_to_event_at",
           "type": "timestamp (3) with time zone",
