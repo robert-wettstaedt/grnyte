@@ -197,17 +197,27 @@ describe('deleteActivity filters', () => {
   // An undo that does not pin `columnName` also matches the column-scoped deletes logged
   // against the same entity, so restoring a route erased its photo-removal history too.
   it('constrains nothing for an omitted field and IS NULL for an explicit one', () => {
-    const unscoped = activityFilterConditions({ entityId: 42, entityType: 'route', type: 'deleted' })
+    // `regionFk` and `userFk` are mandatory on the filter now, so both calls carry them and both
+    // counts below include them. The point of the test is still the difference between the two.
+    const unscoped = activityFilterConditions({
+      entityId: 42,
+      entityType: 'route',
+      regionFk: 1,
+      type: 'deleted',
+      userFk: 7,
+    })
     const scoped = activityFilterConditions({
       columnName: null,
       entityId: 42,
       entityType: 'route',
+      regionFk: 1,
       type: 'deleted',
+      userFk: 7,
     })
 
-    expect(unscoped).toHaveLength(3)
-    // The fourth condition is the `IS NULL` that keeps `route:deleted:file` rows out of it.
-    expect(scoped).toHaveLength(4)
+    expect(unscoped).toHaveLength(5)
+    // The sixth condition is the `IS NULL` that keeps `route:deleted:file` rows out of it.
+    expect(scoped).toHaveLength(6)
   })
 })
 
@@ -241,7 +251,7 @@ describe('reassignActivityEntity', () => {
   // have to move, and the ids have to arrive as text.
   it('moves both the subject and the parent onto the new id', async () => {
     const { calls, db } = fakeDb()
-    await reassignActivityEntity(db, { entityType: 'route', fromId: 599, toId: 600 })
+    await reassignActivityEntity(db, { entityType: 'route', fromId: 599, regionFk: 1, toId: 600 })
 
     expect(calls.updates).toEqual([{ entityId: '600' }, { parentEntityId: '600' }])
   })
@@ -253,7 +263,7 @@ describe('restoreActivityHistory', () => {
   // "deleted" card attached to an entity standing right there.
   it('erases the delete row before moving the rest onto the new id', async () => {
     const { calls, db } = fakeDb()
-    await restoreActivityHistory(db, { entityType: 'block', fromId: 41, toId: 42 })
+    await restoreActivityHistory(db, { entityType: 'block', fromId: 41, regionFk: 1, toId: 42, userFk: 7 })
 
     expect(calls.deletes).toBe(1)
     expect(calls.updates).toEqual([{ entityId: '42' }, { parentEntityId: '42' }])

@@ -528,7 +528,13 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
     // The row is new, so the history has to follow it. Without this the restored route's own
     // create card, and every edit ever made to it, keep pointing at the dead id and render as
     // tombstones next to the live route.
-    await restoreActivityHistory(db, { entityType: 'route', fromId: snapshot.routeId, toId: created.id })
+    await restoreActivityHistory(db, {
+      entityType: 'route',
+      fromId: snapshot.routeId,
+      regionFk: created.regionFk,
+      toId: created.id,
+      userFk: user.id,
+    })
 
     return { data: { routeId: created.id }, redirectTo: routeHref(created.id) }
   }
@@ -540,7 +546,15 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
   }
 
   await db.update(routes).set({ deletedAt: null }).where(eq(routes.id, route.id))
-  await deleteActivity(db, { columnName: null, entityId: route.id, entityType: 'route', type: 'deleted' })
+  // Region and actor, now that `deleteActivity` requires both. The route soft-restore above was
+  // already scoped by id; the activity DELETE was not scoped by who wrote the row it erases.
+  await deleteActivity(db, {
+    columnName: null,
+    entityId: route.id,
+    entityType: 'route',
+    regionFk: route.regionFk,
+    type: 'deleted',
+  })
 
   return { data: { routeId: route.id }, redirectTo: routeHref(route.id) }
 })

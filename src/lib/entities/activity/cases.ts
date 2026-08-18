@@ -659,7 +659,7 @@ export const CASES: ActivityCase[] = [
     activities: [],
     domain: 'area',
     expected:
-      'No card. deleteActivity erases every area/deleted/parking location row for that area regardless of coordinates or actor, and recreating the pin logs nothing.',
+      'No card. deleteActivity erases the one area/deleted/parking location row for these coordinates by this actor, and recreating the pin logs nothing.',
     id: 'AREA-07',
   },
   {
@@ -4138,7 +4138,7 @@ export const CASES: ActivityCase[] = [
     activities: [],
     domain: 'region',
     expected:
-      'No card. deleteActivity erases every matching deleted:invitation row regardless of actor, so two revokes of the same address both vanish. The created card survives untouched.',
+      "No card. deleteActivity erases this admin's own deleted:invitation row for the address, so another admin's revoke of the same address survives. The created card survives untouched.",
     id: 'REG-03',
   },
   {
@@ -4255,7 +4255,7 @@ export const CASES: ActivityCase[] = [
     activities: [],
     domain: 'region',
     expected:
-      "No card. deleteActivity erases the deleted:role row for that member in that region only; a removal from another region and that person's own deleted:membership row both survive.",
+      "No card. deleteActivity erases the deleted:role row this admin wrote for that member in that region only; a removal from another region, another admin's removal, and that person's own deleted:membership row all survive.",
     id: 'REG-06',
   },
   {

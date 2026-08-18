@@ -271,13 +271,30 @@ export const insertActivity = async (
  *  restoring a route erased its photo history along with its own delete. An undo of a
  *  whole-entity delete passes `columnName: null` and erases only the row it wrote.
  *
+ *  `regionFk` is REQUIRED. A `Partial` over the whole shape constrained only what a caller bothered
+ *  to spell, and this is a blind DELETE over `activities`: once RLS keeps region scoping only and
+ *  `authenticated` holds no grants, no policy narrows it either, so the column saying WHICH tenant
+ *  has to be typed mandatory and walked to every call site by the compiler.
+ *
+ *  `userFk` is deliberately NOT required. Scoping every erase to the caller reads stricter and is
+ *  wrong: an undo is not always performed by the account that did the delete. `restoreRoute`'s hard
+ *  path gates on `canAddRoute`, so any `region.edit` holder can restore somebody else's deleted
+ *  route, and pinning the caller would leave the original delete card behind for
+ *  `reassignActivityEntity` to carry onto the new id, a tombstone beside a live entity. Pass it only
+ *  where the actor genuinely identifies the row.
+ *
+ *  `oldValue` joins the optional half so a caller that logged a value can pin the row it wrote.
+ *  `deleteParking` stores the coordinate string, which is the only thing separating one parking
+ *  removal on an area from the next, and is what makes that call site exact without an actor.
+ *
  *  ponytail: deletes all rows matching the filter; a same-entity history collision is
  *  possible but negligible right after a delete. Upgrade = scope by id/createdAt. */
 export const deleteActivity = async (
   db: PostgresJsDatabase<typeof schema>,
   filter: Partial<
-    Pick<schema.InsertActivity, 'columnName' | 'entityType' | 'newValue' | 'regionFk' | 'type' | 'userFk'>
-  > & { entityId?: ActivityId },
+    Pick<schema.InsertActivity, 'columnName' | 'entityType' | 'newValue' | 'oldValue' | 'type' | 'userFk'>
+  > &
+    Pick<schema.InsertActivity, 'regionFk'> & { entityId?: ActivityId },
 ) => {
   const conditions = activityFilterConditions(filter)
 
@@ -304,21 +321,42 @@ export const deleteActivity = async (
  */
 export const reassignActivityEntity = async (
   db: PostgresJsDatabase<typeof schema>,
-  { entityType, fromId, toId }: { entityType: ActivityParentEntityType; fromId: ActivityId; toId: ActivityId },
+  {
+    entityType,
+    fromId,
+    regionFk,
+    toId,
+  }: { entityType: ActivityParentEntityType; fromId: ActivityId; regionFk: number; toId: ActivityId },
 ) => {
   // Together: the two match disjoint rows on disjoint columns, so neither can see the other's
   // work and the round trips are worth nothing serialized.
+  //
+  // `regionFk` on both. The ids are globally unique serials today, so this narrows nothing in a
+  // healthy database; it is here because these are blind UPDATEs over `activities` with no other
+  // tenancy predicate, and the RLS policy that used to supply one is going away. A statement that
+  // can reach every row in the table and is held back only by an id happening not to collide is
+  // not a statement to leave standing once the policy is gone.
   await Promise.all([
     db
       .update(schema.activities)
       .set({ entityId: String(toId) })
-      .where(and(eq(schema.activities.entityId, String(fromId)), eq(schema.activities.entityType, entityType))),
+      .where(
+        and(
+          eq(schema.activities.entityId, String(fromId)),
+          eq(schema.activities.entityType, entityType),
+          eq(schema.activities.regionFk, regionFk),
+        ),
+      ),
 
     db
       .update(schema.activities)
       .set({ parentEntityId: String(toId) })
       .where(
-        and(eq(schema.activities.parentEntityId, String(fromId)), eq(schema.activities.parentEntityType, entityType)),
+        and(
+          eq(schema.activities.parentEntityId, String(fromId)),
+          eq(schema.activities.parentEntityType, entityType),
+          eq(schema.activities.regionFk, regionFk),
+        ),
       ),
   ])
 }
@@ -331,13 +369,32 @@ export const reassignActivityEntity = async (
  * first moves the delete row along with the rest and leaves a "deleted" card attached to
  * something standing right there, which is the bug the three call sites were each fixed for
  * separately. A comment saying "call this after that" was the only thing holding it.
+ *
+ * `userFk` is the account doing the restore, and it narrows the erase to that account's own delete
+ * row, because `deleteActivity` now requires an author. Every caller is an Undo snackbar, which
+ * only the account that just deleted ever sees, so restorer and deleter are the same person. If a
+ * restore affordance is ever added anywhere else, revisit this: erasing by author would leave
+ * someone else's delete row behind, and `reassignActivityEntity` would then carry that row onto
+ * the new id, which is precisely the tombstone-next-to-a-live-entity bug the ordering above fixes.
  */
 export const restoreActivityHistory = async (
   db: PostgresJsDatabase<typeof schema>,
-  { entityType, fromId, toId }: { entityType: ActivityParentEntityType; fromId: ActivityId; toId: ActivityId },
+  {
+    entityType,
+    fromId,
+    regionFk,
+    toId,
+    userFk,
+  }: {
+    entityType: ActivityParentEntityType
+    fromId: ActivityId
+    regionFk: number
+    toId: ActivityId
+    userFk: number
+  },
 ) => {
-  await deleteActivity(db, { columnName: null, entityId: fromId, entityType, type: 'deleted' })
-  await reassignActivityEntity(db, { entityType, fromId, toId })
+  await deleteActivity(db, { columnName: null, entityId: fromId, entityType, regionFk, type: 'deleted', userFk })
+  await reassignActivityEntity(db, { entityType, fromId, regionFk, toId })
 }
 
 /** Exported for the test: an omitted field must contribute nothing and an explicit `null`

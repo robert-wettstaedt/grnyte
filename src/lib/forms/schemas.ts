@@ -106,8 +106,16 @@ export const stringToNumberOptional = z.codec(
   },
 )
 
-/** Decimal degrees bounded to ±`limit` (90 for latitude, 180 for longitude). */
-const boundedDegrees = (limit: number) =>
+/**
+ * Decimal degrees bounded to ±`limit` (90 for latitude, 180 for longitude).
+ *
+ * Exported rather than private because the undo snapshots need the bound WITHOUT the string codec
+ * `coordinate` wraps it in: they carry real numbers, having been JSON round-tripped instead of
+ * submitted as form fields. `geolocations` has no CHECK constraint, so this is the only thing
+ * between a hand-built snapshot and a pin at lat 999 dragging every map that fits its markers.
+ * One definition, so a new coordinate path is a missing import rather than a silent gap.
+ */
+export const boundedDegrees = (limit: number) =>
   z
     .number()
     .min(-limit, { error: formError('form_numInvalid') })

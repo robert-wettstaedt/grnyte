@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
-import { areas, blocks, files, geolocations, routes, topos, type Block } from '$lib/db/schema'
-import { formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
+import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
+import { boundedDegrees, formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
 import { stringifyCoords } from '$lib/map/coords'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -222,7 +222,7 @@ export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }
 /** Move-on-the-map shortcut: set the block's pin straight from the picker, skipping the
  *  edit form. Upserts the geolocation (and links it on first set), then returns to the block. */
 export const setBlockLocation = authedCommand(
-  z.object({ id: z.number(), lat: z.number(), long: z.number() }),
+  z.object({ id: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180) }),
   async (value, { db, user, userRegions }) => {
     const block = await requireRow(
       () => db.query.blocks.findFirst({ where: eq(blocks.id, value.id) }),
@@ -269,8 +269,8 @@ export const setBlockLocation = authedCommand(
 export const estimateBlockLocationFromPhoto = authedCommand(
   z.object({
     id: z.number(),
-    lat: z.number().min(-90).max(90),
-    long: z.number().min(-180).max(180),
+    lat: boundedDegrees(90),
+    long: boundedDegrees(180),
   }),
   async (value, { db, user, userRegions }) => {
     const block = await requireRow(
@@ -318,7 +318,10 @@ type DeleteBlockSnapshot =
       geolocation: null | { estimated: boolean; lat: number; long: number }
       mode: 'hard'
     }
-  | { blockId: number; deletedAt: Date; mode: 'soft' }
+  // No `deletedAt`, same as the area snapshot: the soft delete's timestamp used to go out to the
+  // client and come back as the only thing `softRestoreBlock` matched on. It is read off the
+  // stored block now.
+  | { blockId: number; mode: 'soft' }
 
 /** Hard-delete a bare block: drop its pin (FK-linked both ways) then the row. Returns the
  *  snapshot — including `order` — that {@link restoreBlock} recreates it from. */
@@ -378,7 +381,7 @@ async function softDeleteBlock(db: Context['db'], block: Block): Promise<DeleteB
     .set({ deletedAt })
     .where(and(eq(routes.blockFk, block.id), isNull(routes.deletedAt)))
 
-  return { blockId: block.id, deletedAt, mode: 'soft' }
+  return { blockId: block.id, mode: 'soft' }
 }
 
 /** Delete a block. A bare block (no routes, topos or files) is hard-deleted with a snapshot;
@@ -447,10 +450,14 @@ const restoreBlockSchema = z.discriminatedUnion('mode', [
     areaFk: z.number(),
     block: z.object({ name: z.string(), order: z.number(), regionFk: z.number() }),
     blockId: z.number(),
-    geolocation: z.object({ estimated: z.boolean(), lat: z.number(), long: z.number() }).nullable(),
+    // Bounded like every other coordinate this app accepts (`coordinate(90)` on the block form,
+    // `estimateBlockLocationFromPhoto` on the command side). `geolocations` has no CHECK constraint,
+    // so an unbounded snapshot was the one door that could park a block at lat 999.
+    geolocation: z.object({ estimated: z.boolean(), lat: boundedDegrees(90), long: boundedDegrees(180) }).nullable(),
     mode: z.literal('hard'),
   }),
-  z.object({ blockId: z.number(), deletedAt: z.coerce.date(), mode: z.literal('soft') }),
+  // No `deletedAt` to accept: the restore reads it off the stored block.
+  z.object({ blockId: z.number(), mode: z.literal('soft') }),
 ])
 
 /** Recreate a hard-deleted block at its original `order`, re-linking its pin. Opens the slot
@@ -458,19 +465,38 @@ const restoreBlockSchema = z.discriminatedUnion('mode', [
 async function hardRestoreBlock(
   db: Context['db'],
   snapshot: Extract<DeleteBlockSnapshot, { mode: 'hard' }>,
+  area: Pick<Area, 'id' | 'regionFk'>,
   createdBy: number,
 ): Promise<number> {
-  await shiftBlockOrdersUp(db, snapshot.areaFk, snapshot.block.order)
+  await shiftBlockOrdersUp(db, area.id, snapshot.block.order)
 
+  // Placement comes from the STORED area, not the client-supplied snapshot: `restoreBlock` ran
+  // `canAddBlock` against that row, so `area.regionFk` is the region actually authorized.
+  // `createdBy` is the caller, so an undo cannot forge authorship.
   const [created] = await db
     .insert(blocks)
-    .values({ ...snapshot.block, areaFk: snapshot.areaFk, createdBy })
+    .values({
+      areaFk: area.id,
+      createdBy,
+      name: snapshot.block.name,
+      order: snapshot.block.order,
+      regionFk: area.regionFk,
+    })
     .returning()
 
   if (snapshot.geolocation != null) {
+    // The three snapshot fields and nothing else. `areaFk` in particular stays unset: a geolocation
+    // that carries one is a PARKING (that is how `deleteParking` tells the two apart, and removing a
+    // parking takes region DELETE), and a spread is one added snapshot field away from setting it.
     const [geo] = await db
       .insert(geolocations)
-      .values({ ...snapshot.geolocation, blockFk: created.id, regionFk: snapshot.block.regionFk })
+      .values({
+        blockFk: created.id,
+        estimated: snapshot.geolocation.estimated,
+        lat: snapshot.geolocation.lat,
+        long: snapshot.geolocation.long,
+        regionFk: area.regionFk,
+      })
       .returning()
     await db.update(blocks).set({ geolocationFk: geo.id }).where(eq(blocks.id, created.id))
   }
@@ -479,15 +505,30 @@ async function hardRestoreBlock(
 }
 
 /** Un-soft-delete a block and its routes, slotting it back at the `order` it kept. Opens the
- *  slot among the visible siblings first (the block itself is still `deletedAt` at that point). */
-async function softRestoreBlock(
-  db: Context['db'],
-  snapshot: Extract<DeleteBlockSnapshot, { mode: 'soft' }>,
-  block: Block,
-): Promise<void> {
+ *  slot among the visible siblings first (the block itself is still `deletedAt` at that point).
+ *
+ *  Both statements name the block, and the timestamp comes off the stored row rather than off the
+ *  client. They used to match on `deletedAt = <client-supplied timestamp>` alone: `deleted_at` is
+ *  not unique and carries no region, so an undo here revived every other region's block stamped in
+ *  the same millisecond, and the routes statement did not mention the block at all, so it could
+ *  bring routes back under a block that stayed deleted.
+ *
+ *  A block that is not deleted returns before the order shift, which would otherwise renumber live
+ *  siblings around a block that never left. */
+async function softRestoreBlock(db: Context['db'], block: Block): Promise<void> {
+  if (block.deletedAt == null) {
+    return
+  }
+
   await shiftBlockOrdersUp(db, block.areaFk, block.order)
-  await db.update(blocks).set({ deletedAt: null }).where(eq(blocks.deletedAt, snapshot.deletedAt))
-  await db.update(routes).set({ deletedAt: null }).where(eq(routes.deletedAt, snapshot.deletedAt))
+  await db
+    .update(blocks)
+    .set({ deletedAt: null })
+    .where(and(eq(blocks.id, block.id), eq(blocks.deletedAt, block.deletedAt)))
+  await db
+    .update(routes)
+    .set({ deletedAt: null })
+    .where(and(eq(routes.blockFk, block.id), eq(routes.deletedAt, block.deletedAt)))
 }
 
 /** Undo a {@link deleteBlock}: recreate the hard-deleted block (with its pin) or clear the
@@ -513,12 +554,21 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
       error(403, formError('form_noPermission'))
     }
 
-    const blockId = await hardRestoreBlock(db, snapshot, user.id)
+    // The area row, not the snapshot's id: everything after the gate reads the row the gate read.
+    const blockId = await hardRestoreBlock(db, snapshot, area, user.id)
 
-    await refreshAreaType(db, snapshot.areaFk)
+    await refreshAreaType(db, area.id)
     // The row is new, so the history has to follow it, or the restored block's own create card
     // and every edit ever made to it render as tombstones next to the live block.
-    await restoreActivityHistory(db, { entityType: 'block', fromId: snapshot.blockId, toId: blockId })
+    await restoreActivityHistory(db, {
+      entityType: 'block',
+      fromId: snapshot.blockId,
+      // The stored area's region, not `snapshot.block.regionFk`: the two were just checked equal
+      // above, and the one that came out of the database is the one to trust.
+      regionFk: area.regionFk,
+      toId: blockId,
+      userFk: user.id,
+    })
 
     return {
       data: { blockId },
@@ -532,10 +582,29 @@ export const restoreBlock = authedCommand(restoreBlockSchema, async (snapshot, {
     error(403, formError('form_noPermission'))
   }
 
-  await softRestoreBlock(db, snapshot, block)
+  // Nothing to undo. A replayed Undo or a stale snapshot arrives here on a live block, and the rest
+  // of this handler would erase a `deleted` card for something standing right there, while
+  // `shiftBlockOrdersUp` inside the restore renumbers siblings for a block that never left.
+  if (block.deletedAt == null) {
+    return {
+      data: { blockId: snapshot.blockId },
+      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(snapshot.blockId) }),
+    }
+  }
+
+  // The stored block, not the snapshot: `canDeleteBlock` above authorized THIS row.
+  await softRestoreBlock(db, block)
 
   await refreshAreaType(db, block.areaFk)
-  await deleteActivity(db, { columnName: null, entityId: snapshot.blockId, entityType: 'block', type: 'deleted' })
+  // `regionFk` because the filter demands it. Not scoped to the caller: any `region.delete` holder
+  // can undo, so pinning the actor would leave the deleter's card next to a live block.
+  await deleteActivity(db, {
+    columnName: null,
+    entityId: snapshot.blockId,
+    entityType: 'block',
+    regionFk: block.regionFk,
+    type: 'deleted',
+  })
 
   return {
     data: { blockId: snapshot.blockId },
