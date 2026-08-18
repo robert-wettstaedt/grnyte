@@ -1,7 +1,6 @@
 import { events } from '$lib/db/schema'
-import { readableRegionIds } from '$lib/entities/region/permissions'
 import { authedQuery } from '$lib/remote/authed.server'
-import { and, count, eq, inArray, isNotNull, or } from 'drizzle-orm'
+import { and, count, eq, isNotNull, or } from 'drizzle-orm'
 import z from 'zod'
 
 /**
@@ -12,27 +11,15 @@ import z from 'zod'
  * three object columns now rather than off a polymorphic `entity_type`, which is the same question
  * asked of a shape that can answer it.
  *
- * Counted over the regions the CALLER may read, never the subject's, so two viewers legitimately see
- * two different numbers for the same person. The region predicate is the handler's own rather than a
- * policy's: RLS here answers only whether a caller may touch a region's rows, and an aggregate that
- * leans on it silently returns whatever the policy happened to allow.
+ * RLS-scoped, so it counts only what the viewer is allowed to read.
  */
-export const userContributionCount = authedQuery(z.number(), async (userId, { db, userRegions }) => {
-  const regionFks = readableRegionIds(userRegions)
-
-  // Drizzle renders `inArray(x, [])` as `false`, but only after building the query; short-circuit so
-  // a caller who belongs to nowhere never reaches the database at all.
-  if (regionFks.length === 0) {
-    return 0
-  }
-
+export const userContributionCount = authedQuery(z.number(), async (userId, { db }) => {
   const [row] = await db
     .select({ value: count() })
     .from(events)
     .where(
       and(
         eq(events.actorFk, userId),
-        inArray(events.regionFk, regionFks),
         or(isNotNull(events.areaFk), isNotNull(events.blockFk), isNotNull(events.routeFk)),
       ),
     )

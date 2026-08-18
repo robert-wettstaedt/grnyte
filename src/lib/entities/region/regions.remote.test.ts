@@ -171,9 +171,10 @@ describe.skipIf(!reachable)('userContributionCount', () => {
   })
 
   it('leaves out the regions the caller cannot read', async () => {
-    // Same subject, same rows, a caller who is only in HOME: the OTHER contribution is not theirs
-    // to know about. This is the assertion that would read 3 if the region predicate ever went
-    // missing again, whether by an edit here or by a policy that stops covering `activities`.
+    // Same subject, same rows, a caller who is only in HOME: the OTHER contribution is not theirs to
+    // know about. Nothing in the handler does this. `region.read can read events` does, which is
+    // exactly the job RLS keeps, so this is the assertion that fails if that policy is ever dropped
+    // or the query moves onto the privileged handle.
     const total = await asRequest(member.authId, () => userContributionCount(contributor.userId))
 
     expect(total).toBe(2)
