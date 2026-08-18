@@ -3,11 +3,11 @@ import { eventVerb } from '$lib/db/schema'
 /**
  * The catalogue covers what the app writes, checked against the app rather than claimed.
  *
- * `cases.ts` under the old shape was generated once by reading every `insertActivity` call, and
- * then drifted, because nothing re-read them. This does: it parses every `insertEvent` and
- * `createUpdateEvent` call in `src/`, collects the `(verb, object type)` pairs they emit and the
- * columns they diff, and fails when one has no card in the catalogue. A new writer therefore
- * cannot ship without a card to review it by.
+ * `cases.ts` under the old shape was generated once by reading every call that wrote to the
+ * activities log, and then drifted, because nothing re-read them. This does: it parses every
+ * `insertEvent` and `createUpdateEvent` call in `src/`, collects the `(verb, object type)` pairs
+ * they emit and the columns they diff, and fails when one has no card in the catalogue. A new
+ * writer therefore cannot ship without a card to review it by.
  *
  * What it deliberately does NOT assert is the line number in a case's `writer`. That would break
  * on any edit above a call and teach everybody to update it blindly; the file is asserted, the

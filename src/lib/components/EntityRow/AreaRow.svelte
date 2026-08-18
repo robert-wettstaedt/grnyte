@@ -21,7 +21,7 @@
     /** Total routes, shown in the donut centre. */
     total?: number
     /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
-     *  for nesting inside another card (e.g. an activity card). */
+     *  for nesting inside another card (e.g. an event card). */
     variant?: 'card' | 'option'
   }
 

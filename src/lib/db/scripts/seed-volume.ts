@@ -18,8 +18,8 @@
  * Additive by default (re-running stacks more data). RESET=true first wipes the
  * target region's existing content. Throwaway/dev DBs only - never a real one.
  *
- * ponytail: no `activity` rows are written, so the global feed won't list this
- * content (profile / area / route / explore views will). Add activity seeding
+ * ponytail: no `event` rows are written, so the global feed won't list this
+ * content (profile / area / route / explore views will). Add event seeding
  * if the feed specifically needs volume. Media paths are placeholders - the DB
  * structure exists but images won't render without real storage objects.
  */

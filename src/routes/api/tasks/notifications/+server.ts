@@ -239,7 +239,7 @@ async function sendDigests(nowMs: number): Promise<number> {
   const sendDigest = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
     // Both marks null means never initialised, which is NOT the same as "caught up to nothing":
     // `digestFloor` reads it as 0, and this person would be pushed the region's entire history 500
-    // activities at a time, once per run, until it caught up. `subscribeToPush` seeds the marks on
+    // events at a time, once per run, until it caught up. `subscribeToPush` seeds the marks on
     // a FIRST subscription, so the accounts that land here are the ones that already had one when
     // their settings row appeared: everybody who carried a 1.0 subscription across (0096 backfills
     // those), and anybody whose settings row is created afterwards by a writer that is not

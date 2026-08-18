@@ -66,7 +66,7 @@ export type DigestEvent = Pick<
 }
 
 /**
- * Render a batch of activities as one headline plus a count of the rest.
+ * Render a batch of events as one headline plus a count of the rest.
  *
  * The headline is the newest group's, which is what a reader would see at the top of the feed if
  * they opened it now; everything else is a number, because a push that lists things is a push
@@ -91,14 +91,14 @@ export async function digestCopy(
   // Through the catalogue adapter, exactly as the card does: an update expands to one row per
   // changed column, everything else to one. What the digest reads off them (the refs, the verb,
   // the stored name) is what the card reads.
-  const activities = newest.events.flatMap(eventLines)
-  const refs = eventRefs(activities)
-  // What the card would put a row under, falling back to what the activities are about: an upload
+  const lines = newest.events.flatMap(eventLines)
+  const refs = eventRefs(lines)
+  // What the card would put a row under, falling back to what the events are about: an upload
   // names the thing it landed on rather than the file, which has no name worth reading.
   const subject = refs.rows[0] ?? refs.subjects[0]
   const names = await entityNames(subject == null ? [] : [subject], locale)
 
-  const lead = activities[0]
+  const lead = lines[0]
   const climber = parseDeletedAscent(lead.metadata ?? undefined)
 
   // Through the same precedence the feed card uses, not the database alone. A deleted area is

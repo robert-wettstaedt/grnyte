@@ -47,15 +47,15 @@ export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for']) =>
   getPolicyConfig(policyFor, sql.raw('(SELECT auth.uid()) = auth_user_fk'))
 
 /**
- * A log row the caller wrote themselves, in a region they can still read. `activities` and
+ * A row the caller wrote themselves, in a region they can still read. `activities` and
  * `events` both join `users` to get there because they store the app user id, not `auth_user_fk`.
  *
  * Shared by the own-row delete and the own-row update: it is the same row and the same author,
  * and a security predicate spelled out twice is one edit away from meaning two different things.
- * `authorColumn` exists for the same reason, so `events.actor_fk` reuses this rather than
- * restating it.
+ * `authorColumn` exists so a table whose author column isn't `user_fk`, like `events.actor_fk`,
+ * can reuse this rather than restating it.
  */
-export const getOwnActivityPolicyConfig = (
+export const getOwnRowPolicyConfig = (
   policyFor: PgPolicyConfig['for'],
   permission: App.Permission,
   authorColumn = 'user_fk',
@@ -75,9 +75,9 @@ export const getOwnActivityPolicyConfig = (
         `),
   )
 
-/** {@link getOwnActivityPolicyConfig} against `events.actor_fk`, which is the same predicate. */
+/** {@link getOwnRowPolicyConfig} against `events.actor_fk`, which is the same predicate. */
 export const getOwnEventPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
-  getOwnActivityPolicyConfig(policyFor, permission, 'actor_fk')
+  getOwnRowPolicyConfig(policyFor, permission, 'actor_fk')
 
 /**
  * A row hanging off an event the caller opened themselves, in a region they can still read.

@@ -9,7 +9,7 @@ import { line } from './line.fixture'
  * burst headline names.
  */
 describe('eventRefs', () => {
-  it('lists each subject once, in the order the activities arrive', () => {
+  it('lists each subject once, in the order the events arrive', () => {
     expect(
       eventRefs([
         line({ id: 1, objectId: '2' }),
@@ -80,7 +80,7 @@ describe('eventRefs', () => {
     ).toBeUndefined()
   })
 
-  it('has nothing at all for no activities', () => {
+  it('has nothing at all for no events', () => {
     expect(eventRefs([])).toEqual({ place: undefined, rows: [], subjects: [] })
   })
 })

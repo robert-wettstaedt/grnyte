@@ -90,7 +90,7 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
     error(404, 'Region not found')
   }
 
-  // No activity row: `activities.entity_type` has no 'region' member, and the feed renders
+  // No event row: an event's object columns have no 'region' member, and the feed renders
   // content changes rather than settings ones.
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }

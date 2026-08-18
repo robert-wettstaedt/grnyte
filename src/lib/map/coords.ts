@@ -1,5 +1,5 @@
 /**
- * How a location change stores its old/new pair on an activity row.
+ * How a location change stores its old/new pair on a change row.
  *
  * Its own file rather than `map.ts` because the writers are server code: `map.ts` reaches for
  * `navigator` and the unit preference to format distances, and none of that belongs in a
@@ -8,7 +8,7 @@
  */
 import type { Coords } from './map'
 
-/** A pin as an activity row stores it. `estimated` marks a rough guess (an EXIF backfill, or
+/** A pin as a change row stores it. `estimated` marks a rough guess (an EXIF backfill, or
  *  a pin the author flagged as approximate), which the feed then says out loud. */
 export type StoredCoords = Coords & { estimated: boolean }
 

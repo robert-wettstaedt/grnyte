@@ -51,7 +51,7 @@
   let filtersOpen = $state(false)
 
   // Who the feed can be narrowed to: the members of the region in view, or of every region the
-  // user belongs to while none is picked. Scoped that way because activity rows are region-bound,
+  // user belongs to while none is picked. Scoped that way because event rows are region-bound,
   // so offering a member of another region would offer a provably empty feed.
   //
   // ponytail: capped rather than searchable. A region is bounded by `maxMembers`, so the list is

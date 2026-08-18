@@ -75,7 +75,7 @@ export function changed(before: unknown, after: unknown): boolean {
 /**
  * Diff an entity, open or continue its event, and record what moved.
  *
- * The replacement for `createUpdateActivity`. What is gone from the signature:
+ * Replaces the activities log's write path. What is gone from the signature:
  * `parentEntityType`/`parentEntityId`, because a parent is reachable through the object's own
  * foreign key, and `entityType`/`entityId` as a polymorphic pair, because the object is typed.
  */
@@ -121,10 +121,10 @@ export async function createUpdateEvent(
  * grouping that had to recognise the shape after the fact; refining the `add` it belongs to is the
  * same rule the fold already applies everywhere else.
  *
- * A repeat: the same verb joins its own kind, which is `insertActivity`'s identity collapse. The
- * fold key is already every column a caller sets, so a second call landing on it is a
- * byte-identical row. Three photos removed from one route in one sitting is one card, not three
- * indistinguishable ones, and inviting the same address twice does not stack up two.
+ * A repeat: the same verb joins its own kind, which is the identity collapse the activities log's
+ * insert path used to do. The fold key is already every column a caller sets, so a second call
+ * landing on it is a byte-identical row. Three photos removed from one route in one sitting is one
+ * card, not three indistinguishable ones, and inviting the same address twice does not stack up two.
  *
  * What neither admits is a DIFFERENT verb joining. Without that a `delete` five minutes after an
  * `update` on the same object joins it, keeps the verb `update`, and the deletion is never
@@ -176,8 +176,8 @@ export async function canHardDelete(
 /**
  * Erase the events a mutation logged, so an undo leaves the log as if nothing had happened.
  *
- * Replaces `deleteActivity` for the same six undo paths. Change rows go with the event through
- * `changes.event_fk on delete cascade`, so a filter that names the event is enough.
+ * Replaces the activities log's delete path for the same six undo paths. Change rows go with the
+ * event through `changes.event_fk on delete cascade`, so a filter that names the event is enough.
  *
  * ponytail: deletes every event matching the filter; a same-object collision is possible but
  * negligible right after the action being undone. Upgrade = pass the event id back through the
@@ -211,9 +211,9 @@ export async function deleteEvent(db: Db, filter: EventFilter): Promise<void> {
  * event on the same object joins it and bumps its timestamp so it returns to the top of the feed,
  * exactly as the per-column fold does today.
  *
- * Replaces `insertActivity`, repeat-collapse included: see {@link joins}. Joining is a better
- * collapse than that function's delete-then-reinsert, because it keeps the event's id stable, so
- * a reaction attached to it survives the author saving again.
+ * Replaces the activities log's insert path, repeat-collapse included: see {@link joins}. Joining
+ * is a better collapse than the delete-then-reinsert it used to do, because it keeps the event's
+ * id stable, so a reaction attached to it survives the author saving again.
  */
 export async function insertEvent(db: Db, input: EventInput): Promise<schema.Event> {
   const open = await openEvent(db, input)
@@ -288,8 +288,8 @@ export function withinGraceWindow(createdAt: Date | number): boolean {
 /**
  * Record what changed under an event, merging with anything the same call already wrote.
  *
- * Three behaviours, all of which `createUpdateActivity` has today at the row level and which move
- * here unchanged:
+ * Three behaviours, all of which the activities log's write path used to have at the row level
+ * and which move here unchanged:
  *
  * 1. **Column merge.** A to B then B to C inside the window is one row, A to C. The intermediate
  *    was never a state the crag was left in. `ON CONFLICT` does it in one statement, where the old

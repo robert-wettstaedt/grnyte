@@ -14,7 +14,7 @@ export interface UserListItem extends UserRef {
 }
 
 /** A user reduced to what naming and linking to one needs: the profile header, a
- *  `!users:id!` token, an activity row that is about a person. */
+ *  `!users:id!` token, an event row that is about a person. */
 export interface UserRef {
   id: number
   username: string

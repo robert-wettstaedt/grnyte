@@ -141,7 +141,7 @@ export const updateAscent = authedForm(
     // `notify` drops the actor from the recipients, so editing your own is silent.
     //
     // Gated on the diff, not on the submit: a maintainer who opens somebody's ascent and saves it
-    // untouched logs no activity, and must not announce one either. Worse than the noise, the
+    // untouched logs no event, and must not announce one either. Worse than the noise, the
     // unique index would keep that empty save as the row for this (actor, ascent, kind) pair and
     // swallow the real edit that followed it.
     if (edited) {

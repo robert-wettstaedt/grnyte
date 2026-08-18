@@ -40,7 +40,7 @@ export type PushPayload = z.infer<typeof pushPayloadSchema>
  */
 export const DIRECTED_DEBOUNCE_MS = 2 * 60 * 1000
 
-/** No new broadcast activity for this long means the burst is over and the digest can go. */
+/** No new broadcast events for this long means the burst is over and the digest can go. */
 export const DIGEST_QUIET_MS = 20 * 60 * 1000
 
 /**
@@ -50,7 +50,7 @@ export const DIGEST_QUIET_MS = 20 * 60 * 1000
 export const DIGEST_MAX_WAIT_MS = 2 * 60 * 60 * 1000
 
 /**
- * Whether a recipient's queued broadcast activity is ready to go out.
+ * Whether a recipient's queued broadcast events are ready to go out.
  *
  * The quiet period is what turns a forty-minute crag import into one buzz instead of eight; the
  * ceiling is what stops a busy region from being silent forever. Both are measured against the
@@ -67,7 +67,7 @@ export function isDigestDue(oldestAt: number | undefined, newestAt: number | und
 }
 
 /**
- * How many queued activities one digest run will look at per person.
+ * How many queued events one digest run will look at per person.
  *
  * The digest reports one headline and a count either way, so a longer tail buys nothing and this
  * runs once per subscriber every five minutes. It also bounds the pathological case: a watermark

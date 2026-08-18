@@ -329,7 +329,7 @@ export const deleteFile = command(
       const storage = await deleteFileRows(db, [file])
       if (storage.length === 0) {
         // Pre-gate passed but RLS still kept the row (policy drift): fail loudly
-        // rather than log a deletion activity and toast success for a live file.
+        // rather than log a deletion event and toast success for a live file.
         error(403, 'Not allowed to delete this file')
       }
 

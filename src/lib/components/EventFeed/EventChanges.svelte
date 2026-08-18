@@ -1,5 +1,5 @@
 <!--
-  The expanded half of an activity card: one line per changed column.
+  The expanded half of an event card: one line per changed column.
 
   What a line SAYS is decided by `changeViews()` and arrives as a view; this file is the
   markup for it, one snippet per kind. What stays here is what genuinely needs the reader:

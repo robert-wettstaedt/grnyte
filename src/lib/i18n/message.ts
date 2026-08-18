@@ -37,7 +37,7 @@ export function hasMessage(key: string): key is MessageKey {
 
 /**
  * Resolve a paraglide key that is only known at runtime: server-emitted form issues and the
- * activity feed's `(entityType, type, columnName)` verbs both compute their keys.
+ * activity feed's `(objectType, verb, columnName)` catalogue entries both compute their keys.
  * `options.locale` is what makes this usable off the request's ambient locale: the push cron
  * renders the SAME keys the feed card does, once per recipient, in whichever language that
  * account is written to. Omitted, it follows the ambient locale exactly as before.

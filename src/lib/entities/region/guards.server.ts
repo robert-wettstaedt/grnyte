@@ -97,7 +97,7 @@ export async function findActiveMember(db: Db, regionFk: number, userFk: number)
 /**
  * Every check `restoreRegionMember` makes, in one place so the whole decision is testable.
  *
- * The removal activity is what makes an undo an undo rather than an insert: without it every
+ * The removal event is what makes an undo an undo rather than an insert: without it every
  * field of the restore snapshot is client-supplied, and an admin can add any user in the database
  * to their region - no invitation, no consent, no seat limit - by reading the ids straight off the
  * globally readable `users` table. `authUserFk` comes back derived rather than trusted, because it

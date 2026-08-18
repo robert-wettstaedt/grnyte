@@ -6,7 +6,7 @@ import type { CardLine } from './line'
 import { entityMap, group, line } from './line.fixture'
 import { WRITTEN_ROWS } from './verbs'
 
-/** The card for a set of activities, folded exactly as the feed folds them. */
+/** The card for a set of events, folded exactly as the feed folds them. */
 /**
  * The card those lines make.
  *
@@ -188,7 +188,7 @@ describe('headline keys', () => {
 
   // The catalogue is type-checked against paraglide, so this is about the lookup rather than
   // the keys: a row the mutation layer writes must find its own entry, not degrade past it.
-  it('resolves every activity the mutation layer writes to its catalogue entry', () => {
+  it('resolves every event the mutation layer writes to its catalogue entry', () => {
     const degraded = WRITTEN_ROWS.map((partial) => ({
       key: card([line(partial)]).headline.key,
       partial,

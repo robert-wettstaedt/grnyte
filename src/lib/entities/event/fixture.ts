@@ -3,9 +3,9 @@ import type { EventListItem } from './mapper'
 /**
  * The event fixtures tests and stories build on.
  *
- * One builder rather than one per file, for the reason the activity fixture records: the row shape
- * was copied into three test files and a story module, so a field added to it had to be remembered
- * four times and a drifted default made two files disagree about what a plain row is.
+ * One builder rather than one per file. The row shape used to be copied into three test files and
+ * a story module, so a field added to it had to be remembered four times and a drifted default
+ * made two files disagree about what a plain row is.
  *
  * Not imported by the app.
  */

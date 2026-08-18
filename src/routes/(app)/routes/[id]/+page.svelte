@@ -101,14 +101,14 @@
   const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
   const nav = $derived(toSheetNav(orderedSiblings, routeId, routeHref))
 
-  /** Whether the activity log is up. It owns the screen while it is, like the media viewer. */
+  /** Whether the event log is up. It owns the screen while it is, like the media viewer. */
   let logOpen = $state(false)
 
   // j / l page to the previous / next sibling, matching the explore sheet pages.
   function handleNavKey(event: KeyboardEvent) {
     if (nav == null || isNavKeyExempt(event)) return
     // The media viewer owns j/l while it's open (it pages media siblings), and so does the
-    // activity log: paging out from under an open sheet leaves it showing another route's history.
+    // event log: paging out from under an open sheet leaves it showing another route's history.
     if (page.url.searchParams.has('media') || logOpen) return
     const href = event.key === 'j' ? nav.prev.href : event.key === 'l' ? nav.next.href : null
     if (href == null) return

@@ -59,7 +59,7 @@ export async function resolveFirstAscensionists(
 
     // A claim binds an account to a climbing identity: it shows on the profile and feeds the
     // stats, and it happens once ever, since every later edit matches the row that exists now.
-    // Worth its own row despite the route activity alongside it, which records a different
+    // Worth its own row despite the route event alongside it, which records a different
     // thing (the route's history changed, not who somebody is).
     if (claimedUserFk != null) {
       await insertEvent(db, {

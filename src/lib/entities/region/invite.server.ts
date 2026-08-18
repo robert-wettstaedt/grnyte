@@ -401,7 +401,7 @@ export async function resendInvitation(
   db: Db,
   // `inviter` is whoever hit Resend, not whoever sent the original. That is what the mail names,
   // and it is the person the invitee would reply to. `inviterFk` is the same person, for the
-  // activity below; absent, nothing is logged, which is what the tests that do not care pass.
+  // event below; absent, nothing is logged, which is what the tests that do not care pass.
   {
     invitationFk,
     inviter,
@@ -548,7 +548,7 @@ export async function resolveInviteState(
 }
 
 /** Undo a {@link revokeInvitation}: back to pending with a fresh expiry, same token. Returns what
- *  the caller needs to erase the activity the revoke logged. */
+ *  the caller needs to erase the event the revoke logged. */
 export async function restoreInvitation(
   db: Db,
   invitationFk: number,

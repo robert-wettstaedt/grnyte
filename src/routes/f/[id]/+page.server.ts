@@ -132,7 +132,7 @@ export const load = (async ({ locals, params }) => {
         }
 
   // The entity this file hangs on (exactly one FK is set), so a delete can navigate back to
-  // it instead of home. Same precedence as deleteFile's activity target.
+  // it instead of home. Same precedence as deleteFile's event target.
   const parent: null | { id: number; type: 'area' | 'ascent' | 'block' | 'route' } =
     row.routeFk != null
       ? { id: row.routeFk, type: 'route' }

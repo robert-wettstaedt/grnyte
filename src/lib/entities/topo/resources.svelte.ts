@@ -16,7 +16,7 @@ export function blockTopoList(id: () => number) {
 
 /**
  * Every topo of several blocks at once, keyed by its own id: what the feed needs to draw the
- * photo an activity row points at, for a window of rows that may span many blocks.
+ * photo a change row points at, for a window of rows that may span many blocks.
  */
 export function toposByBlockIds(blockIds: () => number[]) {
   return createResource(

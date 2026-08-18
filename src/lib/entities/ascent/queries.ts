@@ -5,8 +5,7 @@ import z from 'zod'
 
 /**
  * The enriched ascent tree behind `toUserAscentDetail`: author, media, and the route's name
- * and community grade with its block and area. Shared by the profile's list and the
- * activity feed's id lookup so the two can't drift into different DTO shapes.
+ * and community grade with its block and area.
  */
 const detailedAscents = (ctx: Parameters<typeof relatedRegion>[0]) => {
   const r = relatedRegion(ctx)
@@ -28,14 +27,6 @@ export const ascentsQueryDefs = {
         .where('id', args.ascentId)
         .related('files', (q) => r(q).related('bunnyStream').related('author'))
     }),
-  ),
-
-  // Ascents for a set of ids, on the same tree as listUserAscentsDetailed. The activity
-  // feed hydrates them this way: `activities.entityId` is polymorphic text, so Zero cannot
-  // join an activity row to its ascent and the ids have to be collected and re-queried.
-  listAscentsByIds: defineQuery(
-    z.object({ ascentId: z.array(z.number()) }),
-    regionMemberCan(({ args, ctx }) => detailedAscents(ctx).where('id', 'IN', args.ascentId)),
   ),
 
   // All ascents of one route, with their media and author: feeds the route detail

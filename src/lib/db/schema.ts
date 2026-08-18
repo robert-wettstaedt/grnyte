@@ -38,11 +38,11 @@ import {
   createBasicTablePolicies,
   getAuthorizedInRegionPolicyConfig,
   getAuthorizedPolicyConfig,
-  getOwnActivityPolicyConfig,
   getOwnEntryPolicyConfig,
   getOwnEventChildPolicyConfig,
   getOwnEventPolicyConfig,
   getOwnReactionPolicyConfig,
+  getOwnRowPolicyConfig,
   getPolicyConfig,
 } from './policy'
 
@@ -1312,6 +1312,11 @@ export const geolocationsRelations = relations(geolocations, ({ one }) => ({
 export const activityType: ['created', 'updated', 'deleted', 'uploaded'] = ['created', 'updated', 'deleted', 'uploaded']
 export const activityParentEntityType: ['block', 'route', 'area', 'ascent'] = ['block', 'route', 'area', 'ascent']
 
+/**
+ * Retired. Nothing in the app reads or writes this table any more, replaced by `events` and
+ * `changes`; it is kept only so a future migration can drop it, and its policies are kept with it
+ * so the rows stay readable to the same people until that happens.
+ */
 export const activities = table(
   'activities',
   {
@@ -1354,14 +1359,14 @@ export const activities = table(
     ),
     policy(
       `${REGION_PERMISSION_READ} can delete their own activities`,
-      getOwnActivityPolicyConfig('delete', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('delete', REGION_PERMISSION_READ),
     ),
-    // Without this, `createUpdateActivity`'s debounce silently loses writes: a table with RLS on
-    // denies any command it has no policy for, so its merge-into-the-existing-row UPDATE matched
-    // nothing and the change had already been taken off the insert list.
+    // Without this, the activities log's debounced writer used to silently lose updates: a table
+    // with RLS on denies any command it has no policy for, so its merge-into-the-existing-row
+    // UPDATE matched nothing and the change had already been taken off the insert list.
     policy(
       `${REGION_PERMISSION_READ} can update their own activities`,
-      getOwnActivityPolicyConfig('update', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('update', REGION_PERMISSION_READ),
     ),
   ],
 ).enableRLS()
@@ -1381,13 +1386,8 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
  *
  * What happened, as opposed to what changed. See CONTEXT.md for the vocabulary.
  *
- * WRITTEN BUT NOT READ. The write path has finished moving: every mutation logs here and nothing
- * writes `activities` any more. NOTHING reads `events` yet, and the readers still read
- * `activities`, so the feed and the digest currently show only what the backfill put there and
- * nothing that has happened since - no new card, no new digest entry, and
- * `user_settings.pushed_up_to_activity_id` stands still. That gap is deliberate and only tolerable
- * because nothing is deployed; it closes when the readers move over. `activities` keeps its rows
- * until then, which is what makes the folding backfill checkable against its source.
+ * Replaces `activities`: every mutation logs here, and the feed and the digest read from here
+ * too. `activities` keeps its rows for now, retired rather than dropped.
  *
  *
  */
@@ -1600,8 +1600,8 @@ export const changes = table(
     index('changes_region_fk_idx').on(table.regionFk),
     // One row per column per event is the fold's contract, so it is a constraint rather than a
     // convention. It also lets the fold be a single `ON CONFLICT (event_fk, column_name) DO
-    // UPDATE` instead of the read-then-write that today's `createUpdateActivity` performs, which
-    // is what makes a double-submit produce two contradictory `grade` lines on one card.
+    // UPDATE` instead of the read-then-write the activities log used to do, which is what let a
+    // double-submit produce two contradictory `grade` lines on one card.
     uniqueIndex('changes_event_fk_column_name_idx').on(table.eventFk, table.columnName),
     // Partial for the same reason as `events`: at most one of the six is ever set, and the only
     // query that reads them is a scoped log asking for one entity.

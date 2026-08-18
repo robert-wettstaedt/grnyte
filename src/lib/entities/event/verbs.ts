@@ -7,7 +7,7 @@ import type { EventVerb } from './mapper'
 /**
  * Whose ascent a deletion took, as its row recorded it.
  *
- * An ascent is hard-deleted, and the activity row is written in the same transaction, so by the
+ * An ascent is hard-deleted, and the event row is written in the same transaction, so by the
  * time any reader sees the card there is nothing left to ask who climbed it. Without this the
  * card can only say "removed an ascent of Rampe", which is the one thing a maintainer clearing
  * up somebody else's log must not say. Same reasoning as the name an area delete stashes in
