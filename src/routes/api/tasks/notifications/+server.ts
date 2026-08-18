@@ -241,9 +241,10 @@ async function sendDigests(nowMs: number): Promise<number> {
     // `digestFloor` reads it as 0, and this person would be pushed the region's entire history 500
     // events at a time, once per run, until it caught up. `subscribeToPush` seeds the marks on
     // a FIRST subscription, so the accounts that land here are the ones that already had one when
-    // their settings row appeared: everybody who carried a 1.0 subscription across (0096 backfills
-    // those), and anybody whose settings row is created afterwards by a writer that is not
-    // `subscribeToPush`. First sight is the starting line, exactly as it is for a new subscriber.
+    // their settings row appeared: everybody who carried a 1.0 subscription across, and anybody
+    // whose settings row is created afterwards by a writer that is not `subscribeToPush`. First
+    // sight is the starting line, exactly as it is for a new subscriber, and it is the only floor
+    // those accounts get: no migration seeds the mark for them.
     if (subscriber.pushedUpTo == null && subscriber.seenUpTo == null) {
       await advanceWatermark(subscriber.userFk, newestEventAt ?? new Date(0))
       return false
