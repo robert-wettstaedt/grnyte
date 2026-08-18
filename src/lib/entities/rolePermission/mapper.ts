@@ -28,7 +28,7 @@ export function roleLabel(role: AppRole, options?: MessageOptions): string {
  * when it is not a role this app assigns.
  *
  * {@link roleLabel} answers "Admin" for anything it does not recognise, which is right for an
- * `AppRole` and wrong for a string off an activity row: a typo, a retired role or `app_admin`
+ * `AppRole` and wrong for a string read back out of storage: a typo, a retired role or `app_admin`
  * itself would all read as a promotion. The guard belongs here, with the function whose
  * fallback makes it necessary, rather than at each call site that handles stored values.
  */

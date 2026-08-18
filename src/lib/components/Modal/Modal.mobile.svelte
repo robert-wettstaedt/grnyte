@@ -8,6 +8,7 @@
   let {
     backdrop = false,
     children,
+    fill = false,
     footer,
     headerLeft,
     headerRight,
@@ -107,7 +108,13 @@
       {/if}
     </div>
 
-    <BottomSheet.Content class="w-full px-4! pt-4! pb-4!">
+    <!-- `h-full` hands the scroll area's own height down: `.scroll-clip` is the one element in the
+         chain with a definite one (the sheet is sized from its snap point), so without it a child
+         asking for `h-full` has nothing to resolve against and keeps whatever height it shipped.
+         `block!` with it, because the library ships this as `inline-block`, and an inline box sits
+         on a text baseline: the descender space under it is six more pixels than the scroll area
+         has, which is a scrollbar for content that fits. -->
+    <BottomSheet.Content class="w-full px-4! pt-4! pb-4! {fill ? 'block! h-full' : ''}">
       {@render children?.()}
     </BottomSheet.Content>
 

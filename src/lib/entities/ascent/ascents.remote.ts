@@ -8,8 +8,8 @@ import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, isNull } from 'drizzle-orm'
 import z from 'zod'
-import { stringifyDeletedAscent } from '../activity/verbs'
 import { canHardDelete, createUpdateEvent, insertEvent } from '../event/event.server'
+import { stringifyDeletedAscent } from '../event/verbs'
 import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
 import { notify, notifyMentions } from '../notification/notification.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
@@ -77,8 +77,7 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { after
     notifyMentions({
       actorFk: user.id,
       body: value.notes,
-      entityId: ascent.id,
-      entityType: 'ascent',
+      object: { id: ascent.id, type: 'ascent' },
       regionFk: route.regionFk,
     }),
   )
@@ -142,15 +141,14 @@ export const updateAscent = authedForm(
     // `notify` drops the actor from the recipients, so editing your own is silent.
     //
     // Gated on the diff, not on the submit: a maintainer who opens somebody's ascent and saves it
-    // untouched logs no activity, and must not announce one either. Worse than the noise, the
+    // untouched logs no event, and must not announce one either. Worse than the noise, the
     // unique index would keep that empty save as the row for this (actor, ascent, kind) pair and
     // swallow the real edit that followed it.
     if (edited) {
       afterCommit(() =>
         notify({
           actorFk: user.id,
-          entityId: ascent.id,
-          entityType: 'ascent',
+          object: { id: ascent.id, type: 'ascent' },
           regionFk: ascent.regionFk,
           sourceType: 'ascent_edited',
           userFks: [ascent.createdBy],
@@ -162,8 +160,7 @@ export const updateAscent = authedForm(
       notifyMentions({
         actorFk: user.id,
         body: value.notes,
-        entityId: ascent.id,
-        entityType: 'ascent',
+        object: { id: ascent.id, type: 'ascent' },
         previousBody: ascent.notes,
         regionFk: ascent.regionFk,
       }),
@@ -230,13 +227,15 @@ export const deleteAscent = command(
 
       await recalcUserGradeAndRating(db, ascent.routeFk)
 
-      // Only when somebody else did it. Deleting your own log entry is not news: the card
-      // disappearing IS what deleting means, and announcing it defeats the point. A maintainer
-      // clearing up another person's log is accountability and stays on the record.
+      // Whoever did it, once the ascent is old enough to soft-delete. The card does NOT disappear
+      // when you delete your own: an event outlives what it describes, so the "You flashed Rampe"
+      // card stays on the feed, reactable, reading its grade and note off a row that is gone from
+      // the logbook and the grade recalc. Saying nothing left that card standing as the only
+      // account of a send that no longer exists.
       //
-      // Nothing at all is written for a mistake, because the cascade just removed the event this
-      // would hang beside.
-      if (!erasable && user.id !== ascent.createdBy) {
+      // Nothing at all is written for a mistake inside the grace window, because the cascade just
+      // removed the event this would hang beside, which is what makes that path leave no trace.
+      if (!erasable) {
         // Whose ascent this was, in metadata: on a soft delete the row survives so the card could
         // read it, but the climber's NAME still cannot be read off an ascent, and the sentence
         // needs it ("Jonas removed Mara's ascent of Rampe").
@@ -275,8 +274,7 @@ export const deleteAscent = command(
     // deleted ascent behind forever. Nothing sweeps those up later.
     await notify({
       actorFk: user.id,
-      entityId: routeFk,
-      entityType: 'route',
+      object: { id: routeFk, type: 'route' },
       regionFk,
       sourceType: 'ascent_deleted',
       userFks: [climberFk],

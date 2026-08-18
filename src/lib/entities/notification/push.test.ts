@@ -38,7 +38,7 @@ describe('isDigestDue', () => {
    * The rule that turns a forty-minute crag import into one buzz. Rows are still arriving, so the
    * oldest being well past the quiet period does not matter.
    */
-  it('waits while activity is still arriving', () => {
+  it('waits while events are still arriving', () => {
     expect(isDigestDue(ago(45 * 60_000), ago(60_000), NOW)).toBe(false)
   })
 

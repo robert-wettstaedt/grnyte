@@ -6,24 +6,24 @@
  * administrable and its membership consensual, so they are the half worth testing.
  */
 import * as schema from '$lib/db/schema'
-import { activities, regionMembers, users } from '$lib/db/schema'
+import { events, regionMembers, users } from '$lib/db/schema'
 import { formError } from '$lib/forms/schemas'
 import { error } from '@sveltejs/kit'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { isLastAdmin } from './permissions'
 
 type Db = PostgresJsDatabase<typeof schema>
 
-/** The activity `removeRegionMember` logs, and the only record that a removal happened. */
-const removalActivity = (regionFk: number, userFk: number) =>
-  and(
-    eq(activities.type, 'deleted'),
-    eq(activities.entityType, 'user'),
-    eq(activities.entityId, String(userFk)),
-    eq(activities.columnName, 'role'),
-    eq(activities.regionFk, regionFk),
-  )
+/**
+ * The event `removeRegionMember` logs, and the only record that a removal happened.
+ *
+ * `metadata is null` is load-bearing rather than tidiness: a revoked invitation writes the same
+ * verb about the same subject, with the address in `metadata`, so without it an admin who revoked
+ * an invitation could "restore" a member who was never removed.
+ */
+const removalEvent = (regionFk: number, userFk: number) =>
+  and(eq(events.verb, 'remove'), eq(events.subjectFk, userFk), eq(events.regionFk, regionFk), isNull(events.metadata))
 
 /** The user ids of a region's active admins, which is all {@link isLastAdmin} needs. */
 export async function activeAdminUserFks(db: Db, regionFk: number): Promise<number[]> {
@@ -97,7 +97,7 @@ export async function findActiveMember(db: Db, regionFk: number, userFk: number)
 /**
  * Every check `restoreRegionMember` makes, in one place so the whole decision is testable.
  *
- * The removal activity is what makes an undo an undo rather than an insert: without it every
+ * The removal event is what makes an undo an undo rather than an insert: without it every
  * field of the restore snapshot is client-supplied, and an admin can add any user in the database
  * to their region - no invitation, no consent, no seat limit - by reading the ids straight off the
  * globally readable `users` table. `authUserFk` comes back derived rather than trusted, because it
@@ -112,7 +112,7 @@ export async function resolveRestore(
   regionFk: number,
   userFk: number,
 ): Promise<{ alreadyMember: boolean; authUserFk: string }> {
-  const removal = await db.query.activities.findFirst({ where: removalActivity(regionFk, userFk) })
+  const removal = await db.query.events.findFirst({ where: removalEvent(regionFk, userFk) })
 
   if (removal == null) {
     error(404, 'Nothing to restore')

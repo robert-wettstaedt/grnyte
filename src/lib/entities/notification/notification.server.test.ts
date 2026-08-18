@@ -6,7 +6,7 @@
  * functions it calls. Two things are worth proving:
  *
  * 1. **The recipient set is exactly who can read the region.** `notificationRecipients` mirrors
- *    the `activities` SELECT policy by hand, and a hand-written mirror is the kind of thing that
+ *    the `events` SELECT policy by hand, and a hand-written mirror is the kind of thing that
  *    drifts silently. So it is not asserted against a list written out here: it is asserted
  *    against who can really `SELECT` a row in that region, impersonated the way `createDrizzle`
  *    does. Loosen the helper and this fails.
@@ -38,8 +38,12 @@ type Who = (typeof WHO)[number]
 
 let users = {} as Record<Who, SeedUser>
 let regionId = 0
-/** An activity row in the fixture region, the thing the recipient rule is mirrored from. */
-let activityId = 0
+/** An event in the fixture region, the thing the recipient rule is mirrored from. */
+let eventId = 0
+/** A real route in the fixture region: the thing the notifications point at. */
+let routeId = 0
+/** An ascent on it, for the mention rows, which are about somebody's ascent notes. */
+let ascentId = 0
 
 /** Rolls back whatever `fn` did, so a read never leaves anything behind. */
 const ROLLBACK = Symbol('rollback')
@@ -63,16 +67,22 @@ async function as<T>(who: Who, fn: (tx: postgres.TransactionSql) => Promise<T>):
   return result
 }
 
-/** Whether `who` can actually `SELECT` the fixture activity, which is what "may be told about
+/** Whether `who` can actually `SELECT` the fixture event, which is what "may be told about
  *  something in this region" means. */
 async function canReadRegion(who: Who): Promise<boolean> {
-  const rows = await as(who, (tx) => tx`select 1 from public.activities where id = ${activityId}`)
+  const rows = await as(who, (tx) => tx`select 1 from public.events where id = ${eventId}`)
   return rows.length > 0
 }
 
 async function removeFixtures() {
   await sql`delete from public.notifications where region_fk in (select id from public.regions where name = ${REGION_NAME})`
-  await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.events where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  // Crag first, and in child-to-parent order: a notification's object columns are foreign keys, so
+  // the route cannot go while a row still points at it.
+  await sql`delete from public.ascents where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.routes where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.blocks where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.areas where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.regions where name = ${REGION_NAME}`
 }
@@ -94,9 +104,26 @@ beforeAll(async () => {
       (${regionId}, 'region_admin', true, ${users.admin.authId}, ${users.admin.userId}),
       (${regionId}, 'region_user', true, ${users.member.authId}, ${users.member.userId}),
       (${regionId}, 'region_user', false, ${users.inactive.authId}, ${users.inactive.userId})`
-  ;[{ id: activityId }] = await sql<{ id: number }[]>`
-    insert into public.activities (region_fk, user_fk, entity_id, entity_type, type)
-    values (${regionId}, ${users.actor.userId}, '1', 'route', 'created') returning id`
+  // A real route to point the notifications at. The object columns are foreign keys now, so a
+  // made-up id is rejected by the database rather than stored and never looked at.
+  const [{ id: areaId }] = await sql<{ id: number }[]>`
+    insert into public.areas (name, created_by, region_fk, type)
+    values ('Klein Ilsetal', ${users.actor.userId}, ${regionId}, 'crag') returning id`
+  const [{ id: blockId }] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, created_by, region_fk, area_fk, "order")
+    values ('Nordblock', ${users.actor.userId}, ${regionId}, ${areaId}, 0) returning id`
+  ;[{ id: routeId }] = await sql<{ id: number }[]>`
+    insert into public.routes (name, created_by, region_fk, block_fk)
+    values ('Kante direkt', ${users.actor.userId}, ${regionId}, ${blockId}) returning id`
+  ;[{ id: ascentId }] = await sql<{ id: number }[]>`
+    insert into public.ascents (type, created_by, region_fk, route_fk)
+    values ('flash', ${users.member.userId}, ${regionId}, ${routeId}) returning id`
+
+  // The row `canReadRegion` probes. An EVENT, not an activity: the recipient rule mirrors the
+  // events SELECT policy, so what this asserts against has to be a row that policy governs.
+  ;[{ id: eventId }] = await sql<{ id: number }[]>`
+    insert into public.events (verb, actor_fk, region_fk, route_fk)
+    values ('create', ${users.actor.userId}, ${regionId}, ${routeId}) returning id`
 })
 
 afterAll(async () => {
@@ -158,8 +185,7 @@ describe.skipIf(!reachable)('notify', () => {
   it('writes one row per readable recipient', async () => {
     await notify({
       actorFk: users.actor.userId,
-      entityId: 42,
-      entityType: 'route',
+      object: { id: routeId, type: 'route' },
       regionFk: regionId,
       sourceType: 'ascent_edited',
       userFks: [users.admin.userId, users.member.userId, users.inactive.userId, users.outsider.userId],
@@ -167,15 +193,14 @@ describe.skipIf(!reachable)('notify', () => {
 
     const written = await rows()
     expect(written.map((row) => row.userFk).sort()).toEqual([users.admin.userId, users.member.userId].sort())
-    expect(written[0].entityId).toBe('42')
+    expect(written[0].routeFk).toBe(routeId)
     expect(written[0].readAt).toBeNull()
   })
 
   it('does not write a second row for a repeat of the same event', async () => {
     const input = {
       actorFk: users.actor.userId,
-      entityId: 42,
-      entityType: 'route' as const,
+      object: { id: routeId, type: 'route' as const },
       regionFk: regionId,
       sourceType: 'mention' as const,
       userFks: [users.member.userId],
@@ -191,8 +216,7 @@ describe.skipIf(!reachable)('notify', () => {
   it('keeps two source types on one entity apart', async () => {
     const input = {
       actorFk: users.actor.userId,
-      entityId: 42,
-      entityType: 'route' as const,
+      object: { id: routeId, type: 'route' as const },
       regionFk: regionId,
       userFks: [users.member.userId],
     }
@@ -211,8 +235,7 @@ describe.skipIf(!reachable)('notify', () => {
   it('tells somebody again about a repeat of something they already read', async () => {
     const input = {
       actorFk: users.actor.userId,
-      entityId: 42,
-      entityType: 'route' as const,
+      object: { id: routeId, type: 'route' as const },
       regionFk: regionId,
       sourceType: 'ascent_edited' as const,
       userFks: [users.member.userId],
@@ -237,8 +260,7 @@ describe.skipIf(!reachable)('notify', () => {
   it('writes nothing when nobody is left to tell', async () => {
     await notify({
       actorFk: users.actor.userId,
-      entityId: 42,
-      entityType: 'route',
+      object: { id: routeId, type: 'route' },
       regionFk: regionId,
       sourceType: 'ascent_edited',
       userFks: [users.actor.userId, users.outsider.userId],
@@ -275,8 +297,7 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     await notifyMentions({
       actorFk: users.actor.userId,
       body: `Belayed by !users:${users.member.userId}! and !users:${users.member.userId}! again.`,
-      entityId: 7,
-      entityType: 'ascent',
+      object: { id: ascentId, type: 'ascent' },
       regionFk: regionId,
     })
 
@@ -290,8 +311,7 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     await notifyMentions({
       actorFk: users.actor.userId,
       body: 'See !areas:1! and !blocks:2! and !routes:3!.',
-      entityId: 7,
-      entityType: 'ascent',
+      object: { id: ascentId, type: 'ascent' },
       regionFk: regionId,
     })
 
@@ -302,8 +322,7 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     await notifyMentions({
       actorFk: users.actor.userId,
       body: null,
-      entityId: 7,
-      entityType: 'ascent',
+      object: { id: ascentId, type: 'ascent' },
       regionFk: regionId,
     })
 
@@ -314,8 +333,7 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     await notifyMentions({
       actorFk: users.actor.userId,
       body: `!users:${users.member.userId}! and !users:${users.admin.userId}!`,
-      entityId: 7,
-      entityType: 'ascent',
+      object: { id: ascentId, type: 'ascent' },
       previousBody: `!users:${users.member.userId}!`,
       regionFk: regionId,
     })
@@ -336,8 +354,7 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     const input = {
       actorFk: users.actor.userId,
       body,
-      entityId: 7,
-      entityType: 'ascent' as const,
+      object: { id: ascentId, type: 'ascent' as const },
       regionFk: regionId,
     }
 
@@ -359,8 +376,7 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     const input = {
       actorFk: users.actor.userId,
       body: `!users:${users.member.userId}!`,
-      entityId: 7,
-      entityType: 'ascent' as const,
+      object: { id: ascentId, type: 'ascent' as const },
       regionFk: regionId,
     }
 

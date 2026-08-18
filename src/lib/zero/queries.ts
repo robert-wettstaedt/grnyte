@@ -1,7 +1,7 @@
-import { activitiesQueryDefs } from '$lib/entities/activity/queries'
 import { areasQueryDefs } from '$lib/entities/area/queries'
 import { ascentsQueryDefs } from '$lib/entities/ascent/queries'
 import { blocksQueryDefs } from '$lib/entities/block/queries'
+import { eventsQueryDefs } from '$lib/entities/event/queries'
 import { favoritesQueryDefs } from '$lib/entities/favorite/queries'
 import { filesQueryDefs } from '$lib/entities/file/queries'
 import { firstAscensionistsQueryDefs } from '$lib/entities/firstAscensionist/queries'
@@ -15,10 +15,10 @@ import { usersQueryDefs } from '$lib/entities/user/queries'
 import { defineQueries } from '@rocicorp/zero'
 
 export const queries = defineQueries({
-  ...activitiesQueryDefs,
   ...areasQueryDefs,
   ...ascentsQueryDefs,
   ...blocksQueryDefs,
+  ...eventsQueryDefs,
   ...favoritesQueryDefs,
   ...filesQueryDefs,
   ...firstAscensionistsQueryDefs,

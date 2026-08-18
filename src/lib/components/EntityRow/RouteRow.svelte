@@ -45,7 +45,7 @@
     /** The user's logged ascent state, if any. */
     status?: AscentStatus
     /** Layout variant, passed through to {@link Row}: `option` is the flat, tighter row
-     *  for nesting inside another card (e.g. an activity card). */
+     *  for nesting inside another card (e.g. an event card). */
     variant?: 'card' | 'option'
   }
 

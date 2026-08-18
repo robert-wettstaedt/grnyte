@@ -9,6 +9,13 @@ export interface Props {
   children?: Snippet
   /** Desktop panel card classes (width/height), e.g. `w-sm max-h-[80dvh]`. */
   contentClass?: string
+  /**
+   * Mobile only: the body fills the sheet instead of being sized by its content, so a child that
+   * scrolls itself (the emoji picker) is not also wrapped in the sheet's own scrollbar. Opt-in,
+   * because a body shorter than the sheet gains nothing from it. On desktop, give `contentClass`
+   * a height for the same effect.
+   */
+  fill?: boolean
   /** Pinned footer (e.g. action buttons). Fixed to the sheet bottom on mobile, to the panel bottom on desktop. */
   footer?: Snippet
   headerLeft?: Snippet

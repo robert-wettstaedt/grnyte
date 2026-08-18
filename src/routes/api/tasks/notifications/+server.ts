@@ -1,11 +1,24 @@
 import { CRON_API_KEY } from '$env/static/private'
 import { db } from '$lib/db/db.server'
-import { activities, notifications, pushSubscriptions, users, userSettings } from '$lib/db/schema'
-import { isAscentActivity } from '$lib/entities/activity/dto'
+import {
+  areas,
+  ascents,
+  blocks,
+  events,
+  files,
+  notifications,
+  pushSubscriptions,
+  routes,
+  users,
+  userSettings,
+} from '$lib/db/schema'
+import { isAscentEvent, objectOf } from '$lib/entities/event/dto'
+import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
-import { digestCopy, type DigestActivity } from '$lib/entities/notification/digest.server'
+import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
 import { readableRegions } from '$lib/entities/notification/notification.server'
 import {
+  DIGEST_COMMIT_LAG_MS,
   DIGEST_SCAN_LIMIT,
   DIGEST_TAG,
   digestFloor,
@@ -16,7 +29,7 @@ import {
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
 import { json } from '@sveltejs/kit'
-import { and, count, eq, gt, inArray, isNull, max, ne, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, lte, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
@@ -85,31 +98,58 @@ async function inBatches<T, R>(items: readonly T[], task: (item: T) => Promise<R
 
 const BATCH_SIZE = 4
 
-/** Move a person's push watermark forward, never back. */
-async function advanceWatermark(userFk: number, activityId: number): Promise<void> {
+/** Move a person's push watermark forward, never back. A timestamp, matching `events.created_at`. */
+async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> {
   await db
     .update(userSettings)
-    .set({ pushedUpToActivityId: sql`greatest(coalesce(${userSettings.pushedUpToActivityId}, 0), ${activityId})` })
+    .set({
+      pushedUpToEventAt: sql`greatest(coalesce(${userSettings.pushedUpToEventAt}, to_timestamp(0)), ${createdAt})`,
+    })
     .where(eq(userSettings.userFk, userFk))
 }
 
-/** Which switch governs an activity. Everything that is not an ascent or a person is a crag edit,
+/** Which switch governs an event. Everything that is not an ascent or a person is a crag edit,
  *  which is what `notify_moderations` always actually meant before it was renamed. */
 function categoryEnabled(
-  activity: Pick<DigestActivity, 'columnName' | 'entityType'>,
+  event: Pick<DigestEvent, 'ascentFk' | 'subjectFk' | 'verb'>,
   settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyCragEdits: boolean | null },
 ): boolean {
-  // Through the feed's own definition rather than a copy of it, so the switch cannot come to mean
-  // something the segmented control does not.
-  if (isAscentActivity(activity)) {
+  if (isAscentEvent({ ascent: event.ascentFk != null, verb: event.verb })) {
     return settings.notifyAscents !== false
   }
 
-  if (activity.entityType === 'user') {
+  if (event.subjectFk != null) {
     return settings.notifyCommunity !== false
   }
 
   return settings.notifyCragEdits !== false
+}
+
+/**
+ * Whether this person wants a push for this row.
+ *
+ * A reaction and a comment have switches of their own, because they arrive at a different rhythm
+ * than the rest of the directed half: a busy card can produce several in an evening, and somebody
+ * who wants to hear about a mention on their ascent may not want to hear about every 👍. Anything
+ * else is `notifyDirected`, which is the switch it always was.
+ *
+ * Only PUSH. Every one of these rows is in the inbox whatever the switches say.
+ */
+function directedWanted(row: {
+  notifyComments: boolean | null
+  notifyDirected: boolean | null
+  notifyReactions: boolean | null
+  sourceType: string
+}): boolean {
+  if (row.sourceType === 'reaction') {
+    return row.notifyReactions !== false
+  }
+
+  if (row.sourceType === 'comment') {
+    return row.notifyComments !== false
+  }
+
+  return row.notifyDirected !== false
 }
 
 /** Usernames by id, for the digest headline's actor slot. */
@@ -128,11 +168,38 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
 }
 
 /**
+ * How far a scan may safely mark, given `created_at` is not unique.
+ *
+ * A full scan can cut inside a group of events sharing one millisecond, and the mark is a
+ * timestamp: advancing to the last row's would put the tied siblings below it forever. So a
+ * truncated scan stops at the last row BEFORE the trailing tie group, which is then re-read next
+ * run. The one case that cannot be handled that way is a whole window of one millisecond, where
+ * stopping short would never advance at all; there the tie is taken whole, which is the lesser
+ * failure (a repeat, not a silence) and needs 500 events inside one millisecond to reach.
+ */
+function safeMark(scanned: readonly { createdAt: Date }[], truncated: boolean): Date {
+  const last = scanned[scanned.length - 1].createdAt
+
+  if (!truncated) {
+    return last
+  }
+
+  const kept = scanned.filter((row) => row.createdAt.getTime() !== last.getTime())
+  return kept.length === 0 ? last : kept[kept.length - 1].createdAt
+}
+
+/**
  * The digest: for each subscriber, whatever region activity has landed above both watermarks.
  *
  * `greatest(pushedUpTo, seenUpTo)` is the floor, so catching up in the feed silences the push for
- * what was read and a push never repeats itself. The watermark moves whether or not a device took
- * the payload, for the same reason the directed half stamps `pushedAt` unconditionally.
+ * what was read. The watermark moves whether or not a device took the payload, for the same reason
+ * the directed half stamps `pushedAt` unconditionally.
+ *
+ * One thing a timestamp floor cannot promise that the old id one could: an event whose author
+ * keeps editing it inside the 15-minute fold window has its `created_at` bumped by the fold, so an
+ * event already counted can rise back above the mark and be counted again. That is one repeat of a
+ * card the reader has genuinely just changed, which is the lesser half of the trade the fold buys
+ * everywhere else, and it is why this no longer claims a push never repeats itself.
  */
 async function sendDigests(nowMs: number): Promise<number> {
   // Only people with a device to push to. Everything below is per-recipient, and this is what
@@ -143,8 +210,8 @@ async function sendDigests(nowMs: number): Promise<number> {
       notifyAscents: userSettings.notifyAscents,
       notifyCommunity: userSettings.notifyCommunity,
       notifyCragEdits: userSettings.notifyCragEdits,
-      pushedUpTo: userSettings.pushedUpToActivityId,
-      seenUpTo: userSettings.seenUpToActivityId,
+      pushedUpTo: userSettings.pushedUpToEventAt,
+      seenUpTo: userSettings.seenUpToEventAt,
       userFk: pushSubscriptions.userFk,
     })
     .from(pushSubscriptions)
@@ -161,79 +228,140 @@ async function sendDigests(nowMs: number): Promise<number> {
   const userFks = subscribers.map((row) => row.userFk)
   const subscriptions = await subscriptionsFor(userFks)
   const unread = await unreadCounts(userFks)
-  // Membership alone is not the rule: the `activities` SELECT policy also requires a role that
+  // Membership alone is not the rule: the `events` SELECT policy also requires a role that
   // holds `region.read`, and a digest naming entities the reader cannot open would be worse than
   // no digest. Once for the batch, because asking per subscriber was a round trip each before the
   // scan below had even started.
   const regionsByUser = await readableRegions(userFks)
   // The starting line for anybody who has never had a watermark, see below.
-  const [{ newestActivityId }] = await db.select({ newestActivityId: max(activities.id) }).from(activities)
+  const [{ newestEventAt }] = await db.select({ newestEventAt: max(events.createdAt) }).from(events)
 
   const sendDigest = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
     // Both marks null means never initialised, which is NOT the same as "caught up to nothing":
     // `digestFloor` reads it as 0, and this person would be pushed the region's entire history 500
-    // activities at a time, once per run, until it caught up. `subscribeToPush` seeds the marks on
+    // events at a time, once per run, until it caught up. `subscribeToPush` seeds the marks on
     // a FIRST subscription, so the accounts that land here are the ones that already had one when
-    // their settings row appeared: everybody who carried a 1.0 subscription across (0096 backfills
-    // those), and anybody whose settings row is created afterwards by a writer that is not
-    // `subscribeToPush`. First sight is the starting line, exactly as it is for a new subscriber.
+    // their settings row appeared: everybody who carried a 1.0 subscription across, and anybody
+    // whose settings row is created afterwards by a writer that is not `subscribeToPush`. First
+    // sight is the starting line, exactly as it is for a new subscriber, and it is the only floor
+    // those accounts get: no migration seeds the mark for them.
     if (subscriber.pushedUpTo == null && subscriber.seenUpTo == null) {
-      await advanceWatermark(subscriber.userFk, newestActivityId ?? 0)
+      await advanceWatermark(subscriber.userFk, newestEventAt ?? new Date(0))
       return false
     }
 
-    const floor = digestFloor(subscriber.pushedUpTo, subscriber.seenUpTo)
+    const floor = new Date(digestFloor(subscriber.pushedUpTo?.getTime(), subscriber.seenUpTo?.getTime()))
     const regions = regionsByUser.get(subscriber.userFk) ?? []
 
     if (regions.length === 0) {
       return false
     }
 
-    const queued = await db
+    const rows = await db
       .select({
-        columnName: activities.columnName,
-        createdAt: activities.createdAt,
-        entityId: activities.entityId,
-        entityType: activities.entityType,
-        id: activities.id,
-        metadata: activities.metadata,
-        newValue: activities.newValue,
-        // The name of a DELETED entity lives nowhere else: `entityNames` finds nothing for it, and
-        // the headline then falls back to whichever value column the verb says carries the name.
-        // Leaving it out renders every deletion with `common_unnamed`.
-        oldValue: activities.oldValue,
-        parentEntityId: activities.parentEntityId,
-        parentEntityType: activities.parentEntityType,
-        regionFk: activities.regionFk,
-        type: activities.type,
-        userFk: activities.userFk,
+        actorFk: events.actorFk,
+        areaFk: events.areaFk,
+        // The eight fks the parent hop reads, handed to `eventParentRef` below rather than
+        // resolved in SQL. What a burst groups on has to be the hop the FEED reads, and a
+        // `coalesce` and a `case` kept in step with it by hand is a push that groups differently
+        // from the cards it summarises. Without a parent at all, every edit under one block is its
+        // own group, which inflates the "and 12 more" the digest reports.
+        areaParentFk: areas.parentFk,
+        ascentFk: events.ascentFk,
+        ascentRouteFk: ascents.routeFk,
+        // The catalogue keys a logged ascent on its type, which is a column of the ascent rather
+        // than of the event. Without it every send in a digest reads as the generic sentence.
+        ascentType: ascents.type,
+        blockAreaFk: blocks.areaFk,
+        blockFk: events.blockFk,
+        // The first column an update moved, which is what the catalogue keys the sentence on: an
+        // update carries no verb of its own beyond "update", so without this a grade change reads
+        // as "edited the route" and a file or membership edit falls all the way through to the
+        // generic sentence.
+        changedColumn: sql<
+          null | string
+        >`(select c.column_name from public.changes c where c.event_fk = ${events.id} order by c.id limit 1)`,
+        createdAt: events.createdAt,
+        fileAreaFk: files.areaFk,
+        fileAscentFk: files.ascentFk,
+        fileBlockFk: files.blockFk,
+        fileFk: events.fileFk,
+        fileRouteFk: files.routeFk,
+        id: events.id,
+        metadata: events.metadata,
+        regionFk: events.regionFk,
+        routeBlockFk: routes.blockFk,
+        routeFk: events.routeFk,
+        subjectFk: events.subjectFk,
+        verb: events.verb,
       })
-      .from(activities)
+      .from(events)
+      // All on primary keys, and `events_one_object` allows at most one of them to match, so none
+      // of these can multiply a row.
+      .leftJoin(areas, eq(areas.id, events.areaFk))
+      .leftJoin(ascents, eq(ascents.id, events.ascentFk))
+      .leftJoin(blocks, eq(blocks.id, events.blockFk))
+      .leftJoin(files, eq(files.id, events.fileFk))
+      .leftJoin(routes, eq(routes.id, events.routeFk))
       .where(
         and(
-          gt(activities.id, floor),
-          inArray(activities.regionFk, regions),
+          gt(events.createdAt, floor),
+          // Stops short of the last half minute: a row is stamped when it is written and visible
+          // only when its transaction commits, so reading right up to now would let the mark step
+          // over something still in flight. See `DIGEST_COMMIT_LAG_MS`.
+          lte(events.createdAt, new Date(nowMs - DIGEST_COMMIT_LAG_MS)),
+          inArray(events.regionFk, regions),
           // Nobody is told about their own edit.
-          ne(activities.userFk, subscriber.userFk),
+          ne(events.actorFk, subscriber.userFk),
         ),
       )
-      .orderBy(activities.id)
+      .orderBy(events.createdAt, events.id)
       // Bounded, because this runs per subscriber every five minutes and `floor` can legitimately
       // be far behind (a fresh account, or somebody who had every category switched off). The
       // digest reports a count and one headline either way, so a longer tail buys nothing.
       .limit(DIGEST_SCAN_LIMIT)
 
-    if (queued.length === 0) {
+    if (rows.length === 0) {
       return false
     }
 
-    const enabled = queued.filter((activity) => categoryEnabled(activity, subscriber))
+    // The parent, resolved by the same function the feed's mapper calls.
+    const queued = rows.map(
+      ({
+        areaParentFk,
+        ascentRouteFk,
+        blockAreaFk,
+        fileAreaFk,
+        fileAscentFk,
+        fileBlockFk,
+        fileRouteFk,
+        routeBlockFk,
+        ...event
+      }) => {
+        const parent = eventParentRef({
+          areaParentFk,
+          ascentRouteFk,
+          blockAreaFk,
+          file:
+            event.fileFk == null
+              ? undefined
+              : { areaFk: fileAreaFk, ascentFk: fileAscentFk, blockFk: fileBlockFk, routeFk: fileRouteFk },
+          routeBlockFk,
+        })
+
+        return { ...event, parentId: parent?.id, parentType: parent?.type }
+      },
+    )
+
+    const enabled = queued.filter((event) => categoryEnabled(event, subscriber))
 
     // Rows this person has switched off still count as covered. Leaving them behind the watermark
     // means re-reading a growing prefix on every run and, the moment they switch that category
     // back on, one push announcing the entire backlog.
+    const mark = safeMark(queued, queued.length === DIGEST_SCAN_LIMIT)
+
     if (enabled.length === 0) {
-      await advanceWatermark(subscriber.userFk, queued[queued.length - 1].id)
+      await advanceWatermark(subscriber.userFk, mark)
       return false
     }
 
@@ -243,7 +371,7 @@ async function sendDigests(nowMs: number): Promise<number> {
       return false
     }
 
-    const actorNames = await namesOf(enabled.map((activity) => activity.userFk))
+    const actorNames = await namesOf(enabled.map((event) => event.actorFk))
     const copy = await digestCopy(enabled, actorNames, contactLocale(subscriber.contactLocale))
     if (copy == null) {
       return false
@@ -261,12 +389,24 @@ async function sendDigests(nowMs: number): Promise<number> {
 
     // Whether or not a device took it, and past everything scanned rather than only what was
     // enabled: an offline phone must not build a backlog that all fires at once later.
-    await advanceWatermark(subscriber.userFk, queued[queued.length - 1].id)
+    await advanceWatermark(subscriber.userFk, mark)
 
     return delivered
   }
 
-  return (await inBatches(subscribers, sendDigest)).filter(Boolean).length
+  // Per subscriber, because `inBatches` runs a bare `Promise.all`: one person whose digest throws
+  // (a malformed row, a query that times out) would otherwise take down the whole run, and every
+  // run after it, leaving everybody behind them in the list with no push at all.
+  const guarded = async (subscriber: (typeof subscribers)[number]): Promise<boolean> => {
+    try {
+      return await sendDigest(subscriber)
+    } catch (error) {
+      console.error(`[notifications] digest failed for user ${subscriber.userFk}`, error)
+      return false
+    }
+  }
+
+  return (await inBatches(subscribers, guarded)).filter(Boolean).length
 }
 
 /**
@@ -285,15 +425,21 @@ async function sendDirected(nowMs: number): Promise<number> {
   const due = await db
     .select({
       actorName: actor.username,
+      areaFk: notifications.areaFk,
+      ascentFk: notifications.ascentFk,
+      blockFk: notifications.blockFk,
       contactLocale: userSettings.contactLocale,
       createdAt: notifications.createdAt,
-      entityId: notifications.entityId,
-      entityType: notifications.entityType,
+      fileFk: notifications.fileFk,
       id: notifications.id,
       metadata: notifications.metadata,
+      notifyComments: userSettings.notifyComments,
       notifyDirected: userSettings.notifyDirected,
+      notifyReactions: userSettings.notifyReactions,
       regionFk: notifications.regionFk,
+      routeFk: notifications.routeFk,
       sourceType: notifications.sourceType,
+      subjectFk: notifications.subjectFk,
       userFk: notifications.userFk,
     })
     .from(notifications)
@@ -306,7 +452,7 @@ async function sendDirected(nowMs: number): Promise<number> {
     return 0
   }
 
-  const wanted = ready.filter((row) => row.notifyDirected !== false)
+  const wanted = ready.filter(directedWanted)
 
   // The same re-check the digest half makes, for the same reason. A member removed from the region
   // (or whose role lost `region.read`) between the fan-out and now would otherwise be pushed the
@@ -323,9 +469,10 @@ async function sendDirected(nowMs: number): Promise<number> {
     const view = notificationView(
       {
         actorName: row.actorName,
-        entityId: row.entityId,
-        entityType: row.entityType,
         metadata: row.metadata ?? undefined,
+        // The same derivation the inbox makes: whichever typed column is set says what the row is
+        // about. The push only needs it for the sentence, which never asks what type it was.
+        object: objectOf(row),
         sourceType: row.sourceType,
       },
       { locale },

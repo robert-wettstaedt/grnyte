@@ -1,11 +1,10 @@
 /**
- * How a topo change describes itself on an activity row.
+ * How a topo change describes itself on a change row.
  *
  * Two halves, because a topo change has two kinds of fact to carry:
  *
  * - `oldValue`/`newValue` hold the state the change moved between, which is where every
- *   other change renderer already looks, and the only pair `createUpdateActivity` knows how
- *   to fold (see its merge branch).
+ *   other change renderer already looks, and the only pair the fold knows how to merge.
  * - `metadata` holds what is not a pair: which photo the change is about, and which of the
  *   five topo mutations wrote the row. Keeping the photo out of the pair is exactly what
  *   lets two saves on one photo fold into A→C while two saves on two photos of the same

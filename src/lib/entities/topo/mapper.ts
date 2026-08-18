@@ -9,8 +9,8 @@ import type { TopoLine, TopoPoint, TopoView } from './dto'
  * whatever space they were stored in (0–1 fractions or legacy pixels).
  *
  * A path it cannot read is no line rather than an exception: every caller already
- * drops empty ones, and one of them is the feed, which parses paths decoded off an
- * activity row. There a throw takes down the whole card, and the row is broadcast to
+ * drops empty ones, and one of them is the feed, which parses paths decoded off a
+ * change row. There a throw takes down the whole card, and the row is broadcast to
  * everyone in the region rather than shown only on the block that owns it.
  */
 export const convertPathToPoints = (path: string): TopoPoint[] => {

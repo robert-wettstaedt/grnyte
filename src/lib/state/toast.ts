@@ -58,7 +58,7 @@ export function notifyUndo(opts: UndoToastData): void {
  * Reusable precedent for other entities:
  *   1. `delete<Entity>()` deletes and returns the snapshot to recreate from (the envelope's `data`).
  *   2. `withUndo(delete<Entity>(…), { message, onUndo: restore<Entity> })`.
- *   3. `restore<Entity>()` recreates the row and removes the activity the delete logged.
+ *   3. `restore<Entity>()` recreates the row and removes the event the delete logged.
  *
  * `waitFor` defers the restore's redirect until the recreated row has synced into the
  * local store (Zero lags server writes) — pass the entity's `waitFor*` helper so the

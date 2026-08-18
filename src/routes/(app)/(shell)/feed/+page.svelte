@@ -1,18 +1,18 @@
 <!--
   The global activity feed: everything logged across the regions the user belongs to.
 
-  Markup and the filter values. `activityFeed()` owns the window, the mark behind the "N new"
-  pill, the grouping and the hydration; `ActivityFeed` renders the cards it decides.
+  Markup and the filter values. `eventFeed()` owns the window, the mark behind the "N new"
+  pill, the grouping and the hydration; `EventFeed` renders the cards it decides.
 -->
 <script lang="ts">
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ActivityFeed from '$lib/components/ActivityFeed/ActivityFeed.svelte'
-  import ActivityFilters from '$lib/components/ActivityFeed/ActivityFilters.svelte'
+  import EventFeed from '$lib/components/EventFeed/EventFeed.svelte'
+  import EventFilters from '$lib/components/EventFeed/EventFilters.svelte'
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { ActivityCategory } from '$lib/entities/activity/dto'
-  import { activityFeed } from '$lib/entities/activity/feed.svelte'
+  import type { EventCategory } from '$lib/entities/event/dto'
+  import { eventFeed } from '$lib/entities/event/feed.svelte'
   import { userList } from '$lib/entities/user/resources.svelte'
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -28,13 +28,13 @@
   // blank. Ids are positive integers, so this is the whole grammar.
   const asNumber = (value: null | string) => (value != null && /^\d+$/.test(value) ? Number(value) : undefined)
 
-  let category = $state<ActivityCategory | undefined>(
+  let category = $state<EventCategory | undefined>(
     initial.get('category') === 'ascent' ? 'ascent' : initial.get('category') === 'update' ? 'update' : undefined,
   )
   let regionFk = $state(asNumber(initial.get('region')))
   let userFk = $state(asNumber(initial.get('user')))
 
-  const feed = activityFeed(() => ({ category, regionFk, userFk }))
+  const feed = eventFeed(() => ({ actorFk: userFk, category, regionFk }))
 
   const regions = $derived(
     global.userRegions.map((membership) => ({
@@ -51,7 +51,7 @@
   let filtersOpen = $state(false)
 
   // Who the feed can be narrowed to: the members of the region in view, or of every region the
-  // user belongs to while none is picked. Scoped that way because activity rows are region-bound,
+  // user belongs to while none is picked. Scoped that way because event rows are region-bound,
   // so offering a member of another region would offer a provably empty feed.
   //
   // ponytail: capped rather than searchable. A region is bounded by `maxMembers`, so the list is
@@ -108,7 +108,7 @@
        nothing on desktop, once installed, or once the nag policy has retired it. -->
   <InstallApp dismissible />
 
-  <ActivityFilters
+  <EventFilters
     bind:category
     currentUserFk={global.user?.id}
     {filtered}
@@ -124,7 +124,7 @@
 
   <QueryState resource={feed.resource}>
     {#snippet ready()}
-      <ActivityFeed
+      <EventFeed
         expandedIds={feed.expandedIds}
         hasMore={feed.hasMore}
         newCount={feed.newCount}

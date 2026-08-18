@@ -1,3 +1,4 @@
+import type { RegionMembership } from '$lib/entities/region/dto'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import { toNotification } from './mapper'
@@ -15,10 +16,21 @@ export interface NotificationListFilter {
  */
 export const UNREAD_CAP = 99
 
-export function notificationList(filter: () => NotificationListFilter = () => ({})) {
+/**
+ * `userRegions` is a parameter rather than a read of the global state, unlike `eventList`.
+ *
+ * The badge's resource is built by `setGlobalState` itself, before it publishes the context, so a
+ * `getGlobalState()` in this body is a cycle: it threw on every authenticated page and took the
+ * whole shell down with it. Only the crumb on an entity row wants the regions, and the badge draws
+ * no rows, so it passes none and the inbox passes its own.
+ */
+export function notificationList(
+  filter: () => NotificationListFilter = () => ({}),
+  userRegions: () => RegionMembership[] = () => [],
+) {
   return createResource(
     () => queries.listNotifications(filter()),
-    (rows) => rows.map(toNotification),
+    (rows) => rows.map((row) => toNotification(row, userRegions())),
   )
 }
 

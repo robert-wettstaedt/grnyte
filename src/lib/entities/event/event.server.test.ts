@@ -11,41 +11,72 @@
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { reachable, sql } from '$lib/db/testDb'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { canHardDelete, createUpdateEvent, insertEvent } from './event.server'
+import { canHardDelete, changed, createUpdateEvent, deleteEvent, insertEvent } from './event.server'
 
 let region = 0
 let actor = 0
 let other = 0
 let route = 0
+let twin = 0
+let ownsTwin = false
 
 async function reset() {
   if (route !== 0) await db.delete(schema.events).where(eq(schema.events.routeFk, route))
 }
 
 /**
- * Found, not hard-coded. An earlier version pinned region 6 and dereferenced the first route in
- * it, which throws a TypeError during top-level await on any database where that region is empty:
- * the file errors out instead of reporting as skipped, and `describe.skipIf` never gets to run.
- * Any region with a live route will do, since nothing here depends on which one.
+ * A route of the suite's own, not one the database already had. An earlier version took the first
+ * live route and deleted every event on it in `beforeEach`, which erases real history (and, through
+ * the cascade, other people's reactions) as soon as the app starts writing events on a dev
+ * database. Nothing here depends on which route it is, only that it is ours to empty.
+ *
+ * The twin is a block whose id EQUALS the route's, inserted when the two sequences do not already
+ * collide. It is what makes the five `isNull` clauses in `objectMatches` testable at all: matching
+ * on any old block proves nothing, since its id differs anyway.
  */
 if (reachable) {
-  const [r] = await db.select().from(schema.routes).where(isNull(schema.routes.deletedAt)).limit(1)
-  const [a, b] = await db.select().from(schema.users).limit(2)
+  const [b] = await db.select().from(schema.blocks).where(isNull(schema.blocks.deletedAt)).limit(1)
+  const [a, o] = await db.select().from(schema.users).limit(2)
 
-  if (r != null && a != null && b != null) {
+  if (b != null && a != null && o != null) {
+    const [r] = await db
+      .insert(schema.routes)
+      .values({ blockFk: b.id, createdBy: a.id, name: 'event.server.test fixture', regionFk: b.regionFk })
+      .returning()
+
+    const [shared] = await db.select().from(schema.blocks).where(eq(schema.blocks.id, r.id)).limit(1)
+    const [t] =
+      shared == null
+        ? await db
+            .insert(schema.blocks)
+            .values({
+              areaFk: b.areaFk,
+              createdBy: a.id,
+              id: r.id,
+              name: 'event.server.test fixture',
+              order: 0,
+              regionFk: b.regionFk,
+            })
+            .returning()
+        : [shared]
+
     route = r.id
     region = r.regionFk
     actor = a.id
-    other = b.id
+    other = o.id
+    twin = t.id
+    ownsTwin = shared == null
   }
 }
 
 const usable = reachable && route !== 0
 
 afterAll(async () => {
-  if (reachable) await reset()
+  // The fixtures take their events with them through `events.<object>_fk on delete cascade`.
+  if (route !== 0) await db.delete(schema.routes).where(eq(schema.routes.id, route))
+  if (ownsTwin) await db.delete(schema.blocks).where(eq(schema.blocks.id, twin))
   await sql.end()
 })
 
@@ -175,6 +206,31 @@ describe.skipIf(!usable)('changes merge, undo and empty out', () => {
     expect(await changesOf(created.id)).toHaveLength(0)
   })
 
+  it('does not refloat a create whose edit undid itself', async () => {
+    const created = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+    await createUpdateEvent(db, {
+      actorFk: actor,
+      newEntity: { name: 'B' },
+      object: object(),
+      oldEntity: { name: 'A' },
+      regionFk: region,
+    })
+    const [edited] = await db.select().from(schema.events).where(eq(schema.events.id, created.id))
+
+    await createUpdateEvent(db, {
+      actorFk: actor,
+      newEntity: { name: 'A' },
+      object: object(),
+      oldEntity: { name: 'B' },
+      regionFk: region,
+    })
+
+    const [after] = await db.select().from(schema.events).where(eq(schema.events.id, created.id))
+    // A rename typed and untyped is nothing happening, so "Anna added Traumtanz" stays where it
+    // was instead of jumping back to the top of everybody's feed.
+    expect(after.createdAt.getTime()).toBe(edited.createdAt.getTime())
+  })
+
   it('reports whether the submission changed anything, not whether a row survived', async () => {
     const first = await createUpdateEvent(db, {
       actorFk: actor,
@@ -218,7 +274,7 @@ describe.skipIf(!usable)('changes merge, undo and empty out', () => {
   })
 })
 
-describe.skipIf(!usable)('only a refinement joins, and only a create or update absorbs', () => {
+describe.skipIf(!usable)('a refinement joins, a repeat collapses, a different verb does neither', () => {
   it('never folds a delete into an open update, so the deletion is still recorded', async () => {
     const edit = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'update' })
     const removal = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'delete' })
@@ -227,11 +283,28 @@ describe.skipIf(!usable)('only a refinement joins, and only a create or update a
     expect(removal.verb).toBe('delete')
   })
 
-  it('gives each add its own event, so two photos are two cards', async () => {
-    const first = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'add' })
-    const second = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'add' })
+  it('never folds an add into an open create, so the upload is still its own card', async () => {
+    const created = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+    const added = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'add' })
 
-    expect(second.id).not.toBe(first.id)
+    expect(added.id).not.toBe(created.id)
+  })
+
+  it('collapses a byte-identical repeat, so three photos off one route is one card', async () => {
+    const removals = []
+    for (let index = 0; index < 3; index++) {
+      removals.push(
+        await insertEvent(db, {
+          actorFk: actor,
+          metadata: 'photo',
+          object: object(),
+          regionFk: region,
+          verb: 'remove',
+        }),
+      )
+    }
+
+    expect(new Set(removals.map((event) => event.id)).size).toBe(1)
   })
 })
 
@@ -288,6 +361,24 @@ describe.skipIf(!usable)('an undone update keeps anything somebody else said', (
     expect(await canHardDelete(db, { childless: true, createdAt: new Date(), object: object() })).toBe(false)
   })
 
+  it('does not count a reaction that was taken back', async () => {
+    const event = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+    const [reactor] = await db.select().from(schema.users).where(eq(schema.users.id, other))
+    await db.insert(schema.reactions).values({
+      authUserFk: reactor.authUserFk,
+      body: '👍',
+      deletedAt: new Date(),
+      eventFk: event.id,
+      regionFk: region,
+      type: 'emoji',
+      userFk: other,
+    })
+
+    // The table soft-deletes, so an un-tapped emoji is still a row. Counting it would disable the
+    // grace window for this entity for good.
+    expect(await canHardDelete(db, { childless: true, createdAt: new Date(), object: object() })).toBe(true)
+  })
+
   it('refuses a hard delete when the caller says the row still has children', async () => {
     expect(await canHardDelete(db, { childless: false, createdAt: new Date(), object: object() })).toBe(false)
   })
@@ -296,6 +387,44 @@ describe.skipIf(!usable)('an undone update keeps anything somebody else said', (
     expect(
       await canHardDelete(db, { childless: true, createdAt: new Date(Date.now() - 16 * 60 * 1000), object: object() }),
     ).toBe(false)
+  })
+})
+
+describe.skipIf(!usable)('an undo erases exactly what its mutation logged', () => {
+  const eventsOnRoute = () => db.select().from(schema.events).where(eq(schema.events.routeFk, route))
+
+  it('takes the delete event and leaves the rest of the entity history standing', async () => {
+    const created = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'delete' })
+
+    await deleteEvent(db, { object: object(), verb: 'delete' })
+
+    expect((await eventsOnRoute()).map((row) => row.id)).toEqual([created.id])
+  })
+
+  it('tells an explicit null metadata from an omitted one', async () => {
+    // The shape a revoked invitation and a removed member share: same verb, and only the
+    // metadata says which of them this is.
+    const invitation = await insertEvent(db, {
+      actorFk: actor,
+      metadata: 'lea@example.com',
+      object: object(),
+      regionFk: region,
+      verb: 'remove',
+    })
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'remove' })
+
+    await deleteEvent(db, { metadata: null, object: object(), verb: 'remove' })
+
+    expect((await eventsOnRoute()).map((row) => row.id)).toEqual([invitation.id])
+  })
+
+  it('deletes nothing at all when the filter constrains nothing', async () => {
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+
+    await deleteEvent(db, {})
+
+    expect(await eventsOnRoute()).toHaveLength(1)
   })
 })
 
@@ -309,23 +438,48 @@ describe.skipIf(!usable)('the object is a real foreign key', () => {
   })
 
   it('does not join an event about a different entity that shares an id', async () => {
-    const [block] = await db
-      .select()
-      .from(schema.blocks)
-      .where(and(eq(schema.blocks.regionFk, region), inArray(schema.blocks.id, [route])))
-      .limit(1)
-
-    if (block == null) return // no block shares this route's id in the seed, nothing to prove here
+    expect(twin).toBe(route) // the fixture guarantees the collision, so this never silently passes
 
     const onRoute = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'update' })
     const onBlock = await insertEvent(db, {
       actorFk: actor,
-      object: { id: block.id, type: 'block' },
+      object: { id: twin, type: 'block' },
       regionFk: region,
       verb: 'update',
     })
 
     expect(onBlock.id).not.toBe(onRoute.id)
+
+    const [row] = await db.select().from(schema.events).where(eq(schema.events.id, onBlock.id))
+    expect(row.blockFk).toBe(twin)
+    expect(row.routeFk).toBeNull()
+
     await db.delete(schema.events).where(eq(schema.events.id, onBlock.id))
+  })
+})
+
+// Pure, so it needs no database and no skip guard. Lifted from the retired
+// `activity.server.test.ts` along with the function it covers.
+describe('changed', () => {
+  it('ignores whitespace the editor added around a value', () => {
+    // Opening a description and saving it untouched reserialises it with a trailing newline.
+    expect(changed('Sit start on crimps.', 'Sit start on crimps.\n')).toBe(false)
+    expect(changed('  Kante  ', 'Kante')).toBe(false)
+  })
+
+  // A column that was SQL NULL and a form that submits '' are the same state, "not set". The
+  // old comparison stringified null to "null", so an untouched save on a v1 row logged a card
+  // whose two sides both read "Not set".
+  it('treats an absent value and an empty one as the same', () => {
+    expect(changed(null, '')).toBe(false)
+    expect(changed(undefined, '')).toBe(false)
+  })
+
+  it('still sees a real edit', () => {
+    expect(changed('Kante', 'Kante direkt')).toBe(true)
+    expect(changed(null, 'Kante')).toBe(true)
+    expect(changed('Kante', '')).toBe(true)
+    // Whitespace inside is left alone: two trailing spaces on a line are a markdown hard break.
+    expect(changed('one\ntwo', 'one  \ntwo')).toBe(true)
   })
 })

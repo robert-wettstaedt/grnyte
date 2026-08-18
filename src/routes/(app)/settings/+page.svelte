@@ -294,6 +294,20 @@
       />
 
       <SettingSwitch
+        checked={settings?.notifyReactions ?? true}
+        hint={m.settings_notifyReactionsHint()}
+        label={m.settings_notifyReactions()}
+        onchange={(checked) => updateUserSettings({ notifyReactions: checked })}
+      />
+
+      <SettingSwitch
+        checked={settings?.notifyComments ?? true}
+        hint={m.settings_notifyCommentsHint()}
+        label={m.settings_notifyComments()}
+        onchange={(checked) => updateUserSettings({ notifyComments: checked })}
+      />
+
+      <SettingSwitch
         checked={settings?.notifyAscents ?? true}
         hint={m.settings_notifyAscentsHint()}
         label={m.settings_notifyAscents()}

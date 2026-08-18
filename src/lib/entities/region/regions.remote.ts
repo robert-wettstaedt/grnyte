@@ -8,7 +8,7 @@ import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'
 import z from 'zod'
-import { createUpdateActivity, deleteActivity, insertActivity } from '../activity/activity.server'
+import { createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notify } from '../notification/notification.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
 import { createRegionForUser, listOwnedRegions } from './create.server'
@@ -98,7 +98,7 @@ export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, 
     error(404, 'Region not found')
   }
 
-  // No activity row: `activities.entity_type` has no 'region' member, and the feed renders
+  // No event row: an event's object columns have no 'region' member, and the feed renders
   // content changes rather than settings ones.
 
   return { redirectTo: resolve('/(app)/settings/regions/[regionId]', { regionId: String(id) }) }
@@ -295,17 +295,18 @@ export const inviteRegionMember = authedForm(
     //
     // `sendInvitationEmail` reports failure rather than throwing, and logging ahead of it put
     // "You invited lea@example.com" in the region's log for a mail nobody received. The
-    // invitation itself survives a failed send, so a successful Resend logs it then; the
-    // identity collapse in `insertActivity` keeps that from stacking up a second card.
+    // invitation itself survives a failed send, so a successful Resend logs it then, and
+    // `resendInvitation` checks the log first so a resend never re-announces an invitation.
     if (sent) {
-      await insertActivity(db, {
-        columnName: 'invitation',
-        entityId: user.id,
-        entityType: 'user',
-        newValue: address,
+      // `subject_fk` holds the INVITER here, degenerately: an invitation names an address and
+      // the invitee has no account to point at. The address is in `metadata`, which is what the
+      // card renders from and what keeps two invitations from folding into one.
+      await insertEvent(db, {
+        actorFk: user.id,
+        metadata: address,
+        object: { id: user.id, type: 'user' },
         regionFk,
-        type: 'created',
-        userFk: user.id,
+        verb: 'invite',
       })
     }
 
@@ -335,14 +336,16 @@ export const revokeRegionInvitation = authedCommand(
   async ({ invitationFk }, { db, user, userRegions }): Promise<MutationResult<RevokedInvitationSnapshot>> => {
     const { email, regionFk } = await revokeInvitation(db, invitationFk, userRegions)
 
-    await insertActivity(db, {
-      columnName: 'invitation',
-      entityId: user.id,
-      entityType: 'user',
-      newValue: email,
+    // The invitation's own shape, in reverse: `subject_fk` holds the ACTOR, because the invitee
+    // still has no account to point at, and the address is in `metadata`. That pair is what tells
+    // this apart from `removeRegionMember`, which writes the same verb with the removed person as
+    // its subject and no metadata at all, so read the two together and never the verb alone.
+    await insertEvent(db, {
+      actorFk: user.id,
+      metadata: email,
+      object: { id: user.id, type: 'user' },
       regionFk,
-      type: 'deleted',
-      userFk: user.id,
+      verb: 'remove',
     })
 
     return { data: { invitationFk } }
@@ -350,24 +353,18 @@ export const revokeRegionInvitation = authedCommand(
 )
 
 /** Undo a {@link revokeRegionInvitation}: back to pending with a fresh expiry, same token, and
- *  erase the activity the revoke logged. */
+ *  erase the event the revoke logged. */
 export const restoreRegionInvitation = authedCommand(
   z.object({ invitationFk: z.number() }),
   async ({ invitationFk }, { db, userRegions }) => {
     const { email, regionFk } = await restoreInvitation(db, invitationFk, userRegions)
 
-    // Keyed on the address, not on who revoked it: any admin's undo erases the record. The command
-    // takes only an id, so an admin can restore an invitation somebody else revoked, and pinning
-    // the caller would leave that admin's "revoked" card standing next to a live pending invitation.
-    // The cost is that where the same address has been invited and revoked more than once, all its
-    // revoke cards go; that is the pre-existing trade and the feed reads better for it.
-    await deleteActivity(db, {
-      columnName: 'invitation',
-      entityType: 'user',
-      newValue: email,
-      regionFk,
-      type: 'deleted',
-    })
+    // Keyed on the address rather than on who revoked it: any admin's undo erases the record,
+    // the same way restoreRegionMember's does. The command takes only an id, so an admin can
+    // restore an invitation somebody else revoked, and pinning the caller would leave that admin's
+    // "revoked" card standing next to a live pending invitation. The address is also what keeps
+    // this off a member removal, whose `remove` event carries no metadata.
+    await deleteEvent(db, { metadata: email, regionFk, verb: 'remove' })
   },
 )
 
@@ -445,14 +442,13 @@ export const updateRegionMemberRole = authedCommand(
 
     await db.update(regionMembers).set({ role }).where(eq(regionMembers.id, member.id))
 
-    await createUpdateActivity({
-      db,
-      entityId: userFk,
-      entityType: 'user',
+    // The one case where subject and actor genuinely differ: somebody acts on somebody else.
+    await createUpdateEvent(db, {
+      actorFk: user.id,
       newEntity: { role },
+      object: { id: userFk, type: 'user' },
       oldEntity: { role: member.role },
       regionFk,
-      userFk: user.id,
     })
 
     // What you can do in a region just changed, and the feed card says it in the third person to
@@ -466,9 +462,8 @@ export const updateRegionMemberRole = authedCommand(
     afterCommit(() =>
       notify({
         actorFk: user.id,
-        entityId: userFk,
-        entityType: 'user',
         metadata: role,
+        object: { id: userFk, type: 'user' },
         regionFk,
         sourceType: 'role_changed',
         userFks: [userFk],
@@ -499,13 +494,11 @@ export const removeRegionMember = authedCommand(
 
     await db.delete(regionMembers).where(eq(regionMembers.id, member.id))
 
-    await insertActivity(db, {
-      columnName: 'role',
-      entityId: userFk,
-      entityType: 'user',
+    await insertEvent(db, {
+      actorFk: user.id,
+      object: { id: userFk, type: 'user' },
       regionFk,
-      type: 'deleted',
-      userFk: user.id,
+      verb: 'remove',
     })
 
     return {
@@ -521,7 +514,7 @@ export const removeRegionMember = authedCommand(
   },
 )
 
-/** Undo a {@link removeRegionMember}, and erase the activity it logged. */
+/** Undo a {@link removeRegionMember}, and erase the event it logged. */
 export const restoreRegionMember = authedCommand(
   z.object({
     invitedByFk: z.number().nullable(),
@@ -547,17 +540,16 @@ export const restoreRegionMember = authedCommand(
       })
     }
 
-    // Scoped to this region and the `role` column: a member can be removed from several regions, and
-    // undoing one of those must not erase the record of the others. Not scoped to the caller,
-    // for the same reason as `restoreRegionInvitation`: `assertCanEdit` above lets any admin undo
-    // any admin's removal, so pinning the actor would leave the original card next to a member who
-    // is standing right there.
-    await deleteActivity(db, {
-      columnName: 'role',
-      entityId: snapshot.userFk,
-      entityType: 'user',
+    // Scoped to this region: a member can be removed from several of them, and undoing one must
+    // not erase the record of the others. Not scoped to the caller either: `assertCanEdit` above
+    // lets any admin undo any admin's removal, so pinning the actor would leave the original card
+    // next to a member standing right there. `metadata: null` is what keeps it off a revoked
+    // invitation, which writes the same verb with the address in metadata.
+    await deleteEvent(db, {
+      metadata: null,
+      object: { id: snapshot.userFk, type: 'user' },
       regionFk: snapshot.regionFk,
-      type: 'deleted',
+      verb: 'remove',
     })
   },
 )
@@ -572,19 +564,18 @@ export const leaveRegion = authedCommand(z.object({ regionFk: z.number() }), asy
 
   await assertNotLastAdmin(db, regionFk, user.id)
 
-  // The activity has to be logged BEFORE the membership goes: inserting into `activities` is
-  // gated on authorize_in_region('region.edit'), which reads region_members and so is already
-  // false inside this transaction once your own row is deleted. Both statements share the
-  // transaction, so a failed delete still rolls the activity back.
-  // `membership`, not `role`: being removed and choosing to leave are two events, and sharing
-  // one triple made the feed render a member who left as "Mara removed Mara from the region".
-  await insertActivity(db, {
-    columnName: 'membership',
-    entityId: user.id,
-    entityType: 'user',
+  // Logged BEFORE the membership goes: inserting into `events` is gated on
+  // authorize_in_region, which reads region_members and so is already false inside this
+  // transaction once your own row is deleted. Both statements share the transaction, so a failed
+  // delete still rolls the event back.
+  //
+  // `leave`, not `remove`: being removed and choosing to leave are two different things, and
+  // sharing one spelling made the feed render a member who left as "Mara removed Mara".
+  await insertEvent(db, {
+    actorFk: user.id,
+    object: { id: user.id, type: 'user' },
     regionFk,
-    type: 'deleted',
-    userFk: user.id,
+    verb: 'leave',
   })
 
   await db.delete(regionMembers).where(eq(regionMembers.id, member.id))

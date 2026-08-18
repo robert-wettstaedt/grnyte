@@ -3,7 +3,7 @@
  * The settings writer, against a real database.
  *
  * One claim, and it can only be checked here: the fallback that creates a missing row has to
- * accept the SQL EXPRESSIONS the watermark writes hand it. `greatest(coalesce(col, 0), N)` is a
+ * accept the SQL EXPRESSIONS the watermark writes hand it. `greatest(coalesce(col, ...), v)` is a
  * self-reference Postgres rejects inside an `INSERT ... VALUES`, and an account with no settings
  * row is the only case that ever reaches that branch - so a mistake there is invisible until
  * somebody signs up, opens the feed, and their digest starts repeating itself every five minutes.
@@ -20,8 +20,16 @@ import { writeUserSettings } from './settings.server'
 let user = {} as SeedUser
 
 /** The shape the callers use: a watermark that only ever moves forward, evaluated by the database
- *  rather than by whoever read the row a moment ago. */
-const watermark = (activityId: number) => raw`greatest(coalesce(${userSettings.seenUpToActivityId}, 0), ${activityId})`
+ *  rather than by whoever read the row a moment ago. The same expression the digest writes. */
+const watermark = (at: Date) =>
+  // The stamp goes in as text and is cast, not bound as a `Date`: this fragment is spliced into an
+  // UPDATE by hand rather than going through the column's own encoder, and postgres.js refuses a
+  // `Date` there.
+  raw`greatest(coalesce(${userSettings.seenUpToEventAt}, to_timestamp(0)), ${at.toISOString()}::timestamptz)`
+
+/** Two moments, so "ahead" and "behind" are unambiguous. */
+const EARLY = new Date('2026-05-01T09:00:00.000Z')
+const LATE = new Date('2026-05-01T18:00:00.000Z')
 
 const settingsRow = async () => {
   const [row] = await db.select().from(userSettings).where(eq(userSettings.userFk, user.userId))
@@ -55,16 +63,16 @@ afterAll(async () => {
 
 describe.skipIf(!reachable)('writeUserSettings', () => {
   it('creates the missing row, expression and all', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
+    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToEventAt: watermark(EARLY) })
 
     const row = await settingsRow()
-    expect(row.seenUpToActivityId).toBe(42)
+    expect(row.seenUpToEventAt).toEqual(EARLY)
   })
 
   /** The client reads settings through `users.user_settings_fk`, so a row nothing points at is a
    *  row nothing can see. */
   it('links the new row to its user', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
+    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToEventAt: watermark(EARLY) })
 
     const row = await settingsRow()
     const [owner] = await db.select({ settingsFk: users.userSettingsFk }).from(users).where(eq(users.id, user.userId))
@@ -73,21 +81,21 @@ describe.skipIf(!reachable)('writeUserSettings', () => {
   })
 
   it('updates the row when it is already there', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(99) })
+    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToEventAt: watermark(EARLY) })
+    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToEventAt: watermark(LATE) })
 
-    expect((await settingsRow()).seenUpToActivityId).toBe(99)
+    expect((await settingsRow()).seenUpToEventAt).toEqual(LATE)
     // One row, not a second one beside it.
     expect(await db.select().from(userSettings).where(eq(userSettings.userFk, user.userId))).toHaveLength(1)
   })
 
-  /** What `greatest` is there for: a scoped feed acknowledging an older id must not undo a newer
-   *  acknowledgement. */
+  /** What `greatest` is there for: a scoped feed acknowledging an older moment must not undo a
+   *  newer acknowledgement. */
   it('leaves a watermark alone when the new value is behind it', async () => {
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(42) })
-    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToActivityId: watermark(7) })
+    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToEventAt: watermark(LATE) })
+    await writeUserSettings(db, { authUserFk: user.authId, id: user.userId }, { seenUpToEventAt: watermark(EARLY) })
 
-    expect((await settingsRow()).seenUpToActivityId).toBe(42)
+    expect((await settingsRow()).seenUpToEventAt).toEqual(LATE)
   })
 
   it('writes a plain value too', async () => {

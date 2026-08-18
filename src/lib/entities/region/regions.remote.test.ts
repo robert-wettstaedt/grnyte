@@ -14,7 +14,7 @@
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { userContributionCount } from '../activity/activities.remote'
+import { userContributionCount } from '../event/events.remote'
 import { listRegionInvitations } from './regions.remote'
 
 const HOME = '__regions_remote_home__'
@@ -71,22 +71,47 @@ beforeAll(async () => {
     values (
       ${homeRegionId}, ${INVITEE}, ${admin.userId}, gen_random_uuid(), 'pending', now() + interval '7 days')`
 
-  // Two crag-data contributions in HOME, one in OTHER, and one ascent activity that is not a crag
-  // edit at all. `entity_id` is text and points at nothing on purpose: the count reads `activities`
-  // and joins nothing, so inventing rows to match would only make the fixture harder to clean up.
+  // Real objects for the events to point at. `events` carries actual foreign keys, unlike the text
+  // `entity_id` the old `activities` table used, so a fixture cannot invent ids here.
+  const [homeArea] = await sql<{ id: number }[]>`
+    insert into public.areas (name, type, region_fk, created_by)
+    values ('__regions_remote_area__', 'crag', ${homeRegionId}, ${admin.userId}) returning id`
+  const [homeBlock] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, area_fk, region_fk, created_by, "order")
+    values ('__regions_remote_block__', ${homeArea.id}, ${homeRegionId}, ${admin.userId}, 0) returning id`
+  const [homeRoute] = await sql<{ id: number }[]>`
+    insert into public.routes (name, block_fk, region_fk, created_by)
+    values ('__regions_remote_route__', ${homeBlock.id}, ${homeRegionId}, ${admin.userId}) returning id`
+  const [homeAscent] = await sql<{ id: number }[]>`
+    insert into public.ascents (region_fk, route_fk, created_by, date_time, type)
+    values (${homeRegionId}, ${homeRoute.id}, ${contributor.userId}, '2026-08-01', 'flash') returning id`
+  const [otherArea] = await sql<{ id: number }[]>`
+    insert into public.areas (name, type, region_fk, created_by)
+    values ('__regions_remote_area_other__', 'crag', ${otherRegionId}, ${admin.userId}) returning id`
+  const [otherBlock] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, area_fk, region_fk, created_by, "order")
+    values ('__regions_remote_block_other__', ${otherArea.id}, ${otherRegionId}, ${admin.userId}, 0) returning id`
+
+  // Two crag-data contributions in HOME, one in OTHER, and one ascent event that is not a crag edit
+  // at all: `userContributionCount` asks which OBJECT column is set, and an ascent is a climber's
+  // own log rather than crag data.
   await sql`
-    insert into public.activities (region_fk, user_fk, entity_id, entity_type, type) values
-      (${homeRegionId}, ${contributor.userId}, '1', 'route', 'created'),
-      (${homeRegionId}, ${contributor.userId}, '2', 'area', 'updated'),
-      (${homeRegionId}, ${contributor.userId}, '3', 'ascent', 'created'),
-      (${otherRegionId}, ${contributor.userId}, '4', 'block', 'created')`
+    insert into public.events (region_fk, actor_fk, verb, area_fk, block_fk, route_fk, ascent_fk) values
+      (${homeRegionId},  ${contributor.userId}, 'create', null,             null,             ${homeRoute.id}, null),
+      (${homeRegionId},  ${contributor.userId}, 'update', ${homeArea.id},   null,             null,            null),
+      (${homeRegionId},  ${contributor.userId}, 'create', null,             null,             null,            ${homeAscent.id}),
+      (${otherRegionId}, ${contributor.userId}, 'create', null,             ${otherBlock.id}, null,            null)`
 })
 
 afterAll(async () => {
   if (reachable) {
-    // `activities` and `region_invitations` first: both carry a region FK, so the region delete
-    // raises 23503 otherwise. The throwaway user goes last, for the same reason.
-    await sql`delete from public.activities where region_fk in (${homeRegionId}, ${otherRegionId})`
+    // Inside out: everything carrying a region FK goes before the regions, and each object before
+    // the one it references, or the deletes raise 23503. The throwaway users go last.
+    await sql`delete from public.events where region_fk in (${homeRegionId}, ${otherRegionId})`
+    await sql`delete from public.ascents where region_fk in (${homeRegionId}, ${otherRegionId})`
+    await sql`delete from public.routes where region_fk in (${homeRegionId}, ${otherRegionId})`
+    await sql`delete from public.blocks where region_fk in (${homeRegionId}, ${otherRegionId})`
+    await sql`delete from public.areas where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.region_invitations where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.region_members where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.regions where id in (${homeRegionId}, ${otherRegionId})`

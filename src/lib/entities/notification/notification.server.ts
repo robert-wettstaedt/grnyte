@@ -13,8 +13,9 @@ import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
 import { db as baseDb } from '$lib/db/db.server'
 import { notifications, regionMembers, rolePermissions } from '$lib/db/schema'
+import { objectColumns, type EventObject } from '$lib/entities/event/event.server'
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
-import type { NotificationEntityType, NotificationSourceType } from './dto'
+import type { NotificationSourceType } from './dto'
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
 export interface NotificationRecipient {
@@ -26,10 +27,17 @@ export interface NotificationRecipient {
 export interface NotifyInput {
   /** Who caused it. Dropped from the recipients, so nobody is told about their own edit. */
   actorFk: number
-  entityId: number | string
-  entityType: NotificationEntityType
+  /**
+   * Which card, for the source types that are about one. Part of the idempotency key, so two
+   * reactions on two events about the same route stay two rows.
+   */
+  eventFk?: number
   /** Whatever the sentence needs that the entity cannot answer, e.g. the granted role. */
   metadata?: string
+  /** What the row is about. Written into whichever of the six typed columns matches its type. */
+  object: EventObject
+  /** Which comment, so the inbox can point at the row rather than at the card. */
+  reactionFk?: number
   regionFk: number
   sourceType: NotificationSourceType
   /** Candidate recipients, filtered down to the ones who can actually read the region. */
@@ -39,7 +47,7 @@ export interface NotifyInput {
 /**
  * Which of `userFks` may be told about something in `regionFk`, minus the actor.
  *
- * Mirrors the `activities` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
+ * Mirrors the `events` SELECT policy exactly (`authorize_in_region('region.read', region_fk)`,
  * which resolves to an active `region_members` row whose role holds that permission), because
  * anything looser notifies somebody about a region they cannot open. Exported so the test can
  * hold it against who can really `SELECT` the row rather than trusting this to have got it right.
@@ -94,12 +102,13 @@ export async function notify(input: NotifyInput): Promise<void> {
       recipients.map((recipient) => ({
         actorFk: input.actorFk,
         authUserFk: recipient.authUserFk,
-        entityId: String(input.entityId),
-        entityType: input.entityType,
+        eventFk: input.eventFk,
         metadata: input.metadata,
+        reactionFk: input.reactionFk,
         regionFk: input.regionFk,
         sourceType: input.sourceType,
         userFk: recipient.userFk,
+        ...objectColumns(input.object),
       })),
     )
     // The unique index collapses the same event fired twice in a row, e.g. a double submit, or a
@@ -113,14 +122,32 @@ export async function notify(input: NotifyInput): Promise<void> {
     // has been read the reader is done with it, so the same thing happening again is news: the row
     // goes back to unread and undelivered, with a fresh timestamp for the push debounce to count.
     .onConflictDoUpdate({
-      set: { createdAt: new Date(), metadata: sql`excluded.metadata`, pushedAt: null, readAt: null },
+      set: {
+        createdAt: new Date(),
+        metadata: sql`excluded.metadata`,
+        pushedAt: null,
+        // Pointed at the newer line, for the case this SET runs at all: `setWhere` below means a
+        // row the reader has NOT opened yet keeps pointing at the first comment, which is the one
+        // the notification was written about.
+        reactionFk: sql`excluded.reaction_fk`,
+        readAt: null,
+      },
       setWhere: isNotNull(notifications.readAt),
+      // The whole key, in one target rather than the two partial ones this replaced: the card and
+      // the object are both in it, and the nulls compare equal (see `notifications_source_idx`),
+      // so a row that is about a card is separated by the card and a row that is not is separated
+      // by the object.
       target: [
         notifications.userFk,
         notifications.sourceType,
-        notifications.entityType,
-        notifications.entityId,
         notifications.actorFk,
+        notifications.eventFk,
+        notifications.areaFk,
+        notifications.ascentFk,
+        notifications.blockFk,
+        notifications.fileFk,
+        notifications.routeFk,
+        notifications.subjectFk,
       ],
     })
 }
@@ -140,8 +167,7 @@ export async function notifyMentions(input: {
   actorFk: number
   /** The markdown as stored. `null`/`undefined` (a cleared description) mentions nobody. */
   body: null | string | undefined
-  entityId: number | string
-  entityType: NotificationEntityType
+  object: EventObject
   /**
    * The body this save replaced. Anybody named in it has already been told, so they are dropped.
    * Omitted when creating, where there is nothing to have been told about yet. A name that is
@@ -162,7 +188,7 @@ export async function notifyMentions(input: {
 
 /**
  * The regions each of these people may actually be told about: active membership AND a role that
- * holds `region.read`, which is what the `activities` SELECT policy requires.
+ * holds `region.read`, which is what the `events` SELECT policy requires.
  *
  * Same rule as {@link notificationRecipients}, from the other end. Push needs it because "the
  * regions I am a member of" is a looser set: revoke `region.read` from a role and its members

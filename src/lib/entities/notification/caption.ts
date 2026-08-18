@@ -1,4 +1,4 @@
-import type { ActivityEntityRef } from '$lib/entities/activity/entity'
+import type { EventEntityRef } from '$lib/entities/event/entity'
 import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import type { MessageKey, MessageOptions } from '$lib/i18n/message'
 import type { NotificationListItem, NotificationSourceType } from './dto'
@@ -27,7 +27,7 @@ export interface NotificationView {
    *
    * The region carries the place in all three, and `regionFk` already holds it.
    */
-  ref: ActivityEntityRef | undefined
+  ref: EventEntityRef | undefined
 }
 
 /** The source types whose subject the caption (and the actor's avatar) has already said. */
@@ -38,8 +38,10 @@ const NO_ROW = new Set<NotificationSourceType>(['ascent_deleted', 'invite_accept
 const KEYS: Record<NotificationSourceType, MessageKey> = {
   ascent_deleted: 'notifications_ascentDeleted',
   ascent_edited: 'notifications_ascentEdited',
+  comment: 'notifications_comment',
   invite_accepted: 'notifications_inviteAccepted',
   mention: 'notifications_mention',
+  reaction: 'notifications_reaction',
   role_changed: 'notifications_roleChanged',
 }
 
@@ -47,10 +49,7 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
  * Only what the sentence reads, so the push cron can hand over a database row without inventing
  * the fields the inbox needs and it does not (an id, a clock, a read stamp).
  */
-export type NotificationSubject = Pick<
-  NotificationListItem,
-  'actorName' | 'entityId' | 'entityType' | 'metadata' | 'sourceType'
->
+export type NotificationSubject = Pick<NotificationListItem, 'actorName' | 'metadata' | 'object' | 'sourceType'>
 
 export function notificationView(notification: NotificationSubject, options?: MessageOptions): NotificationView {
   // Through `roleLabelFor` rather than `roleLabel`, because this value came out of storage: the
@@ -67,6 +66,12 @@ export function notificationView(notification: NotificationSubject, options?: Me
         ? 'notifications_roleChangedPlain'
         : KEYS[notification.sourceType],
     params: { actor: notification.actorName, role },
-    ref: NO_ROW.has(notification.sourceType) ? undefined : { id: notification.entityId, type: notification.entityType },
+    // A row whose object is gone has none to point at, which reads the same way as the three
+    // source types that never had one: the sentence stands on its own and nothing is drawn under
+    // it. The sentence itself never asked what type the object was.
+    ref:
+      NO_ROW.has(notification.sourceType) || notification.object == null
+        ? undefined
+        : { id: String(notification.object.id), type: notification.object.type },
   }
 }

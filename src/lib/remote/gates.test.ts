@@ -91,8 +91,8 @@ const NO_GATE: Record<string, string> = {
     'Acts on whatever session the request already carries and revokes only that one; the sole input is a redirect path, validated same-origin.',
   'lib/entities/file/files.remote.ts#createBunnyVideo':
     "Takes no id at all: it mints an empty video object in the caller's own host collection, and the region gate runs at finalizeVideo, which is where an entity to attach to is finally named.",
-  'lib/entities/notification/notifications.remote.ts#markFeedSeen':
-    "Moves the caller's own feed watermark: the row is addressed by the session user, and the only client value is the activity id it is compared against.",
+  'lib/entities/notification/notifications.remote.ts#markEventFeedSeen':
+    "Moves the caller's own feed watermark: the settings row is addressed by the session user through the shared writer, and the only client value is the timestamp it is compared against.",
   'lib/entities/notification/notifications.remote.ts#markNotificationsRead':
     'Takes no input at all and updates only unread rows whose user_fk is the session user, so there is no id a caller could aim somewhere else.',
   'lib/entities/notification/notifications.remote.ts#sendTestPush':

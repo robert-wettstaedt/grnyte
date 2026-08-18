@@ -3,11 +3,11 @@
   import { resolve } from '$app/paths'
   import { page } from '$app/state'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import ActivityMeta from '$lib/components/ActivityFeed/ActivityMeta.svelte'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
   import { trackView } from '$lib/components/EntitySearch/recent.svelte'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
+  import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
@@ -101,14 +101,14 @@
   const routeHref = (id: number) => resolve('/(app)/routes/[id]', { id: String(id) })
   const nav = $derived(toSheetNav(orderedSiblings, routeId, routeHref))
 
-  /** Whether the activity log is up. It owns the screen while it is, like the media viewer. */
+  /** Whether the event log is up. It owns the screen while it is, like the media viewer. */
   let logOpen = $state(false)
 
   // j / l page to the previous / next sibling, matching the explore sheet pages.
   function handleNavKey(event: KeyboardEvent) {
     if (nav == null || isNavKeyExempt(event)) return
     // The media viewer owns j/l while it's open (it pages media siblings), and so does the
-    // activity log: paging out from under an open sheet leaves it showing another route's history.
+    // event log: paging out from under an open sheet leaves it showing another route's history.
     if (page.url.searchParams.has('media') || logOpen) return
     const href = event.key === 'j' ? nav.prev.href : event.key === 'l' ? nav.next.href : null
     if (href == null) return
@@ -349,7 +349,7 @@
         <!-- No lightbox of its own: this page already mounts one (MediaGrid below), and two
              would both match the same `?media` id and stack two viewers. The log's photos are
              this route's, so the page's set already holds them. -->
-        <ActivityMeta
+        <EventMeta
           createdAt={detail.createdAt}
           createdBy={detail.createdBy}
           lightbox={false}

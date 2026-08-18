@@ -13,7 +13,7 @@
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { m } from '$lib/paraglide/messages'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { digestCopy, entityNames, type DigestActivity } from './digest.server'
+import { digestCopy, entityNames, type DigestEvent } from './digest.server'
 
 const REGION_NAME = '__digest_test__'
 
@@ -25,21 +25,23 @@ let routeId = 0
 
 const names = () => new Map([[actor.userId, 'Anna']])
 
-/** An activity row as the cron selects it. */
-const activity = (over: Partial<DigestActivity> = {}): DigestActivity => ({
-  columnName: null,
+/** An event row as the cron selects it, parent hops joined. */
+const event = (over: Partial<DigestEvent> = {}): DigestEvent => ({
+  actorFk: actor.userId,
+  areaFk: null,
+  ascentFk: null,
+  ascentType: null,
+  blockFk: null,
   createdAt: new Date('2026-08-01T10:00:00Z'),
-  entityId: String(routeId),
-  entityType: 'route',
+  fileFk: null,
   id: 1,
   metadata: null,
-  newValue: null,
-  oldValue: null,
-  parentEntityId: String(blockId),
-  parentEntityType: 'block',
+  parentId: blockId,
+  parentType: 'block',
   regionFk: regionId,
-  type: 'created',
-  userFk: actor.userId,
+  routeFk: routeId,
+  subjectFk: null,
+  verb: 'create',
   ...over,
 })
 
@@ -109,7 +111,7 @@ describe.skipIf(!reachable)('digestCopy', () => {
 
   /** The headline is the newest group's, rendered through the catalogue and naming the entity. */
   it('renders the same sentence the feed card would, with the entity named', async () => {
-    const copy = await digestCopy([activity()], names(), 'en')
+    const copy = await digestCopy([event()], names(), 'en')
 
     expect(copy?.title).toBe('Anna added the route Kante direkt')
     // Nothing else queued, so nothing to count.
@@ -118,7 +120,7 @@ describe.skipIf(!reachable)('digestCopy', () => {
 
   /** Per recipient, off `contact_locale`, which is the whole reason the renderer takes a locale. */
   it('renders in the recipient s language', async () => {
-    const copy = await digestCopy([activity()], names(), 'de')
+    const copy = await digestCopy([event()], names(), 'de')
 
     expect(copy?.title).toBe('Anna hat die Route Kante direkt hinzugefügt')
   })
@@ -128,7 +130,7 @@ describe.skipIf(!reachable)('digestCopy', () => {
    * excludes the reader's own), so the "You added…" branch must never be reachable from here.
    */
   it('never addresses the reader as the actor', async () => {
-    const copy = await digestCopy([activity()], names(), 'en')
+    const copy = await digestCopy([event()], names(), 'en')
 
     expect(copy?.title).not.toMatch(/^You /)
   })
@@ -136,18 +138,18 @@ describe.skipIf(!reachable)('digestCopy', () => {
   /** Everything past the newest group is a number, not a list: a push nobody finishes reading. */
   it('counts the rest rather than listing it', async () => {
     const older = Array.from({ length: 4 }, (_, index) =>
-      activity({
+      event({
+        areaFk: areaId,
         // Far enough apart that the grouping cannot fold them into the newest one.
         createdAt: new Date(Date.parse('2026-08-01T10:00:00Z') - (index + 1) * 6 * 60 * 60 * 1000),
-        entityId: String(areaId),
-        entityType: 'area',
         id: 100 + index,
-        parentEntityId: null,
-        parentEntityType: null,
+        parentId: null,
+        parentType: null,
+        routeFk: null,
       }),
     )
 
-    const copy = await digestCopy([activity(), ...older], names(), 'en')
+    const copy = await digestCopy([event(), ...older], names(), 'en')
 
     expect(copy?.title).toBe('Anna added the route Kante direkt')
     expect(copy?.body).toBe('and 4 more updates')
@@ -157,24 +159,35 @@ describe.skipIf(!reachable)('digestCopy', () => {
    *  Through the message rather than its English, so rewording the placeholder is a copy change
    *  and not a broken test. */
   it('falls back to the unnamed placeholder for an entity that is gone', async () => {
-    const copy = await digestCopy([activity({ entityId: '999999999' })], names(), 'en')
+    const copy = await digestCopy([event({ routeFk: 999999999 })], names(), 'en')
 
     expect(copy?.title).toBe(`Anna added the route ${m.common_unnamed({}, { locale: 'en' })}`)
   })
 
   /**
-   * The one thing a deletion CAN be named from. `entityNames` finds nothing for a row that no
-   * longer exists, so the name has to come off the activity itself - which means the cron's select
-   * has to have fetched `oldValue`. Leaving it out reads as the unnamed placeholder on every
-   * deletion, and the test above is the one that would still pass.
+   * A deletion still names what it deleted, which is now free: anything old enough to be worth a
+   * digest soft-deletes, so the row is still there to be named. Under the old shape the name
+   * survived only in `oldValue`, and a select that forgot that column announced every deletion
+   * with the unnamed placeholder.
    */
-  it('names a deleted entity from the row that removed it', async () => {
+  it('names what a deletion deleted', async () => {
+    const copy = await digestCopy([event({ verb: 'delete' })], names(), 'en')
+
+    expect(copy?.title).toBe('Anna deleted the route Kante direkt')
+  })
+
+  /**
+   * The catalogue keys a logged ascent on the ascent TYPE, which is a column of the ascent rather
+   * than of the event: without the join the cron makes, every send in a digest degrades to the
+   * generic "added" sentence.
+   */
+  it('reads a send off the ascent type the cron joined', async () => {
     const copy = await digestCopy(
-      [activity({ entityId: '999999999', oldValue: 'Kante direkt', type: 'deleted' })],
+      [event({ ascentFk: 4242, ascentType: 'flash', parentId: routeId, parentType: 'route', routeFk: null })],
       names(),
       'en',
     )
 
-    expect(copy?.title).toBe('Anna deleted the route Kante direkt')
+    expect(copy?.title).toMatch(/flashed/i)
   })
 })

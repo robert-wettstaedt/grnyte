@@ -2,7 +2,7 @@ import { command, getRequestEvent } from '$app/server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
-import { createUpdateActivity, insertActivity } from '$lib/entities/activity/activity.server'
+import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
 import { authedCommand } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
@@ -13,10 +13,9 @@ import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../fi
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
 import { canEditTopo } from './permissions'
 
-/** Where a topo change lands in the feed: on the block, under its area. All five mutations
- *  here write against the block, since a topo has no page or row of its own. */
-interface TopoActivityTarget {
-  areaId?: null | number
+/** Where a topo change lands in the feed: on the block, since a topo has no page or row of its
+ *  own. The area is reachable from there through `blocks.area_fk`. */
+interface TopoEventTarget {
   blockId?: null | number
   regionId: number
   /** Absent for a reorder: it is the strip that changed, not a photo. */
@@ -29,32 +28,26 @@ interface TopoActivityTarget {
  * say it with - all five of these used to write the same valueless row, and the feed could
  * only report the union of them ("Topo redrawn").
  */
-const insertTopoActivity = (
+const insertTopoEvent = (
   db: PostgresJsDatabase<typeof schema>,
   user: NonNullable<App.Locals['user']>,
   action: Exclude<TopoAction, 'lines'>,
-  { areaId, blockId, regionId, topoId }: TopoActivityTarget,
+  { blockId, regionId, topoId }: TopoEventTarget,
 ) => {
   if (blockId == null) {
     return
   }
 
-  const row = {
-    columnName: 'topo' as const,
-    entityId: blockId,
-    entityType: 'block' as const,
+  // The block is the object; its area is reachable through `blocks.area_fk`. What the change is
+  // ABOUT rides in metadata, which is also what scopes the fold: two topos on one block are two
+  // events rather than one that quietly absorbs the second.
+  return insertEvent(db, {
+    actorFk: user.id,
     metadata: stringifyTopoChange({ action, topoId }),
-    parentEntityId: areaId,
-    parentEntityType: areaId == null ? undefined : ('area' as const),
+    object: { id: blockId, type: 'block' },
     regionFk: regionId,
-    userFk: user.id,
-  }
-
-  // Spelled out per branch rather than a computed `type`: the catalogue is a union of
-  // literal triples, and `'deleted' | 'updated'` is assignable to neither member.
-  return action === 'photoRemoved'
-    ? insertActivity(db, { ...row, type: 'deleted' })
-    : insertActivity(db, { ...row, type: 'updated' })
+    verb: action === 'photoRemoved' ? 'remove' : 'update',
+  })
 }
 
 /**
@@ -97,8 +90,7 @@ export const createTopo = authedCommand(
       error(500, 'Failed to create topo')
     }
 
-    await insertTopoActivity(db, user, 'photoAdded', {
-      areaId: block.areaFk,
+    await insertTopoEvent(db, user, 'photoAdded', {
       blockId: block.id,
       regionId: block.regionFk,
       topoId: created.id,
@@ -124,10 +116,9 @@ export const deleteTopo = command(
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, id),
-        with: {
-          block: { columns: { areaFk: true } },
-          file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } },
-        },
+        // `blockFk` on the file: the guards below refuse to point a topo at, or destroy, a file that
+        // is not this block's.
+        with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {
         error(404, 'Topo not found')
@@ -147,8 +138,7 @@ export const deleteTopo = command(
       const own = topo.file != null && topo.file.blockFk === topo.blockFk ? [topo.file] : []
       const targets = await deleteFileRows(db, own)
 
-      await insertTopoActivity(db, user, 'photoRemoved', {
-        areaId: topo.block?.areaFk,
+      await insertTopoEvent(db, user, 'photoRemoved', {
         blockId: topo.blockFk,
         regionId: topo.regionFk,
         topoId: id,
@@ -179,10 +169,9 @@ export const replaceTopoImage = command(
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, topoId),
-        with: {
-          block: { columns: { areaFk: true } },
-          file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } },
-        },
+        // `blockFk` on the file: the guards below refuse to point a topo at, or destroy, a file that
+        // is not this block's.
+        with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {
         error(404, 'Topo not found')
@@ -208,8 +197,7 @@ export const replaceTopoImage = command(
       const own = topo.file != null && topo.file.blockFk === topo.blockFk ? [topo.file] : []
       const targets = await deleteFileRows(db, own)
 
-      await insertTopoActivity(db, user, 'photoReplaced', {
-        areaId: topo.block?.areaFk,
+      await insertTopoEvent(db, user, 'photoReplaced', {
         blockId: topo.blockFk,
         regionId: topo.regionFk,
         topoId,
@@ -256,11 +244,7 @@ export const reorderTopos = authedCommand(
       await db.update(topos).set({ order: index }).where(eq(topos.id, id))
     }
 
-    await insertTopoActivity(db, user, 'reordered', {
-      areaId: block.areaFk,
-      blockId: block.id,
-      regionId: block.regionFk,
-    })
+    await insertTopoEvent(db, user, 'reordered', { blockId: block.id, regionId: block.regionFk })
   },
 )
 
@@ -280,10 +264,7 @@ const topoLineSchema = z.object({
 export const saveTopoLines = authedCommand(
   z.object({ lines: z.array(topoLineSchema), topoId: z.number() }),
   async ({ lines, topoId }, { db, user, userRegions }) => {
-    const topo = await db.query.topos.findFirst({
-      where: eq(topos.id, topoId),
-      with: { block: { columns: { areaFk: true } } },
-    })
+    const topo = await db.query.topos.findFirst({ where: eq(topos.id, topoId) })
     if (topo == null) {
       error(404, 'Topo not found')
     }
@@ -349,7 +330,7 @@ export const saveTopoLines = authedCommand(
     }
 
     // The lines this photo carried before and after, which is the one topo change that has a
-    // real before/after pair. `createUpdateActivity` writes only when the two differ (so a
+    // real before/after pair. `createUpdateEvent` writes only when the two differ (so a
     // Save that moved nothing logs nothing) and folds a second save within the window into
     // the first row, keeping its original `oldValue`: draw, save, redraw, save reads as one
     // change from where the photo started to where it ended up.
@@ -370,17 +351,13 @@ export const saveTopoLines = authedCommand(
     const kept = existing.filter((row) => !erased(row) && !(row.routeFk != null && desiredRoutes.has(row.routeFk)))
 
     if (topo.blockFk != null) {
-      await createUpdateActivity({
-        db,
-        entityId: topo.blockFk,
-        entityType: 'block',
+      await createUpdateEvent(db, {
+        actorFk: user.id,
         metadata: stringifyTopoChange({ action: 'lines', topoId }),
         newEntity: { topo: stringifyTopoLines([...kept, ...linesByRoute.values()].flatMap(drawn)) },
+        object: { id: topo.blockFk, type: 'block' },
         oldEntity: { topo: stringifyTopoLines(existing.flatMap(drawn)) },
-        parentEntityId: topo.block?.areaFk,
-        parentEntityType: topo.block?.areaFk == null ? undefined : 'area',
         regionFk: topo.regionFk,
-        userFk: user.id,
       })
     }
   },

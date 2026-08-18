@@ -4,8 +4,7 @@
  * actually mention you.
  *
  * Every row points at a real entity in a region both accounts belong to, so the rows hydrate the
- * way they will in production - plus one deliberately dangling ref, because the tombstone branch
- * is the one nobody remembers to check.
+ * way they will in production.
  *
  * Writes directly rather than going through `notify()`: the fan-out is what production exercises,
  * and driving it from here would need a request context it does not have. The trade is that this
@@ -85,72 +84,71 @@ const [ascent] = await sql<{ id: number }[]>`
 
 if (route == null) throw new Error(`seed-notifications: region "${region.name}" has no routes to point at`)
 
+/** One seed row. Typed explicitly because the literal array below does not use all five object
+ *  kinds, and the `ascent_edited` row spliced in further down does: without this, TS would infer
+ *  `object.type` from only the kinds actually present up front and reject the splice. */
+interface SeedRow {
+  label: string
+  metadata: null | string
+  minutesAgo: number
+  object: { id: number; type: 'area' | 'ascent' | 'block' | 'route' | 'user' }
+  read: boolean
+  sourceType: string
+}
+
 /**
  * One row per source type, newest last.
  *
  * `readAt` is mixed on purpose: the unread ones carry the accent on `/notifications` and drive the
  * bell, the tab dot and the badge, and a read one proves those surfaces ignore it.
  */
-const rows = [
+const rows: SeedRow[] = [
   {
-    entityId: String(route.id),
-    entityType: 'route',
     label: `mention on route "${route.name}"`,
     metadata: null,
     minutesAgo: 8,
+    object: { id: route.id, type: 'route' as const },
     read: false,
     sourceType: 'mention',
   },
   // The subject is the reader, so the inbox renders no entity row for this one, just the region.
   {
-    entityId: String(recipient.id),
-    entityType: 'user',
     label: 'role changed to maintainer',
     metadata: 'region_maintainer',
     minutesAgo: 26,
+    object: { id: recipient.id, type: 'user' as const },
     read: false,
     sourceType: 'role_changed',
   },
   // Points at the ROUTE, not the ascent: by the time this renders the ascent is gone, and a
   // tombstone is a worse answer than the route it was on.
   {
-    entityId: String((otherRoute ?? route).id),
-    entityType: 'route',
     label: `ascent deleted, on route "${(otherRoute ?? route).name}"`,
     metadata: null,
     minutesAgo: 95,
+    object: { id: (otherRoute ?? route).id, type: 'route' as const },
     read: false,
     sourceType: 'ascent_deleted',
   },
   {
-    entityId: String(actor.id),
-    entityType: 'user',
     label: 'invitation accepted',
     metadata: null,
     minutesAgo: 260,
+    object: { id: actor.id, type: 'user' as const },
     read: true,
     sourceType: 'invite_accepted',
   },
-  // Deliberately dangling: this is the only way to see the tombstone row without deleting
-  // something real first.
-  {
-    entityId: '999999999',
-    entityType: 'route',
-    label: 'mention on a route that no longer exists (tombstone)',
-    metadata: null,
-    minutesAgo: 1_500,
-    read: true,
-    sourceType: 'mention',
-  },
+  // No more deliberately-dangling row: the object now lands in a real foreign key
+  // (`route_fk`/`ascent_fk`/…), which rejects an id that does not exist. The tombstone case this
+  // used to exercise - a notification whose entity is gone - is unreachable by construction.
 ]
 
 if (ascent != null) {
   rows.splice(1, 0, {
-    entityId: String(ascent.id),
-    entityType: 'ascent',
     label: `ascent #${ascent.id} edited`,
     metadata: null,
     minutesAgo: 15,
+    object: { id: ascent.id, type: 'ascent' as const },
     read: false,
     sourceType: 'ascent_edited',
   })
@@ -163,11 +161,22 @@ if (ascent != null) {
 const cleared = await sql`delete from public.notifications where user_fk = ${recipient.id} returning id`
 
 for (const row of rows) {
+  // At most one of these five may be set (the sixth, `file_fk`, is never used here: a
+  // notification about an upload already points at the parent it landed on). Five plain locals
+  // rather than a lookup table, because the CHECK constraint is what actually enforces "at most
+  // one" and a computed object would only restate it.
+  const areaFk = row.object.type === 'area' ? row.object.id : null
+  const ascentFk = row.object.type === 'ascent' ? row.object.id : null
+  const blockFk = row.object.type === 'block' ? row.object.id : null
+  const routeFk = row.object.type === 'route' ? row.object.id : null
+  const subjectFk = row.object.type === 'user' ? row.object.id : null
+
   await sql`
     insert into public.notifications
-      (region_fk, actor_fk, auth_user_fk, entity_id, entity_type, metadata, source_type, user_fk, created_at, read_at)
+      (region_fk, actor_fk, auth_user_fk, area_fk, ascent_fk, block_fk, route_fk, subject_fk,
+       metadata, source_type, user_fk, created_at, read_at)
     values (
-      ${region.id}, ${actor.id}, ${recipient.authUserFk}, ${row.entityId}, ${row.entityType},
+      ${region.id}, ${actor.id}, ${recipient.authUserFk}, ${areaFk}, ${ascentFk}, ${blockFk}, ${routeFk}, ${subjectFk},
       ${row.metadata}, ${row.sourceType}, ${recipient.id},
       now() - (${row.minutesAgo} || ' minutes')::interval,
       ${row.read ? sql`now() - interval '2 minutes'` : null}

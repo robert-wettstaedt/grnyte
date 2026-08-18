@@ -15,15 +15,15 @@
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
-  import type { ActivityCardRow } from '$lib/entities/activity/card'
-  import { activityEntityKey, type ActivityEntityRef } from '$lib/entities/activity/entity'
-  import { hydrateEntities } from '$lib/entities/activity/hydrate.svelte'
+  import type { CardRow } from '$lib/entities/event/cardView'
+  import type { EventEntityRef } from '$lib/entities/event/entity'
   import { notificationView } from '$lib/entities/notification/caption'
+  import type { NotificationListItem } from '$lib/entities/notification/dto'
   import { markNotificationsRead } from '$lib/entities/notification/notifications.remote'
   import { notificationList } from '$lib/entities/notification/resources.svelte'
   import { regionCrumb } from '$lib/entities/region/mapper'
   import { resolveMessage } from '$lib/i18n/message'
-  import { formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
+  import { calendarDay, formatDay, formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -34,7 +34,9 @@
 
   const global = getGlobalState()
 
-  const notifications = notificationList()
+  // The regions are handed in rather than read inside the resource: the badge builds the same
+  // resource from `setGlobalState`, where the context does not exist yet. See `notificationList`.
+  const notifications = notificationList(undefined, () => global.userRegions)
 
   /**
    * Which rows were unread when the reader got here.
@@ -50,26 +52,19 @@
     notifications.data.map((notification) => ({ notification, view: notificationView(notification) })),
   )
 
-  /** Local calendar day as the UTC midnight `formatDay` reads, exactly as the feed's dividers. */
-  const dayOf = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-  }
+  // Local calendar day, exactly as the feed's dividers. See `calendarDay`.
 
   // Same day dividers as the feed, decided the same way: a flat sequence with a flag on the first
   // row of each day, rather than nested per-day arrays.
   const rows = $derived(
     views.map((entry, index) => ({
       ...entry,
-      day: dayOf(entry.notification.createdAt),
-      startsDay: index === 0 || dayOf(views[index - 1].notification.createdAt) !== dayOf(entry.notification.createdAt),
+      day: calendarDay(entry.notification.createdAt),
+      startsDay:
+        index === 0 ||
+        calendarDay(views[index - 1].notification.createdAt) !== calendarDay(entry.notification.createdAt),
     })),
   )
-
-  // The same second pass the feed makes, for the same reason: `entityId` is polymorphic text, so
-  // Zero cannot join a row to the thing it is about. A role change contributes no ref: its
-  // subject is the reader, so the row would be their own name.
-  const hydration = hydrateEntities(() => views.flatMap((entry) => (entry.view.ref == null ? [] : [entry.view.ref])))
 
   $effect(() => {
     for (const { notification } of views) {
@@ -79,18 +74,26 @@
     }
   })
 
-  /** A hydrated ref in the shared row's own vocabulary: still syncing, gone, or there. */
-  const rowFor = (ref: ActivityEntityRef): ActivityCardRow => {
-    const entity = hydration.entities.get(activityEntityKey(ref))
-    return {
-      entity: entity ?? undefined,
-      // Unlike an activity row, a notification stores no fallback name for its subject, so a
-      // tombstone here can only say what kind of thing is missing.
-      name: undefined,
-      ref,
-      state: entity === undefined ? 'skeleton' : entity === null ? 'tombstone' : 'entity',
-    }
-  }
+  /**
+   * The notification's own object, in the shared row's vocabulary.
+   *
+   * The entity arrives nested with the row now, so there is no waiting and no third state: it is
+   * either here or it is gone. A row whose object was already deleted when the typed columns were
+   * backfilled has no ref at all and draws nothing (see `notificationView`).
+   */
+  const rowFor = (notification: NotificationListItem, ref: EventEntityRef): CardRow => ({
+    // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an ascent it
+    // is reporting; a notification is one line telling you it happened, and the ascent's own
+    // screen is one tap away.
+    ascent: undefined,
+    entity: notification.entity,
+    // Unlike an event, a notification stores no fallback name for its subject, so a tombstone here
+    // can only say what kind of thing is missing.
+    name: undefined,
+    note: undefined,
+    ref,
+    state: notification.entity == null ? 'tombstone' : 'entity',
+  })
 
   // Opening the inbox is the act of reading it, so the whole thing is stamped once, here, rather
   // than per row. `onMount` and not an `$effect` on the list: re-stamping whenever the list
@@ -164,7 +167,7 @@
               </header>
 
               {#if view.ref != null}
-                <HydratedRow row={rowFor(view.ref)} />
+                <HydratedRow row={rowFor(notification, view.ref)} />
               {/if}
             </article>
           {/each}

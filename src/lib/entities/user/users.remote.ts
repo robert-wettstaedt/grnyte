@@ -79,12 +79,14 @@ export const updateUserSettings = authedCommand(
     // language we mail somebody in.
     contactLocale: z.enum(locales).optional(),
     gradingScale: z.enum(['FB', 'V']).optional(),
-    // The four push switches. They govern push and nothing else: what lands in the inbox and what
+    // The six push switches. They govern push and nothing else: what lands in the inbox and what
     // lands in the feed is not affected by any of them.
     notifyAscents: z.boolean().optional(),
+    notifyComments: z.boolean().optional(),
     notifyCommunity: z.boolean().optional(),
     notifyCragEdits: z.boolean().optional(),
     notifyDirected: z.boolean().optional(),
+    notifyReactions: z.boolean().optional(),
     unitSystem: z.enum(['metric', 'imperial']).nullable().optional(),
   }),
   async (values, { db, user }) => {

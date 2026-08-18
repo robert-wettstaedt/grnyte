@@ -1,5 +1,8 @@
 import type { MediaFile } from './dto'
 
+/** What a file hangs off. Route beats ascent beats block beats area, and at most one is ever set. */
+export type FileParent = { id: number; type: 'area' | 'ascent' | 'block' | 'route' }
+
 /** Structural input so both route files and nested ascent files map through it. */
 interface FileRow {
   /** Present when the query `.related('author')`; cardinality-one → single row. */
@@ -15,6 +18,27 @@ interface FileRow {
   regionFk: number
   visibility: 'private' | 'public' | null
   width: null | number
+}
+
+/**
+ * The one statement of that precedence.
+ *
+ * Read by BOTH sides and deliberately so: the delete path picks the event's object with it, and the
+ * feed groups uploads on it. Two copies agreeing today is not the same as two copies agreeing, and
+ * a divergence would land an upload card and its removal card on different locality keys, so the
+ * reader sees them as unrelated.
+ */
+export function fileParent(file: {
+  areaFk?: null | number
+  ascentFk?: null | number
+  blockFk?: null | number
+  routeFk?: null | number
+}): FileParent | undefined {
+  if (file.routeFk != null) return { id: file.routeFk, type: 'route' }
+  if (file.ascentFk != null) return { id: file.ascentFk, type: 'ascent' }
+  if (file.blockFk != null) return { id: file.blockFk, type: 'block' }
+  if (file.areaFk != null) return { id: file.areaFk, type: 'area' }
+  return undefined
 }
 
 /** `ascentCreatedBy` is deliberately NOT a parameter: it feeds permission checks, and an

@@ -11,9 +11,11 @@ import type { Schema } from './zero-schema'
  * against the generated schema, so the list cannot silently fall behind a migration. `regions`
  * itself is the one region-scoped table that is not on it: it keys on `id` rather than `regionFk`,
  * and `queries.region` spells its membership check out by hand.
+ *
+ * `activities` is off it because the events tables replaced it. Nothing reads it, and being off
+ * this list is what stops a definition naming it, at the type level rather than by review.
  */
 export const regionTables = [
-  'activities',
   'areas',
   'ascents',
   'blocks',
