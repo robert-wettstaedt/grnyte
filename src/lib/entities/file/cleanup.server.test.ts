@@ -12,7 +12,7 @@
  *    actually came back, not the rows passed in, so a row RLS silently kept keeps its bytes. Get
  *    this wrong and a read-only member's failed delete still wipes the media off the host.
  *
- * So every case runs impersonated (`request.jwt.claims` + `set local role authenticated`, exactly
+ * So every case runs impersonated (`request.jwt.claims` + `set local role app_writer`, exactly
  * what `createDrizzle` does), inside a transaction that is always rolled back. Fixtures are made
  * over the superuser connection, which bypasses RLS. Skipped when DATABASE_URL is unreachable so
  * `npm test` still passes without a local database.
@@ -60,7 +60,7 @@ async function as<T>(who: Who, fn: (tx: Tx) => Promise<T>): Promise<T> {
   try {
     await db.transaction(async (tx) => {
       await tx.execute(drizzleSql`select set_config('request.jwt.claims', ${claims}, true)`)
-      await tx.execute(drizzleSql.raw('set local role authenticated'))
+      await tx.execute(drizzleSql.raw('set local role app_writer'))
       result = await fn(tx)
       throw ROLLBACK
     })

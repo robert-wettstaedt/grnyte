@@ -38,7 +38,7 @@ export function createDrizzle<
           await tx.execute(
             sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
                        set_config('request.jwt.claim.sub', ${token.sub ?? ''}, true),
-                       set_config('role', ${token.role ?? 'anon'}, true)`,
+                       set_config('role', ${roleFor(token)}, true)`,
           )
           const result = await transaction(tx)
           return result
@@ -70,4 +70,20 @@ export async function createDrizzleSupabaseClient(supabase: SupabaseClient) {
     data: { session },
   } = await supabase.auth.getSession()
   return createDrizzle(decodeToken(session?.access_token ?? ''), db)
+}
+
+/**
+ * The database role a request runs as.
+ *
+ * Deliberately not the token's `role` claim verbatim. That claim names the role PostgREST would
+ * switch to for the same token, and `authenticated` holds no INSERT, UPDATE or DELETE on anything
+ * (see `0115_app_writer_role`): a hand-written request can read what the policies allow and write
+ * nothing at all. The app writes as `app_writer`, which is a member of `authenticated`, so every
+ * policy declared `TO authenticated` applies to it unchanged.
+ *
+ * Mapping rather than passing through also means a token can only ever select between these two,
+ * whatever its claims say.
+ */
+function roleFor(token: SupabaseToken): 'anon' | 'app_writer' {
+  return token.role === 'authenticated' ? 'app_writer' : 'anon'
 }

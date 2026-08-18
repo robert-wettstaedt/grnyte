@@ -57,7 +57,7 @@ async function as<T>(who: Who, fn: (tx: postgres.TransactionSql) => Promise<T>):
   try {
     await sql.begin(async (tx) => {
       await tx`select set_config('request.jwt.claims', ${claims}, true)`
-      await tx.unsafe('set local role authenticated')
+      await tx.unsafe('set local role app_writer')
       result = await fn(tx)
       throw ROLLBACK
     })
