@@ -26,6 +26,13 @@ export async function writeUserSettings(
   // by whoever read the row a moment ago.
   values: { [K in keyof schema.InsertUserSettings]?: schema.InsertUserSettings[K] | SQL },
 ): Promise<void> {
+  // no-drizzle-mass-assignment is exempted for both `.set(values)` in this function, deliberately.
+  // The rule exists because a spread lets the CALLER choose which columns move; here the parameter
+  // is typed to `InsertUserSettings`, so the column set is the table's and the choice of which
+  // subset to write belongs to each caller. Every caller passes a literal except `updateUserSettings`
+  // (users.remote.ts), whose zod schema is the allowlist: six preference fields, all owned by the
+  // account writing them, and not a schema shared with any create path.
+  // eslint-disable-next-line no-restricted-syntax
   const [updated] = await db
     .update(userSettings)
     .set(values)
@@ -49,5 +56,6 @@ export async function writeUserSettings(
     .returning({ id: userSettings.id })
 
   await db.update(users).set({ userSettingsFk: created.id }).where(eq(users.id, user.id))
+  // eslint-disable-next-line no-restricted-syntax -- see the note on the first `.set(values)` above
   await db.update(userSettings).set(values).where(eq(userSettings.id, created.id))
 }
