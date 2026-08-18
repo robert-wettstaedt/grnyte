@@ -1263,6 +1263,7 @@
   "notifications_emptyBody": "Mentions, changes to your ascents and role updates land here.",
   "notifications_inviteAccepted": "{actor} accepted your invitation",
   "notifications_mention": "{actor} mentioned you",
+  "notifications_pushDeviceTaken": "This device is already registered to another account",
   "notifications_roleChanged": "{actor} made you {role}",
   "notifications_roleChangedPlain": "{actor} changed your role",
   "notifications_title": "Notifications",

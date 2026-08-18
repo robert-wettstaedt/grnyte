@@ -26,7 +26,7 @@ import {
   sendInvitationEmail,
   type MailContext,
 } from './invite.server'
-import { canEditRegion } from './permissions'
+import { canEditRegion, canReadRegion } from './permissions'
 import { mapLayerSchema, type RegionSettings } from './settings'
 import { addTag, removeTag, renameTag, tagUsage } from './tags.server'
 import { MAX_TAGS, regionTags, tagNameSchema } from './tagVocabulary'
@@ -36,6 +36,14 @@ const assignableRoleSchema = z.enum(assignableRoles)
 /** Throws unless the caller may administer `regionFk`. */
 function assertCanEdit({ userRegions }: Context, regionFk: number) {
   if (!canEditRegion(userRegions, regionFk)) {
+    error(403, formError('form_noPermission'))
+  }
+}
+
+/** Throws unless the caller is a reading member of `regionFk`. For the reads every member is
+ *  entitled to, as opposed to the administrative ones {@link assertCanEdit} guards. */
+function assertIsMember({ userRegions }: Context, regionFk: number) {
+  if (!canReadRegion(userRegions, regionFk)) {
     error(403, formError('form_noPermission'))
   }
 }
@@ -132,7 +140,18 @@ export const updateRegionMapLayers = authedForm(regionMapLayersSchema, async ({ 
  */
 export const regionTagUsage = authedQuery(
   z.object({ regionFk: z.number() }),
-  ({ regionFk }, { db }): Promise<Record<string, number>> => tagUsage(db, regionFk),
+  ({ regionFk }, ctx): Promise<Record<string, number>> => {
+    // The three tag mutations below reach this check through `editableTags`; the read sitting next
+    // to them did not, and took the client's `regionFk` as given. All RLS ever gave it was a MEMBER
+    // scope, so any region_user could pull a region they cannot administer and how many routes
+    // carry each of its tags, and a stranger got a silent empty object instead of a refusal.
+    // Not routed through `editableTags`: that exists to hand a mutation the STORED vocabulary, and
+    // this query wants the gate, not the list. Admin rather than edit, because the screen it feeds
+    // (settings/regions/[regionId]/tags) is admin-only, the same as every other write in this file.
+    assertCanEdit(ctx, regionFk)
+
+    return tagUsage(ctx.db, regionFk)
+  },
 )
 
 /**
@@ -207,8 +226,19 @@ export const removeRegionTag = authedCommand(
  */
 export const listRegionInvitations = authedQuery(
   z.object({ regionFk: z.number() }),
-  async ({ regionFk }, { db }): Promise<RegionInvitationItem[]> => {
-    const rows = await db.query.regionInvitations.findMany({
+  async ({ regionFk }, ctx): Promise<RegionInvitationItem[]> => {
+    // MEMBERSHIP, not admin. The screen renders the list only to admins, but it runs this query for
+    // every member on purpose: a pending invitation holds a seat, so a member who could not see them
+    // would be shown a lower seat count than the admin sitting next to them
+    // (settings/regions/[regionId]/+page.svelte). Requiring admin here breaks that counter and 403s
+    // on every ordinary member's page load.
+    //
+    // So this reproduces exactly what the `region members can read region_invitations` policy gave
+    // it, which is what the handler has to own once RLS keeps region scoping only. The one thing it
+    // adds is refusing a non-member, who previously got a silent empty list.
+    assertIsMember(ctx, regionFk)
+
+    const rows = await ctx.db.query.regionInvitations.findMany({
       columns: { email: true, id: true, lastSentAt: true },
       // The same predicate the accept path uses, so a timed-out invitation stops holding a seat
       // here as well as there.
@@ -326,8 +356,11 @@ export const restoreRegionInvitation = authedCommand(
   async ({ invitationFk }, { db, userRegions }) => {
     const { email, regionFk } = await restoreInvitation(db, invitationFk, userRegions)
 
-    // Keyed on the address rather than on who revoked it: any admin's undo erases the record,
-    // the same way restoreRegionMember's does.
+    // Keyed on the address, not on who revoked it: any admin's undo erases the record. The command
+    // takes only an id, so an admin can restore an invitation somebody else revoked, and pinning
+    // the caller would leave that admin's "revoked" card standing next to a live pending invitation.
+    // The cost is that where the same address has been invited and revoked more than once, all its
+    // revoke cards go; that is the pre-existing trade and the feed reads better for it.
     await deleteActivity(db, {
       columnName: 'invitation',
       entityType: 'user',
@@ -514,8 +547,11 @@ export const restoreRegionMember = authedCommand(
       })
     }
 
-    // Scoped to this region and the `role` column: a member can be removed from several regions,
-    // and undoing one of those must not erase the record of the others.
+    // Scoped to this region and the `role` column: a member can be removed from several regions, and
+    // undoing one of those must not erase the record of the others. Not scoped to the caller,
+    // for the same reason as `restoreRegionInvitation`: `assertCanEdit` above lets any admin undo
+    // any admin's removal, so pinning the actor would leave the original card next to a member who
+    // is standing right there.
     await deleteActivity(db, {
       columnName: 'role',
       entityId: snapshot.userFk,

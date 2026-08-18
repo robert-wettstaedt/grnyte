@@ -1007,6 +1007,12 @@ export const files = table(
     index('files_ascent_fk_idx').on(table.ascentFk),
     index('files_block_fk_idx').on(table.blockFk),
     index('files_created_by_idx').on(table.createdBy),
+    // `path` is the lookup key for `/image/[...resourcePath]`, which now decides access from a single
+    // query on it rather than leaning on an RLS-scoped read. That runs for every `<img>` and every
+    // `?w=` derivative, so a gallery of 40 thumbnails was 40 sequential scans of `files`.
+    // Not unique: paths repeat across rows (duplicates and orphans predate this) and the route reads
+    // them all on purpose, since any row granting access unlocks the bytes.
+    index('files_path_idx').on(table.path),
     index('files_region_fk_idx').on(table.regionFk),
     index('files_route_fk_idx').on(table.routeFk),
 
