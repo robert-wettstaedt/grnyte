@@ -28,12 +28,18 @@ const writable = Object.values(schema)
 export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   await db.execute(sql`REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, public`)
 
-  // The write split `0115_app_writer_role` created the role for. `authenticated` is the role every
-  // browser holds, so it keeps SELECT and nothing else: TRUNCATE in particular is a destructive
-  // write that row-level security does not gate at all.
-  await db.execute(sql`
-    REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA public
-    FROM authenticated`)
+  // The data API, closed here rather than in the dashboard. `authenticated` and `anon` are the two
+  // roles PostgREST and pg_graphql switch to, so a role holding nothing is what makes "the data API
+  // serves nothing" a fact this file states and a test can check, instead of a toggle whose current
+  // value nobody can review. Reads move to `app_writer` below, which no request can name: the JWT
+  // says `authenticated`, and only a connection that is already a member can switch into the other.
+  //
+  // Everything, not just the write verbs: TRUNCATE is destructive and row-level security does not
+  // gate it at all, and SELECT is the half that made every policy load-bearing on its own.
+  await db.execute(sql`REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated`)
+  // The reads `authenticated` used to carry through membership. Schema-wide, because it is exactly
+  // what the app could read before: this closes the data API without changing what any page sees.
+  await db.execute(sql`GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_writer`)
   // Revoking is schema-wide because the tables that most need it are the ones nobody listed.
   // Granting is not: `app_writer` gets exactly the tables whose writes a policy decides. Everything
   // else (an extension's, the dashboard's, `keyv`, `grades`, `role_permissions`) stays reachable
@@ -71,11 +77,10 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
   // QueryPromise that only runs when something calls `then`, so the un-awaited statement here had
   // never executed once, and `anon` still held every default privilege to prove it.
   await db.execute(sql`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon`)
-  await db.execute(sql`
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public
-    REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM authenticated`)
-  // Deliberately no default GRANT for `app_writer`: a new table should arrive writable by nobody
-  // until somebody writes a policy for it and adds it to `schema.ts`.
+  await db.execute(sql`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM authenticated`)
+  // Deliberately no default grant of any kind for `app_writer`: a new table should arrive reachable
+  // by nobody until somebody writes a policy for it and adds it to `schema.ts`. The next migrate
+  // grants it whatever that policy decides, so the gap is one command long.
 
   // The other grantor: anything Supabase creates carries ITS defaults, not ours. Needs membership
   // in the role, which a managed instance may not give us, so a refusal is a notice rather than a
@@ -88,7 +93,7 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
       END IF;
 
       ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
-        REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM authenticated;
+        REVOKE ALL ON TABLES FROM authenticated;
       ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
         REVOKE ALL ON TABLES FROM anon;
     EXCEPTION

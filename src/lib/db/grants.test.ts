@@ -46,15 +46,17 @@ const grantsFor = (role: string) => sql<Grant[]>`
   where table_schema = 'public' and grantee = ${role}`
 
 describe.skipIf(!reachable)('table grants', () => {
-  it('lets authenticated read and nothing else', async () => {
-    const held = await grantsFor('authenticated')
-
-    expect(held.filter((grant) => WRITE.includes(grant.privilege))).toEqual([])
-    expect(held.length).toBeGreaterThan(0)
+  it('lets the two data-API roles touch nothing at all', async () => {
+    // Which is what "the data API is off" means when it is a fact rather than a dashboard toggle:
+    // PostgREST and pg_graphql switch to one of these two and find no table they may even name.
+    expect(await grantsFor('authenticated')).toEqual([])
+    expect(await grantsFor('anon')).toEqual([])
   })
 
-  it('lets anon touch nothing at all', async () => {
-    expect(await grantsFor('anon')).toEqual([])
+  it('still lets the writer role read, which is how the app kept working', async () => {
+    const read = (await grantsFor('app_writer')).filter((grant) => grant.privilege === 'SELECT')
+
+    expect(read.length).toBeGreaterThan(0)
   })
 
   it('gives the writer role exactly the tables a policy decides', async () => {
@@ -66,10 +68,13 @@ describe.skipIf(!reachable)('table grants', () => {
   })
 
   it('narrows notifications to the column its reader owns', async () => {
+    // Write verbs only: SELECT is granted table-wide, so every column carries it and none of that
+    // says anything about who may change a row.
     const columns = await sql<{ column: string; privilege: string }[]>`
       select column_name as "column", privilege_type as privilege
       from information_schema.role_column_grants
-      where table_schema = 'public' and table_name = 'notifications' and grantee = 'app_writer'`
+      where table_schema = 'public' and table_name = 'notifications' and grantee = 'app_writer'
+        and privilege_type = any(${WRITE})`
 
     expect(columns).toEqual([{ column: 'read_at', privilege: 'UPDATE' }])
   })
@@ -78,12 +83,15 @@ describe.skipIf(!reachable)('table grants', () => {
     // The catalogue joins above and `has_table_privilege` disagree if a grant arrives through role
     // membership rather than directly, which is exactly how `app_writer` holds SELECT. Asked here
     // so the read half of membership is proven rather than assumed.
-    const [row] = await sql<{ readerWrites: boolean; writerReads: boolean; writerWrites: boolean }[]>`
-      select has_table_privilege('authenticated', 'public.areas', 'INSERT') as "readerWrites",
-             has_table_privilege('app_writer', 'public.areas', 'INSERT') as "writerWrites",
-             has_table_privilege('app_writer', 'public.areas', 'SELECT') as "writerReads"`
+    const [row] = await sql<
+      { readerReads: boolean; readerWrites: boolean; writerReads: boolean; writerWrites: boolean }[]
+    >`
+      select has_table_privilege('authenticated', 'public.areas', 'SELECT') as "readerReads",
+             has_table_privilege('authenticated', 'public.areas', 'INSERT') as "readerWrites",
+             has_table_privilege('app_writer', 'public.areas', 'SELECT') as "writerReads",
+             has_table_privilege('app_writer', 'public.areas', 'INSERT') as "writerWrites"`
 
-    expect(row).toEqual({ readerWrites: false, writerReads: true, writerWrites: true })
+    expect(row).toEqual({ readerReads: false, readerWrites: false, writerReads: true, writerWrites: true })
   })
 
   it('leaves no table behind, including the ones not in schema.ts', async () => {
@@ -93,14 +101,7 @@ describe.skipIf(!reachable)('table grants', () => {
     const stray = await sql<{ grantee: string; privilege: string; table: string }[]>`
       select table_name as "table", grantee, privilege_type as privilege
       from information_schema.role_table_grants
-      where table_schema = 'public'
-        and grantee in ('anon', 'PUBLIC')
-      union all
-      select table_name, grantee, privilege_type
-      from information_schema.role_table_grants
-      where table_schema = 'public'
-        and grantee = 'authenticated'
-        and privilege_type = any(${WRITE})`
+      where table_schema = 'public' and grantee in ('anon', 'authenticated', 'PUBLIC')`
 
     expect(stray).toEqual([])
   })
