@@ -1,7 +1,7 @@
 import { command, getRequestEvent } from '$app/server'
 import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
-import { blocks, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
+import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
 import { createUpdateActivity, insertActivity } from '$lib/entities/activity/activity.server'
 import { authedCommand } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -76,6 +76,16 @@ export const createTopo = authedCommand(
       error(403, 'Not allowed to edit topos here')
     }
 
+    // The file has to be one of THIS block's images. `canEditTopo` authorized the block; `fileId` was
+    // a second client value nothing looked at, so an editor could point a topo at any file id they
+    // could read, and `deleteTopo` then destroys `topo.file` and its bytes without ever consulting
+    // `canDeleteFile`. That is how a caller holding only region edit deletes somebody else's ascent
+    // photo or route video. A 404 rather than a 403, so the id space stays opaque.
+    const file = await db.query.files.findFirst({ columns: { blockFk: true }, where: eq(files.id, fileId) })
+    if (file?.blockFk !== blockId) {
+      error(404, 'File not found')
+    }
+
     const existing = await db.query.topos.findMany({ columns: { order: true }, where: eq(topos.blockFk, blockId) })
     const nextOrder = existing.reduce((max, topo) => Math.max(max, topo.order ?? 0), 0) + 1
 
@@ -116,7 +126,7 @@ export const deleteTopo = command(
         where: eq(topos.id, id),
         with: {
           block: { columns: { areaFk: true } },
-          file: { columns: { bunnyStreamFk: true, id: true, path: true } },
+          file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } },
         },
       })
       if (topo == null) {
@@ -129,7 +139,13 @@ export const deleteTopo = command(
       // topo_routes → topos → files: FK order matters (routes reference the topo, the topo the file).
       await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
       await db.delete(topos).where(eq(topos.id, id))
-      const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
+      // Destroy the backing image only if it really is this block's. The two writers above now
+      // enforce that, but rows written before they did may still point elsewhere, and this is the
+      // statement that removes bytes. `canDeleteFile` would be the wrong gate here: it wants region
+      // delete or ownership of the ascent, while managing a block's topo photos is an edit, so
+      // requiring it would refuse the ordinary swap this command exists for.
+      const own = topo.file != null && topo.file.blockFk === topo.blockFk ? [topo.file] : []
+      const targets = await deleteFileRows(db, own)
 
       await insertTopoActivity(db, user, 'photoRemoved', {
         areaId: topo.block?.areaFk,
@@ -165,7 +181,7 @@ export const replaceTopoImage = command(
         where: eq(topos.id, topoId),
         with: {
           block: { columns: { areaFk: true } },
-          file: { columns: { bunnyStreamFk: true, id: true, path: true } },
+          file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } },
         },
       })
       if (topo == null) {
@@ -175,8 +191,22 @@ export const replaceTopoImage = command(
         error(403, 'Not allowed to edit topos here')
       }
 
+      // Same rule as `createTopo`: the incoming file must already belong to this topo's block.
+      // Without it the payload's `fileId` went straight into `fileFk` while the line below hard
+      // deletes whatever was there, so two calls turn region edit into "delete any file I can read".
+      const file = await db.query.files.findFirst({ columns: { blockFk: true }, where: eq(files.id, fileId) })
+      if (file?.blockFk !== topo.blockFk) {
+        error(404, 'File not found')
+      }
+
       await db.update(topos).set({ fileFk: fileId }).where(eq(topos.id, topoId))
-      const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
+      // Destroy the backing image only if it really is this block's. The two writers above now
+      // enforce that, but rows written before they did may still point elsewhere, and this is the
+      // statement that removes bytes. `canDeleteFile` would be the wrong gate here: it wants region
+      // delete or ownership of the ascent, while managing a block's topo photos is an edit, so
+      // requiring it would refuse the ordinary swap this command exists for.
+      const own = topo.file != null && topo.file.blockFk === topo.blockFk ? [topo.file] : []
+      const targets = await deleteFileRows(db, own)
 
       await insertTopoActivity(db, user, 'photoReplaced', {
         areaId: topo.block?.areaFk,

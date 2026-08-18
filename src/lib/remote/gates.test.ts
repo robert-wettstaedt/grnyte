@@ -26,22 +26,22 @@ import { describe, expect, it } from 'vitest'
  * An explicit set rather than a `can*`/`require*` regex: the regex passes on any future helper whose
  * name happens to fit, which makes the check agree with itself rather than with the codebase. Adding
  * a gate here is a deliberate line in a review.
+ *
+ * Some of these are not predicates but the ENTRY POINTS that reach one, because the gate sits in
+ * another module and the one-hop walk below cannot follow an import. Naming them is cheaper than
+ * teaching the walk to resolve modules, and each was read to the bottom before being added:
+ *
+ * - `acceptInvitation` pins the invitation's address to the session email before it writes
+ * - `resendInvitation`, `restoreInvitation` and `revokeInvitation` all reach `canEditRegion` through
+ *   `loadEditable` in invite.server.ts, which loads the row and checks the STORED `regionFk`
+ * - `resolveAttachRegion` returns the region a file may attach to, or refuses
+ * - `verifyUpload` proves ownership of the host-side video object
+ *
+ * Adding a name here that does NOT gate would quietly defeat the whole check, which is why the list
+ * is short and why the reason is written down.
  */
 const GATES = new Set([
-  // Reached through a helper in ANOTHER module, so the one-hop walk below cannot see them. They are
-  // gates all the same, and naming them here is cheaper than teaching the walk to follow imports.
-  'acceptInvitation', // pins the invitation's address to the session email before it writes
-  'canEditTopo',
-  'canLogAscent',
-  'requireEditableFile',
-  'resolveAttachRegion', // returns the region a file may attach to, or refuses
-  'verifyUpload', // ownership of the host-side video object
-  // The three invitation mutations reach `canEditRegion` two hops out, through `loadEditable` in
-  // invite.server.ts, which loads the row and checks the STORED regionFk.
-  'resendInvitation',
-  'restoreInvitation',
-  'revokeInvitation',
-
+  'acceptInvitation',
   'assertCanEdit',
   'assertIsMember',
   'canAddArea',
@@ -59,13 +59,21 @@ const GATES = new Set([
   'canEditFile',
   'canEditRegion',
   'canEditRoute',
+  'canEditTopo',
   'canHardDelete',
+  'canLogAscent',
   'canReadRegion',
   'checkRegionPermission',
   'readableRegionIds',
   'requireEditableArea',
+  'requireEditableFile',
   'requireRow',
   'requireRowForm',
+  'resendInvitation',
+  'resolveAttachRegion',
+  'restoreInvitation',
+  'revokeInvitation',
+  'verifyUpload',
 ])
 
 /** The wrappers that make an export a remote function. */
@@ -122,20 +130,11 @@ const NO_GATE: Record<string, string> = {
 }
 
 interface Handler {
+  /** Identifiers called anywhere inside the handler, including one hop into a same-file helper. */
+  calls: Set<string>
   file: string
   key: string
   name: string
-  /** Identifiers called anywhere inside the handler, including one hop into a same-file helper. */
-  calls: Set<string>
-}
-
-function remoteFiles(dir: string, found: string[] = []): string[] {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name)
-    if (entry.isDirectory()) remoteFiles(path, found)
-    else if (entry.name.endsWith('.remote.ts')) found.push(path)
-  }
-  return found
 }
 
 /** Every identifier that appears in call position beneath `node`. */
@@ -198,6 +197,15 @@ function parseHandlers(file: string): Handler[] {
   })
 
   return handlers
+}
+
+function remoteFiles(dir: string, found: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) remoteFiles(path, found)
+    else if (entry.name.endsWith('.remote.ts')) found.push(path)
+  }
+  return found
 }
 
 const handlers = remoteFiles('src').flatMap(parseHandlers)
