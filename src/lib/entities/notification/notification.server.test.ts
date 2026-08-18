@@ -38,8 +38,8 @@ type Who = (typeof WHO)[number]
 
 let users = {} as Record<Who, SeedUser>
 let regionId = 0
-/** An activity row in the fixture region, the thing the recipient rule is mirrored from. */
-let activityId = 0
+/** An event in the fixture region, the thing the recipient rule is mirrored from. */
+let eventId = 0
 /** A real route in the fixture region: the thing the notifications point at. */
 let routeId = 0
 /** An ascent on it, for the mention rows, which are about somebody's ascent notes. */
@@ -67,16 +67,16 @@ async function as<T>(who: Who, fn: (tx: postgres.TransactionSql) => Promise<T>):
   return result
 }
 
-/** Whether `who` can actually `SELECT` the fixture activity, which is what "may be told about
+/** Whether `who` can actually `SELECT` the fixture event, which is what "may be told about
  *  something in this region" means. */
 async function canReadRegion(who: Who): Promise<boolean> {
-  const rows = await as(who, (tx) => tx`select 1 from public.activities where id = ${activityId}`)
+  const rows = await as(who, (tx) => tx`select 1 from public.events where id = ${eventId}`)
   return rows.length > 0
 }
 
 async function removeFixtures() {
   await sql`delete from public.notifications where region_fk in (select id from public.regions where name = ${REGION_NAME})`
-  await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION_NAME})`
+  await sql`delete from public.events where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   // Crag first, and in child-to-parent order: a notification's object columns are foreign keys, so
   // the route cannot go while a row still points at it.
   await sql`delete from public.ascents where region_fk in (select id from public.regions where name = ${REGION_NAME})`
@@ -104,10 +104,6 @@ beforeAll(async () => {
       (${regionId}, 'region_admin', true, ${users.admin.authId}, ${users.admin.userId}),
       (${regionId}, 'region_user', true, ${users.member.authId}, ${users.member.userId}),
       (${regionId}, 'region_user', false, ${users.inactive.authId}, ${users.inactive.userId})`
-  ;[{ id: activityId }] = await sql<{ id: number }[]>`
-    insert into public.activities (region_fk, user_fk, entity_id, entity_type, type)
-    values (${regionId}, ${users.actor.userId}, '1', 'route', 'created') returning id`
-
   // A real route to point the notifications at. The object columns are foreign keys now, so a
   // made-up id is rejected by the database rather than stored and never looked at.
   const [{ id: areaId }] = await sql<{ id: number }[]>`
@@ -122,6 +118,12 @@ beforeAll(async () => {
   ;[{ id: ascentId }] = await sql<{ id: number }[]>`
     insert into public.ascents (type, created_by, region_fk, route_fk)
     values ('flash', ${users.member.userId}, ${regionId}, ${routeId}) returning id`
+
+  // The row `canReadRegion` probes. An EVENT, not an activity: the recipient rule mirrors the
+  // events SELECT policy, so what this asserts against has to be a row that policy governs.
+  ;[{ id: eventId }] = await sql<{ id: number }[]>`
+    insert into public.events (verb, actor_fk, region_fk, route_fk)
+    values ('create', ${users.actor.userId}, ${regionId}, ${routeId}) returning id`
 })
 
 afterAll(async () => {

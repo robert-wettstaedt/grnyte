@@ -262,66 +262,71 @@ describe.skipIf(!reachable)('region_members RLS', () => {
     expect(result.count).toBe(1)
   })
 
-  it('stops accepting activities from a member the moment they delete their own membership', async () => {
-    // `activities` inserts are gated on authorize_in_region('region.edit'), which reads
-    // region_members - so within one transaction, leaving first and logging afterwards fails.
-    // `leaveRegion` logs before it deletes because of this; keep them in that order.
+  it('stops accepting events from a member the moment they delete their own membership', async () => {
+    // `events` inserts are gated on authorize_in_region('region.edit'), which reads region_members
+    // - so within one transaction, leaving first and logging afterwards fails. `leaveRegion` logs
+    // before it deletes because of this; keep them in that order.
     await expectInsertRefused(() =>
       as('regionUser', async (tx) => {
         await tx`delete from public.region_members where region_fk = ${regionId} and auth_user_fk = ${users.regionUser.authId}`
         return tx`
-          insert into public.activities (type, entity_id, entity_type, column_name, region_fk, user_fk)
-          values ('deleted', ${String(users.regionUser.userId)}, 'user', 'role', ${regionId}, ${users.regionUser.userId})`
+          insert into public.events (verb, actor_fk, region_fk, subject_fk)
+          values ('leave', ${users.regionUser.userId}, ${regionId}, ${users.regionUser.userId})`
       }),
     )
   })
 
-  it('accepts the activity when it is logged before the member leaves', async () => {
+  it('accepts the event when it is logged before the member leaves', async () => {
     const result = await as('regionUser', async (tx) => {
       await tx`
-        insert into public.activities (type, entity_id, entity_type, column_name, region_fk, user_fk)
-        values ('deleted', ${String(users.regionUser.userId)}, 'user', 'role', ${regionId}, ${users.regionUser.userId})`
+        insert into public.events (verb, actor_fk, region_fk, subject_fk)
+        values ('leave', ${users.regionUser.userId}, ${regionId}, ${users.regionUser.userId})`
       return tx`delete from public.region_members where region_fk = ${regionId} and auth_user_fk = ${users.regionUser.authId}`
     })
     expect(result.count).toBe(1)
   })
 })
 
-describe.skipIf(!reachable)('activities RLS', () => {
-  // `createUpdateActivity` debounces a repeated edit by updating the activity it already wrote
-  // instead of adding a second one. A table with RLS on refuses any command it has no policy for,
-  // so while `activities` had none for UPDATE that merge matched nothing - and since the change
-  // had already been taken off the insert list, the second edit went unrecorded entirely.
+describe.skipIf(!reachable)('the member events an undo reads', () => {
+  /** A role change on `regionUser`, logged by `actor`, exactly as `setRegionMemberRole` writes it. */
   const logRoleChange = (tx: postgres.TransactionSql, actor: SeedUser) => tx`
-    insert into public.activities (type, entity_id, entity_type, column_name, old_value, new_value, region_fk, user_fk)
-    values ('updated', ${String(users.regionUser.userId)}, 'user', 'role', 'region_user', 'region_maintainer', ${regionId}, ${actor.userId})
+    insert into public.events (verb, actor_fk, region_fk, subject_fk)
+    values ('update', ${actor.userId}, ${regionId}, ${users.regionUser.userId})
     returning id`
 
-  it('lets an author merge a repeated change into the activity they already logged', async () => {
-    const result = await as('regionAdmin', async (tx) => {
-      const [{ id }] = await logRoleChange(tx, users.regionAdmin)
-      return tx`update public.activities set new_value = 'region_admin' where id = ${id}`
-    })
-    expect(result.count).toBe(1)
-  })
-
-  it('lets a region admin read the removal activity an undo depends on', async () => {
-    // `resolveRestore` refuses to restore a member without the activity `removeRegionMember`
-    // logged, and reads it through the RLS-scoped connection - so if this SELECT were ever
-    // policy-gated away from admins, Undo would silently 404 instead of restoring.
+  it('lets a region admin read the removal event an undo depends on', async () => {
+    // `resolveRestore` refuses to restore a member without the event `removeRegionMember` logged,
+    // and reads it through the RLS-scoped connection - so if this SELECT were ever policy-gated
+    // away from admins, Undo would silently 404 instead of restoring.
     const rows = await as('regionAdmin', async (tx) => {
       await logRoleChange(tx, users.regionAdmin)
-      return tx`select id from public.activities where region_fk = ${regionId} and entity_type = 'user'`
+      return tx`select id from public.events where region_fk = ${regionId} and subject_fk is not null`
     })
     expect(rows.length).toBeGreaterThan(0)
   })
 
-  it('does not let somebody else rewrite an activity', async () => {
-    const result = await as('regionAdmin', async (tx) => {
-      const [{ id }] = await logRoleChange(tx, users.appAdmin)
-      return tx`update public.activities set new_value = 'region_admin' where id = ${id}`
-    })
+  /**
+   * The hole `activities` had and `events` does not: its insert policy asked only which region the
+   * row named, so a member could log "Bob deleted Rampe" about somebody who did nothing. An event
+   * carries an actor, and the policy compares it against the caller.
+   */
+  it('does not let a member log an event in somebody else s name', async () => {
+    await expectInsertRefused(() => as('regionAdmin', (tx) => logRoleChange(tx, users.appAdmin)))
+  })
+
+  it('does not let somebody else rewrite an event', async () => {
+    // Written by the privileged handle, because the policy above stops anyone else writing it in
+    // the first place: what this asserts is the second gate, on the row once it exists.
+    const [{ id }] = await sql<{ id: number }[]>`
+      insert into public.events (verb, actor_fk, region_fk, subject_fk)
+      values ('update', ${users.appAdmin.userId}, ${regionId}, ${users.regionUser.userId})
+      returning id`
+
+    const result = await as('regionAdmin', (tx) => tx`update public.events set metadata = 'x' where id = ${id}`)
+
     expect(result.count).toBe(0)
+
+    await sql`delete from public.events where id = ${id}`
   })
 })
 

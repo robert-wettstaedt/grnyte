@@ -34,7 +34,6 @@ async function removeFixtures() {
   // A self-claim logs an event, which references the region: it has to go first. `changes` and
   // `reactions` hang off the event and cascade with it, so they need no line of their own.
   await sql`delete from public.events where region_fk in ${inRegion}`
-  await sql`delete from public.activities where region_fk in ${inRegion}`
   await sql`delete from public.first_ascensionists where region_fk in ${inRegion}`
   await sql`delete from public.regions where name = ${REGION}`
 }

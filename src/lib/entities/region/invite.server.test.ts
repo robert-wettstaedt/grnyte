@@ -90,7 +90,6 @@ async function removeFixtures() {
   // Accepting also writes an event, which references the region: it has to go first. `changes`
   // and `reactions` hang off the event and cascade with it.
   await sql`delete from public.events where region_fk in (select id from public.regions where name = ${REGION})`
-  await sql`delete from public.activities where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.region_invitations where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.region_members where region_fk in (select id from public.regions where name = ${REGION})`
   await sql`delete from public.regions where name = ${REGION}`
@@ -100,7 +99,6 @@ async function removeFixtures() {
  *  narrows them. */
 async function reset() {
   await sql`delete from public.events where region_fk = ${regionId}`
-  await sql`delete from public.activities where region_fk = ${regionId}`
   await sql`delete from public.region_invitations where region_fk = ${regionId}`
   await sql`delete from public.region_members where region_fk = ${regionId}`
   await sql`update public.regions set max_members = 10 where id = ${regionId}`
