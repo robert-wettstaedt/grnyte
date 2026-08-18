@@ -265,6 +265,10 @@ export const insertActivity = async (
 /** Delete activities matching the given fields. Used by undo flows to erase the activity a
  *  mutation logged, leaving the timeline as if it never happened.
  *
+ *  SHELF LIFE: `activities` is scheduled to be dropped once `events` has replaced it, so the scoping
+ *  below protects this table only until the v2 cutover. It is not wasted in the meantime, since this
+ *  is a blind DELETE and nothing else narrows it, but do not build on it.
+ *
  *  An omitted field is unconstrained; an explicit `null` requires the column to BE null. The
  *  two are not the same and the difference is the whole point: `{ entityType: 'route',
  *  type: 'deleted' }` also matches the `route:deleted:file` rows a photo removal logged, so

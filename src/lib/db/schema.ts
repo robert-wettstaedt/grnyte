@@ -58,6 +58,21 @@ const baseFields = {
   id: serial('id').notNull().primaryKey(),
 }
 
+/**
+ * ACCEPTED, and it applies to every attribution column in this file, not just this one:
+ * `created_by` here, plus `user_fk`, `auth_user_fk`, `actor_fk` and the `region_invitations`
+ * identity columns, are all MUTABLE at the database level. No policy binds a row to its author, and
+ * no trigger pins one after the fact.
+ *
+ * That is deliberate. RLS here answers one question, whether the caller may touch a row belonging to
+ * this region, and attribution is enforced in application code instead: every handler stamps the
+ * author from the session, never from the request. The `no-drizzle-mass-assignment` lint rule is
+ * what keeps that true, because the way it stops being true is a payload spread into a write rather
+ * than anybody deciding to forge a byline.
+ *
+ * So: if you add a handler that writes one of these columns, it takes the value from `ctx.user`.
+ * Nothing underneath will catch you if it does not.
+ */
 const baseContentFields = {
   createdBy: integer('created_by')
     .notNull()
@@ -159,6 +174,13 @@ export const users = table(
     index('users_username_idx').on(table.username),
 
     policy('authenticated users can read users', getPolicyConfig('select', sql`true`)),
+    // ACCEPTED: this compares `auth_user_fk` and nothing else, so it says WHOSE row may be written
+    // and never WHICH column. In particular nothing stops `user_settings_fk` being pointed at
+    // somebody else's settings row, which would make the server read their preferences as yours
+    // (the client reads settings through this link while the digest reads by `user_fk`).
+    // Latent rather than live: the only writers are `writeUserSettings` and the signup path, both of
+    // which set it from a row they just created. A handler that ever takes it from a request has to
+    // validate it, because the database will not.
     policy('users can update own users', getOwnEntryPolicyConfig('update')),
   ],
 ).enableRLS()
@@ -627,6 +649,13 @@ export const routes = table(
     // The one table where UPDATE really is looser than its TS gate, and it has to be: logging an
     // ascent folds the member's grade/rating into the route (recalcUserGradeAndRating), and a plain
     // member holds only read. Editing route CONTENT still requires edit - see canEditRoute.
+    //
+    // ACCEPTED, and the widest gap in the schema: this grants UPDATE on EVERY column, because a
+    // policy cannot name one. A read-only member can in principle rewrite a route's name,
+    // description or grade, and `canEditRoute` in the handler is the only thing that stops them.
+    // Authorization for column-level rules lives in application code now, so anything new that
+    // updates `routes` has to ask `canEditRoute` for itself rather than assume this policy narrows
+    // it.
     policy(
       `${REGION_PERMISSION_READ} can update routes`,
       getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
