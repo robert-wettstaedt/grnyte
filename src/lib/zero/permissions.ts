@@ -8,10 +8,12 @@ import type { Schema } from './zero-schema'
  * before any query over it is safe to expose.
  *
  * "Belongs to a region" means "carries a `regionFk`", and `tenancy.test.ts` asserts exactly that
- * against the generated schema minus {@link unsyncedRegionTables}, so the list cannot silently
- * fall behind a migration. `regions` itself is the one region-scoped table that is not on it: it
- * keys on `id` rather than `regionFk`, and `queries.region` spells its membership check out by
- * hand.
+ * against the generated schema, so the list cannot silently fall behind a migration. `regions`
+ * itself is the one region-scoped table that is not on it: it keys on `id` rather than `regionFk`,
+ * and `queries.region` spells its membership check out by hand.
+ *
+ * `activities` is off it because the events tables replaced it. Nothing reads it, and being off
+ * this list is what stops a definition naming it, at the type level rather than by review.
  */
 export const regionTables = [
   'areas',
@@ -38,16 +40,6 @@ export const regionTables = [
   'topoRoutes',
   'topos',
 ] as const satisfies readonly (keyof Schema['tables'])[]
-
-/**
- * Region-scoped tables no query may reach, so no query needs filtering for them.
- *
- * `activities` is here because the events tables replaced it: nothing on the client reads it, and
- * taking it off {@link regionTables} is what stops a definition naming it, at the type level
- * rather than by review. The rows stay until a later migration drops the table, so the backfill
- * can still be checked against its source.
- */
-export const unsyncedRegionTables = ['activities'] as const satisfies readonly (keyof Schema['tables'])[]
 
 export type QueryContext = {
   authUserId: string | undefined

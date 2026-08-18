@@ -204,12 +204,6 @@ export const userSettings = table(
       .default('FB'),
     id: baseFields.id,
 
-    // The `activities` pair, kept until that table goes so an in-flight digest is not lost. Named
-    // `legacy_` since nothing reads them any more: the digest and the feed both mark their place
-    // with the `*_up_to_event_at` timestamps below, and these two only still exist so a cutover
-    // that has to look backwards can.
-    legacyPushedUpToActivityId: integer('legacy_pushed_up_to_activity_id'),
-    legacySeenUpToActivityId: integer('legacy_seen_up_to_activity_id'),
     /**
      * The six push switches. They govern PUSH and nothing else: a directed event always lands in
      * the inbox and a broadcast one always lands in the feed, whatever these say. There is
@@ -235,7 +229,7 @@ export const userSettings = table(
     /** Push when somebody reacts to something you logged or edited. */
     notifyReactions: boolean('notify_reactions').notNull().default(true),
     /**
-     * The broadcast half's bookkeeping, two integers rather than a row per user per activity.
+     * The broadcast half's bookkeeping, two stamps rather than a row per user per event.
      *
      * `pushedUpTo` is how far a digest has covered this person; `seenUpTo` is how far they have
      * caught up in the feed. The digest counts what is above both, so reading the feed silences
@@ -245,7 +239,7 @@ export const userSettings = table(
      * Both are set to the newest event's timestamp when a device first subscribes, so a brand-new
      * subscriber's first digest does not read "4,812 updates".
      *
-     * TIMESTAMPS, not ids, unlike the `activities` pair they replace. Event ids do not run with
+     * TIMESTAMPS, not ids, unlike the `activities` pair they replaced. Event ids do not run with
      * their timestamps: the backfill emitted them in island order, so an event dated 2024 can hold
      * a higher id than one from last week, and "everything above this id" would then mean neither
      * "everything newer" nor anything else useful. Millisecond precision, matching

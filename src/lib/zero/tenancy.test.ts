@@ -27,13 +27,7 @@ import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
 import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import {
-  authenticatedUserCan,
-  regionMemberCan,
-  regionTables,
-  unsyncedRegionTables,
-  type QueryContext,
-} from './permissions'
+import { authenticatedUserCan, regionMemberCan, regionTables, type QueryContext } from './permissions'
 import { zql } from './zero-schema.gen'
 
 const REGION_A = '__tenancy_a__'
@@ -296,12 +290,16 @@ describe('the region-scoped table list', () => {
     // keeping it complete was a comment. A migration that adds a `region_fk` to a new table
     // regenerates the Zero schema and fails here, rather than shipping the table unfiltered.
     //
-    // The unsynced list is the other half: a table may be left off `regionTables` only by being
-    // named there, which is a decision in code rather than an omission nobody notices.
+    // `activities` is the one deliberate omission: the events tables replaced it and no query may
+    // name it any more. It is still in the drizzle schema, so drizzle-zero still emits it, and it
+    // leaves here when the table is dropped.
+    const RETIRED = ['activities']
+
     const withRegionFk = Object.entries(schema.tables)
       .filter(([, table]) => 'regionFk' in table.columns)
       .map(([name]) => name)
+      .filter((name) => !RETIRED.includes(name))
 
-    expect([...regionTables, ...unsyncedRegionTables].sort()).toEqual(withRegionFk.sort())
+    expect([...regionTables].sort()).toEqual(withRegionFk.sort())
   })
 })
