@@ -29,13 +29,13 @@
 
   const favorites = userAllFavoriteList(() => userId)
   const favAreaIds = $derived(
-    favorites.data.filter((favorite) => favorite.entityType === 'area').map((favorite) => Number(favorite.entityId)),
+    favorites.data.filter((favorite) => favorite.entityType === 'area').map((favorite) => favorite.entityId),
   )
   const favBlockIds = $derived(
-    favorites.data.filter((favorite) => favorite.entityType === 'block').map((favorite) => Number(favorite.entityId)),
+    favorites.data.filter((favorite) => favorite.entityType === 'block').map((favorite) => favorite.entityId),
   )
   const favRouteIds = $derived(
-    favorites.data.filter((favorite) => favorite.entityType === 'route').map((favorite) => Number(favorite.entityId)),
+    favorites.data.filter((favorite) => favorite.entityType === 'route').map((favorite) => favorite.entityId),
   )
   const favAreas = areaList(() => ({ id: favAreaIds }), { enabled: () => favAreaIds.length > 0 })
   const favBlocks = blockList(() => ({ blockId: favBlockIds }), { enabled: () => favBlockIds.length > 0 })
@@ -43,7 +43,7 @@
 
   // Removing a favorite: the entity's regionFk comes off the favorite row. Zero
   // re-syncs the list, so the row drops out on its own once the write lands.
-  const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: string): Promise<void> => {
+  const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: number): Promise<void> => {
     const favorite = favorites.data.find((f) => f.entityType === entityType && f.entityId === entityId)
     if (favorite != null) {
       await toggleFavorite({ entityId, entityType })
@@ -97,7 +97,7 @@
           resource={favRoutes}
           {status}
           crumbFor={locationCrumb}
-          onRemove={isSelf ? (route) => removeFavorite('route', String(route.id)) : undefined}
+          onRemove={isSelf ? (route) => removeFavorite('route', route.id) : undefined}
           emptyText={m.profile_noFavorites()}
         />
       </div>
@@ -111,7 +111,7 @@
             <div class="flex flex-col gap-1.5">
               {#each blocksExpanded ? blocks : blocks.slice(0, FAV_LIMIT) as block (block.id)}
                 {#snippet blockRemove()}
-                  {@render removeButton(() => removeFavorite('block', String(block.id)))}
+                  {@render removeButton(() => removeFavorite('block', block.id))}
                 {/snippet}
                 <BlockRow
                   name={block.name}
@@ -144,7 +144,7 @@
             <div class="flex flex-col gap-1.5">
               {#each areasExpanded ? areas : areas.slice(0, FAV_LIMIT) as area (area.id)}
                 {#snippet areaRemove()}
-                  {@render removeButton(() => removeFavorite('area', String(area.id)))}
+                  {@render removeButton(() => removeFavorite('area', area.id))}
                 {/snippet}
                 <AreaRow
                   name={area.name}

@@ -1,9 +1,10 @@
 import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
-import { areas, blocks, favoriteEntityType, favorites, routes } from '$lib/db/schema'
+import { areas, blocks, favorites, routes } from '$lib/db/schema'
 import { authedCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
 import z from 'zod'
+import { FAVORITE_TYPES } from './dto'
 
 /**
  * Add or remove the current user's favorite for an entity. Returns the new saved
@@ -11,22 +12,19 @@ import z from 'zod'
  */
 export const toggleFavorite = authedCommand(
   z.object({
-    // Digits only. The column is still text here (the foreign-key reshape lands with the migration
-    // chain), but everything downstream compares it to an integer id, and `Number('abc')` is NaN:
-    // Postgres rejects that with 22P02 and the handler 500s before reaching the `entity == null`
-    // branch that owns the deliberate single-404 answer below.
-    entityId: z.string().regex(/^\d+$/),
-    entityType: z.enum(favoriteEntityType),
+    // Coerced and checked here rather than at the query: the object columns are integers, and a
+    // non-numeric id would reach Postgres as NaN and come back as a 500 instead of a 404.
+    entityId: z.coerce.number().int().positive(),
+    entityType: z.enum(FAVORITE_TYPES),
   }),
   async ({ entityId, entityType }, { db, user, userRegions }) => {
-    // regionFk is stamped from the entity, never the client: the favorites INSERT RLS is
+    // regionFk is stamped from the entity, never the client: the favorites INSERT policy is
     // own-row only (no region predicate), so a submitted regionFk would go in unchecked.
-    const id = Number(entityId)
     const entity = await (entityType === 'route'
-      ? db.query.routes.findFirst({ columns: { regionFk: true }, where: eq(routes.id, id) })
+      ? db.query.routes.findFirst({ columns: { regionFk: true }, where: eq(routes.id, entityId) })
       : entityType === 'block'
-        ? db.query.blocks.findFirst({ columns: { regionFk: true }, where: eq(blocks.id, id) })
-        : db.query.areas.findFirst({ columns: { regionFk: true }, where: eq(areas.id, id) }))
+        ? db.query.blocks.findFirst({ columns: { regionFk: true }, where: eq(blocks.id, entityId) })
+        : db.query.areas.findFirst({ columns: { regionFk: true }, where: eq(areas.id, entityId) }))
 
     // "No such row" and "not in a region you may read" are one and the same 404, deliberately. Only
     // RLS used to make the second half true: an entity in a foreign region simply came back
@@ -38,16 +36,39 @@ export const toggleFavorite = authedCommand(
       error(404, `${entityType} not found`)
     }
 
+    const objectColumn =
+      entityType === 'route' ? favorites.routeFk : entityType === 'block' ? favorites.blockFk : favorites.areaFk
+
     const existing = await db.query.favorites.findFirst({
-      where: and(eq(favorites.userFk, user.id), eq(favorites.entityType, entityType), eq(favorites.entityId, entityId)),
+      where: and(eq(favorites.userFk, user.id), eq(objectColumn, entityId)),
     })
 
     if (existing == null) {
-      await db
+      // `onConflictDoNothing` because this reads before it writes: two devices tapping Save at the
+      // same moment both see nothing and both insert, and the unique index turns the loser into an
+      // error over a state it already agrees with.
+      //
+      // What comes back matters, though. The lookup above runs under a region-scoped SELECT
+      // policy, so a favorite the caller made before leaving that region is invisible to it: the
+      // insert then conflicts, DO NOTHING drops it, and reporting `true` would leave the button
+      // claiming a save that never syncs back. Nothing inserted means nothing changed.
+      const [written] = await db
         .insert(favorites)
-        .values({ authUserFk: user.authUserFk, entityId, entityType, regionFk: entity.regionFk, userFk: user.id })
+        // Every column named, and the two the request did not ask for written as NULL rather than
+        // left out: `favorites_one_object` counts what is set, so which of the three is which is
+        // the whole shape of the row.
+        .values({
+          areaFk: entityType === 'area' ? entityId : null,
+          authUserFk: user.authUserFk,
+          blockFk: entityType === 'block' ? entityId : null,
+          regionFk: entity.regionFk,
+          routeFk: entityType === 'route' ? entityId : null,
+          userFk: user.id,
+        })
+        .onConflictDoNothing()
+        .returning({ id: favorites.id })
 
-      return { data: true }
+      return { data: written != null }
     }
 
     await db.delete(favorites).where(eq(favorites.id, existing.id))

@@ -86,7 +86,7 @@
       </div>
     {/if}
 
-    <SaveButton entityId={String(block.id)} entityType="block" />
+    <SaveButton entityId={block.id} entityType="block" />
 
     <ShareButton text={block.name} />
 

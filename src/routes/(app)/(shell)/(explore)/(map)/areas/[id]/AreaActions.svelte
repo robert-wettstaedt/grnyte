@@ -69,7 +69,7 @@
     {/if}
   {/if}
 
-  <SaveButton class={area.type === 'area' ? 'flex-1' : undefined} entityId={String(area.id)} entityType="area" />
+  <SaveButton class={area.type === 'area' ? 'flex-1' : undefined} entityId={area.id} entityType="area" />
 
   <ShareButton text={area.name} />
 

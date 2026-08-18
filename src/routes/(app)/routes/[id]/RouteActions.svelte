@@ -50,7 +50,7 @@
 <div class="flex gap-2">
   <DirectionsButton {destination} />
 
-  <SaveButton entityId={String(route.id)} entityType="route" />
+  <SaveButton entityId={route.id} entityType="route" />
 
   <ShareButton text={route.name} />
 

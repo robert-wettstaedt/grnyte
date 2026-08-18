@@ -8,7 +8,7 @@
 
   interface Props {
     class?: string
-    entityId: string
+    entityId: number
     entityType: 'area' | 'block' | 'route'
   }
 
@@ -37,7 +37,12 @@
     const next = !saved
     savedOverride = next
     try {
-      await toggleFavorite({ entityId, entityType })
+      // The handler reports what it actually wrote, not what was asked of it: a favorite made
+      // before the caller left that region is invisible to its region-scoped lookup, so the insert
+      // conflicts and nothing changes. Believing the request instead of the answer is how the
+      // button ends up claiming a save that never syncs back.
+      const result = await toggleFavorite({ entityId, entityType })
+      savedOverride = result?.data ?? next
     } catch {
       savedOverride = !next
     }

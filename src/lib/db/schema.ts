@@ -2043,28 +2043,68 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userFk], references: [users.id], relationName: 'notification-user' }),
 }))
 
-export const favoriteEntityType: ['block', 'route', 'area'] = ['block', 'route', 'area']
+const FAVORITE_OBJECT_COLUMNS = 'area_fk, block_fk, route_fk'
 
+/**
+ * A saved area, block or route.
+ *
+ * Fixed foreign keys rather than the `entity_type` + `entity_id` pair this used to carry, the same
+ * move `events` made. A text id cannot be joined or cascaded, so a favorite outlived the route it
+ * pointed at, and no index could stop the same route being saved twice: both of those are the
+ * database's job, and neither is expressible against a pair of columns it cannot constrain.
+ *
+ * The client keeps speaking `entityType`/`entityId`: the mapper reads whichever key is set. That
+ * vocabulary is what `SaveButton` and the profile list are written in, and none of it is what the
+ * database needed fixing for.
+ */
 export const favorites = table(
   'favorites',
   {
     ...baseFields,
     ...baseRegionFields,
 
+    areaFk: integer('area_fk').references((): AnyColumn => areas.id, { onDelete: 'cascade' }),
     authUserFk: uuid('auth_user_fk')
       .notNull()
       .references((): AnyColumn => authUsers.id),
-    entityId: text('entity_id').notNull(),
+    blockFk: integer('block_fk').references((): AnyColumn => blocks.id, { onDelete: 'cascade' }),
 
-    entityType: text('entity_type', { enum: favoriteEntityType }).notNull(),
+    routeFk: integer('route_fk').references((): AnyColumn => routes.id, { onDelete: 'cascade' }),
     userFk: integer('user_fk')
       .notNull()
       .references((): AnyColumn => users.id),
   },
   (table) => [
     index('favorites_created_at_idx').on(table.createdAt),
-    index('favorites_entity_id_idx').on(table.entityId),
-    index('favorites_entity_type_idx').on(table.entityType),
+    // Partial, because `favorites_one_object` guarantees two of these three are NULL in every row,
+    // and the only query any of them serves ("who saved this block") never asks for NULL.
+    index('favorites_area_fk_idx')
+      .on(table.areaFk)
+      .where(sql`area_fk is not null`),
+    index('favorites_block_fk_idx')
+      .on(table.blockFk)
+      .where(sql`block_fk is not null`),
+    index('favorites_route_fk_idx')
+      .on(table.routeFk)
+      .where(sql`route_fk is not null`),
+    index('favorites_user_fk_idx').on(table.userFk),
+    // Saving something twice is not a thing a person can mean, and `toggleFavorite` reads before it
+    // writes, so two devices tapping Save at the same moment used to leave two rows: the count said
+    // two, and the next tap deleted one of them and left the button stuck on saved. Partial so each
+    // index only covers the rows that actually carry that key.
+    uniqueIndex('favorites_user_area_idx')
+      .on(table.userFk, table.areaFk)
+      .where(sql`area_fk is not null`),
+    uniqueIndex('favorites_user_block_idx')
+      .on(table.userFk, table.blockFk)
+      .where(sql`block_fk is not null`),
+    uniqueIndex('favorites_user_route_idx')
+      .on(table.userFk, table.routeFk)
+      .where(sql`route_fk is not null`),
+
+    // Exactly one object, as `events` requires of its six. A favorite of nothing has nothing to
+    // render and nothing to open; a favorite of two things is two favorites.
+    check('favorites_one_object', sql.raw(`num_nonnulls(${FAVORITE_OBJECT_COLUMNS}) = 1`)),
 
     policy(`users can insert own favorites`, getOwnEntryPolicyConfig('insert')),
     policy(
@@ -2082,8 +2122,11 @@ export type Favorite = InferSelectModel<typeof favorites>
 export type InsertFavorite = InferInsertModel<typeof favorites>
 
 export const favoritesRelations = relations(favorites, ({ one }) => ({
+  area: one(areas, { fields: [favorites.areaFk], references: [areas.id] }),
   authUser: one(authUsers, { fields: [favorites.authUserFk], references: [authUsers.id] }),
+  block: one(blocks, { fields: [favorites.blockFk], references: [blocks.id] }),
   region: one(regions, { fields: [favorites.regionFk], references: [regions.id] }),
+  route: one(routes, { fields: [favorites.routeFk], references: [routes.id] }),
   user: one(users, { fields: [favorites.userFk], references: [users.id] }),
 }))
 

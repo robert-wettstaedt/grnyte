@@ -2,12 +2,17 @@ import { regionMemberCan } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
+import { FAVORITE_KEY, FAVORITE_TYPES } from './dto'
+
+// The id is a number here as it is in the database and in `toggleFavorite`: taking a string and
+// calling `Number()` on it is how 'abc' became NaN and a query for `routeFk = null`.
+const entityArgs = z.object({ entityId: z.number().int().positive(), entityType: z.enum(FAVORITE_TYPES) })
 
 export const favoritesQueryDefs = {
   // Everyone's favorites for one entity — used to count how many people saved it.
   listEntityFavorites: defineQuery(
-    z.object({ entityId: z.string(), entityType: z.enum(['block', 'route', 'area']) }),
-    regionMemberCan(({ args }) => zql.favorites.where('entityType', args.entityType).where('entityId', args.entityId)),
+    entityArgs,
+    regionMemberCan(({ args }) => zql.favorites.where(FAVORITE_KEY[args.entityType], args.entityId)),
   ),
 
   // A user's favorites across all entity types, newest first — the profile's
@@ -20,14 +25,14 @@ export const favoritesQueryDefs = {
 
   // The current user's favorite for one specific entity — empty when not saved.
   listUserEntityFavorites: defineQuery(
-    z.object({ entityId: z.string(), entityType: z.enum(['block', 'route', 'area']), userId: z.number() }),
+    entityArgs.extend({ userId: z.number() }),
     regionMemberCan(({ args }) =>
-      zql.favorites.where('userFk', args.userId).where('entityType', args.entityType).where('entityId', args.entityId),
+      zql.favorites.where('userFk', args.userId).where(FAVORITE_KEY[args.entityType], args.entityId),
     ),
   ),
 
   listUserFavorites: defineQuery(
     z.object({ userId: z.number() }),
-    regionMemberCan(({ args }) => zql.favorites.where('userFk', args.userId).where('entityType', 'route')),
+    regionMemberCan(({ args }) => zql.favorites.where('userFk', args.userId).where('routeFk', 'IS NOT', null)),
   ),
 }
