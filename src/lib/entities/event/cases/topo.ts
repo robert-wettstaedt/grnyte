@@ -6,7 +6,7 @@
  * which photo. That metadata is also what scopes the server fold, so two photos on one block are
  * two events rather than one quietly absorbing the other.
  *
- * Two write sites. `insertTopoActivity` (topos.remote.ts:44) logs the four actions that have no
+ * Two write sites. `insertTopoEvent` (topos.remote.ts:44) logs the four actions that have no
  * before/after pair to show: a photo added, swapped, removed, or the strip reordered. It writes
  * `remove` for the removal and `update` for the other three. `saveTopoLines`
  * (topos.remote.ts:320) is the one action that does have a pair, and it diffs a single column,
@@ -14,7 +14,7 @@
  *
  * Two things worth knowing before reading the claims:
  *
- * - Uploading the image writes no card of its own. `insertUploadActivity` skips blocks, because
+ * - Uploading the image writes no card of its own. `insertUploadEvent` skips blocks, because
  *   every image on a block is a topo image and the `createTopo` that follows says strictly more
  *   about the same upload. So adding a photo is one card, not two.
  * - The photos are only fetched for cards a reader has expanded, and only live ones. A case that
@@ -231,7 +231,7 @@ export const TOPO_CASES: EventCase[] = [
     domain: 'topo',
     events: [],
     expected:
-      'No card at all. `insertTopoActivity` returns before writing when the topo has no block, because the feed would have nowhere to put a change that hangs off nothing. Only reachable for a `topos` row with a null `block_fk`; the editor only ever creates them under a block.',
+      'No card at all. `insertTopoEvent` returns before writing when the topo has no block, because the feed would have nowhere to put a change that hangs off nothing. Only reachable for a `topos` row with a null `block_fk`; the editor only ever creates them under a block.',
     id: 'TOPO-04c',
     writer: 'topos.remote.ts:44',
   },

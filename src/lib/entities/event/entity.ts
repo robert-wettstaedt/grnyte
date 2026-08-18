@@ -18,7 +18,7 @@ import { verbEntry } from './verbs'
  * handed over for five of the six. Everything that matches the two compares them as text.
  */
 
-/** The slice of a route an activity card's row renders. A `RouteListItem` satisfies it. */
+/** The slice of a route a card's row renders. A `RouteListItem` satisfies it. */
 export type EntityRoute = Pick<
   RouteListItem,
   'description' | 'gradeFk' | 'name' | 'rating' | 'tags' | 'topoImagePath' | 'topoPoints'
@@ -95,14 +95,14 @@ export interface EventEntity {
  */
 export type EventEntityMap = ReadonlyMap<string, EventEntity | null>
 
-/** The polymorphic `(entityType, entityId)` pair an activity points at. */
+/** The polymorphic `(id, type)` pair a line points at. */
 export interface EventEntityRef {
   id: string
   type: EventObjectType
 }
 
 /**
- * Which refs a window of activities points at, in each of the roles a card reads them in.
+ * Which refs a window of lines points at, in each of the roles a card reads them in.
  *
  * One pass rather than three collectors. Every role answers the same question ("which ref, and in
  * what capacity") from the same declarations on a catalogue entry, and split across functions each
@@ -121,7 +121,7 @@ export interface EventRefs {
    */
   place: EventEntityRef | undefined
   /**
-   * The entities a card renders as rows, which is not always what its activities point at.
+   * The entities a card renders as rows, which is not always what its lines point at.
    *
    * An upload points at a file, whose name is a cuid and whose only page is the media viewer, so
    * the row worth showing is the thing it was attached to, which is exactly what the row already
@@ -130,9 +130,9 @@ export interface EventRefs {
    */
   rows: EventEntityRef[]
   /**
-   * What the activities are about, each listed once.
+   * What the lines are about, each listed once.
    *
-   * A row whose entry declares `names: 'stored'` contributes nothing: its `entityId` does not
+   * A row whose entry declares `names: 'stored'` contributes nothing: its `objectId` does not
    * point at what the card is about. An invitation points at the inviter, so fetching it put the
    * inviter's row under a headline naming the invitee.
    */
@@ -140,15 +140,15 @@ export interface EventRefs {
 }
 
 /**
- * What an activity names as its parent, or `undefined` when it names none.
+ * What a line names as its parent, or `undefined` when it names none.
  *
  * Both halves have to be present to mean anything, and that guard was written out at four
  * separate call sites, each free to disagree with the others about what a half-filled pair is.
  */
-export function catalogueParentRef(activity: CardLine): EventEntityRef | undefined {
-  return activity.parentId == null || activity.parentType == null
+export function catalogueParentRef(line: CardLine): EventEntityRef | undefined {
+  return line.parentId == null || line.parentType == null
     ? undefined
-    : { id: String(activity.parentId), type: activity.parentType }
+    : { id: String(line.parentId), type: line.parentType }
 }
 
 /** Structurally typed rather than taking a whole ref: the events layer keys the same map from
@@ -169,27 +169,27 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
   // Only the entries that borrow their parent's row, and only when that parent is really here. A
   // line ABOUT the place keeps its vote, or a burst holding an edit to the block its routes sit
   // under would end up with no place at all.
-  const own = new Set(rows.map((activity) => eventEntityKey(lineRef(activity))))
-  const placed = rows.filter((activity) => {
-    const parent = catalogueParentRef(activity)
-    return parent == null || verbEntry(activity)?.names !== 'parent' || !own.has(eventEntityKey(parent))
+  const own = new Set(rows.map((line) => eventEntityKey(lineRef(line))))
+  const placed = rows.filter((line) => {
+    const parent = catalogueParentRef(line)
+    return parent == null || verbEntry(line)?.names !== 'parent' || !own.has(eventEntityKey(parent))
   })
 
   // The first row's parent is the candidate; a later row disagreeing with it means the window
   // spans more than one place and there is none to name.
   let place = placed.length === 0 ? undefined : catalogueParentRef(placed[0])
 
-  for (const activity of placed) {
-    const parent = catalogueParentRef(activity)
+  for (const line of placed) {
+    const parent = catalogueParentRef(line)
     if (place != null && (parent?.id !== place.id || parent.type !== place.type)) {
       place = undefined
     }
   }
 
-  for (const activity of rows) {
-    const entry = verbEntry(activity)
-    const subject = lineRef(activity)
-    const parent = catalogueParentRef(activity)
+  for (const line of rows) {
+    const entry = verbEntry(line)
+    const subject = lineRef(line)
+    const parent = catalogueParentRef(line)
 
     if (entry?.names !== 'stored') {
       add(subjects, subject)
@@ -212,8 +212,8 @@ export function eventRefs(rows: readonly CardLine[]): EventRefs {
  * open-coded the conversion and one of them forgot it, which cost every tombstone on a multi-row
  * card its own name.
  */
-export function lineRef(activity: CardLine): EventEntityRef {
-  return { id: String(activity.objectId), type: activity.objectType }
+export function lineRef(line: CardLine): EventEntityRef {
+  return { id: String(line.objectId), type: line.objectType }
 }
 
 /** Keyed insertion order, which is how each role stays newest-first with no duplicates. */

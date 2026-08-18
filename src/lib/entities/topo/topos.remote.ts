@@ -15,7 +15,7 @@ import { canEditTopo } from './permissions'
 
 /** Where a topo change lands in the feed: on the block, since a topo has no page or row of its
  *  own. The area is reachable from there through `blocks.area_fk`. */
-interface TopoActivityTarget {
+interface TopoEventTarget {
   blockId?: null | number
   regionId: number
   /** Absent for a reorder: it is the strip that changed, not a photo. */
@@ -28,11 +28,11 @@ interface TopoActivityTarget {
  * say it with - all five of these used to write the same valueless row, and the feed could
  * only report the union of them ("Topo redrawn").
  */
-const insertTopoActivity = (
+const insertTopoEvent = (
   db: PostgresJsDatabase<typeof schema>,
   user: NonNullable<App.Locals['user']>,
   action: Exclude<TopoAction, 'lines'>,
-  { blockId, regionId, topoId }: TopoActivityTarget,
+  { blockId, regionId, topoId }: TopoEventTarget,
 ) => {
   if (blockId == null) {
     return
@@ -80,7 +80,7 @@ export const createTopo = authedCommand(
       error(500, 'Failed to create topo')
     }
 
-    await insertTopoActivity(db, user, 'photoAdded', {
+    await insertTopoEvent(db, user, 'photoAdded', {
       blockId: block.id,
       regionId: block.regionFk,
       topoId: created.id,
@@ -120,7 +120,7 @@ export const deleteTopo = command(
       await db.delete(topos).where(eq(topos.id, id))
       const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
 
-      await insertTopoActivity(db, user, 'photoRemoved', {
+      await insertTopoEvent(db, user, 'photoRemoved', {
         blockId: topo.blockFk,
         regionId: topo.regionFk,
         topoId: id,
@@ -163,7 +163,7 @@ export const replaceTopoImage = command(
       await db.update(topos).set({ fileFk: fileId }).where(eq(topos.id, topoId))
       const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
 
-      await insertTopoActivity(db, user, 'photoReplaced', {
+      await insertTopoEvent(db, user, 'photoReplaced', {
         blockId: topo.blockFk,
         regionId: topo.regionFk,
         topoId,
@@ -210,7 +210,7 @@ export const reorderTopos = authedCommand(
       await db.update(topos).set({ order: index }).where(eq(topos.id, id))
     }
 
-    await insertTopoActivity(db, user, 'reordered', { blockId: block.id, regionId: block.regionFk })
+    await insertTopoEvent(db, user, 'reordered', { blockId: block.id, regionId: block.regionFk })
   },
 )
 

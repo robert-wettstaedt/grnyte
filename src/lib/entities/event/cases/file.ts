@@ -2,7 +2,7 @@
  * Every card an action on a FILE can produce.
  *
  * Three write sites, and they point in two different directions. An upload's object is the FILE
- * (`insertUploadActivity`, reached from `finalizeImage:187` and `finalizeVideo:410`), so the card
+ * (`insertUploadEvent`, reached from `finalizeImage:187` and `finalizeVideo:410`), so the card
  * borrows the name of whatever the file landed on. A removal's object is that PARENT
  * (`deleteFile`), because the file row is gone by the time anybody reads the card and only the
  * parent is left to name. Between them sits the one column a file diffs, a video's `source`.

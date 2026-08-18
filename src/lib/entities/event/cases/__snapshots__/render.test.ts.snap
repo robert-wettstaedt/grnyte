@@ -6503,7 +6503,7 @@ exports[`the case catalogue renders what it claims > TOPO-04b: Delete a photo, t
 exports[`the case catalogue renders what it claims > TOPO-04c: Delete a topo whose row names no block 1`] = `
 {
   "cards": [],
-  "expected": "No card at all. \`insertTopoActivity\` returns before writing when the topo has no block, because the feed would have nowhere to put a change that hangs off nothing. Only reachable for a \`topos\` row with a null \`block_fk\`; the editor only ever creates them under a block.",
+  "expected": "No card at all. \`insertTopoEvent\` returns before writing when the topo has no block, because the feed would have nowhere to put a change that hangs off nothing. Only reachable for a \`topos\` row with a null \`block_fk\`; the editor only ever creates them under a block.",
 }
 `;
 

@@ -51,9 +51,9 @@ const entityFks = (type: FileEntityType, id: number) => ({
  * two cards for one upload. Give a block a photo that is NOT a topo and this is what has to
  * change.
  */
-const insertUploadActivity = (
+const insertUploadEvent = (
   db: PostgresJsDatabase<typeof schema>,
-  { entityType, fileId, regionFk, userFk }: UploadActivity,
+  { entityType, fileId, regionFk, userFk }: UploadEventTarget,
 ) =>
   entityType === 'block'
     ? undefined
@@ -64,7 +64,7 @@ const insertUploadActivity = (
         verb: 'add',
       })
 
-interface UploadActivity {
+interface UploadEventTarget {
   /** Only to spot the topo case: the file's own row is what names what it hangs on. */
   entityType: FileEntityType
   fileId: string
@@ -185,7 +185,7 @@ export const finalizeImage = command(
           })
           .returning()
 
-        await insertUploadActivity(db, { entityType, fileId: id, regionFk, userFk: user.id })
+        await insertUploadEvent(db, { entityType, fileId: id, regionFk, userFk: user.id })
 
         return rows
       })
@@ -408,7 +408,7 @@ export const finalizeVideo = authedCommand(
     await db.insert(bunnyStreams).values({ fileFk: file.id, id: videoId, regionFk, source })
     const [linked] = await db.update(files).set({ bunnyStreamFk: videoId }).where(eq(files.id, file.id)).returning()
 
-    await insertUploadActivity(db, { entityType, fileId: file.id, regionFk, userFk: user.id })
+    await insertUploadEvent(db, { entityType, fileId: file.id, regionFk, userFk: user.id })
 
     if (linked == null) {
       // Safety net — the checks above should make this unreachable; if RLS

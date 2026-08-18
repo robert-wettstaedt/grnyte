@@ -172,9 +172,9 @@ interface ChangeBase {
  * change has a pair, a member removal writes the same column and has none).
  */
 export function changeViews(rows: readonly CardLine[], ctx: ChangeContext = {}): ChangeView[] {
-  return rows.flatMap((activity) => {
-    const field = verbEntry(activity)?.field
-    return field == null ? [] : [changeView(activity, field, ctx)]
+  return rows.flatMap((line) => {
+    const field = verbEntry(line)?.field
+    return field == null ? [] : [changeView(line, field, ctx)]
   })
 }
 
@@ -187,11 +187,11 @@ export function storedMedia(value: null | string | undefined): MediaWord {
   return value === 'photo' || value === 'video' ? value : 'none'
 }
 
-function changeView(activity: CardLine, field: VerbField, ctx: ChangeContext): ChangeView {
+function changeView(line: CardLine, field: VerbField, ctx: ChangeContext): ChangeView {
   const base: ChangeBase = {
     field,
-    id: `${activity.id}:${activity.columnName ?? ''}`,
-    labelParams: { media: storedMedia(activity.oldValue) },
+    id: `${line.id}:${line.columnName ?? ''}`,
+    labelParams: { media: storedMedia(line.oldValue) },
   }
 
   switch (field.kind) {
@@ -200,45 +200,45 @@ function changeView(activity: CardLine, field: VerbField, ctx: ChangeContext): C
     // type (a row written before `send` became `redpoint`) has no glyph and falls back to a
     // plain chip there, which is why this is not narrowed to `AscentType` here.
     case 'ascentType':
-      return { ...base, after: activity.newValue, before: activity.oldValue, kind: 'ascentType' }
+      return { ...base, after: line.newValue, before: line.oldValue, kind: 'ascentType' }
 
     case 'chips':
-      return { ...base, after: list(activity.newValue), before: list(activity.oldValue), kind: 'chips' }
+      return { ...base, after: list(line.newValue), before: list(line.oldValue), kind: 'chips' }
 
     case 'file':
-      return { ...base, kind: 'file', media: storedMedia(activity.oldValue) }
+      return { ...base, kind: 'file', media: storedMedia(line.oldValue) }
 
     case 'grade':
       return {
         ...base,
-        afterFk: gradeFk(activity.newValue),
-        beforeFk: gradeFk(activity.oldValue),
+        afterFk: gradeFk(line.newValue),
+        beforeFk: gradeFk(line.oldValue),
         kind: 'grade',
       }
 
     case 'location':
-      return { ...base, ...locationChange(activity, field, ctx), kind: 'location' }
+      return { ...base, ...locationChange(line, field, ctx), kind: 'location' }
 
     case 'prose':
       return {
         ...base,
-        after: activity.newValue,
-        before: activity.oldValue,
+        after: line.newValue,
+        before: line.oldValue,
         kind: 'prose',
-        segments: proseDiff(activity.oldValue, activity.newValue),
+        segments: proseDiff(line.oldValue, line.newValue),
       }
 
     // Null coerces to zero stars, never to "Not set": an unrated route and a route rated zero
     // are the same thing to a reader, and an empty row of stars says it.
     case 'rating':
-      return { ...base, after: Number(activity.newValue ?? 0), before: Number(activity.oldValue ?? 0), kind: 'rating' }
+      return { ...base, after: Number(line.newValue ?? 0), before: Number(line.oldValue ?? 0), kind: 'rating' }
 
     case 'source':
-      return { ...base, after: sourceSide(activity.newValue), before: sourceSide(activity.oldValue), kind: 'source' }
+      return { ...base, after: sourceSide(line.newValue), before: sourceSide(line.oldValue), kind: 'source' }
 
     case 'tags': {
-      const before = new Set(list(activity.oldValue))
-      const after = new Set(list(activity.newValue))
+      const before = new Set(list(line.oldValue))
+      const after = new Set(list(line.newValue))
       return {
         ...base,
         added: [...after].filter((tag) => !before.has(tag)),
@@ -248,13 +248,13 @@ function changeView(activity: CardLine, field: VerbField, ctx: ChangeContext): C
     }
 
     case 'topo':
-      return { ...base, ...topoChange(activity, ctx), kind: 'topo' }
+      return { ...base, ...topoChange(line, ctx), kind: 'topo' }
 
     case 'pair':
       return {
         ...base,
-        after: activity.newValue,
-        before: activity.oldValue,
+        after: line.newValue,
+        before: line.oldValue,
         format: field.format ?? 'text',
         kind: 'pair',
       }
@@ -298,7 +298,7 @@ function list(value: string | undefined): string[] {
  * the way to a parking spot nobody can park at any more is the way to nowhere.
  */
 function locationChange(
-  activity: CardLine,
+  line: CardLine,
   field: VerbField,
   ctx: ChangeContext,
 ): {
@@ -308,8 +308,8 @@ function locationChange(
   paths: Coords[][] | undefined
   points: ChangeMapPoint[]
 } {
-  const from = parseCoords(activity.oldValue)
-  const to = parseCoords(activity.newValue)
+  const from = parseCoords(line.oldValue)
+  const to = parseCoords(line.newValue)
   // A pin can stay put and still be a change: confirming an estimated one rewrites the flag
   // alone, and "Moved 0 m" would be a silly way to say so.
   const moved = from != null && to != null && (from.lat !== to.lat || from.long !== to.long)
@@ -331,7 +331,7 @@ function locationChange(
     approximate: to?.estimated === true,
     captionKey,
     metres: moved ? haversineMetres(from, to) : undefined,
-    paths: field.cleared === true ? undefined : ctx.entities?.get(eventEntityKey(lineRef(activity)))?.paths,
+    paths: field.cleared === true ? undefined : ctx.entities?.get(eventEntityKey(lineRef(line)))?.paths,
     points: locationPoints(from, to),
   }
 }
@@ -436,7 +436,7 @@ function topoCaption(action: string, diff: TopoLineDiff): MessageKey | undefined
  * when the photo is gone, because "Erased Rampe" is still the story.
  */
 function topoChange(
-  activity: CardLine,
+  line: CardLine,
   ctx: ChangeContext,
 ): {
   added: TopoLineChip[]
@@ -446,7 +446,7 @@ function topoChange(
   redrawn: TopoLineChip[]
   removed: TopoLineChip[]
 } {
-  const change = parseTopoChange(activity.metadata)
+  const change = parseTopoChange(line.metadata)
 
   if (change == null) {
     return {
@@ -459,14 +459,14 @@ function topoChange(
     }
   }
 
-  const diff = diffTopoLines(activity.oldValue, activity.newValue)
+  const diff = diffTopoLines(line.oldValue, line.newValue)
   const view = change.topoId == null ? undefined : ctx.topos?.get(change.topoId)
   const chips = (lines: TopoLineState[]) => lines.map(({ name, routeFk }): TopoLineChip => ({ name, routeFk }))
 
   // A redraw with no stored pair has nothing to say about lines: the photo would be drawn with an
   // empty overlay under "Lines updated", which reads as a wall that was cleared when in fact every
   // line is still on it. Drawing nothing is what the four photo actions already do without a view.
-  const blank = change.action === 'lines' && activity.oldValue == null && activity.newValue == null
+  const blank = change.action === 'lines' && line.oldValue == null && line.newValue == null
 
   return {
     added: chips(diff.added),

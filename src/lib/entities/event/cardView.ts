@@ -192,15 +192,13 @@ export function cardView(
   // answers a different question: it reads every file hanging off every entity on the card, so a
   // session that added one video to an ascent photographed last week called it "1 media".
   const uploaded =
-    group.kind === 'session'
-      ? group.rows.filter((activity) => activity.objectType === 'file' && activity.verb === 'add')
-      : []
+    group.kind === 'session' ? group.rows.filter((line) => line.objectType === 'file' && line.verb === 'add') : []
   // One word per LINE, `none` for a line whose file is gone. Reading the files the lines resolved
   // to instead let two clips with one deleted since be counted as two and worded as one, which is
   // the count-and-word disagreement this exists to prevent.
   const uploadKinds = new Set(
-    uploaded.map((activity) => {
-      const files = entityOf(lineRef(activity))?.files ?? []
+    uploaded.map((line) => {
+      const files = entityOf(lineRef(line))?.files ?? []
       return files.length === 1 ? mediaWord(files[0]) : 'none'
     }),
   )
@@ -245,7 +243,7 @@ export function cardView(
   // somebody else's log must not say, and four of the six arms were unreachable.
   const climber = [refs[0], place].map(entityOf).find((entity) => entity?.climberFk != null)
   const recorded = group.rows
-    .map((activity) => (activity.objectType === 'ascent' ? parseDeletedAscent(activity.metadata) : undefined))
+    .map((line) => (line.objectType === 'ascent' ? parseDeletedAscent(line.metadata) : undefined))
     .find((entry) => entry != null)
   const climberFk = climber?.climberFk ?? recorded?.climberFk
   const owner = climberFk == null ? 'none' : climberFk === newest.actorFk ? 'self' : 'other'
@@ -264,7 +262,7 @@ export function cardView(
   // A removal card reads its word off every row it holds, not just the newest: a submit that
   // pulled a photo and a video is neither, and `none` is the arm that says "media".
   const removed = new Set(
-    group.rows.filter((activity) => activity.columnName === 'file').map((activity) => storedMedia(activity.oldValue)),
+    group.rows.filter((line) => line.columnName === 'file').map((line) => storedMedia(line.oldValue)),
   )
   const media =
     newest.columnName === 'file'
@@ -279,7 +277,7 @@ export function cardView(
   // in: the pin a block was placed with, and the numbers an ascent was logged with. An edit
   // already renders each of these as its own change line, and a card that merely mentions the
   // entity has no business growing a map.
-  const created = group.rows.flatMap((activity) => (activity.verb === 'create' ? [entityOf(lineRef(activity))] : []))
+  const created = group.rows.flatMap((line) => (line.verb === 'create' ? [entityOf(lineRef(line))] : []))
   // Only when the card created exactly one thing. Two creates have two pins and no row to hang
   // either on, and a create-plus-media group is still one create.
   //
@@ -298,7 +296,7 @@ export function cardView(
     // CREATE for the strip, whichever position it sits in: a log at nine and a correction at six
     // are two events on one session card and one row, and gating on the newest line left that row
     // with no grade, no stars and no conditions because an update happened to be on top.
-    const createLine = lines.find((activity) => activity.verb === 'create')
+    const createLine = lines.find((line) => line.verb === 'create')
 
     return {
       ascent: createLine == null ? undefined : loggedAscent(entity),
@@ -358,14 +356,14 @@ export function cardView(
  * invitation deliberately has no hydrated subject at all, so a digest that consulted the database
  * alone would announce both with `common_unnamed`.
  */
-export function headlineEntityName(activity: CardLine, entity: EventEntity | null | undefined): string | undefined {
-  const entry = verbEntry(activity)
+export function headlineEntityName(line: CardLine, entity: EventEntity | null | undefined): string | undefined {
+  const entry = verbEntry(line)
 
   // A stored subject is never the hydrated one: an invitation names an address the invitee
   // has no account for, and points `entityId` at the inviter, so hydrating it would render
   // "Jonas invited Jonas".
   if (entry?.names === 'stored') {
-    return named(activity.newValue ?? activity.oldValue)
+    return named(line.newValue ?? line.oldValue)
   }
 
   if (entity != null) {
@@ -375,7 +373,7 @@ export function headlineEntityName(activity: CardLine, entity: EventEntity | nul
   // Nothing hydrated, so fall back to the value column the entry says carries the name. An
   // entry with no `tombstone` has none: every other column stores its own value (a grade id,
   // a rating, an ascent type), which would read as a nonsense name.
-  return entry?.tombstone == null ? undefined : named(activity[entry.tombstone])
+  return entry?.tombstone == null ? undefined : named(line[entry.tombstone])
 }
 
 /**
@@ -398,12 +396,12 @@ export function headlineEntityName(activity: CardLine, entity: EventEntity | nul
  */
 function catalogueRowsFor(rows: readonly CardLine[], ref: EventEntityRef): CardLine[] {
   const key = eventEntityKey(ref)
-  const own = rows.filter((activity) => eventEntityKey(lineRef(activity)) === key)
+  const own = rows.filter((line) => eventEntityKey(lineRef(line)) === key)
 
   return own.length > 0
     ? own
-    : rows.filter((activity) => {
-        const parent = catalogueParentRef(activity)
+    : rows.filter((line) => {
+        const parent = catalogueParentRef(line)
         return parent != null && eventEntityKey(parent) === key
       })
 }
@@ -418,11 +416,11 @@ function createdWithMedia(group: CardGroup): CardLine[] | undefined {
   // a clip that landed between two logged ascents left a create on top of a card holding several:
   // "You flashed Riss" over three rows, counting one video where the reader did three things.
   // `mergeCreatedWithMedia` only puts a create at the front when it speaks for the whole card.
-  if (group.rows[0]?.verb !== 'create' || group.rows.filter((activity) => activity.verb === 'create').length !== 1) {
+  if (group.rows[0]?.verb !== 'create' || group.rows.filter((line) => line.verb === 'create').length !== 1) {
     return undefined
   }
 
-  const files = group.rows.filter((activity) => activity.objectType === 'file')
+  const files = group.rows.filter((line) => line.objectType === 'file')
   return files.length > 0 ? files : undefined
 }
 
@@ -435,8 +433,8 @@ function createdWithMedia(group: CardGroup): CardLine[] | undefined {
 function deletionScaleParts(group: CardGroup): MessagePart[] | undefined {
   const totals = { areas: 0, blocks: 0, routes: 0 }
 
-  for (const activity of group.rows) {
-    const scale = activity.verb === 'delete' ? parseDeletionScale(activity.metadata) : undefined
+  for (const line of group.rows) {
+    const scale = line.verb === 'delete' ? parseDeletionScale(line.metadata) : undefined
     totals.areas += scale?.areas ?? 0
     totals.blocks += scale?.blocks ?? 0
     totals.routes += scale?.routes ?? 0
@@ -585,7 +583,7 @@ function sharedVerbKey(group: CardGroup, subjects: number): MessageKey | undefin
     return undefined
   }
 
-  const [first, ...rest] = group.rows.map((activity) => verbEntry(activity)?.key)
+  const [first, ...rest] = group.rows.map((line) => verbEntry(line)?.key)
   return first != null && rest.every((key) => key === first) ? first : undefined
 }
 
@@ -610,8 +608,8 @@ function spokenLine(group: CardGroup, verb: CardVerb): CardLine | undefined {
   // falls outside the 15 minute fold, and the card read "You logged a session" over a sub line
   // saying "1 ascent", which is the card contradicting itself about how much happened. The create
   // has a sentence for exactly this and the changes toggle still holds the correction.
-  const creates = group.rows.filter((activity) => activity.verb === 'create')
-  const oneSubject = new Set(group.rows.map((activity) => eventEntityKey(lineRef(activity)))).size === 1
+  const creates = group.rows.filter((line) => line.verb === 'create')
+  const oneSubject = new Set(group.rows.map((line) => eventEntityKey(lineRef(line)))).size === 1
 
   return group.kind === 'session' && creates.length === 1 && oneSubject ? creates[0] : undefined
 }
@@ -644,7 +642,7 @@ function summaryParts(
   // Same idea from the other end: a card that only pulled files counts files. "2 edits" under
   // "You removed media from Kante direkt" reaches for the generic word for a card that already
   // knows it is about media, and `media` is the mixed-aware one the headline computed.
-  if (group.rows.every((activity) => activity.columnName === 'file' && activity.verb === 'remove')) {
+  if (group.rows.every((line) => line.columnName === 'file' && line.verb === 'remove')) {
     return [{ key: 'event_summaryFiles', params: { count: group.rows.length, media } }]
   }
 
@@ -659,9 +657,8 @@ function summaryParts(
   // the rows rather than off the card's subjects, because a session holds the clips hung on those
   // climbs too and a file is a subject: counting subjects read "5 ascents" for three climbs and
   // two videos. Every other kind counts rows, which is what it says it counts: edits, removals.
-  const climbs = new Set(
-    group.rows.flatMap((activity) => (activity.objectType === 'ascent' ? [String(activity.objectId)] : [])),
-  ).size
+  const climbs = new Set(group.rows.flatMap((line) => (line.objectType === 'ascent' ? [String(line.objectId)] : [])))
+    .size
   const count = edits ?? (group.kind === 'session' ? climbs : group.rows.length)
   const countKey: MessageKey =
     edits != null
