@@ -1489,6 +1489,20 @@ export const events = table(
     actorFk: integer('actor_fk')
       .notNull()
       .references((): AnyColumn => users.id),
+    /**
+     * How many live comments hang under this card, top level and replies alike.
+     *
+     * Denormalised because the feed needs the number without the text: ZQL has no aggregate, so
+     * the only other way to say "3 comments" is to sync all three bodies to every reader of the
+     * window, which is what the thread is lazy-loaded to avoid.
+     *
+     * ponytail: maintained by `postComment` and `deleteComment` inside their own transaction,
+     * not by a trigger, because those are the only two writers and this repo has no trigger
+     * anywhere else. The `region.delete` moderator policy could remove a row behind their back;
+     * it ships with no UI. A second writer, or that lever growing one, is when this becomes a
+     * trigger on `reactions`.
+     */
+    commentCount: integer('comment_count').notNull().default(0),
     /** What the sentence needs and the object cannot answer, e.g. the role a change assigned. */
     metadata: text('metadata'),
     verb: text('verb', { enum: eventVerb }).notNull(),
@@ -1801,7 +1815,17 @@ export const notificationSourceType: [
   'invite_accepted',
   'reaction',
   'comment',
-] = ['mention', 'ascent_edited', 'ascent_deleted', 'role_changed', 'invite_accepted', 'reaction', 'comment']
+  'comment_reply',
+] = [
+  'mention',
+  'ascent_edited',
+  'ascent_deleted',
+  'role_changed',
+  'invite_accepted',
+  'reaction',
+  'comment',
+  'comment_reply',
+]
 
 /**
  * Things aimed at one person: a mention, somebody editing your ascent, a role change.
