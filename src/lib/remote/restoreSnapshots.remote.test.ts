@@ -85,11 +85,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    // Order matters. `activities` carries a region FK, and a block points at its geolocation while
-    // that geolocation points back at the block, so the link has to be broken before either row can
-    // go. Areas go in one statement: FK triggers fire at the end of it, so a parent and its child
-    // disappearing together is not a violation.
-    await sql`delete from public.activities where region_fk in (${homeRegionId}, ${otherRegionId})`
+    // Order matters. `events` carries a region FK (its `changes` and `reactions` cascade off it),
+    // and a block points at its geolocation while that geolocation points back at the block, so the
+    // link has to be broken before either row can go. Areas go in one statement: FK triggers fire at
+    // the end of it, so a parent and its child disappearing together is not a violation.
+    await sql`delete from public.events where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`update public.blocks set geolocation_fk = null where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.geolocations where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.blocks where region_fk in (${homeRegionId}, ${otherRegionId})`

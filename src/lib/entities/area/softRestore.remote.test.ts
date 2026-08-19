@@ -123,9 +123,9 @@ beforeAll(async () => {
 afterAll(async () => {
   if (reachable) {
     for (const tree of trees) {
-      // `activities` first: every delete logs one and it carries a region FK, so the region delete
-      // below raises 23503 otherwise.
-      await sql`delete from public.activities where region_fk = ${tree.regionId}`
+      // `events` first: every delete logs one and it carries a region FK, so the region delete
+      // below raises 23503 otherwise. Its `changes` and `reactions` cascade off it.
+      await sql`delete from public.events where region_fk = ${tree.regionId}`
       await sql`delete from public.routes where region_fk = ${tree.regionId}`
       await sql`delete from public.blocks where region_fk = ${tree.regionId}`
       // The crag before its parent: `areas.parent_fk` points at another row in this same set.

@@ -59,9 +59,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    // `activities` first: `updateArea` logs one per edit and it carries a region FK, so the region
-    // delete below raises 23503 otherwise.
-    await sql`delete from public.activities where region_fk in (${homeRegionId}, ${otherRegionId})`
+    // `events` first: `updateArea` logs one per edit and it carries a region FK, so the region
+    // delete below raises 23503 otherwise. Its `changes` and `reactions` cascade off it.
+    await sql`delete from public.events where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.areas where id = ${areaId}`
     await sql`delete from public.region_members where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.regions where id in (${homeRegionId}, ${otherRegionId})`
