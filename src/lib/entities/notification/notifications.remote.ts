@@ -133,7 +133,7 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
     })
 
     // The two owner columns come from the session, never the payload.
-    await db
+    const [written] = await db
       .insert(pushSubscriptions)
       .values({
         auth: subscription.auth,
@@ -162,6 +162,15 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
         setWhere: eq(pushSubscriptions.userFk, user.id),
         target: pushSubscriptions.endpoint,
       })
+      .returning({ id: pushSubscriptions.id })
+
+    // Nothing back means `setWhere` suppressed the conflict path and no row was written: this call
+    // lost the race the read above cannot see, and the endpoint now belongs to somebody else. Same
+    // answer that read gives, rather than falling through to report a subscription that does not
+    // exist and stamp watermarks for it.
+    if (written == null) {
+      error(403, formError('notifications_pushDeviceTaken'))
+    }
 
     if (existing == null) {
       const [{ newest }] = await db.select({ newest: max(events.createdAt) }).from(events)
