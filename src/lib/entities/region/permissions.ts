@@ -22,9 +22,9 @@ export function canEditRegion(userRegions: UserRegion[], regionFk: number): bool
 /**
  * Whether the signed-in user is a reading member of a region.
  *
- * The row form of {@link readableRegionIds}, for the handlers that are handed one `regionFk` and
- * have to decide about it rather than scope a list. Separate from {@link canEditRegion} because a
- * region has reads that every member is entitled to even where only admins may act:
+ * The row form of {@link checkRegionPermission}, for the handlers that are handed one `regionFk`
+ * and have to decide about it. Separate from {@link canEditRegion} because a region has reads that
+ * every member is entitled to even where only admins may act:
  * `listRegionInvitations` is the example, since a pending invitation holds a seat and the seat
  * counter is shown to everyone.
  */
@@ -43,19 +43,4 @@ export function canReadRegion(userRegions: UserRegion[], regionFk: number): bool
  */
 export function isLastAdmin(adminUserFks: number[], userFk: number): boolean {
   return adminUserFks.length <= 1 && adminUserFks.includes(userFk)
-}
-
-/**
- * Every region the signed-in user may read, as ids, for the handlers that scope a whole query
- * rather than ask about one row: `inArray(table.regionFk, readableRegionIds(userRegions))`.
- *
- * The list form of {@link checkRegionPermission}, and written once for the same reason that one is:
- * the obvious hand-rolled version, `userRegions.map((region) => region.regionFk)`, quietly includes
- * a membership whose role grants no read at all. Callers must handle the empty list themselves, see
- * `userContributionCount`.
- */
-export function readableRegionIds(userRegions: UserRegion[]): number[] {
-  return userRegions
-    .filter((region) => region.permissions.includes(REGION_PERMISSION_READ))
-    .map((region) => region.regionFk)
 }

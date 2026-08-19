@@ -64,7 +64,6 @@ const GATES = new Set([
   'canLogAscent',
   'canReadRegion',
   'checkRegionPermission',
-  'readableRegionIds',
   'requireEditableArea',
   'requireEditableFile',
   'requireRow',
