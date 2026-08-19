@@ -3,20 +3,14 @@ import { areas, blocks, favorites, routes } from '$lib/db/schema'
 import { authedCommand } from '$lib/remote/authed.server'
 import { error } from '@sveltejs/kit'
 import { and, eq } from 'drizzle-orm'
-import z from 'zod'
-import { FAVORITE_TYPES } from './dto'
+import { favoriteEntityArgs } from './dto'
 
 /**
  * Add or remove the current user's favorite for an entity. Returns the new saved
  * state as the envelope's `data` so the caller can confirm (or revert) an optimistic toggle.
  */
 export const toggleFavorite = authedCommand(
-  z.object({
-    // Coerced and checked here rather than at the query: the object columns are integers, and a
-    // non-numeric id would reach Postgres as NaN and come back as a 500 instead of a 404.
-    entityId: z.coerce.number().int().positive(),
-    entityType: z.enum(FAVORITE_TYPES),
-  }),
+  favoriteEntityArgs,
   async ({ entityId, entityType }, { db, user, userRegions }) => {
     // regionFk is stamped from the entity, never the client: the favorites INSERT policy is
     // own-row only (no region predicate), so a submitted regionFk would go in unchecked.
@@ -45,14 +39,14 @@ export const toggleFavorite = authedCommand(
 
     if (existing == null) {
       // `onConflictDoNothing` because this reads before it writes: two devices tapping Save at the
-      // same moment both see nothing and both insert, and the unique index turns the loser into an
-      // error over a state it already agrees with.
+      // same moment both see nothing and both insert, and the unique index would turn the loser
+      // into an error over a state it already agrees with.
       //
-      // What comes back matters, though. The lookup above runs under a region-scoped SELECT
-      // policy, so a favorite the caller made before leaving that region is invisible to it: the
-      // insert then conflicts, DO NOTHING drops it, and reporting `true` would leave the button
-      // claiming a save that never syncs back. Nothing inserted means nothing changed.
-      const [written] = await db
+      // Saved either way, so `true` either way. The three unique indexes are per (user, object), so
+      // a conflict can only ever be this caller's own row: the loser of that race is looking at the
+      // favorite it was asking for. Reporting what the INSERT returned instead would answer `false`
+      // on a row that exists and leave the button drawn unsaved.
+      await db
         .insert(favorites)
         // Every column named, and the two the request did not ask for written as NULL rather than
         // left out: `favorites_one_object` counts what is set, so which of the three is which is
@@ -66,9 +60,8 @@ export const toggleFavorite = authedCommand(
           userFk: user.id,
         })
         .onConflictDoNothing()
-        .returning({ id: favorites.id })
 
-      return { data: written != null }
+      return { data: true }
     }
 
     await db.delete(favorites).where(eq(favorites.id, existing.id))

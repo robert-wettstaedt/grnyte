@@ -1,3 +1,5 @@
+import z from 'zod'
+
 export type FavoriteEntityType = 'area' | 'block' | 'route'
 
 /**
@@ -15,6 +17,19 @@ export const FAVORITE_KEY = {
 
 /** The same three, as a list, so the zod enums are derived from the map rather than restating it. */
 export const FAVORITE_TYPES = Object.keys(FAVORITE_KEY) as [FavoriteEntityType, ...FavoriteEntityType[]]
+
+/**
+ * What names one favorited thing, for `toggleFavorite` and for the two queries that count them.
+ *
+ * One schema, because the three of them are the same question and had already drifted: the command
+ * coerced its id from a string while the queries required a number, and the comment on each said it
+ * matched the other. The id is a number, as it is in the database, and taking a string and calling
+ * `Number()` on it is how 'abc' became NaN and a query for `routeFk = null`.
+ */
+export const favoriteEntityArgs = z.object({
+  entityId: z.number().int().positive(),
+  entityType: z.enum(FAVORITE_TYPES),
+})
 
 /** Minimal favorite shape used to derive a user's favorited routes. */
 export interface UserFavorite {

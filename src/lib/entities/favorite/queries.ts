@@ -2,11 +2,7 @@ import { regionMemberCan } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
 import z from 'zod'
-import { FAVORITE_KEY, FAVORITE_TYPES } from './dto'
-
-// The id is a number here as it is in the database and in `toggleFavorite`: taking a string and
-// calling `Number()` on it is how 'abc' became NaN and a query for `routeFk = null`.
-const entityArgs = z.object({ entityId: z.number().int().positive(), entityType: z.enum(FAVORITE_TYPES) })
+import { favoriteEntityArgs as entityArgs, FAVORITE_KEY } from './dto'
 
 export const favoritesQueryDefs = {
   // Everyone's favorites for one entity — used to count how many people saved it.

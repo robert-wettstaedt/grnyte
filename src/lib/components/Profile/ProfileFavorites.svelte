@@ -41,13 +41,10 @@
   const favBlocks = blockList(() => ({ blockId: favBlockIds }), { enabled: () => favBlockIds.length > 0 })
   const favRoutes = routesByIds(() => favRouteIds)
 
-  // Removing a favorite: the entity's regionFk comes off the favorite row. Zero
-  // re-syncs the list, so the row drops out on its own once the write lands.
+  // Removing a favorite. Zero re-syncs the list, so the row drops out on its own once the write
+  // lands.
   const removeFavorite = async (entityType: 'area' | 'block' | 'route', entityId: number): Promise<void> => {
-    const favorite = favorites.data.find((f) => f.entityType === entityType && f.entityId === entityId)
-    if (favorite != null) {
-      await toggleFavorite({ entityId, entityType })
-    }
+    await toggleFavorite({ entityId, entityType })
   }
   const removeAllFavorites = async (): Promise<void> => {
     await Promise.all(favorites.data.map((f) => toggleFavorite({ entityId: f.entityId, entityType: f.entityType })))
