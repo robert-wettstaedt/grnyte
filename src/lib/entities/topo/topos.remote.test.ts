@@ -75,7 +75,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable) {
-    await sql`delete from public.activities where region_fk = ${regionId}`
+    await sql`delete from public.events where region_fk = ${regionId}`
     await sql`delete from public.topo_routes where region_fk = ${regionId}`
     await sql`delete from public.topos where region_fk = ${regionId}`
     await sql`delete from public.files where region_fk = ${regionId}`
@@ -133,6 +133,46 @@ describe.skipIf(!reachable)('topo images', () => {
     expect(topo.fileFk).toBe(ownFileId)
 
     const rows = await sql`select id from public.files where id = ${victimFileId}`
+    expect(rows).toHaveLength(1)
+  })
+
+  it('refuses to swap a topo onto an image another topo on the same block already holds', async () => {
+    // Same block, so the block test passes and the old guard let this through. What follows the
+    // swap is a hard delete of the image being let go of, which leaves two topos on one `files` row
+    // and the next delete raising 23503 against a NO ACTION foreign key.
+    const [second] = await sql<{ id: string }[]>`
+      insert into public.files (id, path, region_fk, created_by, block_fk)
+      values (gen_random_uuid()::text, '/topos/second.jpg', ${regionId}, ${maintainer.userId}, ${blockId})
+      returning id`
+    const sibling = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: second.id }))
+
+    const status = await statusOf(() =>
+      asRequest(maintainer.authId, () => replaceTopoImage({ fileId: second.id, topoId })),
+    )
+
+    expect(status).toBe(409)
+
+    const [topo] = await sql<{ fileFk: string }[]>`
+      select file_fk as "fileFk" from public.topos where id = ${topoId}`
+    expect(topo.fileFk).toBe(ownFileId)
+
+    const [held] = await sql<{ fileFk: string }[]>`
+      select file_fk as "fileFk" from public.topos where id = ${sibling!.data!.id}`
+    expect(held.fileFk).toBe(second.id)
+  })
+
+  it('leaves a topo alone when the swap names the image it already has', async () => {
+    // The degenerate call: the update is a no-op against the same id, and the delete that used to
+    // follow it destroyed the image the topo still points at.
+    const result = await asRequest(maintainer.authId, () => replaceTopoImage({ fileId: ownFileId, topoId }))
+
+    expect(result?.data?.id).toBe(topoId)
+
+    const [topo] = await sql<{ fileFk: string }[]>`
+      select file_fk as "fileFk" from public.topos where id = ${topoId}`
+    expect(topo.fileFk).toBe(ownFileId)
+
+    const rows = await sql`select id from public.files where id = ${ownFileId}`
     expect(rows).toHaveLength(1)
   })
 })
