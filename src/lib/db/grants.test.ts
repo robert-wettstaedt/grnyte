@@ -10,6 +10,10 @@
  * table refused one caller, and what has to hold is that no table anywhere grants the wrong thing.
  * `setup-table-permissions.ts` re-asserts all of it after every migrate, so this is what says
  * whether that took.
+ *
+ * Scoped to `anon` and `authenticated` throughout, which are the roles a browser's JWT can name.
+ * `service_role` keeps Supabase's defaults on purpose (see `setup-table-permissions.ts`), so it is
+ * deliberately not asserted here rather than missed.
  */
 import { getTableName, isTable } from 'drizzle-orm'
 import { getTableConfig } from 'drizzle-orm/pg-core'
@@ -57,6 +61,17 @@ describe.skipIf(!reachable)('table grants', () => {
     const read = (await grantsFor('app_writer')).filter((grant) => grant.privilege === 'SELECT')
 
     expect(read.length).toBeGreaterThan(0)
+  })
+
+  it('gives the writer role sequence usage of its own, borrowed from nobody', async () => {
+    // Every INSERT calls `nextval` on a serial's sequence, and `app_writer` used to reach that
+    // through membership in `authenticated`: the role this file strips to nothing. Asserted
+    // directly, because losing it breaks every write for a reason no error message would name.
+    const usage = await sql<{ grantee: string }[]>`
+      select grantee from information_schema.role_usage_grants
+      where object_schema = 'public' and grantee in ('anon', 'authenticated', 'app_writer', 'PUBLIC')`
+
+    expect(new Set(usage.map((grant) => grant.grantee))).toEqual(new Set(['app_writer']))
   })
 
   it('gives the writer role exactly the tables a policy decides', async () => {
