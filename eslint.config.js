@@ -29,8 +29,9 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore')
  *
  * DESCENDANT selectors, not direct children, so the array and mapped forms are covered too:
  * `.values([{ ...v }])` and `.values(list.map((v) => ({ ...v })))` are the same bug written with one
- * more layer. And a bare identifier argument (`.set(payload)`) is flagged on its own, because there
- * the columns are not visible at the call site at all.
+ * more layer. And a bare identifier argument is flagged on its own, because there the columns are
+ * not visible at the call site at all: on all three writes, not just `.set(payload)`, since
+ * `.values(payload)` and `onConflictDoUpdate({ set: payload })` hand over exactly the same thing.
  *
  * Spreading the result of a CALL stays legal: that value was built here rather than handed over,
  * which is why `:matches(Identifier, MemberExpression)` and not a bare `SpreadElement`.
@@ -65,6 +66,19 @@ const noDrizzleMassAssignment = [
     // its own callee, so `> MemberExpression` matches `db.update(x).set` itself on every call.
     selector:
       "CallExpression[callee.property.name='set'][callee.object.callee.property.name='update'][arguments.0.type='Identifier']",
+  },
+  {
+    message:
+      'Pass an object literal naming the columns, not a prebuilt value: the columns this write can move must be readable at the call site (no-drizzle-mass-assignment).',
+    selector:
+      "CallExpression[callee.property.name='values'][callee.object.callee.property.name='insert'][arguments.0.type='Identifier']",
+  },
+  {
+    message:
+      'Pass an object literal naming the columns, not a prebuilt value: the columns the conflict path can move must be readable at the call site (no-drizzle-mass-assignment).',
+    // `[value.type=...]`, because `Property > Identifier` also matches the key `set` itself.
+    selector:
+      "CallExpression[callee.property.name='onConflictDoUpdate'] ObjectExpression > Property[key.name='set'][value.type=/^(Identifier|MemberExpression)$/]",
   },
 ]
 
