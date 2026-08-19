@@ -81,6 +81,21 @@
    * either here or it is gone. A row whose object was already deleted when the typed columns were
    * backfilled has no ref at all and draws nothing (see `notificationView`).
    */
+  /**
+   * Where this row happened, when it happened under a card.
+   *
+   * The event's own page, with the comment it was written about as the anchor: a reply, a comment
+   * and a mention inside one all point at a line in a conversation, and that page renders the
+   * thread in flow so there is something for `?comment=` to scroll to. A row about a description
+   * mention or a role change names no event and stays plain text.
+   */
+  const eventHref = (notification: NotificationListItem) =>
+    notification.eventFk == null
+      ? undefined
+      : `${resolve('/(app)/events/[id]', { id: String(notification.eventFk) })}${
+          notification.reactionFk == null ? '' : `?comment=${notification.reactionFk}`
+        }`
+
   const rowFor = (notification: NotificationListItem, ref: EventEntityRef): CardRow => ({
     // Neither on an inbox row. The strip and the note are what a feed card says ABOUT an ascent it
     // is reporting; a notification is one line telling you it happened, and the ascent's own
@@ -141,7 +156,14 @@
               <!-- The feed's header, in the same order and the same sizes: who, what, when. Every
                    sentence here starts with the actor, so the face that goes with the name belongs
                    on the row as much as it does on a card. -->
-              <header class="flex items-center gap-2.5">
+              <!-- The sentence is the link, not the whole card: the entity row underneath is
+                   already a link of its own, and an anchor cannot contain another. Tapping what a
+                   row SAYS opens where it happened; tapping the thing it names opens that thing. -->
+              <svelte:element
+                this={eventHref(notification) == null ? 'header' : 'a'}
+                href={eventHref(notification)}
+                class="flex items-center gap-2.5"
+              >
                 <Avatar name={notification.actorName} size={34} solid loading={notification.actorName.length === 0} />
 
                 <div class="min-w-0 flex-1">
@@ -164,7 +186,7 @@
                 >
                   {formatUploadedAt(notification.createdAt, now(), getLocale())}
                 </time>
-              </header>
+              </svelte:element>
 
               {#if view.ref != null}
                 <HydratedRow row={rowFor(notification, view.ref)} />

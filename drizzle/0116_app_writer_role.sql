@@ -9,10 +9,13 @@
 --
 -- `app_writer` is a member of `authenticated`, which is what keeps this a short migration instead
 -- of a rewrite: RLS policies declared `TO authenticated` apply to any role that is a member of it,
--- so nothing about the policies changes. Membership also carries the SELECT and sequence grants,
--- so only the write privileges need saying, and those are said by
--- `scripts/setup-table-permissions.ts`, which re-asserts them after every migrate rather than once
--- here. This migration creates the role that script grants to.
+-- so nothing about the policies changes. Membership is for the POLICIES only. Every privilege it
+-- once carried along with them (SELECT, and USAGE on the sequences an INSERT needs) is now granted
+-- to `app_writer` outright, because `authenticated` is stripped down to nothing in the same pass.
+--
+-- The grants themselves live in `scripts/setup-table-permissions.ts`, which re-asserts them after
+-- every migrate rather than stating them once here: the tables that most need covering are the ones
+-- nobody listed. This migration creates the role that script grants to.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_writer') THEN

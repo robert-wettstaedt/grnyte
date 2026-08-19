@@ -4,6 +4,11 @@ import WidthDecorator from './WidthDecorator.svelte'
 // Pull in the real app stylesheet (Tailwind 4 + Skeleton + grnyte tokens) so
 // components render exactly as they do in the app.
 import '../src/app.css'
+// And the markdown stylesheet, which the app loads from its root layout rather than from
+// `Markdown.svelte` (one document, one `<link>`). The preview runs no layout, so a story that
+// renders a description or a comment would otherwise show unstyled markdown. Dark only, to match
+// the theme forced below.
+import 'github-markdown-css/github-markdown-dark.css'
 
 // The app runs under `<html class="dark" data-theme="grnyte">` (see src/app.html).
 // Replicate that on the preview iframe so theme tokens and dark mode resolve.

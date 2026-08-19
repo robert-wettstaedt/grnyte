@@ -16,7 +16,7 @@ import {
 } from '$lib/entities/event/cases/world'
 import { groupEvents, type EventGroup } from '$lib/entities/event/grouping'
 import type { EventListItem } from '$lib/entities/event/mapper'
-import type { CommentListItem, ReactionListItem } from '$lib/entities/reaction/dto'
+import type { ReactionListItem } from '$lib/entities/reaction/dto'
 import type { TopoView } from '$lib/entities/topo/dto'
 
 export {
@@ -53,16 +53,6 @@ const NOTES = 'Cold and dry, the crux crimp finally felt sticky. Went second try
 const KANTE = { name: 'Kante direkt', routeFk: 501 }
 const RAMPE = { name: 'Rampe', routeFk: 502 }
 
-/**
- * One comment in a thread, `minutesAgo` before the run.
- *
- * No `mine`: the mapper does not know who is reading, and `eventCard` fills it in per line from
- * the author against the reader.
- */
-function comment(id: number, authorFk: number, body: string, minutesAgo: number): Omit<CommentListItem, 'mine'> {
-  return { authorFk, authorName: PEOPLE[authorFk] ?? '', body, createdAt: Date.now() - minutesAgo * 60_000, id }
-}
-
 /** One person's one emoji on one event. */
 function reaction(emoji: string, userFk: number): ReactionListItem {
   return { emoji, userFk, userName: PEOPLE[userFk] ?? '' }
@@ -79,10 +69,10 @@ export const sampleWeek: { events: EventListItem[]; topos: ReadonlyMap<number, T
     // talked under, so the bar shows both halves at once.
     eventAgo(12, {
       actorFk: 2,
-      comments: [
-        comment(901, 3, 'Is the second crimp still wet after the rain?', 9),
-        comment(902, 2, 'Dry by mid afternoon. The topout is the slow bit.', 5),
-      ],
+      // The number, not the words: a card carries `comment_count`, and the thread is fetched when
+      // the button opens it. A story mounts no Zero client, so an opened thread is out of scope
+      // here by construction.
+      commentCount: 2,
       entity: ascentEntity('Rampe', 12, 2, 'flash', { files: [photo('f1'), photo('f2')], note: NOTES }),
       objectId: 9001,
       objectType: 'ascent',

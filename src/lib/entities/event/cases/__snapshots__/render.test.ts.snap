@@ -5902,7 +5902,7 @@ exports[`the case catalogue renders what it claims > SOCIAL-01j: A card that has
       "summary": [],
     },
   ],
-  "expected": "One bar carrying both: "🔥 2", "👍 1", and a comment button reading 2. The thread is still closed, since the count is what says there is something to read, and both halves post back to the same event id.",
+  "expected": "One bar carrying both: "🔥 2", "👍 1", and a comment button reading 2. The emoji arrive with the card and the two sentences do not: the count comes off \`events.comment_count\`, and the thread is fetched when the button opens it. Both halves post back to the same event id.",
 }
 `;
 
@@ -6032,7 +6032,7 @@ exports[`the case catalogue renders what it claims > SOCIAL-03a: Feed -> card ->
       "summary": [],
     },
   ],
-  "expected": "The comment button reads 1 and the thread stays CLOSED: a feed of open threads is not a feed. Opened, one line by Tomas Kessler with his avatar and a relative time, no delete control (it is not the reader's), and the composer under it.",
+  "expected": "The comment button reads 1 and nothing under it has loaded: the number is a column on the event, and the thread is a query the button fires. Opened, it is a sheet on a phone and a right-hand aside on a desktop, with one line by Tomas Kessler, his avatar, a relative time, a Reply control, no delete control (it is not the reader's), and the composer pinned at the bottom.",
 }
 `;
 
@@ -6055,7 +6055,7 @@ exports[`the case catalogue renders what it claims > SOCIAL-03b: Three people an
       "summary": [],
     },
   ],
-  "expected": "Button reads 3. The thread is flat, oldest first, three avatars and three names; nothing is indented, because nothing writes a reply today. No delete control on any of them.",
+  "expected": "Button reads 3. The thread renders oldest first, three avatars and three names. A reply to any of them indents under it against a rule, one level and no deeper: answering a reply files under the same comment, so the shape stays a list of comments with a flat list of answers. No delete control on any of these, none being the reader s.",
 }
 `;
 
@@ -6078,7 +6078,7 @@ exports[`the case catalogue renders what it claims > SOCIAL-03c: Answer somebody
       "summary": [],
     },
   ],
-  "expected": "Two lines, and only the second carries the trash control: \`mine\` is filled in per comment from the author against the reader, so the delete offer follows the line rather than the card.",
+  "expected": "Two lines, and only the second carries the trash control: \`mine\` is filled in per comment from the author against the reader, so the delete offer follows the line rather than the card. Every line carries Reply, own lines included.",
 }
 `;
 
@@ -6101,7 +6101,7 @@ exports[`the case catalogue renders what it claims > SOCIAL-03d: Somebody commen
       "summary": [],
     },
   ],
-  "expected": ""You flashed Rampe" with a read-only bar: no add button, since nobody applauds their own event, but the comment button is there reading 1 and the composer opens under it. Being the person a card is about is the most likely reason to have something to say under it.",
+  "expected": ""You flashed Rampe" with a read-only bar: no add button, since nobody applauds their own event, but the comment button is there reading 1 and opens the thread with its composer. Being the person a card is about is the most likely reason to have something to say under it.",
 }
 `;
 
@@ -6147,7 +6147,7 @@ exports[`the case catalogue renders what it claims > SOCIAL-04a: Thread -> your 
       "summary": [],
     },
   ],
-  "expected": "The reader's line is gone and the button drops to 1. Soft on the server, but a soft-deleted row does not sync, so the thread is simply shorter; the card itself is untouched, exactly as a cleared reaction leaves it.",
+  "expected": "The reader's line is gone and the button drops by one. Soft on the server, but a soft-deleted row does not sync, so the thread is simply shorter, and the count follows because the trigger on \`reactions\` decrements the card as the row leaves. The card itself is untouched, exactly as a cleared reaction leaves it.",
 }
 `;
 

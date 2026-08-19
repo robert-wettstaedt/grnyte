@@ -17,6 +17,8 @@ export interface EventListFilter {
   after?: EventCursor
   /** Ascents, or every other kind of edit. */
   category?: 'ascent' | 'update'
+  /** Exactly these events, which is how one event's own page renders the feed's card for it. */
+  ids?: number[]
   /** Sync window. Defaults to the query's 50; bump it to load older rows. */
   limit?: number
   /** Narrow to one region when the user belongs to several. */

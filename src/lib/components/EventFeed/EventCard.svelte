@@ -7,6 +7,7 @@
   relative clock, and the grade labels that need `globalState`.
 -->
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import HydratedRow from '$lib/components/EntityRow/HydratedRow.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -35,6 +36,12 @@
   import EventChanges from './EventChanges.svelte'
 
   interface Props {
+    /**
+     * The thread is already on the page, so the bar keeps its emoji and drops the comment button.
+     * Set by the event's own page, where the button would open a sheet over the conversation it
+     * is standing in front of.
+     */
+    commentsInline?: boolean
     /** Whether the changes start open. The feed leaves them closed; the catalogue story opens
      *  every card at once, since the change lines are half of what it exists to show. */
     initiallyExpanded?: boolean
@@ -43,7 +50,7 @@
     view: EventCardView
   }
 
-  const { initiallyExpanded = false, onToggle, view }: Props = $props()
+  const { commentsInline = false, initiallyExpanded = false, onToggle, view }: Props = $props()
 
   const global = getGlobalState()
 
@@ -140,11 +147,16 @@
     <!-- `solid` already means "a registered user rather than a typed-in name" (see Avatar) and
          every actor here is registered, so it cannot also mark your own row. Your rows say
          "Me" in place of the initials, the same way the first-ascensionist picker does. -->
-    {#if view.mine}
-      <Avatar size={34} solid>{m.common_me()}</Avatar>
-    {:else}
-      <Avatar name={view.actorName} size={34} solid loading={view.actorName.length === 0} />
-    {/if}
+    <!-- The face is a link to the person, on your own rows too: it is the one part of a card that
+         is about WHO rather than what, and a reader who wants somebody's logbook aims at their
+         face. The headline stays plain text, so the sentence keeps reading as a sentence. -->
+    <a class="flex-none" href={resolve('/(app)/users/[id]', { id: String(view.actorFk) })}>
+      {#if view.mine}
+        <Avatar size={34} solid>{m.common_me()}</Avatar>
+      {:else}
+        <Avatar name={view.actorName} size={34} solid loading={view.actorName.length === 0} />
+      {/if}
+    </a>
 
     <div class="min-w-0 flex-1">
       <p class="text-surface-950-50 text-sm/snug">
@@ -213,12 +225,7 @@
              where the add button sits under the thumb. -->
         {#if row.bar != null}
           <div class="flex px-1">
-            <Reactions
-              comments={row.bar.comments}
-              eventId={row.bar.eventId}
-              reactions={row.bar.chips}
-              readonly={row.bar.readonly}
-            />
+            <Reactions bar={row.bar} showComments={!commentsInline} />
           </div>
         {/if}
       {/each}
@@ -254,7 +261,7 @@
 
       <div class="flex min-w-0 flex-1 flex-col items-end gap-1">
         {#each bars as bar (bar.eventId)}
-          <Reactions comments={bar.comments} eventId={bar.eventId} reactions={bar.chips} readonly={bar.readonly} />
+          <Reactions {bar} showComments={!commentsInline} />
         {/each}
       </div>
     </footer>

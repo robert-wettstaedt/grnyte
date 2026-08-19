@@ -23,6 +23,17 @@ body {
 .markdown-body {
   background-color: transparent !important;
   box-sizing: border-box;
+
+  /* The colour is the app's, not the stylesheet's.
+
+     github-markdown-css ships a light build and a dark build that differ only in the values they
+     state on this class, and the app swaps between them at runtime with one `<link>`. Whichever
+     one is in the document therefore decides what a comment reads like, and the light build's
+     #1f2328 on a dark surface is text nobody can read. That is a race with no winner worth having:
+     rendered markdown sits inside app chrome that already states a colour for its context, so
+     inheriting is both correct and immune to which build loaded. `!important` because the runtime
+     link lands after this bundle and states the same class. */
+  color: inherit !important;
   margin: 0 auto;
   min-width: 200px;
 
@@ -36,6 +47,14 @@ body {
 
   & a {
     @apply anchor;
+  }
+
+  /* github-markdown-css states its own 16px on `.markdown-body`, and the app loads it at runtime
+     from the root layout, so it lands after this bundle: a one-class utility like `text-sm` on the
+     same element loses on order at equal specificity. Two classes win whatever the order, which is
+     the same trick `&.short` below already relies on. */
+  &.text-sm {
+    @apply text-sm;
   }
 
   &.short {

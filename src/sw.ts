@@ -181,8 +181,11 @@ self.addEventListener('notificationclick', (event) => {
       if (windowClients.at(0) == null) {
         return self.clients.openWindow(data.pathname ?? '/')
       } else {
-        const url = new URL(windowClients[0].url)
-        url.pathname = data.pathname ?? '/'
+        // Resolved against the open window rather than assigned to its `pathname`: what the push
+        // carries is a whole path, and a comment's is `/events/12?comment=45`. Assigning that to
+        // `pathname` percent-encodes the `?` into the route parameter, so the reader lands on an
+        // event id no row has.
+        const url = new URL(data.pathname ?? '/', windowClients[0].url)
         await windowClients[0].focus()
         return windowClients[0].navigate(url)
       }

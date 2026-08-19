@@ -15,13 +15,16 @@ ALTER TABLE "favorites" ADD CONSTRAINT "favorites_route_fk_routes_id_fk" FOREIGN
 -- constrained this table: `entity_id` is text, so it holds whatever was written, and nothing ever
 -- removed a favorite when its route was hard-deleted. A favorite of a deleted block is not
 -- something a person can open, so dropping it loses nothing they had.
-DELETE FROM "favorites"
-  WHERE "entity_id" IS NULL
-    OR "entity_id" !~ '^[0-9]+$'
-    -- and the range, not just the shape: `entity_id` is text and 1.0 never constrained it, so a
-    -- single oversized value would pass the digit test and then take the whole cutover down with
-    -- `value out of range for type integer`.
-    OR "entity_id"::numeric > 2147483647;--> statement-breakpoint
+DELETE FROM "favorites" WHERE "entity_id" IS NULL OR "entity_id" !~ '^[0-9]+$';--> statement-breakpoint
+-- The range, not just the shape: `entity_id` is text and 1.0 never constrained it, so a single
+-- oversized value would pass the digit test and then take the whole cutover down with `value out of
+-- range for type integer`.
+--
+-- Its own statement rather than a third OR arm. Postgres does not promise to evaluate a WHERE
+-- clause left to right, and it is free to hoist this cast above the regex that makes it safe: a
+-- plan that did would raise 22P02 on the first `entity_id` holding a word. Sequencing the two
+-- statements is the only ordering the planner cannot reorder.
+DELETE FROM "favorites" WHERE "entity_id"::numeric > 2147483647;--> statement-breakpoint
 DELETE FROM "favorites" AS f
   WHERE f."entity_type" = 'area'
     AND NOT EXISTS (SELECT 1 FROM "areas" a WHERE a."id" = f."entity_id"::int);--> statement-breakpoint

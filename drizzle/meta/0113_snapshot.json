@@ -4137,7 +4137,7 @@
           "to": [
             "authenticated"
           ],
-          "using": "\n          (SELECT authorize_in_region('region.admin', region_fk))\n          AND EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = region_members.auth_user_fk\n          )\n        ",
+          "using": "(SELECT authorize_in_region('region.admin', region_fk))",
           "withCheck": "\n          (SELECT authorize_in_region('region.admin', region_fk))\n          AND EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = region_members.auth_user_fk\n          )\n        "
         },
         "region.read can read region_members": {

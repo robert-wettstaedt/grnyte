@@ -145,7 +145,9 @@ function directedWanted(row: {
     return row.notifyReactions !== false
   }
 
-  if (row.sourceType === 'comment') {
+  // A reply is a comment somebody aimed at you, so it answers to the comment switch rather than
+  // to a third one nobody would think to look for.
+  if (row.sourceType === 'comment' || row.sourceType === 'comment_reply') {
     return row.notifyComments !== false
   }
 
@@ -165,6 +167,21 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
   })
 
   return new Map(rows.map((row) => [row.id, row.username]))
+}
+
+/**
+ * Where a directed push opens.
+ *
+ * A literal path rather than SvelteKit's `resolve`: this runs in a task route with no page
+ * context, and the service worker hands whatever is here to `clients.openWindow`. It must stay in
+ * step with `/(app)/(shell)/events/[id]`, which is one route and has no other callers server-side.
+ */
+function pathnameFor(row: { eventFk: null | number; reactionFk: null | number }): string {
+  if (row.eventFk == null) {
+    return '/notifications'
+  }
+
+  return `/events/${row.eventFk}${row.reactionFk == null ? '' : `?comment=${row.reactionFk}`}`
 }
 
 /**
@@ -430,12 +447,16 @@ async function sendDirected(nowMs: number): Promise<number> {
       blockFk: notifications.blockFk,
       contactLocale: userSettings.contactLocale,
       createdAt: notifications.createdAt,
+      // Both only so the push can open where it happened rather than on the inbox. See
+      // `pathnameFor`.
+      eventFk: notifications.eventFk,
       fileFk: notifications.fileFk,
       id: notifications.id,
       metadata: notifications.metadata,
       notifyComments: userSettings.notifyComments,
       notifyDirected: userSettings.notifyDirected,
       notifyReactions: userSettings.notifyReactions,
+      reactionFk: notifications.reactionFk,
       regionFk: notifications.regionFk,
       routeFk: notifications.routeFk,
       sourceType: notifications.sourceType,
@@ -480,7 +501,10 @@ async function sendDirected(nowMs: number): Promise<number> {
 
     return sendPushToUser(subscriptions, row.userFk, {
       badge: unread.get(row.userFk) ?? 0,
-      pathname: '/notifications',
+      // Straight to where it happened when the row knows: a comment, a reply, a mention inside one
+      // and an emoji all name their card, and the card's page renders the thread with the line
+      // anchored. Everything else lands on the inbox, which is the only thing it could say.
+      pathname: pathnameFor(row),
       tag: directedTag(row.id),
       title: resolveMessage(view.key, view.params, { locale }),
     })

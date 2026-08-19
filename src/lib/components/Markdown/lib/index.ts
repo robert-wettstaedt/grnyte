@@ -10,6 +10,7 @@ import { unified } from 'unified'
 import { remarkDisableLinks } from './remark-disable-links'
 import { remarkGrades } from './remark-grades'
 import { REFERENCE_TOMBSTONE, referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
+import { remarkSafeUrls } from './remark-safe-urls'
 
 export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
 export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
@@ -29,6 +30,8 @@ export const convertMarkdownToHtml = async (
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkReferences, { encloseReferences })
+    // Last of the remark passes, so it also covers whatever the passes above produced.
+    .use(remarkSafeUrls)
     .use(remarkRehype)
     .use(rehypeStringify)
     .process(enrichedMarkdown)
@@ -62,7 +65,8 @@ export const convertMarkdownToHtmlSync = (
     processor.use(remarkDisableLinks)
   }
 
-  const result = processor.use(remarkRehype).use(rehypeStringify).processSync(markdown)
+  // Last of the remark passes, so it also covers whatever the passes above produced.
+  const result = processor.use(remarkSafeUrls).use(remarkRehype).use(rehypeStringify).processSync(markdown)
 
   if (typeof result.value !== 'string') {
     throw new Error('Failed to convert markdown to html')

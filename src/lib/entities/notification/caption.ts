@@ -39,6 +39,8 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   ascent_deleted: 'notifications_ascentDeleted',
   ascent_edited: 'notifications_ascentEdited',
   comment: 'notifications_comment',
+  comment_reaction: 'notifications_commentReaction',
+  comment_reply: 'notifications_commentReply',
   invite_accepted: 'notifications_inviteAccepted',
   mention: 'notifications_mention',
   reaction: 'notifications_reaction',

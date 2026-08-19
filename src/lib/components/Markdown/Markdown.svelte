@@ -1,8 +1,5 @@
 <script lang="ts">
   import { getGlobalState } from '$lib/state/global.svelte'
-  import markdownDarkCssUrl from 'github-markdown-css/github-markdown-dark.css?url'
-  import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
-  import { onMount } from 'svelte'
   import { convertMarkdownToHtmlSync } from './lib'
   import { markdownReferences } from './lib/references.svelte'
   import { enrichMarkdownWithReferences, getReferences, type EncloseOptions } from './lib/remark-references'
@@ -16,25 +13,11 @@
 
   const { className, disableLinks = false, encloseReferences, markdown }: Props = $props()
 
-  let markdownCssHref = $state(markdownLightCssUrl)
-
-  onMount(() => {
-    const updateMarkdownTheme = () => {
-      markdownCssHref = document.documentElement.classList.contains('dark') ? markdownDarkCssUrl : markdownLightCssUrl
-    }
-
-    updateMarkdownTheme()
-
-    const observer = new MutationObserver(updateMarkdownTheme)
-    observer.observe(document.documentElement, {
-      attributeFilter: ['class'],
-      attributes: true,
-    })
-
-    return () => {
-      observer.disconnect()
-    }
-  })
+  // The github-markdown-css stylesheet, and the observer that swaps it with the theme, live in the
+  // root layout: they are one thing for the document, not one per rendered body of text. A thread
+  // of thirty comments used to install thirty MutationObservers on `documentElement` and append
+  // thirty copies of the same `<link>` to `<head>`, and every theme toggle then ran thirty
+  // callbacks.
 
   const global = getGlobalState()
 
@@ -54,10 +37,6 @@
     return convertMarkdownToHtmlSync(enrichedMarkdown, global.grades, encloseReferences, disableLinks)
   })
 </script>
-
-<svelte:head>
-  <link rel="stylesheet" href={markdownCssHref} />
-</svelte:head>
 
 <div class="markdown-body {className}">
   <!-- `html` is produced solely by our unified pipeline (see ./lib): user input

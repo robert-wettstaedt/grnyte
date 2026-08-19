@@ -38,18 +38,7 @@ DROP POLICY "region.edit can update route_external_resource_the_crag" ON "route_
 DROP POLICY "region.edit can insert route_external_resources" ON "route_external_resources" CASCADE;--> statement-breakpoint
 DROP POLICY "authenticated users can create regions" ON "regions" CASCADE;--> statement-breakpoint
 CREATE POLICY "nobody inserts regions" ON "regions" AS RESTRICTIVE FOR INSERT TO "authenticated" WITH CHECK (false);--> statement-breakpoint
-ALTER POLICY "region.admin can manage region_members" ON "region_members" TO authenticated USING (
-          (SELECT authorize_in_region('region.admin', region_fk))
-          AND EXISTS (
-            SELECT
-              1
-            FROM
-              public.users u
-            WHERE
-              u.id = user_fk
-              AND u.auth_user_fk = region_members.auth_user_fk
-          )
-        ) WITH CHECK (
+ALTER POLICY "region.admin can manage region_members" ON "region_members" TO authenticated USING ((SELECT authorize_in_region('region.admin', region_fk))) WITH CHECK (
           (SELECT authorize_in_region('region.admin', region_fk))
           AND EXISTS (
             SELECT

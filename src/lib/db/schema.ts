@@ -1553,11 +1553,11 @@ export const events = table(
      * the only other way to say "3 comments" is to sync all three bodies to every reader of the
      * window, which is what the thread is lazy-loaded to avoid.
      *
-     * ponytail: maintained by `postComment` and `deleteComment` inside their own transaction,
-     * not by a trigger, because those are the only two writers and this repo has no trigger
-     * anywhere else. The `region.delete` moderator policy could remove a row behind their back;
-     * it ships with no UI. A second writer, or that lever growing one, is when this becomes a
-     * trigger on `reactions`.
+     * Maintained by `sync_event_comment_count`, a trigger on `reactions`, rather than by the two
+     * handlers that write comments. They run under RLS on the caller's connection and `events`
+     * has no UPDATE policy for a member, so a counter write there would match no rows and report
+     * nothing; and the `region.delete` moderator policy can clear a comment without passing
+     * through either handler.
      */
     commentCount: integer('comment_count').notNull().default(0),
     /** What the sentence needs and the object cannot answer, e.g. the role a change assigned. */
@@ -1873,6 +1873,7 @@ export const notificationSourceType: [
   'reaction',
   'comment',
   'comment_reply',
+  'comment_reaction',
 ] = [
   'mention',
   'ascent_edited',
@@ -1882,6 +1883,7 @@ export const notificationSourceType: [
   'reaction',
   'comment',
   'comment_reply',
+  'comment_reaction',
 ]
 
 /**

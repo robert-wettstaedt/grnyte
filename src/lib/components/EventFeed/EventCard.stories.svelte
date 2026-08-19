@@ -35,6 +35,7 @@
    * anatomy cannot quietly go out of date.
    */
   const FIELDS: Record<keyof EventCardView, string> = {
+    actorFk: "Where the avatar links to: the actor's own profile, on your own rows too.",
     actorName: 'The avatar initials and the bold {actor} in the headline. Pulses while the user row syncs.',
     bars: 'The reaction bars no row spoke for, rendered in the footer beside the changes toggle.',
     changes: 'The rows behind the "Show changes" toggle, one per changed column.',

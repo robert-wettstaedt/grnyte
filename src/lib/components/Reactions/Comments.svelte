@@ -1,157 +1,174 @@
 <!--
-  The thread under one event: what people have said, and the box to say something.
+  The thread under one event: what people have said, and what each of them is answering.
 
-  Flat, and only what hangs directly off the event. `parent_fk` is in the schema and the fan-out
-  already reaches everybody in the thread, so replies are additive rather than something this
-  shape forecloses; nothing writes one today.
+  Two levels and no more. A reply files under the comment it answers, and answering a reply files
+  under that same comment (`postComment` re-points it), so this renders a list of comments each
+  with a flat list of answers rather than a tree. A third level of indent is unreadable at phone
+  width and buys nothing: the sentence names who it is for.
 
-  Plain text, deliberately, where the rest of the app renders markdown. A comment is a sentence,
-  and the editor that would let it be more than that is 50KB of TipTap plus a toolbar taller than
-  most of the comments under it.
+  Markdown, like every other body of text in the app: a comment can name the route it is about and
+  the person it is answering, and both resolve through the same `!type:id!` references a
+  description carries. Rendered through `Markdown`, so a name that changes is right everywhere.
 -->
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
-  import { COMMENT_MAX_LENGTH, type CommentListItem } from '$lib/entities/reaction/dto'
-  import { deleteComment, postComment } from '$lib/entities/reaction/reactions.remote'
+  import Markdown from '$lib/components/Markdown/Markdown.svelte'
+  import QueryState from '$lib/components/QueryState/QueryState.svelte'
+  import type { CommentListItem } from '$lib/entities/reaction/dto'
+  import { deleteComment, restoreComment } from '$lib/entities/reaction/reactions.remote'
   import { formatUploadedAt } from '$lib/i18n/relativeTime'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { now } from '$lib/state/now.svelte'
+  import { withUndo } from '$lib/state/toast'
+  import CommentReactions from './CommentReactions.svelte'
+  import type { CommentThread } from './thread.svelte'
 
   interface Props {
-    /**
-     * What is in the box, owned by the bar above so it survives the thread being collapsed.
-     * Somebody who types three sentences and taps the toggle by mistake keeps them.
-     */
-    body: string
-    comments: CommentListItem[]
-    /** The event the thread hangs off, which is the whole handle the server needs. */
-    eventId: number
-    onbody: (value: string) => void
+    /** The conversation, which also carries what a permalink pointed at. */
+    thread: CommentThread
   }
 
-  const { body, comments, eventId, onbody }: Props = $props()
+  const { thread }: Props = $props()
 
-  let failed = $state(false)
-  let sending = $state(false)
+  const highlightId = $derived(thread.highlightId)
 
-  async function send() {
-    const text = body.trim()
-    if (text.length === 0 || sending) {
-      return
-    }
-
-    sending = true
-    failed = false
-    try {
-      await postComment({ body: text, eventId })
-      // Cleared only on success, so a refused post leaves the words in the box rather than
-      // throwing away something somebody just wrote.
-      onbody('')
-    } catch {
-      // Said out loud, unlike the emoji bar's: a tap that does not land is obvious, a sentence
-      // that does not land looks exactly like one that did until the reader scrolls away.
-      failed = true
-    } finally {
-      sending = false
-    }
+  /**
+   * Bring the linked comment into view once, when it arrives.
+   *
+   * An attachment rather than an effect over the list: the node is what has to exist, and it only
+   * exists after the thread has synced (which is what `createThread`'s highlight window is for).
+   * `block: 'center'` because the composer is pinned over the bottom of the sheet and a comment
+   * scrolled to the end sits behind it.
+   */
+  const reveal = (node: HTMLElement) => {
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   /**
-   * Grow with the text. `field-sizing: content` is not everywhere yet, and a one-line box that
-   * scrolls its own content is how a comment gets written blind.
+   * Take a comment back, and offer to put it back.
    *
-   * Reads `body`, which is what makes the attachment re-run when it changes: a post clears the box
-   * without an `input` event, and a four-line box that stays four lines tall after sending is the
-   * next comment starting in a hole.
+   * Undo rather than a confirmation dialog: the row is soft-deleted, so restoring it is one column
+   * and the id, the replies and the reactions under it never left. A prompt in front of every
+   * delete taxes the many people who meant it to protect the few who did not, and it cannot be
+   * answered on the thread it is about, because it covers it.
    */
-  const autosize = (node: HTMLTextAreaElement) => {
-    void body
-    node.style.height = 'auto'
-    node.style.height = `${node.scrollHeight}px`
-  }
+  const remove = (commentId: number) =>
+    void withUndo(deleteComment({ commentId }), {
+      message: m.comments_deleted(),
+      onUndo: (id) => restoreComment({ commentId: id }),
+    })
 </script>
 
-<div class="border-surface-200-800 mt-2 flex flex-col gap-2 border-t pt-2">
-  {#if comments.length === 0}
-    <p class="text-surface-600-400 text-xs">{m.comments_empty()}</p>
-  {/if}
+{#snippet line(comment: CommentListItem, size: number)}
+  <article
+    class={[
+      'flex gap-2 rounded-lg py-1 pe-1 transition-colors duration-1000',
+      // An accent on the edge rather than a wash over the whole line: a permalink should land
+      // somewhere that looks pointed at, and a tinted block reads as a stuck text selection.
+      comment.id === highlightId ? 'border-primary-500 border-s-2 ps-2' : 'ps-1',
+    ]}
+    {@attach comment.id === highlightId ? reveal : () => undefined}
+  >
+    <!-- Both halves of the byline lead to the person: an avatar is the thing readers aim at, and a
+         name that is not a link when the same name IS one inside the body ("@ada") is the kind of
+         inconsistency people read as a bug. -->
+    <a class="flex-none" href={resolve('/(app)/users/[id]', { id: String(comment.authorFk) })}>
+      <Avatar name={comment.authorName} {size} solid loading={comment.authorName.length === 0} />
+    </a>
 
-  {#each comments as comment (comment.id)}
-    <article class="flex gap-2">
-      <Avatar name={comment.authorName} size={24} solid loading={comment.authorName.length === 0} />
+    <div class="min-w-0 flex-1">
+      <p class="text-surface-600-400 flex items-baseline gap-1.5 text-xs">
+        <a
+          class="text-surface-950-50 font-semibold"
+          href={resolve('/(app)/users/[id]', { id: String(comment.authorFk) })}
+        >
+          {comment.authorName}
+        </a>
 
-      <div class="min-w-0 flex-1">
-        <p class="text-surface-600-400 flex items-baseline gap-1.5 text-xs">
-          <span class="text-surface-950-50 font-semibold">{comment.authorName}</span>
-          <time datetime={new Date(comment.createdAt).toISOString()}>
-            {formatUploadedAt(comment.createdAt, now(), getLocale())}
-          </time>
-        </p>
+        <time datetime={new Date(comment.createdAt).toISOString()}>
+          {formatUploadedAt(comment.createdAt, now(), getLocale())}
+        </time>
+      </p>
 
-        <!-- `whitespace-pre-wrap`, so the line breaks somebody typed are the line breaks they see,
-             and `break-words` so a pasted URL cannot widen the card. -->
-        <p class="text-surface-950-50 text-sm break-words whitespace-pre-wrap">{comment.body}</p>
-      </div>
+      <Markdown className="text-sm break-words" markdown={comment.body} />
 
-      {#if comment.mine}
+      <!-- One row under the sentence: what people have already said about it, then what this
+           reader can do about it. Both are answers to the same line, so a second row for the
+           chips would say they belong to something else.
+
+           36px in BOTH axes on a 12px label, and the row is pulled back out to the text edge by
+           the padding that buys them: a target that is tall but 20px wide is still the one that
+           gets missed on a phone. -->
+      <div class="-ms-2 flex flex-wrap items-center gap-x-1 gap-y-0.5">
+        <CommentReactions {comment} eventId={thread.eventId} />
+
         <button
           type="button"
-          class="text-surface-600-400 hover:text-surface-950-50 self-start p-1"
-          aria-label={m.comments_delete()}
-          onclick={() => void deleteComment({ commentId: comment.id }).catch(() => undefined)}
+          class="text-surface-600-400 hover:text-surface-950-50 flex h-9 min-w-9 items-center justify-center px-2 text-xs font-semibold"
+          onclick={() => (thread.replyTo = comment)}
         >
-          <Icon name="trash" size={14} />
+          {m.comments_reply()}
+        </button>
+
+        {#if comment.mine}
+          <button
+            type="button"
+            class="text-surface-600-400 hover:text-error-500 flex h-9 min-w-9 items-center justify-center px-2 text-xs"
+            aria-label={m.comments_delete()}
+            onclick={() => remove(comment.id)}
+          >
+            <Icon name="trash" size={14} />
+          </button>
+        {/if}
+      </div>
+    </div>
+  </article>
+{/snippet}
+
+<QueryState resource={thread.comments}>
+  {#snippet ready()}
+    <div class="flex flex-col gap-3">
+      {#if thread.hasEarlier}
+        <button
+          type="button"
+          class="text-surface-600-400 hover:text-surface-950-50 self-start text-xs font-semibold"
+          onclick={() => thread.loadEarlier()}
+        >
+          {m.comments_loadEarlier()}
         </button>
       {/if}
-    </article>
-  {/each}
 
-  <form
-    class="flex items-end gap-2"
-    onsubmit={(event) => {
-      event.preventDefault()
-      void send()
-    }}
-  >
-    <!-- One row that grows with what is typed, rather than a box sized for an essay: most
-         comments are one line, and a three-row textarea under every card is most of a card. -->
-    <!-- The box stays live while a post is in flight; only the button goes. A request that never
-         settles (a wedged connection, a sleeping phone) would otherwise leave the composer dead,
-         holding words nobody can edit or copy out. -->
-    <textarea
-      class="textarea max-h-32 min-h-9 flex-1 resize-none py-1.5 text-sm"
-      maxlength={COMMENT_MAX_LENGTH}
-      placeholder={m.comments_placeholder()}
-      rows={1}
-      value={body}
-      {@attach autosize}
-      oninput={(event) => {
-        autosize(event.currentTarget)
-        onbody(event.currentTarget.value)
-      }}
-      onkeydown={(event) => {
-        // Enter sends, Shift+Enter breaks the line, which is what every chat box does. Not on a
-        // soft keyboard, where Enter IS the line break and there is a send button beside it.
-        if (event.key === 'Enter' && !event.shiftKey && !matchMedia('(pointer: coarse)').matches) {
-          event.preventDefault()
-          void send()
-        }
-      }}
-    ></textarea>
+      {#each thread.comments.data as comment (comment.id)}
+        <div class="flex flex-col gap-2">
+          {@render line(comment, 28)}
 
-    <button
-      class="btn-icon preset-filled-primary-500"
-      aria-label={m.comments_post()}
-      disabled={sending || body.trim().length === 0}
-      type="submit"
-    >
-      <Icon name="send" size={16} />
-    </button>
-  </form>
+          {#if comment.replies.length > 0}
+            <!-- Indented under the comment they answer, with a rule rather than a second avatar
+                 column: at this width the indent is what says "these belong to that", and the rule
+                 is what keeps it readable once two threads sit next to each other. -->
+            <div class="border-surface-200-800 ms-4 flex flex-col gap-2 border-s ps-3">
+              {#each comment.replies as reply (reply.id)}
+                {@render line(reply, 22)}
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/snippet}
 
-  {#if failed}
-    <p class="text-error-600-400 text-xs">{m.comments_failed()}</p>
-  {/if}
-</div>
+  {#snippet empty()}
+    <!-- An empty thread is an invitation, not a failure, so it says what to do with it. -->
+    <div class="space-y-1 py-10 text-center">
+      <span class="bg-surface-200-800 text-surface-600-400 mx-auto mb-3 grid size-14 place-items-center rounded-2xl">
+        <Icon name="messageCircle" size={24} />
+      </span>
+
+      <p class="text-surface-950-50 font-semibold">{m.comments_empty()}</p>
+      <p class="text-surface-600-400 text-sm">{m.comments_emptyBody()}</p>
+    </div>
+  {/snippet}
+</QueryState>

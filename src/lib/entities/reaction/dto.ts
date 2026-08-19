@@ -27,11 +27,28 @@ export interface CommentListItem {
   authorFk: number
   /** The author's username; empty while the user row has not synced. */
   authorName: string
+  /** Markdown, with the same `!type:id!` references every description carries. */
   body: string
   createdAt: number
   id: number
   /** Whether the signed-in user wrote it, which is what the delete control reads. */
   mine: boolean
+  /**
+   * The emoji sent on THIS comment, already folded into chips.
+   *
+   * A comment is a thing people react to as much as a card is, and the table already allows it:
+   * an emoji whose `parent_fk` is a comment takes its own slot in `reactions_one_emoji_idx`, so
+   * one person holds one emoji per comment on top of the one they hold on the card.
+   */
+  reactions: ReactionChip[]
+  /**
+   * The answers to this comment, oldest first.
+   *
+   * One level, and only one: `postComment` re-points a reply to a reply at the same parent, so a
+   * thread is a list of comments each with a flat list of answers rather than a tree nobody can
+   * read on a phone. Empty on a reply itself.
+   */
+  replies: CommentListItem[]
 }
 
 /** One person's one emoji on one event. */

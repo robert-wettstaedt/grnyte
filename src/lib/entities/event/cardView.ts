@@ -96,6 +96,8 @@ export interface CardRow {
  * need `globalState`, and the expand toggle.
  */
 export interface CardView {
+  /** Who acted, so the face beside the headline can lead to them. */
+  actorFk: number
   /** The actor's username. Empty while the user row has not synced. */
   actorName: string
   /** The expanded half: one decided line per changed column. See `change.ts`. */
@@ -319,6 +321,7 @@ export function cardView(
   const climbedAt = climbDates.size === 1 ? [...climbDates][0] : undefined
 
   return {
+    actorFk: group.actorFk,
     actorName: newest.actorName,
     changes: changeViews(group.rows, { entities, topos }),
     climbedAt: climbedAt != null && climbedAt !== calendarDay(group.createdAt) ? climbedAt : undefined,

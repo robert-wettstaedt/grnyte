@@ -35,7 +35,15 @@ export interface Props {
   snapPoints?: number[]
   subtitle?: string
   title: string
-  trigger: Snippet<[HTMLAttributes<'button'>]>
+  /**
+   * The control that opens this, rendered in place.
+   *
+   * Optional, and only really optional in `panel` mode: a popover anchors itself to whatever this
+   * renders, while a panel is positioned by `panelClass` and never touches it. A caller that owns
+   * its own button (one that has to exist whether or not the dialog has been built yet) binds
+   * `open` and leaves this out.
+   */
+  trigger?: Snippet<[HTMLAttributes<'button'>]>
 }
 
 type HTMLAttributes<T extends keyof SvelteHTMLElements, U extends keyof SvelteHTMLElements[T] = never> = Omit<

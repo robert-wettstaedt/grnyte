@@ -16,7 +16,15 @@ import { notifications } from '$lib/db/schema'
 import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser } from '$lib/db/testDb'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { dropReactionNotification, eventSubject, notifyComment, notifyReaction } from './reaction.server'
+import {
+  dropComment,
+  dropCommentNotification,
+  dropReactionNotification,
+  eventSubject,
+  notifyComment,
+  notifyReaction,
+  restoreReplies,
+} from './reaction.server'
 
 const REGION_NAME = '__reaction_test__'
 
@@ -67,6 +75,23 @@ const told = async (): Promise<number[]> => {
   })
   return rows.map((row) => row.userFk).sort((a, b) => a - b)
 }
+
+/**
+ * The same, plus WHICH sentence each of them got: one person may only ever have one.
+ *
+ * Sorted by user id, and the expectations are sorted through {@link inIdOrder} rather than written
+ * in the order the people are declared: `beforeAll` creates them with `Promise.all`, so the ids
+ * come back in whatever order four concurrent inserts happened to commit in.
+ */
+const said = async (): Promise<{ sourceType: string; userFk: number }[]> => {
+  const rows = await db.query.notifications.findMany({
+    columns: { sourceType: true, userFk: true },
+    where: eq(notifications.eventFk, eventId),
+  })
+  return rows.map((row) => ({ sourceType: row.sourceType, userFk: row.userFk })).sort((a, b) => a.userFk - b.userFk)
+}
+
+const inIdOrder = (rows: { sourceType: string; userFk: number }[]) => [...rows].sort((a, b) => a.userFk - b.userFk)
 
 async function removeFixtures() {
   const region = sql`(select id from public.regions where name = ${REGION_NAME})`
@@ -141,7 +166,12 @@ describe.skipIf(!reachable)('eventSubject', () => {
 describe.skipIf(!reachable)('notifyComment', () => {
   it('tells the card s author, and nobody who has not joined the thread', async () => {
     await comment('first')
-    await notifyComment({ actorFk: users.first.userId, event: event(), reactionFk: await comment('first') })
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: 'said something',
+      event: event(),
+      reactionFk: await comment('first'),
+    })
 
     expect(await told()).toEqual([users.author.userId])
   })
@@ -150,7 +180,7 @@ describe.skipIf(!reachable)('notifyComment', () => {
     await comment('first')
     const reply = await comment('second')
 
-    await notifyComment({ actorFk: users.second.userId, event: event(), reactionFk: reply })
+    await notifyComment({ actorFk: users.second.userId, body: 'said something', event: event(), reactionFk: reply })
 
     // The author and the earlier commenter. `quiet` never said anything, so nothing reaches them.
     expect(await told()).toEqual([users.author.userId, users.first.userId].sort((a, b) => a - b))
@@ -159,16 +189,16 @@ describe.skipIf(!reachable)('notifyComment', () => {
   it('does not tell the person who wrote it', async () => {
     const own = await comment('author')
 
-    await notifyComment({ actorFk: users.author.userId, event: event(), reactionFk: own })
+    await notifyComment({ actorFk: users.author.userId, body: 'said something', event: event(), reactionFk: own })
 
     expect(await told()).toEqual([])
   })
 
   it('keeps two comments on one card as one inbox row, pointed at the newer one', async () => {
     const first = await comment('first')
-    await notifyComment({ actorFk: users.first.userId, event: event(), reactionFk: first })
+    await notifyComment({ actorFk: users.first.userId, body: 'said something', event: event(), reactionFk: first })
     const second = await comment('first')
-    await notifyComment({ actorFk: users.first.userId, event: event(), reactionFk: second })
+    await notifyComment({ actorFk: users.first.userId, body: 'said something', event: event(), reactionFk: second })
 
     const rows = await db.query.notifications.findMany({ where: eq(notifications.eventFk, eventId) })
 
@@ -176,6 +206,67 @@ describe.skipIf(!reachable)('notifyComment', () => {
     // Unread throughout, so the row keeps its first pointer rather than being re-armed: what is
     // asserted here is that a chatty thread does not become a chatty inbox.
     expect(rows[0].reactionFk).toBe(first)
+  })
+
+  it('tells the person being answered that they were answered, not that somebody commented', async () => {
+    await comment('first')
+    const reply = await comment('second')
+
+    await notifyComment({
+      actorFk: users.second.userId,
+      body: 'answering you',
+      event: event(),
+      parentAuthorFk: users.first.userId,
+      reactionFk: reply,
+    })
+
+    expect(await said()).toEqual(
+      inIdOrder([
+        // The card's author still hears the thread sentence.
+        { sourceType: 'comment', userFk: users.author.userId },
+        { sourceType: 'comment_reply', userFk: users.first.userId },
+      ]),
+    )
+  })
+
+  it('tells somebody named in the body that they were named', async () => {
+    const own = await comment('first')
+
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: `ask !users:${users.quiet.userId}!, they were there`,
+      event: event(),
+      reactionFk: own,
+    })
+
+    expect(await said()).toEqual(
+      inIdOrder([
+        { sourceType: 'comment', userFk: users.author.userId },
+        // `quiet` has never commented here, so the mention is the only thing that reaches them.
+        { sourceType: 'mention', userFk: users.quiet.userId },
+      ]),
+    )
+  })
+
+  it('gives one person one row, and the most specific sentence of the three', async () => {
+    await comment('first')
+    const reply = await comment('second')
+
+    await notifyComment({
+      actorFk: users.second.userId,
+      // Answered AND named AND already in the thread: all three rules point at `first`.
+      body: `!users:${users.first.userId}! good shout`,
+      event: event(),
+      parentAuthorFk: users.first.userId,
+      reactionFk: reply,
+    })
+
+    expect(await said()).toEqual(
+      inIdOrder([
+        { sourceType: 'comment', userFk: users.author.userId },
+        { sourceType: 'comment_reply', userFk: users.first.userId },
+      ]),
+    )
   })
 })
 
@@ -209,5 +300,174 @@ describe.skipIf(!reachable)('dropReactionNotification', () => {
     await dropReactionNotification({ actorFk: users.second.userId, eventFk: eventId })
 
     expect(await told()).toEqual([users.author.userId])
+  })
+})
+
+describe.skipIf(!reachable)('dropComment and restoreReplies', () => {
+  /** What the two halves of an undo have to agree on: which rows the delete actually took. */
+  const cleared = async (): Promise<{ body: string; deleted: boolean }[]> => {
+    const rows = await sql<{ body: string; deleted: boolean }[]>`
+      select body, deleted_at is not null as deleted from public.reactions
+      where event_fk = ${eventId} and type = 'comment' order by id`
+    return rows.map((row) => ({ body: row.body, deleted: row.deleted }))
+  }
+
+  const reply = async (who: Who, parentFk: number, body: string, deletedAt?: Date): Promise<number> => {
+    const [{ id }] = await sql<{ id: number }[]>`
+      insert into public.reactions (event_fk, parent_fk, body, type, region_fk, auth_user_fk, user_fk, deleted_at)
+      values (${eventId}, ${parentFk}, ${body}, 'comment', ${regionId}, ${users[who].authId}, ${users[who].userId},
+              ${deletedAt ?? null})
+      returning id`
+    return id
+  }
+
+  it('puts back exactly the answers it took, and not the one its author had already deleted', async () => {
+    const head = await comment('first')
+    await reply('second', head, 'answer')
+    // Cleared by its own author an hour before any of this, which no undo of somebody else's
+    // delete may resurrect.
+    await reply('quiet', head, 'withdrawn', new Date(Date.now() - 3_600_000))
+
+    const [{ deletedAt }] = await sql<{ deletedAt: Date }[]>`
+      update public.reactions set deleted_at = now() where id = ${head} returning deleted_at as "deletedAt"`
+    await dropComment({ actorFk: users.first.userId, eventFk: eventId, reactionFk: head })
+
+    expect(await cleared()).toEqual([
+      { body: 'nice', deleted: true },
+      { body: 'answer', deleted: true },
+      { body: 'withdrawn', deleted: true },
+    ])
+
+    await sql`update public.reactions set deleted_at = null where id = ${head}`
+    await restoreReplies({ deletedAt, reactionFk: head })
+
+    expect(await cleared()).toEqual([
+      { body: 'nice', deleted: false },
+      { body: 'answer', deleted: false },
+      { body: 'withdrawn', deleted: true },
+    ])
+  })
+})
+
+/**
+ * What happens to an inbox row when the line it was written about goes away.
+ *
+ * The delete path, which is where a wrong sentence survives in somebody's inbox: one row covers a
+ * whole conversation and points at the FIRST line it was written about, so a person who says two
+ * things and deletes the first must not erase the reader's only notice of the second. A reply and a
+ * mention are about ONE line each, so they may only move to a line that would have written the same
+ * sentence to the same reader, and go when there is none.
+ */
+describe.skipIf(!reachable)('dropCommentNotification', () => {
+  /** A comment, with a body worth reading (a mention is read out of it) and an optional parent. */
+  const line = async (who: Who, body: string, parentFk?: number): Promise<number> => {
+    const [{ id }] = await sql<{ id: number }[]>`
+      insert into public.reactions (event_fk, parent_fk, body, type, region_fk, auth_user_fk, user_fk)
+      values (${eventId}, ${parentFk ?? null}, ${body}, 'comment', ${regionId}, ${users[who].authId},
+              ${users[who].userId})
+      returning id`
+    return id
+  }
+
+  const clear = (reactionFk: number) => sql`update public.reactions set deleted_at = now() where id = ${reactionFk}`
+
+  /** Which line one reader's row points at, for one sentence. `undefined` = they have no such row. */
+  const pointing = async (who: Who, sourceType: string): Promise<null | number | undefined> => {
+    const rows = await db.query.notifications.findMany({
+      columns: { reactionFk: true, sourceType: true, userFk: true },
+      where: eq(notifications.eventFk, eventId),
+    })
+    return rows.find((row) => row.userFk === users[who].userId && row.sourceType === sourceType)?.reactionFk
+  }
+
+  it('re-points the thread row at the newest line its author still has standing', async () => {
+    const first = await line('first', 'hollow flake on the left')
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: 'hollow flake on the left',
+      event: event(),
+      reactionFk: first,
+    })
+    const second = await line('first', 'and the start is wet')
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: 'and the start is wet',
+      event: event(),
+      reactionFk: second,
+    })
+
+    // An unread row keeps pointing at the first line, which is the premise this is about.
+    expect(await pointing('author', 'comment')).toBe(first)
+
+    await clear(first)
+    await dropCommentNotification({ actorFk: users.first.userId, eventFk: eventId, reactionFk: first })
+
+    expect(await pointing('author', 'comment')).toBe(second)
+  })
+
+  it('moves an answered row only onto a line that answers the same reader', async () => {
+    const head = await line('second', 'which start did you use')
+    const answer = await line('first', 'the sit start', head)
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: 'the sit start',
+      event: event(),
+      parentAuthorFk: users.second.userId,
+      reactionFk: answer,
+    })
+    const again = await line('first', 'from the block under the arete', head)
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: 'from the block under the arete',
+      event: event(),
+      parentAuthorFk: users.second.userId,
+      reactionFk: again,
+    })
+    // NEWER than the replacement, and answering nobody. This is what makes the assertion below
+    // load-bearing: a row re-pointed at "the newest live line" rather than at the newest line that
+    // ANSWERS this reader would land here, and the test would catch it.
+    await line('first', 'anyway, good effort')
+
+    await clear(answer)
+    await dropCommentNotification({ actorFk: users.first.userId, eventFk: eventId, reactionFk: answer })
+
+    expect(await pointing('second', 'comment_reply')).toBe(again)
+  })
+
+  it('takes an answered row back when nothing that person said answers the reader any more', async () => {
+    const head = await line('second', 'which start did you use')
+    const answer = await line('first', 'the sit start', head)
+    await notifyComment({
+      actorFk: users.first.userId,
+      body: 'the sit start',
+      event: event(),
+      parentAuthorFk: users.second.userId,
+      reactionFk: answer,
+    })
+    // Still a live line of the same person's, but a top-level one: it answers nobody, so it cannot
+    // carry "answered you".
+    await line('first', 'nice one either way')
+
+    await clear(answer)
+    await dropCommentNotification({ actorFk: users.first.userId, eventFk: eventId, reactionFk: answer })
+
+    expect(await pointing('second', 'comment_reply')).toBeUndefined()
+  })
+
+  it('moves a mention row onto the newest line that names the same reader', async () => {
+    const named = `ask !users:${users.quiet.userId}!`
+    const first = await line('first', named)
+    await notifyComment({ actorFk: users.first.userId, body: named, event: event(), reactionFk: first })
+    const again = await line('first', named)
+    await notifyComment({ actorFk: users.first.userId, body: named, event: event(), reactionFk: again })
+    // The NEWEST line names nobody, which is what makes the assertion below load-bearing: a row
+    // re-pointed at the newest live line rather than at the newest line that NAMES this reader
+    // would land here.
+    await line('first', 'or not')
+
+    await clear(first)
+    await dropCommentNotification({ actorFk: users.first.userId, eventFk: eventId, reactionFk: first })
+
+    expect(await pointing('quiet', 'mention')).toBe(again)
   })
 })

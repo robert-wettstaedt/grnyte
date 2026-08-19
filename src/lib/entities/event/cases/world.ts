@@ -120,7 +120,7 @@ export function eventAgo(
   return {
     actorName: PEOPLE[partial.actorFk] ?? '',
     changes: [],
-    comments: [],
+    commentCount: 0,
     createdAt: base - minutesAgo * 60_000,
     entity: 'entity' in partial ? partial.entity : entityOf(objectType, objectId),
     id: nextId++,

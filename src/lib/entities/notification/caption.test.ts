@@ -7,9 +7,11 @@ const notification = (over: Partial<NotificationListItem> = {}): NotificationLis
   actorName: 'Anna',
   createdAt: 0,
   entity: undefined,
+  eventFk: undefined,
   id: 1,
   metadata: undefined,
   object: { id: 42, type: 'route' },
+  reactionFk: undefined,
   readAt: undefined,
   regionFk: 1,
   sourceType: 'mention',
@@ -24,6 +26,10 @@ describe('notificationView', () => {
     ['ascent_edited', 'notifications_ascentEdited'],
     ['ascent_deleted', 'notifications_ascentDeleted'],
     ['invite_accepted', 'notifications_inviteAccepted'],
+    ['comment', 'notifications_comment'],
+    // Its own sentence rather than the thread's: being answered is what the reader wants to know,
+    // and `notifyComment` writes exactly one of the two for any one person.
+    ['comment_reply', 'notifications_commentReply'],
   ] as [NotificationSourceType, string][])('picks %s s own sentence', (sourceType, key) => {
     expect(notificationView(notification({ sourceType })).key).toBe(key)
   })
