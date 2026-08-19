@@ -188,11 +188,19 @@ export const getOwnReactionPolicyConfig = (policyFor: PgPolicyConfig['for'], per
  * `auth_user_fk` while every relation and the whole app joins on `user_fk`. A row where they name
  * different people is one account silently holding another's rights inside a region, displayed under
  * the wrong name in the member list.
+ *
+ * WITH CHECK only, deliberately. It is a rule about the row being COMPOSED, and putting it in USING
+ * as well makes an already-inconsistent row unreachable: an admin could not demote its holder and
+ * could not delete it either, while the handlers, which key their UPDATE on the row's id and never
+ * read the affected count, would report both as done. The predicate exists to stop such a row being
+ * written, not to hide the ones that already were.
  */
-export const getConsistentMemberPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
-  getPolicyConfig(
-    policyFor,
-    sql.raw(`
+export const getConsistentMemberPolicyConfig = (
+  policyFor: PgPolicyConfig['for'],
+  permission: App.Permission,
+): PgPolicyConfig => ({
+  ...getPolicyConfig(policyFor, sql.raw(`(SELECT authorize_in_region('${permission}', region_fk))`)),
+  withCheck: sql.raw(`
           (SELECT authorize_in_region('${permission}', region_fk))
           AND EXISTS (
             SELECT
@@ -204,7 +212,7 @@ export const getConsistentMemberPolicyConfig = (policyFor: PgPolicyConfig['for']
               AND u.auth_user_fk = region_members.auth_user_fk
           )
         `),
-  )
+})
 
 /**
  * `omit` drops the commands no code path performs. A policy is a standing permission, so one nothing
