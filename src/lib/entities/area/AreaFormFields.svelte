@@ -58,9 +58,16 @@
   {/snippet}
 </RemoteFormInputWrapper>
 
-{#if form.fields.parentFk.value() == null}
-  <!-- `required`, or the wrapper badges it "optional": a top-level area has no parent to inherit a
-       region from, so this select is the whole of its placement. -->
+{#if form.fields.id.value() == null && form.fields.parentFk.value() == null}
+  <!-- Creating a top-level area, and only then. `required`, or the wrapper badges it "optional": a
+       top-level area has no parent to inherit a region from, so this select is the whole of its
+       placement.
+
+       Never on the edit form. `updateArea` writes `description` and `name` and nothing else, so an
+       area being edited took the same branch (its prefilled `parentFk` is undefined when it is
+       top-level) and offered a region move that was then dropped on the floor, answered with the
+       same redirect a real edit gets. Moving an area between regions is not a rename: it would have
+       to carry the subtree and gate on both regions. -->
   <RemoteFormInputWrapper
     class="space-y-2"
     field={form.fields.regionFk}
