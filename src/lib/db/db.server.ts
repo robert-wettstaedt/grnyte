@@ -34,29 +34,19 @@ export function createDrizzle<
         // One statement, three settings: parameters travel on the extended protocol, which refuses
         // multi-statement strings, and `set_config('role', ..., true)` is what `SET LOCAL ROLE` is
         // underneath, so the role travels as a parameter too rather than as interpolated text.
-        try {
-          await tx.execute(
-            sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
-                       set_config('request.jwt.claim.sub', ${token.sub ?? ''}, true),
-                       set_config('role', ${roleFor(token)}, true)`,
-          )
-          const result = await transaction(tx)
-          return result
-        } finally {
-          // Best-effort, and swallowed on purpose: a handler that tripped a policy leaves the
-          // transaction aborted, and these statements would then fail with 25P02 and replace the
-          // 42501 the caller actually needs to see. Everything set above is transaction-scoped, so
-          // the rollback undoes it either way; this is only tidiness for a pooled connection.
-          try {
-            await tx.execute(
-              sql`select set_config('request.jwt.claims', NULL, true),
-                         set_config('request.jwt.claim.sub', NULL, true),
-                         set_config('role', NULL, true)`,
-            )
-          } catch {
-            // already unwound
-          }
-        }
+        //
+        // Nothing resets them afterwards. `true` is the is_local flag, so all three end with the
+        // transaction whichever way it ends, and there is no path out of here that is neither a
+        // COMMIT nor a ROLLBACK. The reset that used to sit in a `finally` cost a round-trip on
+        // every remote call to undo what the next statement undoes for free, and had to swallow its
+        // own errors: on an aborted transaction it failed with 25P02 and hid the 42501 the caller
+        // needed to see.
+        await tx.execute(
+          sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
+                     set_config('request.jwt.claim.sub', ${token.sub ?? ''}, true),
+                     set_config('role', ${roleFor(token)}, true)`,
+        )
+        return await transaction(tx)
       },
       ...rest,
     )
@@ -77,7 +67,7 @@ export async function createDrizzleSupabaseClient(supabase: SupabaseClient) {
  *
  * Deliberately not the token's `role` claim verbatim. That claim names the role PostgREST would
  * switch to for the same token, and `authenticated` holds no INSERT, UPDATE or DELETE on anything
- * (see `0115_app_writer_role`): a hand-written request can read what the policies allow and write
+ * (see `0116_app_writer_role`): a hand-written request can read what the policies allow and write
  * nothing at all. The app writes as `app_writer`, which is a member of `authenticated`, so every
  * policy declared `TO authenticated` applies to it unchanged.
  *
