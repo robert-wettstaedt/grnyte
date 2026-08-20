@@ -157,7 +157,7 @@ describe.skipIf(!reachable)('undo loses nothing', () => {
 
     // The parking rides along on the same snapshot, and is the one part not on the row itself.
     const parking = await sql<{ lat: number; long: number }[]>`
-      select lat, long from public.geolocations where area_fk = ${after.id}`
+      select lat, long from public.geolocations where area_fk = ${Number(after.id)}`
     expect(parking).toEqual([{ lat: 47.1, long: 8.2 }])
   })
 
@@ -184,7 +184,7 @@ describe.skipIf(!reachable)('undo loses nothing', () => {
     // `geolocation_fk` is excluded from the comparison because the pin is recreated, so this is
     // what says the pin itself came back rather than a different one.
     const [pin] = await sql<{ estimated: boolean; lat: number; long: number }[]>`
-      select estimated, lat, long from public.geolocations where id = ${after.geolocation_fk}`
+      select estimated, lat, long from public.geolocations where id = ${Number(after.geolocation_fk)}`
     expect(pin).toEqual({ estimated: true, lat: 47.3, long: 8.4 })
   })
 
