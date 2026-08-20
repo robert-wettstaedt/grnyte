@@ -1,0 +1,1 @@
+ALTER TABLE "ascents" ADD COLUMN "accolade" text;

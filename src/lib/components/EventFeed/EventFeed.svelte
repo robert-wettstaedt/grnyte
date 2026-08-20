@@ -84,7 +84,12 @@
       </h2>
     {/if}
 
-    <EventCard {view} onToggle={(open) => (open ? expandedIds.add(view.id) : expandedIds.delete(view.id))} />
+    <!-- The card swaps its own compact row for its full self, and for the length of that swap both
+         halves are in the DOM. Unwrapped they would be two children of `space-y-3` for 150ms, so
+         everything below would jerk down by a gap and back up again. One wrapper, one gap. -->
+    <div>
+      <EventCard {view} onToggle={(open) => (open ? expandedIds.add(view.id) : expandedIds.delete(view.id))} />
+    </div>
   {/each}
 
   {#if hasMore}

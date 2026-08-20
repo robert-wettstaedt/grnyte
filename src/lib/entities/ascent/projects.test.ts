@@ -65,14 +65,38 @@ describe('deriveProjects', () => {
     expect(completed).toEqual([{ lastSession: 300, routeFk: 1, sessions: 3 }])
   })
 
-  it('counts each ascent as a session, without deduping by day', () => {
+  it('folds rows that share a route and a day into one session', () => {
     const { open } = deriveProjects([
-      // Three attempts, two on the same day: still 3 sessions (1 ascent = 1 session).
+      // A second row on a day already logged is a mistake, not a second visit.
       ascent(1, 'attempt', 100),
       ascent(1, 'attempt', 100),
       ascent(1, 'attempt', 300),
     ])
 
-    expect(open[0]).toMatchObject({ routeFk: 1, sessions: 3 })
+    expect(open[0]).toMatchObject({ routeFk: 1, sessions: 2 })
+  })
+
+  it('is not a project when the whole run happened in one day', () => {
+    // The case that used to read "3 sessions in a single day" on a feed banner.
+    const { completed, open } = deriveProjects([
+      ascent(1, 'attempt', 100),
+      ascent(1, 'attempt', 100),
+      ascent(1, 'redpoint', 100),
+    ])
+
+    expect(open).toEqual([])
+    expect(completed).toEqual([])
+  })
+
+  it('counts the send day once when an attempt shares it', () => {
+    const { completed } = deriveProjects([
+      ascent(1, 'attempt', 100),
+      ascent(1, 'attempt', 200),
+      ascent(1, 'attempt', 300),
+      // Same day as the send: one session, not two.
+      ascent(1, 'redpoint', 300),
+    ])
+
+    expect(completed).toEqual([{ lastSession: 300, routeFk: 1, sessions: 3 }])
   })
 })

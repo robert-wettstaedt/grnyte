@@ -23,6 +23,7 @@ export function event(partial: Partial<EventListItem>): EventListItem {
     objectType: 'route',
     parent: undefined,
     parentEntity: undefined,
+    promoted: false,
     reactions: [],
     regionFk: 1,
     verb: 'update',

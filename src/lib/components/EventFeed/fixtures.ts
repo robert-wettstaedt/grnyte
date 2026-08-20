@@ -217,7 +217,7 @@ export const sampleWeek: { events: EventListItem[]; topos: ReadonlyMap<number, T
 
     // A reposted beta clip credited to the wrong site, fixed after the fact. Points at the file,
     // so the card draws the clip and borrows the route's name, but stays its own card rather than
-    // joining the uploads: an edit to a clip is housekeeping, not a submit.
+    // joining the uploads: an edit to a clip is a field edit, not a submit.
     eventAgo(400, {
       actorFk: 2,
       changes: [
@@ -302,6 +302,20 @@ export const sampleWeekView = (group: EventGroup, currentUserFk: number | undefi
 
 /** The whole week as cards. The events are overridable so a story can show it unresolved. */
 export const sampleWeekViews = (events: readonly EventListItem[] = sampleWeek.events) => eventViews(events)
+
+/** One group at feed density, for the stories that show a single tier on its own. */
+export const feedView = (group: EventGroup, currentUserFk: number | undefined = ME): EventCardView =>
+  eventCard(group, currentUserFk, sampleWeek.topos, undefined, 'mixed')
+
+/**
+ * The whole week as the FEED draws it, rather than as one card's anatomy.
+ *
+ * Every other helper here asks for `uniform` density, which is right for a story about what one
+ * card says: a card drawn as a one-liner has no anatomy to show. This one is the surface where
+ * the tiers are visible against each other, which is the only place the change reads as a change.
+ */
+export const feedDensityViews = (events: readonly EventListItem[] = sampleWeek.events) =>
+  groupEvents(events).map((group) => feedView(group))
 
 // The change-line stories render `ChangeView`s with no event behind them, so they state lines.
 export { changes, line } from '$lib/entities/event/line.fixture'

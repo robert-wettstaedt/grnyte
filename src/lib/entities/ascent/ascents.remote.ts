@@ -13,6 +13,7 @@ import { stringifyDeletedAscent } from '../event/verbs'
 import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
 import { notify, notifyMentions } from '../notification/notification.server'
 import { recalcUserGradeAndRating } from '../route/user-grade.server'
+import { recordAccolades } from './accolade.server'
 import { canEditAscent, canLogAscent } from './permissions'
 
 const ascentActionSchema = z.object({
@@ -66,6 +67,10 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { after
 
   await recalcUserGradeAndRating(db, route.id)
 
+  // Before the event, so the card the event produces can read the claim off the ascent it points
+  // at rather than waiting a sync tick for it.
+  await recordAccolades(db, { createdBy: user.id, routeFk: route.id }, user.id)
+
   await insertEvent(db, {
     actorFk: user.id,
     object: { id: ascent.id, type: 'ascent' },
@@ -112,6 +117,10 @@ export const updateAscent = authedForm(
       .where(eq(ascents.id, ascent.id))
 
     await recalcUserGradeAndRating(db, ascent.routeFk)
+
+    // A correction can move the two things a claim reads: the grade, and whether the row is an
+    // attempt or a send. Both can make a banner true that was not, or false that was.
+    await recordAccolades(db, ascent, user.id)
 
     const edited = await createUpdateEvent(db, {
       actorFk: user.id,
@@ -222,10 +231,19 @@ export const deleteAscent = command(
       if (erasable) {
         await db.delete(ascents).where(eq(ascents.id, id))
       } else {
-        await db.update(ascents).set({ deletedAt: new Date() }).where(eq(ascents.id, id))
+        // The claim goes with it, in the same statement. The create card deliberately SURVIVES a
+        // soft delete and keeps reading this row, so a banner left standing would celebrate a send
+        // the climber withdrew, directly beside the card saying it was removed. Nothing downstream
+        // can catch it either: neither the Zero relation nor `entityOf` filters `deleted_at`, and
+        // `syncAccolades` skips soft-deleted rows so it would never clear this one.
+        await db.update(ascents).set({ accolade: null, deletedAt: new Date() }).where(eq(ascents.id, id))
       }
 
       await recalcUserGradeAndRating(db, ascent.routeFk)
+
+      // Removing an attempt shortens the run behind a send, so the claim on that send is now
+      // counting a session that is gone.
+      await recordAccolades(db, ascent, user.id)
 
       // Whoever did it, once the ascent is old enough to soft-delete. The card does NOT disappear
       // when you delete your own: an event outlives what it describes, so the "You flashed Rampe"

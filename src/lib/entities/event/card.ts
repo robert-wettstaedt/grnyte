@@ -1,11 +1,62 @@
+import type { Accolade } from '$lib/entities/ascent/accolade'
 import { cardView, type CardGroup, type CardRow, type CardView } from '$lib/entities/event/cardView'
 import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntityRef } from '$lib/entities/event/entity'
 import type { ReactionChip } from '$lib/entities/reaction/dto'
 import { reactionChips } from '$lib/entities/reaction/mapper'
+import { routeDisplayName } from '$lib/entities/route/mapper'
 import type { TopoView } from '$lib/entities/topo/dto'
+import { FIELD_EDIT_OBJECT_TYPES } from './dto'
 import type { EventGroup } from './grouping'
 import { eventLines } from './line'
 import type { EventListItem } from './mapper'
+
+/**
+ * The claim a card makes, and the route it is about, so a session card can name which row.
+ *
+ * `community` is not an accolade in the same sense: it says the community turned up, which is a
+ * fact about the readers rather than about the climb. It fills the banner slot only when nothing
+ * about the climb itself has claimed it.
+ */
+export interface CardAccolade {
+  accolade: Accolade | { kind: 'community' }
+  /** The route's display name, already resolved by the mapper. Empty when the card is not about one. */
+  name: string
+}
+
+/**
+ * How much room a surface gives a field edit.
+ *
+ * `uniform` is any surface an edit is the POINT of: the Updates half of the segmented control, an
+ * entity's own log, a story. `mixed` is a feed where an edit is background to something else, and
+ * is the only one that draws anything at compact tier.
+ *
+ * A surface decision rather than a per-event one, which is what keeps it density rather than
+ * content: the same event says the same sentence wherever it is opened, and only the room it gets
+ * changes. Pruning what an event SAYS per surface is the thing to keep refusing; how much room it
+ * gets is not that.
+ */
+export type CardDensity = 'mixed' | 'uniform'
+
+/**
+ * How much of a card gets drawn.
+ *
+ * Three, which is the practical ceiling: a fourth is indistinguishable at a glance and doubles the
+ * cases every surface has to be checked in.
+ *
+ * `hero` is earned, never granted by kind. Only a send carrying a claim gets it, so an afternoon
+ * of easy repeats does not shout: if every send is big, big stops reading as earned, and the rare
+ * one it exists for becomes illegible.
+ */
+export type CardTier = 'compact' | 'hero' | 'standard'
+
+/**
+ * The verbs a card can be congratulated for.
+ *
+ * Somebody adding a thing, never somebody fixing or removing one. Reactions are not gated by kind
+ * (a reader may applaud whatever they like) but the BANNER is a claim about the event, and calling
+ * a rename a community favourite is a claim nobody meant.
+ */
+const PROMOTABLE_VERBS: ReadonlySet<EventListItem['verb']> = new Set(['add', 'create'])
 
 /**
  * A card, plus where its reactions go.
@@ -17,6 +68,8 @@ import type { EventListItem } from './mapper'
  * a reaction that exists is always somewhere a reader can see and take back.
  */
 export interface EventCardView extends CardView {
+  /** The one claim this card makes, if any, and the row it is about. */
+  accolade?: CardAccolade
   /**
    * Bars with no row of their own. Empty for most cards.
    *
@@ -26,6 +79,18 @@ export interface EventCardView extends CardView {
    */
   bars?: EventReactionBar[]
   rows: (CardRow & { bar?: EventReactionBar })[]
+  /**
+   * How much room this card gets.
+   *
+   * `hero` whenever a claim was earned, on every surface: a banner is a fact about the climb, so a
+   * uniform-density page shows it too. `compact` only where the surface asked for `mixed` density,
+   * every event on the card is a field edit, and nobody has reacted or commented yet. `standard`
+   * otherwise.
+   *
+   * Optional for the same reason `bars` is: a plain `CardView` out of a fixture is still one of
+   * these, and a story that never asked for tiering should not have to name a tier.
+   */
+  tier?: CardTier
 }
 
 /** One event's reactions and the way into its thread, plus the handle both post back. */
@@ -59,12 +124,30 @@ export interface EventReactionBar {
  *
  * The catalogue is keyed on the verb now and the adapter is gone: `line.ts` expands an event into
  * the lines a card speaks, and this hands them to the decider.
+ *
+ * ON RETIRING THIS SEAM, which reviews keep proposing and which is a fair thing to propose. The
+ * narrow version of the suggestion is not the strawman above: rather than reimplementing
+ * `cardView`, change ITS input type to the event group, move the decisions across wholesale, and
+ * lean on the 250-case wall to prove nothing moved. That is a reasonable plan and it would delete
+ * `toCardGroup`, `entityMap` and `eventKey`, plus one of the two places that ask the same
+ * object-then-parent question.
+ *
+ * Not done, and the reason is about WHEN rather than whether. The case wall proves the sentences
+ * are unchanged; it does not prove the reaction bars still land on the right events, which is the
+ * half this file owns and the half that has already produced real bugs (a bar hanging off the
+ * wrong event, a chip going invisible when a window regrouped). Moving both halves at once means
+ * the only check that covers the risky half is the one being rewritten. The sequence that works is
+ * the opposite: land the feature, let the bar placement settle under real use, then move the seam
+ * with the wall as a fixed point.
+ *
+ * So: worth doing, not worth doing in the same change as the feature it would be carrying.
  */
 export function eventCard(
   group: EventGroup,
   currentUserFk: number | undefined,
   topos?: ReadonlyMap<number, TopoView>,
   omit?: EventEntityRef,
+  density: CardDensity = 'uniform',
 ): EventCardView {
   const view = cardView(toCardGroup(group), entityMap(group), currentUserFk, topos, omit)
 
@@ -78,9 +161,11 @@ export function eventCard(
   })
 
   const leftover = [...unclaimed.values()].map((event) => bar(event, currentUserFk))
+  const accolade = accoladeOf(group)
 
   return {
     ...view,
+    accolade,
     // What no row spoke for: every leftover that already carries something, so a reaction or a
     // comment taken on one card cannot go invisible when the window regroups it, PLUS the first
     // one on a card with no rows at all. That second half is what the entity's own page needs: it
@@ -93,7 +178,52 @@ export function eventCard(
       (left, index) => left.chips.length > 0 || left.commentCount > 0 || (rows.length === 0 && index === 0),
     ),
     rows,
+    tier: tierOf(group, density, accolade),
   }
+}
+
+/**
+ * The one claim this card is allowed to make, and which of its rows it is about.
+ *
+ * At most one per card even when a session holds several: a card that becomes a trophy wall makes
+ * the rare claim illegible, which is the whole reason the rule is one. Effort outranks grade, the
+ * same order `deriveAccolade` uses, so a session that both ended a project and set a ceiling says
+ * the harder thing.
+ *
+ * A session keeps its shape. The notable ascent is not lifted out into a card of its own: it
+ * already has its own row and its own reaction bar inside this one, so the banner names which row
+ * it means and the afternoon stays one afternoon.
+ */
+function accoladeOf(group: EventGroup): CardAccolade | undefined {
+  const claims = group.events.flatMap((event) => {
+    const accolade = event.entity?.accolade
+    // Only a card that LOGGED the send may claim it. An edit to an ascent, or somebody else's
+    // removal of it, reads the same column off the same row and has no business congratulating
+    // anybody for it.
+    return accolade == null || event.verb !== 'create' || event.objectType !== 'ascent'
+      ? []
+      : [{ accolade, name: routeDisplayName(event.entity?.name ?? '') }]
+  })
+
+  const earned = claims.find((claim) => claim.accolade.kind === 'project') ?? claims[0]
+
+  if (earned != null) {
+    return earned
+  }
+
+  // Nothing about the climb claimed the slot, so the community may. Deliberately last: the
+  // accolade is a fact about the climb, and the applause is already visible in the bar directly
+  // below, so a card that has both says the rarer thing.
+  //
+  // Gated on the event being something SOMEBODY DID rather than something they corrected. Ungated,
+  // a rename that three readers reacted to took the loudest treatment on the feed, banner and hero
+  // border and all, which is precisely the inversion this whole change exists to undo: promotion
+  // could lift a card straight out of the compact tier it was put in.
+  const promoted = group.events.find((event) => event.promoted && PROMOTABLE_VERBS.has(event.verb))
+
+  return promoted == null
+    ? undefined
+    : { accolade: { kind: 'community' }, name: routeDisplayName(promoted.entity?.name ?? '') }
 }
 
 /**
@@ -203,6 +333,51 @@ function entityMap(group: EventGroup): EventEntityMap {
  */
 function eventKey(ref: { id: number | string; type: string }): string {
   return eventEntityKey({ id: String(ref.id), type: ref.type })
+}
+
+/**
+ * Whether an event is a field edit: somebody changed a column on a place.
+ *
+ * Deliberately the narrowest reading. An `update` to an area, a block, a route or a file is the
+ * rename-and-retype traffic a reader scrolls past; everything else stays at standard tier, which
+ * matters most for the two cases that look like edits and are not:
+ *
+ * - a DELETION, which is the one thing on a feed nobody should have to expand a row to notice.
+ *   Keeping edits in the feed at all is an accountability argument, and it collapses the moment a
+ *   maintainer removing somebody else's work is drawn as quietly as a typo fix.
+ * - a ROLE change, which arrives as an `update` on a user object and is a permission grant.
+ *
+ * An ascent correction is out too, by object rather than by verb: a climber fixing the grade they
+ * logged is about a climb, and the card says so.
+ */
+function isFieldEdit(event: EventListItem): boolean {
+  return event.verb === 'update' && FIELD_EDIT_OBJECT_TYPES.has(event.objectType)
+}
+
+/**
+ * How much room this card gets.
+ *
+ * Whole-group, never per event: a card is one thing a reader acts on, and a group holding one
+ * rename and one deletion is a card about a deletion. `every` is what says so, and it is why the
+ * mixed rule cannot be read off `EventGroupKind` alone: a group of one is `single` whatever it
+ * holds, so the kind has already forgotten the answer by the time a card asks.
+ */
+function tierOf(group: EventGroup, density: CardDensity, accolade: CardAccolade | undefined): CardTier {
+  if (accolade != null) {
+    return 'hero'
+  }
+
+  if (density !== 'mixed' || !group.events.every(isFieldEdit)) {
+    return 'standard'
+  }
+
+  // A rename somebody already reacted to or commented under is not background any more, whatever
+  // its verb. The compact row has no bar (see `EventCard.svelte`), so compacting one would hide a
+  // chip a reader can no longer see or take back, and a thread nothing on screen admits exists.
+  // That is the invariant this file states at the top, and it outranks the tier.
+  const spokenFor = group.events.some((event) => event.reactions.length > 0 || event.commentCount > 0)
+
+  return spokenFor ? 'standard' : 'compact'
 }
 
 /**

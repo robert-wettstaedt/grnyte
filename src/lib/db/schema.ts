@@ -897,6 +897,23 @@ export const ascents = table(
     // Hard deletion is still what happens inside the 15-minute grace window, where the point is
     // that a mistake leaves no trace at all.
     ...softDeleteFields,
+    /**
+     * The one claim this send's feed card is allowed to make about it, as JSON, or null for the
+     * ascents that earn none (which is most of them). See `deriveAccolade`.
+     *
+     * On the ASCENT rather than on its event, though only a card renders it, for two reasons. It
+     * is a fact about the climb, so the ascent's own screen and the logbook can read the same
+     * value rather than deriving a second opinion; and `events` has no member UPDATE policy under
+     * RLS, so nothing a handler does could revise it, while an owner may always update their own
+     * ascent. That second half is what makes the claim correctable at all: attempts are commonly
+     * logged AFTER the send they belong to, and a send whose project only becomes visible the next
+     * morning has to be able to gain its banner then.
+     *
+     * Written at emit and never recomputed on a clock. The ceiling claim is measured over a
+     * rolling twelve months, so a live value would quietly strip banners off old cards as the
+     * window slid: the claim means "as of the day they sent it", which stays true forever.
+     */
+    accolade: text('accolade'),
     createdBy: baseContentFields.createdBy,
 
     dateTime: date('date_time').notNull().defaultNow(),
@@ -1505,6 +1522,22 @@ export const events = table(
     commentCount: integer('comment_count').notNull().default(0),
     /** What the sentence needs and the object cannot answer, e.g. the role a change assigned. */
     metadata: text('metadata'),
+    /**
+     * Whether enough of this event's community turned up for the card to say so.
+     *
+     * Denormalised for the same reason `comment_count` is, and more so: reactions sync as related
+     * rows, so an event with 200 of them ships 200 rows to every reader of the feed. A client-side
+     * threshold would need every one; a stored flag needs none.
+     *
+     * Maintained by `sync_event_promoted`, a trigger on `reactions`, because a handler runs under
+     * RLS on the caller's connection and `events` has no UPDATE policy for a member, so a write
+     * there would match no rows and report nothing.
+     *
+     * Sticky by construction: the trigger only ever sets it true. Reactions can be taken back, and
+     * a banner that appears and then vanishes is worse than one that lingers; it also cannot flap
+     * for an event sitting on the threshold.
+     */
+    promoted: boolean('promoted').notNull().default(false),
     verb: text('verb', { enum: eventVerb }).notNull(),
   },
   (table) => [

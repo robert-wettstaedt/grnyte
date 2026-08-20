@@ -12,6 +12,9 @@ const ascent = (partial: Partial<EventListItem> = {}) =>
 /** Crag edits under one block, the locality a burst keys on. */
 const underBlock = { parent: { id: 400, type: 'block' } } as const
 
+/** An ascent's entity, carrying only the climb day a session ends at. */
+const climbedOn = (at: number) => ({ climbedAt: at, name: '', row: 'none' as const })
+
 /** An upload: the object is the file, and the parent is what it landed on. */
 const upload = (partial: Partial<EventListItem> = {}) =>
   event({ objectType: 'file', verb: 'add', ...underBlock, ...partial })
@@ -108,6 +111,72 @@ describe('groupEvents', () => {
 
     expect(groups).toHaveLength(1)
     expect(groups[0].kind).toBe('session')
+  })
+
+  it('splits one sitting that logged two days at the crag into two sessions', () => {
+    // Sunday evening, typing up the weekend. Logged three minutes apart, so the log-time window
+    // alone would call this one afternoon, and the card would say "logged a session" over two.
+    const groups = groupEvents([
+      ascent({ createdAt: day(4, 20), entity: climbedOn(day(3)), objectId: 10 }),
+      ascent({ createdAt: day(4, 20) - 3 * MINUTE, entity: climbedOn(day(3)), objectId: 11 }),
+      ascent({ createdAt: day(4, 20) - 6 * MINUTE, entity: climbedOn(day(2)), objectId: 12 }),
+    ])
+
+    expect(groups.map((group) => group.kind)).toEqual(['session', 'single'])
+    expect(groups[0].events).toHaveLength(2)
+  })
+
+  it('keeps two climb days logged interleaved as two sessions, not three fragments', () => {
+    // Sunday evening, tapping through a weekend out of order. Only the newest group per key used
+    // to stay open, so each Sunday row evicted the Saturday group and the next Saturday row was
+    // measured against a group it could never join.
+    const groups = groupEvents([
+      ascent({ createdAt: day(4, 20) + 4 * MINUTE, entity: climbedOn(day(2)), objectId: 10 }),
+      ascent({ createdAt: day(4, 20) + 3 * MINUTE, entity: climbedOn(day(3)), objectId: 11 }),
+      ascent({ createdAt: day(4, 20) + 2 * MINUTE, entity: climbedOn(day(3)), objectId: 12 }),
+      ascent({ createdAt: day(4, 20) + 1 * MINUTE, entity: climbedOn(day(2)), objectId: 13 }),
+    ])
+
+    expect(groups).toHaveLength(2)
+    expect(groups.map((group) => group.events.length)).toEqual([2, 2])
+    expect(groups.every((group) => group.kind === 'session')).toBe(true)
+  })
+
+  it('does not let an ascent deleted since bridge two climb days', () => {
+    // The middle row has no entity, so no climb date. Comparing against the group's TAIL let it
+    // become the oldest member and then match anything, folding Sunday and Saturday into one card
+    // claiming to be a single afternoon.
+    const groups = groupEvents([
+      ascent({ createdAt: day(4, 20) + 2 * MINUTE, entity: climbedOn(day(3)), objectId: 10 }),
+      ascent({ createdAt: day(4, 20) + 1 * MINUTE, entity: undefined, objectId: 11 }),
+      ascent({ createdAt: day(4, 20), entity: climbedOn(day(2)), objectId: 12 }),
+    ])
+
+    expect(groups.map((group) => group.events.map((e) => e.objectId))).toEqual([[10, 11], [12]])
+  })
+
+  it('keeps a climb day logged weeks apart out of one session', () => {
+    // The other half of the same rule. Same day on the rock, but one ascent remembered three
+    // weeks later: joining them would drag a three-week-old event to the top of the feed on a
+    // card dated today.
+    const groups = groupEvents([
+      ascent({ createdAt: day(25, 21), entity: climbedOn(day(2)), objectId: 10 }),
+      ascent({ createdAt: day(2, 21), entity: climbedOn(day(2)), objectId: 11 }),
+    ])
+
+    expect(groups).toHaveLength(2)
+  })
+
+  it('keeps an afternoon together when an ascent deleted since carries no climb date', () => {
+    const groups = groupEvents([
+      ascent({ createdAt: day(2, 18), entity: climbedOn(day(2)), objectId: 10 }),
+      // Deleted, so nothing hydrated and there is no climb date to compare. Splitting the session
+      // over a value that is only missing because somebody removed the row is the wrong answer.
+      ascent({ createdAt: day(2, 17), entity: undefined, objectId: 11 }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].events).toHaveLength(2)
   })
 
   it('keeps a photo pulled off an ascent out of the session card', () => {

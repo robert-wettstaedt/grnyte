@@ -158,6 +158,11 @@ const areasTable = {
 } as const
 const ascentsTable = {
   columns: {
+    accolade: {
+      customType: null as unknown as string,
+      optional: true,
+      type: 'string',
+    },
     createdAt: {
       customType: null as unknown as number,
       optional: true,
@@ -500,6 +505,11 @@ const eventsTable = {
       customType: null as unknown as string,
       optional: true,
       type: 'string',
+    },
+    promoted: {
+      customType: null as unknown as boolean,
+      optional: true,
+      type: 'boolean',
     },
     regionFk: {
       customType: null as unknown as number,
