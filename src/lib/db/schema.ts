@@ -42,7 +42,6 @@ import {
   getDeniedPolicyConfig,
   getOwnEntryPolicyConfig,
   getOwnEventChildPolicyConfig,
-  getOwnEventPolicyConfig,
   getOwnReactionPolicyConfig,
   getOwnRowPolicyConfig,
   getPolicyConfig,
@@ -135,9 +134,9 @@ export const userRoles = table(
     id: baseFields.id,
     role: appRole().notNull(),
   },
-  () => [
+  (table) => [
     policy('auth admins can read user_roles', READ_AUTH_ADMIN_POLICY_CONFIG),
-    policy(`users can read own user_roles`, getOwnEntryPolicyConfig('select')),
+    policy(`users can read own user_roles`, getOwnEntryPolicyConfig('select', table.authUserFk)),
   ],
 ).enableRLS()
 
@@ -184,7 +183,7 @@ export const users = table(
     // Latent rather than live: the only writers are `writeUserSettings` and the signup path, both of
     // which set it from a row they just created. A handler that ever takes it from a request has to
     // validate it, because the database will not.
-    policy('users can update own users', getOwnEntryPolicyConfig('update')),
+    policy('users can update own users', getOwnEntryPolicyConfig('update', table.authUserFk)),
   ],
 ).enableRLS()
 export type InsertUser = InferInsertModel<typeof users>
@@ -286,9 +285,9 @@ export const userSettings = table(
     // preferences, and which one a `findFirst` returned was undefined.
     uniqueIndex('user_settings_user_fk_idx').on(table.userFk),
 
-    policy(`users can insert own users_settings`, getOwnEntryPolicyConfig('insert')),
-    policy(`users can read own users_settings`, getOwnEntryPolicyConfig('select')),
-    policy(`users can update own users_settings`, getOwnEntryPolicyConfig('update')),
+    policy(`users can insert own users_settings`, getOwnEntryPolicyConfig('insert', table.authUserFk)),
+    policy(`users can read own users_settings`, getOwnEntryPolicyConfig('select', table.authUserFk)),
+    policy(`users can update own users_settings`, getOwnEntryPolicyConfig('update', table.authUserFk)),
   ],
 ).enableRLS()
 export type InsertUserSettings = InferInsertModel<typeof userSettings>
@@ -325,10 +324,10 @@ export const pushSubscriptions = table(
     // device then received N copies of every push.
     uniqueIndex('push_subscriptions_endpoint_idx').on(table.endpoint),
 
-    policy(`users can delete own push_subscriptions`, getOwnEntryPolicyConfig('delete')),
-    policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert')),
-    policy(`users can read own push_subscriptions`, getOwnEntryPolicyConfig('select')),
-    policy(`users can update own push_subscriptions`, getOwnEntryPolicyConfig('update')),
+    policy(`users can delete own push_subscriptions`, getOwnEntryPolicyConfig('delete', table.authUserFk)),
+    policy(`users can insert own push_subscriptions`, getOwnEntryPolicyConfig('insert', table.authUserFk)),
+    policy(`users can read own push_subscriptions`, getOwnEntryPolicyConfig('select', table.authUserFk)),
+    policy(`users can update own push_subscriptions`, getOwnEntryPolicyConfig('update', table.authUserFk)),
   ],
 ).enableRLS()
 
@@ -385,7 +384,7 @@ export const regions = table(
     // cascades through every piece of content in it.
     policy(
       `${REGION_PERMISSION_ADMIN} can update regions they administer`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_ADMIN, 'regions.id'),
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_ADMIN, table.id),
     ),
   ],
 ).enableRLS()
@@ -433,20 +432,24 @@ export const regionMembers = table(
     // the member list. Not bound to the caller: adding other people is the point of the table.
     policy(
       `${REGION_PERMISSION_ADMIN} can manage region_members`,
-      getConsistentMemberPolicyConfig('all', REGION_PERMISSION_ADMIN),
+      getConsistentMemberPolicyConfig('all', REGION_PERMISSION_ADMIN, {
+        authUserFk: table.authUserFk,
+        regionFk: table.regionFk,
+        userFk: table.userFk,
+      }),
     ),
     // Scoped to the reader's own regions, not `true`: this table is what tenancy is made of, and a
     // blanket read let any signed-in user enumerate every region's membership - who is in it, their
     // role and their auth uid - including regions whose `regions` row they cannot see.
     policy(
       `${REGION_PERMISSION_READ} can read region_members`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     // No own-row insert or update: either one lets any authenticated user join an arbitrary region
     // as region_admin, or promote themselves once in. The invite-accept flow needs its own insert
     // policy keyed on a matching region_invitations row.
     // Deleting your own row stays open, so leaving a region does not need an admin.
-    policy('users can delete own region_members', getOwnEntryPolicyConfig('delete')),
+    policy('users can delete own region_members', getOwnEntryPolicyConfig('delete', table.authUserFk)),
   ],
 ).enableRLS()
 export type InsertRegionMember = InferInsertModel<typeof regionMembers>
@@ -492,15 +495,15 @@ export const regionInvitations = table(
 
     policy(
       `${REGION_PERMISSION_ADMIN} can insert region_invitations`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_ADMIN),
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_ADMIN, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_ADMIN} can update region_invitations`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_ADMIN),
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_ADMIN, table.regionFk),
     ),
     policy(
       `region members can read region_invitations`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     // An invitee is not a member yet, so membership alone would leave them unable to see or accept
     // the invitation addressed to them. Matched on the JWT email, so it covers only their own.
@@ -569,13 +572,13 @@ export const areas = table(
     index('areas_region_fk_idx').on(table.regionFk),
     index('areas_deleted_at_idx').on(table.deletedAt),
 
-    ...createBasicTablePolicies('areas'),
+    ...createBasicTablePolicies('areas', table.regionFk),
     // DELETE at edit (not delete): an area is only ever hard-deleted while bare, and the
     // gate that decides that is canDeleteArea. UPDATE stays at edit from the basic policies -
     // unlike `routes`, nothing writes an area on behalf of a read-only member.
     policy(
       `${REGION_PERMISSION_EDIT} can delete areas`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -613,11 +616,11 @@ export const blocks = table(
     index('blocks_deleted_at_idx').on(table.deletedAt),
     index('blocks_geolocation_fk_idx').on(table.geolocationFk),
 
-    ...createBasicTablePolicies('blocks'),
+    ...createBasicTablePolicies('blocks', table.regionFk),
     // Same as `areas`: delete at edit, update left at edit. No read-level writer exists.
     policy(
       `${REGION_PERMISSION_EDIT} can delete blocks`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -670,10 +673,10 @@ export const routes = table(
     index('routes_first_ascent_year_idx').on(table.firstAscentYear),
     index('routes_created_by_idx').on(table.createdBy),
 
-    ...createBasicTablePolicies('routes'),
+    ...createBasicTablePolicies('routes', table.regionFk),
     policy(
       `${REGION_PERMISSION_EDIT} can delete routes`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
     // The one table where UPDATE really is looser than its TS gate, and it has to be: logging an
     // ascent folds the member's grade/rating into the route (recalcUserGradeAndRating), and a plain
@@ -687,7 +690,7 @@ export const routes = table(
     // it.
     policy(
       `${REGION_PERMISSION_READ} can update routes`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_READ, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -738,7 +741,7 @@ export const routeExternalResources = table(
     // rows that exist came with the data and the app only ever reads them, clears the links and
     // deletes them. An insert policy would be a standing permission for a writer that does not
     // exist; porting the sync means adding it back deliberately.
-    ...createBasicTablePolicies('route_external_resources', ['insert']),
+    ...createBasicTablePolicies('route_external_resources', table.regionFk, ['insert']),
   ],
 ).enableRLS()
 export type InsertRouteExternalResource = InferInsertModel<typeof routeExternalResources>
@@ -789,7 +792,7 @@ export const routeExternalResource8a = table(
 
     zlaggableSlug: text('zlaggable_slug'),
   },
-  () => createBasicTablePolicies('route_external_resource_8a', ['insert', 'update']),
+  (table) => createBasicTablePolicies('route_external_resource_8a', table.regionFk, ['insert', 'update']),
 ).enableRLS()
 export type InsertRouteExternalResource8a = InferInsertModel<typeof routeExternalResource8a>
 export type RouteExternalResource8a = InferSelectModel<typeof routeExternalResource8a>
@@ -825,7 +828,7 @@ export const routeExternalResource27crags = table(
 
     url: text('url'),
   },
-  () => createBasicTablePolicies('route_external_resource_27crags', ['insert', 'update']),
+  (table) => createBasicTablePolicies('route_external_resource_27crags', table.regionFk, ['insert', 'update']),
 ).enableRLS()
 export type InsertRouteExternalResource27crags = InferInsertModel<typeof routeExternalResource27crags>
 export type RouteExternalResource27crags = InferSelectModel<typeof routeExternalResource27crags>
@@ -856,7 +859,7 @@ export const routeExternalResourceTheCrag = table(
 
     url: text('url'),
   },
-  () => createBasicTablePolicies('route_external_resource_the_crag', ['insert', 'update']),
+  (table) => createBasicTablePolicies('route_external_resource_the_crag', table.regionFk, ['insert', 'update']),
 ).enableRLS()
 export type InsertRouteExternalResourceTheCrag = InferInsertModel<typeof routeExternalResourceTheCrag>
 export type RouteExternalResourceTheCrag = InferSelectModel<typeof routeExternalResourceTheCrag>
@@ -885,7 +888,7 @@ export const firstAscensionists = table(
 
     policy(
       `${REGION_PERMISSION_READ} can fully access first_ascensionists`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_READ, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -919,7 +922,7 @@ export const routesToFirstAscensionists = table(
 
     policy(
       `${REGION_PERMISSION_READ} can fully access routes_to_first_ascensionists`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_READ, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -988,11 +991,11 @@ export const ascents = table(
 
     policy(
       `${REGION_PERMISSION_READ} can insert ascents`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can read ascents`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can update their own ascents`,
@@ -1030,7 +1033,7 @@ export const ascents = table(
     ),
     policy(
       `${REGION_PERMISSION_ADMIN} can fully access ascents`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN),
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1097,19 +1100,19 @@ export const files = table(
 
     policy(
       `${REGION_PERMISSION_READ} can insert files`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can read files`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_EDIT} can update files`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_EDIT} can delete files`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can update files belonging to their own ascents`,
@@ -1179,19 +1182,19 @@ export const bunnyStreams = table(
 
     policy(
       `${REGION_PERMISSION_READ} can insert bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can read bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_EDIT} can update bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_EDIT} can delete bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can update bunny_streams for files of their own ascents`,
@@ -1233,7 +1236,7 @@ export const bunnyStreams = table(
     ),
     policy(
       `${REGION_PERMISSION_ADMIN} can fully access bunny_streams`,
-      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN),
+      getAuthorizedInRegionPolicyConfig('all', REGION_PERMISSION_ADMIN, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1261,10 +1264,10 @@ export const topos = table(
     index('topos_region_fk_idx').on(table.regionFk),
     index('topos_file_fk_idx').on(table.fileFk),
 
-    ...createBasicTablePolicies('topos'),
+    ...createBasicTablePolicies('topos', table.regionFk),
     policy(
       `${REGION_PERMISSION_EDIT} can delete topos`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1297,10 +1300,10 @@ export const topoRoutes = table(
     index('topo_routes_route_fk_idx').on(table.routeFk),
     index('topo_routes_topo_fk_idx').on(table.topoFk),
 
-    ...createBasicTablePolicies('topo_routes'),
+    ...createBasicTablePolicies('topo_routes', table.regionFk),
     policy(
       `${REGION_PERMISSION_EDIT} can delete topo_routes`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1330,10 +1333,10 @@ export const routesToTags = table(
     index('routes_to_tags_route_fk_idx').on(table.routeFk),
     index('routes_to_tags_tag_fk_idx').on(table.tagFk),
 
-    ...createBasicTablePolicies('routes_to_tags'),
+    ...createBasicTablePolicies('routes_to_tags', table.regionFk),
     policy(
       `${REGION_PERMISSION_EDIT} can delete routes_to_tags`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
 
     primaryKey({ columns: [table.routeFk, table.tagFk] }),
@@ -1363,14 +1366,14 @@ export const geolocations = table(
     index('geolocations_block_fk_idx').on(table.blockFk),
     index('geolocations_region_fk_idx').on(table.regionFk),
 
-    ...createBasicTablePolicies('geolocations'),
+    ...createBasicTablePolicies('geolocations', table.regionFk),
     policy(
       `${REGION_PERMISSION_READ} can insert geolocations`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_EDIT} can delete geolocations`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_EDIT, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1421,26 +1424,26 @@ export const activities = table(
 
     policy(
       `${REGION_PERMISSION_READ} can insert activities`,
-      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can read activities`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_DELETE} can delete activities`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can delete their own activities`,
-      getOwnRowPolicyConfig('delete', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('delete', REGION_PERMISSION_READ, table.userFk, table.regionFk),
     ),
     // Without this, the activities log's debounced writer used to silently lose updates: a table
     // with RLS on denies any command it has no policy for, so its merge-into-the-existing-row
     // UPDATE matched nothing and the change had already been taken off the insert list.
     policy(
       `${REGION_PERMISSION_READ} can update their own activities`,
-      getOwnRowPolicyConfig('update', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('update', REGION_PERMISSION_READ, table.userFk, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1635,25 +1638,25 @@ export const events = table(
     // does not get carried forward.
     policy(
       `${REGION_PERMISSION_READ} can insert their own events`,
-      getOwnEventPolicyConfig('insert', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('insert', REGION_PERMISSION_READ, table.actorFk, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can read events`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     // The fold merges a continuing call into an open event, which is an UPDATE. A table with RLS
     // on denies any command it has no policy for, so without this the fold silently loses writes.
     policy(
       `${REGION_PERMISSION_READ} can update their own events`,
-      getOwnEventPolicyConfig('update', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('update', REGION_PERMISSION_READ, table.actorFk, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can delete their own events`,
-      getOwnEventPolicyConfig('delete', REGION_PERMISSION_READ),
+      getOwnRowPolicyConfig('delete', REGION_PERMISSION_READ, table.actorFk, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_DELETE} can delete events`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -1735,21 +1738,21 @@ export const changes = table(
     // one onto somebody else's event.
     policy(
       `${REGION_PERMISSION_READ} can insert changes on their own events`,
-      getOwnEventChildPolicyConfig('insert', REGION_PERMISSION_READ),
+      getOwnEventChildPolicyConfig('insert', REGION_PERMISSION_READ, table.eventFk, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can read changes`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     // The column-local half of the fold: a second edit of the same column overwrites `new_value`
     // on the row the first one wrote, and an edit back to where it started deletes the row.
     policy(
       `${REGION_PERMISSION_READ} can update changes on their own events`,
-      getOwnEventChildPolicyConfig('update', REGION_PERMISSION_READ),
+      getOwnEventChildPolicyConfig('update', REGION_PERMISSION_READ, table.eventFk, table.regionFk),
     ),
     policy(
       `${REGION_PERMISSION_READ} can delete changes on their own events`,
-      getOwnEventChildPolicyConfig('delete', REGION_PERMISSION_READ),
+      getOwnEventChildPolicyConfig('delete', REGION_PERMISSION_READ, table.eventFk, table.regionFk),
     ),
     // Moderation deletes the EVENT, and the cascade takes its changes with it without consulting
     // RLS on this table, so there is deliberately no `region.delete` policy here to match the one
@@ -1851,22 +1854,46 @@ export const reactions = table(
     // at all. Every relation and the whole Zero schema joins on `user_fk`, so unbound it lets a
     // caller post under another member's name, into a region they are not in, on an event they
     // cannot read.
-    policy(`users can insert own reactions`, getOwnReactionPolicyConfig('insert', REGION_PERMISSION_READ)),
-    policy(`users can update own reactions`, getOwnReactionPolicyConfig('update', REGION_PERMISSION_READ)),
+    policy(
+      `users can insert own reactions`,
+      getOwnReactionPolicyConfig('insert', REGION_PERMISSION_READ, {
+        authUserFk: table.authUserFk,
+        eventFk: table.eventFk,
+        regionFk: table.regionFk,
+        userFk: table.userFk,
+      }),
+    ),
+    policy(
+      `users can update own reactions`,
+      getOwnReactionPolicyConfig('update', REGION_PERMISSION_READ, {
+        authUserFk: table.authUserFk,
+        eventFk: table.eventFk,
+        regionFk: table.regionFk,
+        userFk: table.userFk,
+      }),
+    ),
     // Same three predicates as insert and update, not the bare own-entry helper: somebody who
     // left a region, or whose membership was deactivated, must not still be able to delete rows
     // in it. `getOwnEntryPolicyConfig` carries no region check at all, which is the reason the
     // comment above rejects it.
-    policy(`users can delete own reactions`, getOwnReactionPolicyConfig('delete', REGION_PERMISSION_READ)),
+    policy(
+      `users can delete own reactions`,
+      getOwnReactionPolicyConfig('delete', REGION_PERMISSION_READ, {
+        authUserFk: table.authUserFk,
+        eventFk: table.eventFk,
+        regionFk: table.regionFk,
+        userFk: table.userFk,
+      }),
+    ),
     policy(
       `${REGION_PERMISSION_READ} can read reactions`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     // Recourse. 👎 is in the quick row, so a region moderator can remove one. No UI ships with
     // this; the policy exists so the lever is there when it is first needed.
     policy(
       `${REGION_PERMISSION_DELETE} can delete reactions`,
-      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+      getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE, table.regionFk),
     ),
   ],
 ).enableRLS()
@@ -2050,7 +2077,7 @@ export const notifications = table(
     // narrows the `authenticated` grant to `read_at`: without that, `PATCH /rest/v1/notifications`
     // with a plain user JWT rewrites the source type, the actor and the metadata of the reader's
     // own inbox rows.
-    policy(`users can update own notifications`, getOwnEntryPolicyConfig('update')),
+    policy(`users can update own notifications`, getOwnEntryPolicyConfig('update', table.authUserFk)),
   ],
 ).enableRLS()
 
@@ -2141,15 +2168,15 @@ export const favorites = table(
     // render and nothing to open; a favorite of two things is two favorites.
     check('favorites_one_object', sql.raw(`num_nonnulls(${FAVORITE_OBJECT_COLUMNS}) = 1`)),
 
-    policy(`users can insert own favorites`, getOwnEntryPolicyConfig('insert')),
+    policy(`users can insert own favorites`, getOwnEntryPolicyConfig('insert', table.authUserFk)),
     policy(
       `${REGION_PERMISSION_READ} can read favorites`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, table.regionFk),
     ),
     // No update policy: saving is an insert and unsaving is a delete, so nothing in the app has ever
     // updated a favorite. What the policy did do was let a caller take their own row and rewrite its
     // `user_fk` to somebody else, which is the same forgery the insert policy refuses.
-    policy(`users can delete own favorites`, getOwnEntryPolicyConfig('delete')),
+    policy(`users can delete own favorites`, getOwnEntryPolicyConfig('delete', table.authUserFk)),
   ],
 ).enableRLS()
 

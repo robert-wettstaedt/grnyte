@@ -1,8 +1,25 @@
 import { REGION_PERMISSION_DELETE, REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
 import type { SQL } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
-import { pgPolicy as policy, type PgPolicyConfig } from 'drizzle-orm/pg-core'
+import { pgPolicy as policy, type PgColumn, type PgPolicyConfig } from 'drizzle-orm/pg-core'
 import { authenticatedRole, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
+
+/**
+ * Predicates take COLUMNS, not column names.
+ *
+ * Both of the worst bugs this file has carried were unreadable by construction, and both came from
+ * the same thing: a column written as a string. `region_fk` inside `EXISTS (SELECT ... FROM events
+ * e ...)` is a name that exists on both tables, so SQL scoping bound it to the inner one and the
+ * test became `e.region_fk = e.region_fk` - always true, permitting exactly what it was added to
+ * prevent. Postgres cannot complain: it is valid SQL, and the qualified form it stores afterwards
+ * makes the wrong binding look deliberate.
+ *
+ * A drizzle column knows its own table, so interpolating one emits `"reactions"."region_fk"` and
+ * the ambiguity stops being expressible. The inner references stay as text on purpose: they are
+ * already carried by an explicit alias (`u.id`, `e.region_fk`), and importing those tables here
+ * would make `schema.ts` and this file import each other.
+ */
+type Col = PgColumn
 
 export const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
   as: 'permissive',
@@ -10,6 +27,23 @@ export const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
   to: supabaseAuthAdminRole,
   using: sql`true`,
 }
+
+/**
+ * The region permission check, and the only way to write one.
+ *
+ * A scalar subselect, always. `EXISTS (SELECT authorize_in_region(...))` was the other bug: a
+ * scalar select returns exactly one row whatever that row says, so `EXISTS` around it is
+ * unconditionally true and the region half of the predicate silently disappeared. It read as a
+ * check and was none, on every own-row policy in this file. Because this returns the finished
+ * fragment rather than a string to paste, there is no longer a place to put that `EXISTS`.
+ *
+ * The permission is raw rather than bound: a policy is DDL and cannot carry a bind parameter.
+ */
+const inRegion = (permission: App.Permission, regionColumn: Col): SQL =>
+  sql`(SELECT authorize_in_region(${sql.raw(`'${permission}'`)}, ${regionColumn}))`
+
+/** Whoever the caller is, as `auth.users.id`. */
+const callerAuthId = sql`(SELECT auth.uid())`
 
 /**
  * Refuses a command outright, whatever else permits it.
@@ -55,18 +89,18 @@ export const getPolicyConfig = (policyFor: PgPolicyConfig['for'], check: SQL): P
 }
 
 export const getAuthorizedPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
-  getPolicyConfig(policyFor, sql.raw(`(SELECT authorize('${permission}'))`))
+  getPolicyConfig(policyFor, sql`(SELECT authorize(${sql.raw(`'${permission}'`)}))`)
 
-/** `regionColumn` is for the one table that does not carry a `region_fk`: `regions` itself,
- *  where the region is the row and the column is `regions.id`. */
+/** `regionColumn` is a column rather than a default, because the one table that does not carry a
+ *  `region_fk` is `regions` itself, where the region is the row and the column is `regions.id`. */
 export const getAuthorizedInRegionPolicyConfig = (
   policyFor: PgPolicyConfig['for'],
   permission: App.Permission,
-  regionColumn = 'region_fk',
-) => getPolicyConfig(policyFor, sql.raw(`(SELECT authorize_in_region('${permission}', ${regionColumn}))`))
+  regionColumn: Col,
+) => getPolicyConfig(policyFor, inRegion(permission, regionColumn))
 
-export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for']) =>
-  getPolicyConfig(policyFor, sql.raw('(SELECT auth.uid()) = auth_user_fk'))
+export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for'], authUserColumn: Col) =>
+  getPolicyConfig(policyFor, sql`${callerAuthId} = ${authUserColumn}`)
 
 /**
  * A row the caller wrote themselves, in a region they can still read. `activities` and
@@ -74,32 +108,19 @@ export const getOwnEntryPolicyConfig = (policyFor: PgPolicyConfig['for']) =>
  *
  * Shared by the own-row delete and the own-row update: it is the same row and the same author,
  * and a security predicate spelled out twice is one edit away from meaning two different things.
- * `authorColumn` exists so a table whose author column isn't `user_fk`, like `events.actor_fk`,
- * can reuse this rather than restating it.
+ * `authorColumn` is a parameter so a table whose author column isn't `user_fk`, like
+ * `events.actor_fk`, can reuse this rather than restating it.
  */
 export const getOwnRowPolicyConfig = (
   policyFor: PgPolicyConfig['for'],
   permission: App.Permission,
-  authorColumn = 'user_fk',
+  authorColumn: Col,
+  regionColumn: Col,
 ) =>
   getPolicyConfig(
     policyFor,
-    sql.raw(`
-          EXISTS (
-            SELECT
-              1
-            FROM
-              public.users u
-            WHERE
-              u.id = ${authorColumn}
-              AND u.auth_user_fk = (SELECT auth.uid())
-          ) AND (SELECT authorize_in_region('${permission}', region_fk))
-        `),
+    sql`EXISTS (SELECT 1 FROM public.users u WHERE u.id = ${authorColumn} AND u.auth_user_fk = ${callerAuthId}) AND ${inRegion(permission, regionColumn)}`,
   )
-
-/** {@link getOwnRowPolicyConfig} against `events.actor_fk`, which is the same predicate. */
-export const getOwnEventPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
-  getOwnRowPolicyConfig(policyFor, permission, 'actor_fk')
 
 /**
  * A row hanging off an event the caller opened themselves, in a region they can still read.
@@ -113,22 +134,15 @@ export const getOwnEventPolicyConfig = (policyFor: PgPolicyConfig['for'], permis
  * `new_value` when the same column moves again, and deletes the row when an edit returns to where
  * it started. All three are the same person on their own event, which is exactly this predicate.
  */
-export const getOwnEventChildPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+export const getOwnEventChildPolicyConfig = (
+  policyFor: PgPolicyConfig['for'],
+  permission: App.Permission,
+  eventColumn: Col,
+  regionColumn: Col,
+) =>
   getPolicyConfig(
     policyFor,
-    sql.raw(`
-          EXISTS (
-            SELECT
-              1
-            FROM
-              public.events e
-              JOIN public.users u ON u.id = e.actor_fk
-            WHERE
-              e.id = event_fk
-              AND u.auth_user_fk = (SELECT auth.uid())
-              AND e.region_fk = changes.region_fk
-          ) AND (SELECT authorize_in_region('${permission}', region_fk))
-        `),
+    sql`EXISTS (SELECT 1 FROM public.events e JOIN public.users u ON u.id = e.actor_fk WHERE e.id = ${eventColumn} AND u.auth_user_fk = ${callerAuthId} AND e.region_fk = ${regionColumn}) AND ${inRegion(permission, regionColumn)}`,
   )
 
 /**
@@ -143,41 +157,18 @@ export const getOwnEventChildPolicyConfig = (policyFor: PgPolicyConfig['for'], p
  * Zero's region gate filters on the row's own `region_fk`, so a mismatch syncs the row to people
  * who cannot see the event it hangs off, and hides it from those who can.
  *
- * The permission check is a SCALAR subselect, never `EXISTS (SELECT authorize_in_region(...))`.
- * A scalar select returns exactly one row whatever that row says, so `EXISTS` around it is
- * unconditionally true and the region half of the predicate silently disappears. It read as a
- * check and was none, on every own-row policy in this file.
- *
- * That last one MUST qualify the outer column. Written bare, `region_fk` inside the subquery
- * resolves to `events.region_fk` and the test becomes `e.region_fk = e.region_fk`, which is always
- * true. It reads correctly and permits exactly what it was added to prevent, which is how it got
- * through the first time.
+ * That last one is why these are columns now. Written bare, `region_fk` inside the subquery
+ * resolved to `events.region_fk` and the test became `e.region_fk = e.region_fk`, which is always
+ * true. It read correctly and permitted exactly what it was added to prevent.
  */
-export const getOwnReactionPolicyConfig = (policyFor: PgPolicyConfig['for'], permission: App.Permission) =>
+export const getOwnReactionPolicyConfig = (
+  policyFor: PgPolicyConfig['for'],
+  permission: App.Permission,
+  columns: { authUserFk: Col; eventFk: Col; regionFk: Col; userFk: Col },
+) =>
   getPolicyConfig(
     policyFor,
-    sql.raw(`
-          (SELECT auth.uid()) = auth_user_fk
-          AND EXISTS (
-            SELECT
-              1
-            FROM
-              public.users u
-            WHERE
-              u.id = user_fk
-              AND u.auth_user_fk = (SELECT auth.uid())
-          )
-          AND EXISTS (
-            SELECT
-              1
-            FROM
-              public.events e
-            WHERE
-              e.id = event_fk
-              AND e.region_fk = reactions.region_fk
-          )
-          AND (SELECT authorize_in_region('${permission}', region_fk))
-        `),
+    sql`${callerAuthId} = ${columns.authUserFk} AND EXISTS (SELECT 1 FROM public.users u WHERE u.id = ${columns.userFk} AND u.auth_user_fk = ${callerAuthId}) AND EXISTS (SELECT 1 FROM public.events e WHERE e.id = ${columns.eventFk} AND e.region_fk = ${columns.regionFk}) AND ${inRegion(permission, columns.regionFk)}`,
   )
 
 /**
@@ -198,20 +189,10 @@ export const getOwnReactionPolicyConfig = (policyFor: PgPolicyConfig['for'], per
 export const getConsistentMemberPolicyConfig = (
   policyFor: PgPolicyConfig['for'],
   permission: App.Permission,
+  columns: { authUserFk: Col; regionFk: Col; userFk: Col },
 ): PgPolicyConfig => ({
-  ...getPolicyConfig(policyFor, sql.raw(`(SELECT authorize_in_region('${permission}', region_fk))`)),
-  withCheck: sql.raw(`
-          (SELECT authorize_in_region('${permission}', region_fk))
-          AND EXISTS (
-            SELECT
-              1
-            FROM
-              public.users u
-            WHERE
-              u.id = user_fk
-              AND u.auth_user_fk = region_members.auth_user_fk
-          )
-        `),
+  ...getPolicyConfig(policyFor, inRegion(permission, columns.regionFk)),
+  withCheck: sql`${inRegion(permission, columns.regionFk)} AND EXISTS (SELECT 1 FROM public.users u WHERE u.id = ${columns.userFk} AND u.auth_user_fk = ${columns.authUserFk})`,
 })
 
 /**
@@ -222,6 +203,7 @@ export const getConsistentMemberPolicyConfig = (
  */
 export const createBasicTablePolicies = (
   tableName: string,
+  regionColumn: Col,
   // Write commands only: the read policy is what every caller of this wants, and `all` is not one of
   // the four it emits, so neither belongs in a list saying what to leave out.
   omit: Exclude<PgPolicyConfig['for'], 'all' | 'select'>[] = [],
@@ -229,24 +211,24 @@ export const createBasicTablePolicies = (
   [
     policy(
       `${REGION_PERMISSION_READ} can read ${tableName}`,
-      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ),
+      getAuthorizedInRegionPolicyConfig('select', REGION_PERMISSION_READ, regionColumn),
     ),
     omit.includes('insert')
       ? undefined
       : policy(
           `${REGION_PERMISSION_EDIT} can insert ${tableName}`,
-          getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT),
+          getAuthorizedInRegionPolicyConfig('insert', REGION_PERMISSION_EDIT, regionColumn),
         ),
     omit.includes('update')
       ? undefined
       : policy(
           `${REGION_PERMISSION_EDIT} can update ${tableName}`,
-          getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT),
+          getAuthorizedInRegionPolicyConfig('update', REGION_PERMISSION_EDIT, regionColumn),
         ),
     omit.includes('delete')
       ? undefined
       : policy(
           `${REGION_PERMISSION_DELETE} can delete ${tableName}`,
-          getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE),
+          getAuthorizedInRegionPolicyConfig('delete', REGION_PERMISSION_DELETE, regionColumn),
         ),
   ].filter((entry) => entry != null)
