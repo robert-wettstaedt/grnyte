@@ -3,6 +3,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import Database from 'postgres'
 import drizzleConfig from '../../../drizzle.config'
 import * as schema from './schema'
+import { migrate as migrateAccolades } from './scripts/migrate-accolades'
 import { migrate as migrateBlockNames } from './scripts/migrate-block-names'
 import { migrate as migrateBlockOrder } from './scripts/migrate-block-order'
 import { migrate as migrateImageDerivatives } from './scripts/migrate-image-derivatives'
@@ -28,5 +29,7 @@ await migratePromoteOriginals(db)
 await migrateImageDerivatives(db)
 await migrateTopoPaths(db)
 await migrateUserGrades(db)
+// After the grade recalc, which does not feed it, but keeping the ascent-derived work together.
+await migrateAccolades(db)
 
 await postgres.end()

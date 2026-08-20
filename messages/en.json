@@ -333,6 +333,19 @@
   "error_reload": "Reload",
   "error_server_body": "This one's on us, not you. Give it a moment and try again.",
   "error_server_title": "Something went wrong on our end",
+  "event_accoladeCeiling": "Hardest of its kind: {name} in twelve months",
+  "event_accoladeCommunity": "Community favorite",
+  "event_accoladeProject": [
+    {
+      "declarations": ["input days", "input name", "input sessions", "local daysPlural = days: plural"],
+      "selectors": ["days", "daysPlural"],
+      "match": {
+        "days=0,daysPlural=*": "Project {name} sent, {sessions} sessions",
+        "days=*,daysPlural=one": "Project {name} sent, {sessions} sessions over {days} day",
+        "days=*,daysPlural=other": "Project {name} sent, {sessions} sessions over {days} days"
+      }
+    }
+  ],
   "event_areaCreated": [
     {
       "declarations": ["input actor", "input name", "input person"],

@@ -284,6 +284,9 @@ async function sendDigests(nowMs: number): Promise<number> {
         // from the cards it summarises. Without a parent at all, every edit under one block is its
         // own group, which inflates the "and 12 more" the digest reports.
         areaParentFk: areas.parentFk,
+        // When it was climbed, which is not when it was logged. `groupEvents` ends a session card
+        // at the climb day, so a digest without this counts a card the feed never draws.
+        ascentClimbedAt: ascents.dateTime,
         ascentFk: events.ascentFk,
         ascentRouteFk: ascents.routeFk,
         // The catalogue keys a logged ascent on its type, which is a column of the ascent rather

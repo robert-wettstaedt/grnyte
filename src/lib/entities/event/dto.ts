@@ -22,11 +22,36 @@ export const EVENT_OBJECT_COLUMNS = {
 /** What the feed's segmented control filters on: ascents versus every other kind of edit. */
 export type EventCategory = 'ascent' | 'update'
 
+/**
+ * The objects whose `update` events are field edits, and so may be drawn at compact tier.
+ *
+ * Here rather than in `card.ts` because it is a statement about the domain (which of the six
+ * objects is a PLACE) rather than about a card. Files are in it and blocks' parents are not the
+ * point: what unites them is that nobody is accountable for a field on one of them the way they
+ * are for a deletion or a role.
+ *
+ * Two neighbours it is NOT, and both have been merged with it by mistake:
+ *
+ * - `CRAG_OBJECT_TYPES` in `grouping.ts` asks which objects share a burst card, where a file
+ *   groups by the thing it landed on rather than by itself, so `file` is absent there.
+ * - the `notifyCragEdits` setting, which users read as "Crag edits", is broader in both
+ *   directions: every verb, and everything that is not an ascent or a person. Its own hint says
+ *   "New areas, blocks, routes, topos and photos", which is the `create` traffic this set exists
+ *   to keep OUT of the compact tier.
+ *
+ * Three questions, three sets. Keep them apart.
+ */
+export const FIELD_EDIT_OBJECT_TYPES: ReadonlySet<EventObjectType> = new Set([
+  'area',
+  'block',
+  'file',
+  'route',
+] as const satisfies EventObjectType[])
+
 export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
 
 /**
- * Whether an event is a SEND rather than crag housekeeping: about an ascent, and not a media
- * removal.
+ * Whether an event is a SEND rather than a crag edit: about an ascent, and not a media removal.
  *
  * A removal logs on the parent, because the file row is gone by then, so it arrives as an ascent
  * event and is the one exception. Three places ask this and each used to spell it out: the feed's

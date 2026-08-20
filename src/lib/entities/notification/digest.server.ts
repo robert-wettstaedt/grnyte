@@ -57,6 +57,14 @@ export type DigestEvent = Pick<
   | 'subjectFk'
   | 'verb'
 > & {
+  /**
+   * When the ascent was climbed (`ascents.date_time`), which is not when it was logged.
+   *
+   * Here for grouping alone: a session is one climb day, so without this the digest folds two days
+   * at the crag into one card where the feed shows two, and the "and N more" it reports is a count
+   * of a card the reader will not find. Nothing in a push sentence renders it.
+   */
+  ascentClimbedAt?: Date | null | string
   ascentType?: null | string
   /** The first column an update moved, which is what the catalogue keys its sentence on. */
   changedColumn?: null | string
@@ -230,9 +238,18 @@ function toEventItem(event: DigestEvent): EventListItem {
     // directed half's business.
     commentCount: 0,
     createdAt: event.createdAt.getTime(),
-    // Only what the catalogue reads off an entity, which is the ascent type. Everything else it
-    // needs is resolved by name, further up.
-    entity: event.ascentType == null ? undefined : { ascentType: event.ascentType as never, name: '', row: 'none' },
+    // What the catalogue reads off an entity (the ascent type) plus what the GROUPING reads off it
+    // (the climb day, which decides where one session card ends). Everything else it needs is
+    // resolved by name, further up.
+    entity:
+      event.ascentType == null
+        ? undefined
+        : {
+            ascentType: event.ascentType as never,
+            climbedAt: event.ascentClimbedAt == null ? undefined : new Date(event.ascentClimbedAt).getTime(),
+            name: '',
+            row: 'none',
+          },
     id: event.id,
     metadata: event.metadata ?? undefined,
     objectId: object?.id ?? 0,
@@ -244,6 +261,9 @@ function toEventItem(event: DigestEvent): EventListItem {
         ? undefined
         : { id: event.parentId, type: event.parentType as never },
     parentEntity: undefined,
+    // A push never says the community turned up: a digest is region activity, and what people made
+    // of it is the directed half's business, same as the reactions and comments above.
+    promoted: false,
     reactions: [],
     regionFk: event.regionFk,
     verb: event.verb,

@@ -1,3 +1,4 @@
+import type { Accolade } from '$lib/entities/ascent/accolade'
 import type { AscentType } from '$lib/entities/ascent/dto'
 import type { MediaFile } from '$lib/entities/file/dto'
 import type { Geolocation } from '$lib/entities/geolocation/dto'
@@ -31,6 +32,14 @@ export type EntityRoute = Pick<
  * different list resources into it without four different mappers.
  */
 export interface EventEntity {
+  /**
+   * The one claim this send earned, decided when it was logged and stored on the ascent.
+   *
+   * Read rather than derived: the climber's twelve months of history is what it is measured
+   * against, and syncing that to every reader of the feed to re-answer a question the write path
+   * already answered is the cost this exists to avoid.
+   */
+  accolade?: Accolade
   /**
    * The climber's own grade opinion (`ascents.gradeFk`), which is NOT the community grade the
    * route row beside it renders. A card that logged one shows it in its own labelled strip,

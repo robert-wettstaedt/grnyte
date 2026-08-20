@@ -129,6 +129,7 @@ export function eventAgo(
     objectType,
     parent,
     parentEntity: parent == null ? undefined : entityOf(parent.type, parent.id),
+    promoted: false,
     reactions: [],
     regionFk: 1,
     verb: 'update',

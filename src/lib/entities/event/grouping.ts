@@ -49,30 +49,45 @@ const CRAG_OBJECT_TYPES = new Set(['area', 'block', 'route'])
  * stored against one row of a card and every surface had to agree on which rows made that card up;
  * an event has its own id, so regrouping cannot move anything.
  *
- * ponytail: sessions and bursts still key on the actor plus the immediate parent rather than the
- * design's "same area". The event now carries the whole chain (a route's block, that block's
- * area), so keying on the crag is finally possible without a second pass. Left alone here on
- * purpose: it changes which cards merge, which is a feed behaviour decision rather than part of
- * moving the read path over.
+ * A session is "climbed together" as well as "logged together": see `joins`.
  *
- * ponytail: a session is still "logged together" (`createdAt`), not "climbed together"
- * (`ascents.dateTime`). The climb date is on the event now (`entity.climbedAt`), so this is also
- * unblocked, and also deliberately unchanged for the same reason.
+ * ponytail: bursts still key on the actor plus the immediate parent rather than the design's "same
+ * area", so a spree across six blocks is six cards rather than one. Left alone deliberately, and
+ * the reason changed: the compact tier means each of those is already one line rather than one
+ * card, so widening the key now saves a few hundred pixels in exchange for a second parent hop in
+ * the digest's query, which has to group the same way or a push disagrees with the feed it
+ * summarises. Upgrade = `eventParentRef` gains a grandparent arm and `+server.ts` joins blocks a
+ * second time, if a real week of edits ever shows six lines is too many.
  */
 export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
   const sorted = [...events].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
   const groups: { group: EventGroup; key: string }[] = []
-  // Only the newest group per key is still open; an older one is already out of window.
-  const open = new Map<string, EventGroup>()
+  /**
+   * The groups a later event could still join, per key. Newest first within a key.
+   *
+   * A LIST rather than one group, because a session now asks about the climb day as well as the
+   * clock, and those two disagree: logging Saturday and Sunday interleaved in one sitting would
+   * otherwise let each Sunday row evict the open Saturday group, and the next Saturday row would
+   * then be measured against a group it can never join. Two days logged together fragmented into
+   * three cards.
+   *
+   * Nothing changes for the time-only kinds. The list runs newest first, so every later event is
+   * older than every group already open, and an older group's oldest member is further away still:
+   * if the newest group fails the window, the ones behind it fail it harder. Searching the list
+   * finds exactly the group the single-entry map used to hold.
+   */
+  const open = new Map<string, EventGroup[]>()
 
   for (const event of sorted) {
     const kind = kindOf(event)
     const key = groupKey(event, kind)
-    const current = open.get(key)
+    const candidates = open.get(key) ?? []
 
     // The list runs newest first, so a group's last entry is its oldest so far and the window is
     // measured against that.
-    if (current != null && joins(current.events[current.events.length - 1], event, kind)) {
+    const current = candidates.find((candidate) => joins(candidate, event, kind))
+
+    if (current != null) {
       current.events.push(event)
       continue
     }
@@ -85,7 +100,7 @@ export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
       kind,
     }
     groups.push({ group, key })
-    open.set(key, group)
+    open.set(key, [group, ...candidates])
   }
 
   return mergeCreatedWithMedia(groups).map(({ group, key }) => ({
@@ -98,6 +113,19 @@ export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
 const objectKey = (type: string, id: number | string) => `${type}:${id}`
 
 const createKey = (actorFk: number, type: string, id: number | string) => `${actorFk}:${objectKey(type, id)}`
+
+/** The climb day a session has settled on, or nothing while every member of it is unknown. */
+function climbDayOf(group: EventGroup): number | undefined {
+  for (const event of group.events) {
+    const climbedAt = event.entity?.climbedAt
+
+    if (climbedAt != null) {
+      return climbedAt
+    }
+  }
+
+  return undefined
+}
 
 /**
  * Every key carries the region.
@@ -147,9 +175,29 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
 }
 
 /** Whether `event` still belongs to the open group whose oldest member is `oldest`. */
-function joins(oldest: EventListItem, event: EventListItem, kind: EventGroupKind): boolean {
+function joins(group: EventGroup, event: EventListItem, kind: EventGroupKind): boolean {
+  // The group's oldest member so far. The list runs newest first, so its tail is what the window
+  // is measured against.
+  const oldest = group.events[group.events.length - 1]
   const withinWindow = oldest.createdAt - event.createdAt <= BURST_MS
-  return kind === 'session' ? withinWindow || isSameDay(oldest.createdAt, event.createdAt) : withinWindow
+
+  if (kind !== 'session') {
+    return withinWindow
+  }
+
+  // Both halves, and they answer different questions. The climb day is what makes the card's word
+  // true: "logged a session" over two days at the crag is a sentence about an afternoon that never
+  // happened, which is the complaint theCrag has open twice against the same rule.
+  //
+  // The log proximity stays because dropping it would let one climb day span any distance in
+  // logging time: an ascent from that day entered three weeks late would join the card and drag it
+  // to the top of the feed carrying a three-week-old event, which is the other half of the same
+  // bug report. Same climb day AND logged together is the only pair that means what the card says.
+  // Against the group's first KNOWN climb day, not against its tail. An ascent deleted since
+  // carries no entity and so no climb date, and comparing to the tail let one of those become the
+  // group's oldest and then match anything: Sunday, a deleted row, and Saturday folded into one
+  // card claiming to be an afternoon.
+  return sameClimbDay(climbDayOf(group), event) && (withinWindow || isSameDay(oldest.createdAt, event.createdAt))
 }
 
 /**
@@ -182,7 +230,7 @@ function kindOf(event: EventListItem): EventGroupKind {
   // key on the file's own id, which is unique per file, and a submit of five photos would render as
   // five cards.
   //
-  // Only the uploads: an event that edits a file's column (a video's source) is housekeeping on one
+  // Only the uploads: an event that edits a file's column (a video's source) is a field edit on one
   // clip, and grouping it by parent would fold it into "added 5 photos to Nordblock", where a
   // reader would have to unpick the card to notice it at all.
   if (event.objectType === 'file') {
@@ -296,6 +344,23 @@ function mergeCreatedWithMedia(groups: { group: EventGroup; key: string }[]): { 
  */
 function oldestId(events: readonly EventListItem[]): number {
   return events.reduce((lowest, event) => Math.min(lowest, event.id), Infinity)
+}
+
+/**
+ * Whether two ascent events were climbed on the same day.
+ *
+ * A plain comparison rather than `isSameDay`, because `climbedAt` is a pg `date` synced as
+ * UTC-midnight millis: two values for one day are already equal, and running them through a
+ * local-timezone day helper would shift them apart for every reader west of Greenwich.
+ *
+ * Unknown counts as same. An ascent deleted since carries no entity to read a climb date off, and
+ * splitting a session on a missing value would break up an afternoon over a row that is only
+ * missing because somebody removed it.
+ */
+function sameClimbDay(day: number | undefined, event: EventListItem): boolean {
+  const right = event.entity?.climbedAt
+
+  return day == null || right == null || day === right
 }
 
 function sameParent(event: EventListItem, parent: { id: number | string; type: string }): boolean {

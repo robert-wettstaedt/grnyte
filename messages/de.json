@@ -333,6 +333,19 @@
   "error_reload": "Neu laden",
   "error_server_body": "Das liegt an uns, nicht an dir. Warte einen Moment und versuch es erneut.",
   "error_server_title": "Auf unserer Seite ist etwas schiefgelaufen",
+  "event_accoladeCeiling": "Schwerster seiner Art: {name} in zwölf Monaten",
+  "event_accoladeCommunity": "Beliebt in der Community",
+  "event_accoladeProject": [
+    {
+      "declarations": ["input days", "input name", "input sessions", "local daysPlural = days: plural"],
+      "selectors": ["days", "daysPlural"],
+      "match": {
+        "days=0,daysPlural=*": "Projekt {name} durchgestiegen, {sessions} Sessions",
+        "days=*,daysPlural=one": "Projekt {name} durchgestiegen, {sessions} Sessions über {days} Tag",
+        "days=*,daysPlural=other": "Projekt {name} durchgestiegen, {sessions} Sessions über {days} Tage"
+      }
+    }
+  ],
   "event_areaCreated": [
     {
       "declarations": ["input actor", "input name", "input person"],

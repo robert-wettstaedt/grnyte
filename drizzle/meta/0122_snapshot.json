@@ -1,6 +1,6 @@
 {
-  "id": "69cbfeea-f0c3-4eda-ad34-3d7e109f7661",
-  "prevId": "885787c7-a1c8-4b01-8e41-5844948a26e7",
+  "id": "9039badb-9a9b-409b-bc5e-101976b895b2",
+  "prevId": "6e37d477-30c5-47d4-a0fb-a18cbfd5e053",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -516,6 +516,12 @@
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accolade": {
+          "name": "accolade",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -1658,6 +1664,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "promoted": {
+          "name": "promoted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "verb": {
           "name": "verb",
           "type": "text",
@@ -1986,23 +1999,29 @@
           "primaryKey": false,
           "notNull": true
         },
+        "area_fk": {
+          "name": "area_fk",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "auth_user_fk": {
           "name": "auth_user_fk",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "entity_id": {
-          "name": "entity_id",
-          "type": "text",
+        "block_fk": {
+          "name": "block_fk",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "entity_type": {
-          "name": "entity_type",
-          "type": "text",
+        "route_fk": {
+          "name": "route_fk",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "user_fk": {
           "name": "user_fk",
@@ -2027,11 +2046,59 @@
           "method": "btree",
           "with": {}
         },
-        "favorites_entity_id_idx": {
-          "name": "favorites_entity_id_idx",
+        "favorites_area_fk_idx": {
+          "name": "favorites_area_fk_idx",
           "columns": [
             {
-              "expression": "entity_id",
+              "expression": "area_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "area_fk is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_block_fk_idx": {
+          "name": "favorites_block_fk_idx",
+          "columns": [
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "block_fk is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_route_fk_idx": {
+          "name": "favorites_route_fk_idx",
+          "columns": [
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "route_fk is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_user_fk_idx": {
+          "name": "favorites_user_fk_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2042,17 +2109,68 @@
           "method": "btree",
           "with": {}
         },
-        "favorites_entity_type_idx": {
-          "name": "favorites_entity_type_idx",
+        "favorites_user_area_idx": {
+          "name": "favorites_user_area_idx",
           "columns": [
             {
-              "expression": "entity_type",
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "area_fk",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
+          "where": "area_fk is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_user_block_idx": {
+          "name": "favorites_user_block_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "block_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "block_fk is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "favorites_user_route_idx": {
+          "name": "favorites_user_route_idx",
+          "columns": [
+            {
+              "expression": "user_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "route_fk",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "route_fk is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2072,6 +2190,19 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "favorites_area_fk_areas_id_fk": {
+          "name": "favorites_area_fk_areas_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "areas",
+          "columnsFrom": [
+            "area_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "favorites_auth_user_fk_users_id_fk": {
           "name": "favorites_auth_user_fk_users_id_fk",
           "tableFrom": "favorites",
@@ -2084,6 +2215,32 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "favorites_block_fk_blocks_id_fk": {
+          "name": "favorites_block_fk_blocks_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "blocks",
+          "columnsFrom": [
+            "block_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "favorites_route_fk_routes_id_fk": {
+          "name": "favorites_route_fk_routes_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "routes",
+          "columnsFrom": [
+            "route_fk"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "favorites_user_fk_users_id_fk": {
@@ -2131,7 +2288,12 @@
           "using": "(SELECT auth.uid()) = auth_user_fk"
         }
       },
-      "checkConstraints": {},
+      "checkConstraints": {
+        "favorites_one_object": {
+          "name": "favorites_one_object",
+          "value": "num_nonnulls(area_fk, block_fk, route_fk) = 1"
+        }
+      },
       "isRLSEnabled": true
     },
     "public.files": {

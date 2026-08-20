@@ -220,3 +220,218 @@ describe('eventCard', () => {
     expect(view.entityName).toBe('Nordblock')
   })
 })
+
+/**
+ * Which cards a mixed feed is allowed to draw quietly.
+ *
+ * The rule is deliberately narrow, and the cases that matter are the ones that LOOK like edits
+ * and are not: a deletion is the thing a reader must not have to expand a row to notice, and a
+ * role change is a permission grant. Get either wrong and the feed buries the two events that
+ * exist to be seen.
+ */
+describe('eventCard tier', () => {
+  const mixed = (events: EventListItem[]) => eventCard(groupEvents(events)[0], 1, undefined, undefined, 'mixed')
+
+  it('draws a field edit on a place quietly', () => {
+    expect(mixed([event({ objectType: 'route', verb: 'update' })]).tier).toBe('compact')
+    expect(mixed([event({ objectId: 7, objectType: 'block', verb: 'update' })]).tier).toBe('compact')
+    expect(mixed([event({ objectId: 3, objectType: 'area', verb: 'update' })]).tier).toBe('compact')
+  })
+
+  it('never draws a deletion quietly', () => {
+    expect(mixed([event({ objectType: 'route', verb: 'delete' })]).tier).toBe('standard')
+  })
+
+  it('never draws a role change quietly', () => {
+    expect(mixed([event({ objectId: 5, objectType: 'user', verb: 'update' })]).tier).toBe('standard')
+  })
+
+  it('never draws an ascent or its correction quietly', () => {
+    expect(mixed([event({ objectId: 9, objectType: 'ascent', verb: 'create' })]).tier).toBe('standard')
+    expect(mixed([event({ objectId: 9, objectType: 'ascent', verb: 'update' })]).tier).toBe('standard')
+  })
+
+  it('keeps a card standard when any one of its events is not a field edit', () => {
+    const noon = new Date(2026, 0, 1, 12).getTime()
+    const parent = { id: 7, type: 'block' as const }
+
+    // A create and a rename under one block are one burst card, which is the case that actually
+    // mixes: a group is one thing a reader acts on, so a card that also added a route is a card
+    // about adding a route. (A deletion could not test this. It keys as `removal`, so it is
+    // already a card of its own before a tier is asked for.)
+    const [group, ...rest] = groupEvents([
+      event({ createdAt: noon, id: 2, objectId: 1, objectType: 'route', parent, verb: 'create' }),
+      event({ createdAt: noon - 60_000, id: 1, objectId: 2, objectType: 'route', parent, verb: 'update' }),
+    ])
+
+    expect(rest).toHaveLength(0)
+    expect(group.events).toHaveLength(2)
+    expect(eventCard(group, 1, undefined, undefined, 'mixed').tier).toBe('standard')
+  })
+
+  it('leaves every card standard on a surface that is about edits', () => {
+    const view = eventCard(groupEvents([event({ objectType: 'route', verb: 'update' })])[0], 1)
+
+    expect(view.tier).toBe('standard')
+  })
+})
+
+/**
+ * The one claim a card is allowed to make.
+ *
+ * The card does not decide WHETHER an ascent earned one (`deriveAccolade` did that when it was
+ * logged); it decides which of a card's events gets to speak, and that a card only ever makes one
+ * claim however many sends it holds.
+ */
+describe('eventCard accolade', () => {
+  const noon = new Date(2026, 0, 1, 12).getTime()
+  const send = (partial: Partial<EventListItem> & { accolade?: unknown; name?: string } = {}) => {
+    const { accolade, name = 'Hazel Nut', ...rest } = partial
+    return event({
+      entity: { accolade, climbedAt: noon, crumbs: [], href: '/routes/1', name, row: 'route' } as never,
+      objectType: 'ascent',
+      verb: 'create',
+      ...rest,
+    })
+  }
+
+  it('lifts a card carrying a claim to hero, and names the route it is about', () => {
+    const view = eventCard(
+      groupEvents([send({ accolade: { days: 124, kind: 'project', sessions: 23 } })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.tier).toBe('hero')
+    expect(view.accolade).toEqual({ accolade: { days: 124, kind: 'project', sessions: 23 }, name: 'Hazel Nut' })
+  })
+
+  it('leaves a send with no claim at standard, so big keeps meaning something', () => {
+    const view = eventCard(groupEvents([send()])[0], 1, undefined, undefined, 'mixed')
+
+    expect(view.tier).toBe('standard')
+    expect(view.accolade).toBeUndefined()
+  })
+
+  it('makes one claim for a session holding two, and prefers effort over grade', () => {
+    // The afternoon stays one card. The notable ascent is not lifted out: it already has its own
+    // row and its own reaction bar in here.
+    const [group, ...rest] = groupEvents([
+      send({ accolade: { kind: 'ceiling' }, createdAt: noon, id: 2, name: 'Kante', objectId: 20 }),
+      send({
+        accolade: { days: 124, kind: 'project', sessions: 23 },
+        createdAt: noon - 60_000,
+        id: 1,
+        objectId: 21,
+      }),
+    ])
+
+    expect(rest).toHaveLength(0)
+    expect(eventCard(group, 1, undefined, undefined, 'mixed').accolade?.accolade).toEqual({
+      days: 124,
+      kind: 'project',
+      sessions: 23,
+    })
+  })
+
+  it('lets the community fill an empty banner slot', () => {
+    const view = eventCard(
+      groupEvents([event({ objectType: 'route', promoted: true, verb: 'create' })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.accolade?.accolade).toEqual({ kind: 'community' })
+    expect(view.tier).toBe('hero')
+  })
+
+  it('lets the climb outrank the applause when both would claim the slot', () => {
+    // The reaction count is already visible in the bar directly below, so a card that has both
+    // says the rarer thing.
+    const view = eventCard(
+      groupEvents([send({ accolade: { kind: 'ceiling' }, promoted: true })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.accolade?.accolade).toEqual({ kind: 'ceiling' })
+  })
+
+  it('does not promote a compacted edit out of its quiet row', () => {
+    // A rename that three people reacted to is still a rename. Ungated, the promotion lifted it
+    // straight to hero with a banner calling the rename a community favourite, which is
+    // the exact inversion of what the compact tier is for.
+    const view = eventCard(
+      groupEvents([event({ objectType: 'route', promoted: true, verb: 'update' })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.tier).toBe('compact')
+    expect(view.accolade).toBeUndefined()
+  })
+
+  it('refuses to compact a rename somebody has already reacted to', () => {
+    // The compact row has no reaction bar, so compacting this would hide a chip a reader can no
+    // longer see or take back. That invariant outranks the tier.
+    const view = eventCard(
+      groupEvents([
+        event({ objectType: 'route', reactions: [{ emoji: '🔥', userFk: 3, userName: 'mara' }], verb: 'update' }),
+      ])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.tier).toBe('standard')
+  })
+
+  it('refuses to compact a rename with a thread under it', () => {
+    const view = eventCard(
+      groupEvents([event({ commentCount: 6, objectType: 'route', verb: 'update' })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.tier).toBe('standard')
+  })
+
+  it('does not congratulate anybody for a popular deletion', () => {
+    const view = eventCard(
+      groupEvents([event({ objectType: 'route', promoted: true, verb: 'delete' })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.accolade).toBeUndefined()
+    expect(view.tier).toBe('standard')
+  })
+
+  it('does not let an edit to an ascent congratulate anybody', () => {
+    // The claim is read off the ascent row, which an update event points at just as well. Only the
+    // card that LOGGED the send may speak it, or correcting a typo re-announces the achievement.
+    const view = eventCard(
+      groupEvents([send({ accolade: { kind: 'ceiling' }, verb: 'update' })])[0],
+      1,
+      undefined,
+      undefined,
+      'mixed',
+    )
+
+    expect(view.accolade).toBeUndefined()
+    expect(view.tier).toBe('standard')
+  })
+})

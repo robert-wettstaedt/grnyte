@@ -67,7 +67,7 @@ export async function createDrizzleSupabaseClient(supabase: SupabaseClient) {
  *
  * Deliberately not the token's `role` claim verbatim. That claim names the role PostgREST would
  * switch to for the same token, and `authenticated` holds no INSERT, UPDATE or DELETE on anything
- * (see `0116_app_writer_role`): a hand-written request can read what the policies allow and write
+ * (see `0120_app_writer_role`): a hand-written request can read what the policies allow and write
  * nothing at all. The app writes as `app_writer`, which is a member of `authenticated`, so every
  * policy declared `TO authenticated` applies to it unchanged.
  *

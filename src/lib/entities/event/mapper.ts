@@ -1,4 +1,5 @@
 import { entityHref } from '$lib/components/EntitySearch/search.svelte'
+import { parseAccolade } from '$lib/entities/ascent/accolade'
 import { blockName } from '$lib/entities/block/mapper'
 import type { EventEntity } from '$lib/entities/event/entity'
 import { fileParent, toMediaFile } from '$lib/entities/file/mapper'
@@ -77,6 +78,13 @@ export interface EventListItem {
    * Absent for a file, whose entity IS its parent's (the card keys that one under both).
    */
   parentEntity: EventEntity | undefined
+  /**
+   * Whether enough of the community turned up for the card to say so.
+   *
+   * Stored rather than counted here: reactions sync as related rows, so an event with 200 of them
+   * would ship 200 rows to every reader just to answer this. The trigger already knows.
+   */
+  promoted: boolean
   /** The emoji sent on THIS event. A card shows one bar per event, not one per card. */
   reactions: ReactionListItem[]
   regionFk: number
@@ -107,6 +115,9 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
     objectType: object?.type ?? 'area',
     parent: parentOf(row),
     parentEntity: parentEntityOf(row, userRegions),
+    // `NOT NULL DEFAULT` reaches the Zero client as nullable, so the coercion is the mapper's, as
+    // it is for `createdAt` right above.
+    promoted: row.promoted ?? false,
     // No `type` filter: the query syncs the emoji half only, because the comment half is what
     // made the relation expensive. See `listEvents`.
     reactions: (row.reactions ?? []).map(toReaction),
@@ -229,6 +240,10 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
     // route, or the ascent is not here at all.
     return {
       ...(ascent.route == null ? { name: '', row: 'none' as const } : routeEntity(ascent.route, userRegions)),
+      // Parsed here rather than in the card, so a stored claim that no longer parses (an older
+      // shape, a hand-edited row) is dropped once, in the layer that already owns turning a synced
+      // row into something the view can trust.
+      accolade: parseAccolade(ascent.accolade),
       ascentGradeFk: ascent.gradeFk ?? undefined,
       ascentRating: ascent.rating ?? undefined,
       ascentType: ascent.type,

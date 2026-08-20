@@ -40,6 +40,24 @@ The strict ascent type: sent it, having needed more than one go. Sits next to `f
 bouldering logbook also does, because bouldering has no native word for it. The German
 label stays "Durchstieg"; the enum value does not oblige the copy.
 
+**session**
+One visit: a climber, a route, a day. One `ascents` row per route per day is what the app
+expects and what a climber logs, because the row already means "I went, and this is how it
+ended". Nobody records three rows on one route in one afternoon to mean "it took me three
+goes", so a count of rows is a count of visits, not of tries. Rows that do share a route and
+a day are a mistake, and anything counting sessions folds them into one rather than inflating
+the total (`countSessions` in `projects.ts`, `groupSessions` in `sessions.ts`). This is also
+why a route worked and sent inside one day is not a project: projecting means going back.
+
+**accolade**
+The one claim a send's card may make, at most one, chosen by the system and never
+customisable: `project` (the send ended a run of failed sessions) or `ceiling` (the hardest
+of its kind in twelve months). For the ceiling there are two pools, not four types: a `flash`
+competes only with flashes, while a `redpoint` and a `repeat` compete with each other,
+because both are climbs that were worked. A repeat given a pool of its own is trivially its
+own record, which is what the split exists to prevent. An `attempt` has no pool and is never
+evidence about anybody's ceiling.
+
 **community**
 The people in a region. Never crew, team or squad.
 
@@ -67,6 +85,15 @@ One changed column under an event: the column, and what it moved between. This i
 `activities` table minus everything that was really about the action rather than the diff.
 Roughly 90% of today's activity rows carry no diff at all and become events with no change
 row under them.
+
+**field edit**
+An `update` event on an area, block, route or file: somebody changed a column on a place.
+The narrowest reading of "an edit", and the only thing the feed may draw at compact tier.
+Deliberately not three neighbours it keeps being merged with: the `notifyCragEdits` setting,
+which users read as "Crag edits" and which is broader in both directions (every verb, and
+everything that is not an ascent or a person); `CRAG_OBJECT_TYPES` in `grouping.ts`, which
+asks which objects share a burst card and excludes files; and a `delete`, a role change or an
+ascent correction, none of which are background. Three sets, three questions.
 
 **reaction**
 A row in `reactions`, which holds **both** emoji and comments, discriminated by `type`. The

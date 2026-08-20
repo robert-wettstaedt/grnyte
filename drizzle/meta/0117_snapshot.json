@@ -1,6 +1,6 @@
 {
-  "id": "8f3056e4-1bf7-4dd1-98d7-ea2ed3421766",
-  "prevId": "69cbfeea-f0c3-4eda-ad34-3d7e109f7661",
+  "id": "6e37d477-30c5-47d4-a0fb-a18cbfd5e053",
+  "prevId": "571dc6df-628a-432b-8010-4b2e6b78145b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -516,6 +516,12 @@
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accolade": {
+          "name": "accolade",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -1658,6 +1664,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "promoted": {
+          "name": "promoted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "verb": {
           "name": "verb",
           "type": "text",
@@ -1986,29 +1999,23 @@
           "primaryKey": false,
           "notNull": true
         },
-        "area_fk": {
-          "name": "area_fk",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "auth_user_fk": {
           "name": "auth_user_fk",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "block_fk": {
-          "name": "block_fk",
-          "type": "integer",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "route_fk": {
-          "name": "route_fk",
-          "type": "integer",
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "user_fk": {
           "name": "user_fk",
@@ -2033,59 +2040,11 @@
           "method": "btree",
           "with": {}
         },
-        "favorites_area_fk_idx": {
-          "name": "favorites_area_fk_idx",
+        "favorites_entity_id_idx": {
+          "name": "favorites_entity_id_idx",
           "columns": [
             {
-              "expression": "area_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "area_fk is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "favorites_block_fk_idx": {
-          "name": "favorites_block_fk_idx",
-          "columns": [
-            {
-              "expression": "block_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "block_fk is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "favorites_route_fk_idx": {
-          "name": "favorites_route_fk_idx",
-          "columns": [
-            {
-              "expression": "route_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "route_fk is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "favorites_user_fk_idx": {
-          "name": "favorites_user_fk_idx",
-          "columns": [
-            {
-              "expression": "user_fk",
+              "expression": "entity_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2096,68 +2055,17 @@
           "method": "btree",
           "with": {}
         },
-        "favorites_user_area_idx": {
-          "name": "favorites_user_area_idx",
+        "favorites_entity_type_idx": {
+          "name": "favorites_entity_type_idx",
           "columns": [
             {
-              "expression": "user_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "area_fk",
+              "expression": "entity_type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
-          "where": "area_fk is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "favorites_user_block_idx": {
-          "name": "favorites_user_block_idx",
-          "columns": [
-            {
-              "expression": "user_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "block_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "block_fk is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "favorites_user_route_idx": {
-          "name": "favorites_user_route_idx",
-          "columns": [
-            {
-              "expression": "user_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "route_fk",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "route_fk is not null",
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2177,19 +2085,6 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "favorites_area_fk_areas_id_fk": {
-          "name": "favorites_area_fk_areas_id_fk",
-          "tableFrom": "favorites",
-          "tableTo": "areas",
-          "columnsFrom": [
-            "area_fk"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "favorites_auth_user_fk_users_id_fk": {
           "name": "favorites_auth_user_fk_users_id_fk",
           "tableFrom": "favorites",
@@ -2202,32 +2097,6 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "favorites_block_fk_blocks_id_fk": {
-          "name": "favorites_block_fk_blocks_id_fk",
-          "tableFrom": "favorites",
-          "tableTo": "blocks",
-          "columnsFrom": [
-            "block_fk"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "favorites_route_fk_routes_id_fk": {
-          "name": "favorites_route_fk_routes_id_fk",
-          "tableFrom": "favorites",
-          "tableTo": "routes",
-          "columnsFrom": [
-            "route_fk"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "favorites_user_fk_users_id_fk": {
@@ -2265,6 +2134,16 @@
           ],
           "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
+        "users can update own favorites": {
+          "name": "users can update own favorites",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT auth.uid()) = auth_user_fk",
+          "withCheck": "(SELECT auth.uid()) = auth_user_fk"
+        },
         "users can delete own favorites": {
           "name": "users can delete own favorites",
           "as": "PERMISSIVE",
@@ -2275,12 +2154,7 @@
           "using": "(SELECT auth.uid()) = auth_user_fk"
         }
       },
-      "checkConstraints": {
-        "favorites_one_object": {
-          "name": "favorites_one_object",
-          "value": "num_nonnulls(area_fk, block_fk, route_fk) = 1"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": true
     },
     "public.files": {
@@ -2418,21 +2292,6 @@
           "columns": [
             {
               "expression": "created_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "files_path_idx": {
-          "name": "files_path_idx",
-          "columns": [
-            {
-              "expression": "path",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4287,7 +4146,7 @@
             "authenticated"
           ],
           "using": "(SELECT authorize_in_region('region.admin', region_fk))",
-          "withCheck": "\n          (SELECT authorize_in_region('region.admin', region_fk))\n          AND EXISTS (\n            SELECT\n              1\n            FROM\n              public.users u\n            WHERE\n              u.id = user_fk\n              AND u.auth_user_fk = region_members.auth_user_fk\n          )\n        "
+          "withCheck": "(SELECT authorize_in_region('region.admin', region_fk))"
         },
         "region.read can read region_members": {
           "name": "region.read can read region_members",
@@ -4389,14 +4248,14 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "nobody inserts regions": {
-          "name": "nobody inserts regions",
-          "as": "RESTRICTIVE",
+        "authenticated users can create regions": {
+          "name": "authenticated users can create regions",
+          "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "false"
+          "withCheck": "true"
         },
         "app.admin can fully access regions": {
           "name": "app.admin can fully access regions",
@@ -4604,6 +4463,25 @@
           ],
           "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
+        "region.edit can insert route_external_resource_27crags": {
+          "name": "region.edit can insert route_external_resource_27crags",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resource_27crags": {
+          "name": "region.edit can update route_external_resource_27crags",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
         "region.delete can delete route_external_resource_27crags": {
           "name": "region.delete can delete route_external_resource_27crags",
           "as": "PERMISSIVE",
@@ -4783,6 +4661,25 @@
           ],
           "using": "(SELECT authorize_in_region('region.read', region_fk))"
         },
+        "region.edit can insert route_external_resource_8a": {
+          "name": "region.edit can insert route_external_resource_8a",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resource_8a": {
+          "name": "region.edit can update route_external_resource_8a",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
         "region.delete can delete route_external_resource_8a": {
           "name": "region.delete can delete route_external_resource_8a",
           "as": "PERMISSIVE",
@@ -4901,6 +4798,25 @@
             "authenticated"
           ],
           "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert route_external_resource_the_crag": {
+          "name": "region.edit can insert route_external_resource_the_crag",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
+        },
+        "region.edit can update route_external_resource_the_crag": {
+          "name": "region.edit can update route_external_resource_the_crag",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(SELECT authorize_in_region('region.edit', region_fk))",
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
         "region.delete can delete route_external_resource_the_crag": {
           "name": "region.delete can delete route_external_resource_the_crag",
@@ -5066,6 +4982,15 @@
             "authenticated"
           ],
           "using": "(SELECT authorize_in_region('region.read', region_fk))"
+        },
+        "region.edit can insert route_external_resources": {
+          "name": "region.edit can insert route_external_resources",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(SELECT authorize_in_region('region.edit', region_fk))"
         },
         "region.edit can update route_external_resources": {
           "name": "region.edit can update route_external_resources",
@@ -6345,7 +6270,7 @@
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

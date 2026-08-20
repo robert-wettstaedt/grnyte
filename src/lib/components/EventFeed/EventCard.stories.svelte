@@ -1,9 +1,18 @@
 <script module lang="ts">
   import type { EventCardView } from '$lib/entities/event/card'
+  import { groupEvents } from '$lib/entities/event/grouping'
   import { defineMeta } from '@storybook/addon-svelte-csf'
   import type { ComponentProps } from 'svelte'
   import EventCard from './EventCard.svelte'
-  import { ascentEntity, eventAgo, eventViews, sampleWeekView as mine, photo, sampleWeekGroups } from './fixtures'
+  import {
+    ascentEntity,
+    eventAgo,
+    eventViews,
+    feedView,
+    sampleWeekView as mine,
+    photo,
+    sampleWeekGroups,
+  } from './fixtures'
 
   const { Story } = defineMeta({
     component: EventCard,
@@ -30,11 +39,22 @@
   const unresolved = pick((group) => group.events[0].entity == null && group.events[0].verb === 'add')
 
   /**
+   * One group built from scratch, for the tier cases the sample week has no shape for.
+   *
+   * The week is a consistent data set and stays that way; these are one-off arrangements that
+   * exist to exercise a rule rather than to describe a realistic afternoon.
+   */
+  const built = (...events: Parameters<typeof eventAgo>[1][]) =>
+    feedView(groupEvents(events.map((partial, index) => eventAgo(index * 3, partial)))[0])
+
+  /**
    * Every field of {@link EventCardView} and the part of the card it comes out as. A
    * `Record` rather than a list, so a field added to the view is a type error here: the
    * anatomy cannot quietly go out of date.
    */
   const FIELDS: Record<keyof EventCardView, string> = {
+    accolade:
+      'The one claim the card makes, as a banner across the top, and the route it names. At most one per card however many sends it holds.',
     actorFk: "Where the avatar links to: the actor's own profile, on your own rows too.",
     actorName: 'The avatar initials and the bold {actor} in the headline. Pulses while the user row syncs.',
     bars: 'The reaction bars no row spoke for, rendered in the footer beside the changes toggle.',
@@ -53,6 +73,7 @@
     rows: 'The entity rows, capped at four. Each is an entity or a tombstone, and carries its own Opinion strip, quoted note and reaction bar.',
     status: "The ascent type badge left of the clock, on a card that speaks one ascent's own sentence.",
     summary: 'The sub line under the headline, joined with " · ". Grouped cards only.',
+    tier: 'How much room the card gets. `compact` draws a field edit as one tappable line instead of a card, and only a mixed-density surface ever asks for it.',
   }
 
   /** A field's value, short enough for a table cell. */
@@ -174,5 +195,222 @@
         verb: 'create',
       }),
     ])[0],
+  }}
+/>
+
+<!-- ─────────────────────────────────────────────────────────────────────────────────────────────
+     TIERS. Only a mixed-density surface ever draws a compact row, so every story ABOVE this line
+     asks for uniform density on purpose: they show one card's anatomy, and a one-liner has none.
+     Everything below is what a reader gets in the feed itself.
+
+     The tier rules are mostly REFUSALS, so most of these stories are cases where a card could
+     have gone compact and does not. Each refusal is a decision somebody has to be able to see.
+     ───────────────────────────────────────────────────────────────────────────────────────── -->
+
+<!-- A field edit, compacted: no avatar, no card chrome, no media, two lines at most. The whole row
+     is one tap target, at least 44px tall, and the only one it has.
+
+     Press it (or tab to it and hit enter) to open the full card, then use the chevron at the top
+     right to close it again. Focus follows in both directions: opening moves it to that chevron,
+     closing returns it to this row. Without that handoff the element the keyboard was on stops
+     existing and focus falls to <body>. -->
+<Story name="Tier: compact edit" args={{ view: feedView(burst) }} />
+
+<!-- The same burst at the density an entity's own log and the Updates tab use, so the two can be
+     held side by side. Same events, same sentence, different room: that is what keeps this
+     density rather than content. -->
+<Story name="Tier: same edit, uniform" args={{ view: mine(burst) }} />
+
+<!-- Wrapping, not truncating. A long username plus a verb fills the line on a phone, and an
+     ellipsis there leaves nothing legible at all, which would defeat drawing the row. Narrow the
+     viewport until this wraps to its second line, then check it still says who did what. -->
+<Story
+  name="Tier: compact, long name"
+  args={{
+    view: built({
+      actorFk: 3,
+      changes: [
+        { columnName: 'description', newValue: 'x', objectId: undefined, objectType: undefined, oldValue: 'y' },
+      ],
+      objectId: 502,
+      objectType: 'route',
+      verb: 'update',
+    }),
+  }}
+  parameters={{ width: 320 }}
+/>
+
+<!-- REFUSED: a deletion. Keeping edits in the feed at all is an accountability argument, and it
+     collapses the moment a maintainer removing somebody else's work is drawn as quietly as a typo
+     fix. This is the one fold that could actually cost something. -->
+<Story name="Refuses compact: deletion" args={{ view: feedView(deletedRoute) }} />
+
+<!-- REFUSED: a role change. It arrives as an `update` on a user object, which looks like
+     a field edit and is a permission grant. -->
+<Story name="Refuses compact: role change" args={{ view: feedView(roleGrant) }} />
+
+<!-- REFUSED: an ascent correction. Excluded by OBJECT rather than by verb: a climber fixing the
+     grade they logged is about a climb, and the card says so. -->
+<Story
+  name="Refuses compact: ascent edit"
+  args={{
+    view: built({
+      actorFk: 3,
+      changes: [{ columnName: 'gradeFk', newValue: '12', objectId: undefined, objectType: undefined, oldValue: '11' }],
+      entity: ascentEntity('Kante direkt', 11, 3, 'redpoint'),
+      objectId: 9101,
+      objectType: 'ascent',
+      parent: { id: 500, type: 'route' },
+      verb: 'update',
+    }),
+  }}
+/>
+
+<!-- REFUSED: one event in the group is not a field edit. A card is one thing a reader acts on, so a
+     card that also added a route is a card about adding a route. The rule is `every`, not `some`,
+     and this is the case that distinguishes them. -->
+<Story
+  name="Refuses compact: mixed group"
+  args={{
+    view: built(
+      { actorFk: 3, objectId: 512, objectType: 'route', parent: { id: 400, type: 'block' }, verb: 'create' },
+      {
+        actorFk: 3,
+        changes: [{ columnName: 'name', newValue: 'B', objectId: undefined, objectType: undefined, oldValue: 'A' }],
+        objectId: 513,
+        objectType: 'route',
+        parent: { id: 400, type: 'block' },
+        verb: 'update',
+      },
+    ),
+  }}
+/>
+
+<!-- REFUSED: somebody has already spoken for it. The compact row carries no reaction bar, so
+     compacting a rename that people reacted to would hide a chip a reader can no longer see or
+     take back. The invariant at the top of `card.ts` outranks the tier. -->
+<Story
+  name="Refuses compact: already reacted to"
+  args={{
+    view: built({
+      actorFk: 3,
+      changes: [{ columnName: 'name', newValue: 'B', objectId: undefined, objectType: undefined, oldValue: 'A' }],
+      objectId: 502,
+      objectType: 'route',
+      reactions: [
+        { emoji: '🔥', userFk: 1, userName: 'ada' },
+        { emoji: '💪', userFk: 4, userName: 'mara' },
+      ],
+      verb: 'update',
+    }),
+  }}
+/>
+
+<!-- REFUSED: a thread under it, with no reaction. Same rule, the other half: a compact row admits
+     nothing about a conversation that exists. -->
+<Story
+  name="Refuses compact: has a thread"
+  args={{
+    view: built({
+      actorFk: 3,
+      changes: [{ columnName: 'name', newValue: 'B', objectId: undefined, objectType: undefined, oldValue: 'A' }],
+      commentCount: 6,
+      objectId: 502,
+      objectType: 'route',
+      verb: 'update',
+    }),
+  }}
+/>
+
+<!-- ── BANNERS. At most one per card, chosen by the system, never customisable, and always spelled
+     out in words: an icon alone fails for a screen reader and for anybody who has not learned the
+     vocabulary. Effort outranks grade; the climb outranks the applause.
+
+     Every `name` below is a route the card actually shows. `accoladeOf` reads it off the very
+     event the claim came from (`routeDisplayName(event.entity?.name)`), so a fixture naming
+     anything else renders a banner the app cannot produce, and on a session card it breaks the
+     one thing the banner is for: saying which of the rows it means. ── -->
+
+<!-- A project sent. The claim names sessions and span, both facts the climber logged, and it is
+     blind to grade on purpose: somebody returning after years away sends well below what they
+     once did, and the climb still cost them everything. -->
+<Story
+  name="Banner: project sent"
+  args={{
+    view: {
+      ...mine(session),
+      accolade: { accolade: { days: 124, kind: 'project', sessions: 23 }, name: 'Verschneidung' },
+      tier: 'hero',
+    },
+  }}
+/>
+
+<!-- The fallback claim, for the climbers who do not log attempts. Windowed to twelve months so an
+     8B from a decade ago cannot veto it, and split into TWO pools rather than four: a flash
+     competes only with flashes, while a redpoint and a repeat compete with each other. -->
+<Story
+  name="Banner: ceiling"
+  args={{ view: { ...mine(flash), accolade: { accolade: { kind: 'ceiling' }, name: 'Rampe' }, tier: 'hero' } }}
+/>
+
+<!-- A repeat can wear it too, which is only defensible because of the pooling. On its own a repeat
+     pool is trivially won: somebody who repeats one 7B a year is their own hardest repeater, and
+     the banner fired on a climb that broke no new ground. Pooled with redpoints, this card means
+     the climber beat every worked send of their year, which is worth a banner. -->
+<Story
+  name="Banner: ceiling on a repeat"
+  args={{
+    view: {
+      ...built({
+        actorFk: 3,
+        entity: ascentEntity('Verschneidung', 12, 5, 'repeat'),
+        objectId: 9102,
+        objectType: 'ascent',
+        verb: 'create',
+      }),
+      accolade: { accolade: { kind: 'ceiling' }, name: 'Verschneidung' },
+      tier: 'hero',
+    },
+  }}
+/>
+
+<!-- What the community can earn a card that claimed nothing itself. It fills the banner slot only
+     when nothing about the climb has, because the applause is already visible in the bar below and
+     the accolade is the rarer thing. -->
+<Story
+  name="Banner: community turned up"
+  args={{ view: { ...mine(flash), accolade: { accolade: { kind: 'community' }, name: 'Rampe' }, tier: 'hero' } }}
+/>
+
+<!-- A session holding two claims still shows ONE. The notable ascent is not lifted out into a card
+     of its own: it already has its own row and its own reaction bar in here, so the banner names
+     which row it means and the afternoon stays one afternoon. -->
+<Story
+  name="Banner: one per card, not a trophy wall"
+  args={{
+    view: {
+      ...mine(session),
+      accolade: { accolade: { days: 41, kind: 'project', sessions: 6 }, name: 'Kante' },
+      tier: 'hero',
+    },
+  }}
+/>
+
+<!-- A popular RENAME takes no banner and stays quiet. Reactions are not gated by kind (a reader
+     may applaud whatever they like) but the banner is a claim about the event, and calling a
+     rename a community favourite is a claim nobody meant. Compare with
+     "Refuses compact: already reacted to" above: that card goes standard because its chips need
+     somewhere to live, and it still earns no banner. -->
+<Story
+  name="Banner: refused on a field edit"
+  args={{
+    view: built({
+      actorFk: 3,
+      changes: [{ columnName: 'name', newValue: 'B', objectId: undefined, objectType: undefined, oldValue: 'A' }],
+      objectId: 502,
+      objectType: 'route',
+      promoted: true,
+      verb: 'update',
+    }),
   }}
 />

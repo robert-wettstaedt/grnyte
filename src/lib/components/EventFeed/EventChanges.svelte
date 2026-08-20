@@ -24,6 +24,7 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import ProseDiff from './ProseDiff.svelte'
 
   interface Props {
     /** The card's changed columns, already decided by `changeViews`. */
@@ -33,14 +34,6 @@
   const { changes }: Props = $props()
 
   const global = getGlobalState()
-
-  /** The two halves of a prose diff. Named so each element fits on one line: the paragraph
-   *  around them preserves whitespace, so a wrapped tag would leak its indentation into the
-   *  sentence. The margin sits on the removed half alone, because `diffWords` hands back a
-   *  replaced word and its replacement with nothing between them while every other boundary
-   *  already carries the space it had in the text. */
-  const ADDED_WORDS = 'bg-success-500/25 text-surface-950-50 rounded-sm px-0.5 no-underline'
-  const REMOVED_WORDS = 'text-surface-600-400/70 mr-0.5 decoration-1'
 
   /** A stored number, or undefined for the rows that cleared the field. */
   const numeric = (value: string | undefined) => {
@@ -175,50 +168,7 @@
     {#each change.after as entry (entry)}{@render chip(entry)}{:else}{@render chip(undefined)}{/each}
   {:else if change.kind === 'prose'}
     <!-- Long text never fits the line, so it collapses behind its own length. -->
-    <details class="min-w-0">
-      <summary class="text-surface-600-400 cursor-pointer text-xs">
-        {m.event_compareCharacters({ count: (change.after ?? '').length })}
-      </summary>
-      <!-- One merged text when both sides have one, so the edit points at itself instead of
-           leaving the reader to compare two near-identical paragraphs. Source rather than
-           rendered markdown: see `proseDiff`. -->
-      <div class="mt-1.5 text-xs">
-        {#if change.segments != null}
-          <!-- No whitespace between a tag and its text: the paragraph preserves what it is
-               given, so an indented `{segment.value}` would put the markup's own newlines
-               inside the sentence. The classes are named above for the same reason, to keep
-               each element on one line. -->
-          <p class="text-surface-600-400 whitespace-pre-wrap">
-            {#each change.segments as segment, index (index)}
-              {#if segment.kind === 'added'}
-                <ins class={ADDED_WORDS}>{segment.value}</ins>
-              {:else if segment.kind === 'removed'}
-                <del class={REMOVED_WORDS}>{segment.value}</del>
-              {:else}{segment.value}{/if}
-            {/each}
-          </p>
-        {:else}
-          <!-- Filled from nothing, or cleared. "Not set" against the text is the whole story,
-               and a diff of it would be one long stripe of a single colour. -->
-          <div class="space-y-1.5">
-            <div class="text-surface-600-400 line-through">
-              {#if change.before}
-                <p class="whitespace-pre-wrap">{change.before}</p>
-              {:else}
-                <p>{m.event_valueNotSet()}</p>
-              {/if}
-            </div>
-            <div class="text-surface-950-50">
-              {#if change.after}
-                <p class="whitespace-pre-wrap">{change.after}</p>
-              {:else}
-                <p>{m.event_valueNotSet()}</p>
-              {/if}
-            </div>
-          </div>
-        {/if}
-      </div>
-    </details>
+    <ProseDiff {change} />
   {:else if change.kind === 'location'}
     <!-- ponytail: the thumbnail is a fixed 200px, so a very narrow card crops its right edge.
          Upgrade = measure the container and pass the width in. -->

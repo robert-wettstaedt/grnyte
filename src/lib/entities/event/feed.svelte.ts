@@ -5,7 +5,7 @@ import { toposByBlockIds } from '$lib/entities/topo/resources.svelte'
 import { getGlobalState } from '$lib/state/global.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { SvelteSet } from 'svelte/reactivity'
-import { eventCard, type EventCardView } from './card'
+import { eventCard, type CardDensity, type EventCardView } from './card'
 import type { EventObjectType } from './dto'
 import { groupEvents } from './grouping'
 import type { EventListItem } from './mapper'
@@ -96,7 +96,9 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
   // Decided once per group, so the component is markup and its lightbox reads the same files the
   // cards show. The scope doubles as what the cards leave out: a feed narrowed to one entity
   // renders on that entity's page, where a row pointing at it links to the page already open.
-  const views = $derived(groups.map((group) => eventCard(group, global.user?.id, topos.data, omitRef(filter().scope))))
+  const views = $derived(
+    groups.map((group) => eventCard(group, global.user?.id, topos.data, omitRef(filter().scope), densityOf(filter()))),
+  )
 
   const acknowledge = () => {
     const newest = incoming.data[0] ?? events.data[0]
@@ -149,6 +151,22 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
       return views
     },
   }
+}
+
+/**
+ * Whether this surface may draw a field edit quietly.
+ *
+ * Only where an edit is background to something else. Two surfaces are ABOUT edits and so get
+ * every row at full height: the Updates half of the segmented control, where compacting
+ * everything would leave a screen with no hierarchy at all rather than a quiet one; and an
+ * entity's own log, where a reader came for this one route's history and nothing on the page is
+ * noise.
+ *
+ * Not part of `isGlobal`, which answers a different question (whether the watermark may move) and
+ * deliberately ignores `category` for reasons of its own.
+ */
+function densityOf(filter: EventFeedFilter): CardDensity {
+  return filter.scope == null && filter.category !== 'update' ? 'mixed' : 'uniform'
 }
 
 /**
