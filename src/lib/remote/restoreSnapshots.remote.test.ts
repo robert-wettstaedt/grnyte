@@ -18,6 +18,7 @@
 import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { restoreArea } from '$lib/entities/area/areas.remote'
 import { restoreBlock } from '$lib/entities/block/blocks.remote'
+import { restoreRoute } from '$lib/entities/route/routes.remote'
 import { asRequest } from '$lib/remote/testHarness'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -40,6 +41,21 @@ async function createArea(name: string, regionId: number, type: 'area' | 'crag')
     values (${name}, ${type}, ${regionId}, ${maintainer.userId}) returning id`
 
   return area.id
+}
+
+async function createBlock(name: string, areaId: number, regionId: number): Promise<number> {
+  const [block] = await sql<{ id: number }[]>`
+    insert into public.blocks (name, "order", area_fk, region_fk, created_by)
+    values (${name}, 0, ${areaId}, ${regionId}, ${maintainer.userId}) returning id`
+
+  return block.id
+}
+
+async function createFirstAscensionist(name: string, regionId: number): Promise<number> {
+  const [climber] = await sql<{ id: number }[]>`
+    insert into public.first_ascensionists (name, region_fk) values (${name}, ${regionId}) returning id`
+
+  return climber.id
 }
 
 async function createRegion(name: string): Promise<number> {
@@ -90,6 +106,11 @@ afterAll(async () => {
     // link has to be broken before either row can go. Areas go in one statement: FK triggers fire at
     // the end of it, so a parent and its child disappearing together is not a violation.
     await sql`delete from public.events where region_fk in (${homeRegionId}, ${otherRegionId})`
+    // The route side goes before the blocks it hangs off: the junction first, because it points at
+    // both a route and a climber, then the two tables it points at.
+    await sql`delete from public.routes_to_first_ascensionists where region_fk in (${homeRegionId}, ${otherRegionId})`
+    await sql`delete from public.routes where region_fk in (${homeRegionId}, ${otherRegionId})`
+    await sql`delete from public.first_ascensionists where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`update public.blocks set geolocation_fk = null where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.geolocations where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.blocks where region_fk in (${homeRegionId}, ${otherRegionId})`
@@ -276,5 +297,96 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
     const rows = await sql<{ id: number }[]>`
       select id from public.blocks where name = '__restore_offglobe_block__'`
     expect(rows).toHaveLength(0)
+  })
+})
+
+describe.skipIf(!reachable)('restoreRoute (hard)', () => {
+  /** The snapshot minus the two fields each test is about, so a case states only its own point. */
+  const snapshotFor = (blockId: number, name: string) => ({
+    areaFks: null,
+    areaIds: null,
+    blockFk: blockId,
+    createdBy: 0,
+    description: null,
+    firstAscentYear: null,
+    gradeFk: null,
+    name,
+    rating: null,
+    regionFk: homeRegionId,
+  })
+
+  it('refuses a rating the form would not accept, and creates nothing', async () => {
+    const blockId = await createBlock('__restore_rating_block__', cragAreaId, homeRegionId)
+
+    const status = await statusOf(() =>
+      asRequest(maintainer.authId, () =>
+        restoreRoute({
+          firstAscensionistFks: [],
+          mode: 'hard',
+          route: { ...snapshotFor(blockId, '__restore_rating_route__'), rating: 42 },
+          routeId: DEAD_ID,
+          tags: [],
+        }),
+      ),
+    )
+
+    // 400 from the schema, not a stored 42. `rating` feeds `recalcUserGradeAndRating`, so an
+    // out-of-range one does not sit quietly in its own column: it becomes the route's rating.
+    expect(status).toBe(400)
+
+    const rows = await sql<{ id: number }[]>`
+      select id from public.routes where name = '__restore_rating_route__'`
+    expect(rows).toHaveLength(0)
+  })
+
+  it('refuses a first ascent year outside the range the form allows', async () => {
+    const blockId = await createBlock('__restore_year_block__', cragAreaId, homeRegionId)
+
+    const status = await statusOf(() =>
+      asRequest(maintainer.authId, () =>
+        restoreRoute({
+          firstAscensionistFks: [],
+          mode: 'hard',
+          route: { ...snapshotFor(blockId, '__restore_year_route__'), firstAscentYear: -500 },
+          routeId: DEAD_ID,
+          tags: [],
+        }),
+      ),
+    )
+
+    expect(status).toBe(400)
+
+    const rows = await sql<{ id: number }[]>`
+      select id from public.routes where name = '__restore_year_route__'`
+    expect(rows).toHaveLength(0)
+  })
+
+  it("drops a first ascensionist belonging to a region other than the route's", async () => {
+    const blockId = await createBlock('__restore_fa_block__', cragAreaId, homeRegionId)
+    const foreign = await createFirstAscensionist('__restore_foreign_fa__', otherRegionId)
+    const own = await createFirstAscensionist('__restore_own_fa__', homeRegionId)
+
+    await asRequest(maintainer.authId, () =>
+      restoreRoute({
+        firstAscensionistFks: [own, foreign],
+        mode: 'hard',
+        route: snapshotFor(blockId, '__restore_fa_route__'),
+        routeId: DEAD_ID,
+        tags: [],
+      }),
+    )
+
+    // The route is created either way: the foreign id is dropped, not treated as a refusal, which
+    // matches how the tag path handles a value the region no longer knows.
+    const links = await sql<{ first_ascensionist_fk: number }[]>`
+      select j.first_ascensionist_fk
+      from public.routes_to_first_ascensionists j
+      join public.routes r on r.id = j.route_fk
+      where r.name = '__restore_fa_route__'`
+
+    // Nothing pointing into the other region. The junction's WITH CHECK only tests its own
+    // region_fk and the foreign key's referential check does not run under RLS, so the database
+    // would have stored this link without complaint.
+    expect(links.map((link) => link.first_ascensionist_fk)).toEqual([own])
   })
 })
