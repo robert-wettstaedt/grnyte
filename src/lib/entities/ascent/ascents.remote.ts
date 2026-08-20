@@ -1,11 +1,10 @@
-import { command, getRequestEvent } from '$app/server'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import { command } from '$app/server'
 import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
 import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
-import { authedForm } from '$lib/remote/authed.server'
+import { authedForm, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
-import { error, invalid } from '@sveltejs/kit'
+import { invalid } from '@sveltejs/kit'
 import { and, eq, isNull } from 'drizzle-orm'
 import z from 'zod'
 import { canHardDelete, createUpdateEvent, insertEvent } from '../event/event.server'
@@ -191,11 +190,7 @@ export const updateAscent = authedForm(
 export const deleteAscent = command(
   z.object({ id: z.number() }),
   async ({ id }): Promise<MutationResult<{ routeFk: number }>> => {
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, user, userRegions } = await authedRls()
 
     const { climberFk, regionFk, routeFk, storage } = await rls(async (db) => {
       const ascent = await requireRow(

@@ -73,14 +73,29 @@ export function authedQuery<S extends StandardSchemaV1, O>(
  * privileged connection while reading through RLS, or that has to run outside the transaction
  * rather than after it (a push send, an irreversible storage teardown). They still want the same
  * gate and the same client, and hand-rolling both per command is how the two drift apart.
+ *
+ * Returns everything {@link Context} carries, because every caller needs the same values for the
+ * permission check that follows and reading them off `locals` separately is half the prelude back.
+ * Moving a handler between the two shapes is then a change of wrapper rather than of what it can
+ * see.
+ *
+ * Plus the Supabase client, which `Context` has no reason to expose: the work that cannot sit in a
+ * transaction is largely storage work, so the handlers that need this seam are exactly the ones
+ * that also need the bucket. One read of `locals`, or the null check goes back to being per-caller.
  */
-export async function authedRls(): Promise<{ rls: Rls; user: NonNullable<App.Locals['user']> }> {
-  const { supabase, user } = getRequestEvent().locals
+export async function authedRls(): Promise<{
+  rls: Rls
+  supabase: App.Locals['supabase']
+  user: NonNullable<App.Locals['user']>
+  userPermissions: App.Locals['userPermissions']
+  userRegions: App.Locals['userRegions']
+}> {
+  const { supabase, user, userPermissions, userRegions } = getRequestEvent().locals
   if (user == null) {
     error(401, 'Not authenticated')
   }
 
-  return { rls: await createDrizzleSupabaseClient(supabase), user }
+  return { rls: await createDrizzleSupabaseClient(supabase), supabase, user, userPermissions, userRegions }
 }
 
 /** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the

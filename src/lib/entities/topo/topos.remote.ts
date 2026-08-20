@@ -1,9 +1,8 @@
-import { command, getRequestEvent } from '$app/server'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
 import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
-import { authedCommand } from '$lib/remote/authed.server'
+import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
@@ -150,11 +149,7 @@ export const createTopo = authedCommand(
 export const deleteTopo = command(
   z.object({ id: z.number() }),
   async ({ id }): Promise<MutationResult<{ id: number }>> => {
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
@@ -197,11 +192,7 @@ export const deleteTopo = command(
 export const replaceTopoImage = command(
   z.object({ fileId: z.string().min(1), topoId: z.number() }),
   async ({ fileId, topoId }): Promise<MutationResult<{ id: number }>> => {
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
