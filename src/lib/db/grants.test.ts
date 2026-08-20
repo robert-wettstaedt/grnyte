@@ -15,29 +15,54 @@
  * `service_role` keeps Supabase's defaults on purpose (see `setup-table-permissions.ts`), so it is
  * deliberately not asserted here rather than missed.
  */
-import { getTableName, isTable } from 'drizzle-orm'
-import { getTableConfig } from 'drizzle-orm/pg-core'
 import { describe, expect, it } from 'vitest'
-import * as schema from './schema'
 import { reachable, sql } from './testDb'
 
 /** Every write verb, not only the three DML ones: TRUNCATE is destructive and RLS does not gate it
  *  at all, so a role holding it can empty a table no policy would let it delete a row from. */
 const WRITE = ['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']
 
-/** The tables whose writes a policy decides, which are the only ones the writer role may hold. */
-const policyWritable = new Set(
-  Object.values(schema)
-    .filter((item) => isTable(item))
-    .filter((table) =>
-      getTableConfig(table).policies.some((policy) => ['all', 'delete', 'insert', 'update'].includes(policy.for ?? '')),
-    )
-    .map((table) => getTableName(table)),
-)
-
-/** Written only by the privileged handle, so no grant follows from their policies.
- *  `notifications` keeps one column: the reader marking their own row read. */
-const NOT_THE_WRITER_ROLE = new Set(['notifications', 'user_roles'])
+/**
+ * Every table the writer role may write, written out.
+ *
+ * Deliberately a list and not the derivation. `setup-table-permissions.ts` computes this set from
+ * "tables carrying a write policy"; an earlier version of this test computed it the same way from
+ * the same schema, which meant it could only ever prove the script had RUN. A wrong derivation, or
+ * a drizzle change to what `policies` reports, moved both sides together and stayed green.
+ *
+ * So the cost is deliberate: add a write policy to a table and this test goes red until somebody
+ * writes the name here. That is the review step. `notifications` is absent because its only write
+ * is one column (asserted separately below) and `user_roles` because the auth hook owns it.
+ */
+const WRITER_TABLES = [
+  'activities',
+  'areas',
+  'ascents',
+  'blocks',
+  'bunny_streams',
+  'changes',
+  'events',
+  'favorites',
+  'files',
+  'first_ascensionists',
+  'geolocations',
+  'push_subscriptions',
+  'reactions',
+  'region_invitations',
+  'region_members',
+  'regions',
+  'route_external_resource_27crags',
+  'route_external_resource_8a',
+  'route_external_resource_the_crag',
+  'route_external_resources',
+  'routes',
+  'routes_to_first_ascensionists',
+  'routes_to_tags',
+  'topo_routes',
+  'topos',
+  'user_settings',
+  'users',
+]
 
 interface Grant {
   privilege: string
@@ -74,12 +99,11 @@ describe.skipIf(!reachable)('table grants', () => {
     expect(new Set(usage.map((grant) => grant.grantee))).toEqual(new Set(['app_writer']))
   })
 
-  it('gives the writer role exactly the tables a policy decides', async () => {
+  it('gives the writer role exactly the tables it is meant to have', async () => {
     const held = await grantsFor('app_writer')
     const written = new Set(held.filter((grant) => WRITE.includes(grant.privilege)).map((grant) => grant.table))
 
-    const expected = policyWritable.difference(NOT_THE_WRITER_ROLE)
-    expect([...written].sort()).toEqual([...expected].sort())
+    expect([...written].sort()).toEqual([...WRITER_TABLES].sort())
   })
 
   it('narrows notifications to the column its reader owns', async () => {
