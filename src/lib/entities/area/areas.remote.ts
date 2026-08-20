@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
-import { boundedDegrees, coordinate, formError, stringToInt } from '$lib/forms/schemas'
+import { boundedDegrees, coordinate, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
@@ -24,7 +24,11 @@ const areaActionSchema = z.object({
     .string({ error: formError('form_required') })
     .trim()
     .min(3, { error: formError('form_charsMin', { count: 3 }) }),
-  parentFk: stringToInt.optional(),
+  // `stringToIntOptional`, not `stringToInt.optional()`: the latter admits `undefined` and nothing
+  // else, while a top-level area's hidden `parentFk` submits an EMPTY STRING. That was refused with
+  // `form_numInvalid` on a field the edit form does not render, so Save did nothing and said
+  // nothing. "No parent" and "field absent" are the same thing here, and both spell '' in a form.
+  parentFk: stringToIntOptional,
   regionFk: stringToInt,
 })
 

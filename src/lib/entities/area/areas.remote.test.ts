@@ -23,6 +23,7 @@ let maintainer: SeedUser
 let homeRegionId = 0
 let otherRegionId = 0
 let areaId = 0
+let topLevelAreaId = 0
 
 beforeAll(async () => {
   if (!reachable) return
@@ -55,6 +56,13 @@ beforeAll(async () => {
     values ('__areas_remote_area__', 'area', ${homeRegionId}, ${maintainer.userId})
     returning id`
   areaId = area.id
+
+  // No `parent_fk`, which is the whole point of the top-level case below.
+  const [topLevel] = await sql<{ id: number }[]>`
+    insert into public.areas (name, type, region_fk, created_by)
+    values ('__areas_remote_toplevel__', 'area', ${homeRegionId}, ${maintainer.userId})
+    returning id`
+  topLevelAreaId = topLevel.id
 })
 
 afterAll(async () => {
@@ -62,7 +70,10 @@ afterAll(async () => {
     // `events` first: `updateArea` logs one per edit and it carries a region FK, so the region
     // delete below raises 23503 otherwise. Its `changes` and `reactions` cascade off it.
     await sql`delete from public.events where region_fk in (${homeRegionId}, ${otherRegionId})`
-    await sql`delete from public.areas where id = ${areaId}`
+    // By region, not by id. Naming each area meant a fixture added later was left behind, and the
+    // region delete below then failed on its foreign key: the suite went red on teardown and left
+    // rows in a database every other suite reads.
+    await sql`delete from public.areas where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.region_members where region_fk in (${homeRegionId}, ${otherRegionId})`
     await sql`delete from public.regions where id in (${homeRegionId}, ${otherRegionId})`
   }
@@ -110,5 +121,26 @@ describe.skipIf(!reachable)('updateArea', () => {
     const [row] = await sql<{ regionFk: number }[]>`
       select region_fk as "regionFk" from public.areas where id = ${areaId}`
     expect(row.regionFk).toBe(homeRegionId)
+  })
+
+  it('renames a TOP-LEVEL area, whose parentFk submits as an empty string', async () => {
+    // What a real form sends for an area with no parent. The edit page prefills `parentFk` from
+    // `data.areas.at(-1)?.id`, which is undefined at the top level, and the field then submits ''.
+    //
+    // `stringToInt.optional()` admits undefined and nothing else, so '' was rejected with
+    // `form_numInvalid` on a field the edit form does not render - the user pressed Save, the page
+    // did not move, and nothing on screen said why. A silent refusal is worse than a loud one, and
+    // no gate test can catch it: the handler was never reached.
+    await submit({
+      description: '',
+      id: String(topLevelAreaId),
+      name: '__areas_remote_toplevel_renamed__',
+      parentFk: '',
+      regionFk: String(homeRegionId),
+    })
+
+    const [row] = await sql<{ name: string }[]>`
+      select name from public.areas where id = ${topLevelAreaId}`
+    expect(row.name).toBe('__areas_remote_toplevel_renamed__')
   })
 })
