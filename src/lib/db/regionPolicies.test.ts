@@ -6,7 +6,7 @@
  * Fixtures are created over the superuser connection, which bypasses RLS. Every
  * assertion then runs inside a transaction that is always rolled back and that
  * impersonates a user exactly the way `createDrizzle` does: set
- * `request.jwt.claims`, then `set local role authenticated`. That is all
+ * `request.jwt.claims`, then `set local role app_writer`. That is all
  * `authorize()` and `authorize_in_region()` read, so no signed JWT is needed.
  *
  * The four fixture users are chosen so each permission path is isolated:
@@ -48,7 +48,14 @@ let otherInvitationId = 0
 /** Rolls back whatever `fn` did, so tests never depend on each other's writes. */
 const ROLLBACK = Symbol('rollback')
 
-/** Runs `fn` as `who`, impersonated the way `createDrizzle` does. Always rolls back. */
+/**
+ * Runs `fn` as `who`, impersonated the way `createDrizzle` does. Always rolls back.
+ *
+ * `app_writer`, not `authenticated`: the claims still say `authenticated` (that is what the token
+ * carries and what `authorize()` reads), but the role the app switches to is the writer one. A test
+ * running as `authenticated` would be refused by the table grant before any policy was consulted,
+ * so it could not tell a working policy from a broken one.
+ */
 async function as<T>(who: Who, fn: (tx: postgres.TransactionSql) => Promise<T>): Promise<T> {
   const { authId, email } = users[who]
   const claims = JSON.stringify({ email, role: 'authenticated', sub: authId })
@@ -57,7 +64,7 @@ async function as<T>(who: Who, fn: (tx: postgres.TransactionSql) => Promise<T>):
   try {
     await sql.begin(async (tx) => {
       await tx`select set_config('request.jwt.claims', ${claims}, true)`
-      await tx.unsafe('set local role authenticated')
+      await tx.unsafe('set local role app_writer')
       result = await fn(tx)
       throw ROLLBACK
     })

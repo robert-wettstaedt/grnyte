@@ -191,3 +191,7 @@ emails
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Agent scratch. AGENTS.md says these are never repo documentation: each is deleted when its feature
+# lands, so anything committed that referenced one would rot. Ignored rather than remembered.
+*-PLAN.md

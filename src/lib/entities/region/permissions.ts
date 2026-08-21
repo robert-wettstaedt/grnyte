@@ -1,4 +1,4 @@
-import { checkRegionPermission, REGION_PERMISSION_ADMIN } from '$lib/auth'
+import { checkRegionPermission, REGION_PERMISSION_ADMIN, REGION_PERMISSION_READ } from '$lib/auth'
 import type { UserRegion } from './dto'
 
 /**
@@ -17,6 +17,19 @@ import type { UserRegion } from './dto'
  */
 export function canEditRegion(userRegions: UserRegion[], regionFk: number): boolean {
   return checkRegionPermission(userRegions, [REGION_PERMISSION_ADMIN], regionFk)
+}
+
+/**
+ * Whether the signed-in user is a reading member of a region.
+ *
+ * The row form of {@link checkRegionPermission}, for the handlers that are handed one `regionFk`
+ * and have to decide about it. Separate from {@link canEditRegion} because a region has reads that
+ * every member is entitled to even where only admins may act:
+ * `listRegionInvitations` is the example, since a pending invitation holds a seat and the seat
+ * counter is shown to everyone.
+ */
+export function canReadRegion(userRegions: UserRegion[], regionFk: number): boolean {
+  return checkRegionPermission(userRegions, [REGION_PERMISSION_READ], regionFk)
 }
 
 /**

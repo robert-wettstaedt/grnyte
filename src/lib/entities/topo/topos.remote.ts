@@ -1,9 +1,8 @@
-import { command, getRequestEvent } from '$app/server'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
+import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
-import { blocks, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
+import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
-import { authedCommand } from '$lib/remote/authed.server'
+import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
@@ -51,6 +50,53 @@ const insertTopoEvent = (
 }
 
 /**
+ * The image a topo may be pointed at: this block's, and not already some other topo's.
+ *
+ * Both halves matter because `deleteTopo` and `replaceTopoImage` DESTROY the image they let go of.
+ * The block test is what stops an editor naming any file id they can read and having it deleted for
+ * them. The second is what stops two topos on one block sharing a row: pointing topo A at topo B's
+ * image passes the block test, and the delete that follows either takes B's photo with it or fails
+ * outright, because `topos_file_fk_files_id_fk` is NO ACTION and the row is still referenced.
+ *
+ * A 404 for the wrong block, so the id space stays opaque, and a 409 for a claimed one, which is no
+ * secret: the caller can already see every image this block has. Neither is reachable from the
+ * editor, which uploads a fresh file for every call.
+ *
+ * `blockFk` is nullable on both sides, and a null one refuses rather than matching: a topo with no
+ * block has no images of its own, and `null !== null` is false, so comparing the two directly would
+ * have let any unattached file through.
+ */
+async function requireFreeBlockImage(
+  db: PostgresJsDatabase<typeof schema>,
+  fileId: string,
+  blockFk: null | number,
+): Promise<void> {
+  const file = await db.query.files.findFirst({ columns: { blockFk: true }, where: eq(files.id, fileId) })
+  if (blockFk == null || file?.blockFk !== blockFk) {
+    error(404, 'File not found')
+  }
+
+  const claimed = await db.query.topos.findFirst({ columns: { id: true }, where: eq(topos.fileFk, fileId) })
+  if (claimed != null) {
+    error(409, 'That image is already a topo')
+  }
+}
+
+/**
+ * The image a topo owns, and may therefore have deleted with it: only ever its own block's.
+ *
+ * Written once because both callers need exactly this and the reasoning is long. Rows written
+ * before {@link requireFreeBlockImage} existed may still point elsewhere, and these are the
+ * statements that remove bytes. `canDeleteFile` would be the wrong gate: it wants region delete or
+ * ownership of the ascent, while managing a block's topo photos is an edit, so requiring it would
+ * refuse the ordinary swap `replaceTopoImage` exists for.
+ */
+const ownBlockImage = <T extends { blockFk: null | number }>(
+  blockFk: null | number,
+  file: null | T | undefined,
+): T[] => (file != null && file.blockFk === blockFk ? [file] : [])
+
+/**
  * Create a topo from an already-finalized image. The image is uploaded via the shared flow with
  * `entityType: 'block'` (topo images are block-attached `files` rows stored under `/topos`), then
  * this inserts the `topos` row pointing at it, appended after the block's existing photos.
@@ -68,6 +114,12 @@ export const createTopo = authedCommand(
     if (!canEditTopo(userRegions, block)) {
       error(403, 'Not allowed to edit topos here')
     }
+
+    // `canEditTopo` authorized the block; `fileId` was a second client value nothing looked at, so
+    // an editor could point a topo at any file id they could read, and `deleteTopo` then destroys
+    // `topo.file` and its bytes without ever consulting `canDeleteFile`. That is how a caller
+    // holding only region edit deletes somebody else's ascent photo or route video.
+    await requireFreeBlockImage(db, fileId, blockId)
 
     const existing = await db.query.topos.findMany({ columns: { order: true }, where: eq(topos.blockFk, blockId) })
     const nextOrder = existing.reduce((max, topo) => Math.max(max, topo.order ?? 0), 0) + 1
@@ -97,16 +149,14 @@ export const createTopo = authedCommand(
 export const deleteTopo = command(
   z.object({ id: z.number() }),
   async ({ id }): Promise<MutationResult<{ id: number }>> => {
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, id),
-        with: { file: { columns: { bunnyStreamFk: true, id: true, path: true } } },
+        // `blockFk` on the file: the guards below refuse to point a topo at, or destroy, a file that
+        // is not this block's.
+        with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {
         error(404, 'Topo not found')
@@ -118,7 +168,7 @@ export const deleteTopo = command(
       // topo_routes → topos → files: FK order matters (routes reference the topo, the topo the file).
       await db.delete(topoRoutes).where(eq(topoRoutes.topoFk, id))
       await db.delete(topos).where(eq(topos.id, id))
-      const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
+      const targets = await deleteFileRows(db, ownBlockImage(topo.blockFk, topo.file))
 
       await insertTopoEvent(db, user, 'photoRemoved', {
         blockId: topo.blockFk,
@@ -142,16 +192,14 @@ export const deleteTopo = command(
 export const replaceTopoImage = command(
   z.object({ fileId: z.string().min(1), topoId: z.number() }),
   async ({ fileId, topoId }): Promise<MutationResult<{ id: number }>> => {
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, topoId),
-        with: { file: { columns: { bunnyStreamFk: true, id: true, path: true } } },
+        // `blockFk` on the file: the guards below refuse to point a topo at, or destroy, a file that
+        // is not this block's.
+        with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {
         error(404, 'Topo not found')
@@ -160,8 +208,21 @@ export const replaceTopoImage = command(
         error(403, 'Not allowed to edit topos here')
       }
 
+      // Nothing to swap, and the one call that would destroy the image the topo still points at:
+      // the update below is a no-op against the same id, and the delete then hits a NO ACTION
+      // foreign key. Answered as success because it is one, in the only sense the caller meant.
+      if (fileId === topo.fileFk) {
+        return []
+      }
+
+      // Same rule as `createTopo`: the incoming image must belong to this topo's block and to no
+      // other topo. Without the first the payload's `fileId` went straight into `fileFk` while the
+      // line below hard deletes whatever was there, so two calls turn region edit into "delete any
+      // file I can read".
+      await requireFreeBlockImage(db, fileId, topo.blockFk)
+
       await db.update(topos).set({ fileFk: fileId }).where(eq(topos.id, topoId))
-      const targets = topo.file == null ? [] : await deleteFileRows(db, [topo.file])
+      const targets = await deleteFileRows(db, ownBlockImage(topo.blockFk, topo.file))
 
       await insertTopoEvent(db, user, 'photoReplaced', {
         blockId: topo.blockFk,

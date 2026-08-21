@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
-import { areas, areaTypeEnum, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
-import { coordinate, formError, stringToInt } from '$lib/forms/schemas'
+import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
+import { boundedDegrees, coordinate, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
@@ -24,7 +24,11 @@ const areaActionSchema = z.object({
     .string({ error: formError('form_required') })
     .trim()
     .min(3, { error: formError('form_charsMin', { count: 3 }) }),
-  parentFk: stringToInt.optional(),
+  // `stringToIntOptional`, not `stringToInt.optional()`: the latter admits `undefined` and nothing
+  // else, while a top-level area's hidden `parentFk` submits an EMPTY STRING. That was refused with
+  // `form_numInvalid` on a field the edit form does not render, so Save did nothing and said
+  // nothing. "No parent" and "field absent" are the same thing here, and both spell '' in a form.
+  parentFk: stringToIntOptional,
   regionFk: stringToInt,
 })
 
@@ -62,9 +66,21 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
     invalid(issue.name(formError('areas_nameExists', { name: existingAreasResult[0].name })))
   }
 
+  // `regionFk` and `parentFk` are client-supplied here on purpose: on a create there is no stored
+  // row to disagree with, `canAddArea` gates on exactly these values, and `loadParentArea` has
+  // already refused a cross-region parent.
   const [createdArea] = await db
     .insert(areas)
-    .values({ ...value, createdBy: user.id, id: undefined, type: null })
+    .values({
+      createdBy: user.id,
+      description: value.description,
+      name: value.name,
+      parentFk: value.parentFk,
+      regionFk: value.regionFk,
+      // Derived, never submitted: `refreshAreaType` owns this column (a block makes a crag, a
+      // sub-area makes an area). A new area holds neither, so it starts untyped.
+      type: null,
+    })
     .returning()
 
   if (value.parentFk != null) {
@@ -109,10 +125,9 @@ export const updateArea = authedForm(
       invalid(issue.name(formError('areas_nameExists', { name: existingAreasResult[0].name })))
     }
 
-    await db
-      .update(areas)
-      .set({ ...value, id: area.id })
-      .where(eq(areas.id, area.id))
+    // Explicit columns, not a spread: `areaActionSchema` is shared with `createArea` and also carries
+    // `regionFk` and `parentFk`. See `no-drizzle-mass-assignment` in eslint.config.js.
+    await db.update(areas).set({ description: value.description, name: value.name }).where(eq(areas.id, area.id))
 
     await createUpdateEvent(db, {
       actorFk: user.id,
@@ -139,12 +154,18 @@ export const updateArea = authedForm(
 /** Snapshot {@link deleteArea} returns so {@link restoreArea} can undo either delete path. */
 type DeleteAreaSnapshot =
   | {
-      area: Pick<Area, 'description' | 'geoPaths' | 'name' | 'parentFk' | 'regionFk' | 'type' | 'walkingPaths'>
+      // No `type`: it is derived state (`refreshAreaType`), so the restore recomputes it rather than
+      // trusting a value that has been through the client. A hard delete only ever runs on an area
+      // with no blocks and no sub-areas, which is exactly the state that derives to `null` anyway.
+      area: Pick<Area, 'description' | 'geoPaths' | 'name' | 'parentFk' | 'regionFk' | 'walkingPaths'>
       areaId: number
       mode: 'hard'
       parking: { lat: number; long: number }[]
     }
-  | { areaId: number; deletedAt: Date; mode: 'soft' }
+  // No `deletedAt`. The soft delete's timestamp used to travel out to the client and come back as
+  // the only thing `softRestoreArea` matched on, which let a caller name a moment in time instead
+  // of a subtree. It is read off the stored row now and never leaves the server.
+  | { areaId: number; mode: 'soft' }
 
 /** Collect `rootId` and every area transitively nested beneath it (via `parentFk`).
  *  Cycle-safe; a level-by-level loop is plenty for the shallow area trees we have. */
@@ -175,7 +196,6 @@ async function hardDeleteArea(db: Context['db'], area: Area): Promise<DeleteArea
       name: area.name,
       parentFk: area.parentFk,
       regionFk: area.regionFk,
-      type: area.type,
       walkingPaths: area.walkingPaths,
     },
     areaId: area.id,
@@ -213,7 +233,7 @@ async function softDeleteArea(
       .where(and(inArray(routes.blockFk, blockIds), isNull(routes.deletedAt)))
   }
 
-  return { areaId: area.id, deletedAt, mode: 'soft' }
+  return { areaId: area.id, mode: 'soft' }
 }
 
 /** Delete an area. A leaf area (no sub-areas, blocks or files) is hard-deleted; anything
@@ -309,14 +329,18 @@ const restoreAreaSchema = z.discriminatedUnion('mode', [
       name: z.string(),
       parentFk: z.number().nullable().optional(),
       regionFk: z.number(),
-      type: z.enum(areaTypeEnum).nullable().optional(),
       walkingPaths: z.array(z.string()).nullable().optional(),
     }),
     areaId: z.number(),
     mode: z.literal('hard'),
-    parking: z.array(z.object({ lat: z.number(), long: z.number() })),
+    // Bounded like every other coordinate this app accepts (`coordinate(90)` on `addParking`).
+    // `geolocations` has no CHECK constraint, so an unbounded snapshot was the one door that could
+    // store a parking at lat 999 and drag every map that fits its markers along with it.
+    parking: z.array(z.object({ lat: boundedDegrees(90), long: boundedDegrees(180) })),
   }),
-  z.object({ areaId: z.number(), deletedAt: z.coerce.date(), mode: z.literal('soft') }),
+  // No `deletedAt` to accept: the restore reads it off the stored area. It was an input field that
+  // decided which rows three UPDATEs touched, and `deleteArea` told the client what to put in it.
+  z.object({ areaId: z.number(), mode: z.literal('soft') }),
 ])
 
 /** What {@link restoreArea} receives — the parsed snapshot, whose optional/nullable area fields
@@ -330,9 +354,22 @@ async function hardRestoreArea(
   snapshot: Extract<RestoreAreaSnapshot, { mode: 'hard' }>,
   createdBy: number,
 ): Promise<Area> {
+  // The snapshot is client-supplied, so `createdBy` is the caller and `type` is forced to null
+  // rather than trusted: the gate asks `canAddArea` with `type: null`, which refuses 'crag', so a
+  // snapshot naming 'crag' used to mint through undo a row that create would have rejected and
+  // `canAddParking` accepts. `refreshAreaType` owns that column anyway.
   const [created] = await db
     .insert(areas)
-    .values({ ...snapshot.area, createdBy })
+    .values({
+      createdBy,
+      description: snapshot.area.description,
+      geoPaths: snapshot.area.geoPaths,
+      name: snapshot.area.name,
+      parentFk: snapshot.area.parentFk,
+      regionFk: snapshot.area.regionFk,
+      type: null,
+      walkingPaths: snapshot.area.walkingPaths,
+    })
     .returning()
 
   if (snapshot.parking.length > 0) {
@@ -344,15 +381,42 @@ async function hardRestoreArea(
   return created
 }
 
-/** Clear the `deletedAt` the soft delete stamped across the subtree (matched by the shared
- *  timestamp), un-hiding the area, its descendant areas, blocks and routes together. */
-async function softRestoreArea(
-  db: Context['db'],
-  snapshot: Extract<RestoreAreaSnapshot, { mode: 'soft' }>,
-): Promise<void> {
-  await db.update(areas).set({ deletedAt: null }).where(eq(areas.deletedAt, snapshot.deletedAt))
-  await db.update(blocks).set({ deletedAt: null }).where(eq(blocks.deletedAt, snapshot.deletedAt))
-  await db.update(routes).set({ deletedAt: null }).where(eq(routes.deletedAt, snapshot.deletedAt))
+/** Clear the `deletedAt` the soft delete stamped across the subtree, un-hiding the area, its
+ *  descendant areas, blocks and routes together.
+ *
+ *  Scoped to the subtree AND to the timestamp, and it takes the stored area rather than the
+ *  snapshot. The three statements used to match on `deletedAt = <client-supplied timestamp>` and
+ *  nothing else: `deleted_at` is not unique, carries no region, and `deleteArea` returned it to the
+ *  client, so the WHERE described a moment in time. Any other region's subtree stamped in the same
+ *  millisecond came back with this one, and a caller holding an old timestamp could post it to
+ *  revive whatever had been deleted then, anywhere, having been authorized for one area. The
+ *  permission check upstream reads `snapshot.areaId`, which the old statements never mentioned.
+ *
+ *  The timestamp still earns its place beside the ids: it is what keeps a descendant that was
+ *  deleted independently last month from being resurrected by this undo. */
+async function softRestoreArea(db: Context['db'], area: Area): Promise<void> {
+  if (area.deletedAt == null) {
+    return
+  }
+
+  const areaIds = await collectAreaSubtreeIds(db, area.id)
+  const blockRows = await db.query.blocks.findMany({ columns: { id: true }, where: inArray(blocks.areaFk, areaIds) })
+  const blockIds = blockRows.map((row) => row.id)
+
+  await db
+    .update(areas)
+    .set({ deletedAt: null })
+    .where(and(inArray(areas.id, areaIds), eq(areas.deletedAt, area.deletedAt)))
+  if (blockIds.length > 0) {
+    await db
+      .update(blocks)
+      .set({ deletedAt: null })
+      .where(and(inArray(blocks.id, blockIds), eq(blocks.deletedAt, area.deletedAt)))
+    await db
+      .update(routes)
+      .set({ deletedAt: null })
+      .where(and(inArray(routes.blockFk, blockIds), eq(routes.deletedAt, area.deletedAt)))
+  }
 }
 
 /** Undo a {@link deleteArea}: recreate the hard-deleted area (with its parking), or clear
@@ -399,7 +463,20 @@ export const restoreArea = authedCommand(restoreAreaSchema, async (snapshot, { d
     error(403, formError('form_noPermission'))
   }
 
-  await softRestoreArea(db, snapshot)
+  // Nothing to undo. A replayed Undo, a double-tapped snackbar or a stale snapshot all arrive here
+  // on a live area, and the rest of this handler would then erase a `deleted` card for something
+  // standing right there. The guard belongs at the caller rather than inside `softRestoreArea`, so
+  // the whole undo is a no-op instead of half of one.
+  if (area.deletedAt == null) {
+    return {
+      data: { areaId: snapshot.areaId },
+      redirectTo: resolve('/(app)/(shell)/(explore)/(map)/areas/[id]', { id: String(snapshot.areaId) }),
+    }
+  }
+
+  // The stored area, not the snapshot: `canDeleteArea` above authorized THIS row, so this is the
+  // row the restore has to be scoped to.
+  await softRestoreArea(db, area)
 
   if (area.parentFk != null) await refreshAreaType(db, area.parentFk)
   // The delete event and nothing else: the area's own create and every edit ever made to it
@@ -525,7 +602,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
 
 /** Undo a {@link deleteParking}: recreate the parking from the snapshot the delete returned. */
 export const restoreParking = authedCommand(
-  z.object({ areaId: z.number(), lat: z.number(), long: z.number(), path: z.string().optional() }),
+  z.object({ areaId: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180), path: z.string().optional() }),
   async ({ areaId, lat, long, path }, { db, userRegions }) => {
     const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 

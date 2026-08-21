@@ -8,7 +8,7 @@
 
   interface Props {
     class?: string
-    entityId: string
+    entityId: number
     entityType: 'area' | 'block' | 'route'
   }
 
@@ -37,7 +37,10 @@
     const next = !saved
     savedOverride = next
     try {
-      await toggleFavorite({ entityId, entityType })
+      // The handler's answer, not the request's. The flip above is optimistic, and this is the
+      // state the row is actually in once the write lands.
+      const result = await toggleFavorite({ entityId, entityType })
+      savedOverride = result?.data ?? next
     } catch {
       savedOverride = !next
     }

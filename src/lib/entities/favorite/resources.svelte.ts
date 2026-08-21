@@ -7,7 +7,7 @@ import { toUserFavorite, toUserFavoriteEntity } from './mapper'
 export function isFavorited(
   userId: () => number | undefined,
   entityType: () => 'area' | 'block' | 'route',
-  entityId: () => string,
+  entityId: () => number,
 ) {
   return createResource(
     // ponytail: -1 can't be a real user id; only reached while disabled (userId null)
@@ -21,7 +21,7 @@ export function isFavorited(
 export function otherSaveCount(
   userId: () => number | undefined,
   entityType: () => 'area' | 'block' | 'route',
-  entityId: () => string,
+  entityId: () => number,
 ) {
   return createResource(
     () => queries.listEntityFavorites({ entityId: entityId(), entityType: entityType() }),
@@ -37,7 +37,7 @@ export function userAllFavoriteList(userId: () => number | undefined, enabled: (
   return createResource(
     // ponytail: -1 can't be a real user id; only reached while disabled (userId null)
     () => queries.listUserAllFavorites({ userId: userId() ?? -1 }),
-    (rows) => rows.map(toUserFavoriteEntity),
+    (rows) => rows.map(toUserFavoriteEntity).filter((favorite) => favorite != null),
     { enabled: () => userId() != null && enabled() },
   )
 }
@@ -51,7 +51,7 @@ export function userFavoriteList(userId: () => number | undefined, enabled: () =
   return createResource(
     // ponytail: -1 can't be a real user id; only reached while disabled (userId null)
     () => queries.listUserFavorites({ userId: userId() ?? -1 }),
-    (rows) => rows.map(toUserFavorite),
+    (rows) => rows.map(toUserFavorite).filter((favorite) => favorite != null),
     { enabled: () => userId() != null && enabled() },
   )
 }

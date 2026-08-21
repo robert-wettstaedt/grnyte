@@ -154,21 +154,6 @@ function directedWanted(row: {
   return row.notifyDirected !== false
 }
 
-/**
- * Where a directed push opens.
- *
- * A literal path rather than SvelteKit's `resolve`: this runs in a task route with no page
- * context, and the service worker hands whatever is here to `clients.openWindow`. It must stay in
- * step with `/(app)/(shell)/events/[id]`, which is one route and has no other callers server-side.
- */
-function pathnameFor(row: { eventFk: null | number; reactionFk: null | number }): string {
-  if (row.eventFk == null) {
-    return '/notifications'
-  }
-
-  return `/events/${row.eventFk}${row.reactionFk == null ? '' : `?comment=${row.reactionFk}`}`
-}
-
 /** Usernames by id, for the digest headline's actor slot. */
 async function namesOf(userFks: readonly number[]): Promise<Map<number, string>> {
   const ids = [...new Set(userFks)]
@@ -182,6 +167,21 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
   })
 
   return new Map(rows.map((row) => [row.id, row.username]))
+}
+
+/**
+ * Where a directed push opens.
+ *
+ * A literal path rather than SvelteKit's `resolve`: this runs in a task route with no page
+ * context, and the service worker hands whatever is here to `clients.openWindow`. It must stay in
+ * step with `/(app)/(shell)/events/[id]`, which is one route and has no other callers server-side.
+ */
+function pathnameFor(row: { eventFk: null | number; reactionFk: null | number }): string {
+  if (row.eventFk == null) {
+    return '/notifications'
+  }
+
+  return `/events/${row.eventFk}${row.reactionFk == null ? '' : `?comment=${row.reactionFk}`}`
 }
 
 /**

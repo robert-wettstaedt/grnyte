@@ -2,10 +2,12 @@ import { command } from '$app/server'
 import { db as baseDb } from '$lib/db/db.server'
 import { events, notifications, pushSubscriptions, userSettings } from '$lib/db/schema'
 import { writeUserSettings } from '$lib/entities/user/settings.server'
+import { formError } from '$lib/forms/schemas'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
+import { error } from '@sveltejs/kit'
 import { and, eq, isNull, max, ne, sql } from 'drizzle-orm'
 import z from 'zod'
 import { DIGEST_TAG } from './push'
@@ -101,15 +103,46 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
       ),
     )
 
+  // The ownership check the upsert below does NOT do. `ON CONFLICT (endpoint) DO UPDATE` sets
+  // `user_fk` to the caller, and an endpoint is a string a request can simply state, so once the
+  // own-row rule lives here rather than in a policy a caller who names somebody else's endpoint
+  // takes their device over: that person silently stops receiving their own pushes, and their
+  // browser starts receiving payloads it cannot decrypt.
+  //
+  // AFTER the pre-delete, never before. The legitimate case is one browser signing in as somebody
+  // else, and until that delete runs the endpoint is still owned by the previous account, so a
+  // check ordered first would 403 exactly the re-subscribe the pre-delete exists to allow. What
+  // survives the delete is an endpoint whose keys the caller could not present, which is a caller
+  // naming a device rather than that device coming back.
+  //
+  // Privileged, because the row belongs to another account: read through `rls` it comes back null
+  // and this waves the takeover through, which is the same reason the pre-delete is privileged.
+  const endpointOwner = await baseDb.query.pushSubscriptions.findFirst({
+    columns: { userFk: true },
+    where: eq(pushSubscriptions.endpoint, subscription.endpoint),
+  })
+
+  if (endpointOwner != null && endpointOwner.userFk !== user.id) {
+    error(403, formError('notifications_pushDeviceTaken'))
+  }
+
   await rls(async (db) => {
     const existing = await db.query.pushSubscriptions.findFirst({
       columns: { id: true },
       where: eq(pushSubscriptions.userFk, user.id),
     })
 
-    await db
+    // The two owner columns come from the session, never the payload.
+    const [written] = await db
       .insert(pushSubscriptions)
-      .values({ ...subscription, authUserFk: user.authUserFk, userFk: user.id })
+      .values({
+        auth: subscription.auth,
+        authUserFk: user.authUserFk,
+        endpoint: subscription.endpoint,
+        expirationTime: subscription.expirationTime,
+        p256dh: subscription.p256dh,
+        userFk: user.id,
+      })
       .onConflictDoUpdate({
         set: {
           auth: subscription.auth,
@@ -118,8 +151,26 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
           p256dh: subscription.p256dh,
           userFk: user.id,
         },
+        // The ownership rule again, this time ATOMIC with the write. The check above reads on a
+        // different connection outside this transaction, so two concurrent subscribes for the same
+        // endpoint can both see it unowned and the loser's `DO UPDATE` would take the row anyway.
+        // With this predicate the conflict path only fires on a row that is already the caller's,
+        // and a racing takeover degrades to a no-op instead. The check above stays because it is
+        // what turns that no-op into a 403 the caller can read.
+        // `setWhere`, not `targetWhere`: the latter is the partial-index predicate, this is the
+        // condition on the EXISTING row (`push_subscriptions.user_fk = <caller>`).
+        setWhere: eq(pushSubscriptions.userFk, user.id),
         target: pushSubscriptions.endpoint,
       })
+      .returning({ id: pushSubscriptions.id })
+
+    // Nothing back means `setWhere` suppressed the conflict path and no row was written: this call
+    // lost the race the read above cannot see, and the endpoint now belongs to somebody else. Same
+    // answer that read gives, rather than falling through to report a subscription that does not
+    // exist and stamp watermarks for it.
+    if (written == null) {
+      error(403, formError('notifications_pushDeviceTaken'))
+    }
 
     if (existing == null) {
       const [{ newest }] = await db.select({ newest: max(events.createdAt) }).from(events)

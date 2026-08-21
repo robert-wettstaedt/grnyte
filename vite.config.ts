@@ -97,11 +97,50 @@ export default defineConfig({
     // Date/Intl assertions must not depend on the machine's timezone (a UTC+13
     // runner would format 2026-04-21T12:00Z as Apr 22 and fail).
     env: { TZ: 'UTC' },
-    environment: 'jsdom',
     // Vitest picks up `**/*.spec.ts` by default, which would otherwise try to run the Playwright
     // spec (`npm run test:e2e` owns that one). `.claude/` holds agent worktrees - whole checkouts
     // of this repo, whose tests would run again against a stale copy of the source.
     exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
-    setupFiles: ['./vitest-setup.js'],
+    // Two projects, because `environment` is resolved per PROJECT and not per file.
+    //
+    // `environment: 'jsdom'` puts `browser` into Vite's resolve conditions for the whole project,
+    // and SvelteKit's `$app/*` packages are exports-mapped on that condition: `$app/paths` then
+    // resolves to `paths/client.js`, which touches `window` at import time. A `.remote.ts` module
+    // pulls that in transitively, so importing one from a jsdom test dies with
+    // `ReferenceError: window is not defined` before a single assertion runs. A per-file
+    // `// @vitest-environment node` pragma cannot fix it: the pragma switches the test environment,
+    // not the resolve conditions, which are decided once when the project is configured.
+    //
+    // So remote-function tests get a project whose environment is `node` from the start. Everything
+    // else keeps the jsdom project it has always had, unchanged.
+    projects: [
+      {
+        extends: true,
+        test: {
+          environment: 'jsdom',
+          exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**', 'src/**/*.remote.test.ts'],
+          name: 'browser',
+          setupFiles: ['./vitest-setup.js'],
+        },
+      },
+      {
+        extends: true,
+        // The actual fix, and it is not `environment` alone. SvelteKit resolves `$app/paths` through
+        // its own package `imports` map:
+        //     "#app/paths": { "browser": "...paths/client.js", "default": "...paths/server.js" }
+        // so whether a test gets the client build (which reads `window` at import time) is decided
+        // by the `browser` RESOLVE CONDITION, not by the test environment. Listing conditions
+        // without `browser` is what routes it to `server.js`.
+        resolve: {
+          conditions: ['node', 'svelte', 'module', 'import', 'default'],
+        },
+        test: {
+          environment: 'node',
+          include: ['src/**/*.remote.test.ts'],
+          name: 'server',
+          // No `vitest-setup.js`: it only registers jest-dom's DOM matchers, which need a document.
+        },
+      },
+    ],
   },
 })

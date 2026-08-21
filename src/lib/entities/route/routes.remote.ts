@@ -4,6 +4,7 @@ import {
   ascents,
   blocks,
   files,
+  firstAscensionists,
   routeExternalResource27crags,
   routeExternalResource8a,
   routeExternalResources,
@@ -448,10 +449,15 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
       blockFk: z.number(),
       createdBy: z.number(),
       description: z.string().nullable(),
-      firstAscentYear: z.number().nullable(),
+      // Bounded exactly as `routeActionSchema` bounds them. The snapshot went out to the client and
+      // came back, so this is the only thing standing between it and a value create would refuse:
+      // `routes` carries no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`,
+      // so an out-of-range one becomes the route's community rating.
+      firstAscentYear: z.int().min(1900).max(2100).nullable(),
       gradeFk: z.number().nullable(),
       name: z.string(),
-      rating: z.number().nullable(),
+      // 1-3 stars, as on the form; unrated is null rather than 0.
+      rating: z.int().min(1).max(3).nullable(),
       regionFk: z.number(),
     }),
     routeId: z.number(),
@@ -507,10 +513,27 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
         .insert(routesToTags)
         .values(restoredTags.map((tagFk) => ({ regionFk: created.regionFk, routeFk: created.id, tagFk })))
     }
-    if (snapshot.firstAscensionistFks.length > 0) {
+    // Region-scoped, the way `resolveFirstAscensionists` scopes the create and edit paths. These ids
+    // went out to the client and came back, and the junction's WITH CHECK only tests its OWN
+    // `region_fk`, while the foreign key's referential check does not run under RLS at all: an id
+    // belonging to another region therefore inserts cleanly and stays. Nothing can read it back
+    // (`queries.ts` region-filters the relation and the mapper drops the null), so the route shows
+    // no first ascensionist while the row exists, and anyone who is a member of both regions sees
+    // the other region's climber credited here and on their own profile.
+    const ownFirstAscensionists =
+      snapshot.firstAscensionistFks.length === 0
+        ? []
+        : await db.query.firstAscensionists.findMany({
+            columns: { id: true },
+            where: and(
+              eq(firstAscensionists.regionFk, created.regionFk),
+              inArray(firstAscensionists.id, snapshot.firstAscensionistFks),
+            ),
+          })
+    if (ownFirstAscensionists.length > 0) {
       await db.insert(routesToFirstAscensionists).values(
-        snapshot.firstAscensionistFks.map((firstAscensionistFk) => ({
-          firstAscensionistFk,
+        ownFirstAscensionists.map((firstAscensionist) => ({
+          firstAscensionistFk: firstAscensionist.id,
           regionFk: created.regionFk,
           routeFk: created.id,
         })),

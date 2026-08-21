@@ -14,9 +14,9 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
  *
  * Shared by every writer for exactly that reason, rather than each remembering the fallback.
  *
- * ponytail: `user_fk` carries no unique constraint to upsert against, and a per-user settings row
- * has no real write contention, so update-then-insert without a lock is enough. Upgrade = a unique
- * index on `user_fk` and a real upsert, if two devices ever race hard enough to matter.
+ * `user_fk` is unique, so the insert is a real upsert: two devices writing settings for an account
+ * that has none no longer produce two rows, and the loser of that race no longer fails. It takes
+ * the row the winner created and applies its own values to it.
  */
 export async function writeUserSettings(
   db: PostgresJsDatabase<typeof schema>,
@@ -26,6 +26,13 @@ export async function writeUserSettings(
   // by whoever read the row a moment ago.
   values: { [K in keyof schema.InsertUserSettings]?: schema.InsertUserSettings[K] | SQL },
 ): Promise<void> {
+  // no-drizzle-mass-assignment is exempted for both `.set(values)` in this function, deliberately.
+  // The rule exists because a spread lets the CALLER choose which columns move; here the parameter
+  // is typed to `InsertUserSettings`, so the column set is the table's and the choice of which
+  // subset to write belongs to each caller. Every caller passes a literal except `updateUserSettings`
+  // (users.remote.ts), whose zod schema is the allowlist: six preference fields, all owned by the
+  // account writing them, and not a schema shared with any create path.
+  // eslint-disable-next-line no-restricted-syntax
   const [updated] = await db
     .update(userSettings)
     .set(values)
@@ -33,6 +40,11 @@ export async function writeUserSettings(
     .returning({ id: userSettings.id })
 
   if (updated != null) {
+    // No link write here. The migration that added the unique index also nulled
+    // `users.user_settings_fk` where it pointed at somebody else's row and re-linked every account
+    // to the row it still owns, and the only other way to get a settings row is the create path
+    // below, which links it. Repairing the link on every write would be a second statement per feed
+    // mount for a state that cannot occur.
     return
   }
 
@@ -41,13 +53,19 @@ export async function writeUserSettings(
   // self-reference Postgres rejects outright (42P01), which would break the one case this fallback
   // exists for. Against a row that now exists the expression is simply true: coalesce(null, 0).
   //
+  // `onConflictDoUpdate` rather than `doNothing`, because a conflict has to return the row: the
+  // loser of a two-device race still has its own values to write, and `doNothing` returns nothing
+  // to write them against. Setting `user_fk` to itself is the smallest no-op that does that.
+  //
   // The client reads settings through `users.user_settings_fk`, so the link has to be made too or
   // the row exists and nothing can see it.
   const [created] = await db
     .insert(userSettings)
     .values({ authUserFk: user.authUserFk, userFk: user.id })
+    .onConflictDoUpdate({ set: { userFk: user.id }, target: userSettings.userFk })
     .returning({ id: userSettings.id })
 
   await db.update(users).set({ userSettingsFk: created.id }).where(eq(users.id, user.id))
+  // eslint-disable-next-line no-restricted-syntax -- see the note on the first `.set(values)` above
   await db.update(userSettings).set(values).where(eq(userSettings.id, created.id))
 }

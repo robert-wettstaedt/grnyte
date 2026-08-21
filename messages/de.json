@@ -1297,6 +1297,7 @@
   "notifications_emptyBody": "Erwähnungen, Änderungen an deinen Begehungen und Rollenwechsel landen hier.",
   "notifications_inviteAccepted": "{actor} hat deine Einladung angenommen",
   "notifications_mention": "{actor} hat dich erwähnt",
+  "notifications_pushDeviceTaken": "Dieses Gerät ist bereits einem anderen Konto zugeordnet",
   "notifications_reaction": "{actor} hat auf deinen Eintrag reagiert",
   "notifications_roleChanged": "{actor} hat dich zu {role} gemacht",
   "notifications_roleChangedPlain": "{actor} hat deine Rolle geändert",

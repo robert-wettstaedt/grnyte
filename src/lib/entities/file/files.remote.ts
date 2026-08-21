@@ -1,12 +1,11 @@
 import { command, getRequestEvent } from '$app/server'
-import { createDrizzleSupabaseClient } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type BunnyStream, type File } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
 import { mediaWord } from '$lib/entities/file/dto'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
-import { authedCommand } from '$lib/remote/authed.server'
+import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { getVideoProvider } from '$lib/videos/provider.server'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
@@ -98,11 +97,7 @@ export const finalizeImage = command(
     // PUTs), which must not run inside authedCommand's handler-wide transaction
     // holding a pooled connection — DB access happens in the two short `rls`
     // transactions below instead.
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, supabase, user, userRegions } = await authedRls()
 
     if (!isImageFileName(stagingPath)) {
       error(400, 'Unsupported image format')
@@ -303,11 +298,7 @@ export const setVideoSource = authedCommand(
 export const deleteFile = command(
   z.object({ id: z.string().min(1) }),
   async ({ id }): Promise<MutationResult<{ id: string }>> => {
-    const { supabase, user, userRegions } = getRequestEvent().locals
-    if (user == null) {
-      error(401, 'Not authenticated')
-    }
-    const rls = await createDrizzleSupabaseClient(supabase)
+    const { rls, user, userRegions } = await authedRls()
 
     const storage = await rls(async (db) => {
       const file = await db.query.files.findFirst({
