@@ -189,12 +189,16 @@ describe.skipIf(!reachable)('undo loses nothing', () => {
   })
 
   it('brings a route back with every column it had', async () => {
+    // Whatever grade the database happens to carry, or none. `grades` is reference data that arrives
+    // with a dump rather than a migration, so `ci/seed.sql` leaves the table empty and CI has no row
+    // to point at. Null still round-trips, which is the property under test; a database that does
+    // carry grades exercises the foreign key as well.
     const [grade] = await sql<{ id: number }[]>`select id from public.grades order by id limit 1`
 
     const [route] = await sql<{ id: number }[]>`
       insert into public.routes (name, block_fk, region_fk, created_by, description, rating, grade_fk, first_ascent_year)
       values ('__fidelity_route__', ${blockId}, ${regionId}, ${maintainer.userId}, '__fidelity_beta__',
-              3, ${grade.id}, 1998)
+              3, ${grade?.id ?? null}, 1998)
       returning id`
 
     const before = await rowByName('routes', '__fidelity_route__')
