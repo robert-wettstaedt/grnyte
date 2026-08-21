@@ -226,6 +226,7 @@
            near-invisible once the light theme puts a light ground behind it. -->
       <p
         class="bg-primary-500/15 text-primary-700-300 -mx-3 -mt-3 flex items-center gap-1.5 rounded-t-2xl px-3 py-1.5 text-xs font-semibold"
+        transition:slide={{ duration }}
       >
         <Icon name="award" size={13} />
         {#if view.accolade.accolade.kind === 'project'}
