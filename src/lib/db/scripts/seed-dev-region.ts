@@ -1,7 +1,7 @@
 /**
  * Create a dedicated region for volume test data and add the local test users
  * as members at their permission tier. Pairs with `seed-volume.ts` (run this
- * first, then `REGION_NAME='Volume Test' npm run seed:volume`).
+ * first, then `npx tsx src/lib/db/scripts/seed-volume.ts`).
  *
  * The four `@grnyte.rocks` test logins must already exist (they do on the dev
  * DB). `anon` is intentionally NOT added - that tier represents no region
@@ -63,4 +63,4 @@ for (const { email, role } of MEMBERS) {
 }
 
 await sql.end()
-console.log(`done. Now: REGION_NAME='${REGION_NAME}' npm run seed:volume`)
+console.log(`done. Now: REGION_NAME='${REGION_NAME}' npx tsx src/lib/db/scripts/seed-volume.ts`)

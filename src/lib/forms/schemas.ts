@@ -40,8 +40,8 @@ export function authError(error: AuthError): string {
 }
 
 /**
- * A display name. The character set matches `usernameRegex` (Markdown/lib) so a username is always
- * writable as an `@mention` token. Uniqueness is deliberately NOT global: usernames are display-only
+ * A display name. The character set is the one an `@mention` token can carry, so a username is
+ * always writable as a mention. Uniqueness is deliberately NOT global: usernames are display-only
  * (profiles are keyed by id, mentions store ids), and a global check would deny a name over a
  * collision the two users could never see, while leaking that the name exists in a private region.
  * Callers that have a region scope check for collisions there instead.

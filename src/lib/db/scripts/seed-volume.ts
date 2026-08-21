@@ -13,7 +13,7 @@
  *
  * Config via env (defaults -> ~5000 routes):
  *   AREAS=10 CRAGS_PER_AREA=5 BLOCKS_PER_CRAG=5 ROUTES_PER_BLOCK=20
- *   WITH_MEDIA=true   REGION_NAME='Sandbox Region'   SEED=42   RESET=false
+ *   WITH_MEDIA=true   REGION_NAME='Volume Test'   SEED=42   RESET=false
  *
  * Additive by default (re-running stacks more data). RESET=true first wipes the
  * target region's existing content. Throwaway/dev DBs only - never a real one.
@@ -34,7 +34,7 @@ const CRAGS_PER_AREA = num('CRAGS_PER_AREA', 5)
 const BLOCKS_PER_CRAG = num('BLOCKS_PER_CRAG', 5)
 const ROUTES_PER_BLOCK = num('ROUTES_PER_BLOCK', 20)
 const WITH_MEDIA = (process.env.WITH_MEDIA ?? 'true') !== 'false'
-const REGION_NAME = process.env.REGION_NAME ?? 'Sandbox Region'
+const REGION_NAME = process.env.REGION_NAME ?? 'Volume Test'
 const MAX_GRADE = 21 // grades 0..21, see seed-refdata.sql
 
 // Deterministic PRNG (mulberry32) so a given SEED reproduces the same tree.

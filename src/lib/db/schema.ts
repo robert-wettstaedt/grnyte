@@ -30,9 +30,8 @@ import {
   uniqueIndex,
   uuid,
   type AnyPgColumn as AnyColumn,
-  type PgPolicyConfig,
 } from 'drizzle-orm/pg-core'
-import { authUsers, supabaseAuthAdminRole } from 'drizzle-orm/supabase'
+import { authUsers } from 'drizzle-orm/supabase'
 import z from 'zod'
 import {
   createBasicTablePolicies,
@@ -45,6 +44,7 @@ import {
   getOwnReactionPolicyConfig,
   getOwnRowPolicyConfig,
   getPolicyConfig,
+  READ_AUTH_ADMIN_POLICY_CONFIG,
 } from './policy'
 
 /**
@@ -91,13 +91,6 @@ const baseRegionFields = {
   regionFk: integer('region_fk')
     .notNull()
     .references((): AnyColumn => regions.id),
-}
-
-const READ_AUTH_ADMIN_POLICY_CONFIG: PgPolicyConfig = {
-  as: 'permissive',
-  for: 'select',
-  to: supabaseAuthAdminRole,
-  using: sql`true`,
 }
 
 /**

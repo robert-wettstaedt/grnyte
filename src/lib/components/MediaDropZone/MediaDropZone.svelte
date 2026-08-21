@@ -26,7 +26,6 @@
   import { m } from '$lib/paraglide/messages'
   import { toaster } from '$lib/state/toast'
   import { FileUpload, useFileUpload } from '@skeletonlabs/skeleton-svelte'
-  import type { FileError } from '@zag-js/file-upload'
   import MediaUploadTile from './MediaUploadTile.svelte'
 
   interface Props {
@@ -159,7 +158,7 @@
   // any multi-file drop wholesale.
   const MAX_FILES = 10
 
-  const rejectionMessage = (file: File, errors: FileError[]): string =>
+  const rejectionMessage = (file: File, errors: readonly string[]): string =>
     // An out-of-accept file that is also oversized carries both errors, the
     // type mismatch is the real reason, so it wins over the size complaint.
     errors.includes('FILE_INVALID_TYPE')

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/hooks.ts", "src/sw.ts", "src/lib/db/scripts/*.ts", "src/lib/email/test-send.ts"],
+  "ignore": ["src/lib/zero/**/*.gen.ts"],
+  "ignoreBinaries": ["openssl"],
+  "ignoreUnresolved": ["vite-plugin-pwa/info", "vite-plugin-pwa/vanillajs", "vite-plugin-pwa/pwa-assets"],
+  "ignoreExportsUsedInFile": true
+}

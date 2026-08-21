@@ -28,7 +28,6 @@ export {
   topoLines,
   topoMetadata,
   topoViews as topos,
-  video,
 } from '$lib/entities/event/cases/world'
 /**
  * The design's sample week, as the EVENTS the mutation layer really writes, folded by the real

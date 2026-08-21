@@ -6,7 +6,6 @@ import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow } from '$lib/remote/require.server'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
 import z from 'zod'
@@ -33,7 +32,7 @@ const areaActionSchema = z.object({
 })
 
 /** Field shape the shared area form (`AreaFormFields`) binds to — same for create and edit. */
-export type AreaFormInput = StandardSchemaV1.InferInput<typeof areaActionSchema>
+export type AreaFormInput = z.input<typeof areaActionSchema>
 
 export const createArea = authedForm(areaActionSchema, async (value, { afterCommit, db, user, userRegions }, issue) => {
   const { parent: parentArea, status } = await loadParentArea(db, value.parentFk, value.regionFk)

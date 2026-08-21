@@ -1,5 +1,5 @@
 import type { TopoView } from '$lib/entities/topo/dto'
-import { cardView, type CardGroup, type CardView } from './cardView'
+import type { CardGroup } from './cardView'
 // The cast comes from the case wall, so a name in a unit test and the same id on the wall are
 // the same person. Two lists drifting would make one file's "Sofia Brandt" another's stranger.
 import { ME, PEOPLE } from './cases/world'
@@ -16,8 +16,6 @@ import { eventEntityKey, type EventEntity, type EventEntityMap, type EventEntity
  * Not imported by the app.
  */
 import type { CardLine } from './line'
-
-export { ME, PEOPLE }
 
 let nextId = 1
 
@@ -66,15 +64,4 @@ export function line(partial: Partial<CardLine> = {}): CardLine {
     verb: 'update',
     ...partial,
   }
-}
-
-/** What a card says about a set of lines, decided by the same function the feed calls. */
-export function view(
-  rows: CardLine[],
-  entities?: EventEntityMap,
-  currentUserFk?: number,
-  topos?: ReadonlyMap<number, TopoView>,
-  kind?: CardGroup['kind'],
-): CardView {
-  return cardView(group(rows, kind), entities, currentUserFk, topos)
 }

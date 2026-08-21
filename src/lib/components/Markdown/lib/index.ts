@@ -12,9 +12,6 @@ import { remarkGrades } from './remark-grades'
 import { REFERENCE_TOMBSTONE, referenceRegex, remarkReferences, type EncloseOptions } from './remark-references'
 import { remarkSafeUrls } from './remark-safe-urls'
 
-export const usernameRegex = /[\da-zA-Z][-\da-zA-Z_]{0,38}/
-export const usernameRegexWithAt = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/
-
 export const convertMarkdownToHtml = async (
   markdown: null | string | undefined,
   db?: PostgresJsDatabase<typeof schema>,

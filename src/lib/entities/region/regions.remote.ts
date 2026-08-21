@@ -50,8 +50,6 @@ function assertIsMember({ userRegions }: Context, regionFk: number) {
 
 const regionCreateSchema = z.object({ name: nameSchema })
 
-export type RegionCreateInput = z.input<typeof regionCreateSchema>
-
 /**
  * Found a region, with its creator as `region_admin`.
  *
@@ -82,8 +80,6 @@ const regionActionSchema = z.object({
   id: stringToInt,
   name: nameSchema,
 })
-
-export type RegionFormInput = z.input<typeof regionActionSchema>
 
 export const updateRegion = authedForm(regionActionSchema, async ({ id, name }, { db, userRegions }) => {
   if (!canEditRegion(userRegions, id)) {

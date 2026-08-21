@@ -235,5 +235,3 @@ const notifications = {
 
 /** Keyed by GoTrue's template key, which is also the Management API field name. */
 export const GOTRUE_TEMPLATES = { ...auth, ...notifications }
-
-export type GotrueTemplateKey = keyof typeof GOTRUE_TEMPLATES

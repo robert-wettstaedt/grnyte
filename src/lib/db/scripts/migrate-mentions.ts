@@ -23,7 +23,9 @@ import Database from 'postgres'
 import drizzleConfig from '../../../../drizzle.config'
 import * as schema from '../schema'
 
-// Mirrors `usernameRegexWithAt` in src/lib/components/Markdown/lib/index.ts.
+// An `@mention` token: `usernameSchema`'s character set ($lib/forms/schemas) with a leading `@`.
+// Spelled out rather than imported because this script runs under bare tsx, where `$lib` does not
+// resolve.
 const mentionRegex = /@[\da-zA-Z][-\da-zA-Z_]{0,38}/g
 
 export const migrate = async (db: PostgresJsDatabase<typeof schema>, { dryRun = false }: { dryRun?: boolean } = {}) => {

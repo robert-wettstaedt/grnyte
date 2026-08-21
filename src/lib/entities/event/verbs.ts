@@ -156,8 +156,7 @@ const FIELD = {
 
 /**
  * One entry in the catalogue: a triple the mutation layer writes, and everything the feed
- * decides from it. Only the triple half is spellable by a writer (see {@link DeclaredRow});
- * the rest is presentation.
+ * decides from it. Only the triple half is spellable by a writer; the rest is presentation.
  */
 export interface VerbEntry {
   /**
@@ -545,38 +544,6 @@ export const WRITTEN_ROWS: Partial<VerbEntry>[] = (VERBS as readonly VerbEntry[]
   ({ field: _field, key: _key, names: _names, status: _status, tombstone: _tombstone, ...written }) => written,
 )
 
-/** The columns declared for `<entityType> updated`, which is what a column diff may emit. */
-export type DeclaredColumn<E extends EventObjectType> = Extract<
-  (typeof VERBS)[number],
-  { columnName: string; objectType: E; verb: 'update' }
->['columnName']
-
-/** What a mutation may write: one member per catalogue entry, literals intact. */
-export type DeclaredRow = Triple<(typeof VERBS)[number]>
-
-/**
- * The half of an entry a mutation may spell. Everything else on the entry is presentation,
- * which a writer must not be able to set.
- *
- * `newValue` is excluded on purpose. Four entries pin it to a literal ascent type, and
- * `createAscent` passes the whole `AscentType` union, which is assignable to none of them
- * individually. The enum stays guarded by the round trip in `verbs.test.ts` instead.
- */
-type Presentation = 'field' | 'key' | 'names' | 'newValue' | 'row' | 'status' | 'tombstone'
-
-/**
- * Distributes over the union, and gives an entry that declares no column an explicit
- * `columnName?: undefined`.
- *
- * Both halves are load-bearing. A non-distributive `Omit<VerbEntry, Presentation>` would
- * collapse the union to `{ entityType, type }` over the full enums and check nothing at all.
- * And without the `undefined` arm, excess property checking waves a bogus `columnName`
- * through, because for a union target it only asks whether SOME member declares that key.
- */
-type Triple<T> = T extends { columnName: string }
-  ? Omit<T, Presentation>
-  : Omit<T, Presentation> & { columnName?: undefined }
-
 /**
  * What a row whose triple has no entry above degrades to: still true, just vaguer. Only
  * reachable for a triple this app no longer writes, since a live one is a row in the
@@ -622,7 +589,7 @@ export type VerbLookup = Partial<Pick<VerbEntry, 'columnName' | 'value'>> &
 /**
  * The catalogue entry a stored row matches, or `undefined` for a row no writer can emit.
  *
- * Deliberately takes the wide shape rather than {@link DeclaredRow}: it reads stored
+ * Deliberately takes the wide shape rather than the narrow write triple: it reads stored
  * lines, including ones from migrated history like `route:update:retired` that no current writer produces
  * and that DEGRADED and GENERIC exist for. Narrow seam for writing, wide seam for reading.
  */
