@@ -7,7 +7,7 @@ import type { PageServerLoad } from './$types'
  * token is what authorizes the read.
  */
 export const load = (async ({ locals, url }) => ({
-  ...(await resolveInviteState(url.searchParams.get('token'), locals.session?.user.email)),
+  ...(await resolveInviteState(url.searchParams.get('token'), locals.claims?.email)),
 
   // Whether there is an app to go back to. A member of some other region reaches this screen only
   // by opening the emailed link, and for them the invitation is an offer, not a gate - so they get

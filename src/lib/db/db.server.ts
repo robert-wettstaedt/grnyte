@@ -1,7 +1,6 @@
 import { DATABASE_URL } from '$env/static/private'
-import { decodeToken, type SupabaseToken } from '$lib/auth'
+import type { SupabaseToken, VerifiedClaims } from '$lib/auth'
 import * as schema from '$lib/db/schema'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { sql } from 'drizzle-orm'
 import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import Database from 'postgres'
@@ -17,7 +16,7 @@ export const db = drizzle(postgres, { schema })
 
 export function createDrizzle<
   Database extends PostgresJsDatabase<typeof schema>,
-  Token extends SupabaseToken = SupabaseToken,
+  Token extends VerifiedClaims = VerifiedClaims,
 >(token: Token, db: Database) {
   return (async (transaction, ...rest) => {
     return await db.transaction(
@@ -43,7 +42,7 @@ export function createDrizzle<
         // needed to see.
         await tx.execute(
           sql`select set_config('request.jwt.claims', ${JSON.stringify(token)}, true),
-                     set_config('request.jwt.claim.sub', ${token.sub ?? ''}, true),
+                     set_config('request.jwt.claim.sub', ${token.sub}, true),
                      set_config('role', ${roleFor(token)}, true)`,
         )
         return await transaction(tx)
@@ -53,13 +52,19 @@ export function createDrizzle<
   }) as typeof db.transaction
 }
 
-// https://github.com/orgs/supabase/discussions/23224
-// Should be secure because we use the access token that is signed, and not the data read directly from the storage
-export async function createDrizzleSupabaseClient(supabase: SupabaseClient) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return createDrizzle(decodeToken(session?.access_token ?? ''), db)
+/**
+ * An RLS handle bound to a verified request.
+ *
+ * Takes the claims, not a Supabase client. It used to read the request cookie a SECOND time,
+ * independently of the hook, and hand `jwtDecode` output straight into `request.jwt.claims`, which
+ * Postgres trusts completely. So the identity the database was told about was never the identity
+ * the hook had looked at, and neither had been checked. Verification now happens once, in
+ * `$lib/hooks/auth.server`, and `VerifiedClaims` is a type only `verifyAccessToken` can produce.
+ *
+ * Synchronous, because there is nothing left to await.
+ */
+export function createRlsClient(claims: VerifiedClaims) {
+  return createDrizzle(claims, db)
 }
 
 /**
@@ -72,7 +77,9 @@ export async function createDrizzleSupabaseClient(supabase: SupabaseClient) {
  * policy declared `TO authenticated` applies to it unchanged.
  *
  * Mapping rather than passing through also means a token can only ever select between these two,
- * whatever its claims say.
+ * whatever its claims say. `verifyAccessToken` already refuses anything whose `role` is not
+ * `authenticated`, so this is no longer the defence against a forged claim; it is the defence
+ * against a future caller reaching `createDrizzle` by some other route.
  */
 function roleFor(token: SupabaseToken): 'anon' | 'app_writer' {
   return token.role === 'authenticated' ? 'app_writer' : 'anon'

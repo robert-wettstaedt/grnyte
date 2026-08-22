@@ -1,5 +1,6 @@
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
+import { verifyAccessToken } from '$lib/auth/verify.server'
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { acceptPath, REGION_CREATE_PATH, REGIONLESS_PATHS } from '$lib/entities/region/dto'
@@ -59,12 +60,17 @@ export async function getUserPermissions(
   }))
 
   return {
-    session: undefined,
     user: undefined,
     userPermissions,
     userRegions: userRegionsResult,
     userRole: userRole?.role,
   }
+}
+
+/** A request with no usable identity. A function rather than a shared const: `userRegions` is
+ *  handed out to callers, and one accidental push on a shared array would leak across requests. */
+function anonymous(): App.SafeSession & { claims: undefined } {
+  return { claims: undefined, user: undefined, userPermissions: undefined, userRegions: [], userRole: undefined }
 }
 
 export const supabase: Handle = async ({ event, resolve }) => {
@@ -87,7 +93,6 @@ export const supabase: Handle = async ({ event, resolve }) => {
 
     return {
       ...(await getUserPermissions(db, authUserId)),
-      session: undefined,
       user,
     }
   }
@@ -114,37 +119,44 @@ export const supabase: Handle = async ({ event, resolve }) => {
   })
 
   /**
-   * Unlike `supabase.auth.getSession()`, which returns the session _without_
-   * validating the JWT, this function also calls `getUser()` to validate the
-   * JWT before returning the session.
+   * The verified claims behind this request's cookies.
+   *
+   * `getSession()` first, deliberately. It is the only call that refreshes a token inside its
+   * expiry margin and writes the refreshed cookie back through `setAll` above, so verifying the raw
+   * cookie ahead of it would refuse every session that was merely due for a refresh, and the
+   * refresh would never fire. What it returns is an unsigned cookie read, so nothing out of it is
+   * trusted until `verifyAccessToken` has been past it.
+   *
+   * Identity is `claims.sub` and never `session.user.id`. Those are two independently
+   * client-controlled values, and only one of them is covered by a signature.
    */
   event.locals.safeGetSession = async () => {
     const {
       data: { session },
     } = await event.locals.supabase.auth.getSession()
 
-    if (!session) {
-      return {
-        session: undefined,
-        user: undefined,
-        userPermissions: undefined,
-        userRegions: [],
-        userRole: undefined,
-      }
+    let verified = await verifyAccessToken(session?.access_token)
+
+    // One retry, and only for expiry. `getSession()` decides whether to refresh from the cookie's
+    // `expires_at` field, never from the token's `exp`; when those disagree the session is
+    // refreshable and the token is not, and bouncing the user to /auth with a live refresh token in
+    // their cookie is the "everyone got logged out" failure this change would otherwise cause. Any
+    // other rejection fails closed immediately: a bad signature is never worth retrying.
+    if (!verified.ok && verified.reason === 'expired') {
+      const { data } = await event.locals.supabase.auth.refreshSession()
+      verified = await verifyAccessToken(data.session?.access_token)
+    }
+
+    if (!verified.ok) {
+      return anonymous()
     }
 
     try {
-      const pageState = await getPageState(session.user.id)
-
-      return { ...pageState, session }
+      return { ...(await getPageState(verified.claims.sub)), claims: verified.claims }
     } catch {
-      return {
-        session,
-        user: undefined,
-        userPermissions: undefined,
-        userRegions: [],
-        userRole: undefined,
-      }
+      // A database failure, not an authentication failure. `user` stays undefined, so every remote
+      // handler 401s in `authed.server.ts`, which is what happened here before too.
+      return { ...anonymous(), claims: verified.claims }
     }
   }
 
@@ -179,17 +191,30 @@ const EMAILED_LINK_PATHS: Pathname[] = ['/auth/confirm', '/auth/error', '/auth/r
  *  bouncing them to /auth would drop the token. */
 const PUBLIC_PREFIXES = ['/legal', AUTH_PATH, '/f/', '/image/', '/api/', '/invite', '/offline']
 
-export const authGuard: Handle = async ({ event, resolve }) => {
-  const { session, user, userPermissions, userRegions, userRole } = await event.locals.safeGetSession()
+/** The zero-cache callbacks, which authenticate off their own Authorization header. */
+const ZERO_API_PREFIX = '/api/zero/'
 
-  event.locals.session = session
+export const authGuard: Handle = async ({ event, resolve }) => {
+  // zero-cache forwards the browser's cookie alongside the Bearer (ZERO_GET_QUERIES_FORWARD_COOKIES
+  // is set in every compose file), and `handle` runs for /api too. The get-queries handler verifies
+  // its own Authorization header, so loading a session here would be a second, pointless
+  // verification, and worse: `getSession()` can rotate the refresh token onto a response the
+  // browser never sees.
+  if (event.url.pathname.startsWith(ZERO_API_PREFIX)) {
+    Object.assign(event.locals, anonymous())
+    return resolve(event)
+  }
+
+  const { claims, user, userPermissions, userRegions, userRole } = await event.locals.safeGetSession()
+
+  event.locals.claims = claims
   event.locals.user = user
   event.locals.userPermissions = userPermissions
   event.locals.userRegions = userRegions
   event.locals.userRole = userRole
 
   if (
-    event.locals.session == null &&
+    event.locals.claims == null &&
     event.url.pathname !== HOME_PATH &&
     !PUBLIC_PREFIXES.some((path) => event.url.pathname.startsWith(path))
   ) {
@@ -198,7 +223,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 
   // Redirect authenticated users away from auth pages, minus the emailed-link ones.
   if (
-    event.locals.session != null &&
+    event.locals.claims != null &&
     event.url.pathname.startsWith(AUTH_PATH) &&
     !EMAILED_LINK_PATHS.some((path) => event.url.pathname.startsWith(path))
   ) {
@@ -210,7 +235,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
   // never fire after a fresh sign in. That plus the email-keyed lookup is what makes "sign up,
   // then immediately join" work without threading the token through signup and its confirmation
   // mail. Same validity predicate as everywhere else: pending AND not expired.
-  const email = event.locals.session?.user.email
+  const email = event.locals.claims?.email
   if (email != null && event.locals.userRegions.length === 0) {
     const path = event.url.pathname
 

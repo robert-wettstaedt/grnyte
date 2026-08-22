@@ -33,11 +33,11 @@ export const updateEmail = form(
   z.object({ email: z.email({ error: formError('form_required') }) }),
   async ({ email }) => {
     const {
-      locals: { session, supabase },
+      locals: { claims, supabase },
       url,
     } = getRequestEvent()
 
-    if (session == null) {
+    if (claims == null) {
       error(401, 'Not authenticated')
     }
 
@@ -73,14 +73,18 @@ const updatePasswordSchema = z
  */
 export const updatePassword = form(updatePasswordSchema, async ({ currentPassword, password }, issue) => {
   const {
-    locals: { session, supabase },
+    locals: { claims, supabase },
   } = getRequestEvent()
 
-  if (session?.user.email == null) {
+  // The address comes from the verified token, never from `session.user.email`. That field is
+  // lifted verbatim out of the unsigned cookie, so it used to be attacker-chosen: signing in with
+  // your own account and rewriting it to a victim's address turned the check below, which reports
+  // whether a password is correct, into a guessing oracle against any account in the project.
+  if (claims?.email == null) {
     error(401, 'Not authenticated')
   }
 
-  if (!(await verifyPassword(session.user.email, currentPassword))) {
+  if (!(await verifyPassword(claims.email, currentPassword))) {
     invalid(issue.currentPassword(formError('settings_passwordIncorrect')))
   }
 

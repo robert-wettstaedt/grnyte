@@ -5,14 +5,10 @@
  * resolves inside SvelteKit's request store. Kit exposes `with_request_store` for exactly this, and
  * it is backed by `AsyncLocalStorage`, so the store survives the awaits inside a handler.
  *
- * Two fakes, both as small as they can be:
- *
- * - The Supabase client, because `createDrizzleSupabaseClient` calls one method on it,
- *   `auth.getSession()`, and then throws the session away except for its access token.
- * - The access token, because `decodeToken` is `jwtDecode`, which base64-decodes the payload and
- *   never verifies a signature. An unsigned token with the right `sub` is therefore indistinguishable
- *   from a real one to everything downstream, and the claims it carries are what `auth.uid()` reads
- *   inside RLS.
+ * One fake, and it is a real token. The harness signs an HS256 token with the dev secret and runs
+ * it through `verifyAccessToken`, so what reaches `createRlsClient` came out of the same function
+ * production uses. This file used to mint an `alg: 'none'` token, which worked precisely because
+ * nothing checked one, and its own comment documented that as the mechanism.
  *
  * Everything else is real: the permissions come from `getUserPermissions` against the actual
  * database, the handler runs in a real RLS transaction, and the statements it issues are the
@@ -22,10 +18,14 @@
  * (`vite.config.ts`). They cannot run in the jsdom project: `$app/paths` resolves to its client
  * build under the `browser` condition and touches `window` at import time.
  */
+import { SUPABASE_JWT_SECRET } from '$env/static/private'
+import { verifyAccessToken } from '$lib/auth/verify.server'
 import { db } from '$lib/db/db.server'
 import { getUserPermissions } from '$lib/hooks/auth.server'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { with_request_store } from '@sveltejs/kit/internal/server'
+import { eq } from 'drizzle-orm'
+import { authUsers } from 'drizzle-orm/supabase'
+import { SignJWT } from 'jose'
 
 /**
  * Runs `fn` as the account behind `authUserId`, with the locals a real request would carry.
@@ -37,7 +37,7 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T)
   // `getUserPermissions` deliberately returns `user: undefined`; the `supabase` handle's own
   // `getPageState` is what loads the row, with `userSettings` attached. Mirror it, or every handler
   // 401s on `user == null` in `authed.server.ts`.
-  const [permissions, user] = await Promise.all([
+  const [permissions, user, [authUser]] = await Promise.all([
     getUserPermissions(db, authUserId),
     db.query.users.findFirst({
       where: (table, { eq }) => eq(table.authUserFk, authUserId),
@@ -54,13 +54,35 @@ export async function asRequest<T>(authUserId: string, fn: () => Promise<T> | T)
         },
       },
     }),
+    // The address, read live from auth.users for the same reason the permissions are: it is what
+    // the invitation handlers and the password re-check gate on, and those were untestable while
+    // the harness had none.
+    db.select({ email: authUsers.email }).from(authUsers).where(eq(authUsers.id, authUserId)).limit(1),
   ])
 
-  const session = { ...permissions, session: undefined, user }
+  const verified = await verifyAccessToken(await signAccessToken(authUserId, authUser?.email ?? undefined))
+
+  if (!verified.ok) {
+    // A worktree whose .env carries a different SUPABASE_JWT_SECRET than the one the verifier
+    // loaded. Loud here, rather than an unexplained 401 in every test that uses the harness.
+    throw new Error(`testHarness could not verify its own token (${verified.reason})`)
+  }
+
+  const session = { ...permissions, claims: verified.claims, user }
   const locals = {
     ...session,
     safeGetSession: async () => session,
-    supabase: fakeSupabase(fakeJwt({ role: 'authenticated', sub: authUserId })),
+    // `authedRls` hands this to the storage handlers. A Proxy rather than `{}` so the first test
+    // that drives one fails by name instead of on a null dereference: `locals` goes into
+    // `with_request_store` as `never`, so TypeScript will not catch it.
+    supabase: new Proxy(
+      {},
+      {
+        get: (_, prop) => {
+          throw new Error(`testHarness does not stub supabase.${String(prop)}`)
+        },
+      },
+    ),
   }
 
   // `state.remote.data` is the per-request memo Kit's remote wrappers read through `get_cache`.
@@ -116,17 +138,18 @@ export function callForm<T>(form: unknown, data: Record<string, unknown>): Promi
   return internal.fn(data, { validate_only: false }, new FormData())
 }
 
-/** An unsigned JWT carrying `claims`. `jwtDecode` reads the payload segment and nothing else. */
-function fakeJwt(claims: Record<string, unknown>): string {
-  const segment = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url')
-  return `${segment({ alg: 'none', typ: 'JWT' })}.${segment(claims)}.`
-}
-
-/** The one method `createDrizzleSupabaseClient` calls. */
-function fakeSupabase(accessToken: string): SupabaseClient {
-  return {
-    auth: {
-      getSession: async () => ({ data: { session: { access_token: accessToken } }, error: null }),
-    },
-  } as unknown as SupabaseClient
+/**
+ * A genuinely signed access token for `authUserId`, shaped like the one GoTrue issues.
+ *
+ * No `iss`: this stack's GoTrue sets no `GOTRUE_JWT_ISSUER`, so real local tokens carry none and a
+ * fabricated one would diverge from production the moment `SUPABASE_JWT_ISSUER` is set anywhere.
+ */
+function signAccessToken(authUserId: string, email: string | undefined): Promise<string> {
+  return new SignJWT({ email, role: 'authenticated' })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setAudience('authenticated')
+    .setSubject(authUserId)
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(new TextEncoder().encode(SUPABASE_JWT_SECRET))
 }

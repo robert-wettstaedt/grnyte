@@ -38,7 +38,7 @@ export async function GET({ locals, params, request, url }) {
     where: eq(files.path, resourcePath),
   })
 
-  // No `locals.session` guard around this: an anonymous request carries an empty `userRegions`, so
+  // No `locals.claims` guard around this: an anonymous request carries an empty `userRegions`, so
   // it can only ever answer false. A second way of stating that is a second thing to keep true.
   const authorized = rows.some((row) =>
     checkRegionPermission(locals.userRegions, [REGION_PERMISSION_READ], row.regionFk),

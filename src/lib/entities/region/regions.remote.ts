@@ -367,19 +367,19 @@ export const restoreRegionInvitation = authedCommand(
 /**
  * Accept an invitation as the signed-in user.
  *
- * The address comes from the session rather than `ctx.user`, which is the `public.users` row and
- * carries none. The write itself runs off the RLS transaction, see `acceptInvitation`.
+ * The address comes from the verified token rather than `ctx.user`, which is the `public.users` row
+ * and carries none. The write itself runs off the RLS transaction, see `acceptInvitation`.
  */
 export const acceptRegionInvitation = authedCommand(
   z.object({ token: z.uuid() }),
   async ({ token }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
-    const session = getRequestEvent().locals.session
+    const claims = getRequestEvent().locals.claims
 
-    if (session?.user.email == null) {
+    if (claims?.email == null) {
       error(401, 'Not authenticated')
     }
 
-    return { data: await acceptInvitation({ authUserId: session.user.id, email: session.user.email, token }) }
+    return { data: await acceptInvitation({ authUserId: claims.sub, email: claims.email, token }) }
   },
 )
 
@@ -391,7 +391,7 @@ export const acceptRegionInvitation = authedCommand(
  * an empty list rather than a 401 - the settings screen is behind the auth guard anyway.
  */
 export const listMyInvitations = query(async (): Promise<UserInvitationItem[]> => {
-  const email = getRequestEvent().locals.session?.user.email
+  const email = getRequestEvent().locals.claims?.email
   return email == null ? [] : listInvitationsForEmail(email)
 })
 
@@ -400,14 +400,14 @@ export const listMyInvitations = query(async (): Promise<UserInvitationItem[]> =
  *
  * The lookup runs on the caller's RLS transaction, where `users can read own region_invitations`
  * scopes it to rows addressed to them; `acceptInvitation` then re-checks the address against the
- * session, so a guessed id gets nowhere either way.
+ * verified token, so a guessed id gets nowhere either way.
  */
 export const acceptMyInvitation = authedCommand(
   z.object({ invitationFk: z.number() }),
   async ({ invitationFk }, { db }): Promise<MutationResult<{ regionFk: number; regionName: string }>> => {
-    const session = getRequestEvent().locals.session
+    const claims = getRequestEvent().locals.claims
 
-    if (session?.user.email == null) {
+    if (claims?.email == null) {
       error(401, 'Not authenticated')
     }
 
@@ -421,7 +421,7 @@ export const acceptMyInvitation = authedCommand(
     }
 
     return {
-      data: await acceptInvitation({ authUserId: session.user.id, email: session.user.email, token: invitation.token }),
+      data: await acceptInvitation({ authUserId: claims.sub, email: claims.email, token: invitation.token }),
     }
   },
 )

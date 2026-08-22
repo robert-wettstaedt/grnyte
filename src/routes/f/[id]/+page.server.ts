@@ -147,7 +147,7 @@ export const load = (async ({ locals, params }) => {
   // The share/delete toolbar is signed-in only; permissions (mirroring the files RLS incl.
   // the own-ascent grant) are resolved here and handed over as booleans.
   const controls =
-    locals.session == null
+    locals.claims == null
       ? null
       : {
           canDelete: canDeleteFile(locals.userRegions, locals.user?.id, file),
@@ -160,7 +160,7 @@ export const load = (async ({ locals, params }) => {
   // payload zeroes them (region, uploader, route, ascent, ascent owner) to leak no
   // cross-file correlation handles. Signed-in viewers keep them for their in-app links.
   const clientFile: MediaFile =
-    locals.session != null
+    locals.claims != null
       ? file
       : {
           ...file,

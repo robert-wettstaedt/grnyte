@@ -38,6 +38,7 @@ jobs:
       PUBLIC_SUPABASE_URL: foobar
       PUBLIC_SUPABASE_ANON_KEY: foobar
       SUPABASE_SERVICE_ROLE_KEY: foobar
+      SUPABASE_JWT_SECRET: ci-dummy-jwt-secret-at-least-32-characters-long
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       NEXTCLOUD_USER_NAME: foobar
       NEXTCLOUD_USER_PASSWORD: foobar

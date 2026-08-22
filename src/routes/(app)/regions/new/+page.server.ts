@@ -10,6 +10,6 @@ import type { PageServerLoad } from './$types'
  * queries: this is the only screen that asks.
  */
 export const load = (async ({ locals }) => ({
-  email: locals.session?.user.email,
+  email: locals.claims?.email,
   owned: locals.user == null ? [] : await listOwnedRegions(locals.user.id),
 })) satisfies PageServerLoad

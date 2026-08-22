@@ -1,4 +1,4 @@
-import type { AppPermission, RegionPermission } from '$lib/auth'
+import type { AppPermission, RegionPermission, VerifiedClaims } from '$lib/auth'
 import type { InferResultType } from '$lib/db/types'
 import type { UserRegion } from '$lib/entities/region/dto'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
@@ -10,7 +10,15 @@ declare global {
   namespace App {
     // interface Error {}
     interface Locals extends SafeSession {
-      safeGetSession: () => Promise<SafeSession>
+      /**
+       * The verified token claims, and the only trustworthy identity on this request.
+       *
+       * There is deliberately no `session` here. `@supabase/ssr` lifts `session.user` straight out
+       * of an unsigned cookie, so its `id` and `email` are whatever the client wrote there, and a
+       * verified token sitting beside a forged `user` object is the shape of the bug this replaced.
+       */
+      claims: undefined | VerifiedClaims
+      safeGetSession: () => Promise<SafeSession & { claims: undefined | VerifiedClaims }>
       supabase: SupabaseClient
     }
 
@@ -28,7 +36,6 @@ declare global {
     }
     type Permission = AppPermission | RegionPermission
     interface SafeSession {
-      session: Session | undefined
       user:
         | InferResultType<
             'users',

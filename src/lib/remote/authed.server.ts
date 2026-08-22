@@ -1,5 +1,5 @@
 import { command, form, getRequestEvent, query } from '$app/server'
-import { createDrizzleSupabaseClient, db } from '$lib/db/db.server'
+import { createRlsClient, db } from '$lib/db/db.server'
 import type { UserRegion } from '$lib/entities/region/dto'
 import type { MutationResult } from '$lib/remote/mutation'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -26,7 +26,7 @@ export interface Context {
   userRegions: UserRegion[]
 }
 
-type Rls = Awaited<ReturnType<typeof createDrizzleSupabaseClient>>
+type Rls = ReturnType<typeof createRlsClient>
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
@@ -90,26 +90,26 @@ export async function authedRls(): Promise<{
   userPermissions: App.Locals['userPermissions']
   userRegions: App.Locals['userRegions']
 }> {
-  const { supabase, user, userPermissions, userRegions } = getRequestEvent().locals
-  if (user == null) {
+  const { claims, supabase, user, userPermissions, userRegions } = getRequestEvent().locals
+  if (claims == null || user == null) {
     error(401, 'Not authenticated')
   }
 
-  return { rls: await createDrizzleSupabaseClient(supabase), supabase, user, userPermissions, userRegions }
+  return { rls: createRlsClient(claims), supabase, user, userPermissions, userRegions }
 }
 
 /** before: auth-gate, open an RLS transaction, run the handler inside it; after: drain whatever the
  *  handler deferred to {@link Context.afterCommit}, then log failures. */
 async function run<O>(handler: (ctx: Context) => O | Promise<O>): Promise<O> {
-  const { supabase, user, userPermissions, userRegions } = getRequestEvent().locals
-  if (user == null) {
+  const { claims, user, userPermissions, userRegions } = getRequestEvent().locals
+  if (claims == null || user == null) {
     error(401, 'Not authenticated')
   }
 
   let returnValue: Awaited<O>
   const deferred: (() => Promise<void>)[] = []
 
-  const rls = await createDrizzleSupabaseClient(supabase)
+  const rls = createRlsClient(claims)
   try {
     returnValue = await rls(async (db) =>
       handler({ afterCommit: (task) => void deferred.push(task), db, user, userPermissions, userRegions }),

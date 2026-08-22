@@ -215,7 +215,13 @@ export default defineConfig({
         extends: true,
         test: {
           environment: 'jsdom',
-          exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**', 'src/**/*.remote.test.ts'],
+          exclude: [
+            ...configDefaults.exclude,
+            '**/.claude/**',
+            'e2e/**',
+            'src/**/*.remote.test.ts',
+            'src/**/*.server.test.ts',
+          ],
           name: 'browser',
           setupFiles: ['./vitest-setup.js'],
         },
@@ -233,7 +239,7 @@ export default defineConfig({
         },
         test: {
           environment: 'node',
-          include: ['src/**/*.remote.test.ts'],
+          include: ['src/**/*.remote.test.ts', 'src/**/*.server.test.ts'],
           name: 'server',
           // No `vitest-setup.js`: it only registers jest-dom's DOM matchers, which need a document.
         },

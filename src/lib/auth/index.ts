@@ -1,6 +1,5 @@
 import type { appRole } from '$lib/db/schema'
 import type { UserRegion } from '$lib/entities/region/dto'
-import { jwtDecode, type JwtPayload } from 'jwt-decode'
 
 export const APP_PERMISSION_ADMIN = 'app.admin'
 
@@ -22,17 +21,33 @@ export type RegionPermission =
   | typeof REGION_PERMISSION_EDIT
   | typeof REGION_PERMISSION_READ
 
-export interface SupabaseToken extends JwtPayload {
+export interface SupabaseToken {
   aud?: string | string[]
+  /** On every GoTrue access token. The invitation flow and the password re-check key on it, and it
+   *  is NOT the same value as the forgeable `session.user.email` they used to read. */
+  email?: string
   exp?: number
   iat?: number
   iss?: string
   jti?: string
   nbf?: number
   role?: string
+  session_id?: string
   sub?: string
   user_role?: (typeof appRole.enumValues)[number]
 }
+
+/** Phantom. Nothing exists at runtime; only `verifyAccessToken` produces one. */
+declare const verified: unique symbol
+
+/**
+ * An access token this server has verified against the project's signing key.
+ *
+ * The brand is what makes the fix stick. A plain object literal is not assignable here, so the
+ * compiler refuses the exact mistake this type exists to prevent: handing reconstructed claims to
+ * `createDrizzle`, whose only job is to tell Postgres who is asking.
+ */
+export type VerifiedClaims = SupabaseToken & { role: 'authenticated'; sub: string; readonly [verified]: true }
 
 export function checkRegionPermission(
   userRegions: UserRegion[],
@@ -42,14 +57,6 @@ export function checkRegionPermission(
   return requiredPermissions.some((permission) =>
     userRegions.some((region) => region.regionFk === regionId && region.permissions.includes(permission)),
   )
-}
-
-export function decodeToken(accessToken: string): SupabaseToken {
-  try {
-    return jwtDecode<SupabaseToken>(accessToken)
-  } catch {
-    return { role: 'anon' } as SupabaseToken
-  }
 }
 
 /**
