@@ -4,7 +4,6 @@
  * private Supabase bucket because the app runs behind Vercel's 4.5MB body limit
  * and must not proxy file bytes; the server then moves them to image storage.
  */
-import { createId as createCuid2 } from '@paralleldrive/cuid2'
 
 /** The private Supabase bucket uploads are staged in (created in migration 0075). */
 export const STAGING_BUCKET = 'staging'
@@ -124,11 +123,27 @@ export const imageMimeOf = (name: string): string | undefined => IMAGE_MIME_TYPE
 export const isHeic = (name: string): boolean => ['heic', 'heif'].includes(extensionOf(name) ?? '')
 
 /**
- * Where the browser uploads to in the staging bucket: `<auth-uid>/<cuid>.<ext>`.
- * The uid prefix is what the bucket's RLS policies scope to; the cuid avoids
+ * A unique-enough name for one staged object. It is transient (`finalizeImage` deletes it
+ * from a private bucket), so uniqueness is the whole requirement: nothing reads it back,
+ * sorts by it or has to guess it.
+ *
+ * `crypto.randomUUID` is `[SecureContext]`, so on `http://192.168.x.x:3000` it is missing
+ * outright rather than weaker, and that origin is how this mobile-first app gets tested on a
+ * real phone. `crypto.getRandomValues` carries no such gate, so the fallback is 16 random
+ * bytes as hex. Deliberately not the cuid2 the ids in `files` use: that would pull
+ * `@paralleldrive/cuid2` back into the client bundle for one throwaway filename.
+ */
+const randomFileName = (): string =>
+  typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('')
+
+/**
+ * Where the browser uploads to in the staging bucket: `<auth-uid>/<random>.<ext>`.
+ * The uid prefix is what the bucket's RLS policies scope to; the random name avoids
  * collisions without coordination.
  */
 export const stagingPath = (authUserId: string, fileName: string): string => {
   const extension = extensionOf(fileName)
-  return `${authUserId}/${createCuid2()}${extension == null ? '' : `.${extension}`}`
+  return `${authUserId}/${randomFileName()}${extension == null ? '' : `.${extension}`}`
 }

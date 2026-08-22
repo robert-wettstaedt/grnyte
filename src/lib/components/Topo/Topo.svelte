@@ -161,10 +161,13 @@
     {#key imagePath}
       <!-- The viewer works fine off the 1024 derivative; the multi-MB original stays on the server.
            Eager: the topo IS the content wherever it renders, and the default lazy load never fires
-           if the box is measured while a bottom sheet still sizes it to zero height. -->
+           if the box is measured while a bottom sheet still sizes it to zero height. High priority
+           on top of that, because eager only opts out of lazy loading and still queues the topo
+           behind map tiles and scripts, while this is the LCP of the screen a shared link opens. -->
       <Image
         path={imagePath}
         {alt}
+        fetchpriority="high"
         loading="eager"
         class="pointer-events-none h-full w-full touch-none bg-transparent! select-none"
         fit="contain"

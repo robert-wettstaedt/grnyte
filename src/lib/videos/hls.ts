@@ -12,8 +12,8 @@ import type { Attachment } from 'svelte/attachments'
  * promise so an aborted autoplay (a failed source, or teardown detaching the media) is
  * swallowed instead of surfacing as an uncaught DOMException.
  *
- * hls.js is half a megabyte that Safari and image-only visits never need, so it loads on
- * demand here rather than riding the page chunk.
+ * hls.js is hundreds of kilobytes that Safari and image-only visits never need, so it loads
+ * on demand here rather than riding the page chunk.
  */
 export const createHlsAttachment =
   (url: string, onFail: () => void): Attachment<HTMLVideoElement> =>
@@ -43,7 +43,23 @@ export const createHlsAttachment =
       hls?.destroy()
       onFail()
     }
-    void import('hls.js').then(({ default: HlsLib }) => {
+    // The `light` build is the same Hls class with seven controllers dropped (per hls.js's own
+    // README): AudioStreamController + AudioTrackController (alternate audio renditions),
+    // SubtitleStreamController + SubtitleTrackController (WebVTT subtitles), TimelineController
+    // (CEA-608/708 closed captions), EMEController (DRM) and CmcdController, plus playlist
+    // variable substitution. That is about a third of the download (hls.js 1.6.16, minified and
+    // gzipped: 163 kB full, 108 kB light). None of them has a caller here: the app renders no
+    // text tracks at all (no `<track>` element, nothing touching textTracks), and Bunny Stream
+    // serves muxed video+audio variants with no alternate audio renditions, no DRM and no
+    // EXT-X-DEFINE. A future beta-video feature that wants subtitles or captions has to move
+    // this back to the full `hls.js`.
+    //
+    // hls.js declares no `types` condition on the ./light subpath export, so TypeScript can't
+    // see it. The default export is the same class the root build exports, so the root
+    // package's own types describe it exactly.
+    // @ts-expect-error -- untyped subpath export, see above
+    const loadHls = import('hls.js/light') as Promise<typeof import('hls.js')>
+    void loadHls.then(({ default: HlsLib }) => {
       if (done) return
       if (!HlsLib.isSupported()) {
         onFail()

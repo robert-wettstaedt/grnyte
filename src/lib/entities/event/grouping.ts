@@ -1,4 +1,4 @@
-import { isSameDay } from 'date-fns'
+import { calendarDay } from '$lib/i18n/relativeTime'
 import { isAscentEvent } from './dto'
 import type { EventListItem } from './mapper'
 
@@ -197,7 +197,10 @@ function joins(group: EventGroup, event: EventListItem, kind: EventGroupKind): b
   // carries no entity and so no climb date, and comparing to the tail let one of those become the
   // group's oldest and then match anything: Sunday, a deleted row, and Saturday folded into one
   // card claiming to be an afternoon.
-  return sameClimbDay(climbDayOf(group), event) && (withinWindow || isSameDay(oldest.createdAt, event.createdAt))
+  return (
+    sameClimbDay(climbDayOf(group), event) &&
+    (withinWindow || calendarDay(oldest.createdAt) === calendarDay(event.createdAt))
+  )
 }
 
 /**
@@ -349,7 +352,7 @@ function oldestId(events: readonly EventListItem[]): number {
 /**
  * Whether two ascent events were climbed on the same day.
  *
- * A plain comparison rather than `isSameDay`, because `climbedAt` is a pg `date` synced as
+ * A plain comparison rather than `calendarDay`, because `climbedAt` is a pg `date` synced as
  * UTC-midnight millis: two values for one day are already equal, and running them through a
  * local-timezone day helper would shift them apart for every reader west of Greenwich.
  *

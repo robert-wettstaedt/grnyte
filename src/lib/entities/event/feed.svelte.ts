@@ -77,19 +77,21 @@ export function eventFeed(filter: () => EventFeedFilter = () => ({})): EventFeed
   // `parseTopoChange` reads off the metadata. Taking every block event would sync that block's
   // whole topo tree (its topos and their files) for a card that merely renamed it, which is the
   // cost the "open cards only" rule exists to avoid in the first place.
-  //
-  // Deduped by `indexOf` rather than through a Set, which the lint rule would want to be a
-  // `SvelteSet`: this is rebuilt whole on every derivation, so reactivity on it buys nothing.
-  const expandedBlockIds = $derived(
-    groups
-      .filter((group) => expandedIds.has(group.id))
-      .flatMap((group) => group.events)
-      .flatMap((event) =>
-        event.objectType === 'block' && parseTopoChange(event.metadata) != null ? [Number(event.objectId)] : [],
-      )
-      .filter(Number.isInteger)
-      .filter((id, index, all) => all.indexOf(id) === index),
-  )
+  const expandedBlockIds = $derived([
+    // A plain Set, not the `SvelteSet` the lint rule asks for: this is rebuilt whole on every
+    // derivation and never mutated, so the new array IS the reactivity and a reactive Set would only
+    // add bookkeeping. `filteredRoutes.svelte.ts` disables the rule for the same reason.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
+    ...new Set(
+      groups
+        .filter((group) => expandedIds.has(group.id))
+        .flatMap((group) => group.events)
+        .flatMap((event) =>
+          event.objectType === 'block' && parseTopoChange(event.metadata) != null ? [Number(event.objectId)] : [],
+        )
+        .filter(Number.isInteger),
+    ),
+  ])
 
   const topos = toposByBlockIds(() => expandedBlockIds)
 

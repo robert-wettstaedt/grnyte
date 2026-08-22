@@ -1,5 +1,5 @@
 import { checkRegionPermission, REGION_PERMISSION_READ } from '$lib/auth'
-import { enrichMarkdown } from '$lib/components/Markdown/lib'
+import { enrichMarkdown } from '$lib/components/Markdown/lib/enrich.server'
 import { db } from '$lib/db/db.server'
 import { files } from '$lib/db/schema'
 import type { MediaFile } from '$lib/entities/file/dto'

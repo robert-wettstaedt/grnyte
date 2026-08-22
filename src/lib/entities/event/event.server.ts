@@ -1,5 +1,4 @@
 import * as schema from '$lib/db/schema'
-import { sub } from 'date-fns'
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { EVENT_OBJECT_COLUMNS, type EventObjectType } from './dto'
@@ -26,8 +25,11 @@ type Db = PostgresJsDatabase<typeof schema>
  *
  * The same 15 minutes the grace-window delete uses, and for the same reason: inside it, a person
  * is still finishing one action rather than starting another.
+ *
+ * A fixed span rather than a calendar one, so plain millisecond subtraction is exact: no month
+ * length and no DST shift can change what "15 minutes ago" means.
  */
-const FOLD_WINDOW = { minutes: 15 }
+const FOLD_WINDOW_MS = 15 * 60 * 1000
 
 /** One changed column, as a caller states it. */
 export interface EventChange {
@@ -282,7 +284,7 @@ export function objectColumns(
  */
 export function withinGraceWindow(createdAt: Date | number): boolean {
   const created = typeof createdAt === 'number' ? createdAt : createdAt.getTime()
-  return created > sub(new Date(), FOLD_WINDOW).getTime()
+  return created > Date.now() - FOLD_WINDOW_MS
 }
 
 /**
@@ -404,7 +406,7 @@ async function openEvent(db: Db, input: EventInput): Promise<schema.Event | unde
         eq(schema.events.regionFk, input.regionFk),
         objectMatches(input.object),
         input.metadata == null ? isNull(schema.events.metadata) : eq(schema.events.metadata, input.metadata),
-        gt(schema.events.createdAt, sub(new Date(), FOLD_WINDOW)),
+        gt(schema.events.createdAt, new Date(Date.now() - FOLD_WINDOW_MS)),
       ),
     )
     .orderBy(sql`${schema.events.createdAt} desc`)

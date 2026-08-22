@@ -257,9 +257,12 @@
 >
   <div class="absolute inset-0">
     {#key imagePath}
+      <!-- Eager and high priority: the topo is the whole editor, and eager alone only opts out of
+           lazy loading, it does not lift the request above the scripts and tiles it competes with. -->
       <Image
         path={imagePath}
         {alt}
+        fetchpriority="high"
         loading="eager"
         class="pointer-events-none h-full w-full touch-none bg-transparent! select-none"
         fit="contain"

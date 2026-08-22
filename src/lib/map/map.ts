@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { isImperialLocale } from '$lib/i18n/units.svelte'
+import { getLocale } from '$lib/paraglide/runtime'
 
 // iOS deep-links into Apple Maps; everywhere else Google Maps' universal URL
 // handles both the Android app and desktop browsers. (iPadOS reports as Mac, so
@@ -58,10 +59,11 @@ export const pickDistanceUnit = (metres: number, imperial: boolean): { unit: str
     : { unit: 'kilometer', value: metres / 1000 }
 }
 
-/** Localized "18 km" / "300 m" / "0.5 mi" for a raw metre value; unit inferred from the runtime locale. */
+/** Localized "18 km" / "300 m" / "0.5 mi" for a raw metre value: unit system from the viewer's
+ *  region, number format from the app's locale (a German reader reads "1,5 km", not "1.5 km"). */
 export const formatMetres = (metres: number): string => {
   const { unit, value } = pickDistanceUnit(metres, isImperialLocale())
-  return new Intl.NumberFormat(navigator.language, {
+  return new Intl.NumberFormat(getLocale(), {
     maximumFractionDigits: value < 10 ? 1 : 0,
     style: 'unit',
     unit,

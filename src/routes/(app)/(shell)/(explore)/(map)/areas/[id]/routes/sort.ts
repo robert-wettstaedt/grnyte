@@ -1,4 +1,5 @@
 import type { RouteListItem } from '$lib/entities/route/dto'
+import { nameCollator } from '$lib/i18n/collator'
 
 export type SortDir = 'asc' | 'desc'
 export type SortField = 'distance' | 'grade' | 'name' | 'rating'
@@ -38,10 +39,12 @@ export function sortRoutes(
   distance: (route: RouteListItem) => number,
 ): RouteListItem[] {
   const mul = dir === 'asc' ? 1 : -1
+  // Resolved once rather than per comparison: an area can hold thousands of routes.
+  const byName = nameCollator()
   const compare = (a: RouteListItem, b: RouteListItem): number => {
     switch (field) {
       case 'name':
-        return a.name.localeCompare(b.name) * mul
+        return byName.compare(a.name, b.name) * mul
       case 'rating':
         return (a.rating - b.rating) * mul
       case 'distance':

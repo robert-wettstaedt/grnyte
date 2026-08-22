@@ -123,7 +123,12 @@
   // First ascents: resolve the user's FA rows, then list routes filtered by their ids.
   const fa = userFirstAscensionists(() => userId)
   const faIds = $derived(fa.data.map((row) => row.id))
-  const faName = $derived(fa.data.map((row) => row.name).join(', '))
+  // A person's names read as a sentence, so they need the language's conjunction, and where the
+  // comma goes differs per language: "Ann, Bo, and Cy" in English (serial comma) against
+  // "Ann, Bo und Cy" in German (no comma before "und"). $derived so the formatter is built once per
+  // locale, as in ContributionCalendar.
+  const nameList = $derived(new Intl.ListFormat(getLocale(), { style: 'long', type: 'conjunction' }))
+  const faName = $derived(nameList.format(fa.data.map((row) => row.name)))
   const faRoutes = routeList(() => ({ firstAscensionists: faIds, sort: 'firstAscentYear', sortOrder: 'desc' }), {
     enabled: () => faIds.length > 0,
   })

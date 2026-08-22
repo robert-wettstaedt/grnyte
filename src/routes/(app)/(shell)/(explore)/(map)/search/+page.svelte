@@ -21,6 +21,7 @@
   import type { RouteListItem } from '$lib/entities/route/dto'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { userList } from '$lib/entities/user/resources.svelte'
+  import { compareNames } from '$lib/i18n/collator'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { sheetState } from '../../Modal/sheetState.svelte'
@@ -146,7 +147,7 @@
     b.score - a.score ||
     (a.type === b.type ? b.rating - a.rating : 0) ||
     a.name.length - b.name.length ||
-    a.name.localeCompare(b.name)
+    compareNames(a.name, b.name)
 
   const GROUP_ORDER: EntityType[] = ['areas', 'blocks', 'routes', 'users']
 

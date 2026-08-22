@@ -40,6 +40,25 @@ This project uses:
 - An entity's display name comes from its mapper and nowhere else: `routeDisplayName` (`route/mapper.ts`), `blockName` (`block/mapper.ts`). Names are genuinely optional in the DB, so an entity must never render as an empty string; the fallback (`common_unnamed`, `Block <order+1>`) belongs in the mapper so a feed card, a push notification and the screen they link to cannot disagree. Never inline `name ?? ''`, `name || 'Unnamed'` or a second copy of the fallback, on the client or the server.
 - Schema changes go through the pipeline: edit `schema.ts`, `generate:drizzle`, append any backfill SQL, `generate:zero`, `migrate`.
 - Verify changes by driving the running app, not just typechecking.
+- Browser floor: `vite.config.ts` pins `build.target`. Left unpinned it inherits Vite's
+  `baseline-widely-available` default, which is Baseline Widely as of a date frozen per Vite major,
+  so the floor drifts silently on an upgrade. Check a web feature against the pinned list, never
+  against "Baseline Widely" in the abstract. The target only lowers syntax, it never polyfills, and
+  that difference decides how a feature may be adopted: a missing CSS feature degrades (the browser
+  ignores the declaration, so `@supports` is enough), while a missing JS built-in
+  (`Object.groupBy`, `Set.prototype.union`, `Intl.DurationFormat`) is a `TypeError` on a user's
+  phone with no build error and no warning. Guard those with a feature check and a fallback, or do
+  not use them. Raising the floor was measured and moves zero JS bytes, so raise it only as a
+  product decision about which devices to stop serving, never to save bytes, and never to
+  `safari17.5`, where lightningcss stops lowering `light-dark()` and Skeleton's palette breaks for
+  Safari 16.4 to 17.4. Two scopes the pin does not reach: pre-bundled `node_modules` deps, and
+  `src/sw.ts`, which SvelteKit builds separately with `configFile: false`.
+- Server runtime: `engines.node` mirrors the newest runtime Vercel Functions offers, not a
+  preference. Raising it past that fails the build rather than degrading. Kit compiles SSR at
+  `node18.13`, which restricts syntax only and never removes a built-in, so server code may use
+  current-Node built-ins freely: Baseline is the wrong lens for `*.server.ts`, `+server.ts` and
+  `*.remote.ts`. The trap is the other direction, anything under `src/lib/` that a client component
+  can reach inherits the browser floor above.
 - `*-PLAN.md` files are scratch for the agent, not repo documentation: never commit one, and never reference one (or a "Decision N" inside it) from code, comments or JSDoc, because the file is deleted when the feature lands and the reference rots. A decision worth keeping moves into the artifact it governs: a column comment in `schema.ts`, a term in `CONTEXT.md`, a line here.
 
 Project workflow skills in `.claude/skills/`: `scaffold-entity`, `zero-schema-change`, `grnyte-verify`, `add-i18n-keys`, `review-triage`, `run-plan`.

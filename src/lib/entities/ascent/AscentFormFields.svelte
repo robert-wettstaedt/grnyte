@@ -18,7 +18,8 @@
   import FormHint from '$lib/forms/FormHint.svelte'
   import OptionalBadge from '$lib/forms/OptionalBadge.svelte'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
-  import { formatCelsius } from '$lib/i18n/units.svelte'
+  import { localIsoDay } from '$lib/i18n/relativeTime'
+  import { formatCelsius, formatConditions, formatHumidity } from '$lib/i18n/units.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { getGlobalState } from '$lib/state/global.svelte'
@@ -70,13 +71,13 @@
   // svelte-ignore state_referenced_locally
   const conditionsOpen = temperature != null || humidity != null
 
-  // Local calendar date (what "today" means to the climber, not UTC). en-CA's
-  // short date format is YYYY-MM-DD, the closest thing to a stdlib local ISO date.
-  const localIso = new Intl.DateTimeFormat('en-CA').format
+  // Local calendar date (what "today" means to the climber, not UTC). These two are compared for
+  // equality against the date input's value and one of them is submitted, so they go through the
+  // explicit helper rather than a locale's date pattern; see `localIsoDay`.
   const now = new Date()
-  const today = localIso(now)
+  const today = localIsoDay(now)
   // Calendar arithmetic (day 0 rolls into the previous month), so DST-safe.
-  const yesterday = localIso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))
+  const yesterday = localIsoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))
   // The stored value is a plain pg date (synced as UTC-midnight millis), so UTC getters.
   // svelte-ignore state_referenced_locally
   let date = $state(ascent?.dateTime == null ? today : new Date(ascent.dateTime).toISOString().slice(0, 10))
@@ -216,9 +217,7 @@
     <span class="flex-1"></span>
     {#if temperature != null || humidity != null}
       <span class="text-surface-600-400 font-mono text-xs font-bold">
-        {[temperature == null ? null : formatCelsius(temperature), humidity == null ? null : `${humidity} %`]
-          .filter(Boolean)
-          .join(' · ')}
+        {formatConditions(temperature, humidity)}
       </span>
     {/if}
     <span class="text-surface-500 transition-transform group-open:rotate-90">
@@ -240,7 +239,7 @@
     <FormHint id="ascent-temperature" issues={form.fields.temperature.issues()} />
 
     <ConditionSlider
-      format={(value) => `${value} %`}
+      format={formatHumidity}
       label={m.ascents_form_humidityLabel()}
       max={100}
       min={0}

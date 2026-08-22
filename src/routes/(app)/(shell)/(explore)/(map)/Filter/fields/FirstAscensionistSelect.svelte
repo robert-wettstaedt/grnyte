@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { FirstAscensionist } from '$lib/entities/firstAscensionist/dto'
+  import { nameCollator } from '$lib/i18n/collator'
   import { m } from '$lib/paraglide/messages'
 
   interface Props {
@@ -30,9 +31,10 @@
   // sheet before "Apply" can be pressed.
   const matches = $derived.by(() => {
     const term = search.trim().toLowerCase()
+    const byName = nameCollator()
     const found = firstAscensionists
       .filter((fa) => term === '' || fa.name.toLowerCase().includes(term))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => byName.compare(a.name, b.name))
     return { overflow: Math.max(0, found.length - RESULT_LIMIT), shown: found.slice(0, RESULT_LIMIT) }
   })
 

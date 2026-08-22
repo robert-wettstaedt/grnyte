@@ -30,8 +30,11 @@
 {#if panel}
   <!-- Opt-in fixed panel: a non-modal dialog positioned via panelClass/contentClass
        (e.g. under the search bar, or beside the routes sheet) instead of anchoring
-       to the trigger. Close via the X, Escape, or re-tapping the trigger. -->
-  {@render trigger?.({})}
+       to the trigger. Close via the X, Escape, or re-tapping the trigger.
+
+       A panel never touches the trigger, so Modal.svelte renders it: this file is fetched
+       lazily, and a trigger in here would not exist until its chunk landed. The popover
+       branch below is the exception, because Zag hands that button its own props. -->
 
   <!-- backdrop opts this panel into modal behaviour: a blurred scrim, tap-outside
        to close and a focus trap. Without it the panel stays non-modal (e.g. the

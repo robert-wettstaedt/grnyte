@@ -4,8 +4,25 @@
  * The app's map is OpenLayers on plain OSM *raster* tiles, so a thumbnail is a handful of
  * `<img>` tags at computed URLs rather than a second map instance: no WebGL context per card,
  * no static-map API key, no dependency. {@link StaticMap} is the component built on this.
+ *
+ * It also holds the one value the two renderers share ({@link APPROACH_COLOR}), because this is
+ * the half of the pair that imports nothing.
  */
 import type { Coords } from './map'
+
+/**
+ * The blue an approach path is drawn in, on the interactive map and on the thumbnails the feed
+ * renders beside a card.
+ *
+ * Shared because those are two different renderers (OpenLayers and hand-written SVG) drawing the
+ * same thing, and a reader who opens the map after seeing a card has to find what the card showed
+ * them. Each used to spell the colour out.
+ *
+ * It sits here rather than beside `createPathLayer`, which is the renderer that actually paints it
+ * on the map: see the note above the import in `layers.svelte.ts` for why that direction is the
+ * only safe one.
+ */
+export const APPROACH_COLOR = 'rgba(30, 64, 175, 0.7)'
 
 /** OSM serves 256 px tiles, and has no imagery past zoom 19. */
 export const TILE_SIZE = 256

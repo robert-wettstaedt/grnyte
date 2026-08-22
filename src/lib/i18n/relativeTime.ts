@@ -1,4 +1,36 @@
 /**
+ * Intl formatters are costly to construct and free to reuse: on Node 24, building a
+ * `RelativeTimeFormat` and formatting once measures ~9 µs against ~0.3 µs for a reused one, and the
+ * `DateTimeFormat` variant ~27 µs. `state/now.svelte.ts` ticks a shared clock every minute and on
+ * every `visibilitychange`, which re-runs every relative label in the feed, the logbook and the
+ * inbox at once, so a screenful of them is milliseconds of main thread per tick on a phone.
+ *
+ * Keyed by locale rather than held as one module-level formatter because the locale is a runtime
+ * value: paraglide can switch it mid-session, and a singleton built on the first reader's locale
+ * would quietly format the second reader's labels in it.
+ *
+ * A cached formatter also pins the runtime timezone at construction. That is right for a session (a
+ * device's zone does not move under a running page) but it means a test that swaps `process.env.TZ`
+ * cannot expect the local-zone formatter below to follow it.
+ */
+const perLocale = <T>(create: (locale: string) => T): ((locale: string) => T) => {
+  const cache = new Map<string, T>()
+  return (locale) => {
+    const cached = cache.get(locale)
+    if (cached != null) {
+      return cached
+    }
+    const created = create(locale)
+    cache.set(locale, created)
+    return created
+  }
+}
+
+const utcDateFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }))
+const localDateFormat = perLocale((locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }))
+const relativeFormat = perLocale((locale) => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }))
+
+/**
  * The local calendar day a moment falls on, as the UTC-midnight stamp every date-only value in
  * the app is stored and formatted as.
  *
@@ -22,7 +54,7 @@ export function calendarDay(at: number): number {
  * stored value, which they did while each spelled the formatter out.
  */
 export function formatDate(timestamp: number, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(timestamp)
+  return utcDateFormat(locale).format(timestamp)
 }
 
 /**
@@ -40,7 +72,7 @@ export function formatDay(timestamp: number, now: number, locale: string): strin
   if (Math.abs(days) >= 7) {
     return formatDate(timestamp, locale)
   }
-  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(days, 'day')
+  return relativeFormat(locale).format(days, 'day')
 }
 
 /**
@@ -60,10 +92,11 @@ export function formatUploadedAt(timestamp: number, now: number, locale: string)
   const DAY = 86_400_000
 
   if (isDatedMoment(timestamp, now)) {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(timestamp)
+    // The viewer's own zone, unlike `formatDate`: this one is a moment, not a stored calendar date.
+    return localDateFormat(locale).format(timestamp)
   }
 
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const rtf = relativeFormat(locale)
   const MINUTE = 60_000
   const HOUR = 3_600_000
   if (abs < MINUTE) return rtf.format(Math.round(ms / 1000), 'second')
@@ -82,4 +115,21 @@ export function formatUploadedAt(timestamp: number, now: number, locale: string)
  */
 export function isDatedMoment(timestamp: number, now: number): boolean {
   return Math.abs(Math.min(0, timestamp - now)) >= 7 * 86_400_000
+}
+
+/**
+ * A local calendar date as `yyyy-mm-dd`: the wire format of the app's pg `date` columns, and what a
+ * native `<input type="date">` reads and writes.
+ *
+ * Spelled out rather than taken off `new Intl.DateTimeFormat('en-CA')`, whose short pattern happens
+ * to be ISO today. ECMA-402 guarantees the API, never the pattern a locale resolves to, and this
+ * value is compared for equality and written to the database rather than read by a person, so a CLDR
+ * revision would break it silently. `toISOString().slice(0, 10)` is not the fix either: it converts
+ * to UTC first, so a climber logging just after midnight in Berlin gets yesterday's date and one
+ * logging at 20:00 in Denver gets tomorrow's.
+ */
+export function localIsoDay(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
 }

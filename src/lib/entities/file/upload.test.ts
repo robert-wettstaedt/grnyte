@@ -60,7 +60,7 @@ describe('imageMimeOf', () => {
 describe('stagingPath', () => {
   it('prefixes the auth uid (the RLS scope) and keeps the extension', () => {
     const path = stagingPath('7f9c0e4a-uid', 'IMG_2041.JPG')
-    expect(path).toMatch(/^7f9c0e4a-uid\/[a-z0-9]+\.jpg$/)
+    expect(path).toMatch(/^7f9c0e4a-uid\/[a-z0-9-]+\.jpg$/)
   })
 
   it('generates distinct names for the same input', () => {

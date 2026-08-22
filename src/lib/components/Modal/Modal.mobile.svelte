@@ -17,11 +17,55 @@
     snapPoints = [0.5],
     subtitle,
     title,
-    trigger,
   }: Props = $props()
 
   /** Whether the press that is about to become a click went down on the scrim itself. */
   let pressedOnOverlay = $state(false)
+
+  /**
+   * The sheet's own open state, one frame behind `open`.
+   *
+   * `Modal.svelte` fetches this file lazily, so the first tap on a trigger lands while the chunk
+   * is still in flight: the component then mounts with `open` already true, and handing that
+   * straight to `BottomSheet` renders the sheet at its snap point with nothing to slide up from.
+   * Every open after that animates, because by then the component is mounted and closed. Staging
+   * the value gives the first one the same closed frame the rest get, whatever made the branch
+   * late, and costs the others a single frame.
+   */
+  let sheetOpen = $state(false)
+
+  /** Set once the sheet has actually been open, so the mount-time `false` is not read as a close. */
+  let opened = $state(false)
+
+  $effect(() => {
+    if (!open) {
+      sheetOpen = false
+      // Reset with the sheet, or the next open is cancelled by the effect below before its frame
+      // lands: `opened` would still be true while `sheetOpen` is briefly false again.
+      opened = false
+      return
+    }
+
+    if (sheetOpen) {
+      return
+    }
+
+    const frame = requestAnimationFrame(() => {
+      sheetOpen = true
+      opened = true
+    })
+
+    return () => cancelAnimationFrame(frame)
+  })
+
+  // The drag-to-dismiss gesture closes the sheet from inside the library, which writes `sheetOpen`
+  // and nothing else. Without this the effect above would see `open` still true and slide it right
+  // back up. The close button and the scrim write `open` directly and do not need it.
+  $effect(() => {
+    if (opened && !sheetOpen) {
+      open = false
+    }
+  })
 
   // Keep the sheet (and the focused field) above the on-screen keyboard.
   //
@@ -72,7 +116,9 @@
   })
 </script>
 
-{@render trigger?.({})}
+<!-- No trigger here: Modal.svelte renders it. This file is fetched lazily (it carries
+     svelte-bottom-sheet, which a desktop never shows), so a trigger in here would not
+     exist until its chunk landed and every control would visibly pop in. -->
 
 {#snippet content()}
   <BottomSheet.Sheet
@@ -139,7 +185,7 @@
 {/snippet}
 
 <Portal>
-  <BottomSheet settings={{ maxHeight: snapPoints[0], snapPoints }} bind:isSheetOpen={open}>
+  <BottomSheet settings={{ maxHeight: snapPoints[0], snapPoints }} bind:isSheetOpen={sheetOpen}>
     {#if backdrop}
       <!-- Scrim behind the sheet; tap to dismiss. stopPropagation keeps the tap from
            reaching the map panel's document-click handler (which would collapse it). -->

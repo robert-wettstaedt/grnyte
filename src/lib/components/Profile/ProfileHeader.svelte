@@ -23,8 +23,11 @@
 
   const { contributions, faName, hardestGrade, isSelf, onBack, stats, username }: Props = $props()
 
-  // Compact counts so a large tally stays one glyph wide (1100 -> "1.1K"). Forced to
-  // `en` because German compact notation doesn't abbreviate thousands; we always want "K".
+  // Compact counts so a large tally stays one glyph wide (1100 -> "1.1K"). Forced to `en` because
+  // German compact notation abbreviates nothing below a million: 1100 stays "1100" and 11000 becomes
+  // "11.000", where `en` gives "1.1K" and "11K". Ascents, sends and follower counts are three or
+  // four digits, so that is the whole range these live in. German does abbreviate from a million up
+  // ("1,2 Mio."), so revisit this if a counter ever gets there.
   const compact = new Intl.NumberFormat('en', { maximumFractionDigits: 1, notation: 'compact' })
 </script>
 

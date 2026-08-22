@@ -7,6 +7,7 @@
   import { canAddBlock, canAddParking } from '$lib/entities/area/permissions'
   import { areaList } from '$lib/entities/area/resources.svelte'
   import { blockList } from '$lib/entities/block/resources.svelte'
+  import { nameCollator } from '$lib/i18n/collator'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { findNearestCrag } from './cragLocator'
@@ -69,9 +70,10 @@
   // Parking is stricter (needs an actual crag); blocks also allow still-untyped areas.
   const candidateCrags = $derived.by(() => {
     const allowed = placing === 'parking' ? canAddParking : canAddBlock
+    const byName = nameCollator()
     return areas.data
       .filter((area) => allowed(global.userRegions, area))
-      .toSorted((a, b) => a.name.localeCompare(b.name))
+      .toSorted((a, b) => byName.compare(a.name, b.name))
   })
 
   const filteredCrags = $derived(

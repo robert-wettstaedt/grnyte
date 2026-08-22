@@ -15,17 +15,12 @@ import TileWMS from 'ol/source/TileWMS.js'
 import { Fill, Stroke, Style, Text } from 'ol/style.js'
 import CircleStyle from 'ol/style/Circle'
 import Icon from 'ol/style/Icon'
+// APPROACH_COLOR is defined in `./tiles` and imported back, never the other way round. A constant
+// this module shares with a non-OpenLayers renderer must not live here: `ol` lists `proj.js` under
+// `sideEffects` in its package.json, so no bundler may drop it, and importing one string from this
+// module would pull the whole library into StaticMap and so into every feed card.
+import { APPROACH_COLOR } from './tiles'
 import { BLOCK_LABEL_ZOOM, BLOCK_ZOOM, CRAG_ZOOM } from './types'
-
-/**
- * The blue an approach path is drawn in, on the interactive map and on the thumbnails the feed
- * renders beside a card.
- *
- * Exported because those are two different renderers (OpenLayers and hand-written SVG) drawing
- * the same thing, and a reader who opens the map after seeing a card has to find what the card
- * showed them. Each used to spell the colour out.
- */
-export const APPROACH_COLOR = 'rgba(30, 64, 175, 0.7)'
 
 // Read-only fallback for areas/crags with no grade data, so we never allocate per feature.
 const EMPTY_GRADE_COUNTS: Map<number, number> = new Map<number, number>()

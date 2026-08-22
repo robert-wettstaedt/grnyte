@@ -65,6 +65,15 @@
   // One viewer for the whole list: mounting a lightbox per card would open several at
   // once on the same `?media` param (see MediaLightbox).
   const files = $derived(views.flatMap((view) => view.files))
+
+  /**
+   * Cards that render normally before `content-visibility: auto` takes over below.
+   *
+   * Roughly a phone screenful. The first cards are on screen anyway, so skipping their layout and
+   * paint would buy nothing and only risks the browser measuring them at the placeholder size for
+   * one frame.
+   */
+  const EAGER_CARDS = 6
 </script>
 
 <div class="space-y-3">
@@ -77,7 +86,7 @@
     </div>
   {/if}
 
-  {#each rows as { day, startsDay, view } (view.id)}
+  {#each rows as { day, startsDay, view }, index (view.id)}
     {#if startsDay}
       <h2 class="text-surface-600-400 px-1 pt-1 text-xs font-bold tracking-wide uppercase">
         {formatDay(day, now(), getLocale())}
@@ -86,8 +95,22 @@
 
     <!-- The card swaps its own compact row for its full self, and for the length of that swap both
          halves are in the DOM. Unwrapped they would be two children of `space-y-3` for 150ms, so
-         everything below would jerk down by a gap and back up again. One wrapper, one gap. -->
-    <div>
+         everything below would jerk down by a gap and back up again. One wrapper, one gap.
+
+         Off screen, that same wrapper is also where the feed stops paying for cards nobody is
+         looking at: a synced window opens at 50 rows and only grows from there (`load older` adds
+         another 50 and nothing prunes the old ones), so everything past the first screenful skips
+         layout and paint until it scrolls near.
+
+         Two things this leans on. `content-visibility: auto` implies `contain: layout paint style`,
+         which makes each wrapper a containing block and a stacking context, so it is only safe
+         because every overlay a card can open (the lightbox, the reaction sheet) portals out of the
+         list; keep it that way. And the intrinsic size MUST keep its `auto` keyword: the card grows
+         when it expands, and without `auto` remembering the size it last rendered at, an expanded
+         card that scrolled away would come back at the placeholder height and yank the scroll
+         position. The one cost: Safari 18.0 to 18.6 does not find skipped content with find-in-page
+         (fixed in 26), so on those a browser search misses cards below the fold. -->
+    <div class={index >= EAGER_CARDS ? '[contain-intrinsic-size:auto_11rem] [content-visibility:auto]' : undefined}>
       <EventCard {view} onToggle={(open) => (open ? expandedIds.add(view.id) : expandedIds.delete(view.id))} />
     </div>
   {/each}

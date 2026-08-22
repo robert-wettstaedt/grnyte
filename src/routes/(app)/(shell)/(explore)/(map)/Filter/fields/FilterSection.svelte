@@ -12,17 +12,12 @@
   }
 
   let { active = false, children, label, summary }: Props = $props()
-
-  let open = $state(false)
 </script>
 
-<div class="border-surface-200-800 border-b">
-  <button
-    type="button"
-    class="flex w-full items-center justify-between gap-2 py-3 text-left"
-    aria-expanded={open}
-    onclick={() => (open = !open)}
-  >
+<!-- No `name` on the <details>: that would make the sheet an exclusive accordion, and its job is
+     stacking several constraints at once, so opening grade must not close tags. -->
+<details class="group border-surface-200-800 border-b">
+  <summary class="flex cursor-pointer list-none items-center justify-between gap-2 py-3 select-none">
     <span class="text-surface-600-400 text-xs font-bold tracking-wide uppercase">{label}</span>
 
     <span class="flex min-w-0 items-center gap-2">
@@ -30,15 +25,13 @@
         {summary}
       </span>
 
-      <span class={['inline-flex shrink-0 transition-transform', open && 'rotate-180']}>
+      <span class="inline-flex shrink-0 transition-transform group-open:rotate-180">
         <Icon name="chevron-down" size={16} />
       </span>
     </span>
-  </button>
+  </summary>
 
-  {#if open}
-    <div class="pb-4">
-      {@render children()}
-    </div>
-  {/if}
-</div>
+  <div class="pb-4">
+    {@render children()}
+  </div>
+</details>

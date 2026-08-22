@@ -5,6 +5,7 @@
   in the viewer's deck (which reads `onZoomChange` to stay out of the way while zoomed).
 -->
 <script lang="ts">
+  import { browser } from '$app/environment'
   import { resolve } from '$app/paths'
   import Avatar from '$lib/components/Avatar/Avatar.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -64,9 +65,13 @@
   // Caption timestamp: relative ("3 days ago") within a week, absolute date beyond it.
   // Tapping swaps it to the exact date + time; hover shows the same via `title`.
   const uploadedRelative = $derived(formatUploadedAt(file.createdAt, now(), getLocale()))
-  const uploadedExact = $derived(
-    new Intl.DateTimeFormat(getLocale(), { dateStyle: 'long', timeStyle: 'short' }).format(file.createdAt),
-  )
+  // $derived so the formatter is built once per locale rather than once per clock tick.
+  const exactFormat = $derived(new Intl.DateTimeFormat(getLocale(), { dateStyle: 'long', timeStyle: 'short' }))
+  // Browser-only: this is a moment, and the zone that makes it readable is the reader's, which only
+  // the browser knows. /f/<id> server-renders (it is outside the (app) layout's `ssr = false`), so
+  // formatting it there would stamp the host's zone into the HTML and redraw it on hydration. Both
+  // ways it shows (a hover title and a tap-to-swap) need a pointer anyway, so nothing is lost.
+  const uploadedExact = $derived(browser ? exactFormat.format(file.createdAt) : '')
   const uploadedIso = $derived(new Date(file.createdAt).toISOString())
   let showExact = $state(false)
 
@@ -245,7 +250,7 @@
           <button
             type="button"
             class="text-xs opacity-80"
-            title={uploadedExact}
+            title={uploadedExact === '' ? undefined : uploadedExact}
             onclick={() => (showExact = !showExact)}
           >
             <time datetime={uploadedIso}>{showExact ? uploadedExact : uploadedRelative}</time>

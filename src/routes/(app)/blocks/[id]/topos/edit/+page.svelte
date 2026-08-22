@@ -36,7 +36,6 @@
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
   import { notifyError, notifyUndo, toaster } from '$lib/state/toast'
-  import exifr from 'exifr'
   import { fly } from 'svelte/transition'
   import { topoEditorKeydown } from './keydown'
   import TopoAddRouteModal from './TopoAddRouteModal.svelte'
@@ -285,6 +284,22 @@
 
   async function estimateLocationFromPhotos(files: File[]) {
     if (block.data == null) return
+
+    // Loaded here, not at module scope: EXIF is only ever read once someone actually picks a
+    // photo, so keeping the parser off the page chunk costs the picker one round trip and saves
+    // every other visit to this editor the whole download.
+    //
+    // `lite` rather than the default entry, which drags in the tif/png file parsers, the
+    // IPTC/XMP/ICC/JFIF/IHDR segment parsers and every tag dictionary for one GPS read. `lite`
+    // keeps the jpg *and* heic/avif file parsers, which the picker below accepts (`.heic,.heif`).
+    // Never `mini`: it drops those, so an iPhone photo would silently read as having no GPS.
+    //
+    // exifr's package.json has no `exports` map, so this deep dist path is an internal file the
+    // package makes no promise about, and only the version range holds it still. Pin exifr to an
+    // exact version in package.json ("exifr": "7.1.3") so a patch bump cannot move or rename it.
+    // @ts-expect-error -- no declarations ship for the deep path; `gps` is the root build's own.
+    const exifr = (await import('exifr/dist/lite.esm.mjs')) as Pick<typeof import('exifr'), 'gps'>
+
     for (const file of files) {
       let gps: Awaited<ReturnType<typeof exifr.gps>>
       try {

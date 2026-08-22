@@ -17,8 +17,7 @@
 
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
-  import { APPROACH_COLOR } from './layers.svelte'
-  import { pointPx, TILE_SIZE, tileView } from './tiles'
+  import { APPROACH_COLOR, pointPx, TILE_SIZE, tileView } from './tiles'
 
   interface Props {
     class?: string

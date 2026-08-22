@@ -2,7 +2,8 @@ import * as schema from '$lib/db/schema'
 import type { Grade } from '$lib/entities/grade/dto'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it, vi } from 'vitest'
-import { convertMarkdownToHtml, convertMarkdownToHtmlSync } from './index'
+import { convertMarkdownToHtml } from './enrich.server'
+import { convertMarkdownToHtmlSync } from './index'
 
 vi.mock('$lib/entities/grade/color', () => {
   return {

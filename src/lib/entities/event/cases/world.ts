@@ -47,11 +47,22 @@ export const PIN = { lat: 47.123456, long: 8.56789 }
 /**
  * Wall-clock base, read once so every event in one run dates off the same moment.
  *
- * Deliberately the real clock rather than a fixed stamp: the wall is read by eye and a card that
- * says "5 minutes ago" is half of what it is showing. Anything asserting on these has to
- * normalise the clock away instead (see `coverage.test.ts`).
+ * The real clock on the Storybook wall, deliberately: it is read by eye, and a card that says
+ * "5 minutes ago" is half of what it is showing.
+ *
+ * Pinned under test, because the clock is not only a display concern here. GROUP-01c states two
+ * ascents 480 and 580 minutes back and expects them to fold into one session card, which holds
+ * only while both land on the same calendar day. Between roughly 08:00 and 09:40 UTC they
+ * straddle midnight and the card splits in two, so the snapshot depended on the hour the suite
+ * ran and CI failed inside that band. The window is exactly as wide as the gap between the two
+ * events, which is why an early-morning run can still pass: below 08:00 both events fall on the
+ * previous day together.
+ *
+ * Noon sits clear of that band with the most room on either side for the cases that reach back
+ * furthest. Pairs with `test.env.TZ = 'UTC'` in `vite.config.ts`: same instinct, other half of
+ * the clock.
  */
-const base = Date.now()
+const base = import.meta.env.MODE === 'test' ? Date.UTC(2026, 0, 15, 12) : Date.now()
 
 let nextId = 1
 

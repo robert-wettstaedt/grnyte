@@ -1,3 +1,4 @@
+import { compareNames } from '$lib/i18n/collator'
 import { queries } from '$lib/zero/queries'
 import { createResource } from '$lib/zero/resource.svelte'
 import { toRegionDetail, toRegionMemberItem, toRegionMembership } from './mapper'
@@ -18,7 +19,7 @@ export function regionDetail(id: () => number) {
 export function regionMemberList(regionFk: () => number) {
   return createResource(
     () => queries.listRegionMembers({ regionFk: regionFk() }),
-    (rows) => rows.map(toRegionMemberItem).sort((a, b) => a.username.localeCompare(b.username)),
+    (rows) => rows.map(toRegionMemberItem).sort((a, b) => compareNames(a.username, b.username)),
   )
 }
 
@@ -31,6 +32,6 @@ export function regionMemberList(regionFk: () => number) {
 export function userRegionList() {
   return createResource(
     () => queries.listUserRegions(),
-    (rows) => rows.map(toRegionMembership).sort((a, b) => a.name.localeCompare(b.name)),
+    (rows) => rows.map(toRegionMembership).sort((a, b) => compareNames(a.name, b.name)),
   )
 }

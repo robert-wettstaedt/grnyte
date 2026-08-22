@@ -272,16 +272,28 @@ const dayMs = 86_400_000
 const now = Date.now()
 const ascentRows = routeIds.flatMap((routeId) => {
   const n = rand() < 0.4 ? 0 : int(1, 3)
-  return Array.from({ length: n }, () => ({
-    created_by: author(),
-    date_time: new Date(now - int(0, 5 * 365) * dayMs).toISOString().slice(0, 10),
-    grade_fk: rand() < 0.5 ? grade() : null,
-    notes: rand() < 0.2 ? 'Great line.' : null,
-    rating: rand() < 0.6 ? int(1, 5) : null,
-    region_fk: region.id,
-    route_fk: routeId,
-    type: pick(ASCENT_TYPES),
-  }))
+  return Array.from({ length: n }, () => {
+    // Conditions on a minority of ascents, so the ConditionsPill and its absence are both
+    // represented. Without any of these the pill never rendered and the unit formatting on the
+    // share page (`/f/[id]`, the one SSR'd route) could not be checked at all.
+    //
+    // `humidity` is whole percent, not a 0-1 fraction: `formatHumidity` divides by 100 before
+    // handing it to `Intl.NumberFormat`'s percent style.
+    const conditions = rand() < 0.35
+
+    return {
+      created_by: author(),
+      date_time: new Date(now - int(0, 5 * 365) * dayMs).toISOString().slice(0, 10),
+      grade_fk: rand() < 0.5 ? grade() : null,
+      humidity: conditions ? int(20, 95) : null,
+      notes: rand() < 0.2 ? 'Great line.' : null,
+      rating: rand() < 0.6 ? int(1, 5) : null,
+      region_fk: region.id,
+      route_fk: routeId,
+      temperature: conditions ? int(-5, 30) : null,
+      type: pick(ASCENT_TYPES),
+    }
+  })
 })
 const ascentIds = await insertReturningIds('ascents', ascentRows, [
   'created_by',
@@ -292,6 +304,8 @@ const ascentIds = await insertReturningIds('ascents', ascentRows, [
   'grade_fk',
   'rating',
   'notes',
+  'temperature',
+  'humidity',
 ])
 console.log(`  ascents: ${ascentIds.length}`)
 
