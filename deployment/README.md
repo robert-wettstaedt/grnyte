@@ -14,7 +14,8 @@ This deployment has been simplified to be more reliable. The process:
 - `docker-compose.zero.yml` - Main services (no profiles needed)
 - `nginx.zero.conf` - nginx configuration (serves HTTP initially, then HTTPS)
 - `setup-ssl.sh` - Automated SSL certificate setup script
-- `.env.prod` and `.env.demo` - Environment configurations
+- `.env.prod` and `.env.demo` - Environment configurations, written by `deploy-zero.yml` out of
+  Bitwarden Secrets Manager. See [SECRETS.md](SECRETS.md).
 
 ### Quick Manual Deployment
 
@@ -45,7 +46,7 @@ chmod +x setup-ssl.sh
 
 - `docker-compose.zero.yml` - Combined Docker Compose configuration for both Zero instances
 - `nginx.zero.conf` - Domain-based nginx configuration with SSL support
-- `.env.shared` - Environment variables (auto-generated during deployment)
+- `.env.prod` / `.env.demo` - Per-instance environment variables (written during deployment)
 
 ## Deployment
 
@@ -53,7 +54,7 @@ chmod +x setup-ssl.sh
 
 The deployment is handled automatically by the `deploy-zero.yml` GitHub Actions workflow when changes are pushed to the main branch. The workflow:
 
-1. Creates a `.env.shared` file with all required environment variables
+1. Writes `.env.prod` and `.env.demo` from the matching Bitwarden project
 2. Deploys both Zero instances using `docker-compose.zero.yml`
 3. Sets up nginx with domain-based routing
 4. Obtains SSL certificates for both domains
@@ -68,18 +69,13 @@ If you need to deploy manually:
 ssh user@your-vps
 
 # Navigate to deployment directory
-cd ~/grnyte/deployment
+cd ~/zero-deployment/deployment
 
-# Create environment file (replace with actual values)
-cat > .env.shared << EOF
-ZERO_UPSTREAM_DB_PROD=your_production_db_url
-ZERO_AUTH_SECRET_PROD=your_production_auth_secret
-ZERO_PUSH_URL_PROD=https://zero.grnyte.rocks
-ZERO_UPSTREAM_DB_DEMO=your_demo_db_url
-ZERO_AUTH_SECRET_DEMO=your_demo_auth_secret
-ZERO_AUTH_SECRET=your_admin_password
-ZERO_PUSH_URL_DEMO=https://zero.demo.grnyte.rocks
-EOF
+# Write the environment files from Bitwarden, one token per instance. Run this from a checkout on
+# your machine, not on the VPS: no access token belongs on that box.
+BWS_ACCESS_TOKEN=<prod token> node deployment/secrets.mjs pull env.all
+grep '^ZERO_' env.all | ssh user@your-vps 'cat > ~/zero-deployment/deployment/.env.prod'
+rm env.all
 
 # Clean up any existing deployment
 docker compose -f docker-compose.zero.yml down -v --remove-orphans
@@ -95,19 +91,17 @@ docker compose -f docker-compose.zero.yml logs
 
 ## Environment Variables
 
-The deployment requires these environment variables in `.env.shared`:
+Each instance reads `.env.<instance>`, which holds the `ZERO_*` half of that environment's Bitwarden
+project and nothing else. The app's own secrets stay off this box.
 
-### Production Instance
+- `ZERO_UPSTREAM_DB` - Database connection string
+- `ZERO_AUTH_SECRET` - JWT verification secret, shared with Supabase
+- `ZERO_ADMIN_PASSWORD` - Zero admin password
+- `ZERO_GET_QUERIES_URL` - The app's get-queries endpoint for this environment
 
-- `ZERO_UPSTREAM_DB_PROD` - Production database connection string
-- `ZERO_AUTH_SECRET_PROD` - Production authentication secret
-- `ZERO_PUSH_URL_PROD` - Production push URL (<https://zero.grnyte.rocks>)
-
-### Demo Instance
-
-- `ZERO_UPSTREAM_DB_DEMO` - Demo database connection string
-- `ZERO_AUTH_SECRET_DEMO` - Demo authentication secret
-- `ZERO_PUSH_URL_DEMO` - Demo push URL (<https://zero.demo.grnyte.rocks>)
+The rest (`ZERO_REPLICA_FILE`, `ZERO_SCHEMA_PATH`, the connection caps) are paths and tuning, and
+live in `docker-compose.zero.yml` where you can read them. See [SECRETS.md](SECRETS.md) for how the
+values get here.
 
 ## Migration to Separate Servers
 
@@ -145,7 +139,7 @@ curl -f https://zero.demo.grnyte.rocks
 
 ### Common Issues
 
-1. **Environment variables not loaded**: Ensure `.env.shared` exists and contains all required variables
+1. **Environment variables not loaded**: Ensure `.env.prod` and `.env.demo` exist and contain the four `ZERO_*` variables
 2. **Network conflicts**: Clean up with `docker network prune -f`
 3. **SSL certificate issues**: Check certbot logs with `docker compose logs certbot`
 4. **Zero server health checks failing**: Check individual container logs

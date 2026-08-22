@@ -24,12 +24,11 @@ jobs:
 
     env:
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://grnyte.rocks' }}
-      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
-      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      RESEND_SENDER_EMAIL: ${{ secrets.RESEND_SENDER_EMAIL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Everything else this job needs comes out of the grnyte-prod project at the moment it runs,
+      # through `bws run` below. Repo-level rather than environment-scoped on purpose: the job is
+      # scheduled, and an environment with required reviewers would park the canary until a human
+      # noticed, which is the failure mode it exists to catch.
+      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN_PROD }}
 
     steps:
       - name: Checkout code
@@ -44,19 +43,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install bws
+        env:
+          BWS_VERSION: '2.1.0'
+        run: curl -sSf https://bws.bitwarden.com/install | sh
+
       # Only chromium, and only here: the app is never built in this job, because the thing under
       # test is the deployment rather than this checkout.
       - name: Install Playwright chromium
         run: npx playwright install --with-deps chromium
 
+      # `bws run` hands the secrets to the child as real environment variables. Nothing is written to
+      # a file or to $GITHUB_ENV, so there is no value for a later step to leak.
       - name: Check deployed configuration
-        run: npm run check:prod
+        run: bws run -- 'npm run check:prod'
 
       # Runs even when the check above failed, because the two answer different questions and a
       # rotated Resend key says nothing about whether sign-up still works.
       - name: Sign-up canary
         if: ${{ !cancelled() }}
-        run: npm run test:e2e prod-signup
+        run: bws run -- 'npm run test:e2e prod-signup'
 
       - name: Upload traces
         if: failure()

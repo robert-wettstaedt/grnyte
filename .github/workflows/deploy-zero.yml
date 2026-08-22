@@ -87,6 +87,18 @@ jobs:
             echo "deploy=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Checkout code
+        if: steps.should_deploy.outputs.deploy == 'true'
+        uses: actions/checkout@v6
+
+      - name: Install bws
+        if: steps.should_deploy.outputs.deploy == 'true'
+        env:
+          BWS_VERSION: '2.1.0'
+        # Installs to /usr/local/bin, which is already on PATH here. Pinned, because a deploy is a
+        # bad place to meet a new CLI.
+        run: curl -sSf https://bws.bitwarden.com/install | sh
+
       - name: Setup SSH
         if: steps.should_deploy.outputs.deploy == 'true'
         run: |
@@ -95,22 +107,26 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      # The access token is the only thing that says which environment this is: it belongs to a
+      # machine account that can read the grnyte-prod project or the grnyte-demo one, never both.
       - name: Prepare ${{ matrix.environment.name }} environment
         if: steps.should_deploy.outputs.deploy == 'true'
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
         run: |
-          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
-            cd $HOME/zero-deployment/deployment
+          # The whole project comes down, but only the Zero server's half is sent on: the app's
+          # secrets (DATABASE_URL, the service role key) have no business sitting on that VPS.
+          node deployment/secrets.mjs pull env.all
+          grep '^ZERO_' env.all > env.zero || {
+            echo "❌ the ${{ matrix.environment.name }} project has no ZERO_* secrets"
+            exit 1
+          }
 
-            # Create environment file for ${{ matrix.environment.name }}
-            rm -f .env.${{ matrix.environment.name }}
-            echo "ZERO_UPSTREAM_DB=${{ secrets.ZERO_UPSTREAM_DB }}" > .env.${{ matrix.environment.name }}
-            echo "ZERO_AUTH_SECRET=${{ secrets.ZERO_AUTH_SECRET }}" >> .env.${{ matrix.environment.name }}
-            echo "ZERO_ADMIN_PASSWORD=${{ secrets.ZERO_ADMIN_PASSWORD }}" >> .env.${{ matrix.environment.name }}
-            echo "ZERO_DOMAIN=${{ vars.ZERO_DOMAIN }}" >> .env.${{ matrix.environment.name }}
-            echo "ZERO_GET_QUERIES_URL=${{ vars.ZERO_GET_QUERIES_URL }}" >> .env.${{ matrix.environment.name }}
+          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+            "cat > \$HOME/zero-deployment/deployment/.env.${{ matrix.environment.name }}" < env.zero
+          rm -f env.all env.zero
 
-            echo "✅ Environment configured for ${{ matrix.environment.name }} (${{ vars.ZERO_DOMAIN }})"
-          ENDSSH
+          echo "✅ Environment configured for ${{ matrix.environment.name }}"
 
       - name: Cleanup
         if: always() && steps.should_deploy.outputs.deploy == 'true'
