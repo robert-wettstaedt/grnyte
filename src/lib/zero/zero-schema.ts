@@ -1,12 +1,11 @@
 import type { Schema as ZeroSchema } from '@rocicorp/zero'
-import { schema as genSchema, type Schema as GenSchema } from './zero-schema.gen'
+import { schema as genSchema, type Schema as GenSchema } from './zero-schema.gen.ts'
 
-type Schema = Omit<GenSchema, 'enableLegacyMutators' | 'enableLegacyQueries'>
+type Schema = GenSchema
 
-const schema = {
-  ...genSchema,
-  enableLegacyMutators: false,
-  enableLegacyQueries: false,
-} as const satisfies ZeroSchema
+const schema = genSchema satisfies ZeroSchema & {
+  enableLegacyMutators: false
+  enableLegacyQueries: false
+}
 
 export { schema, type Schema }

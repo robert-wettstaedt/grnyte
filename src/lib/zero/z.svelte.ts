@@ -30,7 +30,7 @@ export function getZ(): Z<Schema> {
  * is only swapped when the signed-in user actually changed.
  */
 export function initZero(session: null | Session | undefined): Z<Schema> {
-  const userID = session?.user.id ?? 'anon'
+  const userID = session?.user.id
 
   if (instance != null && instance.userID === userID) {
     if (session != null && accessToken !== session.access_token) {
@@ -46,13 +46,7 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
   accessToken = session?.access_token
   instance?.close()
 
-  const z = new Z<Schema>({
-    auth: accessToken,
-    context: session == null ? undefined : { authUserId: session.user.id },
-    schema,
-    server: PUBLIC_ZERO_URL,
-    userID,
-  })
+  const z = new Z<Schema>(zeroOptions(session))
 
   if (session != null) {
     // Eagerly sync app-wide reference data and the signed-in user into the
@@ -71,4 +65,24 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
 
   instance = z
   return z
+}
+
+/**
+ * The options every Zero client in this app is built from. Shared so the
+ * throwaway client `createColdZero` hands to the benchmark cannot drift from
+ * the real one and quietly measure a different configuration.
+ */
+function zeroOptions(session: null | Session | undefined, storageKey?: string) {
+  return {
+    auth: session?.access_token,
+    context: session == null ? undefined : { authUserId: session.user.id },
+    schema,
+    server: PUBLIC_ZERO_URL,
+    storageKey,
+    // `undefined` rather than `'anon'` for logged-out clients. Zero 1.4 deprecated the sentinel
+    // ahead of the client-group security work in 1.5, and a real user id is the only thing that may
+    // appear here. It also changes the IndexedDB key for logged-out clients, so they get one cold
+    // replica on the way past.
+    userID: session?.user.id,
+  }
 }

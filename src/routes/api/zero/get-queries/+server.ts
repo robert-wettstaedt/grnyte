@@ -33,7 +33,15 @@ export async function POST({ request }) {
 
   const ctx = { authUserId: verified.claims.sub, pageState }
 
-  const q = await handleQueryRequest((name, args) => mustGetQuery(queries, name).fn({ args, ctx }), schema, request)
+  // Options-object form, required since Zero 1.5. The `userID` is the point of it: zero-cache uses
+  // it to enforce that only tabs belonging to the same user share a client group. The old positional
+  // signature still compiles and is deprecated.
+  const q = await handleQueryRequest({
+    handler: (name, args) => mustGetQuery(queries, name).fn({ args, ctx }),
+    request,
+    schema,
+    userID: verified.claims.sub,
+  })
 
   return new Response(JSON.stringify(q))
 }

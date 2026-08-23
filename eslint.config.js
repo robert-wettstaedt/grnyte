@@ -84,7 +84,7 @@ const noDrizzleMassAssignment = [
 
 export default defineConfig(
   includeIgnoreFile(gitignorePath),
-  { ignores: ['build/', 'drizzle/', 'src/lib/paraglide/'] },
+  { ignores: ['build/', 'drizzle/', 'src/lib/paraglide/', 'src/lib/zero/zero-schema.gen.ts'] },
   js.configs.recommended,
   ts.configs.recommended,
   svelte.configs.recommended,

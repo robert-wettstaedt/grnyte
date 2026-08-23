@@ -11,6 +11,9 @@ bun.lockb
 
 # Generated
 /src/lib/paraglide/
+# `npm run generate:zero` output. drizzle-zero already runs prettier over it (`generate --format`),
+# so reformatting it here only fights the generator on every regeneration.
+/src/lib/zero/zero-schema.gen.ts
 # `npm run generate:emails` output. Reformatting it would fight the generator on every run,
 # and the whitespace is load-bearing: mail clients collapse and re-wrap markup differently.
 /emails/

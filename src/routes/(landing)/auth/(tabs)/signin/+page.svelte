@@ -17,7 +17,7 @@
   const next = $derived(page.url.searchParams.get('next'))
 
   // Prefill demo credentials so the demo deploy logs in with one click.
-  if (PUBLIC_DEMO_MODE) {
+  if (PUBLIC_DEMO_MODE === 'true' || PUBLIC_DEMO_MODE === '1') {
     signIn.fields.set({ email: 'demo@demo.com', password: 'demo' })
   } else if (invited != null) {
     signIn.fields.set({ email: invited })
