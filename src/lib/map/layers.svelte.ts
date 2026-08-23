@@ -316,8 +316,7 @@ function createDonutMarkerStyles(
   ]
 }
 
-/** Parking marker: a filled blue square-parking badge (lucide geometry). Built from an inline
- *  SVG, not a webfont \u2014 the app dropped Font Awesome. */
+/** Parking marker: a filled blue square-parking badge (lucide geometry), built from an inline SVG. */
 function parkingMarkerSvg(size = 28): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="${size}" height="${size}"><rect x="1" y="1" width="22" height="22" rx="5" fill="#1e40af" stroke="white" stroke-width="1.5"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 }

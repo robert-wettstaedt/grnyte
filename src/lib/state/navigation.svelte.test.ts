@@ -24,10 +24,13 @@ describe('withSearchParams', () => {
     expect(url.search).toBe('?ref=mail&region=3&utm=x')
   })
 
-  it('leaves the query untouched when nothing changes', () => {
+  it('leaves the query untouched when nothing changes, and never writes through the source', () => {
     const url = feed('?ref=mail&region=2')
 
-    expect(withSearchParams(url, { region: 2 }).search).toBe(url.search)
+    expect(withSearchParams(url, { region: 2 }).search).toBe('?ref=mail&region=2')
+    expect(withSearchParams(url, { region: 9 }).search).toBe('?ref=mail&region=9')
+
+    expect(url.search).toBe('?ref=mail&region=2')
   })
 
   // The regression this function exists for. `syncSearchParams` writes whenever the built query

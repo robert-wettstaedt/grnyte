@@ -32,9 +32,8 @@
     line({ actorFk: 1, columnName: 'file', verb: 'remove' }),
     // The ascent type, which is a glyph and a word rather than the stored enum member.
     line({ actorFk: 1, columnName: 'type', newValue: 'redpoint', objectType: 'ascent', oldValue: 'attempt' }),
-    // The stored enum members, which is what the column really holds: the short forms this
-    // fixture used to pass are not roles, so the row silently rendered the raw-value fallback
-    // and this story showed the degraded path for every reader who checked it.
+    // The stored enum members, which is what the column really holds: a short label form is not
+    // a valid role and falls back to the raw-value chip, unlabelled.
     line({
       actorFk: 1,
       columnName: 'role',
@@ -54,8 +53,7 @@
   const KANTE = { name: 'Kante direkt', routeFk: 501 }
   const RAMPE = { name: 'Rampe', routeFk: 502 }
 
-  // The five topo edits, which wrote one indistinguishable "Topo redrawn" row between them
-  // until they started naming themselves in `metadata`.
+  // The five topo edits, distinguished by what `metadata` says each one did.
   const topoEdits = [
     line({
       actorFk: 1,

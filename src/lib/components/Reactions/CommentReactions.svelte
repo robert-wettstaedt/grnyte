@@ -1,14 +1,11 @@
 <!--
-  The emoji under one comment.
+  The emoji under one comment: the same table, toggle and chip as a card's bar, one level down (an
+  emoji whose `parent_fk` is a comment takes its own slot in `reactions_one_emoji_idx`, so a reader
+  holds one on the card and one more on each comment under it).
 
-  The same table, the same toggle and the same chip as a card's bar, one level down: an emoji whose
-  `parent_fk` is a comment takes its own slot in `reactions_one_emoji_idx`, so a reader holds one
-  on the card and one more on each comment under it.
-
-  Deliberately thinner than `Reactions`: the five quick emoji and nothing else. The full picker
-  belongs to the card, where a reaction is about the climb; under a sentence it is agreement,
-  disagreement or applause, and a 400px picker over a phone-height thread to say so is the reader
-  losing their place in the conversation to pick a fruit.
+  Deliberately thinner than `Reactions`: just the five quick emoji. The full picker belongs to the
+  card, where a reaction is about the climb; under a sentence it's agreement, disagreement or
+  applause, not worth losing your place in the conversation over a 400px picker to pick a fruit.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -36,11 +33,9 @@
   const still = new MediaQuery('(prefers-reduced-motion: reduce)')
 
   /**
-   * Send one, and close the quick row on the way.
-   *
-   * Both paths go through here, chips included. A pointer press on a chip is a press outside the row
-   * and `dismiss` would close it anyway, but a chip reached by keyboard fires a click with no
-   * pointer event in front of it, and the row would be left standing over the answer it just sent.
+   * Send one, and close the quick row on the way: both paths go through here, chips included. A
+   * pointer press on a chip is outside the row, so `dismiss` would close it anyway, but a chip
+   * reached by keyboard fires no pointer event, and the row would be left standing over the answer.
    */
   function pick(emoji: string) {
     picking = false

@@ -71,15 +71,15 @@ describe.skipIf(!reachable)('resolveFirstAscensionists self-claim', () => {
 
   it('reuses an existing user-linked climber by name, preserving the link on edit', async () => {
     // A climber the stranger legitimately claimed earlier.
-    await sql`
+    const [{ id: aliceId }] = await sql<{ id: number }[]>`
       insert into public.first_ascensionists (name, region_fk, user_fk)
-      values ('Alice', ${regionId}, ${users.stranger.userId})`
+      values ('Alice', ${regionId}, ${users.stranger.userId}) returning id`
 
     // An editor (the caller) re-submits "alice" while editing a route - matches by name, no new row,
     // the existing link is untouched. The stray userFk they send is irrelevant.
     const resolved = await resolveFirstAscensionists(
       db,
-      [{ name: 'alice', userFk: users.caller.userId }],
+      [{ name: 'alice', userFk: users.stranger.userId }],
       regionId,
       users.caller.userId,
     )
@@ -87,6 +87,6 @@ describe.skipIf(!reachable)('resolveFirstAscensionists self-claim', () => {
     const alices = (await climbersInRegion()).filter((c) => c.name === 'Alice')
     expect(alices).toHaveLength(1)
     expect(alices[0].userFk).toBe(users.stranger.userId)
-    expect(resolved).toHaveLength(1)
+    expect(resolved.map((row) => row.id)).toEqual([aliceId])
   })
 })

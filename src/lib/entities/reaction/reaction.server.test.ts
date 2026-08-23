@@ -194,7 +194,7 @@ describe.skipIf(!reachable)('notifyComment', () => {
     expect(await told()).toEqual([])
   })
 
-  it('keeps two comments on one card as one inbox row, pointed at the newer one', async () => {
+  it('keeps two comments on one card as one inbox row, still pointed at the first until it is read', async () => {
     const first = await comment('first')
     await notifyComment({ actorFk: users.first.userId, body: 'said something', event: event(), reactionFk: first })
     const second = await comment('first')
@@ -444,6 +444,8 @@ describe.skipIf(!reachable)('dropCommentNotification', () => {
       parentAuthorFk: users.second.userId,
       reactionFk: answer,
     })
+    expect(await pointing('second', 'comment_reply')).toBe(answer)
+
     // Still a live line of the same person's, but a top-level one: it answers nobody, so it cannot
     // carry "answered you".
     await line('first', 'nice one either way')

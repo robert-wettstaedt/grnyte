@@ -113,14 +113,14 @@ describe.skipIf(!reachable)('updateArea', () => {
     await submit({
       description: '',
       id: String(areaId),
-      name: '__areas_remote_renamed__',
+      name: '__areas_remote_renamed_again__',
       // The whole test: a field the form legitimately submits, pointed somewhere else.
       regionFk: String(otherRegionId),
     })
 
-    const [row] = await sql<{ regionFk: number }[]>`
-      select region_fk as "regionFk" from public.areas where id = ${areaId}`
-    expect(row.regionFk).toBe(homeRegionId)
+    const [row] = await sql<{ name: string; regionFk: number }[]>`
+      select name, region_fk as "regionFk" from public.areas where id = ${areaId}`
+    expect(row).toEqual({ name: '__areas_remote_renamed_again__', regionFk: homeRegionId })
   })
 
   it('renames a TOP-LEVEL area, whose parentFk submits as an empty string', async () => {

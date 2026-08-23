@@ -13,10 +13,6 @@ import { dropComment, dropReactionNotification, notifyComment, notifyReaction, r
  * already hold clears it; sending a different one replaces it. A reaction is a reading of the
  * thing, and a reader who can stack five of them is not saying five things, they are decorating.
  *
- * An event has an id, so this takes one number. Everything the old shape needed to identify a card
- * (the list of rows it was rendered from, the re-grouping that proved they were one card, the
- * anchor row the reaction was stored against) is gone with it.
- *
  * Returns the new reacted state, so a caller can confirm or revert.
  */
 export const toggleReaction = authedCommand(

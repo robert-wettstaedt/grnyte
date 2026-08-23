@@ -1,14 +1,14 @@
 <!--
   The thread under one event: what people have said, and what each of them is answering.
 
-  Two levels and no more. A reply files under the comment it answers, and answering a reply files
-  under that same comment (`postComment` re-points it), so this renders a list of comments each
-  with a flat list of answers rather than a tree. A third level of indent is unreadable at phone
-  width and buys nothing: the sentence names who it is for.
+  Two levels and no more: a reply to a reply files under the same top comment (`postComment`
+  re-points it), so this renders comments each with a flat list of answers rather than a tree. A
+  third level of indent is unreadable at phone width and buys nothing, since the sentence already
+  names who it is for.
 
   Markdown, like every other body of text in the app: a comment can name the route it is about and
-  the person it is answering, and both resolve through the same `!type:id!` references a
-  description carries. Rendered through `Markdown`, so a name that changes is right everywhere.
+  the person it is answering through the same `!type:id!` references a description carries,
+  rendered through `Markdown` so a name that changes is right everywhere.
 -->
 <script lang="ts">
   import { resolve } from '$app/paths'
@@ -36,24 +36,20 @@
   const highlightId = $derived(thread.highlightId)
 
   /**
-   * Bring the linked comment into view once, when it arrives.
-   *
-   * An attachment rather than an effect over the list: the node is what has to exist, and it only
-   * exists after the thread has synced (which is what `createThread`'s highlight window is for).
-   * `block: 'center'` because the composer is pinned over the bottom of the sheet and a comment
-   * scrolled to the end sits behind it.
+   * Bring the linked comment into view once, when it arrives. An attachment rather than an effect
+   * over the list: the node has to exist first, which is what `createThread`'s highlight window is
+   * for. `block: 'center'` because the composer is pinned over the bottom of the sheet and a
+   * comment scrolled to the end sits behind it.
    */
   const reveal = (node: HTMLElement) => {
     node.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   /**
-   * Take a comment back, and offer to put it back.
-   *
    * Undo rather than a confirmation dialog: the row is soft-deleted, so restoring it is one column
-   * and the id, the replies and the reactions under it never left. A prompt in front of every
-   * delete taxes the many people who meant it to protect the few who did not, and it cannot be
-   * answered on the thread it is about, because it covers it.
+   * and the replies/reactions under it never left. A prompt in front of every delete taxes the many
+   * people who meant it to protect the few who didn't, and can't be answered on the thread it is
+   * about, because it covers it.
    */
   const remove = (commentId: number) =>
     void withUndo(deleteComment({ commentId }), {
@@ -95,13 +91,9 @@
 
       <Markdown className="text-sm break-words" markdown={comment.body} />
 
-      <!-- One row under the sentence: what people have already said about it, then what this
-           reader can do about it. Both are answers to the same line, so a second row for the
-           chips would say they belong to something else.
-
-           36px in BOTH axes on a 12px label, and the row is pulled back out to the text edge by
-           the padding that buys them: a target that is tall but 20px wide is still the one that
-           gets missed on a phone. -->
+      <!-- One row under the sentence, since a second row for the chips would say they belong to
+           something else. 36px in BOTH axes on a 12px label: a target tall but 20px wide is still
+           the one that gets missed on a phone. -->
       <div class="-ms-2 flex flex-wrap items-center gap-x-1 gap-y-0.5">
         <CommentReactions {comment} eventId={thread.eventId} />
 

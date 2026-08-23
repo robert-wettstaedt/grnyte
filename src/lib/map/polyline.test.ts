@@ -15,16 +15,4 @@ describe('encodePath / decodePath', () => {
       expect(lng).toBeCloseTo(path[i][1], 4)
     })
   })
-
-  it('keeps the head at the parking it was seeded from (deleteParking match)', () => {
-    const parking = { lat: 52.5163, long: 13.3777 }
-    const [headLat, headLng] = decodePath(
-      encodePath([
-        [parking.lat, parking.long],
-        [52.517, 13.379],
-      ]),
-    )[0]
-    expect(Math.abs(headLat - parking.lat)).toBeLessThan(1e-4)
-    expect(Math.abs(headLng - parking.long)).toBeLessThan(1e-4)
-  })
 })

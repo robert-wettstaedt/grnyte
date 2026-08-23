@@ -22,6 +22,7 @@ let regionId = 0
 let areaId = 0
 let blockId = 0
 let routeId = 0
+let ascentId = 0
 
 const names = () => new Map([[actor.userId, 'Anna']])
 
@@ -46,6 +47,7 @@ const event = (over: Partial<DigestEvent> = {}): DigestEvent => ({
 })
 
 async function removeFixtures() {
+  await sql`delete from public.ascents where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.routes where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.blocks where region_fk in (select id from public.regions where name = ${REGION_NAME})`
   await sql`delete from public.areas where region_fk in (select id from public.regions where name = ${REGION_NAME})`
@@ -69,6 +71,9 @@ beforeAll(async () => {
   ;[{ id: routeId }] = await sql<{ id: number }[]>`
     insert into public.routes (name, created_by, region_fk, block_fk)
     values ('Kante direkt', ${actor.userId}, ${regionId}, ${blockId}) returning id`
+  ;[{ id: ascentId }] = await sql<{ id: number }[]>`
+    insert into public.ascents (type, created_by, region_fk, route_fk)
+    values ('flash', ${actor.userId}, ${regionId}, ${routeId}) returning id`
 })
 
 afterAll(async () => {
@@ -86,12 +91,14 @@ describe.skipIf(!reachable)('entityNames', () => {
       { id: String(blockId), type: 'block' },
       { id: String(routeId), type: 'route' },
       { id: String(actor.userId), type: 'user' },
+      { id: String(ascentId), type: 'ascent' },
     ])
 
     expect(resolved.get(`area:${areaId}`)).toBe('Klein Ilsetal')
     expect(resolved.get(`block:${blockId}`)).toBe('Nordblock')
     expect(resolved.get(`route:${routeId}`)).toBe('Kante direkt')
     expect(resolved.get(`user:${actor.userId}`)).toBe(actor.email)
+    expect(resolved.get(`ascent:${ascentId}`)).toBe('Kante direkt')
   })
 
   it('asks nothing of an empty ref list', async () => {
@@ -109,7 +116,13 @@ describe.skipIf(!reachable)('digestCopy', () => {
     expect(await digestCopy([], names(), 'en')).toBeUndefined()
   })
 
-  /** The headline is the newest group's, rendered through the catalogue and naming the entity. */
+  /**
+   * The headline is the newest group's, rendered through the catalogue and naming the entity.
+   *
+   * Always the third person, which the exact title below pins: a digest can only ever contain
+   * other people's activity (the query excludes the reader's own), so the "You added…" branch
+   * must never be reachable from here.
+   */
   it('renders the same sentence the feed card would, with the entity named', async () => {
     const copy = await digestCopy([event()], names(), 'en')
 
@@ -123,16 +136,6 @@ describe.skipIf(!reachable)('digestCopy', () => {
     const copy = await digestCopy([event()], names(), 'de')
 
     expect(copy?.title).toBe('Anna hat die Route Kante direkt hinzugefügt')
-  })
-
-  /**
-   * Always the third person. A digest can only ever contain other people's activity (the query
-   * excludes the reader's own), so the "You added…" branch must never be reachable from here.
-   */
-  it('never addresses the reader as the actor', async () => {
-    const copy = await digestCopy([event()], names(), 'en')
-
-    expect(copy?.title).not.toMatch(/^You /)
   })
 
   /** Everything past the newest group is a number, not a list: a push nobody finishes reading. */

@@ -389,4 +389,43 @@ describe.skipIf(!reachable)('restoreRoute (hard)', () => {
     // would have stored this link without complaint.
     expect(links.map((link) => link.first_ascensionist_fk)).toEqual([own])
   })
+
+  /**
+   * The three columns `restoreRoute` refuses to take from the snapshot, and the only test that
+   * looks at them.
+   *
+   * The route path reaches the INSERT in exactly one other place (the first-ascensionist case
+   * above), and that one asserts only the junction, so every derivation was unguarded: swap
+   * `createdBy: user.id` back to `snapshot.route.createdBy`, or copy `areaFks`/`areaIds` through
+   * instead of recomputing them from `areaAncestry(block.areaFk)`, and the whole suite stayed
+   * green. `restoreFidelity` cannot cover it either, since it excludes these columns by design.
+   * The handler's own comment calls this out: a DELETE holder could otherwise restore a route
+   * with forged authorship into another region's block, carrying poisoned search tokens.
+   */
+  it('stamps the caller as author and recomputes the area chain from the stored block', async () => {
+    const blockId = await createBlock('__restore_derive_block__', cragAreaId, homeRegionId)
+
+    await asRequest(maintainer.authId, () =>
+      restoreRoute({
+        firstAscensionistFks: [],
+        mode: 'hard',
+        // `snapshotFor` forges `createdBy: 0` and leaves `areaFks`/`areaIds` null, so none of the
+        // values below can have come from the snapshot.
+        route: snapshotFor(blockId, '__restore_derive_route__'),
+        routeId: DEAD_ID,
+        tags: [],
+      }),
+    )
+
+    const [row] = await sql<{ areaFks: number[]; areaIds: string; createdBy: number; regionFk: number }[]>`
+      select created_by as "createdBy", region_fk as "regionFk", area_fks as "areaFks", area_ids as "areaIds"
+      from public.routes where name = '__restore_derive_route__'`
+
+    expect(row).toEqual({
+      areaFks: [cragAreaId],
+      areaIds: `^${cragAreaId}$`,
+      createdBy: maintainer.userId,
+      regionFk: homeRegionId,
+    })
+  })
 })

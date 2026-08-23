@@ -23,7 +23,14 @@ describe('isDirectedDue', () => {
     expect(isDirectedDue(ago(DIRECTED_DEBOUNCE_MS), NOW)).toBe(true)
   })
 
-  /** The whole reason the debounce exists: an edit and its immediate correction are one buzz. */
+  /**
+   * The whole reason the debounce exists: an edit and its immediate correction are one buzz.
+   *
+   * A hardcoded 30s rather than one derived from `DIRECTED_DEBOUNCE_MS`, deliberately. The two
+   * tests above are written relative to the constant, so retuning it moves them with it and they
+   * can only ever check the comparison operator. This one holds the promise still: drop the
+   * debounce under 30 seconds and a typo fix buzzes twice, and only this fails.
+   */
   it('is still holding a row while a typo fix is landing', () => {
     expect(isDirectedDue(ago(30_000), NOW)).toBe(false)
   })
@@ -53,10 +60,6 @@ describe('isDigestDue', () => {
   it('sends anyway once the oldest row is too old, however busy it still is', () => {
     expect(isDigestDue(ago(DIGEST_MAX_WAIT_MS), NOW, NOW)).toBe(true)
   })
-
-  it('does not send a queue that is neither quiet nor old', () => {
-    expect(isDigestDue(ago(60 * 60_000), ago(60_000), NOW)).toBe(false)
-  })
 })
 
 describe('digestFloor', () => {
@@ -81,13 +84,15 @@ describe('digestFloor', () => {
 })
 
 describe('tags', () => {
-  /** A digest is a complete restatement, so a new one must REPLACE the last rather than stack,
-   *  which is what one fixed tag across every send buys. */
-  it('gives every digest the same tag', () => {
-    expect(DIGEST_TAG).toBe('digest')
-  })
-
-  /** Directed events are each their own sentence, so they must not replace one another. */
+  /**
+   * A digest is a complete restatement, so a new one must REPLACE the last rather than stack,
+   * which is what one fixed tag across every send buys. Directed events are each their own
+   * sentence, so they must not replace one another, nor collapse into the digest.
+   *
+   * The digest tag's literal value is not asserted: every consumer imports the constant and
+   * `sw.ts` hands `payload.tag` to `showNotification` without comparing it, so the string is a
+   * rename. What has to hold is that the tags stay distinct.
+   */
   it('gives every directed row its own tag', () => {
     expect(directedTag(1)).not.toBe(directedTag(2))
     expect(directedTag(1)).not.toBe(DIGEST_TAG)

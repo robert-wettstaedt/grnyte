@@ -510,7 +510,7 @@ export const VERBS = [
     tombstone: 'newValue',
     verb: 'update',
   },
-  // No `field`: a removal stores no old/new pair, and the shared-by-column registry used to
+  // No `field`: a removal stores no old/new pair; the shared-by-column registry would otherwise
   // give it one anyway, rendering "Role: maintainer to Not set" under "removed from the region".
   {
     columnName: 'role',
@@ -520,9 +520,8 @@ export const VERBS = [
     tombstone: 'newValue',
     verb: 'remove',
   },
-  // Leaving is its own event. It shared `role` with being removed until migration 0094, which
-  // is why the feed used to say "Mara removed Mara from the region". No `tombstone`: the
-  // sentence names only the actor, who is also the subject.
+  // Leaving is its own event, kept apart from a role removal. No `tombstone`: the sentence names
+  // only the actor, who is also the subject.
   { columnName: 'membership', key: 'event_userDeletedMembership', objectType: 'user', row: 'none', verb: 'leave' },
   {
     columnName: 'username',
@@ -594,12 +593,9 @@ export type VerbLookup = Partial<Pick<VerbEntry, 'columnName' | 'value'>> &
  * and that DEGRADED and GENERIC exist for. Narrow seam for writing, wide seam for reading.
  */
 export function verbEntry(line: VerbLookup): undefined | VerbEntry {
-  // A cleared column first, then the plain entry: only one column has both, and every other
-  // cleared value belongs to the same sentence as a set one ("edited the description" covers a
-  // description that was emptied).
-  // The plain key is the FALLBACK, so it has to be built without the flag: only one column has a
-  // cleared entry, and every other emptied value belongs to the same sentence as a set one
-  // ("edited the description" covers a description that was emptied).
+  // A cleared column first, then the plain entry as fallback: only one column has both, and every
+  // other cleared value belongs to the same sentence as a set one ("edited the description" covers
+  // a description that was emptied).
   return (line.cleared === true ? BY_ID.get(verbId(line)) : undefined) ?? BY_ID.get(verbId({ ...line, cleared: false }))
 }
 

@@ -257,9 +257,8 @@ export const sampleWeek: { events: EventListItem[]; topos: ReadonlyMap<number, T
       objectId: 5,
       objectType: 'user',
     }),
-    // An upload whose file resolves to nothing: no name, no thumbnail and no row. Nothing syncs
-    // late any more, so this is what is left of the old skeleton card, and it is a state the app
-    // really produces for an orphaned file row.
+    // An upload whose file resolves to nothing: no name, no thumbnail and no row. A state the
+    // app really produces for an orphaned file row.
     eventAgo(52 * 60, {
       actorFk: 2,
       entity: undefined,
@@ -276,10 +275,9 @@ export const sampleWeek: { events: EventListItem[]; topos: ReadonlyMap<number, T
 export const sampleWeekGroups: EventGroup[] = groupEvents(sampleWeek.events)
 
 /**
- * The same week with nothing resolved, which is the honest version of the old "not hydrated yet"
- * state: an entity arrives with its event now, so a card that cannot name its object never gets
- * one later. Every row is a tombstone and every headline takes the placeholder, and the list still
- * holds its shape, which is what the story is about.
+ * The same week with nothing resolved: an entity arrives with its event, so a card that cannot
+ * name its object never gets one later. Every row is a tombstone and every headline takes the
+ * placeholder, and the list still holds its shape, which is what the story is about.
  */
 export const unresolvedWeek: EventListItem[] = sampleWeek.events.map((event) => ({
   ...event,

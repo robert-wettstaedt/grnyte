@@ -9,6 +9,7 @@
  * SvelteKit deps. The transfer is an XHR, so a fake `XMLHttpRequest` gives the test the one
  * thing a browser normally owns: exactly when the bytes land, fail, or get aborted.
  */
+import { m } from '$lib/paraglide/messages'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const finalizeImage = vi.fn()
@@ -108,16 +109,33 @@ describe('transfer', () => {
   })
 
   it('does not reject unhandled when nobody awaits a failed transfer', async () => {
-    const upload = new ImageUpload(file())
-    upload.start()
-    await flush()
-    sent[0].fail()
-    await flush()
+    // Actually watch for the rejection. The status/error assertions below are already made by
+    // 're-runs the transfer when the bytes never landed' on this same fail() setup, so on their
+    // own they left the internal `.catch(() => {})` free to be deleted, with the regression
+    // riding on whether vitest happened to surface a process-level unhandled rejection.
+    const unhandled: unknown[] = []
+    const onUnhandled = (reason: unknown) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandled)
 
-    // The point of the internal `.catch(() => {})`: a transfer nobody awaits until submit
-    // must not surface as an unhandled rejection and kill the page.
-    expect(upload.status).toBe('failed')
-    expect(upload.error).toBeDefined()
+    try {
+      const upload = new ImageUpload(file())
+      upload.start()
+      await flush()
+      sent[0].fail()
+      // Two macrotasks: the rejection is raised in the first, and Node reports it unhandled at
+      // the end of that turn, so a single flush could pass before it was ever going to fire.
+      await flush()
+      await flush()
+
+      expect(upload.status).toBe('failed')
+      // The exact message, so this cannot be satisfied by any other failure path.
+      expect(upload.error).toBe(m.upload_networkError())
+      // The point of the internal `.catch(() => {})`: a transfer nobody awaits until submit
+      // must not surface as an unhandled rejection and kill the page.
+      expect(unhandled).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandled)
+    }
   })
 })
 
@@ -247,8 +265,22 @@ describe('beforeunload guard', () => {
     await flush()
     expect(remove).toHaveBeenCalledWith('beforeunload', expect.any(Function))
 
+    // A finalize that HANGS, so the armed state is observable. With the mock resolving instantly
+    // the re-arm was never seen: `exitBusy` computes `(busy.get(upload) ?? 1) - 1`, so even with
+    // no matching `enterBusy` it still reaches zero and still calls removeEventListener. Deleting
+    // `enterBusy(this)` from `runFinalize`, which is closing the tab mid-finalize with no warning
+    // and losing the upload, passed every assertion here.
+    let release!: (value: unknown) => void
+    finalizeImage.mockReturnValue(new Promise((resolve) => (release = resolve)))
+
+    add.mockClear()
+    const pending = upload.finalize(target)
+    await flush()
+    expect(add).toHaveBeenCalledWith('beforeunload', expect.any(Function))
+
     remove.mockClear()
-    await upload.finalize(target)
+    release({ data: row })
+    await pending
     // Finalize re-armed and then released it; the refcount must land back at zero.
     expect(remove).toHaveBeenCalledWith('beforeunload', expect.any(Function))
   })

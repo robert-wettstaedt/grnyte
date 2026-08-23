@@ -32,12 +32,10 @@ export const blocksQueryDefs = {
         .one()
     }),
   ),
-  // The topo photos and their drawn lines for a set of blocks. `listBlocks` carries the
-  // photos but not the lines, and every one of its callers (search, area lists) would pay
-  // for them; the feed is the only screen that renders a line it did not navigate to.
-  //
-  // No `tags`: `toTopoViews` reads a route's name and grade and nothing else, and this is
-  // the query its input type is derived from, so what it does not read it does not sync.
+  // The topo photos and their drawn lines for a set of blocks. `listBlocks` carries the photos but
+  // not the lines, since every one of its callers (search, area lists) would pay for them; the feed
+  // is the only screen that renders a line it didn't navigate to. No `tags`: `toTopoViews` reads
+  // only a route's name and grade, and this query is what its input type is derived from.
   blockTopos: defineQuery(
     z.object({ blockId: z.array(z.number()) }),
     regionMemberCan(({ args, ctx }) => {

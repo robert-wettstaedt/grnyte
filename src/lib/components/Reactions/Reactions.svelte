@@ -1,23 +1,19 @@
 <!--
   One event's reaction bar: its chips, and the button that adds one.
 
-  On every card kind, with no allowlist. An allowlist would have to be maintained in step with
-  `kindOf()` and would drift, and the awkward cases (a 👍 on a deletion) are social rather than
-  technical.
+  No allowlist, on every card kind: one would drift from `kindOf()`, and edge cases (a 👍 on a
+  deletion) are social, not technical.
 
-  Adding one is two steps, the way every chat app does it. The button opens a row of five quick
-  emoji, and only the `+` at its end opens the full set. The whole point of a quick row is that it
-  is a short list, which it stops being the moment it is stapled to the top of every emoji there is.
+  Adding one is two steps like most chat apps: five quick emoji behind the button, the full set
+  behind the `+` at their end, keeping the quick row short.
 
-  That row floats over the card rather than sitting in the bar. Inline, its taller buttons pushed
-  the whole footer around as it opened: on a phone that shoved the changes toggle onto a second
-  line, and closing it left the add button popping back out of nowhere where the row had been.
-  Floating, the bar never moves and the button never leaves.
+  The quick row floats over the card rather than sitting in the bar: inline, its taller buttons
+  pushed the whole footer around as it opened (shoved the changes toggle to a second line on a
+  phone, then popped the add button back out of nowhere on close).
 
-  The button is always visible rather than revealed on hover or long press: a phone has no hover,
-  and a hidden long-press affordance is one nobody discovers, so the first reaction on any card
-  would never get sent from the device most of them are read on. It shares the row with the chips,
-  so a card that has reactions does not grow twice.
+  The add button stays always visible rather than hover/long-press revealed, since a phone has no
+  hover and a hidden long-press affordance goes undiscovered. It shares the row with the chips so a
+  card with reactions doesn't grow twice.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -34,11 +30,8 @@
   import { createReactionToggle } from './toggle.svelte'
 
   interface Props {
-    /**
-     * What the card knows about the conversation under it: the chips, the count, whose event it is
-     * and where it happened. The whole DTO rather than its fields, so a field added to the bar is
-     * added in one place. See `EventReactionBar`.
-     */
+    /** The whole `EventReactionBar` DTO rather than its individual fields, so a field added to the
+     *  bar is added in one place. */
     bar: EventReactionBar
     /**
      * Whether the bar offers a way into the thread. Off on the event's own page, where the
@@ -72,13 +65,10 @@
   }
 
   /**
-   * Nothing else dismisses the quick row, so this does. The add button does not count as outside,
-   * and neither does anything while the full picker is up: it is portaled, so every tap inside it
-   * reads as one outside this row, and Escape belongs to whichever layer is on top.
-   *
-   * The document listeners take no focus of their own. The add button keeps it and the row is the
-   * next thing in tab order, so a keyboard reaches the emoji by pressing Tab, which is also why
-   * nothing here calls `focus()`. Doing so drew a focus ring on every tap that opened it.
+   * Nothing else dismisses the quick row, so this does. The add button doesn't count as outside,
+   * and neither does anything while the full picker is up (it's portaled, so its taps read as
+   * outside this row). No `focus()` call here on purpose: the add button keeps focus and the row is
+   * next in tab order, so Tab reaches the emoji without a focus ring drawn on every tap that opened it.
    */
   const dismiss = dismissOutside(() => (quick = false), {
     escape: true,
@@ -121,12 +111,10 @@
         </button>
 
         {#if quick}
-          <!-- Anchored to the button's trailing edge and opening upward, over the card it belongs to:
-           downward it would cover the next card in the feed, which is somebody else's business.
-           Fixed emoji, and in this order for everyone. A recents row reorders, so the button under
-           your thumb would mean something different this week than last, and for five
-           fingertip-sized targets that is how the wrong one gets sent. The full picker keeps its
-           own frequently-used list, which is where a personal favourite lives. -->
+          <!-- Opens upward over its own card (downward would cover the next card in the feed). Fixed
+           emoji in a fixed order for everyone: a recents row would reorder the fingertip-sized
+           targets week to week, which is how the wrong one gets sent. The full picker keeps its own
+           frequently-used list for a personal favourite. -->
           <div
             class="border-surface-200-800 bg-surface-50-950 absolute inset-e-0 bottom-full z-10 mb-1 flex origin-bottom-right items-center gap-0.5 rounded-full border p-0.5 shadow-lg"
             transition:scale={{ duration: still.current ? 0 : 140, opacity: 0, start: 0.85 }}

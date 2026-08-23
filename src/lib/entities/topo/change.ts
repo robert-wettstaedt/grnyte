@@ -19,8 +19,8 @@
  * components, so this has to stay clean enough for both bundles.
  */
 
-/** Which topo mutation wrote the row. The five are genuinely different events, and the
- *  feed said "Topo redrawn" to all of them until they started naming themselves. */
+/** Which topo mutation wrote the row: the five are genuinely different events, not one
+ *  generic "Topo redrawn". */
 export type TopoAction = 'lines' | 'photoAdded' | 'photoRemoved' | 'photoReplaced' | 'reordered'
 
 /** What a topo row's `metadata` holds. */

@@ -103,8 +103,7 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
 
     const name = decoded ?? `${type}:${id}`
 
-    // Users render as an `@username` mention (replacing the retired
-    // `remark-mentions`); the resolved `name` is the username for this type.
+    // Users render as an `@username` mention; the resolved `name` is the username for this type.
     const isUser = type === 'users'
 
     const strong: PhrasingContent = {

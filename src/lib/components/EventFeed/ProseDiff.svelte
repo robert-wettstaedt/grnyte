@@ -5,13 +5,12 @@
   and closes on its own and a snippet cannot hold state. The card may hold three edited
   descriptions, and opening one must not open the others.
 
-  It was a `<details>`, which gave the semantics for free and nothing else: the summary was a
-  16px target with no padding, and the panel could not be animated. `::details-content` itself is
-  everywhere now (Chrome 131, Safari 18.4, Firefox 143), but animating it is not: a symmetric
-  open and close needs `interpolate-size: allow-keywords`, which is Chrome only, and the fallback
-  of transitioning `content-visibility` discretely is missing in Firefox. So this is the same
-  button-and-slide disclosure the card's own change list uses, which also puts the reader on one
-  idiom rather than two that behave differently.
+  Not a `<details>`: the summary is a 16px target with no padding, and the panel cannot be
+  animated. `::details-content` itself is everywhere now (Chrome 131, Safari 18.4, Firefox 143),
+  but animating it is not: a symmetric open and close needs `interpolate-size: allow-keywords`,
+  which is Chrome only, and the fallback of transitioning `content-visibility` discretely is
+  missing in Firefox. So this is the same button-and-slide disclosure the card's own change list
+  uses, which puts the reader on one idiom rather than two that behave differently.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'

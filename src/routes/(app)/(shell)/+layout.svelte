@@ -11,7 +11,7 @@
      The rail is `fixed`, so it takes no space: `md:pl-20` (its width) keeps flow
      content out from under it. Feed and profile centre a column in what is left;
      the map and its overlays are absolute/fixed, positioned against the padding
-     box, so they stay full-bleed under the glass rail as before. -->
+     box, so they stay full-bleed under the glass rail. -->
 <main class="relative min-w-0 flex-1 overflow-y-auto md:pl-20">
   {@render children()}
 </main>

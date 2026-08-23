@@ -17,10 +17,9 @@
   import type { RouteFormInput } from './routes.remote'
   import RouteTagsInput from './RouteTagsInput.svelte'
 
-  // Shared body for the add/edit route forms. Every field is optional (one note up top
-  // says so instead of per-field badges, hence `required` on each wrapper); the custom
-  // inputs are self-sufficient (they render their own hidden inputs) and sit in the same
-  // RemoteFormInputWrapper as the text fields. Mirrors BlockFormFields.
+  // Shared body for the add/edit route forms. Every field is optional (one note up top says so
+  // instead of per-field badges, hence `required` on each wrapper); the custom inputs are
+  // self-sufficient (they render their own hidden inputs). Mirrors BlockFormFields.
   interface Props {
     /** The block the route lives on. */
     block: BlockDetail

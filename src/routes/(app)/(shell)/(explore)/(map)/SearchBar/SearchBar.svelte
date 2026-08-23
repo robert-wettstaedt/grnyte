@@ -315,9 +315,7 @@
     <!-- Mobile: full-width panel pinned to the visible viewport (`top`/`max-height`
          from the VisualViewport) so the on-screen keyboard can't push it off-screen
          and it clears the bottom tab bar, plus `overscroll-contain` against scroll
-         chaining. `mousedown` is swallowed so tapping a row keeps the input focused
-         (keyboard stays up, iOS doesn't tear the row out from under the tap).
-         Desktop: anchored under the bar. -->
+         chaining. Desktop: anchored under the bar. -->
     <div
       class="bg-surface-100-900 border-surface-200-800 fixed top-16 right-1 left-1 z-20 max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain rounded-xl border shadow-xl md:absolute md:top-full md:right-0 md:left-0 md:mt-2 md:max-h-[60vh]"
       style:top={dropdownTop}

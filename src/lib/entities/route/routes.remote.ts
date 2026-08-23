@@ -415,14 +415,11 @@ export const deleteRoute = authedCommand(
       data = { mode: 'soft', routeId: id }
     }
 
-    // Written on the soft path only, unlike an ascent's deletion where it also depends on who did
-    // it: a route is shared, so its removal is news to the region whoever removed it. The row
-    // survives the soft delete, so the card can still name it.
-    //
-    // Nothing at all for a hard delete: `events.route_fk` is an immediate foreign key, so an
-    // event written after the row is gone aborts the transaction, and one written before it is
-    // cascaded away a statement later. A mistake inside the grace window leaves no trace, which
-    // is the point of the window.
+    // Written on the soft path only, unlike an ascent's deletion which also depends on who did it:
+    // a route is shared, so its removal is news to the region regardless of who removed it, and the
+    // row survives the soft delete so the card can still name it. Nothing for a hard delete: the
+    // event would abort against the gone row or be cascaded away with it, and a mistake inside the
+    // grace window leaving no trace is the point of the window.
     if (!erasable) {
       await insertEvent(db, {
         actorFk: user.id,
@@ -449,10 +446,8 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
       blockFk: z.number(),
       createdBy: z.number(),
       description: z.string().nullable(),
-      // Bounded exactly as `routeActionSchema` bounds them. The snapshot went out to the client and
-      // came back, so this is the only thing standing between it and a value create would refuse:
-      // `routes` carries no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`,
-      // so an out-of-range one becomes the route's community rating.
+      // Bounded exactly as `routeActionSchema` bounds them: the snapshot round-trips through the
+      // client, `routes` has no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`.
       firstAscentYear: z.int().min(1900).max(2100).nullable(),
       gradeFk: z.number().nullable(),
       name: z.string(),
@@ -470,10 +465,9 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
  *  links) or clear the soft delete's `deletedAt`, erasing the delete event with it. */
 export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, { db, user, userRegions }) => {
   if (snapshot.mode === 'hard') {
-    // The snapshot is client-supplied, so mirror createRoute rather than inserting it verbatim:
-    // derive the region and area chain from the actual block, override authorship, and recompute the
-    // areaFks/areaIds filter tokens. Otherwise a DELETE holder could restore a route with forged
-    // createdBy into another region's block, with poisoned search tokens.
+    // Client-supplied snapshot, so mirror createRoute rather than inserting it verbatim: derive the
+    // region/area chain from the actual block and override authorship, or a DELETE holder could
+    // restore a route with forged createdBy into another region's block.
     const block = await db.query.blocks.findFirst({ where: eq(blocks.id, snapshot.route.blockFk) })
     if (block == null) {
       error(404, formError('blocks_notFound'))
@@ -513,13 +507,10 @@ export const restoreRoute = authedCommand(restoreRouteSchema, async (snapshot, {
         .insert(routesToTags)
         .values(restoredTags.map((tagFk) => ({ regionFk: created.regionFk, routeFk: created.id, tagFk })))
     }
-    // Region-scoped, the way `resolveFirstAscensionists` scopes the create and edit paths. These ids
-    // went out to the client and came back, and the junction's WITH CHECK only tests its OWN
-    // `region_fk`, while the foreign key's referential check does not run under RLS at all: an id
-    // belonging to another region therefore inserts cleanly and stays. Nothing can read it back
-    // (`queries.ts` region-filters the relation and the mapper drops the null), so the route shows
-    // no first ascensionist while the row exists, and anyone who is a member of both regions sees
-    // the other region's climber credited here and on their own profile.
+    // Region-scoped like `resolveFirstAscensionists`: these ids round-tripped through the client,
+    // and the junction's WITH CHECK only tests its own `region_fk` (the FK's referential check
+    // doesn't run under RLS), so an id from another region would insert cleanly and stay, invisible
+    // everywhere `queries.ts` region-filters it except to a member of both regions.
     const ownFirstAscensionists =
       snapshot.firstAscensionistFks.length === 0
         ? []

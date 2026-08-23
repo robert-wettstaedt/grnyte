@@ -56,6 +56,6 @@ export const signUp = form(signUpSchema, async ({ email, password, username }) =
   await notifyAdminsOfSignup({ origin: url.origin, userFk: createdUser.id, username })
 
   // No redirect: Supabase may require email confirmation before the first sign-in, so we
-  // surface a success message and let the user head to the sign-in tab (mirrors old behaviour).
+  // surface a success message and let the user head to the sign-in tab.
   return { success: true }
 })

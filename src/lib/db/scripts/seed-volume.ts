@@ -72,7 +72,6 @@ const insert = async (rel: string, rows: Record<string, unknown>[], cols: string
   }
 }
 
-// --- Resolve region + creators (must exist from seed-dev-region) ------------
 const [region] = await sql<{ createdBy: number; id: number }[]>`
   select id, created_by as "createdBy" from public.regions where name = ${REGION_NAME} limit 1`
 if (!region) throw new Error(`seed-volume: region "${REGION_NAME}" not found - run seed-dev-region.ts first`)
@@ -110,8 +109,6 @@ if (process.env.RESET === 'true') {
 
 console.log(`seeding into region ${region.id} ("${REGION_NAME}") as ${creators.length} creator(s)`)
 
-// --- Areas: roots (type 'area', hold sub-areas) then crags (type 'crag',
-// hold blocks). Nesting is area > crag, never the reverse. ------------------
 const areaRows = Array.from({ length: AREAS }, (_, i) => ({
   created_by: author(),
   description: 'Seeded area.',
@@ -151,7 +148,6 @@ const cragIds = await insertReturningIds('areas', cragRows, [
 const areaOfCrag = cragRows.map((r) => r.parent_fk as number)
 console.log(`  areas: ${areaIdList.length} areas + ${cragIds.length} crags`)
 
-// --- Blocks + geolocations --------------------------------------------------
 // Clustered but distinct coords so blocks render as separate map markers:
 // areas spread across the region, crags cluster within their area, blocks
 // scatter within their crag. Continuous jitter => no two blocks coincide.
@@ -203,7 +199,6 @@ await sql`
 const cragOfBlock = blockRows.map((r) => r.area_fk)
 console.log(`  blocks: ${blockIds.length} (+ ${geoIds.length} geolocations)`)
 
-// --- Routes -----------------------------------------------------------------
 // areaFks/areaIds denormalise the block's area chain (leaf crag -> root area),
 // matching routes.remote.ts so area filters find these routes.
 const routeRows = blockIds.flatMap((blockId, bi) => {
@@ -249,7 +244,6 @@ const routeIds = await insertReturningIds('routes', routeRows, [
 ])
 console.log(`  routes: ${routeIds.length}`)
 
-// --- Route tags (some routes get 1-2 tags) ----------------------------------
 if (tags.length) {
   const tagRows: Record<string, unknown>[] = []
   for (const routeId of routeIds) {
@@ -266,7 +260,6 @@ if (tags.length) {
   console.log(`  route tags: ${tagRows.length}`)
 }
 
-// --- Ascents (0-3 per route, weighted low) ----------------------------------
 const ASCENT_TYPES = ['flash', 'redpoint', 'redpoint', 'redpoint', 'repeat', 'attempt'] as const
 const dayMs = 86_400_000
 const now = Date.now()
@@ -309,7 +302,6 @@ const ascentIds = await insertReturningIds('ascents', ascentRows, [
 ])
 console.log(`  ascents: ${ascentIds.length}`)
 
-// --- Media (placeholder paths; see header note) -----------------------------
 if (WITH_MEDIA) {
   const fileRows: Record<string, unknown>[] = []
   // Every row carries all three fk keys (null unless set) so the explicit

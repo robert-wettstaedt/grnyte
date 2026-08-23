@@ -77,10 +77,18 @@ describe('topoEditorKeydown', () => {
     expect(editor.selectedPoint!.y).toBeCloseTo(0.45)
   })
 
-  it('ignores arrows when nothing is selected', () => {
-    const { handler, xOf } = setup()
-    handler(press('ArrowRight'))
+  it('leaves arrow keys to the browser when nothing is selected', () => {
+    const { editor, handler, xOf } = setup()
+    const preventDefault = vi.fn()
+
+    handler(press('ArrowRight', { preventDefault }))
+
     expect(xOf(10)).toBeCloseTo(0.2)
+    expect(preventDefault).not.toHaveBeenCalled()
+
+    editor.selectRoute(10)
+    handler(press('ArrowRight', { preventDefault }))
+    expect(preventDefault).toHaveBeenCalledTimes(1)
   })
 
   it('F toggles fullscreen but Cmd/Ctrl+F does not', () => {

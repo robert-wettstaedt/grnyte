@@ -218,7 +218,7 @@
     }
   }
 
-  // --- photos (immediate, not part of the dirty session) ---
+  // Photos are immediate writes, not part of the dirty session.
 
   function pickPhoto(replaceId?: number) {
     replaceTargetId = replaceId
@@ -414,7 +414,6 @@
 
 <div class={['bg-surface-950 absolute inset-0 top-0', routesOpen && 'md:right-94 lg:right-105']}>
   {#if currentTopo == null}
-    <!-- No photos yet: prominent CTA to author the first topo. -->
     <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
       <p class="text-surface-600-400 max-w-xs text-sm">{m.topo_emptyState()}</p>
       <button class="btn preset-filled-primary-500" disabled={photoBusy} onclick={() => pickPhoto()}>
@@ -474,7 +473,6 @@
   onSave={save}
 />
 
-<!-- Selected-route editing card: overlays the photo strip and slides up like a sheet. -->
 {#if currentTopo != null && currentTopoEditable && selectedRoute != null}
   <TopoRouteCard
     {editor}
@@ -483,13 +481,11 @@
     onDeleteRoute={deleteSelectedRoute}
   />
 {:else}
-  <!-- Bottom chrome: the Routes button (when nothing is selected) above the photo strip. -->
   <div
     class="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-stretch gap-2 p-3"
     transition:fly={{ duration: 220, y: 24 }}
   >
     {#if currentTopo != null && currentTopoEditable && selectedRoute == null}
-      <!-- Routes: a bottom sheet on mobile, a right-hand panel on desktop. -->
       <div class="pointer-events-auto flex justify-start">
         <Modal
           backdrop

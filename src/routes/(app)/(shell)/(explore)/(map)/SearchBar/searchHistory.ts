@@ -1,6 +1,5 @@
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
-// case-insensitively, capped at CAP entries.
 const KEY = `${PUBLIC_APPLICATION_NAME}:searchHistory`
 const CAP = 8
 

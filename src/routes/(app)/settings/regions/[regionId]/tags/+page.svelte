@@ -23,10 +23,9 @@
   // typing the URL. The server rejects them either way - this is so they find out before typing.
   const isAdmin = $derived(canEditRegion(global.userRegions, regionId))
 
-  // Derived, not a snapshot: the vocabulary is whatever the synced membership says right now. The
-  // batch form this replaced read it once at init and submitted the whole list back, so a tag
-  // another admin added while the page sat open was deleted, junction rows and all, by a save that
-  // touched nothing.
+  // Derived, not a snapshot: the vocabulary is whatever the synced membership says right now. A
+  // snapshot taken once at init and submitted back as a whole list would delete a tag another
+  // admin added while the page sat open, junction rows and all, on a save that touched nothing.
   const tags = $derived(regionTags(global.userRegions, regionId))
 
   // One grouped count for the whole screen. Every mutation invalidates it, and until it lands each

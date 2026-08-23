@@ -1,10 +1,10 @@
 <!--
   One event, on a page of its own, with its thread under it.
 
-  What a notification links to. An inbox row about a comment used to land on the route or the area
-  the card happened to be about, which is the thing the reader already knew; the sentence it was
-  answering was on a card in a feed, behind however many days of scrolling, inside a sheet that has
-  no URL. `notifications.event_fk` and `reaction_fk` have been written all along for exactly this.
+  What a notification links to: the exact comment or event it was about, not just the route or
+  area the card happened to be on, so the reader lands where the conversation is instead of
+  scrolling a feed sheet, behind however many days, inside a sheet that has no URL.
+  `notifications.event_fk` and `reaction_fk` exist for exactly this.
 
   Outside `(shell)`, so it carries no nav rail and no tab bar. It is a screen you arrive at from
   somewhere specific (a notification, a card) and leave by going back, exactly like the topo viewer

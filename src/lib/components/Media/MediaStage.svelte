@@ -91,9 +91,7 @@
   // Image, thumbnail-first: the grid already fetched (and cached) the 256 derivative, so it
   // paints instantly while the 1024 one streams in behind the spinner and cross-fades over it.
   // The untouched original (often several MB on a crag connection) only streams once the user
-  // actually zooms in. Both layers must name real derivative sizes for this to work at all -
-  // they used to be ?w=512 and ?w=1024, which the server rounds to the SAME 1024 file, so the
-  // "progressive" load fetched one image twice and cross-faded it with itself.
+  // actually zooms in. Both layers must name real derivative sizes for this to work at all.
   const cleanPath = $derived(file.path.replace(/^\/+/, ''))
   let wantFull = $state(false)
   const fullSrc = $derived(wantFull ? imageSrc(cleanPath) : imageSrc(cleanPath, 1024))

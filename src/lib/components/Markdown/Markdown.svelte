@@ -14,10 +14,7 @@
   const { className, disableLinks = false, encloseReferences, markdown }: Props = $props()
 
   // The github-markdown-css stylesheet, and the observer that swaps it with the theme, live in the
-  // root layout: they are one thing for the document, not one per rendered body of text. A thread
-  // of thirty comments used to install thirty MutationObservers on `documentElement` and append
-  // thirty copies of the same `<link>` to `<head>`, and every theme toggle then ran thirty
-  // callbacks.
+  // root layout: they are one thing for the document, not one per rendered body of text.
 
   const global = getGlobalState()
 

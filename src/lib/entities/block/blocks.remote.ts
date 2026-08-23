@@ -281,9 +281,7 @@ type DeleteBlockSnapshot =
       geolocation: null | { estimated: boolean; lat: number; long: number }
       mode: 'hard'
     }
-  // No `deletedAt`, same as the area snapshot: the soft delete's timestamp used to go out to the
-  // client and come back as the only thing `softRestoreBlock` matched on. It is read off the
-  // stored block now.
+  // No `deletedAt`: read off the stored block rather than accepted from the client (see `softRestoreBlock`).
   | { blockId: number; mode: 'soft' }
 
 /** Hard-delete a bare block: drop its pin (FK-linked both ways) then the row. Returns the

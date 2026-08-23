@@ -36,7 +36,6 @@
     </SegmentedControl.Item>
     <SegmentedControl.Item value="signup">
       {#snippet element(attributes)}
-        <!-- attrs are typed for the default <label>; spread onto <a> works at runtime -->
         <a {...attributes as unknown as HTMLAnchorAttributes} href={resolve('/auth/signup') + search} class={tab}>
           {m.auth_signUp()}
         </a>

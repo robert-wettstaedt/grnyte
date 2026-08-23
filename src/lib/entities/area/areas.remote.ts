@@ -161,9 +161,7 @@ type DeleteAreaSnapshot =
       mode: 'hard'
       parking: { lat: number; long: number }[]
     }
-  // No `deletedAt`. The soft delete's timestamp used to travel out to the client and come back as
-  // the only thing `softRestoreArea` matched on, which let a caller name a moment in time instead
-  // of a subtree. It is read off the stored row now and never leaves the server.
+  // No `deletedAt`: read off the stored row rather than accepted from the client (see `softRestoreArea`).
   | { areaId: number; mode: 'soft' }
 
 /** Collect `rootId` and every area transitively nested beneath it (via `parentFk`).
@@ -337,8 +335,7 @@ const restoreAreaSchema = z.discriminatedUnion('mode', [
     // store a parking at lat 999 and drag every map that fits its markers along with it.
     parking: z.array(z.object({ lat: boundedDegrees(90), long: boundedDegrees(180) })),
   }),
-  // No `deletedAt` to accept: the restore reads it off the stored area. It was an input field that
-  // decided which rows three UPDATEs touched, and `deleteArea` told the client what to put in it.
+  // No `deletedAt` to accept: the restore reads it off the stored area, not the client (see `softRestoreArea`).
   z.object({ areaId: z.number(), mode: z.literal('soft') }),
 ])
 

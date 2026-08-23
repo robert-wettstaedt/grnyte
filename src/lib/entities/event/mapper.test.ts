@@ -16,7 +16,7 @@ import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
 import { zeroPostgresJS } from '@rocicorp/zero/server/adapters/postgresjs'
 import { afterAll, describe, expect, it } from 'vitest'
-import { objectOf } from './dto'
+import { EVENT_OBJECT_COLUMNS } from './dto'
 import { eventRow } from './fixture'
 import { toEvent, type EventRow } from './mapper'
 
@@ -102,14 +102,18 @@ describe.skipIf(!usable)('toEvent', () => {
 
   it('reads the object off whichever of the six columns is set', async () => {
     const rows = await run({ limit: 200 })
+    // Without this the loop below asserts nothing on an empty result.
+    expect(rows.length).toBeGreaterThan(0)
 
     for (const row of rows) {
-      const object = objectOf(row)
-      expect(object).toBeDefined()
-      // And it agrees with the mapped shape.
+      const set = Object.entries(EVENT_OBJECT_COLUMNS).filter(([, column]) => row[column] != null)
+
+      // The read side of the `events_one_object` CHECK.
+      expect(set, `event ${row.id}`).toHaveLength(1)
+
       const event = toEvent(row, NO_REGIONS)
-      expect(event.objectType).toBe(object!.type)
-      expect(event.objectId).toBe(object!.id)
+      expect(event.objectType, `event ${row.id}`).toBe(set[0][0])
+      expect(event.objectId, `event ${row.id}`).toBe(row[set[0][1]])
     }
   })
 
@@ -124,8 +128,8 @@ describe.skipIf(!usable)('toEvent', () => {
         // Null object columns mean "the event's own object", which is the common path; a reorder
         // is what sets them.
         expect(change.objectType == null || change.objectType.length > 0).toBe(true)
+        }
       }
-    }
   })
 })
 

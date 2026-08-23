@@ -278,10 +278,13 @@ describe.skipIf(!reachable)('acceptInvitation', () => {
 
 describe.skipIf(!reachable)('listInvitationsForEmail', () => {
   it('lists the live invitation with its region and inviter, whatever case the address is in', async () => {
-    await invite()
+    const { id } = await invite()
+    const [{ username: inviterName }] = await sql<{ username: string }[]>`
+      select username from public.users where id = ${users.admin.userId}`
 
+    // toEqual, not toMatchObject, so a leaked extra field (the token above all) still fails.
     await expect(listInvitationsForEmail(EMAILS.invitee.toUpperCase())).resolves.toEqual([
-      { id: expect.any(Number), invitedBy: expect.any(String), regionName: REGION },
+      { id, invitedBy: inviterName, regionName: REGION },
     ])
   })
 

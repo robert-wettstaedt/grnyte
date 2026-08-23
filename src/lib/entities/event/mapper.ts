@@ -26,10 +26,8 @@ export interface EventChangeItem {
 /**
  * One event, ready to render.
  *
- * The shape `CatalogueRow` had, minus everything that existed to work around the polymorphic
- * pair: no `entityId`/`entityType` to look up, no `parentEntity*` to stand in for a join, and no
- * separate hydration result to marry to it. The entity is `entity`, resolved here, because the row
- * already carried it.
+ * The entity is `entity`, resolved here because the row already carries it: no `entityId`/
+ * `entityType` to look up, and no separate hydration result to marry to it.
  */
 export interface EventListItem {
   actorFk: number
@@ -45,13 +43,11 @@ export interface EventListItem {
   commentCount: number
   createdAt: number
   /**
-   * What the event is about, already resolved.
-   *
-   * Never a skeleton and never a tombstone, which is the tri-state the old hydration pass carried.
-   * The object arrives with the event in one snapshot, so "not synced yet" cannot happen; and every
-   * entity that can be deleted soft-deletes, so a removed one still answers with its own name.
-   * `undefined` means only that the row is one of the few whose object contributes no entity (a
-   * file, which has no page of its own).
+   * What the event is about, already resolved. Never a skeleton and never a tombstone: the object
+   * arrives with the event in one snapshot, so "not synced yet" cannot happen, and every entity
+   * that can be deleted soft-deletes, so a removed one still answers with its own name.
+   * `undefined` means only that the row's object contributes no entity (a file, which has no page
+   * of its own).
    */
   entity: EventEntity | undefined
   id: number
@@ -60,20 +56,16 @@ export interface EventListItem {
   objectId: number | string
   objectType: EventObjectType
   /**
-   * The closest thing to "same place" the event knows, which is what a burst card groups on.
-   *
-   * Not a stored column any more. `parent_entity_type`/`parent_entity_id` existed because a
-   * polymorphic ref cannot be traversed; here it is read off the object's own foreign key, so it
-   * cannot disagree with the row it describes.
+   * The closest thing to "same place" the event knows, which is what a burst card groups on. Not
+   * a stored column: it is read off the object's own foreign key, since a polymorphic ref cannot
+   * be traversed, so it cannot disagree with the row it describes.
    */
   parent: undefined | { id: number | string; type: EventObjectType }
   /**
-   * The parent, resolved, for the headline that names it.
-   *
-   * "Made 12 edits in Nordblock" names the block, and none of those twelve events is about it:
-   * the old hydration pass fetched parents for exactly this reason. Read off the relation the row
-   * already carried, so it costs no query. Thinner than {@link entity} on purpose, since nothing
-   * renders it as a row; only the headline and the session summary read its name.
+   * The parent, resolved, for the headline that names it: "Made 12 edits in Nordblock" names the
+   * block, and none of those twelve events is about it. Read off the relation the row already
+   * carried, so it costs no query. Thinner than {@link entity} on purpose, since nothing renders
+   * it as a row; only the headline and the session summary read its name.
    *
    * Absent for a file, whose entity IS its parent's (the card keys that one under both).
    */
@@ -126,13 +118,6 @@ export function toEvent(row: EventRow, userRegions: RegionMembership[]): EventLi
   }
 }
 
-/**
- * The entity a card renders, built from the relation the row already carried.
- *
- * This is `KINDS[type].toEntity` from the hydration pass, with everything that made it hard gone:
- * no `tables` argument (an ascent reads `ascent.route` directly rather than another kind's index),
- * no `ready` set and no `needs` graph, because there is no second wave to wait for.
- */
 /** The six object slots, all empty: the base for asking `entityOf` about a file's parent. */
 const EMPTY_OBJECTS = {
   area: undefined,
@@ -144,20 +129,12 @@ const EMPTY_OBJECTS = {
 }
 
 /**
- * What the object hangs off, read through its own foreign key.
- *
- * A file is the awkward one: it has four possible parents and names whichever it landed on, which
- * is why an upload card says "added 5 photos to Rampe". That precedence is `fileParent`, shared
- * with the write path so the event's object and the feed's grouping key cannot disagree.
- */
-/**
  * The one hop up from an event's object: an area's parent, a block's area, a route's block, an
  * ascent's route, and whatever a file landed on.
  *
- * Exported because the push digest asks the same question of the same rows and used to answer it
- * in raw SQL, a `coalesce` and a `case` that had to be kept in step with this by hand. The digest
- * groups a burst on what it gets back, so the two drifting means a push that groups differently
- * from the feed it is summarising.
+ * Exported so the push digest, which groups a burst the same way, reads this instead of its own
+ * copy of the mapping: the two drifting would mean a push that groups differently from the feed
+ * it is summarising.
  */
 export function eventParentRef(fks: {
   areaParentFk: null | number | undefined
@@ -235,9 +212,8 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
   if (row.ascent != null) {
     const ascent = row.ascent
     // The ROUTE carries the row (grade, stars, tags, topo thumb); reading those off the ascent
-    // would render a real route with zeroed values. It arrives nested now, so the case the old
-    // code guarded with `needs: ['route']` cannot happen: either the ascent is here with its
-    // route, or the ascent is not here at all.
+    // would render a real route with zeroed values. It arrives nested, so either the ascent is
+    // here with its route, or the ascent is not here at all.
     return {
       ...(ascent.route == null ? { name: '', row: 'none' as const } : routeEntity(ascent.route, userRegions)),
       // Parsed here rather than in the card, so a stored claim that no longer parses (an older
@@ -264,13 +240,11 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
   if (row.subject != null) {
     const subject = row.subject
 
-    // An invitation names an address, and the invitee has no account: `subject_fk` holds the
-    // INVITER, degenerately, and the address is in `metadata`. Rendering the subject here would
-    // put the inviter's own name and profile link under "Jonas invited mara@example.com".
-    // Both halves of the invitation pair. `invite` and the revoke both point `subject_fk` at the
-    // INVITER, degenerately, with the address in `metadata`; rendering the subject would say
-    // "Jonas removed Jonas". `metadata != null` is what the region code itself uses to tell a
-    // revoked invitation from a removed member, which share the `remove` verb.
+    // Both `invite` and a revoke (`remove` with `metadata != null`) point `subject_fk` at the
+    // INVITER, degenerately, with the invitee's address in `metadata`: rendering the subject would
+    // put the inviter's own name under "Jonas invited mara@example.com" or say "Jonas removed
+    // Jonas". `metadata != null` is what the region code itself uses to tell a revoked invitation
+    // from a removed member, which share the `remove` verb.
     if (row.verb === 'invite' || (row.verb === 'remove' && row.metadata != null)) {
       return { crumbs: [], name: row.metadata ?? '', row: 'none' }
     }
@@ -292,15 +266,15 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
   if (row.file != null) {
     const raw = row.file
     const media = toMediaFile(raw)
-    // A file hanging off an ascent is ascent media wherever it is read from, and `ascentCreatedBy`
-    // is the only discriminator `file/permissions.ts` has.
+    // A file hanging off an ascent is ascent media wherever it is read from; see the
+    // `ascentCreatedBy` note above for why.
     const owner = raw.ascent?.createdBy
     const files = [owner == null ? media : { ...media, ascentCreatedBy: owner }]
 
     // A file has no page and no name of its own, so the card BORROWS the entity it landed on: that
     // is where "added 5 photos to Rampe" gets "Rampe", and it is the row drawn beneath the photos.
-    // The old catalogue spelled this as `names: 'parent'` and hydrated the parent for the same
-    // reason. Without it an upload card can name nothing and render no row at all.
+    // Spelled `names: 'parent'` in the catalogue for the same reason. Without it an upload card
+    // can name nothing and render no row at all.
     const parent =
       raw.route != null
         ? routeEntity(raw.route, userRegions)
@@ -337,8 +311,8 @@ function parentEntityOf(row: EventRow, userRegions: RegionMembership[]): EventEn
 
   if (row.route?.block != null) {
     const block = row.route.block
-    // `blockName`, not `block.name`: blocks are routinely nameless, and a headline naming the
-    // empty string reads as a missing name rather than as "Block 3".
+    // `blockName`, not `block.name` (see the note above): an empty name would read as missing
+    // rather than as "Block 3".
     const name = blockName(block.name, block.order)
     return { crumbs: [], href: entityHref({ id: block.id, label: name, type: 'blocks' }), name, row: 'block' }
   }

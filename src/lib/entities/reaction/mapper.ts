@@ -15,9 +15,8 @@ export interface ReactionRow {
 /**
  * One event's reactions, folded into its chips.
  *
- * No dedupe by person: `reactions_one_emoji_idx` is one emoji per person per event, so a second
- * row for the same pair cannot exist. The old shape needed one, because a card was several rows
- * and merging two of them could leave the same person holding the same emoji twice.
+ * No dedupe by person needed: `reactions_one_emoji_idx` is one emoji per person per event, so a
+ * second row for the same pair cannot exist.
  *
  * Chips keep first-seen order rather than being sorted, so a new emoji appends instead of
  * shuffling the ones already under the reader's thumb.

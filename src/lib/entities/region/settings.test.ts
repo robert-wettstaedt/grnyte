@@ -98,10 +98,6 @@ describe('regionSettingsSchema', () => {
     expect(regionSettingsSchema.safeParse({ mapLayers: 'nonsense' }).success).toBe(false)
   })
 
-  it('keeps a stored layer intact', () => {
-    expect(regionSettingsSchema.parse({ mapLayers: [FULL] })).toEqual({ mapLayers: [FULL], tags: DEFAULT_TAGS })
-  })
-
   it('reads a blob that predates region tags as having the defaults, without losing its layers', () => {
     expect(regionSettingsSchema.parse({}).tags).toEqual(DEFAULT_TAGS)
     expect(regionSettingsSchema.parse({ mapLayers: [FULL] })).toEqual({ mapLayers: [FULL], tags: DEFAULT_TAGS })

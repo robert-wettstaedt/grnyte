@@ -62,7 +62,7 @@
 
   // The client-side twin of authGuard's region-less bounce. That hook only ever sees document
   // loads: this group is `ssr = false` with (almost) no server loads, so navigating to /explore
-  // from inside the app never reaches it, and signing in used to land on a blank map.
+  // from inside the app never reaches it.
   //
   // A document navigation rather than `goto`, because the hook is the only thing that can see a
   // live invitation, and on arrival it redirects to that instead. /explore keeps its own

@@ -84,10 +84,14 @@ afterAll(async () => {
 })
 
 describe.skipIf(!reachable)('resolveAttachRegion', () => {
+  // The status, not just any throw: `resolveAttachRegion` 404s on a missing row immediately before
+  // it checks the permission, so a drifted fixture (a failed insert leaving `areaId` at 0, a new
+  // deletedAt filter) would keep a bare `rejects.toThrow()` green while the authz branch these
+  // tests exist for never runs.
   it('refuses a READ member attaching to a non-ascent entity (finalizeImage had no gate)', async () => {
     await expect(
       resolveAttachRegion(db, users.stranger.userId, [membership(regionId, 'region.read')], 'area', areaId),
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({ status: 403 })
   })
 
   it('allows an EDIT member attaching to a non-ascent entity', async () => {
@@ -113,17 +117,23 @@ describe.skipIf(!reachable)('resolveAttachRegion', () => {
   })
 
   it('refuses attaching to someone else’s ascent', async () => {
+    // 403 rather than any throw, and it matters more here: the ascent branch filters on
+    // `isNull(ascents.deletedAt)`, so a soft-deleted fixture 404s and would pass a bare toThrow
+    // without ever reaching the `ascent.createdBy !== userId` check this test is named for.
     await expect(
       resolveAttachRegion(db, users.stranger.userId, [membership(regionId, 'region.admin')], 'ascent', ascentId),
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({ status: 403 })
   })
 })
 
 describe.skipIf(!reachable)('requireEditableFile', () => {
   it('refuses a maintainer (EDIT, not admin, not owner) publishing another member’s ascent media', async () => {
+    // `requireEditableFile` 404s on a missing row and 403s when `canEditFile` refuses. Pinning the
+    // 403 is what keeps the deliberate divergence here under test: a maintainer must not flip
+    // someone else's ascent media public, even though the files UPDATE policy would let them.
     await expect(
       requireEditableFile(db, [membership(regionId, 'region.edit')], users.stranger.userId, fileId),
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({ status: 403 })
   })
 
   it('lets the ascent owner change their own media’s visibility', async () => {

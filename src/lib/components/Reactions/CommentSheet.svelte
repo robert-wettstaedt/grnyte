@@ -1,16 +1,16 @@
 <!--
   One event's thread from the feed, and the button that opens it.
 
-  A sheet on a phone and a right-hand aside on a desktop, which is one `Modal` and the same pair
-  the topo viewer and the entity log already use. Not an expander inside the card: a conversation
-  wants the screen while it is being read and none of it while it is not, and a card that grows by
-  twenty comments pushes the feed the reader was scrolling out from under their thumb.
+  A sheet on a phone and a right-hand aside on a desktop, one `Modal` (same pair the topo viewer and
+  the entity log use). Not an expander inside the card: a conversation wants the screen while it is
+  being read and none of it while it is not, and a card that grows by twenty comments pushes the
+  feed out from under the reader's thumb.
 
-  The event's own page renders the same two pieces stacked in flow instead, over a thread of its own
-  (`thread.svelte.ts`), which is what a notification links to: an anchored comment wants a URL, and a
-  sheet has none.
+  The event's own page renders the same two pieces stacked in flow instead, over its own thread
+  (`thread.svelte.ts`), which is what a notification links to: an anchored comment wants a URL, and
+  a sheet has none.
 
-  Nothing loads until it opens. The feed carries `comment_count` and this carries the words, so a
+  Nothing loads until it opens: the feed carries `comment_count` and this carries the words, so a
   region full of conversations costs a scrolling reader one integer per card.
 -->
 <script lang="ts">
@@ -35,38 +35,30 @@
 
   let open = $state(false)
   /**
-   * Whether this card's dialog exists at all.
-   *
-   * A `Modal` renders its dialog CLOSED rather than not at all: the panel branch mounts a
-   * `Dialog`, a `Portal`, a positioner, the content, the header and its close button whether or
-   * not anybody opened it, and `Modal` itself constructs a `MediaQuery` per instance. One per feed
-   * card is fifty of each on a scrolled window, which is the cost this whole thread was made lazy
-   * to avoid. So the button is plain markup, and the dialog is built the first time it is pressed.
-   *
-   * It is not torn down again on close: reopening a thread the reader has already been in should
-   * be instant, and the expensive part (the thread query, the editor) is guarded by `open` below.
+   * Whether this card's dialog exists at all. A `Modal` renders its dialog CLOSED rather than not
+   * at all (a full `Dialog`/`Portal`/positioner/`MediaQuery` per instance whether or not anybody
+   * opened it), which is fifty of each on a scrolled feed if mounted eagerly. So the button is
+   * plain markup and the dialog builds on first press, then stays mounted: reopening a thread
+   * already visited should be instant, with the expensive part (query, editor) guarded by `open`.
    */
   let mounted = $state(false)
 
   const thread = createThread(() => ({ eventId, regionFk }), { enabled: () => open })
 </script>
 
-<!-- Always, and on your own card too: being the person a card is about is the most likely reason to
-     have something to say under it. The count is the affordance, so a thread with nothing in it
-     still reads as an invitation rather than as a decoration.
-
-     Outside the `Modal` rather than passed to it as a trigger, because the panel it opens is fixed
-     to the edge of the screen and never anchors to this button. -->
+<!-- Always shown, even on your own card: being the person a card is about is the most likely reason
+     to have something to say under it, so a thread with nothing in it still reads as an invitation.
+     Outside the `Modal` rather than passed to it as a trigger, since the panel it opens is fixed to
+     the edge of the screen and never anchors to this button. -->
 <button
   type="button"
   class="text-surface-600-400 hover:text-surface-950-50 flex items-center gap-1 p-1 text-xs"
   aria-label={commentCount === 0 ? m.comments_placeholder() : m.comments_show({ count: commentCount })}
   onclick={async () => {
     mounted = true
-    // A frame apart, deliberately. Setting both at once mounts the sheet with `open` already
-    // true, and a sheet that is born open has nothing to transition FROM: the first press
-    // snapped it into place while every later one slid it up. `tick()` waits for the mount, the
-    // frame after it is when the closed state has been painted, and the sheet then opens from it.
+    // A frame apart, deliberately: setting both at once mounts the sheet already open, which has
+    // nothing to transition FROM (the first press snapped it into place, every later one slid it
+    // up). `tick()` waits for the mount so the closed state paints first, then the sheet opens.
     await tick()
     requestAnimationFrame(() => (open = true))
   }}
@@ -93,11 +85,10 @@
       <Comments {thread} />
     {/if}
 
-    <!-- Pinned, so the box stays reachable over a long thread and above the phone keyboard, which
-         is what `Modal.mobile` already handles for a footer.
-
-         Guarded by `open` exactly as the body is: a closed dialog still renders its footer, and an
-         unguarded one would boot a TipTap editor for every thread anybody has ever opened. -->
+    <!-- Pinned (via `Modal.mobile`'s footer handling), so the box stays reachable over a long thread
+         and above the phone keyboard. Guarded by `open` exactly as the body is: a closed dialog
+         still renders its footer, and an unguarded one would boot a TipTap editor for every thread
+         anybody has ever opened. -->
     {#snippet footer()}
       {#if open}
         <CommentComposer {thread} />

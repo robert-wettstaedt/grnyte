@@ -18,12 +18,7 @@ import type { EventGroupKind } from './grouping'
 import type { CardLine } from './line'
 import { parseDeletedAscent, parseDeletionScale, verbEntry, verbKey } from './verbs'
 
-/**
- * What a card renders: the lines one group of events produced, and how it presents them.
- *
- * Built by `eventCard` from an `EventGroup`. There is no second grouping function any more: the
- * feed folds events, and a card expands each of them into its lines.
- */
+/** The lines one group of events produced. Built by `eventCard` from an `EventGroup`. */
 export interface CardGroup {
   /** The actor. Every group key carries one, so every line on a card shares it. */
   actorFk: number
@@ -226,23 +221,16 @@ export function cardView(
   })
 
   // No name is coming: an entity arrives with its event, so there is no second wave to wait for.
-  // This used to hold the slot pulsing until every ref it could come from had answered, which is
-  // what a separate hydration pass needed; `card.ts` overrode it with exactly this.
   const entityUnnamed = entityName == null
 
-  // Whose ascent the card is about. A region maintainer may edit anyone's, so "an ascent"
-  // would leave the reader guessing. The parent is a candidate as well as the subject: an
-  // upload points at the file, so the ascent it landed on is only ever the parent, and
-  // without it the card says "added a video to Karma" for something added to an ascent.
+  // Whose ascent the card is about, since a region maintainer may edit anyone's and "an ascent"
+  // would leave the reader guessing. The parent is a candidate too: an upload points at the file,
+  // so the ascent it landed on is only ever the parent.
   //
-  // `none` where no ascent is in play at all, which is what lets one sentence cover both
-  // ("added a photo to your ascent of X" / "added a photo to X"). An ascent that has not
-  // hydrated yet is `none` too, and reads as the same somebody-else's wording it always did,
-  // since every ascent sentence catches the rest with `owner=*`.
-  //
-  // A DELETED ascent never hydrates, so it falls back to what its own row wrote down. Without
-  // that every removal read "removed an ascent of Rampe", the one sentence a card about
-  // somebody else's log must not say, and four of the six arms were unreachable.
+  // `none` covers both "no ascent in play" and "not hydrated yet", since every ascent sentence
+  // catches the rest with `owner=*`. A DELETED ascent never hydrates, so it falls back to what its
+  // own row wrote down; without that every removal would read "removed an ascent of Rampe", the
+  // one sentence a card about somebody else's log must not say.
   const climber = [refs[0], place].map(entityOf).find((entity) => entity?.climberFk != null)
   const recorded = group.rows
     .map((line) => (line.objectType === 'ascent' ? parseDeletedAscent(line.metadata) : undefined))
@@ -339,9 +327,8 @@ export function cardView(
     overflowCount: Math.max(0, rowRefs.length - MAX_ROWS),
     pin: lone?.pin,
     rows,
-    // Only for a card that speaks one ascent's own sentence. A session says "You logged a
-    // session" over a flash, a repeat and an attempt, and the glyph beside that headline claimed
-    // the whole afternoon was whichever one happened to be newest; each row carries its own.
+    // Only for a card that speaks one ascent's own sentence; a session's own glyph would else wear
+    // whichever row happened to be newest instead (see `spokenLine`).
     //
     // Declared on the entry, so the cast is reachable only for the four lines that carry an
     // ascent type in `value`.
@@ -385,17 +372,16 @@ export function headlineEntityName(line: CardLine, entity: EventEntity | null | 
  *
  * Two stages for the same reason `claim` in `card.ts` has two: an upload is about a file and draws
  * the row of the thing the photos landed on, so matching on the object alone misses every upload
- * row. Compared through `lineRef`, which is what makes the numeric id a line carries and the text
- * id a ref carries comparable at all.
+ * row. Compared through `lineRef`, so a line's numeric id and a ref's text id are comparable.
  *
- * All of them rather than one, because the callers want different ones: the name comes off the
+ * Returns all matches, not one, because the callers want different ones: the name comes off the
  * first (newest, except on a merged card that leads with its create) and the opinion strip off the
  * create, and a row can hold both (an ascent logged in the morning and corrected in the evening is
  * two events on one session card).
  *
- * Empty rather than the whole list when nothing matches. Falling back to the first line was how a
- * card holding two deleted routes labelled both tombstones with the first one's name, and a row
- * nothing on the card speaks for has no name and no strip, which is the honest answer.
+ * Empty rather than the whole list when nothing matches: falling back to the first line would label
+ * two deleted routes' tombstones with the same name, and a row nothing on the card speaks for has
+ * no name and no strip, which is the honest answer.
  */
 function catalogueRowsFor(rows: readonly CardLine[], ref: EventEntityRef): CardLine[] {
   const key = eventEntityKey(ref)
@@ -490,8 +476,7 @@ function groupVerbKey(group: CardGroup): MessageKey {
 /**
  * The name a card's headline puts in `{name}`, in the order the four rules apply.
  *
- * Early returns rather than one expression: the rules do not compose, they override each other,
- * and the nested ternary this replaced needed four block comments to be followed at all.
+ * Early returns rather than one expression: the rules do not compose, they override each other.
  */
 function headlineName({
   firstName,
@@ -596,8 +581,8 @@ function sharedVerbKey(group: CardGroup, subjects: number): MessageKey | undefin
  *
  * Always the first line where there is one, which is what `mergeCreatedWithMedia` puts the
  * create at the front for. Two things read this: the headline, and the ascent glyph beside the
- * clock. The glyph used to read the newest line unconditionally, so a session of a flash, a
- * repeat and an attempt wore whichever glyph sorted first over "You logged a session".
+ * clock. Reading the newest line unconditionally would wear whichever glyph sorted first over
+ * "You logged a session" for a session of a flash, a repeat and an attempt.
  */
 function spokenLine(group: CardGroup, verb: CardVerb): CardLine | undefined {
   // A card of one, a create that picked up media ("You flashed Rampe", the clip below it), and

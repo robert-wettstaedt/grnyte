@@ -93,7 +93,6 @@
         </div>
 
         {#snippet bottom()}
-          <!-- Type filter: one horizontally scrollable row of count chips. -->
           <div class="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5">
             {#each chips as { color, count, key, label } (key)}
               <button
@@ -114,11 +113,11 @@
       </PageHeader>
 
       <div class="flex flex-col gap-5 px-4 py-4">
-        <!-- The plan's second pre-prompt surface. This is where logging an ascent lands, so it is
-             the moment somebody has just put something into the app and might want to hear when
-             others touch it. Only shown once they have an ascent here, and only to somebody who
-             has not answered the ask yet: the dismissal flag is shared with every other surface,
-             and the card retires itself once permission is granted. -->
+        <!-- This is where logging an ascent lands, so it is the moment somebody has just put
+             something into the app and might want to hear when others touch it. Only shown once
+             they have an ascent here, and only to somebody who has not answered the ask yet: the
+             dismissal flag is shared with every other surface, and the card retires itself once
+             permission is granted. -->
         {#if split.mine.length > 0}
           <PushSetup dismissible />
 

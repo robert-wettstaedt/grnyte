@@ -10,29 +10,16 @@ export interface ThreadTarget {
   regionFk: number
 }
 
-/**
- * How far back a link is worth reaching for the line it names.
- *
- * A thread opens on its newest 30, and a notification can be two weeks and sixty comments old:
- * without this the reader lands on an unhighlighted thread that never scrolls, with nothing saying
- * the sentence they tapped is behind "Show earlier comments". Five windows is 150 comments, past
- * which a link into a conversation that long is better answered by the reader scrolling than by
- * syncing the lot to a phone.
- */
+/** Cap on how many pages a permalink pulls to reach an old comment; beyond 150 comments, manual
+ *  scrolling beats syncing the rest of a long thread just to find one link. */
 const HIGHLIGHT_MAX_PAGES = 5
 
 /**
- * One thread's state, shared by the two places a thread is read.
+ * One thread's state, shared by the feed's sheet and the event page's inline view, so both stay
+ * stackable/splittable instead of duplicating state per container.
  *
- * The feed opens it in a sheet and the event's own page renders it inline, and both need the same
- * things: which conversation this is, the window over it, how far back it reaches, what the composer
- * is answering, and what is half-written in it. Holding them here rather than in each container is
- * what keeps the list and the composer two components that can be stacked in flow or split across a
- * sheet's body and its pinned footer.
- *
- * The target is the thread's, not the composer's: a `CommentComposer` that took its own `eventId`
- * could post into an event the list beside it is not showing, which is a bug no test would catch
- * because both halves would look right on their own.
+ * The target lives on the thread, not the composer: a composer with its own `eventId` could post
+ * into an event the list beside it isn't showing, a bug two correct-looking halves would hide.
  */
 export function createThread(
   target: () => ThreadTarget,
@@ -47,12 +34,9 @@ export function createThread(
   let replyTo = $state<CommentListItem | undefined>(undefined)
 
   /**
-   * The id on its own, memoized, and that is the point rather than tidiness.
-   *
-   * The target getter reads the event ROW on the event's own page (`regionFk` comes off it and only
-   * resolves once Zero has synced), so a query getter that called `target()` would depend on every
-   * snapshot of that row: a new object each time, and the thread's query rebuilt for an id that has
-   * not moved. A `$derived` over a number stops there, because an unchanged value notifies nobody.
+   * Memoized on purpose: `target()` reads the event ROW on the event's page (`regionFk` resolves
+   * only once Zero syncs), so a query getter calling it directly would rebuild on every new row
+   * snapshot even when the id hasn't moved. A `$derived` over the id alone stops that.
    */
   const eventId = $derived(target().eventId)
 
@@ -65,16 +49,12 @@ export function createThread(
   let pulled = 0
 
   /**
-   * Grow the window until the linked comment is inside it.
+   * Grow the window until the linked comment is inside it (the list can only scroll to a node that
+   * exists). Stops on the first of: comment arrived, nothing older left, or five windows pulled -
+   * the last guards against a deleted or off-event comment id walking the whole thread.
    *
-   * The list can only scroll to a node that exists, and the node only exists once the row is in the
-   * synced window, so this is the half that makes an old link work at all. It stops on the first of
-   * three: the comment arrived, there is nothing older left, or five windows have been pulled (a
-   * comment that was deleted, or one that never was on this event, would otherwise walk the whole
-   * thread looking for it).
-   *
-   * Here rather than in the list, because `limit` is here: a renderer that grows somebody else's
-   * window is paging policy in markup, and the rule can only be read by mounting it.
+   * Lives here rather than in the list because `limit` is here: a renderer growing somebody else's
+   * window would be paging policy hidden in markup.
    */
   $effect(() => {
     const id = opts?.highlight?.()
@@ -91,13 +71,8 @@ export function createThread(
     get comments() {
       return comments
     },
-    /**
-     * What is typed and not yet sent.
-     *
-     * Held here rather than in the composer, which unmounts with the sheet: closing a thread must
-     * not throw away three sentences somebody was in the middle of writing. This survives the
-     * toggle because the caller holds it, and dies with the card, which is the right lifetime.
-     */
+    /** What is typed and not yet sent. Held here, not in the composer (which unmounts with the
+     *  sheet), so closing a thread mid-sentence doesn't throw the draft away. */
     get draft() {
       return draft
     },

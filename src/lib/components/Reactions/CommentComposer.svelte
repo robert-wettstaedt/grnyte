@@ -33,12 +33,10 @@
 
   const empty = $derived(thread.draft.trim().length === 0)
   /**
-   * Said out loud rather than enforced at the keyboard.
-   *
-   * The old `<textarea maxlength>` refused the excess keystroke, which a rich editor has no
-   * equivalent for. A silent refusal in `send()` is the worst of both: the button looks live and
-   * every press does nothing. So the limit disables the button AND names itself, and nothing
-   * truncates what somebody pasted.
+   * Said out loud rather than enforced at the keyboard: a rich editor has no equivalent of
+   * `<textarea maxlength>` refusing the excess keystroke, and a silent refusal in `send()` would be
+   * worse (button looks live, every press does nothing). So the limit disables the button AND names
+   * itself, and nothing truncates what somebody pasted.
    */
   const tooLong = $derived(thread.draft.trim().length > COMMENT_MAX_LENGTH)
 
@@ -105,14 +103,13 @@
       {/await}
     </div>
 
-    <!-- The box stays live while a post is in flight; only the button goes. A request that never
-         settles (a wedged connection, a sleeping phone) would otherwise leave the composer dead,
-         holding words nobody can edit or copy out.
+    <!-- The box stays live while a post is in flight; only the button goes, so a request that never
+         settles (wedged connection, sleeping phone) doesn't leave the composer dead holding words
+         nobody can edit or copy out.
 
-         `size-9!` AND `box-border`: `btn-icon` ships its own larger box and sets `content-box`, so
-         a 36px `size-9` was 36px of content plus 8px of padding on each side, standing 16px
-         proud of the avatar and the text box beside it. The bang settles the utility order; the
-         border box is what makes 36 mean 36. -->
+         `size-9!` AND `box-border`: `btn-icon` ships `content-box`, so a 36px `size-9` was 36px of
+         content plus 8px padding per side, standing 16px proud of the avatar beside it. The bang
+         settles the utility order; the border box is what makes 36 mean 36. -->
     <button
       class="btn-icon preset-filled-primary-500 box-border size-9! flex-none"
       aria-label={m.comments_post()}

@@ -1,9 +1,7 @@
 /**
  * One emoji chip on an event: the emoji, how many people sent it, and whether you are one of them.
  *
- * Counted over one event's reactions and nothing else. The old shape had to union a card's rows
- * together, because a reaction was stored against one activity row of a card that had no id;
- * an event has one, so a chip is simply what its own rows say.
+ * Counted over one event's reactions and nothing else.
  */
 export interface ReactionChip {
   count: number
@@ -62,14 +60,12 @@ export interface ReactionListItem {
 /**
  * The quick row, in this order, for everyone.
  *
- * Fixed rather than recently-used: a recents row reorders, so the button under your thumb would
- * mean something different this week than last, and for five fingertip-sized targets that is how
- * the wrong one gets sent. Muscle memory is the whole point of a quick row; anything you have to
- * look at, you may as well open the picker for.
+ * Fixed rather than recently-used: a reordering row means the button under your thumb changes
+ * meaning week to week, and for five fingertip-sized targets that is how the wrong one gets sent.
+ * Muscle memory is the point.
  *
- * Five distinct meanings rather than three shades of "nice": agreement, disagreement, effort,
- * impressed, and doubt. The picker behind them is the full set, so this is only what the app
- * promotes, not what it permits.
+ * Five distinct meanings, not three shades of "nice": agreement, disagreement, effort, impressed,
+ * doubt. The full picker is behind them; this is only what the app promotes.
  */
 export const QUICK_REACTIONS = ['👍', '👎', '💪', '🔥', '🤔'] as const
 

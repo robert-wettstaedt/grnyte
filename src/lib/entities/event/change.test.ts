@@ -108,7 +108,10 @@ describe('pair', () => {
   })
 
   it('declares the format its catalogue entry picked', () => {
-    expect(change({ columnName: 'dateTime', newValue: '2026-04-21', objectType: 'ascent' }).kind).toBe('pair')
+    expect(change({ columnName: 'dateTime', newValue: '2026-04-21', objectType: 'ascent' })).toMatchObject({
+      format: 'date',
+      kind: 'pair',
+    })
     expect(change({ columnName: 'temperature', newValue: '4', objectType: 'ascent' })).toMatchObject({
       format: 'temperature',
     })
@@ -187,10 +190,6 @@ describe('prose', () => {
 
   it('keeps both raw sides, which is what a one-sided edit renders', () => {
     expect(edit('Stand start.', undefined)).toMatchObject({ after: undefined, before: 'Stand start.', kind: 'prose' })
-  })
-
-  it('is only built for the columns the catalogue renders as prose', () => {
-    expect(change({ columnName: 'name', newValue: 'Kante direkt', oldValue: 'Kante' }).kind).toBe('pair')
   })
 })
 

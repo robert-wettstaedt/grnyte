@@ -87,9 +87,8 @@ export const migrate = async (db: PostgresJsDatabase<typeof schema>) => {
     END $$;
   `)
 
-  // Awaited, unlike the version of this that shipped: drizzle's `execute` returns a lazy
-  // QueryPromise that only runs when something calls `then`, so the un-awaited statement here had
-  // never executed once, and `anon` still held every default privilege to prove it.
+  // Must be awaited: drizzle's `execute` returns a lazy QueryPromise that only runs when something
+  // calls `then`, so an un-awaited statement here never executes at all.
   await db.execute(sql`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon`)
   await db.execute(sql`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM authenticated`)
   await db.execute(sql`ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated`)

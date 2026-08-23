@@ -42,11 +42,8 @@
 
   const canCreate = $derived(global.userRegions.some((region) => region.permissions.includes(REGION_PERMISSION_EDIT)))
 
-  // No zoom condition any more. It used to hide the button outright below BLOCK_LABEL_ZOOM, which
-  // made the app's primary create affordance invisible at most zoom levels - including for the
-  // founder whose region has no blocks to zoom toward, who needs it most. What it was really
-  // protecting against is confirming a pin while a pixel covers kilometres, and `startPlacing`
-  // handles that by framing the map instead. A rough pin is a first-class thing here anyway:
+  // No zoom gate on the FAB: confirming a pin while a pixel covers kilometres is what `startPlacing`
+  // guards against by framing the map first. A rough pin is a first-class thing here anyway:
   // `geolocations.estimated` exists, and photo EXIF writes one on purpose.
   const showFab = $derived(visible && canCreate && placing == null)
 
@@ -106,9 +103,8 @@
     optionsOpen = false
     chosenCragId = null
     search = ''
-    // Frame the map at pin-dropping zoom before handing over the centre pin. Zoomed out the pin
-    // means nothing and `findNearestCrag` would match something continents away; the long-press
-    // path has always done this, so placement now starts usable however it was entered.
+    // Frame the map at pin-dropping zoom before handing over the centre pin: zoomed out, the pin
+    // means nothing and `findNearestCrag` would match something continents away.
     const target = pressed ?? center
     if (target != null) {
       onrequestcenter(target)

@@ -55,11 +55,9 @@ export function createDrizzle<
 /**
  * An RLS handle bound to a verified request.
  *
- * Takes the claims, not a Supabase client. It used to read the request cookie a SECOND time,
- * independently of the hook, and hand `jwtDecode` output straight into `request.jwt.claims`, which
- * Postgres trusts completely. So the identity the database was told about was never the identity
- * the hook had looked at, and neither had been checked. Verification now happens once, in
- * `$lib/hooks/auth.server`, and `VerifiedClaims` is a type only `verifyAccessToken` can produce.
+ * Takes the claims, not a Supabase client: verification happens once, in `$lib/hooks/auth.server`,
+ * and `VerifiedClaims` is a type only `verifyAccessToken` can produce, so nothing unverified can
+ * reach `request.jwt.claims`, which Postgres trusts completely.
  *
  * Synchronous, because there is nothing left to await.
  */

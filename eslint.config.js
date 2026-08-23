@@ -96,7 +96,6 @@ export default defineConfig(
     rules: {
       // Allow underscore-prefixed args to mark deliberately unused parameters.
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      // Prefer the '$lib' alias over relative paths that climb into the lib folder.
       'no-restricted-imports': [
         'error',
         {

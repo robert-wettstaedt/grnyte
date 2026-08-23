@@ -33,7 +33,7 @@ export const signIn = form(signInSchema, async ({ email, next, password }) => {
   }
 
   // Same-origin paths only, checked the way the browser will read the header. See
-  // {@link isSameOriginPath}: the regex this used to be waved through `/<tab>/evil.com`, which
+  // {@link isSameOriginPath}: a naive regex can be waved through `/<tab>/evil.com`, which
   // strips down to `//evil.com` before the browser parses it.
   redirect(303, next != null && isSameOriginPath(next) ? next : resolve('/explore'))
 })

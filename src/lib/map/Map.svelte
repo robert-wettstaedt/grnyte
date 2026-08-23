@@ -290,7 +290,6 @@
 
     const newVisible = !layers[0].getVisible()
     layers.forEach((layer) => layer.setVisible(newVisible))
-    // Remember the markers toggle so it's re-applied if the layers are recreated.
     if (name === m.map_markers()) {
       markersVisible = newVisible
     }
@@ -382,7 +381,6 @@
     }
     mapInstance.on('moveend', handleMoveEnd)
 
-    // Refresh block labels on zoom change
     let lastLabelState = false
     mapInstance.getView().on('change:resolution', () => {
       const zoom = mapInstance.getView().getZoom() ?? 0

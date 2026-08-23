@@ -1,7 +1,6 @@
 <script lang="ts" module>
   /** The CTA geometry this family shares: filled for the action we want taken, outlined for the
-   *  alternative. Exported so the callers cannot drift apart, which is how the first version of
-   *  this state ended up with two identical filled buttons. */
+   *  alternative. Exported so the callers cannot drift apart. */
   export const EMPTY_CTA_PRIMARY =
     'btn preset-filled-primary-500 h-13.5 rounded-2xl text-base font-bold shadow-[0_10px_24px_-10px_var(--color-primary-500)]'
   export const EMPTY_CTA_SECONDARY =

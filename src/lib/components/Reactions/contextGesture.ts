@@ -7,15 +7,13 @@ const HOLD_MS = 450
 const DRIFT_PX = 10
 
 /**
- * The platform's secondary gesture: press and hold on a finger, right click on a mouse.
+ * The platform's secondary gesture: press and hold on a finger, right click on a mouse. Both are
+ * what a person already reaches for to ask "what else is there about this". Hover was tried first
+ * and rejected: the popover opened on every cursor pass down a feed, over a control whose primary
+ * action is a single click.
  *
- * Both are what a person already uses to ask "what else is there about this", so the reveal costs
- * nothing to learn. Hover was the first version and was wrong: the popover opened on every pass of
- * the cursor down a feed, over a control whose primary action is a single click.
- *
- * The element keeps its own click, which is the point: on a reaction chip a click toggles your
- * reaction and this gesture shows who else sent it. A right click produces no click at all, and a
- * completed hold has the one it would have ended in swallowed.
+ * The element keeps its own click on purpose: on a reaction chip a click toggles your reaction and
+ * this gesture shows who else sent it, so a completed hold swallows the click it would have ended in.
  *
  * ponytail: lives next to its one consumer rather than in `$lib`. Promote it the day the map or the
  * topo editor wants the same gesture; both hand-roll their own today.

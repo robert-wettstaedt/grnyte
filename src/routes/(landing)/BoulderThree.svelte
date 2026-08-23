@@ -40,7 +40,6 @@
     camera.position.set(0, 0.55, 5.0)
     camera.lookAt(0, -0.05, 0)
 
-    // ---- geometry: blocky granite ----
     const simplex = new Simplex()
     const fbm = (x: number, y: number, z: number) => {
       let f = 0

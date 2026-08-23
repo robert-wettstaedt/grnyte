@@ -21,7 +21,7 @@
  * Skipped when DATABASE_URL is unreachable so `npm test` still passes without a local database.
  */
 import { db } from '$lib/db/db.server'
-import { reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
+import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { getUserPermissions } from '$lib/hooks/auth.server'
 import { queries } from '$lib/zero/queries'
 import { schema } from '$lib/zero/zero-schema'
@@ -41,11 +41,9 @@ const NOBODY = '00000000-0000-0000-0000-000000000000'
 const EMAILS = {
   /** Member of fixture region A (and of their own real regions). */
   insider: 'user@grnyte.rocks',
-  /** No memberships except fixture region B, which makes their view exactly assertable. */
-  outsider: 'anon@grnyte.rocks',
 } as const
 
-type Who = keyof typeof EMAILS
+type Who = 'outsider' | keyof typeof EMAILS
 
 // Cast because zero ships its own copy of `postgres` and the two Sql types are structurally
 // distinct. Sharing one client rather than handing the adapter a connection string keeps the
@@ -98,7 +96,7 @@ async function removeFixtures() {
 beforeAll(async () => {
   if (!reachable) return
 
-  users = await seedUsers(EMAILS)
+  users = { ...(await seedUsers(EMAILS)), outsider: await createThrowawayUser('tenancy') }
 
   await removeFixtures()
   ;[{ id: regionA }] = await sql<{ id: number }[]>`
@@ -120,7 +118,12 @@ beforeAll(async () => {
 }, 30_000)
 
 afterAll(async () => {
-  if (reachable) await removeFixtures()
+  if (reachable) {
+    // Fixtures first: `dropThrowawayUser` deliberately does not cascade, so anything the outsider
+    // still owns has to be gone before the account is.
+    await removeFixtures()
+    await dropThrowawayUser(users.outsider)
+  }
   await sql.end()
 })
 

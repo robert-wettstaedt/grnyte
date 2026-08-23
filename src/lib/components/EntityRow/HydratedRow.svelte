@@ -1,10 +1,9 @@
 <!--
-  One entity as a row, in whichever of its two shapes it is in: the row for its kind, or a
-  tombstone once the thing it names is gone.
+  One entity as a row: the row for its kind, or a tombstone once the thing it names is gone.
 
-  Shared by the feed card and the notification inbox. Both now carry the entity nested on the row
-  that names it, so neither has a pending state to draw; the branch lives here rather than once per
-  screen because both still have to say what a missing thing WAS.
+  Shared by the feed card and the notification inbox, both of which carry the entity nested on the
+  row that names it (no pending state to draw). The branch lives here, not once per screen,
+  because both still have to say what a missing thing WAS.
 -->
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
@@ -48,11 +47,9 @@
       <Icon name="trash" size={20} />
     </span>
 
-    <!-- The name line only when a name was actually stored. A tombstone with nothing to name used
-         to render the type over `common_unnamed`, which is the label above it said twice.
-
-         Without a name the type stops being an eyebrow and becomes the whole content, so it is set
-         as the line rather than as the caption over an empty one. -->
+    <!-- Without a name the type stops being an eyebrow and becomes the whole content, so it is
+         set as the line rather than as the caption over an empty one; the name line only renders
+         when a name was actually stored. -->
     <span class="min-w-0">
       <span class={row.name == null ? 'block' : 'text-surface-500 block text-[11px] font-semibold'}>
         {resolveMessage(ENTITY_LABEL[row.ref.type])}

@@ -56,7 +56,6 @@
   </div>
 
   {#if location == null}
-    <!-- Empty state. -->
     <div
       class="border-surface-300-700 bg-surface-100-900 flex flex-col items-center rounded-2xl border border-dashed px-4 py-5 text-center"
     >
@@ -95,7 +94,6 @@
     </div>
     <p class="text-surface-500 px-0.5 text-xs leading-relaxed">{m.blocks_add_locationNote()}</p>
   {:else}
-    <!-- Located state: map preview + actions. -->
     <div class="border-surface-200-800 bg-surface-100-900 overflow-hidden rounded-2xl border">
       <div class="relative h-36">
         <Map

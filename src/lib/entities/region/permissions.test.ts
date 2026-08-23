@@ -1,4 +1,9 @@
-import { REGION_PERMISSION_ADMIN, REGION_PERMISSION_EDIT, REGION_PERMISSION_READ } from '$lib/auth'
+import {
+  APP_PERMISSION_ADMIN,
+  REGION_PERMISSION_ADMIN,
+  REGION_PERMISSION_EDIT,
+  REGION_PERMISSION_READ,
+} from '$lib/auth'
 import { describe, expect, it } from 'vitest'
 import type { UserRegion } from './dto'
 import { canEditRegion, isLastAdmin } from './permissions'
@@ -40,10 +45,12 @@ describe('canEditRegion', () => {
     // never reads the app role, and Zero scopes sync on `region_members`. The app.admin RLS
     // policies on `regions` / `region_members` make app admins a database-level back office,
     // and this asserts that none of that leaks into an in-app permission.
-    const appAdminMaintainer = MAINTAINER_OF_1
+    const APP_ADMIN_MAINTAINER: UserRegion[] = [
+      { ...region(1, REGION_PERMISSION_READ, REGION_PERMISSION_EDIT, APP_PERMISSION_ADMIN), role: 'app_admin' },
+    ]
 
-    expect(canEditRegion(appAdminMaintainer, 1)).toBe(false)
-    expect(canEditRegion(appAdminMaintainer, 99)).toBe(false)
+    expect(canEditRegion(APP_ADMIN_MAINTAINER, 1)).toBe(false)
+    expect(canEditRegion(APP_ADMIN_MAINTAINER, 99)).toBe(false)
   })
 })
 

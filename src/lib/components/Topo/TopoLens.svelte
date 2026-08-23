@@ -18,7 +18,6 @@
   let { lens }: { lens: Lens } = $props()
 </script>
 
-<!-- Magnifier lens: a fixed circular loupe above the pointer showing the target magnified. -->
 <div
   class="border-surface-50-950 pointer-events-none fixed z-50 overflow-hidden rounded-full border-2 shadow-2xl"
   style:width="{LENS_SIZE}px"

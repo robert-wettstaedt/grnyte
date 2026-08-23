@@ -1,12 +1,9 @@
 import type { Attachment } from 'svelte/attachments'
 
 /**
- * Close a floating row when the next press lands anywhere else.
- *
- * The quick emoji row has no scrim of its own and the card or thread behind it stays live, so nothing
- * else dismisses it. One implementation for both rows: "did this press happen inside me" is the
- * question `Modal.mobile` got wrong once already, and two copies of the answer are two places for it
- * to drift.
+ * Close a floating row when the next press lands anywhere else. The quick emoji row has no scrim of
+ * its own, so nothing else dismisses it; one implementation for both rows, since "did this press
+ * happen inside me" is the question `Modal.mobile` got wrong once already.
  *
  * Listeners on the document rather than markup handlers, because a `<div>` that answers keys is a
  * control Svelte would (rightly) want a role on, and this one is only a container. `pointerdown`

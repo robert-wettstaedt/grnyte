@@ -45,12 +45,23 @@ describe('formatDay', () => {
     withTZ('America/New_York', () => {
       const localNoon = new Date(2026, 6, 12, 12, 0).getTime()
       expect(formatDay(utcDay('2026-07-12'), localNoon, 'en')).toBe('today')
-      expect(formatDay(utcDay('2026-06-27'), localNoon, 'en')).toBe('Jun 27, 2026')
+      // `en-GB`, not `en`, and that is the whole point: `utcDateFormat` is memoised per locale,
+      // so the `en` formatter the tests above already built under TZ=UTC keeps its UTC zone
+      // whatever this helper does to the environment. Asking for a locale nothing has requested
+      // yet forces the formatter to be constructed here, inside New York, which is the only way
+      // this can still fail if `formatDate` ever loses its `timeZone: 'UTC'` (it would then read
+      // "26 Jun 2026").
+      expect(formatDay(utcDay('2026-06-27'), localNoon, 'en-GB')).toBe('27 Jun 2026')
     }))
-  it('at UTC+12 today stays today', () =>
-    withTZ('Pacific/Auckland', () => {
-      const localNoon = new Date(2026, 6, 12, 12, 0).getTime()
-      expect(formatDay(utcDay('2026-07-12'), localNoon, 'en')).toBe('today')
-      expect(formatDay(utcDay('2026-07-11'), localNoon, 'en')).toBe('yesterday')
+  // Kiritimati at half past midnight, not Auckland at noon. Auckland in July is UTC+12, where
+  // local noon IS the UTC midnight the stored date already names, so the raw-millisecond
+  // difference and the calendar-day difference agree and the bug walks straight through. At
+  // UTC+14 in the small hours they diverge by more than half a day, so a `formatDay` that
+  // skipped `calendarDay` rounds to +1 and reads "tomorrow".
+  it('far east of UTC, today stays today', () =>
+    withTZ('Pacific/Kiritimati', () => {
+      const earlyHours = new Date(2026, 6, 12, 0, 30).getTime()
+      expect(formatDay(utcDay('2026-07-12'), earlyHours, 'en')).toBe('today')
+      expect(formatDay(utcDay('2026-07-11'), earlyHours, 'en')).toBe('yesterday')
     }))
 })

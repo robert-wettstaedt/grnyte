@@ -24,16 +24,10 @@ const DEFAULT_LIMIT = 50
 const cursor = z.object({ createdAt: z.number(), id: z.int() })
 
 /**
- * Everything a card needs, nested.
- *
- * This is the whole point of real foreign keys. The old feed ran SEVEN queries per render, one per
- * entity kind, collected the ids off the synced rows and joined them in memory, and carried a
- * ready-set plus a needs-graph so a row whose query had not answered yet would not flash a
- * tombstone. All of that was working around `entity_id` being polymorphic text that Zero could not
- * join. Here the object arrives with the event, in one consistent snapshot.
- *
- * Five of the six object relations are null on any given row (`events_one_object` guarantees it),
- * so this costs no more to sync than naming the one that is set would.
+ * Everything a card needs, nested: real foreign keys instead of joining polymorphic ids in memory
+ * after the fact. Five of the six object relations are null on any given row
+ * (`events_one_object` guarantees it), so this costs no more to sync than naming the one that is
+ * set would.
  */
 /**
  * A route as a card renders it, ready to hand to `.related('route', ...)`.
@@ -62,16 +56,9 @@ export const relatedRouteTree = (ctx: Parameters<typeof relatedRegion>[0]) => {
 const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
   const r = relatedRegion(ctx)
 
-  // A route as a card renders it: the same tree `listRoutes` syncs, because the card reuses
-  // `RouteRow`, which wants the grade, the tags and the topo thumb. Anything less renders a real
-  // route with zeroed values, which reads worse than a late one. It has to match what `listRoutes`
-  // syncs, because that is what makes the `RouteListRow` cast in the mapper safe: a relation
-  // missing on one path only would zero that route's values there, and the cast erases the type
-  // error, which is how three hand-copies of this tree sat here disagreeing.
-  //
-  // Declared once (see `relatedRouteTree`), and its `any` is what lets it be: Zero types a
-  // relation callback against the exact query it is attached to, so a callback shared by four
-  // attachment points, and by the inbox's query, cannot be written any other way.
+  // Must match what `listRoutes` syncs (see {@link relatedRouteTree}): a relation missing on this
+  // path only would zero that route's values, silently, under the `RouteListRow` cast in the
+  // mapper.
   const route = relatedRouteTree(ctx)
 
   return (
@@ -80,8 +67,8 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
       .related('actor')
       .related('changes', r)
       .related('area', (q) => r(q).related('parent', r))
-      // An ascent card renders its route's name, and the route its block and area: the second and
-      // third hops that used to arrive as a separate wave, and the reason a tombstone could flash.
+      // An ascent card renders its route's name, and the route its block and area, nested here so
+      // neither hop arrives as a separate wave and flashes a tombstone.
       .related('ascent', (q) =>
         r(q)
           // The climber's own media and name: a session card renders both, and neither is
@@ -92,7 +79,7 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           .related('route', route),
       )
       // `geolocation` and `topos` are the pin the create card draws as a map thumbnail and the
-      // topo thumb every block row shows. Both were on the old hydrated entity.
+      // topo thumb every block row shows.
       // Written out here and once more under `file` below, unlike the route tree: the block
       // relation is the only one the mapper reads WITHOUT a cast of its own, so sharing it
       // through the `any` above would take `topos` down to `any[]` and the entity's thumbnail
@@ -103,13 +90,12 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           .related('geolocation', r)
           .related('topos', (q) => r(q).related('file', r)),
       )
-      // `ascent` is not for rendering: it carries `createdBy`, which is the discriminator every
-      // ascent-media permission check reads. Without it a clip opened from a feed card falls
-      // through to the EDIT branch and a maintainer could delete somebody else's media.
-      // The parent trees as well as the file itself. An upload card names what the photos landed
-      // on and draws that entity's row beneath them; without these it can do neither, and the
-      // "added 5 photos to Rampe" headline has no source for "Rampe". `ascent` also carries
-      // `createdBy`, the only discriminator in `file/permissions.ts`.
+      // `ascent` is not for rendering: it carries `createdBy`, the only discriminator
+      // `file/permissions.ts` has. Without it a clip opened from a feed card falls through to the
+      // EDIT branch and a maintainer could delete somebody else's media.
+      // The parent trees as well as the file itself, so an upload card can name what the photos
+      // landed on and draw that entity's row beneath them: without these, "added 5 photos to
+      // Rampe" has no source for "Rampe".
       .related('file', (q) =>
         r(q)
           .related('bunnyStream')
@@ -129,11 +115,11 @@ const withObject = (ctx: Parameters<typeof relatedRegion>[0]) => {
           )
           .related('area', (q) => r(q).related('parent', r)),
       )
-      // The emoji half only. Comments used to ride this relation too and made it the most
-      // expensive thing on the feed: a body is up to 5000 characters, the window is 50 events and
-      // `eventFeed` runs two queries over it, so every conversation in the region synced to every
-      // reader to render a count. The count is `events.comment_count` now and the thread is
-      // `listComments`, fetched when somebody opens it.
+      // The emoji half only. A comment body is up to 5000 characters, the window is 50 events and
+      // `eventFeed` runs two queries over it, so syncing comments here would ship every
+      // conversation in the region to every reader just to render a count. The count is
+      // `events.comment_count` instead, and the thread is `listComments`, fetched when somebody
+      // opens it.
       //
       // An emoji stays eager: it is at most 16 characters, the chips need every row to say who
       // reacted and whether you did, and there is at most one per person per event.
@@ -213,8 +199,8 @@ export const eventsQueryDefs = {
         const column = EVENT_OBJECT_COLUMNS[args.scope.type]
         // Five of the six columns are `integer`, so a caller's string id has to become a number
         // here: Zero compares by value and by type, and `'16080' === 16080` is false, which is an
-        // entity's whole log coming back empty rather than erroring. Only `file` keys on text, and
-        // every caller passes a string, because the polymorphic column this replaces was text.
+        // entity's whole log coming back empty rather than erroring. Only `file` keys on text
+        // (a cuid), and every caller already passes a string for it.
         const id = args.scope.type === 'file' ? String(args.scope.id) : Number(args.scope.id)
         q = q.where((q) =>
           q.or(

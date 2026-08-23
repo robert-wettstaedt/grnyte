@@ -94,7 +94,18 @@ describe.skipIf(!usable)('the fold decides open-versus-join', () => {
     // And the verb is NOT overwritten, so "Anna added Traumtanz" absorbs its own refinements
     // rather than turning into "Anna edited Traumtanz".
     expect(second.verb).toBe('create')
-    expect(second.createdAt.getTime()).toBeGreaterThanOrEqual(first.createdAt.getTime())
+  })
+
+  it('refloats the joined event, by the database clock rather than the caller s', async () => {
+    const first = await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'create' })
+
+    const aged = new Date(Date.now() - 5 * 60 * 1000)
+    await db.update(schema.events).set({ createdAt: aged }).where(eq(schema.events.id, first.id))
+
+    await insertEvent(db, { actorFk: actor, object: object(), regionFk: region, verb: 'update' })
+
+    const stored = await db.query.events.findFirst({ where: eq(schema.events.id, first.id) })
+    expect(stored?.createdAt.getTime()).toBeGreaterThan(aged.getTime())
   })
 
   it('gives a different actor their own event', async () => {

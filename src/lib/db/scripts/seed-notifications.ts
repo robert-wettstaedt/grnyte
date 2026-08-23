@@ -138,9 +138,6 @@ const rows: SeedRow[] = [
     read: true,
     sourceType: 'invite_accepted',
   },
-  // No more deliberately-dangling row: the object now lands in a real foreign key
-  // (`route_fk`/`ascent_fk`/…), which rejects an id that does not exist. The tombstone case this
-  // used to exercise - a notification whose entity is gone - is unreachable by construction.
 ]
 
 if (ascent != null) {
@@ -156,8 +153,7 @@ if (ascent != null) {
   console.log(`note: region "${region.name}" has no ascents, so ascent_edited is skipped`)
 }
 
-// Cleared first so re-running gives the same inbox rather than a longer one. Scoped to the
-// recipient, because that is what this script owns.
+// Scoped to the recipient, because that is what this script owns.
 const cleared = await sql`delete from public.notifications where user_fk = ${recipient.id} returning id`
 
 for (const row of rows) {

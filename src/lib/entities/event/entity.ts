@@ -99,8 +99,8 @@ export interface EventEntity {
 
 /**
  * The entities a set of lines names, keyed by {@link eventEntityKey}. A missing key and an
- * explicit `null` mean the same thing: the row is gone and the card draws a tombstone. They are
- * not two states any more, since an entity arrives nested with the row that names it.
+ * explicit `null` mean the same thing: the row is gone and the card draws a tombstone (not two
+ * states, since an entity arrives nested with the row that names it).
  */
 export type EventEntityMap = ReadonlyMap<string, EventEntity | null>
 
@@ -113,15 +113,9 @@ export interface EventEntityRef {
 /**
  * Which refs a window of lines points at, in each of the roles a card reads them in.
  *
- * One pass rather than three collectors. Every role answers the same question ("which ref, and in
- * what capacity") from the same declarations on a catalogue entry, and split across functions each
- * was free to read them differently: the card asked for subjects and rows separately and the
- * shared parent was a private copy of the guard in `card.ts`. Together they also walked and
- * deduped the same list per card, on every sync tick.
- *
- * There is no "everything to fetch" role any more. That list existed for a hydration pass that
- * went and got the entities a window pointed at; an event carries its own, so the only question
- * left is what the card says about them.
+ * One pass rather than three collectors, so every role answers the same question ("which ref, and
+ * in what capacity") from the same declarations on a catalogue entry, and the list is walked and
+ * deduped once per card rather than once per role.
  */
 export interface EventRefs {
   /**
@@ -149,10 +143,8 @@ export interface EventRefs {
 }
 
 /**
- * What a line names as its parent, or `undefined` when it names none.
- *
- * Both halves have to be present to mean anything, and that guard was written out at four
- * separate call sites, each free to disagree with the others about what a half-filled pair is.
+ * What a line names as its parent, or `undefined` when it names none. Centralised so the several
+ * call sites that need this guard cannot disagree about what a half-filled pair means.
  */
 export function catalogueParentRef(line: CardLine): EventEntityRef | undefined {
   return line.parentId == null || line.parentType == null

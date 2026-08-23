@@ -100,6 +100,51 @@ const threshold = async (): Promise<number> => {
   return Number((row as { value: number }).value)
 }
 
+const ROLLBACK = Symbol('rollback')
+
+/**
+ * `event_promotion_threshold` for a region holding `members` active people.
+ *
+ * Inside a transaction that always rolls back, so the accounts it has to invent never reach the
+ * shared dev database. They have to be invented: `region_members` carries real foreign keys to
+ * both `auth.users` and `public.users` and is unique per (region, user), so the eight accounts
+ * this suite borrows cannot reach the slope or the ceiling. The function is STABLE and reads
+ * inside the same transaction, so it sees the uncommitted rows.
+ */
+async function thresholdWith(members: number): Promise<number> {
+  let value = 0
+
+  try {
+    await postgres!.begin(async (tx) => {
+      await tx`delete from public.region_members where region_fk = ${REGION}`
+
+      if (members > 0) {
+        await tx`
+          with created_auth as (
+            insert into auth.users (id, email)
+            select gen_random_uuid(), '__promotion_' || g || '_' || gen_random_uuid() || '@grnyte.test'
+            from generate_series(1, ${members}) g
+            returning id
+          ), created_users as (
+            insert into public.users (auth_user_fk, username)
+            select id, '__promotion_' || id from created_auth
+            returning id, auth_user_fk
+          )
+          insert into public.region_members (region_fk, auth_user_fk, user_fk, role, is_active)
+          select ${REGION}, auth_user_fk, id, 'region_user', true from created_users`
+      }
+
+      const [row] = await tx<{ value: number }[]>`select public.event_promotion_threshold(${REGION}) as value`
+      value = Number(row.value)
+      throw ROLLBACK
+    })
+  } catch (error) {
+    if (error !== ROLLBACK) throw error
+  }
+
+  return value
+}
+
 afterAll(async () => {
   if (db != null && usable) {
     await db.execute(sql`delete from public.reactions where event_fk = ${ACTOR}`)
@@ -123,28 +168,18 @@ describe.skipIf(!usable)('event_promotion_threshold scales with the region', () 
   })
 
   it('clamps a third of the membership between three and twelve', async () => {
-    // The shape rather than the plumbing: seeding a hundred members would need a hundred users,
-    // and the row count is the only input. This pins the three numbers the migration admits are
-    // guesses, so a tuning pass has something that fails when it moves them.
-    const rows = await db!.execute(sql`
-      select n, least(12, greatest(3, ceil(0.33 * n)::integer)) as threshold
-      from generate_series(0, 60, 6) as n`)
+    // Through the real function, at the membership sizes that pin each of the three numbers the
+    // migration admits are guesses. This used to run `least(12, greatest(3, ceil(0.33 * n)))`
+    // itself over generate_series and compare it to a table written from the same expression,
+    // which is Postgres agreeing with Postgres: retuning the migration to `least(20, greatest(5,
+    // ceil(0.5 * n)))` left it green, and that is exactly the "no way to ask without running a
+    // migrate" gap this file exists to close.
+    await seed(0)
 
-    expect(
-      rows.map((row) => [Number((row as { n: number }).n), Number((row as { threshold: number }).threshold)]),
-    ).toEqual([
-      [0, 3],
-      [6, 3],
-      [12, 4],
-      [18, 6],
-      [24, 8],
-      [30, 10],
-      [36, 12],
-      [42, 12],
-      [48, 12],
-      [54, 12],
-      [60, 12],
-    ])
+    expect(await thresholdWith(2)).toBe(3) // floor: a third of two rounds to one
+    expect(await thresholdWith(12)).toBe(4) // slope: ceil(0.33 * 12) = 4
+    expect(await thresholdWith(18)).toBe(6) // slope: ceil(0.33 * 18) = 6
+    expect(await thresholdWith(37)).toBe(12) // ceiling: ceil(0.33 * 37) is 13, clamped to 12
   })
 })
 
@@ -153,6 +188,28 @@ describe.skipIf(!usable)('event_engagement_score counts people, not actions', ()
     await seed(5)
     await react(0, 0)
 
+    expect(await score()).toBe(0)
+  })
+
+  it('does not count the actor applauding their own card', async () => {
+    // The anti-self-promotion half of the rule, `AND r.user_fk <> e.actor_fk`, which had no
+    // coverage at all: `react()` always slices people from index 1, so no test ever put a
+    // reaction from the event's own actor on it. Drop that clause and an author reaches the
+    // floor of three with one accomplice plus themselves, twice over.
+    await seed(5)
+    await react(0, 0)
+
+    const [actor] = people
+    const applaud = (type: string) =>
+      db!.execute(sql`
+      insert into public.reactions (region_fk, auth_user_fk, user_fk, event_fk, type, body)
+      values (${REGION}, ${actor.authUserFk}, ${actor.id}, ${ACTOR}, ${type}, 'x')`)
+
+    await applaud('emoji')
+    expect(await score()).toBe(0)
+
+    // The weighted branch too, since a comment is worth more than a tap.
+    await applaud('comment')
     expect(await score()).toBe(0)
   })
 

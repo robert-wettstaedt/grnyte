@@ -1,3 +1,4 @@
+import { m } from '$lib/paraglide/messages'
 import { describe, expect, it } from 'vitest'
 import { isAnnouncementActive, resolveStatus } from './StatusBar.svelte'
 
@@ -28,7 +29,10 @@ describe('resolveStatus', () => {
 
   it('shows the announcement only while connected', () => {
     expect(resolveStatus(true, 'connected', announcement)?.message()).toBe('Hello')
-    expect(resolveStatus(true, 'connecting', announcement)?.action).toBeUndefined()
+    expect(resolveStatus(true, 'connecting', announcement)).toMatchObject({
+      message: m.status_reconnecting,
+      role: 'status',
+    })
   })
 })
 

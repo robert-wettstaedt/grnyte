@@ -108,8 +108,7 @@ async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> 
     .where(eq(userSettings.userFk, userFk))
 }
 
-/** Which switch governs an event. Everything that is not an ascent or a person is a crag edit,
- *  which is what `notify_moderations` always actually meant before it was renamed. */
+/** Which switch governs an event: everything that is not an ascent or a person is a crag edit. */
 function categoryEnabled(
   event: Pick<DigestEvent, 'ascentFk' | 'subjectFk' | 'verb'>,
   settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyCragEdits: boolean | null },

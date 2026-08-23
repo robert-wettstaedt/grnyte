@@ -2,16 +2,12 @@
  * The DB half of the markdown pipeline: resolving `!type:id!` reference tokens against
  * real rows, and the async render that does it in one call.
  *
- * Split out of `./index` and named `.server.ts` on purpose. `import * as schema from
- * '$lib/db/schema'` is a value import, and `schema.ts` is all top-level `pgTable(...)`
- * calls, so it is one big module side effect that no bundler can tree-shake. While these
- * two functions lived next to `convertMarkdownToHtmlSync`, every screen that renders a
- * `<Markdown>` (which is most of them) pulled the whole Drizzle schema into the client
- * bundle. The `.server.ts` suffix makes SvelteKit's server-only guard fail the build if
- * anything client-reachable imports this again, so the boundary cannot quietly rot back.
- *
- * Caveat: that guard is skipped when `process.env.TEST === 'true'`, so a regression shows
- * up in `npm run build`, never in vitest.
+ * Named `.server.ts` on purpose: `schema.ts` is all top-level `pgTable(...)` calls, one big
+ * module side effect no bundler can tree-shake, so a client-reachable import here would pull
+ * the whole Drizzle schema into the bundle of every screen that renders a `<Markdown>` (most
+ * of them). SvelteKit's server-only guard fails the build on such an import, so the boundary
+ * cannot quietly rot back (skipped when `process.env.TEST === 'true'`, so a regression shows
+ * only in `npm run build`, never in vitest).
  */
 import * as schema from '$lib/db/schema'
 import { and, eq } from 'drizzle-orm'

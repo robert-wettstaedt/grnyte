@@ -154,6 +154,43 @@ describe.skipIf(!usable)('listEvents', () => {
     }
   })
 
+  /**
+   * The other arm of the scope OR, which the negative sweep above cannot reach.
+   *
+   * Every row that sweep inspects satisfies the first arm (`row.routeFk === event.routeFk`), so
+   * deleting `q.exists('changes', ...)` from `listEvents` left it green. That arm is the whole
+   * reason a block can find the reorder that moved it, whose object is the AREA rather than the
+   * block. No seeded row has the shape (every seeded change row's object FKs are null, so a change
+   * never names an entity other than its own event's object), which is why this writes one and
+   * removes it again.
+   */
+  it('finds an event whose object is something else, because a change on it names the entity', async () => {
+    const [route] = await sql<{ id: number }[]>`
+      select id from public.routes where region_fk = ${region} and deleted_at is null order by id limit 1`
+    const [area] = await sql<{ id: number }[]>`
+      select id from public.areas where region_fk = ${region} order by id limit 1`
+    const [member] = await sql<{ id: number }[]>`
+      select user_fk as id from public.region_members where region_fk = ${region} and is_active limit 1`
+    if (route == null || area == null || member == null) return
+
+    const [event] = await sql<{ id: number }[]>`
+      insert into public.events (region_fk, actor_fk, verb, area_fk)
+      values (${region}, ${member.id}, 'update', ${area.id}) returning id`
+
+    try {
+      await sql`
+        insert into public.changes (event_fk, region_fk, column_name, route_fk, old_value, new_value)
+        values (${event.id}, ${region}, 'order', ${route.id}, '1', '2')`
+
+      const scoped = await run({ limit: ALL_ROWS, scope: { id: route.id, type: 'route' } })
+
+      expect(scoped.map((row) => row.id)).toContain(event.id)
+    } finally {
+      // `changes` cascades with the event.
+      await sql`delete from public.events where id = ${event.id}`
+    }
+  })
+
   it('takes a scope id as text, which is how every caller states it', async () => {
     // The old log keyed on `entity_id text`, so every caller passes `String(id)` and still does.
     // Five of the six object columns are integers and Zero compares by value AND type, so an

@@ -32,22 +32,11 @@ const NOTIFIABLE = new Set<string>(['area', 'ascent', 'block', 'route', 'user'])
 /**
  * Take a comment out of the thread, and the answers under it with it.
  *
- * A reply is only reachable through the comment it answers: `listComments` selects live top-level
- * rows and hands each its live children, so a reply whose parent is gone renders nowhere while
- * still counting towards `events.comment_count`. The button would read two over a thread that
- * shows nothing, and the words in it would be unrecoverable through the UI.
- *
- * So deleting the head of a thread deletes the answers under it, which is also what it means: the
- * sentence they were written about is gone. Soft, like the parent, so the rows are still there for
- * a moderator to look at.
- *
- * On the privileged handle, because that is the only one that can: `deleteComment` runs under RLS
- * on the caller's connection, whose UPDATE policy is their own rows, and the answers belong to
- * other people. That is the same reason the notification cleanup lives here.
- *
- * Emoji hanging off the comment are left alone deliberately: `parent_fk` carries those too, but a
- * chip on a comment is only ever drawn beside that comment, so a cleared comment takes its chips
- * off the screen already. They stay as the record of who once agreed with what.
+ * A reply is only reachable through the comment it answers, so an orphaned reply would render
+ * nowhere while still counting towards `events.comment_count`. Soft, like the parent, so the rows
+ * are still there for a moderator. Runs on the privileged handle because the answers belong to
+ * other people, outside the caller's own-rows RLS. Emoji on the comment are left alone: they stay
+ * as the record of who reacted, and a cleared comment already takes them off the screen.
  */
 export async function dropComment(input: { actorFk: number; eventFk: number; reactionFk: number }): Promise<void> {
   const replies = await baseDb
@@ -67,15 +56,10 @@ export async function dropComment(input: { actorFk: number; eventFk: number; rea
 /**
  * Take back, or re-point, the inbox row a comment wrote once that comment is gone.
  *
- * The same rule as {@link dropReactionNotification}, and for the same reason: "Bob commented on
- * your entry", tapped through to a thread with nothing in it, leaves the reader unable to tell
- * whether they misread it or Bob deleted it.
- *
- * Deleting outright is not enough, because one row covers a whole conversation: the inbox holds
- * one row per (reader, actor, event), pointed at the comment it was written about, and an unread
- * row keeps pointing at the FIRST one. Somebody who says two things and deletes the first would
- * otherwise erase the reader's only notice of the second. So the row survives with its pointer
- * moved to whatever that person still has standing on the card.
+ * Deleting outright is not enough: the inbox holds one row per (reader, actor, event), pointed at
+ * the comment it was about, and an unread row keeps pointing at the FIRST one written. Deleting the
+ * first of two comments would otherwise erase the reader's only notice of the second, so the row
+ * survives with its pointer moved to whatever that person still has standing on the card.
  */
 export async function dropCommentNotification(input: {
   actorFk: number
@@ -149,8 +133,7 @@ export async function dropReactionNotification(input: {
     return
   }
 
-  // Its own sentence, and for a comment its own line: clearing a 👍 from a comment must not take
-  // back the inbox row about the 🔥 the same person still holds on the card.
+  // Same TARGET scoping as above, so retracting here can't also retract the sibling notification.
   await retractNotifications(
     input.commentFk == null
       ? { actorFk: input.actorFk, eventFk: input.eventFk, sourceType: 'reaction' }
@@ -284,18 +267,14 @@ export async function notifyReaction(input: {
 /**
  * Put back the answers a delete took with it, for the Undo the delete offers.
  *
- * The mirror of {@link dropComment}, and privileged for the same reason: the replies belong to
- * other people, so the caller's own-rows UPDATE policy cannot reach them.
- *
- * Scoped by WHEN rather than by "every deleted reply". A reply its own author had already deleted
- * carries an earlier `deleted_at` than the head did, and undoing somebody else's delete must not
- * resurrect it; the cascade stamps its rows at or after the head's, so "cleared no earlier than
- * the head was" is exactly the set this took down. That is also why the head's `deleted_at` has to
- * be read before it is cleared.
- *
- * The inbox rows the cascade cleaned up are NOT rebuilt, for the same reason `restoreComment` does
- * not re-notify: undo happens seconds later, and telling a thread twice about sentences it was
- * already told about is worse than the lost notice of one mis-tap.
+ * Privileged like {@link dropComment}, for the same reason: the replies belong to other people.
+ * Scoped by WHEN rather than by "every deleted reply": a reply its own author had already deleted
+ * carries an earlier `deleted_at` than the head, and undoing somebody else's delete must not
+ * resurrect it. The cascade stamps its rows at or after the head's, so "cleared no earlier than the
+ * head was" is exactly the set this took down, which is why the head's `deleted_at` must be read
+ * before it is cleared. The inbox rows the cascade cleaned up are NOT rebuilt: undo happens seconds
+ * later, and telling a thread twice about something it was already told is worse than one lost
+ * notice.
  */
 export async function restoreReplies(input: { deletedAt: Date; reactionFk: number }): Promise<void> {
   await baseDb

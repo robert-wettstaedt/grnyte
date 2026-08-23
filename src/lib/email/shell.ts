@@ -64,9 +64,7 @@ export type EmailLocale = (typeof locales)[number]
 
 const DEFAULT_ORIGIN = 'https://grnyte.rocks'
 
-// ---------------------------------------------------------------------------
 // Tokens. Compiled from the oklch ramp in src/grnyte.css to literal sRGB hex.
-// ---------------------------------------------------------------------------
 
 const LIGHT = {
   card: '#FDFBFA', // surface-50
@@ -146,8 +144,6 @@ const spacer = (height: number) =>
 
 const row = (content: string) => `<tr><td>${content}</td></tr>`
 
-// ---------------------------------------------------------------------------
-
 /**
  * Dark mode, declared once and emitted twice: as a `prefers-color-scheme` query for
  * clients that honour it, and as `[data-ogsb]`/`[data-ogsc]` attribute selectors, which
@@ -207,8 +203,6 @@ ${darkRules('')}
 ${darkRules('[data-ogsb] ')}
 ${darkRules('[data-ogsc] ')}
 `.trim()
-
-// ---------------------------------------------------------------------------
 
 /**
  * Violet appears in exactly two places in this design: the button fill and link text.
@@ -336,7 +330,6 @@ const content = (input: EmailInput, locale: EmailLocale) => {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rows.join('\n')}</table>`
 }
 
-/** Renders the full HTML part. */
 export function renderEmailHtml(input: EmailInput): string {
   const locale = input.locale ?? 'en'
   // Trailing slash stripped so a configured origin cannot produce `//pwa-192x192.png`.

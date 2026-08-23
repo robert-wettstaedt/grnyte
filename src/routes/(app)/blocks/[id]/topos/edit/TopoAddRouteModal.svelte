@@ -84,9 +84,7 @@
 <!-- Declared out here (not inside <Modal>) so `footer` can reference it conditionally without
      Svelte implicitly binding it as a Modal prop or using it before declaration. -->
 {#snippet stepOneFooter()}
-  <!-- Quick line submits createRoute with just blockId (empty name, no grade); New route drills
-       down to the full form (step 2). Pinned as the sheet footer so it stays reachable without
-       scrolling past the route list. -->
+  <!-- Pinned as the sheet footer so it stays reachable without scrolling past the route list. -->
   <form {...submit} class="w-full space-y-3">
     <input type="hidden" name="blockId" value={block.id} />
 
@@ -163,8 +161,7 @@
   {/snippet}
 
   {#if newRouteOpen}
-    <!-- Step 2: the full new-route form fills the sheet; Back and save live in the sheet header
-         (the header check submits this form via its `form` id). -->
+    <!-- Step 2: the full new-route form fills the sheet. -->
     <form {...submit} id="topo-new-route-form" class="space-y-4">
       <input type="hidden" name="blockId" value={block.id} />
 

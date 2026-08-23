@@ -10,7 +10,6 @@
 </script>
 
 <div class="bg-surface-50-950 text-surface-950-50 flex min-h-dvh">
-  <!-- brand / context panel (desktop only) -->
   <div class="border-surface-200-800 brand-panel relative hidden flex-1 overflow-clip border-r min-[860px]:block">
     <svg
       viewBox="0 0 700 1000"
@@ -54,10 +53,8 @@
     </div>
   </div>
 
-  <!-- form panel -->
   <div class="flex flex-1 flex-col items-center justify-center px-5 py-8">
     <div class="flex w-full max-w-100 flex-col">
-      <!-- mobile logo -->
       <a href={resolve('/')} class="mb-9 flex items-center gap-2.5 self-center min-[860px]:hidden">
         <img src={Logo} alt={PUBLIC_APPLICATION_NAME} class="block h-8 w-8 rounded-[9px]" />
         <strong class="[font-family:var(--heading-font-family)] text-[21px] font-bold tracking-tight">

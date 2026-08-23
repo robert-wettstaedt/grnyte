@@ -7,9 +7,7 @@
  * carry the address in `metadata`; a member removal writes the same `remove` verb with the removed
  * person as its subject and no metadata at all. Read the pair together, never the verb on its own.
  *
- * Same contract as `area.ts`: each case names the write site it stands for, states the events that
- * site emits, and claims what the card says. The claim is derived by reading the code, so it is
- * what is under review, never the oracle.
+ * Same contract as `area.ts`.
  */
 import type { EventCase } from './types'
 import { change, eventAgo, ME, userEntity } from './world'

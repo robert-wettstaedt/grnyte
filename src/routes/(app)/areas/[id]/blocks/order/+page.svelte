@@ -55,7 +55,7 @@
       ? Number.POSITIVE_INFINITY
       : haversineMetres(ref, { lat: block.geolocation.lat, long: block.geolocation.long })
 
-  // Seed the order by distance from the reference point. Just stages the result — nothing persists until Save.
+  // Seed the order by distance from the reference point.
   // Un-located blocks (infinite distance) settle at the bottom, stable among themselves.
   const sortByDistance = () => {
     const ref = referencePoint

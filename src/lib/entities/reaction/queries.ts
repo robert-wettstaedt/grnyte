@@ -13,10 +13,10 @@ export const reactionsQueryDefs = {
   /**
    * One event's thread, fetched only when somebody opens it.
    *
-   * Comments are deliberately NOT part of `listEvents`' relation tree any more: a body is up to
-   * 5000 characters and the feed syncs a window of 50 events twice over, so the text of every
-   * conversation in the region used to land on every reader's device to render a number. The
-   * number now comes off `events.comment_count`, and this query is what the sheet opens.
+   * Comments are deliberately NOT part of `listEvents`' relation tree: a body is up to 5000
+   * characters and the feed syncs a window of 50 events twice over, so keeping them there would
+   * land the text of every conversation in the region on every reader's device just to render a
+   * number. That number comes off `events.comment_count`; this query is what the sheet opens.
    *
    * Ordered newest first and reversed for display, rather than ordered as it reads. A thread is
    * read oldest to newest, but it is TRUNCATED at the old end, and `limit` on an ascending order

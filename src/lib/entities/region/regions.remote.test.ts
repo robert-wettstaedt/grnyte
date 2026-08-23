@@ -159,6 +159,14 @@ describe.skipIf(!reachable)('listRegionInvitations', () => {
 
     expect(status).toBe(403)
   })
+
+  it('refuses a member of another region, not just somebody with no memberships', async () => {
+    const status = await statusOf(() =>
+      asRequest(member.authId, () => listRegionInvitations({ regionFk: otherRegionId })),
+    )
+
+    expect(status).toBe(403)
+  })
 })
 
 describe.skipIf(!reachable)('userContributionCount', () => {

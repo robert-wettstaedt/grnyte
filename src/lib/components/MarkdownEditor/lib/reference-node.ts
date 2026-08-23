@@ -68,7 +68,6 @@ export const createReferenceExtension = ({ resolveLabel, suggestion }: Reference
       },
     },
 
-    // --- Markdown round-trip: the portable `!type:id!` token ---
     markdownTokenName: REFERENCE_NODE_NAME,
     name: REFERENCE_NODE_NAME,
     parseMarkdown: (token: MarkdownToken): JSONContent => {

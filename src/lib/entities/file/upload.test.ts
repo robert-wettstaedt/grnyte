@@ -72,6 +72,10 @@ describe('formatFileSize', () => {
   it('switches to GB at the gigabyte boundary', () => {
     expect(formatFileSize(MAX_IMAGE_SIZE)).toBe('50.0 MB')
     expect(formatFileSize(2 * 1024 ** 3)).toBe('2.0 GB')
+    // The boundary itself, which is the only part of this the name was ever claiming: 50MB and
+    // 2GB sit either side of it and agree under `>=`, `>`, or a 1000-based divisor.
+    expect(formatFileSize(1024 ** 3)).toBe('1.0 GB')
+    expect(formatFileSize(1024 ** 3 - 1)).toBe('1024.0 MB')
   })
 })
 
@@ -86,10 +90,27 @@ describe('normalizeSource / isValidSource', () => {
     expect(isValidSource(undefined)).toBe(true)
   })
 
-  it('rejects what the server z.url() would refuse', () => {
-    // A dotless host parses as a URL but is never a real origin, so it must not pass.
+  /**
+   * The client rule, which is stricter than the server's and is NOT a restatement of it.
+   *
+   * The old name here claimed this mirrored `z.url()` on the server. It does not: against the
+   * installed zod 4.4.3, `z.url().safeParse('https://youtube')` and
+   * `z.url().safeParse('javascript:alert(1)')` both succeed, and the server field is a bare
+   * `z.url().max(500)` (files.remote.ts:247 and :354). So `isValidSource` requiring a dot in the
+   * hostname is an extra gate, and a reader who "synced the two" would be deleting it.
+   */
+  it('rejects a host with no dot, which parses as a URL but is never a real origin', () => {
     expect(isValidSource(normalizeSource('youtube'))).toBe(false)
     expect(isValidSource(normalizeSource('instagram.com/reel/1'))).toBe(true)
+  })
+
+  // `file.source` is rendered as an `<a href>` (Media/MediaStage.svelte:354), so a scheme that
+  // executes has to fail this. It does, because `new URL('javascript:alert(1)').hostname` is
+  // empty and carries no dot. Pinned explicitly rather than left as a side effect of the dot
+  // rule, since that rule could be loosened for a plausible-sounding reason.
+  it('rejects a scheme that would execute if it reached the link', () => {
+    expect(isValidSource('javascript:alert(1)')).toBe(false)
+    expect(isValidSource('data:text/html,<script>alert(1)</script>')).toBe(false)
   })
 })
 

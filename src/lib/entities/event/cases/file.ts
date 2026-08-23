@@ -7,8 +7,7 @@
  * (`deleteFile`), because the file row is gone by the time anybody reads the card and only the
  * parent is left to name. Between them sits the one column a file diffs, a video's `source`.
  *
- * Read `area.ts` first: it is the reference for what a case is. Every claim here is derived by
- * reading the code, so it says what the feed DOES, not what it should.
+ * Same contract as `area.ts`.
  */
 import type { EventCase } from './types'
 import { areaEntity, ascentEntity, change, eventAgo, fileEntity, ME, photo, routeEntity, video } from './world'

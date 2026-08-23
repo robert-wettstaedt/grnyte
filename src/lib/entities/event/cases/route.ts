@@ -1,9 +1,7 @@
 /**
  * Every card an action on a ROUTE can produce.
  *
- * Same contract as `area.ts`: each case names the write site it stands for, states the events that
- * site emits, and claims what the card says. The claim is derived by reading the code, so it is
- * what is under review, never the oracle.
+ * Same contract as `area.ts`.
  *
  * Two things are route-specific and worth knowing before reading the claims. A grade is stored as
  * an id, so both sides of a grade line are ids here and the card renders the labels its reader's

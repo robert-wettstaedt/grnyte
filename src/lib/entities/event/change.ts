@@ -20,9 +20,6 @@ import { verbEntry, type VerbField } from './verbs'
  * confirmed" in whichever language ran. Formatting is the markup's half, because it is the
  * half that legitimately needs the reader: their locale, their unit preference, their grading
  * scale.
- *
- * Everything here used to live in `EventChanges.svelte`, where the only way to check any of
- * it was to look at it.
  */
 
 /** What the change lines need beyond the rows themselves. */
@@ -149,12 +146,9 @@ interface ChangeBase {
   /** The label, icon and shape its catalogue entry assigns it. */
   field: VerbField
   /**
-   * The `{#each}` key.
-   *
-   * The row's id AND its column, not the id alone. One event now expands to one line per column
-   * it moved, and all of those lines carry the same id: keyed on that, a card whose event changed
-   * four columns hands Svelte four duplicate keys and takes the page down to the error boundary.
-   * The old shape stored a row per column, so the id was unique by construction.
+   * The `{#each}` key: the row's id AND its column, not the id alone. One event now expands to
+   * one line per column it moved, and all of those lines carry the same id, so keying on that
+   * alone hands Svelte duplicate keys and takes the page down to the error boundary.
    */
   id: string
   /**

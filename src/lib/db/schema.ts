@@ -47,14 +47,6 @@ import {
   READ_AUTH_ADMIN_POLICY_CONFIG,
 } from './policy'
 
-/**
- *
- *
- * === HELPERS ===
- *
- *
- */
-
 const baseFields = {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   id: serial('id').notNull().primaryKey(),
@@ -82,7 +74,7 @@ const baseContentFields = {
   name: text('name').notNull(),
 }
 
-/** Soft-deletion marker \u2014 when set, the row is considered deleted but kept for recovery. */
+/** When set, the row is considered deleted but kept for recovery. */
 const softDeleteFields = {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }
@@ -92,14 +84,6 @@ const baseRegionFields = {
     .notNull()
     .references((): AnyColumn => regions.id),
 }
-
-/**
- *
- *
- * === GLOBALS ===
- *
- *
- */
 
 export const appPermission = pgEnum('app_permission', [
   REGION_PERMISSION_READ,
@@ -233,11 +217,8 @@ export const userSettings = table(
     /** Push when somebody comments on a card you are part of: yours, or one you commented on. */
     notifyComments: boolean('notify_comments').notNull().default(true),
     notifyCommunity: boolean('notify_community').notNull().default(true),
-    /**
-     * Renamed from `notify_moderations`, which is what it always actually governed: 1.0's
-     * grouping fell through to 'moderate' for anything that was not an ascent or a user, so the
-     * flag covered every crag edit. The name now records that.
-     */
+    /** Named for what it always governed: 1.0's `notify_moderations` fell through to 'moderate'
+     *  for anything that was not an ascent or a user, so the flag covered every crag edit. */
     notifyCragEdits: boolean('notify_crag_edits').notNull().default(true),
 
     /** Push for the things aimed at you personally: mentions, your ascent, your role. */
@@ -534,14 +515,6 @@ export const gradesRelations = relations(grades, ({ many }) => ({
   ascents: many(ascents),
   routes: many(routes),
 }))
-
-/**
- *
- *
- * === REGION-BASED ===
- *
- *
- */
 
 export const areaVisibilityEnum: ['public', 'private'] = ['public', 'private']
 export const areaTypeEnum: ['area', 'crag'] = ['area', 'crag']
@@ -1450,16 +1423,11 @@ export const activitiesRelations = relations(activities, ({ one }) => ({
 }))
 
 /**
- *
- *
  * === EVENTS ===
  *
- * What happened, as opposed to what changed. See CONTEXT.md for the vocabulary.
- *
- * Replaces `activities`: every mutation logs here, and the feed and the digest read from here
- * too. `activities` keeps its rows for now, retired rather than dropped.
- *
- *
+ * What happened, as opposed to what changed. See CONTEXT.md for the vocabulary. Replaces
+ * `activities`: every mutation logs here, and the feed and the digest read from here too.
+ * `activities` keeps its rows for now, retired rather than dropped.
  */
 
 /**

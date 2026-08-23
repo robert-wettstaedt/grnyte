@@ -38,7 +38,7 @@ const relativeFormat = perLocale((locale) => new Intl.RelativeTimeFormat(locale,
  * timezone: a moment formatted in UTC lands on the day before for every reader west of Greenwich,
  * and a date-only value compared as a distance in milliseconds is a day out on both sides of it.
  * The feed's dividers, the inbox's, the contribution calendar and a card's climb line all ask this
- * same question and each used to answer it in its own two lines.
+ * same question.
  */
 export function calendarDay(at: number): number {
   const local = new Date(at)
@@ -51,7 +51,7 @@ export function calendarDay(at: number): number {
  * In UTC, because the value names a calendar date stored as UTC midnight; formatting it in the
  * viewer's zone shifts it a day for everyone west of Greenwich. Shared so the change list, the
  * card's climb line and {@link formatDay}'s own fallback cannot answer differently for one
- * stored value, which they did while each spelled the formatter out.
+ * stored value.
  */
 export function formatDate(timestamp: number, locale: string): string {
   return utcDateFormat(locale).format(timestamp)

@@ -44,7 +44,6 @@
   const fullscreenLabel = $derived(isFullscreen ? m.topo_exitFullscreen() : m.topo_fullscreen())
 </script>
 
-<!-- Top-left: back + undo/redo. -->
 <div class="pointer-events-none absolute top-0 left-0 z-30 flex items-start gap-2 p-3">
   <div class="pointer-events-auto flex flex-col gap-2">
     <KbdTooltip label={m.common_back()}>

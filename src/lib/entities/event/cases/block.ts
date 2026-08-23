@@ -2,9 +2,8 @@
  * Every card an action on a BLOCK can produce.
  *
  * Six write sites, five of which are about one column: a block is a name and a pin, and the pin can
- * be set from three different screens (the edit form, the map picker, and a topo photo's GPS). Each
- * case names the site it stands for, states the events that site emits, and claims what the card
- * says. The claim is derived by reading the code, so it is what is under review, never the oracle.
+ * be set from three different screens (the edit form, the map picker, and a topo photo's GPS). Same
+ * contract as `area.ts`: each case names its write site and claims what the card says.
  *
  * NOT here: the topo. `block:updated:topo` and `block:deleted:topo` are events about a block, but
  * they are written by the topo mutations and belong to that domain's file.

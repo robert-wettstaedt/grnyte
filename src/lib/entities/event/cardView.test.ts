@@ -131,7 +131,7 @@ describe('headline keys', () => {
     const rows = ['type', 'gradeFk', 'notes'].map((columnName, index) =>
       line({ columnName, createdAt: 100 - index, id: index + 1, objectId: '9001', objectType: 'ascent' }),
     )
-    const view = card(rows)
+    const view = card(rows, undefined, undefined, undefined, 'session')
 
     expect(view.headline.key).toBe('event_ascentUpdated')
     expect(view.summary).toEqual([{ key: 'event_summaryEdits', params: { count: 3 } }])
@@ -174,7 +174,7 @@ describe('headline keys', () => {
 
   // A topo row's metadata shares the column and is not JSON.
   it('ignores metadata that is not a deletion scale', () => {
-    const rows = [line({ columnName: 'topo', metadata: 'lines:700', objectType: 'block', verb: 'remove' })]
+    const rows = [line({ metadata: 'lines:700', objectType: 'block', verb: 'delete' })]
     expect(card(rows).summary).toBeUndefined()
   })
 

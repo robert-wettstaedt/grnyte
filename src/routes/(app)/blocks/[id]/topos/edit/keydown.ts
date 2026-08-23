@@ -78,7 +78,6 @@ export function topoEditorKeydown({ editor, onSave, onToggleFullscreen, topos }:
       selectSibling(key === 'l' ? 1 : -1)
       return
     }
-    // F toggles fullscreen.
     if (key === 'f') {
       event.preventDefault()
       onToggleFullscreen()

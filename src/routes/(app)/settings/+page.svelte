@@ -41,7 +41,7 @@
 
   // Invitations addressed to this account, so the emailed link is never the only way in. An
   // invitee who already belongs to some other region never trips the authGuard bounce (it only
-  // fires on zero regions), and until this list existed their only route was the mail.
+  // fires on zero regions).
   // Created once, outside the $derived: a remote query built inside one belongs to that derived's
   // effect, and reading `current` back out of it once the response lands warns `derived_inert` and
   // renders nothing. This query takes no arguments, so there is nothing for it to react to anyway.
@@ -182,7 +182,6 @@
 <PageHeader onback={() => back(resolve('/profile'))} title={m.settings_title()} />
 
 <div class="container mx-auto max-w-2xl space-y-8 px-4 py-8 pb-24 md:pb-8">
-  <!-- Account -->
   <SettingSection title={m.settings_account()}>
     <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
       <SettingLink href={resolve('/settings/username')} label={m.auth_username()} value={global.user?.username} />
@@ -191,7 +190,6 @@
     </div>
   </SettingSection>
 
-  <!-- Preferences -->
   <SettingSection title={m.settings_app()}>
     <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
       <label for="setting-language" class="flex items-center justify-between gap-4 p-4">
@@ -246,11 +244,8 @@
     </div>
   </SettingSection>
 
-  <!-- Notifications, split by scope rather than by hierarchy. Delivery is per browser; the types
-       below are per account. They used to share one card, which reads as a master switch owning
-       four children - so a phone with push off showed four switches saying "on" underneath it, and
-       the only way to explain that was a caption talking the layout down. Two headed groups say it
-       without a caption, permanently rather than only while the device is off. -->
+  <!-- Notifications, split by scope rather than by hierarchy: delivery is per browser, the types
+       below are per account. -->
   <SettingSection title={m.settings_notifications()}>
     <div class="space-y-3">
       <PushSetup />
@@ -391,7 +386,6 @@
     </SettingSection>
   {/if}
 
-  <!-- Legal -->
   <SettingSection title={m.settings_legal()}>
     <div class="divide-surface-200-800 border-surface-200-800 divide-y rounded-xl border">
       {#each legalPages as link (link.href)}

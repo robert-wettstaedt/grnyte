@@ -52,8 +52,6 @@
     notifications.data.map((notification) => ({ notification, view: notificationView(notification) })),
   )
 
-  // Local calendar day, exactly as the feed's dividers. See `calendarDay`.
-
   // Same day dividers as the feed, decided the same way: a flat sequence with a flag on the first
   // row of each day, rather than nested per-day arrays.
   const rows = $derived(

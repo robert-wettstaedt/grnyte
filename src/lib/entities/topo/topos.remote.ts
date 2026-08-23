@@ -23,9 +23,8 @@ interface TopoEventTarget {
 
 /**
  * Log a topo change that has no before/after pair: a photo added, swapped, removed, or the
- * strip reordered. What happened is in the metadata, because the row has nothing else to
- * say it with - all five of these used to write the same valueless row, and the feed could
- * only report the union of them ("Topo redrawn").
+ * strip reordered. What happened is in the metadata, because the row has nothing else to say it
+ * with.
  */
 const insertTopoEvent = (
   db: PostgresJsDatabase<typeof schema>,
@@ -197,8 +196,6 @@ export const replaceTopoImage = command(
     const storage = await rls(async (db): Promise<FileStorageTarget[]> => {
       const topo = await db.query.topos.findFirst({
         where: eq(topos.id, topoId),
-        // `blockFk` on the file: the guards below refuse to point a topo at, or destroy, a file that
-        // is not this block's.
         with: { file: { columns: { blockFk: true, bunnyStreamFk: true, id: true, path: true } } },
       })
       if (topo == null) {

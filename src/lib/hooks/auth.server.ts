@@ -97,19 +97,10 @@ export const supabase: Handle = async ({ event, resolve }) => {
     }
   }
 
-  /**
-   * Creates a Supabase client specific to this server request.
-   *
-   * The Supabase client gets the Auth token from the request cookies.
-   */
   event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => event.cookies.getAll(),
-      /**
-       * SvelteKit's cookies API requires `path` to be explicitly set in
-       * the cookie options. Setting `path` to `/` replicates previous/
-       * standard behavior.
-       */
+      // SvelteKit's cookies API requires `path` to be set explicitly; '/' matches previous/standard behavior.
       setAll: (cookiesToSet) => {
         cookiesToSet.forEach(({ name, options, value }) => {
           event.cookies.set(name, value, { ...options, path: '/', secure: process.env.NODE_ENV !== 'development' })
@@ -162,10 +153,7 @@ export const supabase: Handle = async ({ event, resolve }) => {
 
   return resolve(event, {
     filterSerializedResponseHeaders(name) {
-      /**
-       * Supabase libraries use the `content-range` and `x-supabase-api-version`
-       * headers, so we need to tell SvelteKit to pass it through.
-       */
+      // Supabase libraries use `content-range` and `x-supabase-api-version`; pass them through.
       return name === 'content-range' || name === 'x-supabase-api-version'
     },
   })

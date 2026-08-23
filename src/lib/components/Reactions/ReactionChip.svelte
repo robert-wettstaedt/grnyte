@@ -1,11 +1,9 @@
 <!--
-  One emoji and its count.
+  One emoji and its count. A click toggles your own reaction; the secondary gesture (hold on a
+  finger, right click on a mouse) lists who sent it, safe together only because neither ends in the
+  click the primary one needs.
 
-  A click toggles your own reaction; the secondary gesture (hold on a finger, right click on a
-  mouse) lists who sent it. Two gestures on one control, which is only safe because neither of them
-  ends in the click the primary one needs.
-
-  Its own component so each chip owns the open state of its own popover. Tracking that in the bar
+  Its own component so each chip owns the open state of its own popover: tracking that in the bar
   meant a light dismiss closed the popover without the bar ever hearing about it.
 -->
 <script lang="ts">

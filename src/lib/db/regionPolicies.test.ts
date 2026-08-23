@@ -164,6 +164,33 @@ describe.skipIf(!reachable)('regions RLS', () => {
     expect(deleted.count).toBe(1)
   })
 
+  /**
+   * The restrictive half of the pair. `app.admin` holds `for: 'all'` on regions, and permissive
+   * policies are OR-ed, so without `nobody inserts regions` standing over the top the `all` grant
+   * would carry INSERT too. Nothing else in the suite attempts a region INSERT through RLS, which
+   * left the one role most likely to be talked into using it as the only untested path.
+   *
+   * What it protects is not the row but the cap: `createRegionForUser` enforces
+   * `MAX_OWNED_REGIONS`, and a direct insert goes around it.
+   */
+  it('does not let anybody insert a region, app admins included', async () => {
+    await expectInsertRefused(() =>
+      as(
+        'appAdmin',
+        (tx) =>
+          tx`insert into public.regions (name, created_by, max_members) values (${REGION_NAME}, ${users.appAdmin.userId}, 10)`,
+      ),
+    )
+
+    await expectInsertRefused(() =>
+      as(
+        'regionAdmin',
+        (tx) =>
+          tx`insert into public.regions (name, created_by, max_members) values (${REGION_NAME}, ${users.regionAdmin.userId}, 10)`,
+      ),
+    )
+  })
+
   it('lets members read their region and hides it from outsiders', async () => {
     const asMember = await as('regionUser', (tx) => tx`select id from public.regions where id = ${regionId}`)
     expect(asMember).toHaveLength(1)
@@ -200,6 +227,30 @@ describe.skipIf(!reachable)('region_members RLS', () => {
         values (${regionId}, 'region_user', true, ${users.outsider.authId}, ${users.outsider.userId}, ${users.regionAdmin.userId})`,
     )
     expect(result.count).toBe(1)
+  })
+
+  /**
+   * The other half of `getConsistentMemberPolicyConfig`, and the half the test above cannot reach:
+   * it inserts a consistent pair, so it only proves the permission clause. This drives the identity
+   * clause, `EXISTS (SELECT 1 FROM users u WHERE u.id = user_fk AND u.auth_user_fk = auth_user_fk)`.
+   *
+   * `authorize_in_region` resolves through `auth_user_fk` while every relation joins on `user_fk`,
+   * so a row naming two different people hands one account another's rights inside the region and
+   * lists them under the wrong name. Drop the `withCheck` override and nothing else here fails.
+   *
+   * `user_fk` is the outsider, who is not a member, on purpose: pointing it at an existing member
+   * would let `region_members_region_user_unique` do the refusing and the test would pass without
+   * the policy being involved at all.
+   */
+  it('does not let a region admin write a membership whose two identity columns name different people', async () => {
+    await expectInsertRefused(() =>
+      as(
+        'regionAdmin',
+        (tx) => tx`
+          insert into public.region_members (region_fk, role, is_active, auth_user_fk, user_fk, invited_by)
+          values (${regionId}, 'region_user', true, ${users.appAdmin.authId}, ${users.outsider.userId}, ${users.regionAdmin.userId})`,
+      ),
+    )
   })
 
   it('does not let a region admin touch members of a region they do not administer', async () => {

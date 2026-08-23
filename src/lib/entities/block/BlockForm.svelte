@@ -16,10 +16,9 @@
 
   type Coords = { lat: number; long: number }
 
-  // The combined add/edit-block form: an optional name + an optional, recommended location.
-  // Switches between the field form and a full-screen picker sub-editor, and gates the
-  // submit with a confirm when no location is set. Edit reuses this verbatim — pass
-  // `updateBlock`, an `initialLocation`, and an "Edit block"/"Save" title and label.
+  // The combined add/edit-block form: switches between the field form and a full-screen picker
+  // sub-editor, and gates submit with a confirm when no location is set. Edit reuses this verbatim,
+  // passing `updateBlock`, an `initialLocation`, and an "Edit block"/"Save" title and label.
   interface Props {
     /** The crag the block belongs to — drives the breadcrumb and the picker's framing. */
     area: AreaDetail

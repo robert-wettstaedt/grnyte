@@ -1,12 +1,8 @@
 <!--
-  The full emoji set, behind the quick row's `+`.
-
-  `emoji-picker-element` is a plain custom element, so it needs no framework binding: search and
-  skin tones come with it. Its own frequently-used row does not: two lists of favourites in one
-  control, one fixed and one that quietly reorders, is one list too many, and the quick row is
-  already the answer to "the emoji I always send".
-
-  Loaded on demand. It is roughly 50KB plus its data, and most readers never open it.
+  The full emoji set, behind the quick row's `+`. `emoji-picker-element` is a plain custom element
+  needing no framework binding (search, skin tones included), but its own frequently-used row is
+  disabled: the quick row above already covers "the emoji I always send", and two favourites lists
+  is one too many. Loaded on demand, roughly 50KB plus data, since most readers never open it.
 -->
 <script lang="ts">
   import { getLocale, type Locale } from '$lib/paraglide/runtime'
@@ -57,17 +53,10 @@
   }
 
   /**
-   * "This gesture is mine", said to the bottom sheet.
-   *
-   * An open sheet locks the page behind it by putting `preventDefault` on `touchmove` and `wheel`
-   * at the document. Its own scrollable children are spared because the sheet stops those events
-   * propagating first, which it decides by walking up from the event target looking for something
-   * that scrolls. This element's scroller is in a shadow root, the target retargets to the host,
-   * and every ancestor above fits its content exactly: the walk finds nothing, the lock applies,
-   * and the emoji list cannot be scrolled by touch or by wheel.
-   *
-   * So the picker says it itself. The sheet keeps its drag handle and its header; what it loses is
-   * dragging the sheet by the emoji grid, which was never a gesture worth having over a list.
+   * The open sheet locks background scroll by walking up from the touch target for a scrollable
+   * ancestor; this element's scroller lives in a shadow root, so the event retargets to the host
+   * and the walk finds nothing. Stopping propagation here claims the gesture for the picker
+   * instead, at the cost of not being able to drag the sheet via the emoji grid.
    */
   const claim = (event: Event) => event.stopPropagation()
 </script>
@@ -98,15 +87,10 @@
 {/await}
 
 <style>
-  /* Styles set on the host from out here beat the element's own `:host` rules, which is the whole
-     mechanism: the picker themes itself from `prefers-color-scheme`, and this app themes itself
-     from a class on <html> that a reader can set against their system. Left alone, a dark picker
-     lands in a light app the moment those two disagree.
-
-     `color-scheme: inherit` is what actually settles it. Skeleton's surface tokens are
-     `light-dark()` pairs, so every colour below resolves from the used colour scheme rather than
-     from the media query, and the picker follows the app by construction. It also hands the
-     search field and the scrollbar the right native rendering. */
+  /* Host styles beat the element's own `:host` rules, but `color-scheme: inherit` is what actually
+     keeps it themed with the app: the picker defaults to `prefers-color-scheme`, this app switches
+     via a class on <html>, and Skeleton's `light-dark()` tokens below only follow the app if the
+     colour scheme is inherited rather than read from the media query. */
   emoji-picker {
     color-scheme: inherit;
 

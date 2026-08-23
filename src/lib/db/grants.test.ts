@@ -75,13 +75,6 @@ const grantsFor = (role: string) => sql<Grant[]>`
   where table_schema = 'public' and grantee = ${role}`
 
 describe.skipIf(!reachable)('table grants', () => {
-  it('lets the two data-API roles touch nothing at all', async () => {
-    // Which is what "the data API is off" means when it is a fact rather than a dashboard toggle:
-    // PostgREST and pg_graphql switch to one of these two and find no table they may even name.
-    expect(await grantsFor('authenticated')).toEqual([])
-    expect(await grantsFor('anon')).toEqual([])
-  })
-
   it('still lets the writer role read, which is how the app kept working', async () => {
     const read = (await grantsFor('app_writer')).filter((grant) => grant.privilege === 'SELECT')
 
@@ -134,6 +127,9 @@ describe.skipIf(!reachable)('table grants', () => {
   })
 
   it('leaves no table behind, including the ones not in schema.ts', async () => {
+    // Which is what "the data API is off" means when it is a fact rather than a dashboard toggle:
+    // PostgREST and pg_graphql switch to one of these roles and find no table they may even name.
+    //
     // `keyv` is created at runtime by the cache library and extensions create their own: the tables
     // that most need the revoke are the ones nobody listed, so this asks the database, not the
     // schema module.

@@ -159,11 +159,10 @@ export const routesQueryDefs = {
     }),
   ),
   /**
-   * The map's route list: one bare row per route (no related trees). The /explore map and
-   * its Filter only read `id`/`blockFk`/`gradeFk`, while `listRoutes` materializes tags,
-   * first ascents, block+area and topo+file for every route, which dominates the cold-load
-   * sync (roughly half the synced rows) and Zero's IVM work. Filters still apply
-   * server-side via `whereExists`, which doesn't sync the related rows.
+   * The map's route list: one bare row per route (no related trees). The /explore map and its
+   * Filter only read `id`/`blockFk`/`gradeFk`, while `listRoutes` materializes tags, first ascents,
+   * block+area and topo+file for every route, dominating the cold-load sync and Zero's IVM work.
+   * Filters still apply server-side via `whereExists`, which doesn't sync the related rows.
    */
   listRoutesForMap: defineQuery(
     z.object({

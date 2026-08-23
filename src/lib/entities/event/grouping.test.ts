@@ -103,6 +103,16 @@ describe('groupEvents', () => {
     expect(groups.map((group) => group.createdAt)).toEqual([day(3), day(2), day(1, 9)])
   })
 
+  it('dates a group holding several events by its newest one', () => {
+    const groups = groupEvents([
+      ascent({ createdAt: day(2, 12), objectId: 10 }),
+      ascent({ createdAt: day(2, 12) - MINUTE, objectId: 11 }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].createdAt).toBe(day(2, 12))
+  })
+
   it('keeps a log that runs past midnight in one session', () => {
     const groups = groupEvents([
       ascent({ createdAt: day(2, 0) + 4 * MINUTE, objectId: 10 }),

@@ -7,9 +7,9 @@
  * changes is the change line, not the headline. And a delete only writes at all when the actor is
  * not the climber, which makes two of that sentence's six arms unreachable.
  *
- * The claims are derived by reading the code, so they say what the feed DOES. Where the answer
- * depends on something the fixture cannot state (a grade chip needs the region's grade list, a
- * temperature needs the reader's units), the claim says so rather than inventing the output.
+ * Same contract as `area.ts`. Where the answer depends on something the fixture cannot state (a
+ * grade chip needs the region's grade list, a temperature needs the reader's units), the claim
+ * says so rather than inventing the output.
  */
 import { stringifyDeletedAscent } from '../verbs'
 import type { EventCase } from './types'

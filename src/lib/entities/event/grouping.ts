@@ -15,11 +15,9 @@ export interface EventGroup {
   events: EventListItem[]
   /**
    * Keying id for `{#each}`. The group's own key plus its oldest member, so a card keeps its
-   * identity (and its expand state) when newer events join it.
-   *
-   * Nothing is stored against this any more. A reaction hangs off an event, which has an id of its
-   * own that no amount of regrouping can change, so a card re-keying at the window's edge is now
-   * only a rendering detail rather than something that could orphan a row.
+   * identity (and its expand state) when newer events join it. A reaction hangs off an event, not
+   * this id, so re-keying at the window's edge is a rendering detail, never something that could
+   * orphan a row.
    */
   id: string
   kind: EventGroupKind
@@ -45,9 +43,8 @@ const CRAG_OBJECT_TYPES = new Set(['area', 'block', 'route'])
  * Fold a newest-first event list into feed cards. Session beats burst beats entity, first match
  * wins, and a group of one becomes a `single` card.
  *
- * Grouping is now purely cosmetic. It used to be a correctness concern, because a reaction was
- * stored against one row of a card and every surface had to agree on which rows made that card up;
- * an event has its own id, so regrouping cannot move anything.
+ * Grouping is purely cosmetic: an event has its own id, so no amount of regrouping can move what a
+ * reaction or comment hangs off.
  *
  * A session is "climbed together" as well as "logged together": see `joins`.
  *
@@ -73,8 +70,7 @@ export function groupEvents(events: readonly EventListItem[]): EventGroup[] {
    *
    * Nothing changes for the time-only kinds. The list runs newest first, so every later event is
    * older than every group already open, and an older group's oldest member is further away still:
-   * if the newest group fails the window, the ones behind it fail it harder. Searching the list
-   * finds exactly the group the single-entry map used to hold.
+   * if the newest group fails the window, the ones behind it fail it harder.
    */
   const open = new Map<string, EventGroup[]>()
 
@@ -152,23 +148,21 @@ function groupKey(event: EventListItem, kind: EventGroupKind): string {
     case 'upload':
       return `${kind}:${region}:${event.actorFk}:${localityKey(event)}`
 
-    // The ACTOR, like every other kind. A card is one person's doing, and this was the one key
-    // that let two of them share one: an admin granting a role and the member renaming themselves
-    // half an hour later became "Mara Lindqvist and others edited Mara Lindqvist", which names
-    // neither of the two things that happened and credits an avatar to work somebody else did.
+    // The ACTOR, like every other kind: a card is one person's doing, not two sharing one. Without
+    // it, an admin granting a role and the member renaming themselves half an hour later would
+    // become "Mara Lindqvist and others edited Mara Lindqvist", crediting an avatar to work
+    // somebody else did.
     //
     // `metadata` is in it for the same reason the server's fold scopes on it: two invitations by
-    // one person are deliberately two events, and a user object's id is the same person for every
-    // one of them. Without it the client merged back together exactly what the write path spends
-    // effort keeping apart, into a card that can only headline one address.
+    // one person are deliberately two events sharing one user id; without it the client would
+    // re-merge what the write path keeps apart, into a card that can only headline one address.
     //
-    // The VERB is in it for the same reason, one level up. Two events on one object with two
-    // different verbs are two different things, and each resolves its own sentence: an invitation
-    // and its withdrawal, or somebody leaving a region and coming back. Merged, the card can
-    // speak neither and falls to "edited {name}" with a count, which for a membership reads as
-    // "Mara edited Mara, 2 edits" and for an invitation asserts an edit to an email address. The
-    // server's fold already merges everything that IS one action (a repeat, or an update refining
-    // a create), so what reaches here with two verbs is genuinely two.
+    // The VERB is in it one level up: two events on one object with different verbs are two
+    // different things, each resolving its own sentence (an invitation and its withdrawal, or
+    // somebody leaving a region and coming back). Merged, the card falls to "edited {name}" with a
+    // count, reading as "Mara edited Mara, 2 edits" for a membership or an edit to an email address
+    // for an invitation. The server's fold already merges everything that IS one action (a repeat,
+    // or an update refining a create), so what reaches here with two verbs is genuinely two.
     default:
       return `entity:${region}:${event.actorFk}:${objectKey(event.objectType, event.objectId)}:${event.verb}:${event.metadata ?? ''}`
   }
@@ -185,18 +179,17 @@ function joins(group: EventGroup, event: EventListItem, kind: EventGroupKind): b
     return withinWindow
   }
 
-  // Both halves, and they answer different questions. The climb day is what makes the card's word
-  // true: "logged a session" over two days at the crag is a sentence about an afternoon that never
-  // happened, which is the complaint theCrag has open twice against the same rule.
+  // Both halves answer different questions. The climb day makes the card's word true: "logged a
+  // session" over two days at the crag is a sentence about an afternoon that never happened
+  // (theCrag's complaint against the naive rule). The log proximity stays too: dropping it would
+  // let one climb day span any distance in logging time, so an ascent from that day entered three
+  // weeks late would join the card and drag a three-week-old event to the top of the feed. Same
+  // climb day AND logged together is the only pair that means what the card says.
   //
-  // The log proximity stays because dropping it would let one climb day span any distance in
-  // logging time: an ascent from that day entered three weeks late would join the card and drag it
-  // to the top of the feed carrying a three-week-old event, which is the other half of the same
-  // bug report. Same climb day AND logged together is the only pair that means what the card says.
-  // Against the group's first KNOWN climb day, not against its tail. An ascent deleted since
-  // carries no entity and so no climb date, and comparing to the tail let one of those become the
-  // group's oldest and then match anything: Sunday, a deleted row, and Saturday folded into one
-  // card claiming to be an afternoon.
+  // Measured against the group's first KNOWN climb day, not its tail: an ascent deleted since
+  // carries no entity and so no climb date, and comparing to the tail would let one of those
+  // become the group's oldest and match anything, folding Sunday, a deleted row, and Saturday into
+  // one card claiming to be an afternoon.
   return (
     sameClimbDay(climbDayOf(group), event) &&
     (withinWindow || calendarDay(oldest.createdAt) === calendarDay(event.createdAt))
@@ -222,9 +215,8 @@ function joinsCreate(create: EventListItem, uploads: EventGroup): boolean {
 
 function kindOf(event: EventListItem): EventGroupKind {
   // A deletion is the one thing on a card nobody may have to infer from a tombstone row, so it is
-  // kept out of the edit bursts. Under the old shape this needed "type is deleted AND there is no
-  // column", because a column-scoped delete (a photo, a parking pin) is really an edit; here those
-  // are `remove` and `update`, so the verb says it outright.
+  // kept out of the edit bursts: a column-scoped delete (a photo, a parking pin) is really an edit,
+  // and is written as `remove` or `update` rather than `delete`, so the verb says it outright.
   if (event.verb === 'delete') {
     return 'removal'
   }

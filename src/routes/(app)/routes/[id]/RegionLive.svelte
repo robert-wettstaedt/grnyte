@@ -38,10 +38,9 @@
   const storageKey = $derived(`${PUBLIC_APPLICATION_NAME}:regionLive:${regionFk}`)
   let seen = $derived(localStorage.getItem(storageKey) != null)
 
-  // Deliberately no member-count condition. It was there to avoid celebrating in an established
-  // region, but a region holding exactly one route is brand new by definition, and the check only
-  // ever produced false negatives: a founder who invites people before adding the first route
-  // would never have seen this.
+  // Deliberately no member-count condition: a region holding exactly one route is brand new by
+  // definition, so such a check would only ever produce false negatives (a founder who invites
+  // people before adding the first route would never see this).
   //
   // Admin-gated, because the only thing this card offers is the region's settings screen, which
   // `canEditRegion` keeps to admins: a member invited as `region_user` got congratulated on

@@ -21,6 +21,13 @@ import { fileParent } from './mapper'
 import { canDeleteFile } from './permissions'
 import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, type FileEntityType } from './upload'
 
+/**
+ * A credit URL. The scheme filter is the point: a bare `z.url()` takes `javascript:` and `data:`,
+ * and this value ends up in an `href`. The client gate lives in a component, so a direct command
+ * call would otherwise walk straight past it.
+ */
+const sourceUrl = z.url({ protocol: /^https?$/ }).max(500)
+
 /** The FK column linking a `files` row to its target entity — mirrors the columns on `files`. */
 const entityFks = (type: FileEntityType, id: number) => ({
   areaFk: type === 'area' ? id : undefined,
@@ -29,11 +36,6 @@ const entityFks = (type: FileEntityType, id: number) => ({
   routeFk: type === 'route' ? id : undefined,
 })
 
-/**
- * The entity a stored file hangs on: the inverse of {@link entityFks}, read back off the row.
- * What a deletion has left to name, since the file row itself is on its way out.
- * `undefined` for an orphan row (all four FKs null), which the feed then simply cannot place.
- */
 /**
  * Log an upload. The event's object is the FILE, which is the opposite way round from the delete
  * below, where the file is gone by the time the feed reads it and only the parent is left to
@@ -249,7 +251,7 @@ export const setFileVisibility = authedCommand(
  * the credit is about, and what it hangs on is reachable through the file's own foreign keys.
  */
 export const setVideoSource = authedCommand(
-  z.object({ fileId: z.string().min(1), source: z.url().max(500).nullable() }),
+  z.object({ fileId: z.string().min(1), source: sourceUrl.nullable() }),
   async ({ fileId, source }, { db, user, userRegions }): Promise<MutationResult<BunnyStream>> => {
     const file = await requireEditableFile(db, userRegions, user.id, fileId)
     if (file.bunnyStreamFk == null) {
@@ -356,7 +358,7 @@ const finalizeVideoSchema = z.object({
   entityId: z.number(),
   entityType: z.enum(fileEntityTypes),
   /** Where the clip was grabbed from (route uploads only), credited on the route page. */
-  source: z.url().max(500).optional(),
+  source: sourceUrl.optional(),
   /** Ownership proof minted by `createBunnyVideo` alongside the GUID. */
   token: z.string(),
   /** Bunny video GUID — doubles as the `bunnyStreams` row id. */

@@ -18,27 +18,27 @@ const mockDb = {
 } as unknown as PostgresJsDatabase<typeof schema>
 
 describe('Markdown Conversion', () => {
-  it('should convert basic markdown to HTML', async () => {
+  it('turns headings and paragraphs into their tags', async () => {
     const markdown = '# Heading\n\nParagraph text'
     const html = await convertMarkdownToHtml(markdown)
     expect(html).toContain('<h1>Heading</h1>')
     expect(html).toContain('<p>Paragraph text</p>')
   })
 
-  it('should handle emphasis and strong text', async () => {
+  it('renders emphasis and strong', async () => {
     const markdown = '*italic* and **bold** text'
     const html = await convertMarkdownToHtml(markdown)
     expect(html).toContain('<em>italic</em>')
     expect(html).toContain('<strong>bold</strong>')
   })
 
-  it('should handle links', async () => {
+  it('renders an absolute link', async () => {
     const markdown = '[Link text](https://example.com)'
     const html = await convertMarkdownToHtml(markdown)
     expect(html).toContain('<a href="https://example.com">Link text</a>')
   })
 
-  it('should keep a relative link, which resolves against our own origin', async () => {
+  it('keeps a relative link, which resolves against our own origin', async () => {
     const html = await convertMarkdownToHtml('[Routes](/routes/12)')
     expect(html).toContain('<a href="/routes/12">Routes</a>')
   })
@@ -48,40 +48,40 @@ describe('Markdown Conversion', () => {
     ['JaVaScRiPt:alert(1)'],
     ['data:text/html;base64,PHNjcmlwdD4='],
     ['vbscript:msgbox(1)'],
-  ])('should refuse the scheme in %s and leave the words behind', async (url) => {
+  ])('refuses the scheme in %s and leaves the words behind', async (url) => {
     const html = await convertMarkdownToHtml(`[tap here](${url})`)
     expect(html).not.toContain('href')
     expect(html).toContain('<strong>tap here</strong>')
   })
 
-  it('should emit no link for a scheme broken across a line, which is not a link to begin with', async () => {
+  it('emits no link for a scheme broken across a line, which is not a link to begin with', async () => {
     const html = await convertMarkdownToHtml('[tap here](java\nscript:alert(1))')
     expect(html).not.toContain('href')
   })
 
-  it('should refuse an unsafe image source, keeping its alt text', async () => {
+  it('refuses an unsafe image source, keeping its alt text', async () => {
     const html = await convertMarkdownToHtml('![the crux](javascript:alert(1))')
     expect(html).not.toContain('<img')
     expect(html).toContain('the crux')
   })
 
-  it('should refuse an unsafe scheme in the sync pipeline too', () => {
+  it('refuses an unsafe scheme in the sync pipeline too', () => {
     const html = convertMarkdownToHtmlSync('[tap here](javascript:alert(1))', [])
     expect(html).not.toContain('href')
     expect(html).toContain('<strong>tap here</strong>')
   })
 
-  it('should handle null input', async () => {
+  it('renders nothing for null input', async () => {
     const html = await convertMarkdownToHtml(null)
     expect(html).toBe('')
   })
 
-  it('should handle undefined input', async () => {
+  it('renders nothing for undefined input', async () => {
     const html = await convertMarkdownToHtml(undefined)
     expect(html).toBe('')
   })
 
-  it('should handle whitespace-only input', async () => {
+  it('renders nothing for whitespace-only input', async () => {
     const html = await convertMarkdownToHtml('   \n   \t   ')
     expect(html).toBe('')
   })
@@ -93,7 +93,7 @@ describe('Markdown Conversion', () => {
     expect(html).toContain('@username')
   })
 
-  it('should handle users references without db', async () => {
+  it('leaves a users reference as raw text when there is no database to resolve it', async () => {
     const markdown = '!users:123!'
     const html = await convertMarkdownToHtml(markdown)
     expect(html).toContain('!users:123!')
@@ -107,25 +107,25 @@ describe('Markdown Conversion', () => {
     expect(html).toContain('<a href="/users/123"><strong>@foo</strong></a>')
   })
 
-  it('should handle references without db', async () => {
+  it('leaves a routes reference as raw text when there is no database to resolve it', async () => {
     const markdown = '!routes:123!'
     const html = await convertMarkdownToHtml(markdown)
     expect(html).toContain('!routes:123!')
   })
 
-  it('should handle areas references', async () => {
+  it('resolves an areas reference to a link on its id', async () => {
     const markdown = '!areas:123!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
     expect(html).toContain('<a href="/areas/123"><strong>foo</strong></a>')
   })
 
-  it('should handle blocks references', async () => {
+  it('resolves a blocks reference to a link on its id', async () => {
     const markdown = '!blocks:123!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
     expect(html).toContain('<a href="/blocks/123"><strong>foo</strong></a>')
   })
 
-  it('should handle routes references', async () => {
+  it('resolves a routes reference to a link on its id', async () => {
     const markdown = '!routes:123!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
     expect(html).toContain('<a href="/routes/123"><strong>foo</strong></a>')
@@ -144,19 +144,19 @@ describe('Markdown Conversion', () => {
     expect(html).not.toContain('/routes/123')
   })
 
-  it('should handle malformed references', async () => {
+  it('leaves a reference whose id is not a number as raw text', async () => {
     const markdown = '!routes:foo!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
     expect(html).toContain('!routes:foo!')
   })
 
-  it('should handle routes references with special characters', async () => {
+  it('resolves a reference followed by a stray delimiter, keeping the delimiter', async () => {
     const markdown = '!routes:123!!'
     const html = await convertMarkdownToHtml(markdown, mockDb)
     expect(html).toContain('<a href="/routes/123"><strong>foo</strong></a>!')
   })
 
-  it('should handle throwing db', async () => {
+  it('lets a database failure surface rather than swallowing it into empty copy', async () => {
     const mockDb = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({

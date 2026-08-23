@@ -394,8 +394,7 @@ export function normalizeEmail(email: string): string {
  *
  * The lookup is deliberately not predicate-filtered, so this also puts a revoked invitation back
  * to `pending`. The screen never offers it (the list it renders is filtered), which leaves this
- * reachable only by calling it directly. Behaviour preserved from when it lived in
- * `regions.remote.ts`; change it here if it should refuse instead.
+ * reachable only by calling it directly; change this if it should refuse instead.
  */
 export async function resendInvitation(
   db: Db,
@@ -437,16 +436,11 @@ export async function resendInvitation(
     mail,
   )
 
-  // The first send may have failed, in which case nothing logged the invitation and this is the
-  // moment it reaches somebody. So: log it only when the region has no record of this address
-  // being invited, and log it under whoever actually pressed Resend.
-  //
-  // Not left to the fold in `insertEvent`, which is what this used to lean on by writing the
-  // ORIGINAL inviter's id so the values would match. Joining an open event bumps its timestamp,
-  // so every resend re-dated somebody else's card to now and floated it back to the top of the
-  // feed, still in their name - and outside the 15-minute window it would not have joined at all
-  // and would simply have logged a second invitation. A resend is not a new invitation; when the
-  // invitation is already on the record there is nothing to say.
+  // Logged only when the region has no record of this address being invited (the first send may
+  // have failed) and under whoever pressed Resend, not the original inviter: relying on
+  // insertEvent's fold by reusing the original inviter's id bumped the open event's timestamp on
+  // every resend, re-dating and resurfacing somebody else's card in their name, and outside the
+  // 15-minute join window logged a duplicate invitation instead. A resend is not a new invitation.
   if (sent && inviterFk != null) {
     const [logged] = await db
       .select({ id: events.id })

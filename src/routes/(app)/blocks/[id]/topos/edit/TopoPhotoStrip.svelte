@@ -92,7 +92,6 @@
           <Image path={topo.imagePath} alt={m.topo_alt()} class="h-full w-full" fit="cover" previewWidth={256} />
         </button>
 
-        <!-- Photo number, bottom-left. -->
         <span
           class="bg-surface-950/55 pointer-events-none absolute bottom-1 left-1 rounded px-1 text-[0.65rem] font-bold text-white tabular-nums"
         >
@@ -148,8 +147,7 @@
         {/if}
       </div>
 
-      <!-- Drag handle below the current thumb (keeps the thumbnail itself uncluttered).
-           touch-none so a drag reorders; the thumb body keeps touch-pan-x to scroll/tap. -->
+      <!-- Drag handle below the current thumb (keeps the thumbnail itself uncluttered). -->
       {#if topo.id === currentTopoId}
         <button
           type="button"

@@ -23,13 +23,9 @@
   interface Props extends HTMLAttributes<HTMLDivElement> {
     /**
      * Chat shape rather than document shape: one line that grows, and a toolbar that stays out
-     * of the way until the box has focus.
-     *
-     * A comment is a sentence. The full editor is a 8rem box under a permanent toolbar taller
-     * than most of what gets written in it, which is why the thread used to be a plain
-     * `<textarea>` and had no references or mentions at all. This is the same editor with its
-     * furniture folded away, so a comment can name a route and a person like every other body of
-     * text in the app.
+     * of the way until the box has focus. The full editor is a permanent toolbar taller than most
+     * comments, so this is the same editor with its furniture folded away, letting a comment name
+     * a route or person like any other text in the app.
      */
     compact?: boolean
     /** Swallowed: `field.as('text')` ships it, but we seed from `value`. */

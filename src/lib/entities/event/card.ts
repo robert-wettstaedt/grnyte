@@ -111,36 +111,25 @@ export interface EventReactionBar {
 /**
  * A card, built from events.
  *
- * Deliberately an adapter over `cardView` rather than a second implementation. That function
- * is 450 lines of decisions nobody wants made twice (which name a headline puts in its slot, when
- * a climber is named, how a removal picks its media word, what a merged create-plus-media card
- * says), and the case wall pins them with 250 cards. Reimplementing it against
- * the new shape would mean reproducing all of that from scratch and re-deriving the tests, with
+ * Deliberately an adapter over `cardView` rather than a second implementation: that function is
+ * 450 lines of decisions nobody wants made twice, pinned by a 250-case wall. Reimplementing it
+ * against the new shape would reproduce all of that from scratch and re-derive the tests, with
  * every difference showing up as a wrong sentence on a card rather than as a failure.
  *
  * What events actually change is the INPUT, not the reasoning: an event knows its own entity, so
- * the hydration map that used to arrive separately is built here from what the rows already
- * carried. Everything downstream is unchanged, which is the point.
+ * the hydration map is built here from what the rows already carried. Everything downstream is
+ * unchanged, which is the point. `line.ts` expands an event into the lines a card speaks, and this
+ * hands them to the decider.
  *
- * The catalogue is keyed on the verb now and the adapter is gone: `line.ts` expands an event into
- * the lines a card speaks, and this hands them to the decider.
+ * ON RETIRING THIS SEAM (reviews keep proposing it, reasonably): change `cardView`'s input type to
+ * the event group directly, move its decisions across wholesale, and lean on the 250-case wall to
+ * prove nothing moved. That would delete `toCardGroup`, `entityMap` and `eventKey`.
  *
- * ON RETIRING THIS SEAM, which reviews keep proposing and which is a fair thing to propose. The
- * narrow version of the suggestion is not the strawman above: rather than reimplementing
- * `cardView`, change ITS input type to the event group, move the decisions across wholesale, and
- * lean on the 250-case wall to prove nothing moved. That is a reasonable plan and it would delete
- * `toCardGroup`, `entityMap` and `eventKey`, plus one of the two places that ask the same
- * object-then-parent question.
- *
- * Not done, and the reason is about WHEN rather than whether. The case wall proves the sentences
- * are unchanged; it does not prove the reaction bars still land on the right events, which is the
- * half this file owns and the half that has already produced real bugs (a bar hanging off the
- * wrong event, a chip going invisible when a window regrouped). Moving both halves at once means
- * the only check that covers the risky half is the one being rewritten. The sequence that works is
- * the opposite: land the feature, let the bar placement settle under real use, then move the seam
- * with the wall as a fixed point.
- *
- * So: worth doing, not worth doing in the same change as the feature it would be carrying.
+ * Worth doing, but not yet: the case wall proves the sentences are unchanged, not that reaction
+ * bars still land on the right events, which is this file's half and has already produced real
+ * bugs (a bar on the wrong event, a chip going invisible when a window regrouped). Land the
+ * feature, let bar placement settle under real use, then move the seam with the wall as a fixed
+ * point.
  */
 export function eventCard(
   group: EventGroup,
@@ -286,12 +275,10 @@ function claim(
 }
 
 /**
- * What the hydration pass used to fetch, assembled from what the rows already carried.
- *
- * Keyed the way `eventEntityKey` keys it, because that is what the card looks rows up by. An
- * event whose object contributes no entity (a file with no parent) is left absent rather than
- * stored as `null`: absent used to mean "still syncing", and nothing syncs any more, so the card's
- * two remaining states collapse onto the one it can still render.
+ * Assembled from what the rows already carried, keyed the way `eventEntityKey` keys it, since
+ * that is what the card looks rows up by. An event whose object contributes no entity (a file
+ * with no parent) is left absent rather than stored as `null`: nothing here still syncs, so the
+ * card only needs to distinguish "known" from "gone", not a third pending state.
  */
 function entityMap(group: EventGroup): EventEntityMap {
   const entities = new Map<string, EventEntity | null>()
@@ -301,14 +288,14 @@ function entityMap(group: EventGroup): EventEntityMap {
       entities.set(eventKey({ id: event.objectId, type: event.objectType }), event.entity)
     }
 
-    // The parent too, whether or not the object itself resolved. "Made 12 edits in Nordblock"
-    // names the block, and none of those twelve events is about it; the old pass fetched parents
-    // for exactly this reason. An upload's entity IS its parent's (the mapper borrows it), so a
-    // file stores it under both keys, which is what lets the headline find it whichever way it
-    // looks.
+    // The parent too, whether or not the object itself resolved: "Made 12 edits in Nordblock"
+    // names the block, and none of those twelve events is about it. An upload's entity IS its
+    // parent's (the mapper borrows it), so a file stores it under both keys, letting the headline
+    // find it whichever way it looks.
     //
-    // Skipping the whole event when its object was gone threw the parent away with it: a burst
-    // over two deleted routes had a block name in hand and headlined one of the routes instead.
+    // Skipping the whole event when its object is gone would throw the parent away too: a burst
+    // over two deleted routes would have a block name in hand and headline one of the routes
+    // instead.
     //
     // Never over an entry already there: an event ABOUT the parent carries the full entity, and
     // `parentEntity` is only the name and the link.

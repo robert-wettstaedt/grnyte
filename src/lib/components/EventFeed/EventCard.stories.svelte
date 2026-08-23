@@ -172,9 +172,9 @@
 
 <Story name="Role change" args={{ view: mine(roleGrant) }} />
 
-<!-- Nothing syncs late any more: an entity arrives with its event, so the old skeleton card is
-     now the card whose object resolves to nothing at all. An orphaned upload: the placeholder in
-     the headline, no thumbnail, and the bar falling to the footer for want of a row. -->
+<!-- An entity arrives with its event, so this is the card whose object resolves to nothing at
+     all. An orphaned upload: the placeholder in the headline, no thumbnail, and the bar falling
+     to the footer for want of a row. -->
 <Story name="Not yet synced" args={{ view: mine(unresolved) }} />
 
 <!-- Nobody signed in (the share/logged-out case): every card speaks in the third person, and

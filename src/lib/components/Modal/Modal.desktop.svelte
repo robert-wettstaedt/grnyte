@@ -28,13 +28,11 @@
 </script>
 
 {#if panel}
-  <!-- Opt-in fixed panel: a non-modal dialog positioned via panelClass/contentClass
-       (e.g. under the search bar, or beside the routes sheet) instead of anchoring
-       to the trigger. Close via the X, Escape, or re-tapping the trigger.
-
-       A panel never touches the trigger, so Modal.svelte renders it: this file is fetched
-       lazily, and a trigger in here would not exist until its chunk landed. The popover
-       branch below is the exception, because Zag hands that button its own props. -->
+  <!-- Opt-in fixed panel: positioned via panelClass/contentClass instead of anchoring to the
+       trigger (e.g. under the search bar, or beside the routes sheet). Closes via the X, Escape,
+       or re-tapping the trigger. Modal.svelte renders the trigger, not this file, because this
+       component loads lazily and the trigger wouldn't exist until its chunk landed; the popover
+       branch below is the exception, since Zag hands that button its own props. -->
 
   <!-- backdrop opts this panel into modal behaviour: a blurred scrim, tap-outside
        to close and a focus trap. Without it the panel stays non-modal (e.g. the
@@ -98,11 +96,10 @@
              whole popover. z-60 clears the map's area dialog (z-50) instead of hiding behind it. -->
         <!-- Full border + drop shadow so the popover reads as a floating layer instead of
              blending into the page (both share the same surface background). -->
-        <!-- Same column as the panel branch above: a capped card whose middle scrolls, so a long
-             list (a region's members, say) does not grow the popover off the screen. The cap is
-             what Zag measured between the trigger and the viewport edge, so the popover never
-             overflows whichever side it flipped to. No `overflow-hidden` on the card itself here,
-             unlike the panel: it would clip the arrow. -->
+        <!-- Same column as the panel branch: a capped card whose middle scrolls so a long list
+             (a region's members, say) doesn't grow the popover off the screen. The cap is what
+             Zag measured between the trigger and the viewport edge. Unlike the panel, no
+             `overflow-hidden` here, or it would clip the arrow. -->
         <Popover.Content
           class={[
             'card bg-surface-50-950 border-surface-200-800 z-60 flex flex-col border shadow-2xl',

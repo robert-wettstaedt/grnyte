@@ -21,13 +21,10 @@ export interface EventObject {
 type Db = PostgresJsDatabase<typeof schema>
 
 /**
- * How long a call has to continue an event before it opens a new one.
- *
- * The same 15 minutes the grace-window delete uses, and for the same reason: inside it, a person
- * is still finishing one action rather than starting another.
- *
- * A fixed span rather than a calendar one, so plain millisecond subtraction is exact: no month
- * length and no DST shift can change what "15 minutes ago" means.
+ * How long a call has to continue an event before it opens a new one. The same 15 minutes the
+ * grace-window delete uses: inside it, a person is still finishing one action, not starting
+ * another. A fixed span, not a calendar one, so millisecond subtraction stays exact across month
+ * and DST boundaries.
  */
 const FOLD_WINDOW_MS = 15 * 60 * 1000
 
@@ -55,19 +52,13 @@ export interface EventFilter {
 /**
  * Whether a column actually moved.
  *
- * Surrounding whitespace does not count. Opening a description in the markdown editor and saving
- * it untouched reserialises it with a trailing newline, which is not an edit anybody made and
- * which logged a card whose two sides looked identical. A SQL NULL and a form's '' are likewise
- * the same state, "not set"; stringifying null to "null" logged a card reading "Not set" on both
- * sides of a v1 row somebody merely opened.
+ * Only the ends are trimmed: a description resaved untouched reserialises with a trailing
+ * newline that is not a real edit, and a SQL NULL vs. a form's '' are both "not set". Whitespace
+ * INSIDE the value stays exact, since two trailing spaces are a markdown hard break and
+ * collapsing them would drop a real change.
  *
- * Only the ends are trimmed. Whitespace INSIDE the value is left alone on purpose: in markdown two
- * spaces at the end of a line are a hard break, so collapsing runs would drop a real change. The
- * stored values keep their exact bytes either way; this decides only whether there was a change to
- * record.
- *
- * `writeChanges` reads the stored rows back and applies this in JS rather than in SQL, because
- * Postgres `btrim` strips spaces only and so disagreed with it on exactly the newline case above.
+ * Applied in JS rather than SQL: Postgres `btrim` strips spaces only and disagrees on the
+ * trailing-newline case above, which is why `writeChanges` reads the stored rows back for it.
  */
 export function changed(before: unknown, after: unknown): boolean {
   const normalise = (value: unknown) => (value == null ? '' : String(value).trim())
@@ -77,9 +68,8 @@ export function changed(before: unknown, after: unknown): boolean {
 /**
  * Diff an entity, open or continue its event, and record what moved.
  *
- * Replaces the activities log's write path. What is gone from the signature:
- * `parentEntityType`/`parentEntityId`, because a parent is reachable through the object's own
- * foreign key, and `entityType`/`entityId` as a polymorphic pair, because the object is typed.
+ * No `parentEntityType`/`parentEntityId`: a parent is reachable through the object's own foreign
+ * key. No `entityType`/`entityId` as a polymorphic pair either, because the object is typed.
  */
 export async function createUpdateEvent(
   db: Db,
@@ -119,14 +109,12 @@ export async function createUpdateEvent(
  * A refinement: an `update` joins an open `create`, `add` or `update`, so a burst of edits merges
  * into the action it refines. That is what makes "Anna added Traumtanz" absorb its own corrections,
  * and it is also what keeps pasting a source link onto a clip you just uploaded from rendering a
- * second card beside it. The old feed suppressed that pair at read time, in thirty lines of
- * grouping that had to recognise the shape after the fact; refining the `add` it belongs to is the
- * same rule the fold already applies everywhere else.
+ * second card beside it.
  *
- * A repeat: the same verb joins its own kind, which is the identity collapse the activities log's
- * insert path used to do. The fold key is already every column a caller sets, so a second call
- * landing on it is a byte-identical row. Three photos removed from one route in one sitting is one
- * card, not three indistinguishable ones, and inviting the same address twice does not stack up two.
+ * A repeat: the same verb joins its own kind. The fold key is already every column a caller sets,
+ * so a second call landing on it is a byte-identical row. Three photos removed from one route in
+ * one sitting is one card, not three indistinguishable ones, and inviting the same address twice
+ * does not stack up two.
  *
  * What neither admits is a DIFFERENT verb joining. Without that a `delete` five minutes after an
  * `update` on the same object joins it, keeps the verb `update`, and the deletion is never
@@ -178,8 +166,8 @@ export async function canHardDelete(
 /**
  * Erase the events a mutation logged, so an undo leaves the log as if nothing had happened.
  *
- * Replaces the activities log's delete path for the same six undo paths. Change rows go with the
- * event through `changes.event_fk on delete cascade`, so a filter that names the event is enough.
+ * Change rows go with the event through `changes.event_fk on delete cascade`, so a filter that
+ * names the event is enough.
  *
  * ponytail: deletes every event matching the filter; a same-object collision is possible but
  * negligible right after the action being undone. Upgrade = pass the event id back through the
@@ -213,9 +201,8 @@ export async function deleteEvent(db: Db, filter: EventFilter): Promise<void> {
  * event on the same object joins it and bumps its timestamp so it returns to the top of the feed,
  * exactly as the per-column fold does today.
  *
- * Replaces the activities log's insert path, repeat-collapse included: see {@link joins}. Joining
- * is a better collapse than the delete-then-reinsert it used to do, because it keeps the event's
- * id stable, so a reaction attached to it survives the author saving again.
+ * Joining (see {@link joins}) keeps the event's id stable, so a reaction attached to it survives
+ * the author saving again.
  */
 export async function insertEvent(db: Db, input: EventInput): Promise<schema.Event> {
   const open = await openEvent(db, input)
@@ -290,12 +277,11 @@ export function withinGraceWindow(createdAt: Date | number): boolean {
 /**
  * Record what changed under an event, merging with anything the same call already wrote.
  *
- * Three behaviours, all of which the activities log's write path used to have at the row level
- * and which move here unchanged:
+ * Three behaviours:
  *
  * 1. **Column merge.** A to B then B to C inside the window is one row, A to C. The intermediate
- *    was never a state the crag was left in. `ON CONFLICT` does it in one statement, where the old
- *    code read then wrote and could race a double submit into two contradictory rows.
+ *    was never a state the crag was left in. `ON CONFLICT` does it in one statement; reading then
+ *    writing separately could race a double submit into two contradictory rows.
  * 2. **Undo.** An edit that ends where it started deletes its row.
  * 3. **Empty update.** An `update` event left holding no changes deletes itself.
  *
@@ -328,12 +314,8 @@ export async function writeChanges(db: Db, event: schema.Event, changes: readonl
   }
 
   // Undo, checked against the STORED start rather than this call's, so A to B then B to A across
-  // two saves is caught as well as within one.
-  //
-  // Read back and judge in JS rather than in SQL. Postgres `btrim` strips spaces only, so it
-  // disagreed with `changed()` on exactly the case the rule exists for: a description that
-  // reserialises with a trailing newline is an undo to `changed()` and a real edit to `btrim`,
-  // which is how "description changed from text to text" got onto a card.
+  // two saves is caught as well as within one. Read back and judge with `changed()` in JS, not
+  // SQL (see {@link changed} for why).
   const stored = await db.select().from(schema.changes).where(eq(schema.changes.eventFk, event.id))
   const undone = stored.filter((row) => !changed(row.oldValue, row.newValue))
 
@@ -388,13 +370,12 @@ function objectMatches(object: EventObject) {
  * The event this call belongs to: the one it continues, or a new one.
  *
  * The fold key is `(actor, object, region, metadata)` and deliberately NOT the verb. A save five
- * minutes after your own `create` joins the create, which is what today's created-suppression does
- * except that it kept nothing; here the refinements survive as change rows under "Anna added
- * Traumtanz". Two people editing the same route in the same minute still get an event each,
- * because the actor is in the key.
+ * minutes after your own `create` joins the create, so the refinements survive as change rows
+ * under "Anna added Traumtanz". Two people editing the same route in the same minute still get an
+ * event each, because the actor is in the key.
  *
- * `metadata` scopes it for the same reason it scopes the old fold: it holds what a change is ABOUT
- * rather than what it changed, so two photos on one block are two events rather than one.
+ * `metadata` scopes it because it holds what a change is ABOUT rather than what it changed, so two
+ * photos on one block are two events rather than one.
  */
 async function openEvent(db: Db, input: EventInput): Promise<schema.Event | undefined> {
   const [open] = await db

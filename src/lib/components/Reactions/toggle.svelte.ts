@@ -10,15 +10,13 @@ export interface ReactionTarget {
 /**
  * Send, change or clear one emoji on one target, one at a time.
  *
- * The guard is per TARGET rather than per emoji, and that is the whole reason this is a module rather
+ * The guard is per TARGET rather than per emoji, which is the whole reason this is a module rather
  * than eight lines in each bar: `reactions_one_emoji_idx` allows one row per person per target, so
- * two emoji tapped in quick succession are two handlers racing over one slot. Both would find
- * nothing to clear, both would insert, and the second would hit the unique index. Per emoji, that
- * race is exactly what the guard let through.
+ * two emoji tapped in quick succession are two handlers racing over one slot, and a per-emoji guard
+ * would let that race through (both find nothing to clear, both insert, the second hits the index).
  *
- * The failure is swallowed, and the reason it can be: nothing changed. A chip is drawn from synced
- * rows, so a refused toggle leaves the bar exactly as the reader found it rather than showing
- * something that did not happen. Rethrowing would only reach `window.onerror`.
+ * The failure is swallowed because nothing changed: a chip is drawn from synced rows, so a refused
+ * toggle leaves the bar exactly as the reader found it. Rethrowing would only reach `window.onerror`.
  */
 export function createReactionToggle(target: () => ReactionTarget) {
   let busy = $state(false)

@@ -9,9 +9,16 @@ describe('roleLabel', () => {
     expect(roleLabel('region_user')).toBe('User')
   })
 
-  it('has a label for every role in the enum, so a new one cannot render blank', () => {
+  it('gives every role in the enum its exact label, app_admin included', () => {
+    const LABELS: Record<(typeof appRole.enumValues)[number], string> = {
+      app_admin: 'Admin',
+      region_admin: 'Admin',
+      region_maintainer: 'Maintainer',
+      region_user: 'User',
+    }
+
     for (const role of appRole.enumValues) {
-      expect(roleLabel(role), role).toBeTruthy()
+      expect(roleLabel(role), role).toBe(LABELS[role])
     }
   })
 })

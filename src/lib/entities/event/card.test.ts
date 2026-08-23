@@ -45,9 +45,9 @@ describe('eventCard', () => {
   })
 
   it('reports a row with no entity as gone, because nothing syncs after the fact', () => {
-    const view = card([event({ entity: undefined, objectId: 'f1', objectType: 'file', verb: 'add' })])
+    const view = card([event({ entity: undefined, objectId: 1, objectType: 'route', verb: 'delete' })])
 
-    expect(view.rows.every((row) => row.state === 'tombstone')).toBe(true)
+    expect(view.rows.map((row) => row.state)).toEqual(['tombstone'])
   })
 
   it('says a missing name is missing for good rather than pulsing', () => {

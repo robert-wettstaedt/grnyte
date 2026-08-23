@@ -17,7 +17,6 @@ const detailedAscents = (ctx: Parameters<typeof relatedRegion>[0]) => {
 }
 
 export const ascentsQueryDefs = {
-  // One ascent with its media, for the edit-ascent form.
   ascent: defineQuery(
     z.object({ ascentId: z.number() }),
     regionMemberCan(({ args, ctx }) => {

@@ -44,9 +44,9 @@ let otherRegionId = 0
  * No `metadata`, which is the discriminator: a revoked invitation writes the same verb about the
  * same subject with the address in it, and must not read as a removal to restore.
  */
-const logRemoval = (regionFk: number, userFk: number) => sql`
-  insert into public.events (verb, subject_fk, region_fk, actor_fk)
-  values ('remove', ${userFk}, ${regionFk}, ${users.admin.userId})`
+const logRemoval = (regionFk: number, userFk: number, metadata: null | string = null) => sql`
+  insert into public.events (verb, subject_fk, region_fk, actor_fk, metadata)
+  values ('remove', ${userFk}, ${regionFk}, ${users.admin.userId}, ${metadata})`
 
 async function removeFixtures() {
   const names = [REGION, OTHER_REGION]
@@ -107,12 +107,12 @@ describe.skipIf(!reachable)('assertMemberChangeAllowed', () => {
     })
 
   it('refuses to demote the last admin', async () => {
-    await expect(change('admin', 'admin', 'region_user')).rejects.toThrow()
+    await expect(change('second', 'admin', 'region_user')).rejects.toMatchObject({ status: 409 })
   })
 
   it('refuses to remove the last admin', async () => {
     // Same rule, and the one that matters more: removal is the path with an Undo behind it.
-    await expect(change('second', 'admin', null)).rejects.toThrow()
+    await expect(change('second', 'admin', null)).rejects.toMatchObject({ status: 409 })
   })
 
   it('lets one of two admins be demoted or removed', async () => {
@@ -167,6 +167,12 @@ describe.skipIf(!reachable)('resolveRestore', () => {
 
   it('refuses a removal logged against a different region', async () => {
     await logRemoval(otherRegionId, users.outsider.userId)
+    await expect(resolveRestore(db, regionId, users.outsider.userId)).rejects.toThrow()
+  })
+
+  it('refuses a revoked invitation wearing the same verb, which is what metadata is for', async () => {
+    await logRemoval(regionId, users.outsider.userId, 'outsider@grnyte.rocks')
+
     await expect(resolveRestore(db, regionId, users.outsider.userId)).rejects.toThrow()
   })
 

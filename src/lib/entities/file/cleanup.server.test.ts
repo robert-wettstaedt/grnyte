@@ -155,9 +155,17 @@ describe.skipIf(!reachable)('deleteFileRows', () => {
       deleteFileRows(tx, [{ bunnyStreamFk: null, id: imageFileId, path: IMAGE_PATH }]),
     )
 
-    expect(targets).toEqual([{ images: imageStoragePaths(IMAGE_PATH) }])
-    // The derivatives and the HEIC original are unwound too, not just the served path.
-    expect(targets).toEqual([expect.objectContaining({ images: expect.arrayContaining([IMAGE_PATH]) })])
+    expect(targets).toEqual([
+      {
+        images: [
+          '/user-content/cleanup-test.jpg',
+          '/user-content/cleanup-test.256.webp',
+          '/user-content/cleanup-test.1024.webp',
+          '/user-content/cleanup-test.orig.heic',
+          '/user-content/cleanup-test.orig.heif',
+        ],
+      },
+    ])
   })
 
   it('deletes the stream row with the video, so no hosted clip is orphaned', async () => {

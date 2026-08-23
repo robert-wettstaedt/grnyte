@@ -16,7 +16,7 @@
  */
 import { createThrowawayUser, dropThrowawayUser, reachable, seedUsers, sql, type SeedUser } from '$lib/db/testDb'
 import { asRequest } from '$lib/remote/testHarness'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createTopo, replaceTopoImage } from './topos.remote'
 
 const REGION = '__topos_remote__'
@@ -27,7 +27,6 @@ let regionId = 0
 let blockId = 0
 let ownFileId = ''
 let victimFileId = ''
-let topoId = 0
 
 beforeAll(async () => {
   if (!reachable) return
@@ -90,6 +89,19 @@ afterAll(async () => {
   await sql.end()
 })
 
+/**
+ * A topo on the block's own image, built through the handler, for the test that is about to use it.
+ *
+ * Per test rather than leaned on from the create case: `topoId` used to be a module variable that
+ * the first test assigned and the three below it read, so each of those only passed while vitest
+ * ran them in declaration order. `vitest --sequence.shuffle` failed all three, against an id of 0
+ * that no row has, and the message ("expected 404 to be 409") said nothing about the real cause.
+ */
+async function freshTopo(): Promise<number> {
+  const result = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId }))
+  return result!.data!.id
+}
+
 /** The status of a refusal, or undefined when the call went through. */
 async function statusOf(run: () => Promise<unknown>): Promise<number | undefined> {
   try {
@@ -101,11 +113,17 @@ async function statusOf(run: () => Promise<unknown>): Promise<number | undefined
 }
 
 describe.skipIf(!reachable)('topo images', () => {
+  // Each case starts from no topos at all, so none of them inherits what another one built.
+  beforeEach(async () => {
+    if (!reachable) return
+    await sql`delete from public.topo_routes where region_fk = ${regionId}`
+    await sql`delete from public.topos where region_fk = ${regionId}`
+  })
+
   it('creates a topo from the block s own image', async () => {
     const result = await asRequest(maintainer.authId, () => createTopo({ blockId, fileId: ownFileId }))
 
     expect(result?.data?.fileFk).toBe(ownFileId)
-    topoId = result!.data!.id
   })
 
   it('refuses to create a topo pointing at a file that is not the block s', async () => {
@@ -120,6 +138,8 @@ describe.skipIf(!reachable)('topo images', () => {
   })
 
   it('refuses to swap a topo onto a file that is not its block s', async () => {
+    const topoId = await freshTopo()
+
     // The shorter route to the same end: point the topo at the victim's file, then delete the topo
     // and its bytes go with it.
     const status = await statusOf(() =>
@@ -137,6 +157,8 @@ describe.skipIf(!reachable)('topo images', () => {
   })
 
   it('refuses to swap a topo onto an image another topo on the same block already holds', async () => {
+    const topoId = await freshTopo()
+
     // Same block, so the block test passes and the old guard let this through. What follows the
     // swap is a hard delete of the image being let go of, which leaves two topos on one `files` row
     // and the next delete raising 23503 against a NO ACTION foreign key.
@@ -162,6 +184,8 @@ describe.skipIf(!reachable)('topo images', () => {
   })
 
   it('leaves a topo alone when the swap names the image it already has', async () => {
+    const topoId = await freshTopo()
+
     // The degenerate call: the update is a no-op against the same id, and the delete that used to
     // follow it destroyed the image the topo still points at.
     const result = await asRequest(maintainer.authId, () => replaceTopoImage({ fileId: ownFileId, topoId }))

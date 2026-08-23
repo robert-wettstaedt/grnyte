@@ -1,9 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
 
-  // Nearly every story used to wrap its component in a fixed-width div, because a row or a card
-  // sized by its container tells you nothing at full canvas width. That wrapper is the same
-  // markup 10 times over, so it lives here and the story says `parameters: { width: 360 }`.
+  // A row or a card sized by its container tells you nothing at full canvas width, so a story
+  // that needs a fixed width says `parameters: { width: 360 }` instead of duplicating the wrapper.
   const { children, width }: { children: Snippet; width?: null | number } = $props()
 </script>
 
