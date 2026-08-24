@@ -16,7 +16,7 @@ FROM (
 WHERE s."user_fk" = p."user_fk" AND s."contact_locale" IS NULL;--> statement-breakpoint
 ALTER TABLE "push_subscriptions" DROP COLUMN "lang";--> statement-breakpoint
 -- The three settings below are renames, not removals: notify_new_ascents is notify_ascents,
--- notify_moderations is notify_crag_edits, notify_new_users is notify_community. Carry the stored
+-- notify_moderations is notify_guidebook_edits, notify_new_users is notify_community. Carry the stored
 -- choice across before dropping the old columns, or everyone who muted a channel in 1.0 comes back
 -- to 2.0 with it switched on again, since the new columns default true.
 --
@@ -28,7 +28,7 @@ ALTER TABLE "push_subscriptions" DROP COLUMN "lang";--> statement-breakpoint
 -- and keeps its default either way.
 UPDATE "user_settings" SET
   "notify_ascents" = "notify_new_ascents",
-  "notify_crag_edits" = "notify_moderations",
+  "notify_guidebook_edits" = "notify_moderations",
   "notify_community" = "notify_new_users"
 WHERE "notify_new_ascents" OR "notify_moderations" OR "notify_new_users"
   OR EXISTS (SELECT 1 FROM "push_subscriptions" p WHERE p."user_fk" = "user_settings"."user_fk");--> statement-breakpoint

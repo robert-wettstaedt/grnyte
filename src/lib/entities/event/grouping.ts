@@ -37,7 +37,7 @@ export type EventGroupKind = 'burst' | 'entity' | 'removal' | 'session' | 'singl
 /** How far apart two events can be and still share a burst or entity card. */
 const BURST_MS = 30 * 60 * 1000
 
-const CRAG_OBJECT_TYPES = new Set(['area', 'block', 'route'])
+const BURST_OBJECT_TYPES = new Set(['area', 'block', 'route'])
 
 /**
  * Fold a newest-first event list into feed cards. Session beats burst beats entity, first match
@@ -240,7 +240,7 @@ function kindOf(event: EventListItem): EventGroupKind {
     return isAscentEvent({ ascent: true, verb: event.verb }) ? 'session' : 'entity'
   }
 
-  return CRAG_OBJECT_TYPES.has(event.objectType) ? 'burst' : 'entity'
+  return BURST_OBJECT_TYPES.has(event.objectType) ? 'burst' : 'entity'
 }
 
 /** The closest thing to "same place" an event carries: its parent, or itself. */

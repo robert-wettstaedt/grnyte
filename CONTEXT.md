@@ -20,6 +20,22 @@ blocks. A crag _is_ an area, not a separate entity, so "crag" in the UI is corre
 must not be flattened to "area". Parking needs a real crag; blocks also accept a
 still-untyped area.
 
+One entity, never a collection. "Crag" must not be stretched to mean the whole body of
+rock data — that is the **guidebook**, below. `notify_crag_edits` and `CRAG_OBJECT_TYPES`
+both did exactly that, for two different sets, and were renamed.
+
+**guidebook**
+The corpus describing the rock: areas, blocks, routes, topos and photos. What a printed
+guidebook would contain, which is why the app calls itself "a private guidebook and
+logbook" — the guidebook is the crag, the logbook is your ascents. Not a synonym for
+either `crag` (one area) or the offline `field` policy (which also carries your logbook
+and your regions' members).
+
+The word is deliberately English-only as a domain term: it names identifiers and concepts,
+not translations. German has no crisp one-word equivalent — "Guide" reads as a person and
+"Kletterführer" is a mouthful — so per-locale copy describes the thing instead of
+translating the noun. Copy is not settled yet; do not derive UI wording from this entry.
+
 **block**
 The entity. In prose the physical rock is a "boulder", which is correct English and used
 deliberately in landing copy. Never call the record a boulder.

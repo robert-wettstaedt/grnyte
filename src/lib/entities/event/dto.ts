@@ -32,9 +32,9 @@ export type EventCategory = 'ascent' | 'update'
  *
  * Two neighbours it is NOT, and both have been merged with it by mistake:
  *
- * - `CRAG_OBJECT_TYPES` in `grouping.ts` asks which objects share a burst card, where a file
+ * - `BURST_OBJECT_TYPES` in `grouping.ts` asks which objects share a burst card, where a file
  *   groups by the thing it landed on rather than by itself, so `file` is absent there.
- * - the `notifyCragEdits` setting, which users read as "Crag edits", is broader in both
+ * - the `notifyGuidebookEdits` setting, which users read as "Crag edits", is broader in both
  *   directions: every verb, and everything that is not an ascent or a person. Its own hint says
  *   "New areas, blocks, routes, topos and photos", which is the `create` traffic this set exists
  *   to keep OUT of the compact tier.

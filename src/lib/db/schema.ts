@@ -217,12 +217,12 @@ export const userSettings = table(
     /** Push when somebody comments on a card you are part of: yours, or one you commented on. */
     notifyComments: boolean('notify_comments').notNull().default(true),
     notifyCommunity: boolean('notify_community').notNull().default(true),
-    /** Named for what it always governed: 1.0's `notify_moderations` fell through to 'moderate'
-     *  for anything that was not an ascent or a user, so the flag covered every crag edit. */
-    notifyCragEdits: boolean('notify_crag_edits').notNull().default(true),
-
     /** Push for the things aimed at you personally: mentions, your ascent, your role. */
     notifyDirected: boolean('notify_directed').notNull().default(true),
+
+    /** Named for what it always governed: 1.0's `notify_moderations` fell through to 'moderate'
+     *  for anything that was not an ascent or a user, so the flag covered every crag edit. */
+    notifyGuidebookEdits: boolean('notify_guidebook_edits').notNull().default(true),
     /** Push when somebody reacts to something you logged or edited. */
     notifyReactions: boolean('notify_reactions').notNull().default(true),
     /**
