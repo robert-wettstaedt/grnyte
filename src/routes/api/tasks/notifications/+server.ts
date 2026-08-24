@@ -111,7 +111,7 @@ async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> 
 /** Which switch governs an event: everything that is not an ascent or a person is a crag edit. */
 function categoryEnabled(
   event: Pick<DigestEvent, 'ascentFk' | 'subjectFk' | 'verb'>,
-  settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyCragEdits: boolean | null },
+  settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyGuidebookEdits: boolean | null },
 ): boolean {
   if (isAscentEvent({ ascent: event.ascentFk != null, verb: event.verb })) {
     return settings.notifyAscents !== false
@@ -121,7 +121,7 @@ function categoryEnabled(
     return settings.notifyCommunity !== false
   }
 
-  return settings.notifyCragEdits !== false
+  return settings.notifyGuidebookEdits !== false
 }
 
 /**
@@ -225,7 +225,7 @@ async function sendDigests(nowMs: number): Promise<number> {
       contactLocale: userSettings.contactLocale,
       notifyAscents: userSettings.notifyAscents,
       notifyCommunity: userSettings.notifyCommunity,
-      notifyCragEdits: userSettings.notifyCragEdits,
+      notifyGuidebookEdits: userSettings.notifyGuidebookEdits,
       pushedUpTo: userSettings.pushedUpToEventAt,
       seenUpTo: userSettings.seenUpToEventAt,
       userFk: pushSubscriptions.userFk,

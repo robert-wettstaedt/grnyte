@@ -40,8 +40,8 @@ export function toUserSettings(row: UserSettingsRow): undefined | UserSettings {
     notifyAscents: row.notifyAscents ?? true,
     notifyComments: row.notifyComments ?? true,
     notifyCommunity: row.notifyCommunity ?? true,
-    notifyCragEdits: row.notifyCragEdits ?? true,
     notifyDirected: row.notifyDirected ?? true,
+    notifyGuidebookEdits: row.notifyGuidebookEdits ?? true,
     notifyReactions: row.notifyReactions ?? true,
     unitSystem: row.unitSystem ?? null,
   }

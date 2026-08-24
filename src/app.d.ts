@@ -45,8 +45,8 @@ declare global {
                   gradingScale: true
                   notifyAscents: true
                   notifyCommunity: true
-                  notifyCragEdits: true
                   notifyDirected: true
+                  notifyGuidebookEdits: true
                   unitSystem: true
                 }
               }

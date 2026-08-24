@@ -4990,8 +4990,8 @@
           "notNull": true,
           "default": true
         },
-        "notify_crag_edits": {
-          "name": "notify_crag_edits",
+        "notify_guidebook_edits": {
+          "name": "notify_guidebook_edits",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

@@ -33,8 +33,8 @@ export interface UserSettings {
   notifyAscents?: boolean
   notifyComments?: boolean
   notifyCommunity?: boolean
-  notifyCragEdits?: boolean
   notifyDirected?: boolean
+  notifyGuidebookEdits?: boolean
   notifyReactions?: boolean
   /** Explicit metric/imperial override; null follows the runtime locale. */
   unitSystem: null | UnitSystem

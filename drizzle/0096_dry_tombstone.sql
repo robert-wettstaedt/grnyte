@@ -1,7 +1,7 @@
 ALTER TABLE "notifications" ADD COLUMN "pushed_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "push_subscriptions" ADD COLUMN "created_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
 ALTER TABLE "user_settings" ADD COLUMN "notify_ascents" boolean DEFAULT true NOT NULL;--> statement-breakpoint
-ALTER TABLE "user_settings" ADD COLUMN "notify_crag_edits" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_settings" ADD COLUMN "notify_guidebook_edits" boolean DEFAULT true NOT NULL;--> statement-breakpoint
 ALTER TABLE "user_settings" ADD COLUMN "notify_community" boolean DEFAULT true NOT NULL;--> statement-breakpoint
 ALTER TABLE "user_settings" ADD COLUMN "notify_directed" boolean DEFAULT true NOT NULL;--> statement-breakpoint
 CREATE INDEX "notifications_pushed_at_idx" ON "notifications" USING btree ("pushed_at") WHERE pushed_at is null;--> statement-breakpoint

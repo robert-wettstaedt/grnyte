@@ -9,7 +9,10 @@ import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
  * absence as a fact:
  * - `reference` is the five small always-preloaded queries (grades, the signed-in user, roles,
  *   permissions, memberships). Fast, and enough to render the shell.
- * - `guidebook` is the field preloads: thousands of routes and their trees. Slow.
+ * - `guidebook` is the crag itself: areas, blocks, routes and their trees, thousands of rows. Slow.
+ *   Note this is narrower than the whole `field` policy, which also carries your own logbook and
+ *   your regions' members. Those are small, they sit behind a user-id lookup that can fail on its
+ *   own, and coupling the stamp to that lookup would make it claim less than it means.
  *
  * A device that finished the first and lost the connection partway through the second is the normal
  * shape of a sync at a crag, not a rare race. With one stamp it then claimed authority over a

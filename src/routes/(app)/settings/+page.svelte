@@ -310,10 +310,10 @@
       />
 
       <SettingSwitch
-        checked={settings?.notifyCragEdits ?? true}
-        hint={m.settings_notifyCragEditsHint()}
-        label={m.settings_notifyCragEdits()}
-        onchange={(checked) => updateUserSettings({ notifyCragEdits: checked })}
+        checked={settings?.notifyGuidebookEdits ?? true}
+        hint={m.settings_notifyGuidebookEditsHint()}
+        label={m.settings_notifyGuidebookEdits()}
+        onchange={(checked) => updateUserSettings({ notifyGuidebookEdits: checked })}
       />
 
       <SettingSwitch
