@@ -3,6 +3,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
+  import { isOnline } from '$lib/state/online.svelte'
   import { getZ } from '$lib/zero/z.svelte'
 
   // Zero states that no reconnect loop recovers from: only a fresh client (i.e. a
@@ -87,6 +88,7 @@
 </script>
 
 <script lang="ts">
+  import { browser } from '$app/environment'
   // All four props exist only so the story can show states that are near-impossible
   // to trigger live (`needs-auth`, `closed`, an announcement). Unset, the bar reads
   // the real device, the real Zero connection and the ANNOUNCEMENT constant. The
@@ -103,13 +105,16 @@
 
   const props: Props = $props()
 
-  // `navigator.onLine` is only trusted when false (false positives are common,
-  // false negatives are not), same convention as Form.svelte and Image.svelte.
-  let detectedOnline = $state(true)
-  let dismissed = $state(new Set<string>())
+  // Writable `$derived`: `readDismissed` touches `localStorage` and nothing reactive, so this reads
+  // once and then only ever changes when `dismiss()` assigns to it.
+  let dismissed = $derived(browser ? readDismissed() : new Set<string>())
   let settled = $state('connected')
 
-  const online = $derived(props.online ?? detectedOnline)
+  // The shared signal rather than a local `navigator.onLine` pair: that flag reads true on a fresh
+  // document load with the network already dead, so the bar would say "reconnecting" to somebody
+  // with no signal at all while the screen behind it said "not downloaded". `isOnline()` folds
+  // Zero's own connection in, which is the same evidence `settled` below is built from.
+  const online = $derived(props.online ?? isOnline())
   const raw = $derived(props.connectionState?.name ?? getZ().connectionState.name)
   const announcement = $derived(props.announcement ?? ANNOUNCEMENT)
 
@@ -124,12 +129,6 @@
     const hold = props.holdMs ?? (TERMINAL.includes(raw) ? TERMINAL_HOLD_MS : TRANSIENT_HOLD_MS)
     const timer = setTimeout(() => (settled = raw), hold)
     return () => clearTimeout(timer)
-  })
-
-  // `navigator` and `localStorage` are browser-only, so these wait for mount.
-  $effect(() => {
-    detectedOnline = navigator.onLine
-    dismissed = readDismissed()
   })
 
   // `Date.now()` is read whenever the bar re-evaluates, never on a timer: the window
@@ -155,8 +154,6 @@
     dismissed = ids
   }
 </script>
-
-<svelte:window onoffline={() => (detectedOnline = false)} ononline={() => (detectedOnline = true)} />
 
 {#if status != null}
   <div class="flex items-center gap-2 px-4 py-2 text-sm {status.tone}" role={status.role}>

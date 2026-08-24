@@ -12,6 +12,8 @@
   import { REGIONLESS_PATHS } from '$lib/entities/region/dto'
   import { setUnitPreference } from '$lib/i18n/units.svelte'
   import { reportClientError } from '$lib/logging/report'
+  import { m } from '$lib/paraglide/messages.js'
+  import { requestPersistentStorage } from '$lib/state/device.svelte'
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
@@ -19,6 +21,11 @@
   const { children, data } = $props()
 
   const globalState = setGlobalState()
+
+  // Ask once per load that the browser keep our storage rather than treating it as disposable.
+  // Covers the Zero replica and the service worker's topo cache together, which is also how the
+  // browser evicts them: whole origin at a time, never in parts.
+  void requestPersistentStorage()
 
   // Feed the user's stored unit preference to the shared formatters (distance, temperature).
   // Re-runs when settings sync/change; null falls back to locale inference.
@@ -102,7 +109,22 @@
   <meta property="og:type" content="website" />
 </svelte:head>
 
-{#if globalState?.isLoading}
+{#if globalState?.isStoreCold}
+  <!-- Tested ahead of `isLoading` because it is a *kind* of loading: offline with an empty store,
+       nothing on the way, and nothing the reader can do inside the app to change it. Left to
+       `isLoading` this is a full-screen spinner that never resolves, with no status bar behind it
+       to say why. -->
+  <div class="fixed inset-0 flex flex-col">
+    <StatusBar />
+    <ErrorState
+      type="offline"
+      title={m.error_storeCold_title()}
+      description={globalState.lastSyncedAt == null
+        ? m.error_storeCold_bodyFirstRun()
+        : m.error_storeCold_bodyRestore()}
+    />
+  </div>
+{:else if globalState?.isLoading}
   <LoadingIndicator class="fixed flex h-full w-full items-center justify-center" size={20} />
 {:else}
   <!-- Shared viewport frame. Nested layouts fill it: (shell) adds the nav rail and

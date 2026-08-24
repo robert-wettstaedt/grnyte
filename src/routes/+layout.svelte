@@ -68,9 +68,13 @@
    * The import is dynamic and inside `onMount` because this layout is server-rendered and the
    * virtual module is browser-only. `virtual:pwa-register` rather than the `/svelte` variant:
    * that one exists to drive an update-prompt UI and hands back stores, which there is nothing
-   * here to render. `immediate: true` takes the new worker on the next load, which is the right
-   * trade for an app whose pages all render from the same local replica; `sw.ts`'s `SKIP_WAITING`
-   * handler is what a prompt would drive, if one is ever wanted.
+   * here to render.
+   *
+   * `immediate: true` controls when registration is attempted, NOT which worker ends up in charge.
+   * A new worker still installs into `waiting` and takes over only once every tab on the origin has
+   * closed, which for a service worker fix means never for most people. `sw.ts` calls
+   * `skipWaiting()` and `clients.claim()` itself so the newest worker always wins; its
+   * `SKIP_WAITING` message handler stays for a prompt UI, if one is ever wanted.
    */
   onMount(async () => {
     if (pwaInfo == null) {

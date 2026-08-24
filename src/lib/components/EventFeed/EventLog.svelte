@@ -34,7 +34,7 @@
   const feed = eventFeed(() => ({ scope }))
 </script>
 
-<QueryState resource={feed.resource}>
+<QueryState offlineExcluded resource={feed.resource}>
   {#snippet ready()}
     <EventFeed
       expandedIds={feed.expandedIds}

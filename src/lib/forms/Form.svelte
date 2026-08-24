@@ -16,6 +16,7 @@
   import Icon from '$lib/components/Icon/Icon.svelte'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { isOnline } from '$lib/state/online.svelte'
   import { Steps } from '@skeletonlabs/skeleton-svelte'
   import type { RemoteForm, RemoteFormInput } from '@sveltejs/kit'
   import { tick } from 'svelte'
@@ -78,15 +79,21 @@
     step += 1
   }
 
-  // A submit that throws while the browser reports no connection is an offline
-  // failure — swap the form for the offline state. We trust navigator.onLine
-  // only when false (false positives are common, false negatives are not) and
-  // rethrow anything else so real server errors surface as form issues.
+  // A submit that throws while we have no connection is an offline failure: swap the form for the
+  // offline state and rethrow anything else, so real server errors still surface as form issues.
+  //
+  // `isOnline()` rather than `navigator.onLine`, which is the whole reason that module exists. The
+  // raw flag reads true on a fresh document load with the network already dead, so this branch was
+  // skipped, the error was rethrown, and `+error.svelte` replaced the entire page with "something
+  // went wrong on our end" while the status bar above it said "you're offline". Everything typed in
+  // was lost, which is the one outcome a form must never produce for a cause it can recognise.
   let offline = $state(false)
 </script>
 
-<!-- Back online → restore the form; the remote form keeps the entered values. -->
-<svelte:window ononline={() => (offline = false)} />
+<!-- Back online → restore the form; the remote form keeps the entered values. The window event is
+     kept as the trigger, but `isOnline()` decides, so a captive portal that fires `online` without
+     giving us a route does not put the reader back on a form that cannot submit. -->
+<svelte:window ononline={() => (offline = !isOnline())} />
 
 {#if offline}
   <ErrorState type="offline" />
@@ -104,7 +111,7 @@
           await onSubmitted?.()
         }
       } catch (error) {
-        if (!navigator.onLine) {
+        if (!isOnline()) {
           offline = true
           return
         }

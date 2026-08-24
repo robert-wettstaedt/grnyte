@@ -1,5 +1,6 @@
 import { browser } from '$app/environment'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
+import { hasCoarsePointer, isInstalled } from '$lib/state/device.svelte'
 import { now } from '$lib/state/now.svelte'
 
 /**
@@ -112,19 +113,14 @@ let dismissals = $state(0)
 let dismissedAt = $state<null | number>(null)
 
 let deferred = $state<BeforeInstallPromptEvent | undefined>(undefined)
-let installed = $state(false)
 
-// Device facts, read once. A phone does not grow a mouse mid-session, and the standalone case is
-// kept live by `appinstalled` below.
+// Push support is the one device fact that is only this module's business. The pointer and
+// standalone facts moved to `$lib/state/device.svelte`, because the offline preload gate needs them
+// too and a Zero client has no business importing install-promotion state to get them.
 let pushSupported = false
-let touch = false
 
 if (browser) {
   pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
-  // Optional call, same as the landing page's reduced-motion check: jsdom has no matchMedia.
-  touch = window.matchMedia?.('(pointer: coarse)').matches ?? false
-  // Also covers the iOS Home Screen case: the manifest is already `display: 'standalone'`.
-  installed = window.matchMedia?.('(display-mode: standalone)').matches ?? false
 
   dismissals = readStored(DISMISS_COUNT_KEY) ?? 0
   dismissedAt = readStored(DISMISSED_AT_KEY)
@@ -140,11 +136,9 @@ if (browser) {
   })
 
   // Fires whether the install came from our button or from the browser's own affordance, so the
-  // promotion retires itself either way.
-  addEventListener('appinstalled', () => {
-    forgetPrompt()
-    installed = true
-  })
+  // promotion retires itself either way. `device.svelte` listens for the same event to flip its own
+  // standalone flag; two listeners are cheaper than one module reaching into the other.
+  addEventListener('appinstalled', forgetPrompt)
 }
 
 export function dismissBanner(): void {
@@ -177,7 +171,13 @@ export function installPromoMode(options: { dismissible?: boolean; permanent?: b
     return 'none'
   }
 
-  return resolveInstallMode(installed, touch, deferred != null, pushSupported, options.permanent === true)
+  return resolveInstallMode(
+    isInstalled(),
+    hasCoarsePointer(),
+    deferred != null,
+    pushSupported,
+    options.permanent === true,
+  )
 }
 
 /** Must be called from a click on our own UI: `prompt()` requires a user gesture. */

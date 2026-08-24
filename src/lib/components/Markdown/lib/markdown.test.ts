@@ -4,6 +4,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { describe, expect, it, vi } from 'vitest'
 import { convertMarkdownToHtml } from './enrich.server'
 import { convertMarkdownToHtmlSync } from './index'
+import { enrichMarkdownWithReferences } from './remark-references'
 
 vi.mock('$lib/entities/grade/color', () => {
   return {
@@ -142,6 +143,18 @@ describe('Markdown Conversion', () => {
     const html = await convertMarkdownToHtml(markdown, mockDb)
     expect(html).toContain('<span class="reference-missing">Route not found</span>')
     expect(html).not.toContain('/routes/123')
+  })
+
+  it('renders an unresolvable reference as an "unavailable offline" placeholder, not a tombstone', () => {
+    // The client half: offline the query never completes, so `markdownReferences` marks the id
+    // unavailable rather than deleted, and the token must not survive into the prose either way.
+    const enriched = enrichMarkdownWithReferences('see !blocks:1197! there', [
+      { id: 1197, missing: true, name: '', type: 'blocks', unavailable: true },
+    ])
+    const html = convertMarkdownToHtmlSync(enriched, [])
+    expect(html).toContain('<span class="reference-missing">Block unavailable offline</span>')
+    expect(html).not.toContain('!blocks:1197!')
+    expect(html).not.toContain('Block not found')
   })
 
   it('leaves a reference whose id is not a number as raw text', async () => {

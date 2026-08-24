@@ -8,7 +8,7 @@ import {
   directedTag,
   isDigestDue,
   isDirectedDue,
-  pushPayloadSchema,
+  isPushPayload,
 } from './push'
 
 const NOW = 1_700_000_000_000
@@ -99,27 +99,37 @@ describe('tags', () => {
   })
 })
 
-describe('pushPayloadSchema', () => {
+describe('isPushPayload', () => {
   // The contract the service worker parses. 1.0 shipped a worker reading a shape nothing
   // produced, and the failure was invisible: the push arrives and nothing appears.
   it('accepts what the sender produces', () => {
     expect(
-      pushPayloadSchema.parse({
-        badge: 3,
-        body: 'and 4 more updates',
-        pathname: '/feed',
-        tag: 'digest',
-        title: 'Anna',
-      }),
-    ).toEqual({ badge: 3, body: 'and 4 more updates', pathname: '/feed', tag: 'digest', title: 'Anna' })
+      isPushPayload({ badge: 3, body: 'and 4 more updates', pathname: '/feed', tag: 'digest', title: 'Anna' }),
+    ).toBe(true)
   })
 
   it('requires a tag and a title, which are what replacement and the headline need', () => {
-    expect(pushPayloadSchema.safeParse({ title: 'Anna' }).success).toBe(false)
-    expect(pushPayloadSchema.safeParse({ tag: 'digest' }).success).toBe(false)
+    expect(isPushPayload({ title: 'Anna' })).toBe(false)
+    expect(isPushPayload({ tag: 'digest' })).toBe(false)
   })
 
   it('accepts a payload with nothing optional set', () => {
-    expect(pushPayloadSchema.parse({ tag: 'digest', title: 'Anna' })).toEqual({ tag: 'digest', title: 'Anna' })
+    expect(isPushPayload({ tag: 'digest', title: 'Anna' })).toBe(true)
+  })
+
+  it('rejects a wrong type on an optional field rather than passing it to showNotification', () => {
+    expect(isPushPayload({ badge: '3', tag: 'digest', title: 'Anna' })).toBe(false)
+    expect(isPushPayload({ pathname: 42, tag: 'digest', title: 'Anna' })).toBe(false)
+  })
+
+  it('rejects what is not an object at all, which is what a probe or an older sender delivers', () => {
+    expect(isPushPayload(undefined)).toBe(false)
+    expect(isPushPayload(null)).toBe(false)
+    expect(isPushPayload('digest')).toBe(false)
+  })
+
+  // Passthrough, unlike Zod's `parse`: a sender one release ahead should still buzz the phone.
+  it('keeps a payload carrying a field this release does not know', () => {
+    expect(isPushPayload({ nextRelease: true, tag: 'digest', title: 'Anna' })).toBe(true)
   })
 })

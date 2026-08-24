@@ -329,7 +329,7 @@
        A card rather than a settings row, because the branch that cannot use a prompt has to
        explain itself in more than a row's worth of space. Absent on desktop, where installing
        buys nothing and the control would just be a confusing switch. -->
-  <InstallApp permanent />
+  <InstallApp offline permanent />
 
   <!-- Invitations. Sits above Regions because it is the one section here that is waiting on the
          reader, and it is the only place an invitation can be found once the mail is gone. -->

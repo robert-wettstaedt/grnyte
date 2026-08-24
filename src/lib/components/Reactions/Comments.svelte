@@ -120,7 +120,7 @@
   </article>
 {/snippet}
 
-<QueryState resource={thread.comments}>
+<QueryState offlineExcluded resource={thread.comments}>
   {#snippet ready()}
     <div class="flex flex-col gap-3">
       {#if thread.hasEarlier}

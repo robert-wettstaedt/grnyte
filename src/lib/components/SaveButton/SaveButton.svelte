@@ -5,6 +5,7 @@
   import { isFavorited, otherSaveCount } from '$lib/entities/favorite/resources.svelte'
   import { m } from '$lib/paraglide/messages'
   import { getGlobalState } from '$lib/state/global.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
 
   interface Props {
     class?: string
@@ -33,6 +34,19 @@
     () => entityId,
   )
 
+  /**
+   * Waiting on a first answer, which offline is never coming.
+   *
+   * `isSyncing` on its own cannot clear without a connection: a query only reports `complete` when
+   * the server confirms it, and Zero holds that confirmation in memory and re-earns it on every
+   * connect, so offline every query in the app reads as still syncing for as long as the tab lives.
+   * A spinner on that alone is a spinner forever.
+   *
+   * Offline we show what the local replica knows and disable the write, which is the honest state
+   * either way: `toggleFavorite` is a remote function and cannot land without a connection.
+   */
+  const pending = $derived(favorited.isSyncing && isOnline())
+
   const toggleSave = async () => {
     const next = !saved
     savedOverride = next
@@ -50,11 +64,11 @@
 <button
   aria-pressed={saved}
   class={['btn btn-lg text-base', saved ? 'preset-tonal-primary' : 'preset-tonal', className]}
-  disabled={favorited.isSyncing}
+  disabled={pending || !isOnline()}
   onclick={toggleSave}
   type="button"
 >
-  {#if favorited.isSyncing}
+  {#if pending}
     <LoadingIndicator size="19px" />
   {:else}
     <Icon name="bookmark" fill={saved ? 'currentColor' : 'none'} size={19} />

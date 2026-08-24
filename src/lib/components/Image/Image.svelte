@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { imageSrc, type DerivativeSize } from '$lib/images/derivatives'
+  import { isOnline } from '$lib/state/online.svelte'
   import type { Snippet } from 'svelte'
   import type { ClassValue, HTMLImgAttributes } from 'svelte/elements'
 
@@ -62,9 +63,9 @@
 
 <!--
   Back online → retry failed loads; remounting the <img> restarts the request.
-  navigator.onLine is trusted only when false (same rule as Form.svelte): false
-  positives are common, false negatives are not — so `offline` is certain, and
-  everything else stays a generic error.
+  `isOnline()` rather than `navigator.onLine` (see $lib/state/online.svelte): the raw flag reads
+  true on a fresh document load with the network already dead, which would label every offline
+  image a generic error instead of an offline one.
 -->
 <svelte:window
   ononline={() => {
@@ -98,7 +99,7 @@
         imgClass,
       ]}
       onload={() => (status = 'loaded')}
-      onerror={() => (status = navigator.onLine ? 'error' : 'offline')}
+      onerror={() => (status = isOnline() ? 'error' : 'offline')}
     />
   {/key}
 

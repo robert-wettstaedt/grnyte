@@ -59,7 +59,27 @@ class Resource<
   // filters) or the Zero client is swapped on login/logout — `getZ()` is a
   // reactive read. The ViewStore inside zero-svelte dedupes identical queries
   // and defers cleanup, so this is cheap.
-  #query = $derived.by(() => getZ().createQuery(this.#request(), this.#enabled()))
+  #query = $derived.by(() => {
+    const query = getZ().createQuery(this.#request(), this.#enabled())
+
+    // Subscribe from here rather than relying on zero-svelte to do it.
+    //
+    // `Query`'s constructor spins up a detached `$effect.root` whose only job is to read
+    // `view.current` and so activate the view's subscriber; `.data` and `.details` then read the
+    // wrapper's state *without* subscribing, on the assumption that root already did. When it does
+    // not run, nothing ever materializes the view: the wrapper keeps its constructed defaults
+    // (`undefined`/`[]`, `type: 'unknown'`) for the life of the page, which this layer reports as
+    // `loading` and the app renders as a spinner that never resolves. On a direct load of an entity
+    // page that was reliably `currentUser`, and `isLoading` in the global state turns one stuck
+    // query into a blank app — the "stuck loading" that looked like a Zero sync failure and was not:
+    // `z.run()` and `z.materialize()` answer the same query from the same replica in milliseconds.
+    //
+    // `ensureSubscribed()` is the wrapper's own escape hatch for exactly this. Calling it inside a
+    // `$derived` ties the subscription to this resource's lifetime instead of to a root nothing owns.
+    query.view?.ensureSubscribed()
+
+    return query
+  })
 
   #select: (data: HumanReadable<TReturn>) => TOut
 

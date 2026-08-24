@@ -1,3 +1,4 @@
+import { dev } from '$app/environment'
 import { page } from '$app/state'
 import type { Grade } from '$lib/entities/grade/dto'
 import { gradeList } from '$lib/entities/grade/resources.svelte'
@@ -8,6 +9,8 @@ import type { AppRole, Permission, RolePermission } from '$lib/entities/rolePerm
 import { rolePermissionList } from '$lib/entities/rolePermission/resources.svelte'
 import type { GradingScale, User } from '$lib/entities/user/dto'
 import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelte'
+import { isOnline } from '$lib/state/online.svelte'
+import { lastSyncedAt } from '$lib/state/sync.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
 import { getContext, setContext } from 'svelte'
 
@@ -27,6 +30,13 @@ export interface GlobalState {
   readonly gradingScale: GradingScale
   /** True while app-shell prerequisites are still loading. */
   readonly isLoading: boolean
+  /**
+   * Offline, with nothing usable synced. The app cannot render past the shell and no request can
+   * fix it, so the layout shows a dedicated screen rather than an endless spinner.
+   */
+  readonly isStoreCold: boolean
+  /** When this device last completed a sync, or null if it never has. Per device, not per account. */
+  readonly lastSyncedAt: null | number
   readonly rolePermissionsResource: QueryResource<RolePermission[]>
   /**
    * Unread directed notifications, capped at `UNREAD_CAP + 1`.
@@ -108,6 +118,20 @@ export function setGlobalState(): GlobalState | undefined {
         userRegionsResource.status === 'loading'
       )
     },
+    get isStoreCold() {
+      // Offline with nothing usable in the local store. `isLoading` cannot tell this apart from a
+      // slow first sync on its own: an unknown-and-empty result is reported as `loading` and stays
+      // there for as long as the server is unreachable, so without this branch the app sits on a
+      // full-screen spinner forever with no way out and no status bar to explain it.
+      //
+      // Deliberately not gated on `lastSyncedAt`: a first-ever visit made offline is stuck in
+      // exactly the same way and deserves the same escape. The stamp only decides the wording,
+      // "reconnect to restore" against "connect to get started", which the layout reads separately.
+      return !isOnline() && this.isLoading
+    },
+    get lastSyncedAt() {
+      return lastSyncedAt()
+    },
     get rolePermissionsResource() {
       return rolePermissionsResource
     },
@@ -151,6 +175,25 @@ export function setGlobalState(): GlobalState | undefined {
     },
   }
 
+  if (dev) {
+    // The five resources `isLoading` is made of, readable from the console. A full-screen spinner
+    // says only "one of them is loading"; this says which, and whether the local store or the
+    // server confirmation is the part that is missing.
+    Object.assign(window, {
+      __grnyteGlobal: {
+        get statuses() {
+          return {
+            grades: describe(gradesResource),
+            rolePermissions: describe(rolePermissionsResource),
+            user: describe(userResource),
+            userRegions: describe(userRegionsResource),
+            userRole: describe(userRoleResource),
+          }
+        },
+      },
+    })
+  }
+
   return provideGlobalState(state)
 }
 
@@ -185,6 +228,10 @@ export function staticGlobalState(
     gradesResource: ready(grades),
     gradingScale: data.gradingScale ?? data.user?.userSettings?.gradingScale ?? 'FB',
     isLoading: false,
+    // The static fixture is server-rendered or a Storybook decorator: its data is already in hand,
+    // so it is never cold and has nothing to say about this device's sync history.
+    isStoreCold: false,
+    lastSyncedAt: null,
     rolePermissionsResource: ready([]),
     unreadNotifications: 0,
     user: data.user,
@@ -195,4 +242,9 @@ export function staticGlobalState(
     userRole: data.userRole,
     userRoleResource: ready(data.userRole),
   }
+}
+
+/** One resource's state, for the dev console hook above. */
+function describe(resource: QueryResource<unknown>) {
+  return { isComplete: resource.isComplete, isEmpty: resource.isEmpty, status: resource.status }
 }

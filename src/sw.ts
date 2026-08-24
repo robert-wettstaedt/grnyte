@@ -4,9 +4,11 @@
 /// <reference lib="esnext" />
 
 import type { Pathname } from '$app/types'
+import { ExpirationPlugin } from 'workbox-expiration'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
-import { imageCache } from 'workbox-recipes'
-import { pushPayloadSchema, type PushPayload } from './lib/entities/notification/push'
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
 import { isDerivativeRequest } from './lib/images/derivatives'
 
 declare let self: ServiceWorkerGlobalScope
@@ -17,6 +19,30 @@ self.addEventListener('message', (event) => {
   }
 })
 
+/**
+ * Take over as soon as this worker is ready, rather than waiting for every tab on the origin to
+ * close first.
+ *
+ * Without these two, a new worker installs and then sits in `waiting` indefinitely: the default
+ * lifecycle hands over only when the last client of the old worker goes away, and `registerSW`'s
+ * `immediate: true` does not change that (it controls when registration is *attempted*, not which
+ * worker wins). Nothing in the app posts the `SKIP_WAITING` message above, so in practice a
+ * service worker fix never reached anybody who keeps a tab open — including, for a while, us:
+ * the offline work looked broken because the browser was still running the previous worker.
+ *
+ * The usual argument for waiting is version skew, a running page suddenly served assets from a
+ * newer precache. SvelteKit does NOT cover that for us, contrary to what this comment used to
+ * claim: `version.pollInterval` defaults to 0 and `svelte.config.js` does not set it, so the version
+ * is only consulted after a route module fails to load or a navigation returns >= 400. Skew
+ * self-heals through a failure rather than ahead of one, and offline that failure is terminal.
+ *
+ * Accepted anyway, because the alternative is strictly worse: a worker that activates only once
+ * every tab has closed means a service worker fix reaches nobody, which is exactly how this
+ * offline work looked broken for a day.
+ */
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
+
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
@@ -25,12 +51,58 @@ cleanupOutdatedCaches()
 const OFFLINE_SHELL: Pathname = '/offline'
 const OFFLINE_CACHE = 'offline-shell'
 
+/**
+ * SvelteKit's `$env/dynamic/public` module. The server generates it per request, so unlike
+ * everything under `_app/immutable` it is not a build artifact and `injectManifest`'s glob never
+ * sees it.
+ *
+ * What needs it is the shell itself, not any one import. An SSR'd page gets its dynamic public env
+ * inlined into the HTML; a *prerendered* page cannot, so SvelteKit emits a runtime gate instead.
+ * Read `build/prerendered/offline.html`: it ships `env: null` and wraps the entire client boot in
+ * `import("/_app/env.js").then(({ env }) => ...)`. Nothing runs until that resolves.
+ *
+ * So this stays load-bearing no matter what any component imports. An earlier version of this
+ * comment blamed a client import of `$env/dynamic/public`, which would have made the whole block
+ * look safe to delete the day that import went away.
+ *
+ * That made it the single point of failure for the whole offline story: every other chunk came back
+ * from the precache and this one request failed, so the module graph never resolved, the app never
+ * booted, and the shell sat there empty. Cached at install so it is present before it is ever
+ * needed, and refreshed at runtime below so a deploy that changes it is picked up.
+ */
+const DYNAMIC_ENV = '/_app/env.js'
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(OFFLINE_CACHE).then((cache) => cache.add(OFFLINE_SHELL)))
+  event.waitUntil(
+    caches.open(OFFLINE_CACHE).then(async (cache) => {
+      await cache.add(OFFLINE_SHELL)
+      // Tolerated separately: a failure here must not fail the install and cost us the shell too.
+      await cache.add(DYNAMIC_ENV).catch(() => undefined)
+    }),
+  )
 })
 
-// Navigations are network-first (so online visitors get fresh SSR), falling back
-// to the cached shell when offline.
+// Serve the cached copy immediately and refresh it in the background. Network-first would put a
+// timeout on the critical path of every cold boot for a file that changes only on deploy.
+registerRoute(
+  ({ sameOrigin, url }) => sameOrigin && url.pathname === DYNAMIC_ENV,
+  new StaleWhileRevalidate({ cacheName: OFFLINE_CACHE }),
+)
+
+/**
+ * Navigations are network-first (so online visitors get fresh SSR), falling back to the cached
+ * shell when offline.
+ *
+ * The shell is served *at the requested URL* rather than redirected to. It used to bounce to
+ * `/offline?redirect=<path>` and hand off client-side, which cost a round trip through a second
+ * document, showed the wrong URL in the address bar the whole time, and — the reason it had to go —
+ * made rendering the requested page depend on the shell's own JavaScript booting first. Serving the
+ * shell in place means SvelteKit starts up already on `/routes/123` and renders it straight from
+ * Zero's local store, which is the entire point of keeping that store.
+ *
+ * The shell is prerendered with `ssr = false` (see `src/routes/offline/+page.ts`), so it carries no
+ * route-specific markup or payload to conflict with whatever URL it is answering for.
+ */
 self.addEventListener('fetch', (event) => {
   if (event.request.mode !== 'navigate') {
     return
@@ -38,19 +110,10 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(event.request).catch(async () => {
-      const url = new URL(event.request.url)
-
-      // Already loading the shell itself → return the cached copy.
-      if (url.pathname === OFFLINE_SHELL) {
-        const cached = await caches.match(OFFLINE_SHELL, { ignoreSearch: true })
-        if (cached != null) {
-          return cached
-        }
-      }
-
-      // Bounce other offline navigations to the shell, carrying the original
-      // path so it can route there client-side from Zero's local store.
-      return Response.redirect(`${OFFLINE_SHELL}?redirect=${encodeURIComponent(url.pathname + url.search)}`, 302)
+      const cached = await caches.match(OFFLINE_SHELL, { ignoreSearch: true })
+      // No shell cached means the install never completed; there is nothing better to offer than
+      // the browser's own failure page.
+      return cached ?? Response.error()
     }),
   )
 })
@@ -67,13 +130,30 @@ self.addEventListener('fetch', (event) => {
  * caching those would evict the whole bucket for one photo. Bunny video thumbnails are
  * cross-origin (opaque responses, charged at full padded size), so they stay out too.
  *
- * ponytail: 200 entries, roughly 5MB of 256px webp. Raise it if browsing one big area
- * evicts the previous one.
+ * Registered by hand rather than through `workbox-recipes`' `imageCache`, which cannot express
+ * "no age limit": it does `options.maxAgeSeconds || 30 * 24 * 60 * 60`, so both `0` and `undefined`
+ * restore 30 days, and passing a second ExpirationPlugin does not override the recipe's, it
+ * intersects with it over one shared IndexedDB store and the stricter limit wins. That 30 days was
+ * an offline wall rather than staleness: `Date` on a cached response never refreshes, so a month
+ * after a topo was last fetched the plugin refuses the cached copy and CacheFirst falls through to
+ * the network, which offline is precisely the thing that cannot happen. The topo was simply gone on
+ * the one day of the year it was needed.
+ *
+ * `cacheName` is load-bearing twice over: ExpirationPlugin throws if it gets the default runtime
+ * name, and keeping the recipe's literal `images` means the existing cache carries over on deploy
+ * rather than everyone re-downloading. No CacheableResponsePlugin: the matcher is same-origin only,
+ * so opaque responses cannot arrive, and the strategy already declines to cache anything but a 200.
+ *
+ * ponytail: 1000 entries, roughly 25MB of 256px webp against a multi-GB quota. Eviction is true LRU
+ * on read, not on write, so the areas somebody keeps opening are the ones that survive.
  */
-imageCache({
-  matchCallback: ({ sameOrigin, url }) => sameOrigin && isDerivativeRequest(url),
-  maxEntries: 200,
-})
+registerRoute(
+  ({ request, sameOrigin, url }) => request.destination === 'image' && sameOrigin && isDerivativeRequest(url),
+  new CacheFirst({
+    cacheName: 'images',
+    plugins: [new ExpirationPlugin({ maxEntries: 1000 })],
+  }),
+)
 
 /**
  * Show what the server sent, and nothing it did not.
@@ -91,14 +171,12 @@ imageCache({
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
-  const parsed = pushPayloadSchema.safeParse(readJson(event.data))
+  const payload = readJson(event.data)
 
-  if (!parsed.success) {
-    console.error('[push] unrecognised payload', parsed.error)
+  if (!isPushPayload(payload)) {
+    console.error('[push] unrecognised payload', payload)
     return
   }
-
-  const payload = parsed.data
 
   event.waitUntil(
     (async () => {

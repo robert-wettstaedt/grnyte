@@ -14,6 +14,15 @@ const referenceRegexWithBase64 = '!(areas|blocks|routes|users):\\d+:[A-Za-z0-9+/
  */
 export const REFERENCE_TOMBSTONE = String.fromCharCode(0)
 
+/**
+ * The other payload that is not a name: the target may well exist, this device just does not have
+ * it. Offline no query can ever report itself complete, so "absent from the local replica" and
+ * "deleted" are indistinguishable, and saying "not found" about a block somebody is standing under
+ * would be worse than saying nothing. Kept apart from {@link REFERENCE_TOMBSTONE} so the two never
+ * collapse into one message.
+ */
+export const REFERENCE_UNAVAILABLE = String.fromCharCode(1)
+
 export type EncloseOptions = 'anchor' | 'strong'
 
 export interface MarkdownReferencesIds {
@@ -52,13 +61,15 @@ export interface MarkdownReference {
   missing?: boolean
   name: string
   type: EntityType
+  /** The target is not in this device's local store, and offline we cannot find out why. */
+  unavailable?: boolean
 }
 
 export const enrichMarkdownWithReferences = (markdown: string, refs: MarkdownReference[]): string => {
   let enrichedMarkdown = markdown
 
-  refs.forEach(({ id, missing, name, type }) => {
-    const payload = btoa(missing ? REFERENCE_TOMBSTONE : name)
+  refs.forEach(({ id, missing, name, type, unavailable }) => {
+    const payload = btoa(unavailable ? REFERENCE_UNAVAILABLE : missing ? REFERENCE_TOMBSTONE : name)
     enrichedMarkdown = enrichedMarkdown.replace(new RegExp(`!${type}:${id}!`, 'g'), `!${type}:${id}:${payload}!`)
   })
 
@@ -74,6 +85,16 @@ const notFoundLabel = (type: string): string =>
       : type === 'routes'
         ? m.reference_routeNotFound()
         : m.reference_userNotFound()
+
+/** Localized label for a reference this device cannot resolve while offline. */
+const unavailableLabel = (type: string): string =>
+  type === 'areas'
+    ? m.reference_areaUnavailable()
+    : type === 'blocks'
+      ? m.reference_blockUnavailable()
+      : type === 'routes'
+        ? m.reference_routeUnavailable()
+        : m.reference_userUnavailable()
 
 interface RemarkReferencesOptions {
   encloseReferences?: EncloseOptions
@@ -91,10 +112,13 @@ export const remarkReferences: Plugin<[RemarkReferencesOptions?], Root> = ({ enc
       .split(':')
     const decoded = base64 == null ? null : atob(base64)
 
-    // Deleted target: inert, muted "… not found" text — never a link to a dead page.
-    if (decoded === REFERENCE_TOMBSTONE) {
+    // Deleted target, or one this device cannot see right now: inert, muted text either way, and
+    // never a link to a page that would render a spinner or a 404.
+    if (decoded === REFERENCE_TOMBSTONE || decoded === REFERENCE_UNAVAILABLE) {
       const tombstone: PhrasingContent = {
-        children: [{ type: 'text', value: notFoundLabel(type) }],
+        children: [
+          { type: 'text', value: decoded === REFERENCE_TOMBSTONE ? notFoundLabel(type) : unavailableLabel(type) },
+        ],
         data: { hName: 'span', hProperties: { class: 'reference-missing' } },
         type: 'strong',
       }
