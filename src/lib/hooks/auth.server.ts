@@ -1,3 +1,4 @@
+import { building } from '$app/environment'
 import type { Pathname } from '$app/types'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import { verifyAccessToken } from '$lib/auth/verify.server'
@@ -74,6 +75,15 @@ function anonymous(): App.SafeSession & { claims: undefined } {
 }
 
 export const supabase: Handle = async ({ event, resolve }) => {
+  // Prerendering has no request behind it: no cookies, so no session to load and nothing on
+  // `locals` a prerendered page could read. Building the client anyway made the whole build depend
+  // on PUBLIC_SUPABASE_URL parsing as a URL, which is how `/offline` took CI down: the value there
+  // is the placeholder `foobar`. `rateLimit` bails on the same condition for the same reason.
+  if (building) {
+    Object.assign(event.locals, anonymous())
+    return resolve(event)
+  }
+
   async function getPageState(authUserId: string): Promise<App.SafeSession> {
     const user = await db.query.users.findFirst({
       where: (table, { eq }) => eq(table.authUserFk, authUserId),
@@ -183,6 +193,12 @@ const PUBLIC_PREFIXES = ['/legal', AUTH_PATH, '/f/', '/image/', '/api/', '/invit
 const ZERO_API_PREFIX = '/api/zero/'
 
 export const authGuard: Handle = async ({ event, resolve }) => {
+  // Nothing to guard while prerendering, and `safeGetSession` is not there to call: the hook above
+  // returns before installing it.
+  if (building) {
+    return resolve(event)
+  }
+
   // zero-cache forwards the browser's cookie alongside the Bearer (ZERO_GET_QUERIES_FORWARD_COOKIES
   // is set in every compose file), and `handle` runs for /api too. The get-queries handler verifies
   // its own Authorization header, so loading a session here would be a second, pointless
