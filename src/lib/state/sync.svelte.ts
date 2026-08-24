@@ -71,9 +71,13 @@ export function trackSyncFor(userID: string | undefined): void {
   }
 
   try {
-    const raw = localStorage.getItem(key(userID))
-    const parsed = raw == null ? Number.NaN : Number(raw)
-    syncedAt = Number.isFinite(parsed) ? parsed : null
+    // `Number('')` is 0, not NaN, so an empty or whitespace value would read as a real stamp at the
+    // epoch and tell a device with nothing to restore to reconnect and restore it. Only `markSynced`
+    // writes here so it cannot happen today; the guard costs one condition and does not rely on that
+    // staying true.
+    const raw = localStorage.getItem(key(userID))?.trim()
+    const parsed = raw == null || raw === '' ? Number.NaN : Number(raw)
+    syncedAt = Number.isFinite(parsed) && parsed > 0 ? parsed : null
   } catch {
     // Storage refused the read (private mode, disabled cookies). Degrades to "never synced", which
     // only costs a returning user one honest "reconnect to restore" instead of a silent empty page.

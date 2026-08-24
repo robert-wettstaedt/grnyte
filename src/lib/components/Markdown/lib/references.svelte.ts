@@ -1,5 +1,4 @@
 import { entityMappers, type EntityType } from '$lib/components/EntitySearch/search.svelte'
-import { isOnline } from '$lib/state/online.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, type QueryResource } from '$lib/zero/resource.svelte'
 import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
@@ -66,11 +65,21 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
     requested: number[],
     resource: QueryResource<MarkdownReference[]>,
   ): MarkdownReference[] => {
-    const offline = !isOnline()
-    if (!resource.isComplete && !offline) return []
+    // Still coming, and it may yet arrive: emit nothing rather than a placeholder that flashes in
+    // the middle of a sentence and is then replaced by the name.
+    if (resource.availability === 'loading') return []
+
+    // `availability`, not `isComplete`. Completeness is a fact about the transport: Zero clears it
+    // on every disconnect, including the one it performs itself after five minutes in a background
+    // tab, so a reference that had rendered a proper tombstone would silently downgrade to "not
+    // available" on a pocketed phone. `ready` is the judgement we actually want - this device holds
+    // the answer, whether because the server confirmed it or because the guidebook is preloaded and
+    // synced - and it is the same judgement every other offline surface reads.
+    const authoritative = resource.availability === 'ready'
+
     return requested
       .filter((id) => !resource.data.some((ref) => ref.id === id))
-      .map((id) => ({ id, missing: true, name: '', type, unavailable: !resource.isComplete }))
+      .map((id) => ({ id, missing: true, name: '', type, unavailable: !authoritative }))
   }
 
   return {

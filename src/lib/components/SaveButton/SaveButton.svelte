@@ -35,17 +35,18 @@
   )
 
   /**
-   * Waiting on a first answer, which offline is never coming.
+   * Waiting on a first answer, which is only ever true while there is a server to answer.
    *
-   * `isSyncing` on its own cannot clear without a connection: a query only reports `complete` when
-   * the server confirms it, and Zero holds that confirmation in memory and re-earns it on every
-   * connect, so offline every query in the app reads as still syncing for as long as the tab lives.
-   * A spinner on that alone is a spinner forever.
+   * `availability`, not `isSyncing`. Syncing is a fact about the transport: a query reports
+   * `complete` only while the server has confirmed it, and Zero clears that on every disconnect
+   * including the one it performs itself after five minutes in a background tab. So a button that
+   * had settled would start spinning again because the phone went in a pocket. `loading` is the
+   * question actually being asked here, and the resource only reports it while online.
    *
    * Offline we show what the local replica knows and disable the write, which is the honest state
    * either way: `toggleFavorite` is a remote function and cannot land without a connection.
    */
-  const pending = $derived(favorited.isSyncing && isOnline())
+  const pending = $derived(favorited.availability === 'loading')
 
   const toggleSave = async () => {
     const next = !saved

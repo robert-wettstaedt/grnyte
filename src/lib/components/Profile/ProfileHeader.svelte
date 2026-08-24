@@ -18,10 +18,19 @@
     /** When set (public profile), shows a back button mirroring the settings cog. */
     onBack?: () => void
     stats: ProfileStats
+    /**
+     * The ascents these stats are derived from are not available right now: offline, and either not
+     * kept for this person or never synced to this device. A count is then a claim we cannot make.
+     * "0 ascents" reads as "they have never climbed", which is the one thing a gap must never say.
+     */
+    unavailable?: boolean
     username: string
   }
 
-  const { contributions, faName, hardestGrade, isSelf, onBack, stats, username }: Props = $props()
+  const { contributions, faName, hardestGrade, isSelf, onBack, stats, unavailable, username }: Props = $props()
+
+  /** The shared empty glyph `hardestGrade` and `contributions` already fall back to. */
+  const EMPTY = '—'
 
   // Compact counts so a large tally stays one glyph wide (1100 -> "1.1K"). Forced to `en` because
   // German compact notation abbreviates nothing below a million: 1100 stays "1100" and 11000 becomes
@@ -64,12 +73,12 @@
   <dl class="flex items-stretch gap-6">
     <div class="flex flex-col">
       <dt class="text-surface-500 text-xs font-semibold tracking-wide uppercase">{m.profile_sends()}</dt>
-      <dd class="text-2xl font-bold tabular-nums">{compact.format(stats.sends)}</dd>
+      <dd class="text-2xl font-bold tabular-nums">{unavailable ? EMPTY : compact.format(stats.sends)}</dd>
     </div>
     <div class="border-surface-200-800 flex flex-col border-x px-6">
       <dt class="text-surface-500 text-xs font-semibold tracking-wide uppercase">{m.profile_hardest()}</dt>
       <!-- gradeLabel already yields the shared empty glyph when nothing is sent (hardestGradeFk undefined). -->
-      <dd class="text-2xl font-bold tabular-nums">{hardestGrade}</dd>
+      <dd class="text-2xl font-bold tabular-nums">{unavailable ? EMPTY : hardestGrade}</dd>
     </div>
     <div class="flex flex-col">
       <dt class="text-surface-500 text-xs font-semibold tracking-wide uppercase">{m.profile_contributions()}</dt>

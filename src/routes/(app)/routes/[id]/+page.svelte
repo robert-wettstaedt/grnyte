@@ -37,7 +37,6 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
-  import { isOnline } from '$lib/state/online.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import RegionLive from './RegionLive.svelte'
   import RouteActions from './RouteActions.svelte'
@@ -58,14 +57,14 @@
 
   // Everyone's ascents on this route are deliberately not kept for offline use, so offline this
   // query is incomplete by design and neither the list nor the grade histogram below may be drawn
-  // from it.
+  // from it. The resource works this out for itself now, including the part this call site kept
+  // getting wrong: rows being present offline proves nothing, because your own ascents and anything
+  // browsed earlier are seeded into the same table by other preloads.
   //
-  // Offline is the whole condition. It used to also require `ascents.data.length === 0`, on the
-  // theory that rows present meant the query had answered - but your own ascents ARE preloaded into
-  // this same query, so one logged attempt silenced the guard and the page then printed "no
-  // opinions yet" underneath a histogram built from a single vote. Both are claims about the route
-  // that we cannot make offline, whatever happens to be in the replica.
-  const ascentsUnavailable = $derived(!isOnline())
+  // `isComplete` is the deliberate exception to reading availability alone. It survives a
+  // disconnect, so a list the server already confirmed stays on screen through a signal blip
+  // instead of being replaced by "not available offline" ten seconds in and restored afterwards.
+  const ascentsUnavailable = $derived(ascents.availability !== 'ready' && !ascents.isComplete)
 
   // The most complete drawing of this route across the block's topos.
   const hit = $derived(selectTopoForRoute(topos.data, routeId))
@@ -337,7 +336,14 @@
               </div>
             {/if}
 
-            {#if countByGrade.size > 0}
+            <!-- Availability first, rows second. The votes come from everyone's ascents, which are
+                 not kept offline, and testing `countByGrade.size` first made this branch
+                 unreachable: one locally-held graded ascent drew a "1 vote" consensus directly
+                 under the notice saying ascents were unavailable. Neither the chart nor "no
+                 opinions" is a claim we can make without the whole list. -->
+            {#if ascentsUnavailable}
+              <OfflineNotice compact excluded />
+            {:else if countByGrade.size > 0}
               <GradeHistogram
                 {countByGrade}
                 grades={global.grades}
@@ -345,10 +351,6 @@
                 showCounts
                 onselect={(bar) => (selectedVote = bar)}
               />
-            {:else if ascentsUnavailable}
-              <!-- The votes come from everyone's ascents, which are not kept for offline use. Saying
-                   "no opinions" here would state a fact about the route that we cannot know. -->
-              <OfflineNotice compact excluded />
             {:else}
               <p class="text-surface-500 text-sm">{m.routes_noOpinions()}</p>
             {/if}

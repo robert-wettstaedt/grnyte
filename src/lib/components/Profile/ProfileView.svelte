@@ -54,6 +54,11 @@
   // next/prev across the whole logbook from any thumbnail (recent sessions or a day sheet).
   const viewerFiles = $derived(ascents.data.flatMap((ascent) => ascent.files).sort((a, b) => b.createdAt - a.createdAt))
   const stats = $derived(deriveStats(ascents.data))
+
+  // The headline counts sit outside the QueryState below, so nothing else stops them stating an
+  // absence as a fact. Offline, somebody else's logbook is not kept and their tally is unknowable;
+  // rendering it as 0 says they have never climbed.
+  const ascentsUnavailable = $derived(ascents.availability === 'excluded' || ascents.availability === 'unsynced')
   const statusByRoute = $derived(ascentStatusByRoute(ascents.data))
   const projects = $derived(deriveProjects(ascents.data))
   const hardestGrade = $derived(gradeLabel(global.grades, global.gradingScale, stats.hardestGradeFk))
@@ -189,7 +194,16 @@
 {/snippet}
 
 <div class="container mx-auto max-w-3xl space-y-8 px-4 py-8 pb-24 md:pb-8">
-  <ProfileHeader {username} {faName} {stats} {hardestGrade} {isSelf} {onBack} contributions={contributions.current} />
+  <ProfileHeader
+    {username}
+    {faName}
+    {stats}
+    {hardestGrade}
+    {isSelf}
+    {onBack}
+    contributions={contributions.current}
+    unavailable={ascentsUnavailable}
+  />
 
   <!-- First run: every number above reads zero and every section below is missing, so the page
        needs one thing to do. Outside the QueryState on purpose - with no ascents it renders its
