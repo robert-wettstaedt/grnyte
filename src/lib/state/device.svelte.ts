@@ -60,18 +60,7 @@ export function hasCoarsePointer(): boolean {
  * ```
  */
 export function isFieldDevice(): boolean {
-  const override = readOverride()
-
-  if (override != null) {
-    return override
-  }
-
-  if (installed) {
-    return true
-  }
-
-  // A mouse *and* real hover *and* not installed is the only combination we treat as a desktop.
-  return !(fine && hover)
+  return shouldKeepOffline({ fine, hover, installed, override: readOverride() })
 }
 
 /** Running from the Home Screen or as an installed app rather than in a browser tab. Reactive. */
@@ -106,6 +95,32 @@ export async function requestPersistentStorage(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * The rule itself, separated from the browser it reads.
+ *
+ * Pure and exported so the asymmetry above can actually be asserted rather than argued: the whole
+ * point of this gate is that it fails towards keeping data, and "everything ambiguous answers yes"
+ * is a claim about a truth table, which is a thing a test can hold you to. Nothing else in here is
+ * testable at all, because it is four `matchMedia` reads at module load.
+ */
+export function shouldKeepOffline(device: {
+  fine: boolean
+  hover: boolean
+  installed: boolean
+  override: boolean | null
+}): boolean {
+  if (device.override != null) {
+    return device.override
+  }
+
+  if (device.installed) {
+    return true
+  }
+
+  // A mouse *and* real hover *and* not installed is the only combination we treat as a desktop.
+  return !(device.fine && device.hover)
 }
 
 /** The stored answer to "keep data on this device", or null when it is left to {@link isFieldDevice}. */

@@ -122,7 +122,7 @@
     bind:userFk
   />
 
-  <QueryState offlineExcluded resource={feed.resource}>
+  <QueryState resource={feed.resource}>
     {#snippet ready()}
       <EventFeed
         expandedIds={feed.expandedIds}

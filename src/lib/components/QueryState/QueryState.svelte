@@ -1,7 +1,6 @@
 <script lang="ts" generics="TOut">
   import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import { m } from '$lib/paraglide/messages.js'
-  import { isOnline } from '$lib/state/online.svelte'
   import type { QueryResource } from '$lib/zero/resource.svelte'
   import type { Snippet } from 'svelte'
   import { fade } from 'svelte/transition'
@@ -12,7 +11,6 @@
     error,
     forceState,
     loading,
-    offlineExcluded = false,
     ready,
     resource,
   }: {
@@ -32,17 +30,6 @@
      */
     forceState?: 'empty' | 'error' | 'loading'
     loading?: Snippet
-    /**
-     * Set on resources whose data is deliberately NOT kept for offline use: events, changes,
-     * reactions, and other people's ascents. See `preloadForOffline` in `$lib/zero/z.svelte` for
-     * what is kept and why.
-     *
-     * Offline those queries never reach the server and so never leave `unknown`, which means without
-     * this they sit on the loading skeleton forever and read as a broken screen. Worse is the empty
-     * branch, where a caller states the absence as a fact: "no grade opinions", "no ascents", "event
-     * not found". Say the data is not here, never that it does not exist.
-     */
-    offlineExcluded?: boolean
     /** Rendered once there is data to show; receives the DTO-mapped data. */
     ready: Snippet<[NonNullable<TOut>]>
     resource: QueryResource<TOut>
@@ -52,23 +39,18 @@
   const isEmpty = $derived(forceState === 'empty' || resource.isEmpty)
 
   // Tested ahead of the loading branch on purpose. Offline, a query with nothing in the local store
-  // is *stuck* loading rather than passing through it: `resource.svelte` reports unknown-and-empty
-  // as `loading`, and without a server there is nothing to move it on. Left alone that is a skeleton
-  // that pulses until the tab is closed.
+  // is *stuck* loading rather than passing through it: there is no server to move it on, so left
+  // alone it is a skeleton that pulses until the tab closes.
   //
-  // Deliberately not limited to `offlineExcluded`. Any resource can be in this state, including ones
-  // that are meant to be available offline but were never synced on this device. `offlineExcluded`
-  // only picks the wording: data we chose not to keep, against data that simply is not here yet.
-  //
-  // `loading` only, never `isEmpty`. An empty result that reached `ready` is an answer: the query
-  // completed and there genuinely are no rows. Calling that "not downloaded" because the connection
-  // happens to be down now is the same inversion this branch exists to prevent, running the other
-  // way, and it told readers a crag they had fully synced was missing from their device.
-  const unavailableOffline = $derived(!isOnline() && status === 'loading')
+  // Which of the two messages to show is the resource's judgement now, not this component's. It is
+  // the only layer that knows which query it is running and therefore whether the data is missing
+  // because we chose not to keep it or because this device simply has not got it. The
+  // `offlineExcluded` prop that used to carry that answer in from six call sites is gone.
+  const availability = $derived(forceState == null ? resource.availability : 'ready')
 </script>
 
-{#if unavailableOffline}
-  <OfflineNotice excluded={offlineExcluded} />
+{#if availability === 'excluded' || availability === 'unsynced'}
+  <OfflineNotice excluded={availability === 'excluded'} />
 {:else if status === 'error'}
   {#if error}
     {@render error()}

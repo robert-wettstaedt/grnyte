@@ -63,6 +63,11 @@ export function filteredRouteList<T extends { id: number }>(
   })
 
   return {
+    // Delegated, not recomputed: whether the rows are on this device is a fact about the underlying
+    // query, and a client-side filter emptying the result does not change it.
+    get availability() {
+      return routes.availability
+    },
     get data() {
       return data
     },

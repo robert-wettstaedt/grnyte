@@ -39,7 +39,11 @@
   const { isSelf, onBack, userId, username }: Props = $props()
   const global = getGlobalState()
 
-  const ascents = userAscentDetailList(() => userId)
+  const ascents = userAscentDetailList(
+    () => userId,
+    () => true,
+    () => isSelf,
+  )
   // Crag-database contributions (areas/blocks/routes edited), counted server-side
   // rather than syncing the whole audit log just for a headline number.
   const contributions = $derived(userContributionCount(userId))
@@ -209,9 +213,7 @@
     </a>
   {/if}
 
-  <!-- Your own logbook is preloaded and stays readable offline; somebody else's is not synced,
-       so offline it must say so rather than render an empty year. -->
-  <QueryState offlineExcluded={!isSelf} resource={ascents}>
+  <QueryState resource={ascents}>
     {#snippet ready()}
       <div class="space-y-8">
         <!-- Activity heatmap -->
