@@ -55,6 +55,7 @@ const UNREACHABLE_HOLD_MS = 10_000
  */
 const TERMINAL = ['closed', 'error', 'needs-auth']
 
+let currentConnectionState = 'connecting'
 let online = $state(true)
 let reachable = $state(true)
 let reported: string | undefined
@@ -70,11 +71,20 @@ if (browser) {
     void probeReachability()
   })
   // A tab returning to the foreground has missed whatever happened while it was away, including its
-  // own socket being closed on purpose, and Zero may not change state again to tell us. Re-ask.
+  // own socket being closed on purpose, and Zero may not change state again to tell us.
+  //
+  // Both halves are needed. The probe re-asks the network. Clearing `reported` re-arms the hold:
+  // `reportConnectionState` acts only on a *change* of state name, so a client parked in
+  // `disconnected` for a non-Hidden reason emits nothing further, and the hold that was skipped
+  // while hidden would never be started again.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      void probeReachability()
+    if (document.visibilityState !== 'visible') {
+      return
     }
+
+    reported = undefined
+    reportConnectionState({ name: currentConnectionState })
+    void probeReachability()
   })
   void probeReachability()
 }
@@ -144,6 +154,8 @@ export function reportConnectionState(state: { name: string }): void {
   // so treating each emission as news means the ten-second hold below is restarted before it can
   // ever fire and the app never notices it is offline. The name is the whole signal: `reason` is an
   // opaque message string in the public type and differs between otherwise identical retries.
+  currentConnectionState = state.name
+
   if (state.name === reported) {
     return
   }

@@ -22,8 +22,11 @@ const SOURCE = readFileSync('src/lib/zero/z.svelte.ts', 'utf-8')
 
 describe('the offline policy table', () => {
   it('preloads every query it says is kept', () => {
+    // `z.preload(queries.X(`, not `queries.X(` anywhere: two of these names also appear in a
+    // `z.run` call, and the looser match let those two be satisfied by the `run` alone - both
+    // `preload` lines could have been deleted with every assertion here still green.
     const missing = [...OFFLINE_QUERIES.always, ...OFFLINE_QUERIES.field].filter(
-      (name) => !SOURCE.includes(`queries.${name}(`),
+      (name) => !SOURCE.includes(`z.preload(queries.${name}(`),
     )
 
     expect(missing).toEqual([])

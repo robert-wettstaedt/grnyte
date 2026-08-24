@@ -9,9 +9,16 @@ import type { queries } from './queries'
  * actually did. A screen could pass `offlineExcluded` while its rows sat in the replica anyway, and
  * a query added to the preload list gained no offline behaviour in the UI at all.
  *
- * Now `preloadForOffline` iterates this table and every resource reads its own entry through
- * {@link offlinePolicyOf}, keyed on the query name Zero already carries at runtime. Adding a query
- * to the guidebook and teaching every screen that renders it are the same edit.
+ * Now every resource reads its own entry through {@link offlinePolicyOf}, keyed on the query name
+ * Zero already carries at runtime, so teaching every screen what a query's absence means is one
+ * edit here rather than a prop threaded through each of them.
+ *
+ * The sync half is not driven from this table, and saying otherwise would be the next comment to
+ * mislead somebody: `preloadForOffline` and `initZero` still issue their `preload` calls by hand,
+ * because each needs arguments (`{}`, a numeric user id, a list of region ids) that a name-keyed
+ * table cannot carry, and two of them have to wait on a lookup first. Adding a query to the
+ * guidebook is therefore still two edits, here and in `z.svelte.ts`. `offline.drift.test.ts` is
+ * what stops those two drifting apart.
  *
  * Settled with the user; do not widen it without asking, the cost is not local. Each pinned row
  * costs roughly 510 bytes of CVR per client group on the server, so a fully preloaded user is about
@@ -51,6 +58,11 @@ export const OFFLINE_QUERIES = {
   //
   // Then your own ticks and saves, and everybody in your regions - the one table the guidebook does
   // not reach that descriptions still point at, through `!users:id!` mentions.
+  //
+  // `listUserAllFavorites` is classified for its only caller, which asks about the signed-in user
+  // and is the only one preloaded. Called for somebody else it would promise "connect once and it
+  // downloads", which would never come true. No such call site exists; if one appears, it needs the
+  // per-usage `offline` override the way `userAscentDetailList` does.
   field: ['listAreas', 'listBlocks', 'listRoutes', 'listUserAllFavorites', 'listUserAscents', 'listUsers'],
 } satisfies Record<OfflinePolicy, QueryName[]>
 

@@ -51,19 +51,18 @@
    * connection state (see the holds above), `announcement` the active, undismissed
    * announcement copy or null.
    *
-   * Being offline suppresses both sync branches: it is the more specific and more
-   * actionable diagnosis, and it keeps "not syncing" honestly meaning "your net is
-   * fine, ours is not".
+   * Offline suppresses the reconnecting branch but not the terminal one, which is the only branch
+   * carrying an action. See the ordering note in the body.
    */
   export function resolveStatus(
     online: boolean,
     connection: string,
     announcement: (() => string) | null,
   ): null | Status {
-    if (!online) {
-      return { icon: 'no-signal', message: m.status_offline, role: 'status', tone: 'preset-tonal-warning' }
-    }
-
+    // Terminal first, offline second. These states carry the only action the bar ever offers, and
+    // the offline branch has none: a reader whose sync is dead and whose reachability flag happens
+    // to be stale got the actionless "you're offline" bar with the reload button hidden behind it.
+    // Being told the wrong cause is survivable; being shown no way out is not.
     if (TERMINAL.includes(connection)) {
       return {
         action: 'reload',
@@ -72,6 +71,12 @@
         role: 'alert',
         tone: 'preset-tonal-error',
       }
+    }
+
+    // Then offline, which is the more specific and more actionable diagnosis of a sync that is not
+    // running, and which keeps "not syncing" honestly meaning "your net is fine, ours is not".
+    if (!online) {
+      return { icon: 'no-signal', message: m.status_offline, role: 'status', tone: 'preset-tonal-warning' }
     }
 
     if (connection !== 'connected') {

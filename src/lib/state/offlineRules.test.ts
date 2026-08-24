@@ -6,7 +6,9 @@ import { connectionVerdict } from './online.svelte'
  * The two rules the offline behaviour turns on, neither of which was assertable before: each lived
  * inside a function that also owned a timer, module state, or four `matchMedia` reads.
  *
- * Every case below is a bug that shipped. That is the argument for the file existing.
+ * Most of the cases below are bugs that shipped, which is the argument for the file existing; the
+ * rest pin the neighbouring branches so a fix to one cannot quietly move another. The adapter around
+ * these two - the hold, the dedupe, the visibility gate - is covered in `onlineHold.test.ts`.
  */
 
 describe('connectionVerdict', () => {

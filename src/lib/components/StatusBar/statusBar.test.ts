@@ -9,11 +9,21 @@ describe('resolveStatus', () => {
     expect(resolveStatus(true, 'connected', null)).toBeNull()
   })
 
-  it('offline wins over every sync state', () => {
-    for (const connection of ['connected', 'connecting', 'needs-auth', 'closed', 'error']) {
+  it('offline wins over a sync that is merely retrying', () => {
+    for (const connection of ['connected', 'connecting']) {
       const status = resolveStatus(false, connection, announcement)
       expect(status).toMatchObject({ icon: 'no-signal', tone: 'preset-tonal-warning' })
       expect(status?.action).toBeUndefined()
+    }
+  })
+
+  it('but not over a sync that has stopped, because only that branch offers a way out', () => {
+    // A terminal state needs a reload, and the offline bar has no action on it. Suppressing the
+    // reload button behind a reachability flag that had gone stale left a reader with a dead sync
+    // looking at "you're offline" and nothing to press. Being told the wrong cause is survivable;
+    // being shown no way out is not.
+    for (const connection of ['needs-auth', 'error', 'closed']) {
+      expect(resolveStatus(false, connection, announcement)).toMatchObject({ action: 'reload', role: 'alert' })
     }
   })
 

@@ -4,6 +4,7 @@
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import MediaLightbox from '$lib/components/Media/MediaLightbox.svelte'
+  import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import PushSetup from '$lib/components/PushSetup/PushSetup.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
@@ -27,6 +28,13 @@
   const ascents = routeAscentList(() => routeId)
 
   const routeHref = $derived(resolve('/(app)/routes/[id]', { id: String(routeId) }))
+
+  // The route itself is preloaded and renders offline; everyone's ascents on it are not kept, and
+  // the replica holds whatever fragment other preloads left behind. Every number on this screen is
+  // derived from that list - the header tally, the filter chip counts, the "community" heading, and
+  // "no ascents yet" - so unless the list is trustworthy none of them may be shown. Rendering them
+  // anyway said "0 ascents" on a route with fifty, and dropped the community section in silence.
+  const ascentsUnavailable = $derived(ascents.availability !== 'ready')
 
   let filter = $state<'all' | AscentType>('all')
 
@@ -86,14 +94,16 @@
       <PageHeader onback={() => back(routeHref)}>
         <div class="flex min-w-0 flex-1 flex-col">
           <span class="text-surface-600-400 truncate text-xs">
-            {detail.name} · {gradeLabel(global.grades, global.gradingScale, detail.gradeFk)} ·
-            {m.ascents_count({ count: ascents.data.length })}
+            {detail.name} · {gradeLabel(global.grades, global.gradingScale, detail.gradeFk)}{ascentsUnavailable
+              ? ''
+              : ` · ${m.ascents_count({ count: ascents.data.length })}`}
           </span>
           <span class="text-base font-bold">{m.ascents_title()}</span>
         </div>
 
         {#snippet bottom()}
-          <div class="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5">
+          <!-- Every chip carries a count off the same list, so they go together with it. -->
+          <div class={['-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5', ascentsUnavailable && 'hidden']}>
             {#each chips as { color, count, key, label } (key)}
               <button
                 class={[
@@ -113,51 +123,55 @@
       </PageHeader>
 
       <div class="flex flex-col gap-5 px-4 py-4">
-        <!-- This is where logging an ascent lands, so it is the moment somebody has just put
+        {#if ascentsUnavailable}
+          <OfflineNotice excluded />
+        {:else}
+          <!-- This is where logging an ascent lands, so it is the moment somebody has just put
              something into the app and might want to hear when others touch it. Only shown once
              they have an ascent here, and only to somebody who has not answered the ask yet: the
              dismissal flag is shared with every other surface, and the card retires itself once
              permission is granted. -->
-        {#if split.mine.length > 0}
-          <PushSetup dismissible />
+          {#if split.mine.length > 0}
+            <PushSetup dismissible />
 
-          <section class="flex flex-col gap-2">
-            <h2 class="text-primary-400 text-xs font-bold tracking-wider uppercase">{m.ascents_yourLogbook()}</h2>
-            {#each split.mine as ascent (ascent.id)}
-              <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
-                <AscentRow
-                  {ascent}
-                  expanded={ascent.id === targetId}
-                  highlight
-                  id={`ascent-${ascent.id}`}
-                  routeName={detail.name}
-                />
-              </div>
-            {/each}
-          </section>
-        {/if}
+            <section class="flex flex-col gap-2">
+              <h2 class="text-primary-400 text-xs font-bold tracking-wider uppercase">{m.ascents_yourLogbook()}</h2>
+              {#each split.mine as ascent (ascent.id)}
+                <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
+                  <AscentRow
+                    {ascent}
+                    expanded={ascent.id === targetId}
+                    highlight
+                    id={`ascent-${ascent.id}`}
+                    routeName={detail.name}
+                  />
+                </div>
+              {/each}
+            </section>
+          {/if}
 
-        {#if split.community.length > 0}
-          <section class="flex flex-col gap-2">
-            <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
-              {m.ascents_community()} · {split.community.length}
-            </h2>
-            {#each split.community as ascent (ascent.id)}
-              <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
-                <AscentRow
-                  {ascent}
-                  expanded={ascent.id === targetId}
-                  highlight={ascent.id === targetId}
-                  id={`ascent-${ascent.id}`}
-                  routeName={detail.name}
-                />
-              </div>
-            {/each}
-          </section>
-        {/if}
+          {#if split.community.length > 0}
+            <section class="flex flex-col gap-2">
+              <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">
+                {m.ascents_community()} · {split.community.length}
+              </h2>
+              {#each split.community as ascent (ascent.id)}
+                <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
+                  <AscentRow
+                    {ascent}
+                    expanded={ascent.id === targetId}
+                    highlight={ascent.id === targetId}
+                    id={`ascent-${ascent.id}`}
+                    routeName={detail.name}
+                  />
+                </div>
+              {/each}
+            </section>
+          {/if}
 
-        {#if filtered.length === 0}
-          <p class="text-surface-500 text-sm">{m.ascents_empty()}</p>
+          {#if filtered.length === 0}
+            <p class="text-surface-500 text-sm">{m.ascents_empty()}</p>
+          {/if}
         {/if}
       </div>
 

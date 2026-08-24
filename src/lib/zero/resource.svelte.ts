@@ -1,4 +1,6 @@
+import { isFieldDevice } from '$lib/state/device.svelte'
 import { isOnline } from '$lib/state/online.svelte'
+import { lastSyncedAt } from '$lib/state/sync.svelte'
 import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@rocicorp/zero'
 import { offlinePolicyOf, type OfflinePolicy } from './offline'
 import { getZ } from './z.svelte'
@@ -10,8 +12,11 @@ import type { Schema } from './zero-schema'
  * - `ready`: there is an answer. Possibly an empty one, which is still an answer.
  * - `loading`: genuinely on its way. Only ever reported while online.
  * - `excluded`: offline, and this is data we deliberately do not keep (see `OFFLINE_QUERIES`).
- *   It is not coming until the connection does.
+ *   It is not coming until the connection does, and whatever rows are locally present are a
+ *   fragment left by some other query's preload rather than the answer.
  * - `unsynced`: offline, and this simply is not on the device. It may exist; we cannot say.
+ * - `error`: the server rejected or failed it. A fact rather than an absence, but it belongs in the
+ *   same union so that a caller asking "may I state this number" gets one answer and not four.
  *
  * The last two used to be four separate judgements in four modules, each reading different
  * evidence, and three of them were wrong: one called a completed-and-genuinely-empty result "not
@@ -20,7 +25,7 @@ import type { Schema } from './zero-schema'
  * themselves when a backgrounded tab loses its socket. The resource is the only layer holding all
  * the evidence, so the judgement belongs here.
  */
-export type Availability = 'excluded' | 'loading' | 'ready' | 'unsynced'
+export type Availability = 'error' | 'excluded' | 'loading' | 'ready' | 'unsynced'
 
 /**
  * What pages and components see: reactive, DTO-mapped query state.
@@ -55,18 +60,48 @@ class Resource<
   TOut,
 > implements QueryResource<TOut> {
   get availability(): Availability {
-    // An answer, including an authoritatively empty one. `error` is not this member's business:
-    // callers branch on `status` for that, and an error is a fact rather than an absence.
+    if (this.#status === 'error') {
+      return 'error'
+    }
+
+    const policy = this.#offline ?? offlinePolicyOf(this.#queryName)
+    const offline = !isOnline()
+
+    // Tested before the rows are, and this order is the whole point. Zero answers a query from the
+    // local replica, and an excluded query's table is seeded by *other* preloads: a stranger's
+    // ascents arrive with the routes you browsed. So offline these queries hold a fragment, and a
+    // fragment is indistinguishable from an answer by row count alone. Reporting `ready` because
+    // something is there let a profile draw a tally, a hardest grade and a whole grade histogram out
+    // of whichever few rows happened to be local, and present them as that person's climbing.
+    if (offline && policy === 'excluded') {
+      return 'excluded'
+    }
+
     if (this.#status !== 'loading') {
       return 'ready'
     }
 
     // Online, "nothing yet" means exactly that.
-    if (isOnline()) {
+    if (!offline) {
       return 'loading'
     }
 
-    return (this.#offline ?? offlinePolicyOf(this.#queryName)) === 'excluded' ? 'excluded' : 'unsynced'
+    // Offline and empty. Empty is an *answer* here rather than a gap, but only on a device that
+    // actually ran the preload which would have filled it: `always` everywhere, `field` only where
+    // the guidebook is kept. Without this an area that genuinely has no routes told a reader with a
+    // fully synced guidebook to reconnect and download it, which is the same wrong claim as the
+    // fragment above with the sign flipped.
+    const synced = lastSyncedAt() != null
+
+    if (policy === 'always' && synced) {
+      return 'ready'
+    }
+
+    if (policy === 'field' && synced && isFieldDevice()) {
+      return 'ready'
+    }
+
+    return 'unsynced'
   }
 
   get data(): TOut {

@@ -88,12 +88,22 @@
   // went wrong on our end" while the status bar above it said "you're offline". Everything typed in
   // was lost, which is the one outcome a form must never produce for a cause it can recognise.
   let offline = $state(false)
-</script>
 
-<!-- Back online → restore the form; the remote form keeps the entered values. The window event is
-     kept as the trigger, but `isOnline()` decides, so a captive portal that fires `online` without
-     giving us a route does not put the reader back on a form that cannot submit. -->
-<svelte:window ononline={() => (offline = !isOnline())} />
+  // Back online → restore the form; the remote form keeps the entered values in module state, so
+  // they survive the swap.
+  //
+  // An `$effect` on `isOnline()` rather than the `online` window event, which was the trigger
+  // before. That event fires when the *browser* decides the network returned, which is a different
+  // question, and it does not fire at all in the case that actually strands somebody: the browser
+  // never claimed to be offline, the reachability probe or Zero's hold was what went false, and
+  // nothing afterwards told this component otherwise. The form then sat on the error state for the
+  // life of the mounted component with everything typed into it behind that tile.
+  $effect(() => {
+    if (isOnline()) {
+      offline = false
+    }
+  })
+</script>
 
 {#if offline}
   <ErrorState type="offline" />

@@ -12,9 +12,17 @@ import { currentUser, currentUserRole } from '$lib/entities/user/resources.svelt
 import { isOnline } from '$lib/state/online.svelte'
 import { lastSyncedAt } from '$lib/state/sync.svelte'
 import type { QueryResource } from '$lib/zero/resource.svelte'
+import { getZ } from '$lib/zero/z.svelte'
 import { getContext, setContext } from 'svelte'
 
 const GLOBAL_STATE_KEY = Symbol('global-state')
+
+/**
+ * Connection states Zero stops retrying out of, so a replica that is empty in one of them stays
+ * empty until somebody acts. Same list as `StatusBar`'s and `online.svelte`'s, for the same reason;
+ * they disagree only about what to *do* about it.
+ */
+const TERMINAL_CONNECTION = ['closed', 'error', 'needs-auth']
 
 /**
  * App-wide reference data and the signed-in user, loaded once from Zero and
@@ -119,15 +127,26 @@ export function setGlobalState(): GlobalState | undefined {
       )
     },
     get isStoreCold() {
-      // Offline with nothing usable in the local store. `isLoading` cannot tell this apart from a
-      // slow first sync on its own: an unknown-and-empty result is reported as `loading` and stays
-      // there for as long as the server is unreachable, so without this branch the app sits on a
-      // full-screen spinner forever with no way out and no status bar to explain it.
+      // Nothing usable in the local store, and nothing coming that will change that. `isLoading`
+      // cannot tell this apart from a slow first sync on its own: an unknown-and-empty result reads
+      // as `loading` and stays there for as long as the server is unreachable, so without this
+      // branch the app sits on a full-screen spinner forever, with no status bar to explain it and
+      // no way out.
+      //
+      // "Nothing coming" is two cases, not one. Offline is the obvious one. The other is a sync the
+      // server refuses: Zero parks its run loop in `needs-auth` and `error` and stops retrying, and
+      // since both of those are (correctly) evidence that the *network* is fine, `isOnline()` stays
+      // true and this branch used to miss them entirely - which put an empty replica behind exactly
+      // the bare spinner described above, the one case this exists to prevent.
       //
       // Deliberately not gated on `lastSyncedAt`: a first-ever visit made offline is stuck in
       // exactly the same way and deserves the same escape. The stamp only decides the wording,
       // "reconnect to restore" against "connect to get started", which the layout reads separately.
-      return !isOnline() && this.isLoading
+      if (!this.isLoading) {
+        return false
+      }
+
+      return !isOnline() || TERMINAL_CONNECTION.includes(getZ().connectionState.name)
     },
     get lastSyncedAt() {
       return lastSyncedAt()
