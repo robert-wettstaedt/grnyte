@@ -71,6 +71,15 @@ jobs:
           npm run migrate
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ci/seed.sql
 
+      # Ahead of the tests, for two reasons. CI did not build at all until now, so a build that fails
+      # only reached anybody at deploy time. And `src/sw.size.test.ts` asserts a ceiling on the
+      # emitted `build/client/sw.js`, which it can only do where that file exists - without this it
+      # skipped itself on every clean checkout and the regression it exists to catch (a transitive
+      # import putting 300 KB of Zod into the service worker) would have shipped exactly as quietly
+      # as it did the first time. Every variable the build reads is in the `env` block above.
+      - name: Build
+        run: npm run build
+
       - name: Run tests
         run: npm test
 
