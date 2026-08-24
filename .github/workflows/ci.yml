@@ -35,6 +35,9 @@ jobs:
       RESEND_API_KEY: foobar
       PUBLIC_APPLICATION_NAME: foobar
       PUBLIC_DEMO_MODE: foobar
+      # Deliberately not a URL. The build prerenders /offline, and the auth hook bails out of
+      # building a Supabase client while prerendering; a valid value here would hide it if
+      # that guard ever goes away.
       PUBLIC_SUPABASE_URL: foobar
       PUBLIC_SUPABASE_ANON_KEY: foobar
       SUPABASE_SERVICE_ROLE_KEY: foobar
