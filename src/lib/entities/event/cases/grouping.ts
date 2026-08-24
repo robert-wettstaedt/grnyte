@@ -903,7 +903,7 @@ export const GROUPING_CASES: EventCase[] = [
       eventAgo(32, { actorFk: ME, metadata: 'photo', objectId: 500, verb: 'remove' }),
     ],
     expected:
-      'One KIND `burst` card of two events: `metadata` scopes the server fold, so a photo and a video stay apart there and then group on the client as crag edits under Nordblock. Both rows resolve the same sentence, so the card speaks it rather than a group verb, with the mixed media word: "You removed media from Kante direkt", sub line "2 files".',
+      'One KIND `burst` card of two events: `metadata` scopes the server fold, so a photo and a video stay apart there and then group on the client as guidebook edits under Nordblock. Both rows resolve the same sentence, so the card speaks it rather than a group verb, with the mixed media word: "You removed media from Kante direkt", sub line "2 files".',
     id: 'GROUP-08d',
     writer: 'files.remote.ts:344',
   },

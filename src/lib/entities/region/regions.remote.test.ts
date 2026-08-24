@@ -92,9 +92,9 @@ beforeAll(async () => {
     insert into public.blocks (name, area_fk, region_fk, created_by, "order")
     values ('__regions_remote_block_other__', ${otherArea.id}, ${otherRegionId}, ${admin.userId}, 0) returning id`
 
-  // Two crag-data contributions in HOME, one in OTHER, and one ascent event that is not a crag edit
+  // Two guidebook contributions in HOME, one in OTHER, and one ascent event that is not a guidebook edit
   // at all: `userContributionCount` asks which OBJECT column is set, and an ascent is a climber's
-  // own log rather than crag data.
+  // own log rather than guidebook data.
   await sql`
     insert into public.events (region_fk, actor_fk, verb, area_fk, block_fk, route_fk, ascent_fk) values
       (${homeRegionId},  ${contributor.userId}, 'create', null,             null,             ${homeRoute.id}, null),
@@ -170,9 +170,9 @@ describe.skipIf(!reachable)('listRegionInvitations', () => {
 })
 
 describe.skipIf(!reachable)('userContributionCount', () => {
-  it('counts crag edits across every region the caller can read', async () => {
+  it('counts guidebook edits across every region the caller can read', async () => {
     // Three of the four fixture rows: two in HOME, one in OTHER. The fourth is an ascent, which is
-    // not a crag data edit and never was counted.
+    // not a guidebook data edit and never was counted.
     const total = await asRequest(admin.authId, () => userContributionCount(contributor.userId))
 
     expect(total).toBe(3)

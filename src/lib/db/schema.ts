@@ -221,7 +221,7 @@ export const userSettings = table(
     notifyDirected: boolean('notify_directed').notNull().default(true),
 
     /** Named for what it always governed: 1.0's `notify_moderations` fell through to 'moderate'
-     *  for anything that was not an ascent or a user, so the flag covered every crag edit. */
+     *  for anything that was not an ascent or a user, so the flag covered every guidebook edit. */
     notifyGuidebookEdits: boolean('notify_guidebook_edits').notNull().default(true),
     /** Push when somebody reacts to something you logged or edited. */
     notifyReactions: boolean('notify_reactions').notNull().default(true),
@@ -1913,7 +1913,7 @@ export const notificationSourceType: [
  * Deliberately NOT where region activity lives. Broadcast events are already on screen in the
  * feed, already grouped and already hydrated, so a row per recipient would store what the feed
  * holds N times over only to render it a second time. What the badge counts is what was aimed at
- * the reader; a badge dominated by crag edits trains people to ignore it.
+ * the reader; a badge dominated by guidebook edits trains people to ignore it.
  *
  * Only the server writes here (the fan-out runs on the privileged handle), so there is no insert
  * or delete policy: an own-rows insert policy would by definition reject a row the actor is

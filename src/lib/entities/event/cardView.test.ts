@@ -39,7 +39,7 @@ function ascentRow(partial: Partial<CardLine>): CardLine {
 }
 
 /**
- * Crag edits under one block, which is what makes them one burst: the key is the actor plus
+ * Guidebook edits under one block, which is what makes them one burst: the key is the actor plus
  * the parent, so rows without a shared parent would each get their own card.
  */
 function burstRows(count: number, partial: (index: number) => Partial<CardLine>): CardLine[] {

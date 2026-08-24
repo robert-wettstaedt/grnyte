@@ -44,7 +44,7 @@
     () => true,
     () => isSelf,
   )
-  // Crag-database contributions (areas/blocks/routes edited), counted server-side
+  // Guidebook contributions (areas/blocks/routes edited), counted server-side
   // rather than syncing the whole audit log just for a headline number.
   const contributions = $derived(userContributionCount(userId))
 

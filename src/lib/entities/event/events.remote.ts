@@ -4,10 +4,10 @@ import { and, count, eq, isNotNull, or } from 'drizzle-orm'
 import z from 'zod'
 
 /**
- * How many contributions to the crag database (areas, blocks and routes the user created, edited
+ * How many contributions to the guidebook (areas, blocks and routes the user created, edited
  * or removed) a user has.
  *
- * Ascents and media are deliberately out: those are a climber's own log, not crag data. Off the
+ * Ascents and media are deliberately out: those are a climber's own log, not guidebook data. Off the
  * three object columns now rather than off a polymorphic `entity_type`, which is the same question
  * asked of a shape that can answer it.
  *

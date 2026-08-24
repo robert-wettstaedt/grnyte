@@ -26,7 +26,7 @@ export interface EventGroup {
 /**
  * How a card presents its events:
  * - `session` one climber's ascents logged in one sitting
- * - `burst`   one editor's crag edits around the same place, close in time
+ * - `burst`   one editor's guidebook edits around the same place, close in time
  * - `removal` one editor's whole-entity deletions around the same place, close in time
  * - `upload`  one uploader's media landing on the same entity, close in time
  * - `entity`  one person's edits to the same entity, close in time

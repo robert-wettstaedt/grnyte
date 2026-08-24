@@ -108,7 +108,7 @@ async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> 
     .where(eq(userSettings.userFk, userFk))
 }
 
-/** Which switch governs an event: everything that is not an ascent or a person is a crag edit. */
+/** Which switch governs an event: everything that is not an ascent or a person is a guidebook edit. */
 function categoryEnabled(
   event: Pick<DigestEvent, 'ascentFk' | 'subjectFk' | 'verb'>,
   settings: { notifyAscents: boolean | null; notifyCommunity: boolean | null; notifyGuidebookEdits: boolean | null },

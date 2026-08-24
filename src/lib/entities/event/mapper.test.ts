@@ -128,8 +128,8 @@ describe.skipIf(!usable)('toEvent', () => {
         // Null object columns mean "the event's own object", which is the common path; a reorder
         // is what sets them.
         expect(change.objectType == null || change.objectType.length > 0).toBe(true)
-        }
       }
+    }
   })
 })
 

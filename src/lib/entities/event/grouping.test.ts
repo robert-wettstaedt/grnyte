@@ -9,7 +9,7 @@ const day = (n: number, hour = 12) => new Date(2026, 0, n, hour).getTime()
 const ascent = (partial: Partial<EventListItem> = {}) =>
   event({ objectType: 'ascent', parent: { id: 500, type: 'route' }, verb: 'create', ...partial })
 
-/** Crag edits under one block, the locality a burst keys on. */
+/** Guidebook edits under one block, the locality a burst keys on. */
 const underBlock = { parent: { id: 400, type: 'block' } } as const
 
 /** An ascent's entity, carrying only the climb day a session ends at. */
@@ -37,7 +37,7 @@ describe('groupEvents', () => {
     expect(groups[1].actorFk).toBe(2)
   })
 
-  it('groups one editor s crag edits under the same parent into a burst, and splits on the window', () => {
+  it('groups one editor s guidebook edits under the same parent into a burst, and splits on the window', () => {
     const noon = day(1, 12)
     const groups = groupEvents([
       event({ createdAt: noon, objectId: 1, parent: { id: 7, type: 'block' } }),

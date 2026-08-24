@@ -273,7 +273,7 @@
        reading them is not necessarily one that receives anything. A laptop where the native prompt
        was never answered still has to be able to change what the phone gets.
 
-       They govern PUSH only: a mention still lands in the inbox and a crag edit still lands in the
+       They govern PUSH only: a mention still lands in the inbox and a guidebook edit still lands in the
        feed whatever they say, which is why there is no switch that turns either of those off. -->
   <SettingSection title={m.settings_notificationsTypes()}>
     {#snippet aside()}
