@@ -34,10 +34,10 @@ export type EventCategory = 'ascent' | 'update'
  *
  * - `BURST_OBJECT_TYPES` in `grouping.ts` asks which objects share a burst card, where a file
  *   groups by the thing it landed on rather than by itself, so `file` is absent there.
- * - the `notifyGuidebookEdits` setting, which users read as "Crag edits", is broader in both
- *   directions: every verb, and everything that is not an ascent or a person. Its own hint says
- *   "New areas, blocks, routes, topos and photos", which is the `create` traffic this set exists
- *   to keep OUT of the compact tier.
+ * - the `notifyGuidebookEdits` setting, which is broader in both directions: every verb, and
+ *   everything that is not an ascent or a person. Its own hint says "New areas, blocks, routes,
+ *   topos and photos", which is the `create` traffic this set exists to keep OUT of the compact
+ *   tier. (Its user-facing label still reads "Crag edits"; the copy pass has not happened yet.)
  *
  * Three questions, three sets. Keep them apart.
  */
@@ -51,7 +51,7 @@ export const FIELD_EDIT_OBJECT_TYPES: ReadonlySet<EventObjectType> = new Set([
 export type EventObjectType = keyof typeof EVENT_OBJECT_COLUMNS
 
 /**
- * Whether an event is a SEND rather than a crag edit: about an ascent, and not a media removal.
+ * Whether an event is a SEND rather than a guidebook edit: about an ascent, and not a media removal.
  *
  * A removal logs on the parent, because the file row is gone by then, so it arrives as an ascent
  * event and is the one exception. Three places ask this: the feed's

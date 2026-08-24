@@ -21,8 +21,9 @@ must not be flattened to "area". Parking needs a real crag; blocks also accept a
 still-untyped area.
 
 One entity, never a collection. "Crag" must not be stretched to mean the whole body of
-rock data — that is the **guidebook**, below. `notify_crag_edits` and `CRAG_OBJECT_TYPES`
-both did exactly that, for two different sets, and were renamed.
+rock data — that is the **guidebook**, below. Two identifiers did exactly that, for two
+different sets, and were renamed: `notify_crag_edits` to `notify_guidebook_edits`, and
+`CRAG_OBJECT_TYPES` to `BURST_OBJECT_TYPES`.
 
 **guidebook**
 The corpus describing the rock: areas, blocks, routes, topos and photos. What a printed
@@ -105,11 +106,11 @@ row under them.
 **field edit**
 An `update` event on an area, block, route or file: somebody changed a column on a place.
 The narrowest reading of "an edit", and the only thing the feed may draw at compact tier.
-Deliberately not three neighbours it keeps being merged with: the `notifyCragEdits` setting,
-which users read as "Crag edits" and which is broader in both directions (every verb, and
-everything that is not an ascent or a person); `CRAG_OBJECT_TYPES` in `grouping.ts`, which
-asks which objects share a burst card and excludes files; and a `delete`, a role change or an
-ascent correction, none of which are background. Three sets, three questions.
+Deliberately not three neighbours it keeps being merged with: the `notifyGuidebookEdits`
+setting, which is broader in both directions (every verb, and everything that is not an
+ascent or a person); `BURST_OBJECT_TYPES` in `grouping.ts`, which asks which objects share
+a burst card and excludes files; and a `delete`, a role change or an ascent correction,
+none of which are background. Three sets, three questions.
 
 **reaction**
 A row in `reactions`, which holds **both** emoji and comments, discriminated by `type`. The
@@ -149,7 +150,7 @@ which of the two it means: "Jonas edited Mara's ascent", never "Jonas edited an 
 
 **group**
 Activity rows folded into one card. Four kinds, first match wins: **session** (one
-climber's ascents in one sitting), **burst** (one editor's crag edits in one place, close
+climber's ascents in one sitting), **burst** (one editor's guidebook edits in one place, close
 in time), **entity** (anyone's edits to the same entity, close in time) and **single**.
 None of them is a stored entity, they exist only for the feed.
 

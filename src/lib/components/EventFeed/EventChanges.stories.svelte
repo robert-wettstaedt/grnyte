@@ -112,7 +112,7 @@ Bring a second pad for the landing under the arete.`
     node.querySelectorAll('details').forEach((entry) => (entry.open = true))
   }
 
-  // What an ascent edit looks like: conditions and the ascent type, not crag data.
+  // What an ascent edit looks like: conditions and the ascent type, not guidebook data.
   const ascentEdit = [
     line({ actorFk: 1, columnName: 'type', newValue: 'redpoint', objectType: 'ascent', oldValue: 'attempt' }),
     line({ actorFk: 1, columnName: 'temperature', newValue: '4', objectType: 'ascent', oldValue: '11' }),

@@ -7,7 +7,7 @@
 
   // Avatar + username (+ first-ascentionist name) + headline stats.
   interface Props {
-    /** Crag-database contributions (areas/blocks/routes touched); undefined while loading. */
+    /** Guidebook contributions (areas/blocks/routes touched); undefined while loading. */
     contributions: number | undefined
     /** First-ascentionist display name(s), empty when the user has none. */
     faName: string
