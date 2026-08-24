@@ -5,7 +5,7 @@
 
 import type { Pathname } from '$app/types'
 import { ExpirationPlugin } from 'workbox-expiration'
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { cleanupOutdatedCaches, matchPrecache, precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
@@ -73,13 +73,19 @@ const OFFLINE_CACHE = 'offline-shell'
 const DYNAMIC_ENV = '/_app/env.js'
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(OFFLINE_CACHE).then(async (cache) => {
-      await cache.add(OFFLINE_SHELL)
-      // Tolerated separately: a failure here must not fail the install and cost us the shell too.
-      await cache.add(DYNAMIC_ENV).catch(() => undefined)
-    }),
-  )
+  // `addAll`, so the two land together or not at all, and a failure fails the install.
+  //
+  // The env module used to be added separately with its rejection swallowed, on the reasoning that
+  // losing it should not also cost us the shell. That had it backwards: a shell without the env
+  // module is not a degraded offline mode, it is a shell that hangs forever on an import nobody can
+  // see fail - no console error, no visible failure, just a page that never boots. Every other boot
+  // dependency gets an all-or-nothing install through the precache, and this one cannot join it
+  // (server-generated, so no glob matches it), so it gets the same treatment by hand.
+  //
+  // Failing the install is the recoverable outcome: the worker does not activate, the previous one
+  // stays, and the browser retries on a later navigation. Half-installing is the one that strands
+  // somebody at a crag.
+  event.waitUntil(caches.open(OFFLINE_CACHE).then((cache) => cache.addAll([OFFLINE_SHELL, DYNAMIC_ENV])))
 })
 
 // Serve the cached copy immediately and refresh it in the background. Network-first would put a
@@ -110,9 +116,19 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(event.request).catch(async () => {
-      const cached = await caches.match(OFFLINE_SHELL, { ignoreSearch: true })
-      // No shell cached means the install never completed; there is nothing better to offer than
-      // the browser's own failure page.
+      // The precache copy first, by name. `/offline` is prerendered, so it is a revisioned precache
+      // entry as well as the copy taken at install, and a bare `caches.match` scans every cache in
+      // creation order and answers from whichever holds it first. That happens to work, because both
+      // copies are the same document, but "happens to work by cache creation order" is not something
+      // to leave under the one request the whole offline story depends on.
+      //
+      // The install copy stays as the fallback rather than being deleted: the precache URL is
+      // recorded relative (`offline`, no leading slash) and whether `matchPrecache` resolves that to
+      // the same entry is not something this file can prove on its own. One 5 KB document is a cheap
+      // price for not gambling the entire offline boot on that.
+      const cached = (await matchPrecache(OFFLINE_SHELL)) ?? (await caches.match(OFFLINE_SHELL, { ignoreSearch: true }))
+      // Nothing cached means the install never completed; there is nothing better to offer than the
+      // browser's own failure page.
       return cached ?? Response.error()
     }),
   )
