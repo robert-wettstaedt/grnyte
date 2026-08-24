@@ -25,9 +25,18 @@ const config = {
     files: {
       serviceWorker: 'src/sw.ts',
     },
+    // Load-bearing for offline, and NOT the default (Kit's is `true`).
+    //
+    // With relative paths a prerendered page derives its asset prefixes from its own pathname, and
+    // `src/sw.ts` deliberately serves the prerendered `/offline` shell *in place* at whatever URL was
+    // asked for. At `/routes/748` every relative asset URL would resolve a level too deep and the
+    // whole boot would 404. Kit special-cases only its own SPA fallback, not a hand-rolled one.
     paths: {
       relative: false,
     },
+    // vite-pwa's `registerSW` is the only registration path (see `src/routes/+layout.svelte`); two
+    // registrations would fight over the same scope. Kit's own update check still works, because it
+    // goes through `getRegistration()` rather than a registration of its own.
     serviceWorker: {
       register: false,
     },

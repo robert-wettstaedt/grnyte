@@ -17,12 +17,22 @@
     /** The surfaces a reader can close. Passing it also opts the card into the nag policy, because
      *  a card nobody can dismiss has nothing to snooze. */
     dismissible?: boolean
+    /**
+     * Pitch offline rather than convenience, for the surfaces where that is the stronger reason:
+     * it is what a climber loses in a forest, and on iOS an installed app is also the difference
+     * between storage that survives a week and storage that survives indefinitely.
+     *
+     * A prop rather than a rewrite of `install_body`, because that copy is shared with PushSetup,
+     * where the card sits inside a notifications flow and an offline pitch answers a question
+     * nobody asked.
+     */
+    offline?: boolean
     /** A surface somebody navigated to on purpose. Falls back to naming the browser's own install
      *  entry rather than going quiet when there is no live prompt to fire. */
     permanent?: boolean
   }
 
-  const { class: className = '', dismissible = false, permanent = false }: Props = $props()
+  const { class: className = '', dismissible = false, offline = false, permanent = false }: Props = $props()
 
   // Every input is a browser fact, so on a server-rendered page this would resolve to 'none' and
   // then change under hydration. Not a problem at any of today's call sites - the (app) group is
@@ -48,14 +58,16 @@
 {#if mode !== 'none'}
   <div class="border-surface-200-800 bg-surface-100-900 flex gap-3 rounded-xl border p-4 {className}">
     <div class="bg-primary-500/15 text-primary-500 flex size-10 flex-none items-center justify-center rounded-xl">
-      <Icon name="smartphone" size={20} />
+      <Icon name={offline ? 'no-signal' : 'smartphone'} size={20} />
     </div>
 
     <div class="min-w-0 flex-1">
       <p class="text-surface-950-50 font-semibold">
         {mode === 'manual' ? m.install_manualTitle() : m.install_title()}
       </p>
-      <p class="text-surface-600-400 mt-0.5 text-sm text-pretty">{m.install_body()}</p>
+      <p class="text-surface-600-400 mt-0.5 text-sm text-pretty">
+        {offline ? m.install_offlineBody() : m.install_body()}
+      </p>
 
       {#if mode === 'prompt'}
         <!-- The click is load-bearing, not decoration: `prompt()` needs a user gesture. -->

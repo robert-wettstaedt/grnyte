@@ -1,5 +1,3 @@
-import z from 'zod'
-
 /**
  * The push contract: what a payload holds, and when one is due.
  *
@@ -15,21 +13,48 @@ export const DIGEST_TAG = 'digest'
 /** Its own tag per row, so two directed events do not replace one another. */
 export const directedTag = (notificationId: number): string => `notification:${notificationId}`
 
-export const pushPayloadSchema = z.object({
+export interface PushPayload {
   /**
    * Unread directed notifications, as the server counted them. The service worker sets the app
    * badge from this rather than from how many OS notifications happen to be lying around: those
    * are two different numbers, and only this one is the inbox.
    */
-  badge: z.number().optional(),
-  body: z.string().optional(),
+  badge?: number
+  body?: string
   /** Where a tap goes. `notificationclick` routes on it. */
-  pathname: z.string().optional(),
-  tag: z.string(),
-  title: z.string(),
-})
+  pathname?: string
+  tag: string
+  title: string
+}
 
-export type PushPayload = z.infer<typeof pushPayloadSchema>
+/**
+ * Hand-rolled rather than a Zod schema, and the reason is weight, not taste.
+ *
+ * This is the only runtime validation the service worker does, and the sender never validated at
+ * all (it constructs the payload from typed values). Importing Zod for it put the whole library,
+ * localized error messages for every locale included, into `sw.js`: 309 KB minified, for five
+ * fields. A worker script is re-parsed every time the browser starts it, which it does aggressively,
+ * and re-downloaded on every deploy, on exactly the low-end phones this feature exists for.
+ *
+ * Deliberately permissive about extra keys, where Zod's `parse` would strip them: nothing downstream
+ * reads a field it does not know about, and a sender one release ahead should still buzz the phone
+ * rather than go silent.
+ */
+export function isPushPayload(value: unknown): value is PushPayload {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const payload = value as Record<string, unknown>
+
+  return (
+    typeof payload.tag === 'string' &&
+    typeof payload.title === 'string' &&
+    (payload.badge === undefined || typeof payload.badge === 'number') &&
+    (payload.body === undefined || typeof payload.body === 'string') &&
+    (payload.pathname === undefined || typeof payload.pathname === 'string')
+  )
+}
 
 /**
  * How long a directed event waits before it is announced.

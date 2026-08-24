@@ -1,18 +1,14 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { page } from '$app/state'
   import LoadingIndicator from '$lib/components/LoadingIndicator/LoadingIndicator.svelte'
   import { replaceUrl } from '$lib/state/navigation.svelte'
   import { onMount } from 'svelte'
 
+  // This component only renders when somebody is genuinely on `/offline`. The service worker serves
+  // the prerendered shell in place for other routes, so those boot straight into the page they asked
+  // for and never mount this. Nothing to show at this path, so send them to the map.
   onMount(() => {
-    // The service worker serves this prerendered shell for offline navigations,
-    // bouncing here with the original path in `?redirect`. Hand off to it client-
-    // side — the (app) routes are CSR-only and read their data from Zero's local
-    // store, so they render without a network round-trip. (Runtime path from the
-    // service worker, not a static route; goto rejects external URLs.)
-    const target = page.url.searchParams.get('redirect') ?? resolve('/(app)/(shell)/(explore)/(map)/explore')
-    void replaceUrl(target)
+    void replaceUrl(resolve('/(app)/(shell)/(explore)/(map)/explore'))
   })
 </script>
 

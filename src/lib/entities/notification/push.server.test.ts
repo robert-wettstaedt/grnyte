@@ -12,7 +12,9 @@
  * HTTP - which is correct of it, and which is why the fake service cannot just be an `http` server.
  *
  * The browser leg (FCM delivering to the device, the worker rendering it) is not reachable from a
- * test; what makes that leg safe is `pushPayloadSchema`, which the sender and `src/sw.ts` share.
+ * test. What guards it is `isPushPayload` in the worker, which is a one-sided check: the sender
+ * builds the payload from typed values and validates nothing, so the shape is agreed by the
+ * `PushPayload` type and enforced only on arrival. `push.test.ts` covers that guard.
  *
  * Needs a VAPID pair and a database, and skips itself without either:
  *   PUBLIC_TOPO_EMAIL=dev@grnyte.rocks PUBLIC_VAPID_KEY=... PRIVATE_VAPID_KEY=... npx vitest run push.server

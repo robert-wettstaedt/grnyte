@@ -209,7 +209,9 @@
     </a>
   {/if}
 
-  <QueryState resource={ascents}>
+  <!-- Your own logbook is preloaded and stays readable offline; somebody else's is not synced,
+       so offline it must say so rather than render an empty year. -->
+  <QueryState offlineExcluded={!isSelf} resource={ascents}>
     {#snippet ready()}
       <div class="space-y-8">
         <!-- Activity heatmap -->

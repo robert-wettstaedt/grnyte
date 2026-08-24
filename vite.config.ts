@@ -172,7 +172,6 @@ export default defineConfig({
         start_url: '/explore',
         theme_color: '#8E43B2',
       },
-      mode: 'development',
       pwaAssets: {
         config: true,
       },

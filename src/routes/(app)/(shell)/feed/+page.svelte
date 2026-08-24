@@ -106,7 +106,7 @@
 <div class="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-24 md:pb-8">
   <!-- The highest-traffic surface, and the one that gains most from standalone chrome. Renders
        nothing on desktop, once installed, or once the nag policy has retired it. -->
-  <InstallApp dismissible />
+  <InstallApp dismissible offline />
 
   <EventFilters
     bind:category
@@ -122,7 +122,7 @@
     bind:userFk
   />
 
-  <QueryState resource={feed.resource}>
+  <QueryState offlineExcluded resource={feed.resource}>
     {#snippet ready()}
       <EventFeed
         expandedIds={feed.expandedIds}

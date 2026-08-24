@@ -1,4 +1,5 @@
 import { entityMappers, type EntityType } from '$lib/components/EntitySearch/search.svelte'
+import { isOnline } from '$lib/state/online.svelte'
 import { queries } from '$lib/zero/queries'
 import { createResource, type QueryResource } from '$lib/zero/resource.svelte'
 import type { MarkdownReference, MarkdownReferencesIds } from './remark-references'
@@ -9,9 +10,9 @@ import type { MarkdownReference, MarkdownReferencesIds } from './remark-referenc
  * no query runs for a reference type that isn't present. Wraps `createResource`
  * the same way the entity resource factories do, but spans all four tables.
  *
- * Once a kind's query is complete, any requested id missing from the result is a
- * deleted reference — surfaced as a `missing` tombstone so it renders "… not found"
- * instead of a dead link. Gated on `isComplete` so still-loading refs don't flash.
+ * Any requested id the query does not answer is surfaced as a placeholder rather than
+ * left alone, since an unenriched token renders as literal `!blocks:12!` in the prose.
+ * See {@link unresolved} for which placeholder, and why offline gets its own.
  */
 export function markdownReferences(ids: () => MarkdownReferencesIds) {
   // Names via the entity mappers, so a reference to a nameless route renders the
@@ -45,16 +46,31 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
     { enabled: () => ids().users.length > 0 },
   )
 
-  // Requested ids absent from a completed result are deleted targets → tombstones.
-  const tombstones = (
+  /**
+   * Every requested id the query did not answer, labelled by why we think it did not.
+   *
+   * A completed result is authoritative: the id is not there because the target was deleted, so it
+   * gets a tombstone. Offline nothing ever completes (Zero only calls a query complete once the
+   * server says so, and re-earns that on every connect), so an id missing from the local replica
+   * gets the softer "not available" instead: it may be perfectly alive, on a device that simply
+   * never synced it.
+   *
+   * Still loading and online is neither: return nothing and let the name arrive. The alternative is
+   * a placeholder that flashes in the middle of a sentence and is then replaced.
+   *
+   * Something must be emitted in both of the first two cases, because an unenriched `!blocks:12!`
+   * does not match the render plugin's pattern at all and survives into the page as literal text.
+   */
+  const unresolved = (
     type: EntityType,
     requested: number[],
     resource: QueryResource<MarkdownReference[]>,
   ): MarkdownReference[] => {
-    if (!resource.isComplete) return []
+    const offline = !isOnline()
+    if (!resource.isComplete && !offline) return []
     return requested
       .filter((id) => !resource.data.some((ref) => ref.id === id))
-      .map((id) => ({ id, missing: true, name: '', type }))
+      .map((id) => ({ id, missing: true, name: '', type, unavailable: !resource.isComplete }))
   }
 
   return {
@@ -64,10 +80,10 @@ export function markdownReferences(ids: () => MarkdownReferencesIds) {
         ...blocks.data,
         ...routes.data,
         ...users.data,
-        ...tombstones('areas', ids().areas, areas),
-        ...tombstones('blocks', ids().blocks, blocks),
-        ...tombstones('routes', ids().routes, routes),
-        ...tombstones('users', ids().users, users),
+        ...unresolved('areas', ids().areas, areas),
+        ...unresolved('blocks', ids().blocks, blocks),
+        ...unresolved('routes', ids().routes, routes),
+        ...unresolved('users', ids().users, users),
       ]
     },
   }

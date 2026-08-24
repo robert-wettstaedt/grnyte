@@ -10,8 +10,10 @@
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import MediaGrid from '$lib/components/Media/MediaGrid.svelte'
+  import OfflineNotice from '$lib/components/OfflineNotice/OfflineNotice.svelte'
   import PageHeader from '$lib/components/PageHeader/PageHeader.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import { isNavKeyExempt, toSheetNav } from '$lib/components/SiblingNav/siblingNav'
@@ -35,6 +37,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import { getGlobalState } from '$lib/state/global.svelte'
   import { back } from '$lib/state/navigation.svelte'
+  import { isOnline } from '$lib/state/online.svelte'
   import { SvelteMap } from 'svelte/reactivity'
   import RegionLive from './RegionLive.svelte'
   import RouteActions from './RouteActions.svelte'
@@ -52,6 +55,17 @@
   const topos = blockTopoList(() => route.data?.blockFk ?? -1)
   const ascents = routeAscentList(() => routeId)
   const files = routeFileList(() => routeId)
+
+  // Everyone's ascents on this route are deliberately not kept for offline use, so offline this
+  // query is incomplete by design and neither the list nor the grade histogram below may be drawn
+  // from it.
+  //
+  // Offline is the whole condition. It used to also require `ascents.data.length === 0`, on the
+  // theory that rows present meant the query had answered - but your own ascents ARE preloaded into
+  // this same query, so one logged attempt silenced the guard and the page then printed "no
+  // opinions yet" underneath a histogram built from a single vote. Both are claims about the route
+  // that we cannot make offline, whatever happens to be in the replica.
+  const ascentsUnavailable = $derived(!isOnline())
 
   // The most complete drawing of this route across the block's topos.
   const hit = $derived(selectTopoForRoute(topos.data, routeId))
@@ -264,7 +278,12 @@
           </section>
         {/if}
 
-        {#if ascents.data.length > 0}
+        {#if ascentsUnavailable}
+          <section class="flex flex-col gap-2.5">
+            <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
+            <OfflineNotice compact excluded />
+          </section>
+        {:else if ascents.data.length > 0}
           <section class="flex flex-col gap-2.5">
             <div class="flex items-baseline justify-between gap-3">
               <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">{m.ascents_title()}</h2>
@@ -326,6 +345,10 @@
                 showCounts
                 onselect={(bar) => (selectedVote = bar)}
               />
+            {:else if ascentsUnavailable}
+              <!-- The votes come from everyone's ascents, which are not kept for offline use. Saying
+                   "no opinions" here would state a fact about the route that we cannot know. -->
+              <OfflineNotice compact excluded />
             {:else}
               <p class="text-surface-500 text-sm">{m.routes_noOpinions()}</p>
             {/if}
@@ -357,6 +380,11 @@
           scopeId={String(detail.id)}
           scopeType="route"
         />
+
+        <!-- The deepest crag screen, and the one whose content is exactly what goes missing without
+             signal, so it is where the offline pitch is concrete rather than abstract. Renders
+             nothing on a desktop, in an installed app, or once the nag policy has retired it. -->
+        <InstallApp dismissible offline />
       </div>
 
       <!-- Sticky footer: sibling prev/next pager (like the explore sheets' NavFooter) on the
