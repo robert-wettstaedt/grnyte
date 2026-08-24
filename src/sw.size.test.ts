@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 /**
@@ -21,10 +21,20 @@ const MAX_BYTES = 120 * 1024
 
 const BUILT_WORKER = 'build/client/sw.js'
 
-describe('service worker size', () => {
-  it.runIf(existsSync(BUILT_WORKER))(`stays under ${MAX_BYTES / 1024} KB`, () => {
-    // Skipped rather than failed when there is no build: `npm test` runs constantly without one,
-    // and a test that demands `npm run build` first would just be turned off.
+describe('the built service worker', () => {
+  // Skipped rather than failed when there is no build: `npm test` runs constantly without one, and a
+  // test that demanded `npm run build` first would just be turned off. CI builds before testing.
+  const withBuild = it.runIf(existsSync(BUILT_WORKER))
+
+  withBuild(`stays under ${MAX_BYTES / 1024} KB`, () => {
     expect(statSync(BUILT_WORKER).size).toBeLessThan(MAX_BYTES)
+  })
+
+  withBuild('precaches the offline shell', () => {
+    // The shell is the whole offline story: every offline navigation is answered with it, and
+    // `sw.ts` reads it straight out of the precache with no second copy behind it. It gets there
+    // only by being prerendered (`src/routes/offline/+page.ts`), so a config change that stopped
+    // prerendering it would take offline with it - silently, because nothing else would fail.
+    expect(readFileSync(BUILT_WORKER, 'utf-8')).toContain('"url":"offline"')
   })
 })

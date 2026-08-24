@@ -73,19 +73,20 @@ const OFFLINE_CACHE = 'offline-shell'
 const DYNAMIC_ENV = '/_app/env.js'
 
 self.addEventListener('install', (event) => {
-  // `addAll`, so the two land together or not at all, and a failure fails the install.
+  // No `catch`. This used to swallow its own rejection, on the reasoning that losing the env module
+  // should not also cost us the shell, and that had it backwards: a shell without the env module is
+  // not a degraded offline mode, it is a shell that hangs forever on an import nobody can see fail -
+  // no console error, no visible failure, just a page that never boots.
   //
-  // The env module used to be added separately with its rejection swallowed, on the reasoning that
-  // losing it should not also cost us the shell. That had it backwards: a shell without the env
-  // module is not a degraded offline mode, it is a shell that hangs forever on an import nobody can
-  // see fail - no console error, no visible failure, just a page that never boots. Every other boot
-  // dependency gets an all-or-nothing install through the precache, and this one cannot join it
-  // (server-generated, so no glob matches it), so it gets the same treatment by hand.
-  //
-  // Failing the install is the recoverable outcome: the worker does not activate, the previous one
+  // Failing the install is the recoverable outcome. The worker does not activate, the previous one
   // stays, and the browser retries on a later navigation. Half-installing is the one that strands
   // somebody at a crag.
-  event.waitUntil(caches.open(OFFLINE_CACHE).then((cache) => cache.addAll([OFFLINE_SHELL, DYNAMIC_ENV])))
+  //
+  // The shell is not here: it is prerendered, so `precacheAndRoute` already carries it. That is not
+  // a weaker guarantee, because atomicity comes from the event rather than from sharing a call -
+  // `PrecacheController` registers its own `install` listener and `waitUntil`s it, this listener
+  // `waitUntil`s that, and one rejection fails the install for both.
+  event.waitUntil(caches.open(OFFLINE_CACHE).then((cache) => cache.add(DYNAMIC_ENV)))
 })
 
 // Serve the cached copy immediately and refresh it in the background. Network-first would put a
@@ -116,17 +117,21 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(event.request).catch(async () => {
-      // The precache copy first, by name. `/offline` is prerendered, so it is a revisioned precache
-      // entry as well as the copy taken at install, and a bare `caches.match` scans every cache in
-      // creation order and answers from whichever holds it first. That happens to work, because both
-      // copies are the same document, but "happens to work by cache creation order" is not something
-      // to leave under the one request the whole offline story depends on.
+      // By name, out of the precache, with no second copy behind it. A bare `caches.match` was
+      // scanning every cache in creation order and answering from whichever held the shell first,
+      // which worked only because a duplicate copy happened to exist; "works by cache creation
+      // order" is not what belongs under the one request the whole offline story depends on.
       //
-      // The install copy stays as the fallback rather than being deleted: the precache URL is
-      // recorded relative (`offline`, no leading slash) and whether `matchPrecache` resolves that to
-      // the same entry is not something this file can prove on its own. One 5 KB document is a cheap
-      // price for not gambling the entire offline boot on that.
-      const cached = (await matchPrecache(OFFLINE_SHELL)) ?? (await caches.match(OFFLINE_SHELL, { ignoreSearch: true }))
+      // The manifest records this URL relative (`offline`, no leading slash) and the constant here
+      // has a leading slash, which looks like it should matter and does not: Workbox absolutises
+      // both sides with `new URL(x, location.href)` - on ingest in `createCacheKey` and on lookup in
+      // `getCacheKeyForURL` - so the relative form never survives ingest. `location.href` in a worker
+      // is the worker's own URL, and this one is served from the origin root, so both resolve to
+      // `<origin>/offline`. The one thing that would break that is moving the worker into a
+      // subdirectory, i.e. setting `paths.base`, and `app-server-loads.test.ts`'s neighbour asserts
+      // the shell is in the manifest so a config change that drops it fails a test rather than
+      // offline.
+      const cached = await matchPrecache(OFFLINE_SHELL)
       // Nothing cached means the install never completed; there is nothing better to offer than the
       // browser's own failure page.
       return cached ?? Response.error()
