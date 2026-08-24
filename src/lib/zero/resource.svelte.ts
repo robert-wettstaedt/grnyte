@@ -1,6 +1,26 @@
+import { isOnline } from '$lib/state/online.svelte'
 import type { HumanReadable, QueryOrQueryRequest, ReadonlyJSONValue } from '@rocicorp/zero'
+import { offlinePolicyOf, type OfflinePolicy } from './offline'
 import { getZ } from './z.svelte'
 import type { Schema } from './zero-schema'
+
+/**
+ * Why there is nothing to show yet, answered once here instead of at every call site.
+ *
+ * - `ready`: there is an answer. Possibly an empty one, which is still an answer.
+ * - `loading`: genuinely on its way. Only ever reported while online.
+ * - `excluded`: offline, and this is data we deliberately do not keep (see `OFFLINE_QUERIES`).
+ *   It is not coming until the connection does.
+ * - `unsynced`: offline, and this simply is not on the device. It may exist; we cannot say.
+ *
+ * The last two used to be four separate judgements in four modules, each reading different
+ * evidence, and three of them were wrong: one called a completed-and-genuinely-empty result "not
+ * downloaded", one used row count as a proxy for completeness on a query its own preload seeded,
+ * and two keyed on `isComplete`/`isSyncing`, which are facts about the transport and reset
+ * themselves when a backgrounded tab loses its socket. The resource is the only layer holding all
+ * the evidence, so the judgement belongs here.
+ */
+export type Availability = 'excluded' | 'loading' | 'ready' | 'unsynced'
 
 /**
  * What pages and components see: reactive, DTO-mapped query state.
@@ -15,6 +35,7 @@ import type { Schema } from './zero-schema'
  *              diagnostics.
  */
 export interface QueryResource<TOut> {
+  readonly availability: Availability
   readonly data: TOut
   readonly isComplete: boolean
   /** `ready` but with nothing to render: `[]` for lists, `undefined` for `.one()`. */
@@ -33,6 +54,21 @@ class Resource<
   TReturn,
   TOut,
 > implements QueryResource<TOut> {
+  get availability(): Availability {
+    // An answer, including an authoritatively empty one. `error` is not this member's business:
+    // callers branch on `status` for that, and an error is a fact rather than an absence.
+    if (this.#status !== 'loading') {
+      return 'ready'
+    }
+
+    // Online, "nothing yet" means exactly that.
+    if (isOnline()) {
+      return 'loading'
+    }
+
+    return (this.#offline ?? offlinePolicyOf(this.#queryName)) === 'excluded' ? 'excluded' : 'unsynced'
+  }
+
   get data(): TOut {
     return this.#data
   }
@@ -85,6 +121,15 @@ class Resource<
 
   #data = $derived.by(() => this.#select(this.#query.data))
 
+  #offline: OfflinePolicy | undefined
+
+  // Zero carries the registry name on every request (`QueryRequest.query.queryName`), so a resource
+  // can look up its own offline policy without a single call site having to pass anything.
+  #queryName = $derived.by(() => {
+    const request = this.#request()
+    return typeof request === 'object' && 'query' in request ? request.query.queryName : undefined
+  })
+
   #rawEmpty = $derived.by(() => {
     const raw = this.#query.data
     return raw === undefined || (Array.isArray(raw) && raw.length === 0)
@@ -110,10 +155,12 @@ class Resource<
     request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
     select: (data: HumanReadable<TReturn>) => TOut,
     enabled: () => boolean,
+    offline: OfflinePolicy | undefined,
   ) {
     this.#request = request
     this.#select = select
     this.#enabled = enabled
+    this.#offline = offline
   }
 }
 
@@ -128,6 +175,9 @@ class Resource<
  * @param select maps the raw Zero rows to DTOs; runs memoized inside
  *   `$derived`, keeping Zero's reactivity.
  * @param opts.enabled gate for dependent queries that aren't ready to run yet.
+ * @param opts.offline overrides the query's entry in `OFFLINE_QUERIES` for this one usage. Only for
+ *   a query whose policy genuinely depends on its arguments - somebody else's logbook is not kept
+ *   offline while your own is, from the same query.
  */
 export function createResource<
   TTable extends keyof Schema['tables'] & string,
@@ -139,9 +189,9 @@ export function createResource<
 >(
   request: () => QueryOrQueryRequest<TTable, TInput, TOutput, Schema, TReturn, TContext>,
   select: (data: HumanReadable<TReturn>) => TOut,
-  opts?: { enabled?: () => boolean },
+  opts?: { enabled?: () => boolean; offline?: OfflinePolicy },
 ): QueryResource<TOut> {
-  return new Resource(request, select, opts?.enabled ?? (() => true))
+  return new Resource(request, select, opts?.enabled ?? (() => true), opts?.offline)
 }
 
 /**

@@ -169,16 +169,10 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
  * collects an inactive CVR after 48 hours, so any gap longer than that comes back through
  * `onClientStateNotFound`, which drops the sync stamp and reloads into a fresh sync.
  *
- * Three queries cover the guidebook because the related trees overlap heavily, and Zero syncs the
- * union of active queries rather than a copy per query:
- * - `listRoutes` carries tags, first ascents, block, area, and topo with its file.
- * - `listAreas` carries the parent chain and parking locations.
- * - `listBlocks` carries topos with files, area with parent, and the block's own geolocation.
- * There is deliberately no geolocations preload: the two above already sync every one we render.
- *
- * Not preloaded, and this is a product decision rather than an oversight: events, changes, reactions
- * and other people's ascents. Those surfaces must say "not available offline" rather than render
- * empty, or a gap in the sync reads as a fact about the crag.
+ * WHAT is kept lives in `OFFLINE_QUERIES`, not here, and the same table is what every screen reads
+ * to decide whether an empty result means "we chose not to keep this" or "this device has not got
+ * it". `offline.drift.test.ts` fails if the two halves disagree. This function is only the HOW: the
+ * arguments each query needs, and the order they can be issued in.
  */
 function preloadForOffline(z: Z<Schema>): void {
   if (!isFieldDevice()) {
@@ -187,6 +181,9 @@ function preloadForOffline(z: Z<Schema>): void {
 
   // Fired and not awaited, and with no `catch`: `complete` resolves or stays pending, it never
   // rejects, so there is nothing to handle. The `run` calls below are a different matter, those can.
+  //
+  // These three go first and unconditionally, because they are the bulk of the sync and they need
+  // nothing looked up first. Anything keyed on the numeric user id has to wait for the row below.
   z.preload(queries.listRoutes({}))
   z.preload(queries.listAreas({}))
   z.preload(queries.listBlocks({}))

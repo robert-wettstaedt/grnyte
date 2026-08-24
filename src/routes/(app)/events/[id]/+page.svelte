@@ -73,7 +73,7 @@
        above it then pushed down by its own height, putting the pinned composer 17px below the
        fold. This wrapper is what `min-h-full` should measure: the space the header leaves. -->
   <div class="flex min-h-0 flex-1 flex-col">
-    <QueryState offlineExcluded resource={events}>
+    <QueryState resource={events}>
       {#snippet ready()}
         {#if views[0] != null && event != null}
           <div class="min-h-0 flex-1 overflow-y-auto">

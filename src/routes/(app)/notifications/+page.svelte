@@ -131,7 +131,7 @@
          other surface that offers it. -->
     <PushSetup dismissible />
 
-    <QueryState offlineExcluded resource={notifications}>
+    <QueryState resource={notifications}>
       {#snippet ready()}
         <div class="space-y-2">
           {#each rows as { day, notification, startsDay, view } (notification.id)}

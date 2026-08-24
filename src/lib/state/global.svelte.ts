@@ -213,6 +213,9 @@ export function staticGlobalState(
   } = {},
 ): GlobalState {
   const ready = <T>(value: T): QueryResource<T> => ({
+    // The data is already in hand, so this is an answer by construction: never loading, and never
+    // an offline state, whatever the connection is doing around it.
+    availability: 'ready',
     data: value,
     isComplete: true,
     isEmpty: Array.isArray(value) ? value.length === 0 : value == null,

@@ -12,8 +12,9 @@
    * must not look alike. Sized for a section, never the viewport, which is why this is not
    * `ErrorState` with its full-height tile and Reload button.
    *
-   * Most callers get this through `QueryState`'s `offlineExcluded` prop instead of mounting it
-   * directly. Reach for it by hand only where the surrounding markup is not a `QueryState` branch.
+   * Most callers get this through `QueryState`, which picks the wording from the resource's own
+   * `availability`. Reach for it by hand only where the surrounding markup is not a `QueryState`
+   * branch, and then say which of the two you mean.
    */
   const {
     compact = false,

@@ -79,6 +79,49 @@ if (browser) {
   void probeReachability()
 }
 
+/**
+ * What one of Zero's connection states says about the *network*, which is not the same question as
+ * what it says about the sync.
+ *
+ * Pure, and exported, because these three lines are the whole judgement and every one of them has
+ * shipped as a bug: `disconnected` counted as evidence when a hidden tab is disconnected on purpose;
+ * `needs-auth` set the flag true when it should have been untouched, and later untouched when it
+ * should have been true. None of that was assertable while it lived inside a function that also owns
+ * a timer and two pieces of module state. Same shape as `StatusBar`'s `resolveStatus`.
+ *
+ * - `reachable`: something answered. Proof the network works.
+ * - `no-evidence`: says nothing either way; leave the flag where it stands.
+ * - `unreachable`: consistent with a dead network, but only after {@link UNREACHABLE_HOLD_MS},
+ *   because a normal reconnect passes through here too.
+ */
+export function connectionVerdict(name: string): 'no-evidence' | 'reachable' | 'unreachable' {
+  // Connected is proof, and it is the most direct proof there is.
+  if (name === 'connected') {
+    return 'reachable'
+  }
+
+  // `needs-auth` is proof too, less obviously. Zero only enters it on an error parsed off the wire
+  // (`isAuthError` is gated on a server-origin protocol error), which a dead network cannot produce
+  // and a captive portal cannot forge: a portal can answer an HTTP probe with a 200, but not mint a
+  // Zero protocol frame, so it fails the socket and lands in `disconnected` instead. It is also the
+  // one state Zero will not retry out of unaided, so without this the flag would stay false for as
+  // long as the token stays stale, telling somebody on perfect wifi they are offline.
+  //
+  // The answer may come from zero-cache rather than our own app (a 401/403 on its call to
+  // `get-queries` raises this too), so it means "something upstream answered", not specifically
+  // "your token is bad" - enough for a network signal, too vague to key user-facing copy on.
+  if (name === 'needs-auth') {
+    return 'reachable'
+  }
+
+  // The other two terminal states are a broken sync on a network that may be perfectly fine.
+  if (TERMINAL.includes(name)) {
+    return 'no-evidence'
+  }
+
+  return 'unreachable'
+}
+
 /** Reactive. Reading this inside `$derived`/`$effect` subscribes to connectivity changes. */
 export function isOnline(): boolean {
   return online && reachable
@@ -97,8 +140,8 @@ export function isOnline(): boolean {
  * - **Terminal states are a broken sync, not a broken network.** See {@link TERMINAL}.
  */
 export function reportConnectionState(state: { name: string }): void {
-  // Only a *change* restarts the hold. Zero re-emits the same state on every retry, five seconds
-  // apart, so restarting on each emission means the ten-second timer below is cleared before it can
+  // Only a *change* is acted on. Zero re-emits the same state on every retry, five seconds apart,
+  // so treating each emission as news means the ten-second hold below is restarted before it can
   // ever fire and the app never notices it is offline. The name is the whole signal: `reason` is an
   // opaque message string in the public type and differs between otherwise identical retries.
   if (state.name === reported) {
@@ -112,31 +155,14 @@ export function reportConnectionState(state: { name: string }): void {
     timer = null
   }
 
-  // Connected is proof, and it is the only proof there is.
-  if (state.name === 'connected') {
+  const verdict = connectionVerdict(state.name)
+
+  if (verdict === 'reachable') {
     reachable = true
     return
   }
 
-  // `needs-auth` is positive evidence, unlike the other two: Zero only enters it on an error parsed
-  // off the wire (`isAuthError` is gated on a server-origin protocol error), which is something a
-  // dead network cannot produce and a captive portal cannot forge - it can answer an HTTP probe
-  // with a 200, but not mint a Zero protocol frame, so it fails the socket and lands in
-  // `disconnected` instead. Note the answer may come from zero-cache rather than from our own app
-  // (a 401/403 on its call to `get-queries` raises this too), so it means "something upstream
-  // answered", not specifically "your token is bad" - fine for a network signal, too vague to key
-  // user-facing copy on.
-  //
-  // It is also the one state Zero will not retry out of on its own, so without this the flag stays
-  // false for as long as the token stays stale and the app tells somebody on perfect wifi that they
-  // are offline.
-  if (state.name === 'needs-auth') {
-    reachable = true
-    return
-  }
-
-  // Says nothing about the network: cancel the hold above and leave the flag where it stands.
-  if (TERMINAL.includes(state.name)) {
+  if (verdict === 'no-evidence') {
     return
   }
 
