@@ -90,10 +90,10 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
       z.preload(queries.currentUserRole()).complete,
       z.preload(queries.listRolePermissions()).complete,
       z.preload(queries.listUserRegions()).complete,
-      // The reference data is in the local store and the server confirmed it. That is the narrowest
-      // honest definition of "this device has a usable copy", and it is what tells a later visit
-      // with an empty store that the store was wiped rather than never filled.
-    ]).then(markSynced)
+      // The reference data is in the local store and the server confirmed it. Narrow on purpose:
+      // this says the shell can render, and nothing at all about the guidebook, which is thousands
+      // of rows still arriving. `preloadForOffline` stamps that separately.
+    ]).then(() => markSynced('reference'))
 
     preloadForOffline(z)
   }
@@ -179,14 +179,23 @@ function preloadForOffline(z: Z<Schema>): void {
     return
   }
 
-  // Fired and not awaited, and with no `catch`: `complete` resolves or stays pending, it never
-  // rejects, so there is nothing to handle. The `run` calls below are a different matter, those can.
-  //
   // These three go first and unconditionally, because they are the bulk of the sync and they need
   // nothing looked up first. Anything keyed on the numeric user id has to wait for the row below.
-  z.preload(queries.listRoutes({}))
-  z.preload(queries.listAreas({}))
-  z.preload(queries.listBlocks({}))
+  //
+  // Their completion is stamped, and that stamp is what lets a screen offline treat an empty result
+  // as an answer rather than a gap. Without it the only signal was the reference stamp above, which
+  // fires seconds earlier on five tiny queries: a device that finished those and then lost the
+  // connection partway through `listRoutes` claimed authority over a guidebook it only partly had,
+  // and rendered every area whose routes never arrived as an area with no routes.
+  //
+  // No `catch`: `complete` resolves or stays pending, it never rejects, so there is nothing to
+  // handle and an interrupted sync simply never stamps. That is the outcome we want. The `run` calls
+  // below are a different matter, those can reject.
+  void Promise.all([
+    z.preload(queries.listRoutes({})).complete,
+    z.preload(queries.listAreas({})).complete,
+    z.preload(queries.listBlocks({})).complete,
+  ]).then(() => markSynced('guidebook'))
 
   // Your own ascents (tick marks on every route) and your own favorites (the save button's state).
   // Both are keyed on the numeric `users.id` rather than the auth uid, which is only knowable by

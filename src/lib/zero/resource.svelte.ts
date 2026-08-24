@@ -60,48 +60,14 @@ class Resource<
   TOut,
 > implements QueryResource<TOut> {
   get availability(): Availability {
-    if (this.#status === 'error') {
-      return 'error'
-    }
-
-    const policy = this.#offline ?? offlinePolicyOf(this.#queryName)
-    const offline = !isOnline()
-
-    // Tested before the rows are, and this order is the whole point. Zero answers a query from the
-    // local replica, and an excluded query's table is seeded by *other* preloads: a stranger's
-    // ascents arrive with the routes you browsed. So offline these queries hold a fragment, and a
-    // fragment is indistinguishable from an answer by row count alone. Reporting `ready` because
-    // something is there let a profile draw a tally, a hardest grade and a whole grade histogram out
-    // of whichever few rows happened to be local, and present them as that person's climbing.
-    if (offline && policy === 'excluded') {
-      return 'excluded'
-    }
-
-    if (this.#status !== 'loading') {
-      return 'ready'
-    }
-
-    // Online, "nothing yet" means exactly that.
-    if (!offline) {
-      return 'loading'
-    }
-
-    // Offline and empty. Empty is an *answer* here rather than a gap, but only on a device that
-    // actually ran the preload which would have filled it: `always` everywhere, `field` only where
-    // the guidebook is kept. Without this an area that genuinely has no routes told a reader with a
-    // fully synced guidebook to reconnect and download it, which is the same wrong claim as the
-    // fragment above with the sign flipped.
-    const synced = lastSyncedAt() != null
-
-    if (policy === 'always' && synced) {
-      return 'ready'
-    }
-
-    if (policy === 'field' && synced && isFieldDevice()) {
-      return 'ready'
-    }
-
-    return 'unsynced'
+    return resolveAvailability({
+      fieldDevice: isFieldDevice(),
+      guidebookSynced: lastSyncedAt('guidebook') != null,
+      online: isOnline(),
+      policy: this.#offline ?? offlinePolicyOf(this.#queryName),
+      referenceSynced: lastSyncedAt('reference') != null,
+      status: this.#status,
+    })
   }
 
   get data(): TOut {
@@ -227,6 +193,71 @@ export function createResource<
   opts?: { enabled?: () => boolean; offline?: OfflinePolicy },
 ): QueryResource<TOut> {
   return new Resource(request, select, opts?.enabled ?? (() => true), opts?.offline)
+}
+
+/**
+ * The offline judgement, as a function of its inputs and nothing else.
+ *
+ * Six inputs, five outputs, and an order between the branches that is load-bearing twice. It lived
+ * inside a class getter reading three module singletons, so it could not be constructed and could
+ * not be asserted - and every bug found in it was a case a truth table would have caught first:
+ * `ready` on a fragment, `always`/`field` sitting dead, `error` folded into `ready`, and a `field`
+ * gate leaning on a stamp that was about the reference data rather than the guidebook.
+ *
+ * Same shape as `connectionVerdict` and `shouldKeepOffline`, for the same reason.
+ *
+ * @param input.status what Zero's result type says, mapped by the resource.
+ * @param input.policy this query's entry in `OFFLINE_QUERIES`, or a per-usage override.
+ * @param input.online the app's own reachability answer, not `navigator.onLine`.
+ * @param input.referenceSynced this device finished the always-preload at least once.
+ * @param input.guidebookSynced this device finished the field preload at least once. NOT the same
+ *   claim: the reference stamp lands seconds into a sync with thousands of rows still to come.
+ * @param input.fieldDevice this device keeps the guidebook at all.
+ */
+export function resolveAvailability(input: {
+  fieldDevice: boolean
+  guidebookSynced: boolean
+  online: boolean
+  policy: OfflinePolicy | undefined
+  referenceSynced: boolean
+  status: ResourceStatus
+}): Availability {
+  if (input.status === 'error') {
+    return 'error'
+  }
+
+  // Tested before the rows are, and this order is the whole point. Zero answers a query from the
+  // local replica, and an excluded query's table is seeded by *other* preloads: a stranger's ascents
+  // arrive with the routes you browsed. So offline these hold a fragment, and a fragment is
+  // indistinguishable from an answer by row count alone. Reporting `ready` because something was
+  // there let a profile draw a tally, a hardest grade and a whole histogram out of whichever few
+  // rows happened to be local, and present them as that person's climbing.
+  if (!input.online && input.policy === 'excluded') {
+    return 'excluded'
+  }
+
+  if (input.status !== 'loading') {
+    return 'ready'
+  }
+
+  // Online, "nothing yet" means exactly that.
+  if (input.online) {
+    return 'loading'
+  }
+
+  // Offline and empty. Empty is an *answer* here rather than a gap, but only on a device that
+  // actually finished the preload which would have filled it. Without this an area that genuinely
+  // has no routes told a reader with a fully synced guidebook to reconnect and download it: the same
+  // wrong claim as the fragment above, with the sign flipped.
+  if (input.policy === 'always' && input.referenceSynced) {
+    return 'ready'
+  }
+
+  if (input.policy === 'field' && input.guidebookSynced && input.fieldDevice) {
+    return 'ready'
+  }
+
+  return 'unsynced'
 }
 
 /**

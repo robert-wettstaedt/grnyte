@@ -2,8 +2,20 @@ import { browser } from '$app/environment'
 import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
 
 /**
- * When this device last had a complete sync, so an empty local store can be told apart from a crag
- * that genuinely has nothing in it.
+ * When this device last finished a sync, so an empty local store can be told apart from a crag that
+ * genuinely has nothing in it.
+ *
+ * Two stamps, not one, because "finished" is two different claims and conflating them states an
+ * absence as a fact:
+ * - `reference` is the five small always-preloaded queries (grades, the signed-in user, roles,
+ *   permissions, memberships). Fast, and enough to render the shell.
+ * - `guidebook` is the field preloads: thousands of routes and their trees. Slow.
+ *
+ * A device that finished the first and lost the connection partway through the second is the normal
+ * shape of a sync at a crag, not a rare race. With one stamp it then claimed authority over a
+ * guidebook it only partly had, so every area whose routes never arrived rendered as an area with no
+ * routes - and because the stamp persists, it kept claiming that across reloads until some later
+ * visit completed a full sync.
  *
  * Per device and per user in `localStorage`, never on `userSettings`. Settings are one row per
  * account, writable only through a server remote function, so they cannot be written while offline
@@ -17,74 +29,93 @@ import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
  * relying on the two disappearing together.
  */
 
-const KEY_PREFIX = `${PUBLIC_APPLICATION_NAME}.lastSyncedAt`
+/** Which body of data a stamp is about. See the note above; they are not interchangeable. */
+export type SyncStamp = 'guidebook' | 'reference'
 
-let syncedAt = $state<null | number>(null)
+const KEY_PREFIX: Record<SyncStamp, string> = {
+  // The reference stamp keeps its original key so an existing install is not read as never-synced.
+  guidebook: `${PUBLIC_APPLICATION_NAME}.guidebookSyncedAt`,
+  reference: `${PUBLIC_APPLICATION_NAME}.lastSyncedAt`,
+}
+
+const STAMPS: SyncStamp[] = ['guidebook', 'reference']
+
+let syncedAt = $state<Record<SyncStamp, null | number>>({ guidebook: null, reference: null })
 let trackedUser: string | undefined
 
-/** Drops the stamp because the replica behind it is gone. */
+/** Drops both stamps because the replica behind them is gone. */
 export function forgetSynced(): void {
   if (!browser || trackedUser == null) {
     return
   }
 
-  syncedAt = null
+  syncedAt = { guidebook: null, reference: null }
 
-  try {
-    localStorage.removeItem(key(trackedUser))
-  } catch {
-    // Nothing to do. The in-memory clear above is what the current page reads.
+  for (const stamp of STAMPS) {
+    try {
+      localStorage.removeItem(key(stamp, trackedUser))
+    } catch {
+      // Nothing to do. The in-memory clear above is what the current page reads.
+    }
   }
 }
 
-/** Reactive. Milliseconds since the epoch, or null if this device has never completed a sync. */
-export function lastSyncedAt(): null | number {
-  return syncedAt
+/**
+ * Reactive. Milliseconds since the epoch, or null if this device has never finished that sync.
+ *
+ * Defaults to `reference`, which is what the cold-store screen's wording asks about.
+ */
+export function lastSyncedAt(stamp: SyncStamp = 'reference'): null | number {
+  return syncedAt[stamp]
 }
 
-/** Records that a sync completed. Cheap to call repeatedly; only the newest value matters. */
-export function markSynced(): void {
+/** Records that a sync finished. Cheap to call repeatedly; only the newest value matters. */
+export function markSynced(stamp: SyncStamp): void {
   if (!browser || trackedUser == null) {
     return
   }
 
   const at = Date.now()
-  syncedAt = at
+  syncedAt = { ...syncedAt, [stamp]: at }
 
   try {
-    localStorage.setItem(key(trackedUser), String(at))
+    localStorage.setItem(key(stamp, trackedUser), String(at))
   } catch {
     // In-memory value still stands for this page, and the next successful sync tries again.
   }
 }
 
 /**
- * Points the module at the signed-in user and loads their stamp. Call once per Zero client, before
+ * Points the module at the signed-in user and loads their stamps. Call once per Zero client, before
  * anything reads {@link lastSyncedAt}.
  */
 export function trackSyncFor(userID: string | undefined): void {
   trackedUser = userID
-  syncedAt = null
+  syncedAt = { guidebook: null, reference: null }
 
   if (!browser || userID == null) {
     return
   }
 
+  syncedAt = { guidebook: read('guidebook', userID), reference: read('reference', userID) }
+}
+
+function key(stamp: SyncStamp, userID: string): string {
+  return `${KEY_PREFIX[stamp]}.${userID}`
+}
+
+function read(stamp: SyncStamp, userID: string): null | number {
   try {
     // `Number('')` is 0, not NaN, so an empty or whitespace value would read as a real stamp at the
     // epoch and tell a device with nothing to restore to reconnect and restore it. Only `markSynced`
     // writes here so it cannot happen today; the guard costs one condition and does not rely on that
     // staying true.
-    const raw = localStorage.getItem(key(userID))?.trim()
+    const raw = localStorage.getItem(key(stamp, userID))?.trim()
     const parsed = raw == null || raw === '' ? Number.NaN : Number(raw)
-    syncedAt = Number.isFinite(parsed) && parsed > 0 ? parsed : null
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
   } catch {
     // Storage refused the read (private mode, disabled cookies). Degrades to "never synced", which
     // only costs a returning user one honest "reconnect to restore" instead of a silent empty page.
-    syncedAt = null
+    return null
   }
-}
-
-function key(userID: string): string {
-  return `${KEY_PREFIX}.${userID}`
 }
