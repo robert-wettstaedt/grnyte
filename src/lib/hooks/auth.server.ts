@@ -189,8 +189,14 @@ const EMAILED_LINK_PATHS: Pathname[] = ['/auth/confirm', '/auth/error', '/auth/r
  *  bouncing them to /auth would drop the token. */
 const PUBLIC_PREFIXES = ['/legal', AUTH_PATH, '/f/', '/image/', '/api/', '/invite', '/offline']
 
-/** The zero-cache callbacks, which authenticate off their own Authorization header. */
-const ZERO_API_PREFIX = '/api/zero/'
+/**
+ * The zero-cache callbacks, which authenticate off their own Authorization header.
+ *
+ * Read by `rateLimit` as well as by the guard below. One prefix rather than a copy per hook: both
+ * are consequences of the same fact, that this surface is called by a server and not by a browser,
+ * so a move that invalidates one invalidates the other.
+ */
+export const ZERO_API_PREFIX = '/api/zero/'
 
 export const authGuard: Handle = async ({ event, resolve }) => {
   // Nothing to guard while prerendering, and `safeGetSession` is not there to call: the hook above
