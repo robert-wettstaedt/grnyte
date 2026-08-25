@@ -24,12 +24,17 @@ projects with different values.
 
 Which half of a project goes where:
 
-- `ZERO_*` is the Zero server's. It goes to the VPS and is kept off Vercel. Five of them actually
-  reach it, and `deploy-zero.yml` names those five: `ZERO_UPSTREAM_DB`, `ZERO_AUTH_SECRET`,
-  `ZERO_ADMIN_PASSWORD`, `ZERO_GET_QUERIES_URL`, `ZERO_NUM_SYNC_WORKERS`. The projects also hold
-  `ZERO_REPLICA_FILE`, `ZERO_SCHEMA_PATH`, `ZERO_CVR_MAX_CONNS` and `ZERO_UPSTREAM_MAX_CONNS`, which
-  `docker-compose.zero.yml` sets in its own `environment:` block. That overrides `env_file:`, so
-  editing those four in the vault changes nothing. Change the compose file instead, or delete them.
+- `ZERO_*` is the Zero server's. It goes to the VPS and is kept off Vercel. Which ones is decided in
+  one place: whatever `deploy-zero.yml`'s allowlist names, the same step writes to `.env.<env>`, so
+  adding a `ZERO_*` is one line rather than two that can disagree.
+  Two exceptions stay in `docker-compose.zero.yml`, and belong there: `ZERO_REPLICA_FILE` and
+  `ZERO_SCHEMA_PATH` are the other half of the volume and bind mounts declared beside them, so a
+  second opinion in the vault could only contradict the mount. `ZERO_GET_QUERIES_FORWARD_COOKIES` is
+  there for a different reason: it is a correctness requirement rather than a knob, true in every
+  environment or authentication through get-queries breaks.
+  Anything in BOTH places is a knob you cannot turn, because `environment:` overrides `env_file:`.
+  That was true of the two connection limits until 2026-08-25, so editing them in the vault did
+  nothing at all.
 - `VPS_SSH_KEY`, `VPS_HOST` and `VPS_USER` are the deploy's, and live in **grnyte-prod and
   grnyte-demo both**, with the same value in each: one VPS carries both Zero servers, and the free
   plan has no room for a shared infrastructure project. Rotating the key means editing two secrets,

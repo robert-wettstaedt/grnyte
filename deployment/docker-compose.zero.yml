@@ -6,11 +6,22 @@ services:
       - '4848'
     env_file:
       - .env.prod
+    # Only what this file is the authority on. `environment:` overrides `env_file:`, so anything
+    # listed here silently wins over the value Bitwarden holds, and a knob in both places is a knob
+    # you cannot turn.
+    #
+    # The two paths stay because they are half of a fact stated below: `/data` is the named volume
+    # and `/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
+    # with the mount, and the container would die on a missing file for a reason invisible from
+    # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
+    # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
+    # authenticate at all (see `auth.server.ts`), so it is true in every environment or none.
+    #
+    # Tunables are NOT here. ZERO_CVR_MAX_CONNS, ZERO_UPSTREAM_MAX_CONNS and ZERO_NUM_SYNC_WORKERS
+    # come from the project through `.env.<env>`, so prod and demo can differ.
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/app/zero-schema.ts
-      - ZERO_CVR_MAX_CONNS=10
-      - ZERO_UPSTREAM_MAX_CONNS=10
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
       - ../src/lib/zero/zero-schema.ts:/app/zero-schema.ts:ro
@@ -32,11 +43,22 @@ services:
       - '4848'
     env_file:
       - .env.demo
+    # Only what this file is the authority on. `environment:` overrides `env_file:`, so anything
+    # listed here silently wins over the value Bitwarden holds, and a knob in both places is a knob
+    # you cannot turn.
+    #
+    # The two paths stay because they are half of a fact stated below: `/data` is the named volume
+    # and `/app/zero-schema.ts` is the bind mount. Split them into the vault and it could disagree
+    # with the mount, and the container would die on a missing file for a reason invisible from
+    # either side alone. FORWARD_COOKIES stays because it is a correctness requirement rather than a
+    # preference: zero-cache has to forward the browser cookie for the get-queries endpoint to
+    # authenticate at all (see `auth.server.ts`), so it is true in every environment or none.
+    #
+    # Tunables are NOT here. ZERO_CVR_MAX_CONNS, ZERO_UPSTREAM_MAX_CONNS and ZERO_NUM_SYNC_WORKERS
+    # come from the project through `.env.<env>`, so prod and demo can differ.
     environment:
       - ZERO_REPLICA_FILE=/data/sync-replica.db
       - ZERO_SCHEMA_PATH=/app/zero-schema.ts
-      - ZERO_CVR_MAX_CONNS=10
-      - ZERO_UPSTREAM_MAX_CONNS=10
       - ZERO_GET_QUERIES_FORWARD_COOKIES=true
     volumes:
       - ../src/lib/zero/zero-schema.ts:/app/zero-schema.ts:ro
