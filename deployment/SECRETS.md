@@ -106,8 +106,19 @@ Zero deploys from `main`:
   `main`'s `ci.yml` sets both to `foobar`, so nothing on any branch reads them once `ci.yml`
   generates its own pair.
 
-Finally downgrade the three machine accounts to **Can read**. The workflows only read; a token that
-can write is one log leak away from rewriting production's configuration.
+Finally downgrade the three machine accounts to **Can read**. The workflows only read, and the
+difference is not academic: the tokens live in GitHub, this repository is public, and a leaked
+read-only token discloses production's secrets while a leaked writable one also lets somebody swap
+`ZERO_AUTH_SECRET` for one they control and mint JWTs the Zero server accepts. Disclosure versus
+takeover.
+
+Check it rather than assume it. As of 2026-08-25 the demo account was `Can read` and the prod one was
+not, which surfaced only because an edit against demo failed while the same edit against prod
+succeeded.
+
+The cost is that rotating a value needs the grant back temporarily: raise that account to
+**Can read, write** in the web vault, run the edit, and lower it again. `bws` cannot change grants,
+so this is a web vault operation. Writes are rare enough that the friction is the point.
 
 ## How a workflow reads a secret
 
@@ -193,5 +204,10 @@ machine account's **Access tokens** tab.
   because nothing local talks to the VPS.
 
 - `bws secret create` and `bws secret edit` take the value as a command line argument, so it is
-  visible in `ps` while the command runs. Fine on your laptop, not on a shared host.
+  visible in `ps` while the command runs. Fine on your laptop, not on a shared host. `-o none` keeps
+  the edited secret from being echoed back as JSON, which matters for a private key.
+- **A write the machine account is not allowed answers `404 Resource not found`, not `403`.** So a
+  permission problem is indistinguishable from a wrong id or a wrong token until you separate them:
+  `bws project list` says which project the token reaches, and `bws secret get <id>` says whether it
+  can see the secret at all. Read succeeding while edit 404s means the account is `Can read`.
 - `bws` is pinned to 2.1.0 in the workflows. A deploy is a bad place to meet a new CLI.
