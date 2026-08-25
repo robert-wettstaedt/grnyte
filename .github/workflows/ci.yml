@@ -48,8 +48,6 @@ jobs:
       BUNNY_STREAM_API_KEY: foobar
       PUBLIC_BUNNY_STREAM_LIBRARY_ID: foobar
       PUBLIC_BUNNY_STREAM_HOSTNAME: foobar
-      PRIVATE_VAPID_KEY: ${{ secrets.PRIVATE_VAPID_KEY }}
-      PUBLIC_VAPID_KEY: ${{ secrets.PUBLIC_VAPID_KEY }}
       CRON_API_KEY: foobar
       PUBLIC_ZERO_URL: foobar
 
@@ -64,6 +62,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      # A valid P-256 pair, deliberately not *the* pair. `push.server.test.ts` gates on both
+      # variables being non-empty and hands them to `web-push`, which signs a VAPID JWT against a
+      # local HTTPS server the test stands up itself. Nothing at the other end is a real push service
+      # that would check the key against a subscription, so what is asserted is validity; the
+      # identity of the pair is never consulted.
+      #
+      # Generating one per run is what lets this workflow hold no secrets at all, which matters here
+      # more than anywhere: it runs on every push to every branch and on every pull request. The
+      # deployed pair lives in Bitwarden, where its identity does matter, because rotating it
+      # invalidates every existing subscription.
+      - name: Generate a throwaway VAPID pair
+        run: node -e "const k=require('web-push').generateVAPIDKeys();console.log('PUBLIC_VAPID_KEY='+k.publicKey);console.log('PRIVATE_VAPID_KEY='+k.privateKey)" >> "$GITHUB_ENV"
 
       # Recreate the Supabase surface, then migrate + seed so the DB-backed suites run instead of
       # self-skipping. NEXTCLOUD_* are the dummy values above; the two Nextcloud backfills need them
