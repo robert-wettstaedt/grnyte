@@ -8,6 +8,12 @@
 # The canary creates ONE real account per run and deletes it again in teardown. Nothing else writes.
 name: Post-deploy
 
+# This repository is PUBLIC, so every line this workflow logs is world readable, and it handles
+# production credentials. Pinned rather than left to the repository default, which one settings
+# change flips for every workflow at once.
+permissions:
+  contents: read
+
 on:
   schedule:
     # Daily, off the hour: nothing here needs to race the rest of GitHub's cron traffic.
@@ -22,13 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    env:
-      E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://grnyte.rocks' }}
-      # Everything else this job needs comes out of the grnyte-prod project at the moment it runs,
-      # through `bws run` below. Repo-level rather than environment-scoped on purpose: the job is
-      # scheduled, and an environment with required reviewers would park the canary until a human
-      # noticed, which is the failure mode it exists to catch.
-      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN_PROD }}
+    # Where the prod access token lives, and the only GitHub-stored secret this workflow touches.
+    # Name matched exactly, en dash included: a typo does not fail, it hands the action an empty
+    # token. The cost to know about: this environment has no protection rules today, and adding
+    # required reviewers would park a SCHEDULED canary until somebody noticed, which is the failure
+    # mode it exists to catch.
+    environment: 'Production – grnyte.rocks'
 
     steps:
       - name: Checkout code
@@ -43,31 +48,43 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install bws
-        env:
-          BWS_VERSION: '2.1.0'
-        run: curl -sSf https://bws.bitwarden.com/install | sh
+      # Everything this job needs, and nothing else the grnyte-prod project holds. The list IS the
+      # privilege boundary, so it lives here rather than in a GitHub variable: `deploy-zero` runs
+      # under this same environment and needs a different set, and an allowlist nobody can review in
+      # a diff is not one.
+      #
+      # The action masks every value it retrieves (`::add-mask::`), which is why it replaces the
+      # bare CLI: `bws run` injects the whole project unmasked, and this log is public.
+      - name: Load the prod secrets from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            a745eae4-8d02-4503-9499-b4b1008ee797 > PUBLIC_SUPABASE_URL
+            6803688b-5ff2-431f-9546-b4b1008ef3fc > PUBLIC_SUPABASE_ANON_KEY
+            a83f5fa3-aa14-41a8-af91-b4b1008fd57d > SUPABASE_SERVICE_ROLE_KEY
+            7822b897-399d-4e45-843b-b4b1008da86f > RESEND_API_KEY
+            0e0c4c10-656b-4d47-b0bb-b4b1008d9c93 > RESEND_SENDER_EMAIL
+            229dfd0e-2cc6-4727-b289-b4b1008db12f > PUBLIC_VAPID_KEY
+            bb418950-7d83-4fc8-bc16-b4b1008db9fc > PRIVATE_VAPID_KEY
+            fcf9057e-ae1d-4bf1-9e0e-b4b10092216b > E2E_PASSWORD
+            c65f412c-e3fc-460b-8657-b4b1009432ec > E2E_BASE_URL
 
       # Only chromium, and only here: the app is never built in this job, because the thing under
       # test is the deployment rather than this checkout.
       - name: Install Playwright chromium
         run: npx playwright install --with-deps chromium
 
-      # `bws run` hands the secrets to the child as real environment variables. Nothing is written to
-      # a file or to $GITHUB_ENV, so there is no value for a later step to leak.
       - name: Check deployed configuration
-        run: bws run -- 'npm run check:prod'
+        run: npm run check:prod
 
       # Runs even when the check above failed, because the two answer different questions and a
       # rotated Resend key says nothing about whether sign-up still works.
       - name: Sign-up canary
         if: ${{ !cancelled() }}
-        run: bws run -- 'npm run test:e2e prod-signup'
+        run: npm run test:e2e prod-signup
 
-      - name: Upload traces
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-traces
-          path: test-results/
-          retention-days: 7
+      # No trace upload. An artifact is the one output masking cannot reach: the runner redacts log
+      # text and nothing else, so a Playwright trace taken against production would be published
+      # verbatim from a public repository. Playwright's own failure output still lands in the log,
+      # where it IS redacted, and that is what this job is read from.

@@ -26,16 +26,28 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'Production – grnyte.rocks'
     steps:
+      # Only the three values needed to reach the box. The prod project, because this job is scoped
+      # to the prod environment; the same key is duplicated into grnyte-demo for the demo matrix leg,
+      # since one VPS carries both and the free tier has no room for a shared infra project.
+      - name: Load VPS access from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
+            1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
+            3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       - name: Setup deployment repository
         run: |
-          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             DEPLOY_DIR="$HOME/zero-deployment"
 
             # Clean up and setup fresh repository
@@ -65,12 +77,39 @@ jobs:
     strategy:
       matrix:
         environment:
+          # `secret_ids` is the allowlist for this leg, and the reason it is here rather than in a
+          # GitHub variable: the two environments hold the same keys under different uuids, and the
+          # canary runs under the prod environment too but needs a completely different set. An
+          # allowlist nobody can review in a diff is not one.
+          #
+          # Five ZERO_*, not the nine the project holds. `docker-compose.zero.yml` sets
+          # ZERO_REPLICA_FILE, ZERO_SCHEMA_PATH, ZERO_CVR_MAX_CONNS and ZERO_UPSTREAM_MAX_CONNS in
+          # its own `environment:` block, which overrides `env_file:`, so those four have been
+          # shipped to the VPS and ignored for as long as the prefix match existed. Enumerating is
+          # what surfaced it.
           - name: prod
             env_name: 'Production – grnyte.rocks'
+            secret_ids: |
+              76a2770c-07be-43cf-9e3b-b4b1008f6fea > ZERO_UPSTREAM_DB
+              58b5ae86-d1fd-4f35-a2c4-b4b1008f77b3 > ZERO_AUTH_SECRET
+              51211711-cad0-4fb0-8b1f-b4b1008ea602 > ZERO_ADMIN_PASSWORD
+              400816f4-0057-445e-918e-b4b1008e2bb0 > ZERO_GET_QUERIES_URL
+              db33aff4-7994-4cfe-bc01-b4b1008ddc21 > ZERO_NUM_SYNC_WORKERS
+              00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
+              1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
+              3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
           - name: demo
             env_name: 'Production – demo.grnyte.rocks'
+            secret_ids: |
+              e96fdf05-edc1-4cb6-8289-b4b1008c0033 > ZERO_UPSTREAM_DB
+              37eff7c3-3ebb-49ca-be4e-b4b1008c7b56 > ZERO_AUTH_SECRET
+              04500bb1-0ee3-4a27-bd2c-b4b1008b65dc > ZERO_ADMIN_PASSWORD
+              e63841ab-c739-416b-842f-b4b1008b3726 > ZERO_GET_QUERIES_URL
+              b7ed66f2-5075-46fe-a6f8-b4b1008afc86 > ZERO_NUM_SYNC_WORKERS
+              714b6094-5d1d-44a1-9cf2-b4b100938cbe > VPS_SSH_KEY
+              fb993808-d4d3-4b4b-8a25-b4b10092b747 > VPS_HOST
+              5938e081-f470-4db0-8f6d-b4b10092d456 > VPS_USER
     environment: ${{ matrix.environment.env_name }}
-
     steps:
       - name: Check if deployment needed
         id: should_deploy
@@ -91,40 +130,49 @@ jobs:
         if: steps.should_deploy.outputs.deploy == 'true'
         uses: actions/checkout@v6
 
-      - name: Install bws
+      # Replaces `curl https://bws.bitwarden.com/install | sh`, which fetched an unpinned script over
+      # the network into a job holding an access token to the whole project. The action is pinned by
+      # commit, and it masks every value it retrieves, which the bare CLI does not.
+      - name: Load ${{ matrix.environment.name }} secrets from Bitwarden
         if: steps.should_deploy.outputs.deploy == 'true'
-        env:
-          BWS_VERSION: '2.1.0'
-        # Installs to /usr/local/bin, which is already on PATH here. Pinned, because a deploy is a
-        # bad place to meet a new CLI.
-        run: curl -sSf https://bws.bitwarden.com/install | sh
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: ${{ matrix.environment.secret_ids }}
 
       - name: Setup SSH
         if: steps.should_deploy.outputs.deploy == 'true'
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       # The access token is the only thing that says which environment this is: it belongs to a
       # machine account that can read the grnyte-prod project or the grnyte-demo one, never both.
       - name: Prepare ${{ matrix.environment.name }} environment
         if: steps.should_deploy.outputs.deploy == 'true'
-        env:
-          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
         run: |
-          # The whole project comes down, but only the Zero server's half is sent on: the app's
-          # secrets (DATABASE_URL, the service role key) have no business sitting on that VPS.
-          node deployment/secrets.mjs pull env.all
-          grep '^ZERO_' env.all > env.zero || {
-            echo "❌ the ${{ matrix.environment.name }} project has no ZERO_* secrets"
-            exit 1
-          }
+          # Only the Zero server's half reaches the VPS: the app's secrets (DATABASE_URL, the
+          # service role key) have no business sitting there, and now they are never fetched at all
+          # rather than fetched and filtered.
+          #
+          # Quoted values, matching what `secrets.mjs pull` used to render, so the file on the box
+          # keeps the exact shape docker compose already reads. A missing value fails here instead
+          # of writing an empty one, which the old `grep || exit` could not catch per key.
+          : > env.zero
+          for key in ZERO_UPSTREAM_DB ZERO_AUTH_SECRET ZERO_ADMIN_PASSWORD ZERO_GET_QUERIES_URL ZERO_NUM_SYNC_WORKERS; do
+            value="${!key}"
+            if [ -z "$value" ]; then
+              echo "❌ $key is empty: the ${{ matrix.environment.name }} mapping in the matrix is missing it"
+              exit 1
+            fi
+            printf '%s="%s"\n' "$key" "$value" >> env.zero
+          done
 
-          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} \
+          ssh "$VPS_USER@$VPS_HOST" \
             "cat > \$HOME/zero-deployment/deployment/.env.${{ matrix.environment.name }}" < env.zero
-          rm -f env.all env.zero
+          rm -f env.zero
 
           echo "✅ Environment configured for ${{ matrix.environment.name }}"
 
@@ -137,16 +185,28 @@ jobs:
     runs-on: ubuntu-latest
     environment: 'Production – grnyte.rocks'
     steps:
+      # Only the three values needed to reach the box. The prod project, because this job is scoped
+      # to the prod environment; the same key is duplicated into grnyte-demo for the demo matrix leg,
+      # since one VPS carries both and the free tier has no room for a shared infra project.
+      - name: Load VPS access from Bitwarden
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            00050332-e579-440d-981b-b4b100937e3b > VPS_SSH_KEY
+            1e8728fb-6dc4-436f-beeb-b4b10092ea48 > VPS_HOST
+            3669b3d5-cdce-4964-84f1-b4b10092e14d > VPS_USER
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
       - name: Check Docker IPv6 support
         run: |
-          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             echo "Checking if Docker IPv6 is enabled..."
             if [ ! -f /etc/docker/daemon.json ] || ! grep -q '"ipv6"[[:space:]]*:[[:space:]]*true' /etc/docker/daemon.json; then
               echo "❌ Docker IPv6 is NOT enabled!"
@@ -167,7 +227,7 @@ jobs:
 
       - name: Deploy Zero Infrastructure
         run: |
-          ssh ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }} << 'ENDSSH'
+          ssh "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             set -e
             cd $HOME/zero-deployment/deployment
 
