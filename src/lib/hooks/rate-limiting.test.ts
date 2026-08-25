@@ -20,10 +20,11 @@ describe('Rate Limiting Middleware', () => {
     vi.useRealTimers()
   })
 
-  const mockEvent = (ip: string): RequestEvent =>
+  const mockEvent = (ip: string, pathname = '/'): RequestEvent =>
     ({
       getClientAddress: () => ip,
       setHeaders: vi.fn(),
+      url: new URL(`https://grnyte.rocks${pathname}`),
     }) as unknown as RequestEvent
 
   const mockResolve = vi.fn().mockResolvedValue(new Response('OK'))
@@ -109,6 +110,35 @@ describe('Rate Limiting Middleware', () => {
     expect(event.setHeaders).toHaveBeenLastCalledWith({
       'X-RateLimit-Limit': RATE_LIMIT.max.toString(),
       'X-RateLimit-Remaining': (RATE_LIMIT.max - requestsToMake).toString(),
+      'X-RateLimit-Reset': expect.any(String),
+    })
+  })
+
+  it('does not budget the zero-cache callbacks, and still budgets the paths beside them', async () => {
+    // Both halves share one address on purpose, which is the point rather than an oversight: it is
+    // what proves the exempt requests did not quietly spend the budget the second half then reads.
+    const zero = mockEvent('10.0.0.7', '/api/zero/get-queries')
+
+    const responses = await Promise.all(
+      Array(RATE_LIMIT.max + 1)
+        .fill(null)
+        .map(() => rateLimit({ event: zero, resolve: mockResolve })),
+    )
+
+    // Never refused and never counted. Every user's query transformation arrives from zero-cache's
+    // one egress address, and zero-cache retries only 5xx, so a single 429 here is a hard
+    // TransformFailed for everybody behind it rather than a backoff.
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(0)
+    expect(zero.setHeaders).not.toHaveBeenCalled()
+
+    // The exemption is that one prefix, not `/api/`. Its neighbours are called by browsers and by
+    // cron, and they stay ordinary traffic.
+    const task = mockEvent('10.0.0.7', '/api/tasks/notifications')
+    await rateLimit({ event: task, resolve: mockResolve })
+
+    expect(task.setHeaders).toHaveBeenCalledWith({
+      'X-RateLimit-Limit': RATE_LIMIT.max.toString(),
+      'X-RateLimit-Remaining': (RATE_LIMIT.max - 1).toString(),
       'X-RateLimit-Reset': expect.any(String),
     })
   })
