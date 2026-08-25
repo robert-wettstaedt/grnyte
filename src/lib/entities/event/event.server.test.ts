@@ -11,7 +11,7 @@
 import { db } from '$lib/db/db.server'
 import * as schema from '$lib/db/schema'
 import { reachable, sql } from '$lib/db/testDb'
-import { eq, isNull } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { canHardDelete, changed, createUpdateEvent, deleteEvent, insertEvent } from './event.server'
 
@@ -21,29 +21,50 @@ let other = 0
 let route = 0
 let twin = 0
 let ownsTwin = false
+let area = 0
+let block = 0
 
 async function reset() {
   if (route !== 0) await db.delete(schema.events).where(eq(schema.events.routeFk, route))
 }
 
 /**
- * A route of the suite's own, not one the database already had. An earlier version took the first
- * live route and deleted every event on it in `beforeEach`, which erases real history (and, through
- * the cascade, other people's reactions) as soon as the app starts writing events on a dev
- * database. Nothing here depends on which route it is, only that it is ours to empty.
+ * A region, area, block and route of the suite's own, none of them rows the database already had.
+ * An earlier version took the first live route and deleted every event on it in `beforeEach`, which
+ * erases real history (and, through the cascade, other people's reactions) as soon as the app
+ * starts writing events on a dev database.
+ *
+ * The whole geography is created here rather than borrowed, because borrowing the first live block
+ * is not stable in a full run: the CI database is seeded with users and nothing else, half a dozen
+ * server suites create and drop their own regions in parallel, and the block a `limit 1` lands on
+ * belongs to one of them. When that suite tore its region down mid-run, every insert here failed on
+ * `events_region_fk_regions_id_fk`. Nothing in this file depends on which region it is, only that
+ * it is ours.
  *
  * The twin is a block whose id EQUALS the route's, inserted when the two sequences do not already
  * collide. It is what makes the five `isNull` clauses in `objectMatches` testable at all: matching
  * on any old block proves nothing, since its id differs anyway.
  */
 if (reachable) {
-  const [b] = await db.select().from(schema.blocks).where(isNull(schema.blocks.deletedAt)).limit(1)
-  const [a, o] = await db.select().from(schema.users).limit(2)
+  // Ordered, for the same reason: another suite's throwaway accounts come and go under an
+  // unordered `limit 2`, and the seed logins are the lowest ids there are.
+  const [a, o] = await db.select().from(schema.users).orderBy(asc(schema.users.id)).limit(2)
 
-  if (b != null && a != null && o != null) {
+  if (a != null && o != null) {
+    const name = 'event.server.test fixture'
+
+    const [reg] = await db.insert(schema.regions).values({ createdBy: a.id, name }).returning()
+    const [ar] = await db
+      .insert(schema.areas)
+      .values({ createdBy: a.id, name, regionFk: reg.id, type: 'crag' })
+      .returning()
+    const [b] = await db
+      .insert(schema.blocks)
+      .values({ areaFk: ar.id, createdBy: a.id, name, order: 0, regionFk: reg.id })
+      .returning()
     const [r] = await db
       .insert(schema.routes)
-      .values({ blockFk: b.id, createdBy: a.id, name: 'event.server.test fixture', regionFk: b.regionFk })
+      .values({ blockFk: b.id, createdBy: a.id, name, regionFk: reg.id })
       .returning()
 
     const [shared] = await db.select().from(schema.blocks).where(eq(schema.blocks.id, r.id)).limit(1)
@@ -51,32 +72,31 @@ if (reachable) {
       shared == null
         ? await db
             .insert(schema.blocks)
-            .values({
-              areaFk: b.areaFk,
-              createdBy: a.id,
-              id: r.id,
-              name: 'event.server.test fixture',
-              order: 0,
-              regionFk: b.regionFk,
-            })
+            .values({ areaFk: ar.id, createdBy: a.id, id: r.id, name, order: 0, regionFk: reg.id })
             .returning()
         : [shared]
 
     route = r.id
-    region = r.regionFk
+    region = reg.id
     actor = a.id
     other = o.id
     twin = t.id
     ownsTwin = shared == null
+    area = ar.id
+    block = b.id
   }
 }
 
 const usable = reachable && route !== 0
 
 afterAll(async () => {
-  // The fixtures take their events with them through `events.<object>_fk on delete cascade`.
+  // The fixtures take their events with them through `events.<object>_fk on delete cascade`, and
+  // the region can only go once nothing points at it, so this unwinds in insert order reversed.
   if (route !== 0) await db.delete(schema.routes).where(eq(schema.routes.id, route))
   if (ownsTwin) await db.delete(schema.blocks).where(eq(schema.blocks.id, twin))
+  if (block !== 0) await db.delete(schema.blocks).where(eq(schema.blocks.id, block))
+  if (area !== 0) await db.delete(schema.areas).where(eq(schema.areas.id, area))
+  if (region !== 0) await db.delete(schema.regions).where(eq(schema.regions.id, region))
   await sql.end()
 })
 
