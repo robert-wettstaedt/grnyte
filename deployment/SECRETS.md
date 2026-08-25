@@ -138,6 +138,13 @@ uuids are identifiers rather than credentials, so they belong in a public workfl
 Uuids are per project, so the same key has a different one in prod and demo. `deploy-zero.yml` keeps
 each environment's mapping in its matrix entry beside the environment name.
 
+`node deployment/secrets.mjs verify` checks those mappings against what the project actually holds.
+Run it once per environment; each token sees its half and reports the rest as belonging elsewhere,
+so a uuid neither token recognises is the one to chase. Worth doing after any secret is deleted and
+re-created, because that changes the uuid. The failure it exists to catch is the quiet one: a uuid
+that still resolves but has been RENAMED injects the wrong value under the right name, and
+`ZERO_AUTH_SECRET` carrying something else looks like an auth bug rather than a config one.
+
 ## Daily use
 
 ```bash
