@@ -117,9 +117,11 @@ read-only token discloses production's secrets while a leaked writable one also 
 `ZERO_AUTH_SECRET` for one they control and mint JWTs the Zero server accepts. Disclosure versus
 takeover.
 
-Check it rather than assume it. As of 2026-08-25 the demo account was `Can read` and the prod one was
+Check it rather than assume it. On 2026-08-25 the demo account was `Can read` and the prod one was
 not, which surfaced only because an edit against demo failed while the same edit against prod
-succeeded.
+succeeded. All three were downgraded the same day, and that downgrade is the control here: nothing
+in the workflows limits what a token could do with write access, so the grant is the only thing that
+does.
 
 The cost is that rotating a value needs the grant back temporarily: raise that account to
 **Can read, write** in the web vault, run the edit, and lower it again. `bws` cannot change grants,

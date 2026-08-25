@@ -82,11 +82,15 @@ jobs:
           # canary runs under the prod environment too but needs a completely different set. An
           # allowlist nobody can review in a diff is not one.
           #
-          # Seven ZERO_*, not the nine the project holds. `docker-compose.zero.yml` still sets
-          # ZERO_REPLICA_FILE and ZERO_SCHEMA_PATH itself, and correctly: they are the other half of
-          # the volume and bind mounts declared beside them, so the vault has no business holding a
-          # second opinion. The tunables used to be there too, which meant editing them in the vault
-          # did nothing at all, because `environment:` overrides `env_file:`.
+          # Deliberately not every ZERO_* the project holds, and deliberately not a count either:
+          # the step below writes whichever ones are listed here, so this list grows by one line and
+          # a number in a comment would be wrong the first time it did.
+          #
+          # `docker-compose.zero.yml` still sets ZERO_REPLICA_FILE and ZERO_SCHEMA_PATH itself, and
+          # correctly: they are the other half of the volume and bind mounts declared beside them,
+          # so the vault has no business holding a second opinion. The tunables used to be there
+          # too, which meant editing them in the vault did nothing, because `environment:` overrides
+          # `env_file:`.
           - name: prod
             env_name: 'Production – grnyte.rocks'
             secret_ids: |
