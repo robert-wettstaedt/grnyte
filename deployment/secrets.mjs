@@ -11,6 +11,7 @@
 //   node deployment/secrets.mjs pull [file]              rewrite .env from the project
 //   node deployment/secrets.mjs vercel <project> [target] push the project to a Vercel project
 //   node deployment/secrets.mjs seed <file>              create/update secrets from a local .env
+//   node deployment/secrets.mjs ids                    print `<uuid> > KEY` for the project
 //   node deployment/secrets.mjs selftest                 assert the .env writer, no network
 
 import { spawnSync } from 'node:child_process'
@@ -65,6 +66,23 @@ const render = (secrets) => [HEADER, ...secrets.map((secret) => `${secret.key}="
 // the Zero server's half. deploy-zero.yml sends exactly those to the VPS, so exactly those stay off
 // Vercel. The app reads PUBLIC_ZERO_URL and nothing else about Zero.
 const isZeroServerOnly = (key) => key.startsWith('ZERO_')
+
+/**
+ * The project's secrets as `<uuid> > KEY` lines, which is exactly the input format
+ * `bitwarden/sm-action` takes for its `secrets:` mapping.
+ *
+ * Ids rather than values, and never both: the workflows address secrets by uuid because that is the
+ * only handle the action accepts, and a uuid is an identifier rather than a credential. Pasting this
+ * output into a public workflow file is fine; pasting `pull`'s output would not be.
+ *
+ * Which project answers is decided by BWS_ACCESS_TOKEN, like every other command here, so run it
+ * once per environment to get that environment's mapping.
+ */
+function ids() {
+  for (const secret of listSecrets()) {
+    console.log(`${secret.id} > ${secret.key}`)
+  }
+}
 
 function pull(file = '.env', force = false) {
   const secrets = listSecrets()
@@ -182,6 +200,9 @@ switch (command) {
   case 'vercel':
     pushToVercel(args[0], args[1])
     break
+  case 'ids':
+    ids()
+    break
   case 'seed':
     await seed(args[0])
     break
@@ -193,6 +214,7 @@ switch (command) {
       [
         'node deployment/secrets.mjs pull [file] [--force]      rewrite .env from the project',
         'node deployment/secrets.mjs vercel <project> [target]  push the project to a Vercel project',
+        'node deployment/secrets.mjs ids                        print `<uuid> > KEY` for the project',
         'node deployment/secrets.mjs seed <file>                create/update secrets from a local .env',
         'node deployment/secrets.mjs selftest                   assert the .env writer, no network',
       ].join('\n'),
