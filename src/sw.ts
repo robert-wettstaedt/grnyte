@@ -10,38 +10,100 @@ import { registerRoute } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
 import { isDerivativeRequest } from './lib/images/derivatives'
+import { CLAIM_CHECK } from './lib/state/serviceWorkerMessages'
 
 declare let self: ServiceWorkerGlobalScope
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
-  }
-})
-
 /**
- * Take over as soon as this worker is ready, rather than waiting for every tab on the origin to
- * close first.
+ * Take over as soon as this worker is ready, rather than waiting for every tab to close first.
+ * `registerSW`'s `immediate: true` does not do this; it controls when registration is *attempted*,
+ * not which worker wins.
  *
- * Without these two, a new worker installs and then sits in `waiting` indefinitely: the default
- * lifecycle hands over only when the last client of the old worker goes away, and `registerSW`'s
- * `immediate: true` does not change that (it controls when registration is *attempted*, not which
- * worker wins). Nothing in the app posts the `SKIP_WAITING` message above, so in practice a
- * service worker fix never reached anybody who keeps a tab open — including, for a while, us:
- * the offline work looked broken because the browser was still running the previous worker.
- *
- * The usual argument for waiting is version skew, a running page suddenly served assets from a
- * newer precache. SvelteKit does NOT cover that for us, contrary to what this comment used to
- * claim: `version.pollInterval` defaults to 0 and `svelte.config.js` does not set it, so the version
- * is only consulted after a route module fails to load or a navigation returns >= 400. Skew
- * self-heals through a failure rather than ahead of one, and offline that failure is terminal.
- *
- * Accepted anyway, because the alternative is strictly worse: a worker that activates only once
- * every tab has closed means a service worker fix reaches nobody, which is exactly how this
- * offline work looked broken for a day.
+ * The cost is version skew, and SvelteKit does not cover it: `version.pollInterval` defaults to 0,
+ * so the version is only consulted after a route module fails to load. Closing that window is
+ * `$lib/state/serviceWorker.ts`'s job.
  */
 self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
+self.addEventListener('activate', (event) => event.waitUntil(claimAndRetireStaleClients()))
+
+/**
+ * How long a page gets to answer, and the only thing between a live 2.0 page and a reload it did not
+ * ask for. Headroom rather than a latency budget: a responsive page answers in single-digit
+ * milliseconds, so this covers a main thread busy at the wrong moment. The cost is that activation,
+ * and every fetch queued behind it, waits this long once per deploy, and only if a client stays
+ * silent.
+ */
+const CLAIM_CHECK_MS = 2_000
+
+/**
+ * Claim every window, then reload the ones that cannot reload themselves.
+ *
+ * This is for the 1.0 to 2.0 cutover, and is the only 2.0 code that runs in a 1.0 user's browser:
+ * their JavaScript is frozen at whatever shipped, so nothing sent to it can make it update. Left
+ * alone a 1.0 tab is claimed within ~20s (1.0 polls on that interval) and then rots two ways: its
+ * next mutation 404s, because remote-function ids hash the module *path* and 2.0 moved all of them;
+ * and browsing does not heal it, because visited route chunks still come from the HTTP cache under
+ * `immutable, max-age=31536000`.
+ *
+ * Gated rather than unconditional: a 2.0 page reloads itself at its next navigation, and on a first
+ * install the page that just registered this worker is a window client too.
+ *
+ * A retired tab lands where it was **opened**, not where the reader is. `Client.url` is the load URL,
+ * and MDN is explicit it "is not updated ... if a single-page app intercepts a navigation event",
+ * which is every navigation here. Nothing can ask an uncooperative client where it actually is.
+ */
+async function claimAndRetireStaleClients(): Promise<void> {
+  await self.clients.claim()
+
+  // `includeUncontrolled` is redundant right after `claim()`, and kept so this cannot start silently
+  // skipping the tabs it exists for if that claim ever moves or becomes conditional.
+  const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+
+  // Never await the navigation. `navigate()` resolves once the client has *loaded* the URL, and that
+  // load is a request this worker cannot answer until it is activated, which is what this promise
+  // gates: a cycle that ends at the browser's activate timeout with a blank tab.
+  await Promise.all(
+    clients.map(async (client) => {
+      if (await handlesOwnUpdate(client)) {
+        return
+      }
+
+      client.navigate(client.url).catch((error: unknown) => {
+        // A window that closed between the ping and here is expected. Anything else means the retire
+        // pass does not work, whose only other symptom is 1.0 users reporting 404s weeks later.
+        console.error('[sw] could not retire a stale client', error)
+      })
+    }),
+  )
+}
+
+/**
+ * Whether `client` is running a build that knows to reload itself. Silence answers for a 1.0 page,
+ * which has no listener, and for a 2.0 page whose JavaScript never got that far; both should be
+ * reloaded, so the timeout resolves false. Failing that way costs one unnecessary reload rather than
+ * a tab left broken.
+ */
+function handlesOwnUpdate(client: Client): Promise<boolean> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel()
+
+    // Setting `port1.onmessage` starts the port, and a started port stays alive while it can
+    // receive, holding this closure with it. Closed on both paths, or one pair leaks per deploy.
+    const settle = (handled: boolean) => {
+      channel.port1.close()
+      resolve(handled)
+    }
+
+    const timer = setTimeout(() => settle(false), CLAIM_CHECK_MS)
+
+    channel.port1.onmessage = () => {
+      clearTimeout(timer)
+      settle(true)
+    }
+
+    client.postMessage({ type: CLAIM_CHECK }, [channel.port2])
+  })
+}
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
@@ -102,7 +164,7 @@ registerRoute(
  *
  * The shell is served *at the requested URL* rather than redirected to. It used to bounce to
  * `/offline?redirect=<path>` and hand off client-side, which cost a round trip through a second
- * document, showed the wrong URL in the address bar the whole time, and — the reason it had to go —
+ * document, showed the wrong URL in the address bar the whole time, and, the reason it had to go,
  * made rendering the requested page depend on the shell's own JavaScript booting first. Serving the
  * shell in place means SvelteKit starts up already on `/routes/123` and renders it straight from
  * Zero's local store, which is the entire point of keeping that store.

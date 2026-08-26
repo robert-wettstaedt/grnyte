@@ -149,6 +149,15 @@ export default defineConfig({
         background_color: '#0F0D11',
         description: 'Secure boulder topo and session tracker.',
         display: 'standalone',
+        /**
+         * 1.0's `start_url` frozen as an identifier, not a path. Never change it.
+         *
+         * An absent `id` resolves to `start_url`, so 1.0 (`/`) and 2.0 (`/explore`) would compute
+         * different identities and every installed home-screen app would be orphaned beside a new
+         * one. Matching 1.0's makes this manifest a replacement instead, which also swaps in these
+         * icons: 1.0's `android-chrome-*.png` no longer exist here.
+         */
+        id: '/',
         name: 'grnyte',
         scope: '/',
         // Icons are injected from pwa-assets.config.ts via the `pwaAssets` option below.
@@ -175,6 +184,11 @@ export default defineConfig({
       pwaAssets: {
         config: true,
       },
+      // Picks which branch of `registerSW` runs, and nothing else: under `injectManifest` the plugin
+      // never injects `skipWaiting`/`clientsClaim`, so no worker behaviour changes here. It has to
+      // match `src/sw.ts` skipping waiting, and `src/lib/state/serviceWorker.ts` says why.
+      // `sw.size.test.ts` fails if the two drift apart.
+      registerType: 'autoUpdate',
       scope: '/',
       srcDir: './src',
       strategies: 'injectManifest',

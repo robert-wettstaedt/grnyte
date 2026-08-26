@@ -34,7 +34,7 @@ const config = {
     paths: {
       relative: false,
     },
-    // vite-pwa's `registerSW` is the only registration path (see `src/routes/+layout.svelte`); two
+    // vite-pwa's `registerSW` is the only registration path (see `src/lib/state/serviceWorker.ts`); two
     // registrations would fight over the same scope. Kit's own update check still works, because it
     // goes through `getRegistration()` rather than a registration of its own.
     serviceWorker: {

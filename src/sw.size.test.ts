@@ -40,6 +40,35 @@ describe('the built service worker', () => {
   })
 })
 
+/** Comments in this repo quote both of the literals below, so match on code only. */
+function code(path: string): string {
+  return readFileSync(path, 'utf-8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+}
+
+/**
+ * Whether the worker skips waiting and whether the plugin is told it does have to agree, and
+ * nothing else checks it: both halves are valid alone, the build succeeds, the types are satisfied,
+ * and the only symptom is a chunk 404 on somebody's phone weeks later.
+ *
+ * Both directions fail, because both are silent. `skipWaiting()` under the default `'prompt'` leaves
+ * the reload wired to a `waiting` event that cannot fire for such a worker; `'autoUpdate'` without
+ * `skipWaiting()` listens on `activated`, which a worker that waits does not reach while a tab is
+ * open. Either way updates reach nobody. `$lib/state/serviceWorker.ts` carries the detail.
+ *
+ * Read as text rather than by importing the config, because the option is consumed inside
+ * `SvelteKitPWA()` and is not readable back off the plugins it returns.
+ */
+describe('the worker lifecycle and the registration strategy', () => {
+  it('skips waiting exactly when the plugin is told it does', () => {
+    const skipsWaiting = code('src/sw.ts').includes('self.skipWaiting()')
+    const autoUpdate = code('vite.config.ts').includes(`registerType: 'autoUpdate'`)
+
+    expect(autoUpdate).toBe(skipsWaiting)
+  })
+})
+
 describe('the prerendered offline shell', () => {
   const withBuild = it.runIf(existsSync(BUILT_SHELL))
 
