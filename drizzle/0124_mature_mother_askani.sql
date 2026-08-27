@@ -1,0 +1,2 @@
+ALTER TABLE "notifications" DROP CONSTRAINT "notifications_source_idx";--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_source_idx" UNIQUE NULLS NOT DISTINCT("user_fk","source_type","actor_fk","region_fk","event_fk","area_fk","ascent_fk","block_fk","file_fk","route_fk","subject_fk");

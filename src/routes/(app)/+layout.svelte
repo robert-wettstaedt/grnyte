@@ -16,6 +16,7 @@
   import { requestPersistentStorage } from '$lib/state/device.svelte'
   import { setGlobalState } from '$lib/state/global.svelte'
   import { trackHistoryDepth } from '$lib/state/navigation.svelte'
+  import { syncPushSubscription } from '$lib/state/push.svelte'
   import markdownLightCssUrl from 'github-markdown-css/github-markdown-light.css?url'
 
   const { children, data } = $props()
@@ -26,6 +27,14 @@
   // Covers the Zero replica and the service worker's topo cache together, which is also how the
   // browser evicts them: whole origin at a time, never in parts.
   void requestPersistentStorage()
+
+  // Put this device's push subscription and the server's row back in step, once per load. Here
+  // rather than in `PushSetup`, which only renders on three surfaces: somebody who lives in the
+  // feed and the map would never mount it, and never have a dropped subscription repaired.
+  //
+  // Caught, unlike the call above: this one genuinely rejects (an aborted `subscribe()`, a remote
+  // call made offline) and `hooks.client.ts` turns unhandled rejections into error reports.
+  void syncPushSubscription().catch(() => undefined)
 
   // Feed the user's stored unit preference to the shared formatters (distance, temperature).
   // Re-runs when settings sync/change; null falls back to locale inference.

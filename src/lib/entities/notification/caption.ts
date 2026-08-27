@@ -12,7 +12,7 @@ import type { NotificationListItem, NotificationSourceType } from './dto'
  */
 export interface NotificationView {
   key: MessageKey
-  params: { actor: string; role?: string }
+  params: { actor: string; region?: string; role?: string }
   /**
    * What the row renders underneath the caption, for the shared hydration to resolve.
    *
@@ -31,7 +31,13 @@ export interface NotificationView {
 }
 
 /** The source types whose subject the caption (and the actor's avatar) has already said. */
-const NO_ROW = new Set<NotificationSourceType>(['ascent_deleted', 'invite_accepted', 'role_changed'])
+const NO_ROW = new Set<NotificationSourceType>([
+  'ascent_deleted',
+  'invitation_received',
+  'invite_accepted',
+  'membership_removed',
+  'role_changed',
+])
 
 /** One key per source type. Exhaustive by construction: a value added to the DB enum (and
  *  regenerated into the Zero schema) breaks this record at compile time. */
@@ -41,7 +47,9 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
   comment: 'notifications_comment',
   comment_reaction: 'notifications_commentReaction',
   comment_reply: 'notifications_commentReply',
+  invitation_received: 'notifications_invitationReceived',
   invite_accepted: 'notifications_inviteAccepted',
+  membership_removed: 'notifications_membershipRemoved',
   mention: 'notifications_mention',
   reaction: 'notifications_reaction',
   role_changed: 'notifications_roleChanged',
@@ -51,7 +59,11 @@ const KEYS: Record<NotificationSourceType, MessageKey> = {
  * Only what the sentence reads, so the push cron can hand over a database row without inventing
  * the fields the inbox needs and it does not (an id, a clock, a read stamp).
  */
-export type NotificationSubject = Pick<NotificationListItem, 'actorName' | 'metadata' | 'object' | 'sourceType'>
+export type NotificationSubject = Pick<NotificationListItem, 'actorName' | 'metadata' | 'object' | 'sourceType'> & {
+  /** The region's name, for the two sentences that say it. The cron joins it; the inbox never
+   *  needs it, so it stays optional rather than becoming a field every caller has to fetch. */
+  regionName?: string
+}
 
 export function notificationView(notification: NotificationSubject, options?: MessageOptions): NotificationView {
   // Through `roleLabelFor` rather than `roleLabel`, because this value came out of storage: the
@@ -67,7 +79,7 @@ export function notificationView(notification: NotificationSubject, options?: Me
       role == null && notification.sourceType === 'role_changed'
         ? 'notifications_roleChangedPlain'
         : KEYS[notification.sourceType],
-    params: { actor: notification.actorName, role },
+    params: { actor: notification.actorName, region: notification.regionName, role },
     // A row whose object is gone has none to point at, which reads the same way as the three
     // source types that never had one: the sentence stands on its own and nothing is drawn under
     // it. The sentence itself never asked what type the object was.

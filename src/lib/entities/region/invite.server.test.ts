@@ -98,6 +98,10 @@ async function removeFixtures() {
 /** admin@ administers the region, member@ is in it, invitee@ is not. Ten seats unless a test
  *  narrows them. */
 async function reset() {
+  // Before the events: accepting an invitation notifies the inviter, and a resend now queues a
+  // push for an invitee who already has an account. Both are rows in this region, and left behind
+  // they accumulate across the file.
+  await sql`delete from public.notifications where region_fk = ${regionId}`
   await sql`delete from public.events where region_fk = ${regionId}`
   await sql`delete from public.region_invitations where region_fk = ${regionId}`
   await sql`delete from public.region_members where region_fk = ${regionId}`
@@ -108,6 +112,12 @@ async function reset() {
       (${regionId}, 'region_user', true, ${users.member.authId}, ${users.member.userId})`
   await sql`update public.user_settings set contact_locale = null where user_fk = ${users.invitee.userId}`
 }
+
+/** Every queued push about this region's invitations. Queue-only rows: nobody can read them, and
+ *  the cron is the only reader, so they are asserted over the privileged connection. */
+const queued = () => sql<{ userFk: number }[]>`
+  select user_fk as "userFk" from public.notifications
+  where region_fk = ${regionId} and source_type = 'invitation_received'`
 
 /** The status code SvelteKit's `error()` threw, or 0 when the call resolved. */
 async function statusOf(promise: Promise<unknown>): Promise<number> {
@@ -405,6 +415,22 @@ describe.skipIf(!reachable)('revokeInvitation / restoreInvitation', () => {
     await expect(findLiveInvitationByEmail(EMAILS.invitee)).resolves.toMatchObject({ token })
   })
 
+  it('takes back the invitee’s queued push, so a withdrawn invitation never buzzes', async () => {
+    const { id } = await invite()
+    await resendInvitation(
+      db,
+      { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
+      MAIL,
+    )
+    expect(await queued()).toHaveLength(1)
+
+    await revokeInvitation(db, id, adminOf())
+
+    // Otherwise the push goes out minutes later asking somebody to accept a token that is already
+    // dead, and the tap lands on a settings screen with no invitation on it.
+    expect(await queued()).toEqual([])
+  })
+
   it('refuses somebody who does not administer the region', async () => {
     const { id } = await invite()
 
@@ -527,6 +553,46 @@ describe.skipIf(!reachable)('resendInvitation', () => {
 
     expect(mail.sent[0].locale).toBe('de')
     expect(mail.sent[0].subject).toContain('eingeladen')
+  })
+
+  it('buzzes an invitee who already has an account, beside the mail and not instead of it', async () => {
+    const { id } = await invite()
+
+    await resendInvitation(
+      db,
+      { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
+      MAIL,
+    )
+
+    expect(await queued()).toEqual([{ userFk: users.invitee.userId }])
+    // The invitation mail is still the channel, and still the only one that carries the token.
+    expect(mail.sent).toHaveLength(1)
+  })
+
+  it('buzzes once when a different admin resends, not once per admin', async () => {
+    const { id } = await invite()
+
+    for (const inviterFk of [users.admin.userId, users.member.userId]) {
+      await sql`update public.region_invitations set last_sent_at = null where id = ${id}`
+      await resendInvitation(db, { invitationFk: id, inviter: 'ada', inviterFk, userRegions: adminOf() }, MAIL)
+    }
+
+    // `actor_fk` is in the unique key, so a second admin's row does not collide with the first's.
+    // Without the retract before the insert this is two rows, and two pushes for one invitation.
+    expect(await queued()).toEqual([{ userFk: users.invitee.userId }])
+  })
+
+  it('queues nothing for an address with no account, which is most invitations', async () => {
+    const { id } = await invite('nobody@example.test')
+
+    await resendInvitation(
+      db,
+      { invitationFk: id, inviter: 'ada', inviterFk: users.admin.userId, userRegions: adminOf() },
+      MAIL,
+    )
+
+    expect(await queued()).toEqual([])
+    expect(mail.sent).toHaveLength(1)
   })
 })
 

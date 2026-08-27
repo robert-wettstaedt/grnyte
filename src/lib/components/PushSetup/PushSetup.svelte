@@ -14,16 +14,8 @@
   import InstallApp from '$lib/components/InstallApp/InstallApp.svelte'
   import { m } from '$lib/paraglide/messages'
   import { installPromoMode } from '$lib/state/install.svelte'
-  import {
-    dismissPushPrompt,
-    enablePush,
-    promptDismissed,
-    pushEndpoint,
-    pushState,
-    syncPushSubscription,
-  } from '$lib/state/push.svelte'
+  import { dismissPushPrompt, enablePush, promptDismissed, pushState } from '$lib/state/push.svelte'
   import { notifyError } from '$lib/state/toast'
-  import { onMount } from 'svelte'
 
   interface Props {
     /** Whether the card may retire itself once dismissed. A surface somebody navigated to on
@@ -48,19 +40,6 @@
   const hidden = $derived(
     dismissible && (promptDismissed() || status === 'granted' || status === 'unsupported' || status === 'denied'),
   )
-
-  onMount(() => {
-    // A device can hold a live subscription whose row we lost, and from the browser's side that is
-    // indistinguishable from being subscribed. Re-registering is keyed on the endpoint, so it is a
-    // no-op whenever the row is already right.
-    //
-    // Once per page load, not per mount: this card sits on three surfaces, one of them every route
-    // page with an ascent on it, and the repair is for a row that went missing rather than
-    // something to re-run on every navigation.
-    if (pushEndpoint() == null) {
-      void syncPushSubscription()
-    }
-  })
 
   const onEnable = async () => {
     busy = true

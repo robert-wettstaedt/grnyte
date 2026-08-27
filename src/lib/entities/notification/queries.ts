@@ -7,6 +7,11 @@ import z from 'zod'
 /** Sync window when a caller doesn't pick one: one screenful of inbox, newest first. */
 const DEFAULT_LIMIT = 50
 
+/** The send-queue source types, which nothing renders. Mirrors `OUT_OF_BAND` in the notifications
+ *  task by hand: a shared module would have to import cleanly into both a Zero query definition
+ *  and a task route, for two strings. See `notificationSourceType` in `schema.ts`. */
+const QUEUE_ONLY = ['invitation_received', 'membership_removed'] as const
+
 export const notificationsQueryDefs = {
   /**
    * The signed-in user's inbox, newest first.
@@ -36,6 +41,9 @@ export const notificationsQueryDefs = {
 
       let q = zql.notifications
         .where('authUserFk', ctx.authUserId)
+        // This exclusion, not the region gate, is what keeps the send-queue rows out of the inbox:
+        // an invitee who accepts, or a removed member invited back, passes that gate afterwards.
+        .where('sourceType', 'NOT IN', QUEUE_ONLY)
         .orderBy('createdAt', 'desc')
         .orderBy('id', 'desc')
         .related('actor')

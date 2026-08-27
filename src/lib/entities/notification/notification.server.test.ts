@@ -22,7 +22,14 @@ import { createThrowawayUser, dropThrowawayUser, reachable, sql, type SeedUser }
 import { eq, inArray } from 'drizzle-orm'
 import postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { notificationRecipients, notify, notifyMentions, readableRegions } from './notification.server'
+import {
+  notificationRecipients,
+  notify,
+  notifyMentions,
+  notifyOutOfBand,
+  readableRegions,
+  retractOutOfBand,
+} from './notification.server'
 
 const REGION_NAME = '__notification_test__'
 
@@ -386,5 +393,99 @@ describe.skipIf(!reachable)('notifyMentions', () => {
     await notifyMentions({ ...input, previousBody: 'nobody' })
 
     expect(await mentioned()).toHaveLength(1)
+  })
+})
+
+describe.skipIf(!reachable)('notifyOutOfBand', () => {
+  /** Every row in the fixture region, whoever it is for. */
+  const rows = () =>
+    db.query.notifications.findMany({
+      columns: { pushedAt: true, sourceType: true, userFk: true },
+      where: eq(notifications.regionFk, regionId),
+    })
+
+  it('writes a row for somebody notify would refuse, because they are not in the region', async () => {
+    await notify({
+      actorFk: users.actor.userId,
+      object: { id: users.outsider.userId, type: 'user' },
+      regionFk: regionId,
+      sourceType: 'membership_removed',
+      userFks: [users.outsider.userId],
+    })
+    expect(await rows()).toHaveLength(0)
+
+    await notifyOutOfBand({
+      actorFk: users.actor.userId,
+      regionFk: regionId,
+      sourceType: 'membership_removed',
+      userFk: users.outsider.userId,
+    })
+
+    expect((await rows()).map((row) => row.userFk)).toEqual([users.outsider.userId])
+  })
+
+  /**
+   * The property the whole design rests on: the row exists for the cron and for nobody else.
+   *
+   * Asserted against what the recipient can really `SELECT`, the same way the recipient rule is,
+   * rather than against a policy written out here. Widen the SELECT policy and this fails, which
+   * is the point: a visible row would be an inbox entry whose only action is a link into a region
+   * the reader cannot open.
+   */
+  it('writes a row its own recipient cannot read', async () => {
+    await notifyOutOfBand({
+      actorFk: users.actor.userId,
+      regionFk: regionId,
+      sourceType: 'membership_removed',
+      userFk: users.outsider.userId,
+    })
+
+    const visible = await as('outsider', (tx) => tx`select 1 from public.notifications where region_fk = ${regionId}`)
+    expect(visible).toHaveLength(0)
+    expect(await rows()).toHaveLength(1)
+  })
+
+  it('separates two regions, so being removed from both is told twice', async () => {
+    const [{ id: otherRegionId }] = await sql<{ id: number }[]>`
+      insert into public.regions (name, created_by, max_members)
+      values (${`${REGION_NAME}_2`}, ${users.actor.userId}, 10) returning id`
+
+    try {
+      for (const region of [regionId, otherRegionId]) {
+        await notifyOutOfBand({
+          actorFk: users.actor.userId,
+          regionFk: region,
+          sourceType: 'membership_removed',
+          userFk: users.outsider.userId,
+        })
+      }
+
+      const all = await db.query.notifications.findMany({
+        columns: { regionFk: true },
+        where: inArray(notifications.regionFk, [regionId, otherRegionId]),
+      })
+      expect(all.map((row) => row.regionFk).sort()).toEqual([regionId, otherRegionId].sort())
+    } finally {
+      await sql`delete from public.notifications where region_fk = ${otherRegionId}`
+      await sql`delete from public.regions where id = ${otherRegionId}`
+    }
+  })
+
+  it('takes back a pending notice, and leaves a delivered one alone', async () => {
+    const removal = {
+      actorFk: users.actor.userId,
+      regionFk: regionId,
+      sourceType: 'membership_removed' as const,
+      userFk: users.outsider.userId,
+    }
+
+    await notifyOutOfBand(removal)
+    await retractOutOfBand(removal)
+    expect(await rows()).toHaveLength(0)
+
+    await notifyOutOfBand(removal)
+    await db.update(notifications).set({ pushedAt: new Date() }).where(eq(notifications.regionFk, regionId))
+    await retractOutOfBand(removal)
+    expect(await rows()).toHaveLength(1)
   })
 })

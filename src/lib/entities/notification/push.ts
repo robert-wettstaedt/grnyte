@@ -65,6 +65,18 @@ export function isPushPayload(value: unknown): value is PushPayload {
  */
 export const DIRECTED_DEBOUNCE_MS = 2 * 60 * 1000
 
+/**
+ * How long the member-removal snackbar offers its Undo, and the one bounded undo in the app.
+ * Every other `withUndo` keeps its infinite snackbar because those actions navigate away and the
+ * user needs time to find it on the destination screen; this one does not navigate, and its window
+ * is also a promise that nothing has been announced yet.
+ *
+ * The margin below {@link DIRECTED_DEBOUNCE_MS} is the point, not the round number: the cron wakes
+ * on a five-minute tick and sends anything past the debounce, so an undo at 119 seconds would race
+ * it.
+ */
+export const MEMBERSHIP_UNDO_MS = 30 * 1000
+
 /** No new broadcast events for this long means the burst is over and the digest can go. */
 export const DIGEST_QUIET_MS = 20 * 60 * 1000
 

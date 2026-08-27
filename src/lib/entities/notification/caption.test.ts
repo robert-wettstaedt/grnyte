@@ -1,8 +1,12 @@
+import { resolveMessage } from '$lib/i18n/message'
 import { describe, expect, it } from 'vitest'
-import { notificationView } from './caption'
+import { notificationView, type NotificationSubject } from './caption'
 import type { NotificationListItem, NotificationSourceType } from './dto'
 
-const notification = (over: Partial<NotificationListItem> = {}): NotificationListItem => ({
+/** A full inbox row plus the one field only the cron supplies, so a test can hand over either. */
+type Subject = NotificationListItem & NotificationSubject
+
+const notification = (over: Partial<Subject> = {}): Subject => ({
   actorFk: 2,
   actorName: 'Anna',
   createdAt: 0,
@@ -30,6 +34,8 @@ describe('notificationView', () => {
     // Its own sentence rather than the thread's: being answered is what the reader wants to know,
     // and `notifyComment` writes exactly one of the two for any one person.
     ['comment_reply', 'notifications_commentReply'],
+    ['membership_removed', 'notifications_membershipRemoved'],
+    ['invitation_received', 'notifications_invitationReceived'],
   ] as [NotificationSourceType, string][])('picks %s s own sentence', (sourceType, key) => {
     expect(notificationView(notification({ sourceType })).key).toBe(key)
   })
@@ -67,10 +73,40 @@ describe('notificationView', () => {
   // The three sentences that already contain their own subject. A row underneath them could only
   // repeat the caption: their own name, the actor the avatar shows, or a tombstone for an ascent
   // the caption has just called "your ascent".
-  it.each(['ascent_deleted', 'invite_accepted', 'role_changed'] as NotificationSourceType[])(
-    'renders no row for %s',
+  it.each([
+    'ascent_deleted',
+    'invitation_received',
+    'invite_accepted',
+    'membership_removed',
+    'role_changed',
+  ] as NotificationSourceType[])('renders no row for %s', (sourceType) => {
+    expect(notificationView(notification({ object: { id: 5, type: 'user' }, sourceType })).ref).toBeUndefined()
+  })
+
+  // The two sentences that name a place. Everything else leaves the region to the crumb the inbox
+  // draws from `region_fk`; these two go out as a push or an email, where there is no crumb.
+  it.each(['membership_removed', 'invitation_received'] as NotificationSourceType[])(
+    'carries the region into %s',
     (sourceType) => {
-      expect(notificationView(notification({ object: { id: 5, type: 'user' }, sourceType })).ref).toBeUndefined()
+      const view = notificationView(notification({ regionName: 'Harz', sourceType }))
+      expect(view.params.region).toBe('Harz')
     },
   )
+
+  // Asserted on the resolved sentence rather than on the param, because the param is passed
+  // through for every source type: what makes the two membership ones different is that they are
+  // the only sentences that READ it. A key that stopped naming the region would leave the caption
+  // saying nothing about where, and the param assertion alone would still pass.
+  it.each(['membership_removed', 'invitation_received'] as NotificationSourceType[])(
+    'resolves %s into a sentence that names the region',
+    (sourceType) => {
+      const view = notificationView(notification({ regionName: 'Harz', sourceType }))
+      expect(resolveMessage(view.key, view.params)).toContain('Harz')
+    },
+  )
+
+  it('leaves the region out of a sentence that does not say it', () => {
+    const view = notificationView(notification({ regionName: 'Harz', sourceType: 'mention' }))
+    expect(resolveMessage(view.key, view.params)).not.toContain('Harz')
+  })
 })

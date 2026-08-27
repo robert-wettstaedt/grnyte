@@ -9,7 +9,7 @@ import { error, invalid } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'
 import z from 'zod'
 import { createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
-import { notify } from '../notification/notification.server'
+import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
 import { createRegionForUser, listOwnedRegions } from './create.server'
 import { MAX_OWNED_REGIONS, type RegionInvitationItem, type UserInvitationItem } from './dto'
@@ -276,10 +276,12 @@ export const inviteRegionMember = authedForm(
     const sent = await sendInvitationEmail(
       db,
       {
+        actorFk: user.id,
         email: address,
         id: invitation.id,
         idempotencyKey: `invitation-${invitation.id}`,
         inviter: user.username,
+        regionFk,
         regionName: region.name,
         token: invitation.token,
       },
@@ -481,7 +483,7 @@ export interface RemovedMemberSnapshot {
 export const removeRegionMember = authedCommand(
   z.object({ regionFk: z.number(), userFk: z.number() }),
   async ({ regionFk, userFk }, ctx): Promise<MutationResult<RemovedMemberSnapshot>> => {
-    const { db, user } = ctx
+    const { afterCommit, db, user } = ctx
     assertCanEdit(ctx, regionFk)
 
     const member = await findActiveMember(db, regionFk, userFk)
@@ -496,6 +498,12 @@ export const removeRegionMember = authedCommand(
       regionFk,
       verb: 'remove',
     })
+
+    // Queued, not sent: the row waits out `DIRECTED_DEBOUNCE_MS`, and the Undo this returns a
+    // snapshot for deletes it inside that window - which is why that snackbar is the one place in
+    // the app with a bounded duration. `notifyOutOfBand` rather than `notify`, because the
+    // recipient is no longer a member and `notify` would find nobody to tell.
+    afterCommit(() => notifyOutOfBand({ actorFk: user.id, regionFk, sourceType: 'membership_removed', userFk }))
 
     return {
       data: {
@@ -519,7 +527,7 @@ export const restoreRegionMember = authedCommand(
     userFk: z.number(),
   }),
   async (snapshot, ctx) => {
-    const { db } = ctx
+    const { afterCommit, db } = ctx
     assertCanEdit(ctx, snapshot.regionFk)
 
     // An undo, not an insert. See resolveRestore for what that costs to enforce.
@@ -547,6 +555,21 @@ export const restoreRegionMember = authedCommand(
       regionFk: snapshot.regionFk,
       verb: 'remove',
     })
+
+    // And take back the notice the removal queued, which is the whole reason the queue is a row
+    // rather than a send.
+    //
+    // Deferred like the write it undoes: `retractOutOfBand` runs on the privileged handle, so it
+    // takes a second connection while this handler holds the RLS transaction's own and commits
+    // independently. Inline, a restore that failed after this point would leave the member removed
+    // with the notice already erased.
+    afterCommit(() =>
+      retractOutOfBand({
+        regionFk: snapshot.regionFk,
+        sourceType: 'membership_removed',
+        userFk: snapshot.userFk,
+      }),
+    )
   },
 )
 

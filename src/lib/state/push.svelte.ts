@@ -22,6 +22,14 @@ export type PushState = 'denied' | 'granted' | 'prompt' | 'unsupported'
 
 const PROMPT_DISMISSED_KEY = `${PUBLIC_APPLICATION_NAME}.pushPromptDismissed`
 
+/**
+ * The endpoint this device last registered, and the one thing that tells a dropped subscription
+ * from a switched-off one. Both look like "permission granted, no subscription", and the server
+ * cannot separate them either: a disable deletes the row, and an account holds rows for other
+ * devices. Cleared by {@link disablePush}. Read by {@link syncPushSubscription}.
+ */
+const ENDPOINT_KEY = `${PUBLIC_APPLICATION_NAME}.pushEndpoint`
+
 /** Shared by every soft pre-prompt surface, so somebody sees the ask once in total rather than
  *  once per screen that offers it. */
 let dismissed = $state(false)
@@ -49,12 +57,18 @@ if (browser) {
   }
 }
 
-/** Unsubscribe this device, at both ends. The permission stays granted, which is what makes this
- *  re-enablable without another native prompt. */
+/**
+ * Unsubscribe this device, at both ends. The permission stays granted, which is what makes this
+ * re-enablable without another native prompt.
+ *
+ * Forgets {@link ENDPOINT_KEY} too, so the repair does not turn this back on.
+ */
 export async function disablePush(): Promise<void> {
   if (!browser || !supported) {
     return
   }
+
+  rememberEndpoint(undefined)
 
   const registration = await navigator.serviceWorker.ready
   const subscription = await registration.pushManager.getSubscription()
@@ -125,13 +139,14 @@ export function pushState(): PushState {
 }
 
 /**
- * Read back whatever subscription this browser already holds, and make sure the server knows
- * about it.
+ * Put this device's subscription and the server's row back in step, in both directions: a live
+ * subscription whose row went missing (a reinstall, a cleared database, a failed request), and a
+ * row whose subscription the browser dropped. `subscribeToPush` keys on the endpoint, so
+ * re-registering is a no-op whenever the row is already right.
  *
- * Re-registering an existing subscription is deliberate, not wasteful: a device can hold a live
- * `PushSubscription` whose row we lost (a reinstall, a cleared database, a failed request), and
- * from the browser's side that is indistinguishable from being subscribed. `subscribeToPush`
- * keys on the endpoint, so the repeat is a no-op when the row is already right.
+ * ponytail: neither direction catches a subscription whose endpoint is unchanged and which the
+ * push service has silently stopped delivering - nothing observable changes, so there is nothing
+ * to compare. Upgrade = a server-side liveness heuristic.
  */
 export async function syncPushSubscription(): Promise<void> {
   if (!browser || !supported || Notification.permission !== 'granted') {
@@ -139,7 +154,14 @@ export async function syncPushSubscription(): Promise<void> {
   }
 
   const registration = await navigator.serviceWorker.ready
-  const subscription = await registration.pushManager.getSubscription()
+  const live = await registration.pushManager.getSubscription()
+  const known = storedEndpoint()
+
+  // Granted, registered once, and gone. Invisible from both ends: the row survives and its sends
+  // report success while the device stops being delivered to. Silent because the permission is
+  // already granted, so `subscribe()` returns without a prompt. Gated on `known`, so a browser
+  // that never subscribed here, or was switched off, is left alone.
+  const subscription = live ?? (known == null ? undefined : await subscribeCurrent(registration))
 
   if (subscription == null) {
     endpoint = undefined
@@ -148,6 +170,14 @@ export async function syncPushSubscription(): Promise<void> {
 
   endpoint = subscription.endpoint
   await register(subscription)
+
+  // The endpoint moved, so the row under the old one is a corpse. Compared against the endpoint
+  // we ENDED with, not the live one: the repair above is a rotation too, just one where the
+  // browser lost the old handle instead of swapping it. After `register`, so a failure here costs
+  // a stale row until the first 403/404/410 prunes it, rather than costing the repair.
+  if (known != null && known !== subscription.endpoint) {
+    await unsubscribeFromPush({ endpoint: known })
+  }
 }
 
 /** Hand the browser's subscription to the server in the shape a send needs. */
@@ -166,6 +196,23 @@ async function register(subscription: PushSubscription): Promise<void> {
     expirationTime: json.expirationTime ?? null,
     p256dh: json.keys.p256dh,
   })
+
+  // After the server took it, never before: a remembered endpoint with no row behind it would arm
+  // the repair against something that was never written.
+  rememberEndpoint(json.endpoint)
+}
+
+/** Write (or clear) {@link ENDPOINT_KEY}. Storage refusing only means the repair does not arm. */
+function rememberEndpoint(value: string | undefined): void {
+  try {
+    if (value == null) {
+      localStorage.removeItem(ENDPOINT_KEY)
+    } else {
+      localStorage.setItem(ENDPOINT_KEY, value)
+    }
+  } catch {
+    // See above.
+  }
 }
 
 /** Whether a subscription was created with this exact key. */
@@ -177,6 +224,15 @@ function sameKey(stored: ArrayBuffer | null, current: BufferSource): boolean {
   const a = new Uint8Array(stored)
   const b = current instanceof ArrayBuffer ? new Uint8Array(current) : new Uint8Array(current.buffer)
   return a.length === b.length && a.every((byte, index) => byte === b[index])
+}
+
+/** The endpoint this device last registered, if storage still has it. */
+function storedEndpoint(): string | undefined {
+  try {
+    return localStorage.getItem(ENDPOINT_KEY) ?? undefined
+  } catch {
+    return undefined
+  }
 }
 
 /**

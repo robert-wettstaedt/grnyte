@@ -8,14 +8,18 @@ import {
   files,
   notifications,
   pushSubscriptions,
+  regions,
   routes,
   users,
   userSettings,
 } from '$lib/db/schema'
+import { membershipRemovedEmailContent, roleChangedEmailContent } from '$lib/email/membership'
+import { sendEmail } from '$lib/email/send.server'
 import { isAscentEvent, objectOf } from '$lib/entities/event/dto'
 import { eventParentRef } from '$lib/entities/event/mapper'
 import { notificationView } from '$lib/entities/notification/caption'
 import { digestCopy, type DigestEvent } from '$lib/entities/notification/digest.server'
+import type { NotificationSourceType } from '$lib/entities/notification/dto'
 import { readableRegions } from '$lib/entities/notification/notification.server'
 import {
   DIGEST_COMMIT_LAG_MS,
@@ -27,10 +31,13 @@ import {
   isDirectedDue,
 } from '$lib/entities/notification/push'
 import { isPushConfigured, sendPushToUser, subscriptionsFor } from '$lib/entities/notification/push.server'
+import { roleLabelFor } from '$lib/entities/rolePermission/mapper'
 import { contactLocale, resolveMessage } from '$lib/i18n/message'
+import type { Locale } from '$lib/paraglide/runtime'
 import { json } from '@sveltejs/kit'
-import { and, count, eq, gt, inArray, isNull, lte, max, ne, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNull, lte, max, ne, notInArray, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
+import { authUsers } from 'drizzle-orm/supabase'
 import { timingSafeEqual } from 'node:crypto'
 import type { RequestHandler } from './$types'
 
@@ -97,6 +104,36 @@ async function inBatches<T, R>(items: readonly T[], task: (item: T) => Promise<R
 }
 
 const BATCH_SIZE = 4
+
+/**
+ * Deliver one directed row, and let a bad one fail alone. `inBatches` is a bare `Promise.all`, so
+ * one rejection takes down `sendDirected` before it can stamp anything, and every push already
+ * sent this run goes out again on the next tick. Same guard `sendDigests` has.
+ */
+async function guarded(id: number, task: () => Promise<boolean | void>): Promise<boolean> {
+  try {
+    return (await task()) === true
+  } catch (error) {
+    console.error(`[notifications] directed row ${id} failed`, error)
+    return false
+  }
+}
+
+/**
+ * The send-queue source types (see `notificationSourceType` in `schema.ts`). Their recipient
+ * cannot read the region the row names, so they are exempt from the `region.read` re-check below,
+ * stamped read once sent, and never counted toward the badge.
+ */
+const OUT_OF_BAND = new Set<NotificationSourceType>(['invitation_received', 'membership_removed'])
+
+/**
+ * The source types that also go out as email: the role you hold, and the access you no longer
+ * have. Unconditional, ignoring the six push switches, which govern push and nothing else.
+ *
+ * `invitation_received` is deliberately absent - the invitation mail has already gone out, carries
+ * the token, and reaches addresses with no account at all.
+ */
+const MAILED = new Set<NotificationSourceType>(['membership_removed', 'role_changed'])
 
 /** Move a person's push watermark forward, never back. A timestamp, matching `events.created_at`. */
 async function advanceWatermark(userFk: number, createdAt: Date): Promise<void> {
@@ -174,8 +211,24 @@ async function namesOf(userFks: readonly number[]): Promise<Map<number, string>>
  * A literal path rather than SvelteKit's `resolve`: this runs in a task route with no page
  * context, and the service worker hands whatever is here to `clients.openWindow`. It must stay in
  * step with `/(app)/(shell)/events/[id]`, which is one route and has no other callers server-side.
+ *
+ * The inbox is the fallback for a row that names no card, but never for the queue-only pair, whose
+ * row it cannot show. An invitee goes to settings, where `listMyInvitations` renders the accept;
+ * a removed member has no destination inside the region at all, so they get the app.
  */
-function pathnameFor(row: { eventFk: null | number; reactionFk: null | number }): string {
+function pathnameFor(row: {
+  eventFk: null | number
+  reactionFk: null | number
+  sourceType: NotificationSourceType
+}): string {
+  if (row.sourceType === 'invitation_received') {
+    return '/settings'
+  }
+
+  if (row.sourceType === 'membership_removed') {
+    return '/'
+  }
+
   if (row.eventFk == null) {
     return '/notifications'
   }
@@ -436,7 +489,7 @@ async function sendDigests(nowMs: number): Promise<number> {
  * whether or not a device took it, so a person with no working subscription does not accumulate a
  * backlog that fires the day they subscribe.
  */
-async function sendDirected(nowMs: number): Promise<number> {
+async function sendDirected(nowMs: number, origin: string, pushConfigured: boolean): Promise<number> {
   // `notifications` joins `users` twice over (the recipient carries the settings, the actor
   // carries the name), so the actor side needs an alias of its own.
   const actor = alias(users, 'actor')
@@ -449,6 +502,8 @@ async function sendDirected(nowMs: number): Promise<number> {
       blockFk: notifications.blockFk,
       contactLocale: userSettings.contactLocale,
       createdAt: notifications.createdAt,
+      // Where the mail goes. `auth.users` is the only place an address lives.
+      email: authUsers.email,
       // Both only so the push can open where it happened rather than on the inbox. See
       // `pathnameFor`.
       eventFk: notifications.eventFk,
@@ -460,6 +515,9 @@ async function sendDirected(nowMs: number): Promise<number> {
       notifyReactions: userSettings.notifyReactions,
       reactionFk: notifications.reactionFk,
       regionFk: notifications.regionFk,
+      // The place, for the two sentences that say it: a push and a mail have no crumb to draw it
+      // from the way the inbox does.
+      regionName: regions.name,
       routeFk: notifications.routeFk,
       sourceType: notifications.sourceType,
       subjectFk: notifications.subjectFk,
@@ -467,6 +525,8 @@ async function sendDirected(nowMs: number): Promise<number> {
     })
     .from(notifications)
     .innerJoin(actor, eq(actor.id, notifications.actorFk))
+    .innerJoin(regions, eq(regions.id, notifications.regionFk))
+    .leftJoin(authUsers, eq(authUsers.id, notifications.authUserFk))
     .leftJoin(userSettings, eq(userSettings.userFk, notifications.userFk))
     .where(and(isNull(notifications.pushedAt), isNull(notifications.readAt)))
 
@@ -475,58 +535,149 @@ async function sendDirected(nowMs: number): Promise<number> {
     return 0
   }
 
-  const wanted = ready.filter(directedWanted)
+  // Mail first, and outside the push pass below, which filters by the six switches and by
+  // `region.read`. Both are push concepts. Inside it, somebody who muted push and was then removed
+  // from a region had their row stamped delivered with nothing sent on either channel.
+  const mailed = ready.filter((row) => MAILED.has(row.sourceType))
+  await inBatches(mailed, (row) =>
+    guarded(row.id, () => sendMembershipEmail(row, contactLocale(row.contactLocale), origin)),
+  )
 
-  // The same re-check the digest half makes, for the same reason. A member removed from the region
-  // (or whose role lost `region.read`) between the fan-out and now would otherwise be pushed the
-  // name of a route they can no longer open, and find an empty inbox when they tap it: the row's
-  // own SELECT policy requires that permission, so it is hidden from the reader it names.
-  const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
-  const readable = wanted.filter((row) => regionsByUser.get(row.userFk)?.includes(row.regionFk) === true)
+  // Everything below is the push pass, and all of it - three queries before a payload is built -
+  // is dead work without keys to sign with.
+  let sent = 0
 
-  const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
-  const unread = await unreadCounts(ready.map((row) => row.userFk))
+  if (pushConfigured) {
+    const wanted = ready.filter(directedWanted)
 
-  const results = await inBatches(readable, (row) => {
-    const locale = contactLocale(row.contactLocale)
-    const view = notificationView(
-      {
-        actorName: row.actorName,
-        metadata: row.metadata ?? undefined,
-        // The same derivation the inbox makes: whichever typed column is set says what the row is
-        // about. The push only needs it for the sentence, which never asks what type it was.
-        object: objectOf(row),
-        sourceType: row.sourceType,
-      },
-      { locale },
+    // The same re-check the digest half makes, for the same reason. A member removed from the
+    // region (or whose role lost `region.read`) between the fan-out and now would otherwise be
+    // pushed the name of a route they can no longer open, and find an empty inbox when they tap
+    // it: the row's own SELECT policy requires that permission, so it is hidden from the reader
+    // it names.
+    const regionsByUser = await readableRegions(wanted.map((row) => row.userFk))
+    // Exempt for the out-of-band pair, whose recipient is outside the region by definition. Their
+    // sentence names it in the copy rather than linking into it.
+    const readable = wanted.filter(
+      (row) => OUT_OF_BAND.has(row.sourceType) || regionsByUser.get(row.userFk)?.includes(row.regionFk) === true,
     )
 
-    return sendPushToUser(subscriptions, row.userFk, {
-      badge: unread.get(row.userFk) ?? 0,
-      // Straight to where it happened when the row knows: a comment, a reply, a mention inside one
-      // and an emoji all name their card, and the card's page renders the thread with the line
-      // anchored. Everything else lands on the inbox, which is the only thing it could say.
-      pathname: pathnameFor(row),
-      tag: directedTag(row.id),
-      title: resolveMessage(view.key, view.params, { locale }),
-    })
-  })
+    const subscriptions = await subscriptionsFor(readable.map((row) => row.userFk))
+    const unread = await unreadCounts(ready.map((row) => row.userFk))
 
-  const sent = results.filter(Boolean).length
+    const results = await inBatches(readable, (row) =>
+      guarded(row.id, () => {
+        const locale = contactLocale(row.contactLocale)
+        const view = notificationView(
+          {
+            actorName: row.actorName,
+            metadata: row.metadata ?? undefined,
+            // The same derivation the inbox makes: whichever typed column is set says what the
+            // row is about. The push only needs it for the sentence, which never asks what type
+            // it was.
+            object: objectOf(row),
+            regionName: row.regionName,
+            sourceType: row.sourceType,
+          },
+          { locale },
+        )
 
-  // Every row that was due, not only the ones that went out: a device that is offline or a person
-  // with no subscription must not build a queue that all fires at once later.
+        return sendPushToUser(subscriptions, row.userFk, {
+          badge: unread.get(row.userFk) ?? 0,
+          // Straight to where it happened when the row knows: a comment, a reply, a mention
+          // inside one and an emoji all name their card, and the card's page renders the thread
+          // with the line anchored.
+          pathname: pathnameFor(row),
+          tag: directedTag(row.id),
+          title: resolveMessage(view.key, view.params, { locale }),
+        })
+      }),
+    )
+
+    sent = results.filter(Boolean).length
+  }
+
+  /**
+   * What this run actually dispatched, which is what may be stamped. Everything when push is
+   * configured, only the mailed rows when it is not: stamping the rest would burn a backlog the
+   * deployment could not push, and adding VAPID later would never deliver it.
+   */
+  const dispatched = pushConfigured ? ready : mailed
+
+  if (dispatched.length === 0) {
+    return sent
+  }
+
+  // Read at send, for the queue-only rows alone: nobody can open them, so left unread they would
+  // sit in `unreadCounts` for 90 days behind a badge that never clears.
+  const delivered = dispatched.filter((row) => OUT_OF_BAND.has(row.sourceType)).map((row) => row.id)
+
+  if (delivered.length > 0) {
+    await db.update(notifications).set({ readAt: new Date() }).where(inArray(notifications.id, delivered))
+  }
+
+  // Every row that was dispatched, not only the ones that went out: a device that is offline or a
+  // person with no subscription must not build a queue that all fires at once later.
   await db
     .update(notifications)
     .set({ pushedAt: new Date() })
     .where(
       inArray(
         notifications.id,
-        ready.map((row) => row.id),
+        dispatched.map((row) => row.id),
       ),
     )
 
   return sent
+}
+
+/**
+ * The membership half of a directed row, as mail. A no-op for everything else, so adding a source
+ * type to {@link MAILED} is the whole change.
+ *
+ * The role label is resolved here rather than read off the view, which folds it into a sentence
+ * while the mail needs it as a value. `roleLabelFor` rather than `roleLabel`: the string came out
+ * of storage, and a retired role must fall back to the plain sentence, not read as a promotion.
+ */
+async function sendMembershipEmail(
+  row: {
+    actorName: string
+    createdAt: Date
+    email: null | string
+    id: number
+    metadata: null | string
+    regionName: string
+    sourceType: NotificationSourceType
+  },
+  locale: Locale,
+  origin: string,
+): Promise<void> {
+  if (!MAILED.has(row.sourceType) || row.email == null) {
+    return
+  }
+
+  const content =
+    row.sourceType === 'membership_removed'
+      ? membershipRemovedEmailContent({ locale, regionName: row.regionName, url: origin })
+      : roleChangedEmailContent({
+          actor: row.actorName,
+          locale,
+          regionName: row.regionName,
+          role: roleLabelFor(row.metadata ?? undefined, { locale }),
+          url: origin,
+        })
+
+  await sendEmail({
+    ...content,
+    // The row AND the delivery it belongs to. A row is re-armed rather than replaced when the same
+    // thing happens again (see the `onConflictDoUpdate` in `notify`), so the id alone would let
+    // Resend swallow a second, genuinely different role change as a duplicate of the first.
+    // `created_at` is reset by that re-arm and is stable across cron retries of one delivery.
+    idempotencyKey: `notification-${row.id}-${row.createdAt.getTime()}`,
+    locale,
+    origin,
+    to: row.email,
+  })
 }
 
 /** Unread inbox rows per person, which is what the app badge shows. Counted here so the service
@@ -540,29 +691,47 @@ async function unreadCounts(userFks: readonly number[]): Promise<Map<number, num
   const rows = await db
     .select({ total: count(), userFk: notifications.userFk })
     .from(notifications)
-    .where(and(inArray(notifications.userFk, ids), isNull(notifications.readAt)))
+    .where(
+      and(
+        inArray(notifications.userFk, ids),
+        isNull(notifications.readAt),
+        // Never the queue-only pair. They are unread between being written and being sent, and
+        // counting them would put a number on the home-screen icon for a row the inbox cannot show
+        // and the reader can therefore never clear. The same exclusion is in the inbox query, so
+        // the badge the app draws and the badge the payload carries count the same rows.
+        notInArray(notifications.sourceType, [...OUT_OF_BAND]),
+      ),
+    )
     .groupBy(notifications.userFk)
 
   return new Map(rows.map((row) => [row.userFk, row.total]))
 }
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
   if (!authorized(request)) {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  if (!isPushConfigured()) {
-    // Not an error: a dev environment without VAPID keys should say so once per run rather than
-    // fail the job and page somebody.
-    console.log('[notifications] no VAPID keys configured, nothing sent')
-    return json({ configured: false, digests: 0, directed: 0 })
+  const configured = isPushConfigured()
+
+  if (!configured) {
+    // Not an error, and no longer a reason to stop: the membership half of `sendDirected` goes out
+    // by MAIL, whose secret is a different one. An environment with Resend configured and VAPID
+    // not (a staging box, a key rotation) still owes people the sentence about their own
+    // membership, and `sendDirected` stamps only what it actually dispatched, so everything it
+    // could not push is still waiting when the keys appear.
+    console.log('[notifications] no VAPID keys configured, sending mail only')
   }
 
   const nowMs = Date.now()
   // Serially, because both halves read `notifications` and the directed half writes to it.
-  const directed = await sendDirected(nowMs)
-  const digests = await sendDigests(nowMs)
+  // The deployment's own origin, which is what the pg_cron caller posted to. No env var for it:
+  // the mail's logo and CTA then follow whichever environment actually ran the job.
+  const directed = await sendDirected(nowMs, url.origin, configured)
+  // Nothing to do without push: a digest has no second channel, and running it anyway would
+  // advance everybody's watermark past events nobody was told about.
+  const digests = configured ? await sendDigests(nowMs) : 0
 
   console.log(`[notifications] sent ${directed} directed, ${digests} digests`)
-  return json({ configured: true, digests, directed })
+  return json({ configured, digests, directed })
 }

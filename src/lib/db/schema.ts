@@ -1884,6 +1884,16 @@ export const reactionsRelations = relations(reactions, ({ many, one }) => ({
  * edit plus `generate:zero`, with no DDL at all. That is why the media case is absent: attaching
  * a photo to somebody else's ascent is refused outright by `resolveAttachRegion`, so a source
  * type for it could never fire. Add it back here the day that gate relaxes.
+ *
+ * `membership_removed` and `invitation_received` are a SEND QUEUE, not inbox entries, and this is
+ * the one place that says so in full. Both are aimed at somebody outside the region the row names
+ * - a member who was just removed, an invitee who has not joined - so there is no inbox they could
+ * be shown in. `listNotifications` excludes both outright and `unreadCounts` does not count them;
+ * that exclusion is the guarantee, NOT the region gate, which stops being true the moment somebody
+ * accepts or is added back. Living in this table anyway is what buys them the debounce, the unique
+ * index, `pushed_at` and a delete as the undo hook, with no second table to keep in step.
+ *
+ * Written by `notifyOutOfBand`, drained by `/api/tasks/notifications`.
  */
 export const notificationSourceType: [
   'mention',
@@ -1891,6 +1901,8 @@ export const notificationSourceType: [
   'ascent_deleted',
   'role_changed',
   'invite_accepted',
+  'membership_removed',
+  'invitation_received',
   'reaction',
   'comment',
   'comment_reply',
@@ -1901,6 +1913,8 @@ export const notificationSourceType: [
   'ascent_deleted',
   'role_changed',
   'invite_accepted',
+  'membership_removed',
+  'invitation_received',
   'reaction',
   'comment',
   'comment_reply',
@@ -1995,11 +2009,19 @@ export const notifications = table(
     // partial indexes it replaced: five of the six object columns are null on every row, and the
     // default would make every row unique against every other and dedupe nothing. It also has to
     // be a CONSTRAINT rather than an index, because a partial unique index cannot say it.
+    //
+    // `region_fk` is in the key, and it is doing real work for exactly the source types whose
+    // object does not imply a region. A mention on a route names a route, and a route lives in
+    // one region, so for those this column is functionally determined and changes nothing. A
+    // membership sentence names a PERSON, and a person holds a membership per region: without
+    // this, changing Ada's role in two regions, or removing her from two, is one row - and the
+    // second one either vanishes or overwrites the first's region and announces the wrong place.
     unique('notifications_source_idx')
       .on(
         table.userFk,
         table.sourceType,
         table.actorFk,
+        table.regionFk,
         table.eventFk,
         table.areaFk,
         table.ascentFk,

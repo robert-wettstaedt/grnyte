@@ -12,9 +12,9 @@
 import { REGION_PERMISSION_READ } from '$lib/auth'
 import { getReferences } from '$lib/components/Markdown/lib/remark-references'
 import { db as baseDb } from '$lib/db/db.server'
-import { notifications, regionMembers, rolePermissions } from '$lib/db/schema'
+import { notifications, regionMembers, rolePermissions, users } from '$lib/db/schema'
 import { objectColumns, type EventObject } from '$lib/entities/event/event.server'
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { NotificationSourceType } from './dto'
 
 /** One recipient, in both the shapes a row needs: the app's id and the one RLS compares. */
@@ -141,6 +141,7 @@ export async function notify(input: NotifyInput): Promise<void> {
         notifications.userFk,
         notifications.sourceType,
         notifications.actorFk,
+        notifications.regionFk,
         notifications.eventFk,
         notifications.areaFk,
         notifications.ascentFk,
@@ -200,6 +201,67 @@ export async function notifyMentions({
   }
 
   await notify({ ...input, sourceType: 'mention', userFks })
+}
+
+/**
+ * Write a notification for somebody who cannot read the region it names: a member who was just
+ * removed, an invitee who has not joined. A send queue rather than an inbox entry - see the
+ * `notificationSourceType` doc in `schema.ts` for why, and {@link retractOutOfBand} for the undo.
+ *
+ * {@link notify} cannot write either of them, and that is not an oversight in it: its recipient
+ * rule is `region.read`, which both of these recipients fail by definition, so it would correctly
+ * decide there is nobody to tell.
+ */
+export async function notifyOutOfBand(input: {
+  actorFk: number
+  regionFk: number
+  sourceType: NotificationSourceType
+  /** The one person told. Not filtered against anything: the caller already knows who they are. */
+  userFk: number
+}): Promise<void> {
+  // Not from `region_members`, which is the point: this recipient either just lost that row or
+  // never had one. `users` is where the auth id lives for everybody else.
+  const recipient = await baseDb.query.users.findFirst({
+    columns: { authUserFk: true },
+    where: eq(users.id, input.userFk),
+  })
+
+  if (recipient?.authUserFk == null) {
+    return
+  }
+
+  await baseDb
+    .insert(notifications)
+    .values({
+      actorFk: input.actorFk,
+      authUserFk: recipient.authUserFk,
+      regionFk: input.regionFk,
+      sourceType: input.sourceType,
+      // The recipient, in the object columns, exactly as a role change files it. Nothing renders
+      // these rows, but it keeps the shape uniform for anything reading one back.
+      subjectFk: input.userFk,
+      userFk: input.userFk,
+    })
+    // Same re-arm as {@link notify}: a second removal from the same region by the same admin is
+    // news only once the first has gone out. `region_fk` is in the key, so being removed from two
+    // regions is two rows rather than one that names the wrong place.
+    .onConflictDoUpdate({
+      set: { createdAt: new Date(), pushedAt: null, readAt: null },
+      setWhere: isNotNull(notifications.readAt),
+      target: [
+        notifications.userFk,
+        notifications.sourceType,
+        notifications.actorFk,
+        notifications.regionFk,
+        notifications.eventFk,
+        notifications.areaFk,
+        notifications.ascentFk,
+        notifications.blockFk,
+        notifications.fileFk,
+        notifications.routeFk,
+        notifications.subjectFk,
+      ],
+    })
 }
 
 /**
@@ -318,6 +380,30 @@ export async function retractNotifications(input: {
         eq(notifications.actorFk, input.actorFk),
         eq(notifications.sourceType, input.sourceType),
         input.reactionFk == null ? undefined : eq(notifications.reactionFk, input.reactionFk),
+      ),
+    )
+}
+
+/**
+ * Take back an out-of-band notice that has not gone out yet, which is what an undo is.
+ *
+ * Scoped to `pushed_at IS NULL`, so it can only cancel, never erase a notice already delivered.
+ * The removal snackbar is bounded well below `DIRECTED_DEBOUNCE_MS` (see `MEMBERSHIP_UNDO_MS`), so
+ * a row reaching here is always still pending; one that is not is a bug worth leaving visible.
+ */
+export async function retractOutOfBand(input: {
+  regionFk: number
+  sourceType: NotificationSourceType
+  userFk: number
+}): Promise<void> {
+  await baseDb
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.userFk, input.userFk),
+        eq(notifications.regionFk, input.regionFk),
+        eq(notifications.sourceType, input.sourceType),
+        isNull(notifications.pushedAt),
       ),
     )
 }

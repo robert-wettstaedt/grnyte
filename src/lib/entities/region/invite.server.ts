@@ -26,11 +26,12 @@ import { formError } from '$lib/forms/schemas'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
 import { error } from '@sveltejs/kit'
 import { and, count, eq, gt } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { authUsers } from 'drizzle-orm/supabase'
 import z from 'zod'
 import { insertEvent } from '../event/event.server'
-import { notify } from '../notification/notification.server'
+import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
 import { acceptPath, type UserInvitationItem, type UserRegion } from './dto'
 import { canEditRegion } from './permissions'
 
@@ -425,11 +426,13 @@ export async function resendInvitation(
   const sent = await sendInvitationEmail(
     db,
     {
+      actorFk: inviterFk,
       email: invitation.email,
       id: invitationFk,
       // The throttle already caps this at one a minute, so the clock is fine as the varying part.
       idempotencyKey: `invitation-${invitationFk}-${Date.now()}`,
       inviter,
+      regionFk: invitation.regionFk,
       regionName: invitation.region.name,
       token: invitation.token,
     },
@@ -576,6 +579,18 @@ export async function revokeInvitation(
     .set({ expiresAt: new Date(), status: 'expired' })
     .where(eq(regionInvitations.id, invitationFk))
 
+  // And take back the push that has not gone out yet. A withdrawn invitation whose queue row
+  // survives buzzes minutes later asking for an accept the token can no longer honour.
+  const invitee = await accountIdForEmail(invitation.email)
+
+  if (invitee != null) {
+    await retractOutOfBand({
+      regionFk: invitation.regionFk,
+      sourceType: 'invitation_received',
+      userFk: invitee,
+    })
+  }
+
   return { email: invitation.email, regionFk: invitation.regionFk }
 }
 
@@ -589,6 +604,12 @@ export async function revokeInvitation(
 export async function sendInvitationEmail(
   db: Db,
   {
+    /**
+     * Who to file the push under, and `regionFk` beside it. Both optional, and both absent means
+     * no push, which is the same shape `resendInvitation` already uses for `inviterFk`: the tests
+     * that only care about the mail pass neither.
+     */
+    actorFk,
     email,
     id,
     /**
@@ -598,9 +619,19 @@ export async function sendInvitationEmail(
      */
     idempotencyKey,
     inviter,
+    regionFk,
     regionName,
     token,
-  }: { email: string; id: number; idempotencyKey: string; inviter: string; regionName: string; token: string },
+  }: {
+    actorFk?: number
+    email: string
+    id: number
+    idempotencyKey: string
+    inviter: string
+    regionFk?: number
+    regionName: string
+    token: string
+  },
   { ambientLocale, origin }: MailContext,
 ): Promise<boolean> {
   const locale = await resolveContactLocale(email, ambientLocale)
@@ -614,11 +645,47 @@ export async function sendInvitationEmail(
     to: email,
   })
 
+  // A buzz for the invitee, when the address already has an account. A push and NOT a second
+  // email: the mail above carries the token and is the only channel that reaches an address with
+  // no account. Queued whether or not it went out, because a failed send is when a second channel
+  // is worth the most.
+  if (actorFk != null && regionFk != null) {
+    const invitee = await accountIdForEmail(email)
+
+    if (invitee != null && invitee !== actorFk) {
+      // Cleared first, because `actor_fk` is in the unique key: a resend by a different admin
+      // misses the existing row's conflict target and inserts a second one, buzzing twice for one
+      // invitation. Only pending rows go, so nothing already delivered is erased.
+      await retractOutOfBand({ regionFk, sourceType: 'invitation_received', userFk: invitee })
+      await notifyOutOfBand({ actorFk, regionFk, sourceType: 'invitation_received', userFk: invitee })
+    }
+  }
+
   // Recorded even when the send failed: the throttle exists to stop a loop, and a failing
   // provider is the one case where a loop is most likely.
   await db.update(regionInvitations).set({ lastSentAt: sentAt }).where(eq(regionInvitations.id, id))
 
   return sent
+}
+
+/**
+ * The app id of the account on this address, or `undefined` when nobody has one yet. Same join as
+ * {@link resolveContactLocale}, over the base handle for the same reason: `auth.users` is where an
+ * email lives and `authenticated` cannot read it.
+ */
+async function accountIdForEmail(email: string): Promise<number | undefined> {
+  // `auth.users` is named `users` too, so beside `public.users` it needs a name of its own or
+  // Postgres refuses the query as an ambiguous table reference.
+  const authUser = alias(authUsers, 'auth_user')
+
+  const [row] = await baseDb
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(authUser, eq(authUser.id, users.authUserFk))
+    .where(eq(authUser.email, normalizeEmail(email)))
+    .limit(1)
+
+  return row?.id
 }
 
 function asLocale(value: null | string | undefined): EmailLocale | undefined {
