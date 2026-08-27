@@ -264,6 +264,11 @@
     didRequestLocation = true
     isTrackingGeolocation = true
     geolocation.setTracking(true)
+    // Recenter from the fix we already hold. A drag only turns the view-follow off, tracking
+    // stays on, so `setTracking(true)` is a no-op here and no `change` event fires. Without
+    // this, a stationary user's map stays where they dragged it while the button reads active.
+    const position = geolocation.getPosition()
+    if (position != null) map.getView().animate({ center: position, duration: 200 })
   }
 
   const handleZoomIn = () => {
