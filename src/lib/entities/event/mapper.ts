@@ -195,6 +195,7 @@ function entityOf(row: EventRow, userRegions: RegionMembership[]): EventEntity |
     const name = blockName(block.name, block.order)
     return {
       crumbs: crumbs(block.regionFk, [block.area?.name]),
+      description: block.description ?? undefined,
       href: entityHref({ id: block.id, label: name, type: 'blocks' }),
       name,
       pin: block.geolocation == null ? undefined : toGeolocation(block.geolocation),

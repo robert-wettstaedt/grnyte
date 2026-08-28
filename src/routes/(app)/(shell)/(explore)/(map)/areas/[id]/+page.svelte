@@ -8,6 +8,7 @@
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import GradeHistogram from '$lib/components/GradeHistogram/GradeHistogram.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
@@ -19,7 +20,6 @@
   import { SvelteMap } from 'svelte/reactivity'
   import { sheetState } from '../../../Modal/sheetState.svelte'
   import AreaActions from './AreaActions.svelte'
-  import AreaDescription from './AreaDescription.svelte'
   import AreaEmpty from './AreaEmpty.svelte'
   import AreaList from './AreaList.svelte'
   import BlocksList from './BlocksList.svelte'
@@ -100,9 +100,7 @@
     <div class="space-y-5">
       <AreaActions area={detail} />
 
-      {#if detail.description != null}
-        <AreaDescription description={detail.description} />
-      {/if}
+      <CollapsibleMarkdown markdown={detail.description} />
 
       {#if routes.data.length > 0}
         <section class="space-y-2">

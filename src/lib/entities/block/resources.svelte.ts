@@ -10,6 +10,8 @@ export interface BlockListFilter {
   content?: string
   /** Cap the result set (e.g. a search preview). */
   limit?: number
+  /** Find blocks whose description references the given `!type:id!` token (backlinks). */
+  references?: string
 }
 
 export function blockDetail(id: () => number) {

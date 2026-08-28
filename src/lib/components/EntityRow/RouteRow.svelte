@@ -2,7 +2,6 @@
   import { ENTITY_TYPE_ICON } from '$lib/components/EntitySearch/search.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import Image from '$lib/components/Image/Image.svelte'
-  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import AscentType from '$lib/entities/ascent/AscentType.svelte'
   import { getGradeBand, gradeFgVar, gradeVar } from '$lib/entities/grade/color'
   import type { RouteListItem } from '$lib/entities/route/dto'
@@ -13,6 +12,7 @@
   import { m } from '$lib/paraglide/messages.js'
   import type { Snippet } from 'svelte'
   import Row from './Row.svelte'
+  import RowDescription from './RowDescription.svelte'
   import type { AscentStatus } from './types'
 
   /** The slice of a route the row renders — a `RouteListItem` satisfies it. */
@@ -100,9 +100,7 @@
 {/snippet}
 
 {#snippet body()}
-  {#if route.description}
-    <Markdown className="short" disableLinks encloseReferences="strong" markdown={route.description} />
-  {/if}
+  <RowDescription markdown={route.description} />
 {/snippet}
 
 {#snippet footer()}

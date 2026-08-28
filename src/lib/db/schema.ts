@@ -526,6 +526,7 @@ export const areas = table(
     ...baseRegionFields,
     ...softDeleteFields,
 
+    /** Markdown. Deliberately unindexed, for the reasons on `blocks.description`. */
     description: text('description'),
     geoPaths: jsonb('geo_paths').$type<string[]>(),
     parentFk: integer('parent_fk').references((): AnyColumn => areas.id),
@@ -534,7 +535,6 @@ export const areas = table(
     walkingPaths: text('walking_paths').array(),
   },
   (table) => [
-    index('areas_description_idx').on(table.description),
     index('areas_region_fk_idx').on(table.regionFk),
     index('areas_deleted_at_idx').on(table.deletedAt),
 
@@ -574,6 +574,15 @@ export const blocks = table(
       .notNull()
       .references((): AnyColumn => areas.id),
 
+    /**
+     * Markdown, with `!type:id!` entity references and user mentions, same as `areas` and
+     * `routes`. Deliberately unindexed, as those two now are: the only reads are
+     * `ILIKE '%...%'` against the Zero replica, which no btree can serve, and a btree over
+     * unbounded text hard-errors on any entry past ~2704 bytes, so the index would reject a
+     * long description at save time in exchange for nothing. Server-side search would need a
+     * pg_trgm GIN index, not this.
+     */
+    description: text('description'),
     geolocationFk: integer('geolocation_fk').references((): AnyColumn => geolocations.id),
     order: integer('order').notNull(),
   },
@@ -617,6 +626,7 @@ export const routes = table(
     blockFk: integer('block_fk')
       .notNull()
       .references((): AnyColumn => blocks.id),
+    /** Markdown. Deliberately unindexed, for the reasons on `blocks.description`. */
     description: text('description'),
 
     externalResourcesFk: integer('external_resources_fk').references((): AnyColumn => routeExternalResources.id),
@@ -628,7 +638,6 @@ export const routes = table(
   },
   (table) => [
     index('routes_block_fk_idx').on(table.blockFk),
-    index('routes_description_idx').on(table.description),
     index('routes_region_fk_idx').on(table.regionFk),
     index('routes_deleted_at_idx').on(table.deletedAt),
     index('routes_area_fks_gin_idx').using('gin', table.areaFks),
@@ -939,6 +948,7 @@ export const ascents = table(
     dateTime: date('date_time').notNull().defaultNow(),
     gradeFk: integer('grade_fk').references((): AnyColumn => grades.id),
     humidity: integer('humidity'),
+    /** Markdown. Deliberately unindexed, for the reasons on `blocks.description`. */
     notes: text('notes'),
     rating: integer('rating'),
     routeFk: integer('route_fk')
@@ -951,7 +961,6 @@ export const ascents = table(
   (table) => [
     index('ascents_created_by_idx').on(table.createdBy),
     index('ascents_deleted_at_idx').on(table.deletedAt),
-    index('ascents_notes_idx').on(table.notes),
     index('ascents_region_fk_idx').on(table.regionFk),
     index('ascents_route_fk_idx').on(table.routeFk),
 

@@ -15,7 +15,7 @@ import {
   topoRoutes,
   type Route,
 } from '$lib/db/schema'
-import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
@@ -132,7 +132,7 @@ export const createRoute = authedForm(
         areaIds: areaFks.map((id) => `^${id}$`).join(','),
         blockFk: block.id,
         createdBy: user.id,
-        description: value.description.length === 0 ? null : value.description,
+        description: blank(value.description),
         firstAscentYear: value.firstAscentYear,
         gradeFk: value.gradeFk,
         name: value.name,
@@ -207,7 +207,7 @@ export const updateRoute = authedForm(
     await db
       .update(routes)
       .set({
-        description: value.description.length === 0 ? null : value.description,
+        description: blank(value.description),
         firstAscentYear: value.firstAscentYear ?? null,
         gradeFk: value.gradeFk ?? null,
         name: value.name,

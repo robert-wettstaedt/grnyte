@@ -1,5 +1,6 @@
 <script lang="ts">
   import Breadcrumb from '$lib/components/Breadcrumb/Breadcrumb.svelte'
+  import MarkdownEditor from '$lib/components/MarkdownEditor/MarkdownEditor.svelte'
   import type { AreaDetail } from '$lib/entities/area/dto'
   import RemoteFormInputWrapper from '$lib/forms/RemoteFormInputWrapper.svelte'
   import type { MapData } from '$lib/map/types'
@@ -88,3 +89,22 @@
   {onRemove}
   {onEstimatedChange}
 />
+
+<!-- `regionFk` scopes the entity-reference picker. A block always hangs off a crag, so it comes
+     straight off the area rather than through AreaFormFields' top-level-area fallback. -->
+<RemoteFormInputWrapper
+  class="space-y-2.5"
+  field={form.fields.description}
+  hint={m.editor_descriptionHint()}
+  id="block-description"
+  label={m.editor_descriptionLabel()}
+>
+  {#snippet children(props)}
+    <MarkdownEditor
+      {...form.fields.description.as('text')}
+      {...props}
+      placeholder={m.editor_placeholder()}
+      regionFk={area.regionFk}
+    />
+  {/snippet}
+</RemoteFormInputWrapper>

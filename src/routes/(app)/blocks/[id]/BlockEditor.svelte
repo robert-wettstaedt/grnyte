@@ -35,7 +35,7 @@
     const data = block.data
     if (data != null && data.id !== prefilledId) {
       prefilledId = data.id
-      updateBlock.fields.set({ id: String(data.id), name: data.rawName })
+      updateBlock.fields.set({ description: data.description, id: String(data.id), name: data.rawName })
     }
   })
 </script>

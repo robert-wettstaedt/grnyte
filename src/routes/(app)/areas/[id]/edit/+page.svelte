@@ -23,7 +23,7 @@
     if (data != null && data.id !== prefilledId) {
       prefilledId = data.id
       updateArea.fields.set({
-        description: data.description ?? '',
+        description: data.description,
         id: data.id.toString(),
         name: data.name,
         parentFk: data.areas.at(-1)?.id.toString(),

@@ -45,7 +45,7 @@ export function toAreaDetail(row: AreaDetailRow): AreaDetail {
     ...toAreaListItem(row),
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     createdBy: row.createdBy,
-    description: row.description ?? undefined,
+    description: row.description ?? '',
     geoPaths: row.geoPaths == null ? [] : [...row.geoPaths],
     parkingLocations: row.parkingLocations.map(toGeolocation),
     regionFk: row.regionFk,

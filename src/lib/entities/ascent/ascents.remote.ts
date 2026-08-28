@@ -1,6 +1,6 @@
 import { command } from '$app/server'
 import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
-import { formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { authedForm, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
@@ -55,7 +55,7 @@ export const createAscent = authedForm(ascentActionSchema, async (value, { after
       dateTime: value.dateTime,
       gradeFk: value.gradeFk,
       humidity: value.humidity,
-      notes: value.notes.length === 0 ? null : value.notes,
+      notes: blank(value.notes),
       rating: value.rating,
       regionFk: route.regionFk,
       routeFk: route.id,
@@ -108,7 +108,7 @@ export const updateAscent = authedForm(
         dateTime: value.dateTime,
         gradeFk: value.gradeFk ?? null,
         humidity: value.humidity ?? null,
-        notes: value.notes.length === 0 ? null : value.notes,
+        notes: blank(value.notes),
         rating: value.rating ?? null,
         temperature: value.temperature ?? null,
         type: value.type,

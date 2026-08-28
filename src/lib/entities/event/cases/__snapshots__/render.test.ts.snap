@@ -1610,6 +1610,37 @@ exports[`the case catalogue renders what it claims > BLOCK-02j: A block pin clea
 }
 `;
 
+exports[`the case catalogue renders what it claims > BLOCK-02k: /blocks/400/edit -> Description -> Save 1`] = `
+{
+  "cards": [
+    {
+      "changes": [
+        {
+          "after": "Flat landing, out of the sun by three. The sit start is under the left arete.",
+          "before": "Flat landing, out of the sun by three.",
+          "caption": undefined,
+          "kind": "prose",
+          "label": "Description",
+        },
+      ],
+      "climbedAt": false,
+      "entityUnnamed": false,
+      "files": 0,
+      "headline": "You edited the description of Nordblock",
+      "mine": true,
+      "overflowCount": 0,
+      "pin": false,
+      "rows": [
+        "entity:Nordblock",
+      ],
+      "status": undefined,
+      "summary": [],
+    },
+  ],
+  "expected": "Single card, "You edited the description of Nordblock", the same shape AREA-02b has. The change line is prose, so it collapses behind a Compare toggle rather than showing a before/after pair inline. The form resubmits the name and the pin on every save and the diff drops both because neither moved, so a description edit writes one row.",
+}
+`;
+
 exports[`the case catalogue renders what it claims > BLOCK-03a: Block page -> More -> Move on the map -> drag the pin -> Done 1`] = `
 {
   "cards": [
@@ -2007,7 +2038,7 @@ exports[`the case catalogue renders what it claims > BLOCK-08b: Rename a block i
       ],
     },
   ],
-  "expected": "Same headline and sub line as BLOCK-02f, "You edited Nordblock" with "2 edits", even though the reader used two screens. The only difference is the order of the two change lines, Name then Location here because the rows are read back in the order the two calls wrote them, against 02f's Location then Name from one submit diffing \`{ location, name }\`: nothing a reader could read as two screens, and the timestamp is the second call's. This is the server fold rather than the client grouping, so it holds even if the two land in different feed windows.",
+  "expected": "Same headline and sub line as BLOCK-02f, "You edited Nordblock" with "2 edits", even though the reader used two screens. The only difference is the order of the two change lines, Name then Location here because the rows are read back in the order the two calls wrote them, against 02f's Location then Name from one submit diffing \`{ description, location, name }\`: nothing a reader could read as two screens, and the timestamp is the second call's. This is the server fold rather than the client grouping, so it holds even if the two land in different feed windows.",
 }
 `;
 

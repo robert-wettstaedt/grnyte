@@ -4,6 +4,8 @@ import type { Geolocation } from '$lib/entities/geolocation/dto'
 export type BlockDetail = {
   createdAt: Date | undefined
   createdBy: number
+  /** Markdown, with entity references and user mentions. '' when unset, never null. */
+  description: string
   geolocation: Geolocation | undefined
   /** The stored name as typed — empty for auto-numbered blocks. `name` is the display
    *  fallback ("Block 2"); editing must prefill from this so a blank block stays blank. */

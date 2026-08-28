@@ -1,9 +1,9 @@
 <script lang="ts">
   import { ENTITY_TYPE_ICON } from '$lib/components/EntitySearch/search.svelte'
   import GradeDonut from '$lib/components/GradeDonut/GradeDonut.svelte'
-  import Markdown from '$lib/components/Markdown/Markdown.svelte'
   import type { Snippet } from 'svelte'
   import Row from './Row.svelte'
+  import RowDescription from './RowDescription.svelte'
   import Thumb from './Thumb.svelte'
 
   interface Props {
@@ -29,9 +29,7 @@
 </script>
 
 {#snippet body()}
-  {#if description != null}
-    <Markdown className="short" disableLinks encloseReferences="strong" markdown={description} />
-  {/if}
+  <RowDescription markdown={description} />
 {/snippet}
 
 <Row title={name} {action} {crumbs} description={body} {href} {variant}>

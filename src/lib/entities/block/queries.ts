@@ -56,6 +56,7 @@ export const blocksQueryDefs = {
       blockId: z.union([z.number(), z.array(z.number())]).optional(),
       content: z.string().optional(),
       limit: z.number().optional(),
+      references: z.string().optional(),
       /** `createdAt` sorts newest first (the search flyout's "recently added"); default is the block order. */
       sort: z.enum(['createdAt', 'order']).optional(),
     }),
@@ -86,7 +87,15 @@ export const blocksQueryDefs = {
       }
 
       if (args.content != null) {
-        q = q.where('name', 'ILIKE', `%${args.content}%`)
+        q = q.where((q) =>
+          q.or(q.cmp('name', 'ILIKE', `%${args.content}%`), q.cmp('description', 'ILIKE', `%${args.content}%`)),
+        )
+      }
+
+      // Find blocks whose description contains a reference token (e.g. `!routes:42!`), the
+      // backlinks for the referenced entity. The token's delimiters keep it exact.
+      if (args.references != null) {
+        q = q.where('description', 'ILIKE', `%${args.references}%`)
       }
 
       if (args.limit != null) {

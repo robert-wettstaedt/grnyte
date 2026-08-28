@@ -14,3 +14,12 @@
 </script>
 
 <Story name="Default" args={{ crumbs: 'Roadside', name: 'The Arch' }} />
+
+<Story
+  name="With description"
+  args={{
+    crumbs: 'Roadside',
+    description: 'Flat landing, out of the sun by three.',
+    name: 'The Arch',
+  }}
+/>

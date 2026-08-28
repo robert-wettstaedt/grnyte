@@ -9,6 +9,7 @@ import type { BlockDetail, BlockListItem } from './dto'
 interface BlockDetailRow extends BlockRow {
   readonly createdAt: null | number
   readonly createdBy: number
+  readonly description: null | string
   readonly geolocation?: Row<'geolocations'> | undefined
   readonly topos?: readonly {
     readonly file?:
@@ -48,6 +49,7 @@ export function toBlockDetail(row: BlockDetailRow): BlockDetail {
     ...toBlockListItem(row),
     createdAt: row.createdAt == null ? undefined : new Date(row.createdAt),
     createdBy: row.createdBy,
+    description: row.description ?? '',
     geolocation: row.geolocation == null ? undefined : toGeolocation(row.geolocation),
     rawName: row.name,
     topoImages: (row.topos ?? []).flatMap((topo) =>

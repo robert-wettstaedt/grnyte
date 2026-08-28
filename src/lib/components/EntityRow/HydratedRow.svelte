@@ -76,6 +76,7 @@
   {:else if entity.row === 'block'}
     <BlockRow
       crumbs={entity.crumbs}
+      description={entity.description}
       href={entity.href}
       name={entity.name}
       topoImagePath={entity.topoImagePath}

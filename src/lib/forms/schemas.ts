@@ -115,6 +115,18 @@ export const stringToNumberOptional = z.codec(
  * between a hand-built snapshot and a pin at lat 999 dragging every map that fits its markers.
  * One definition, so a new coordinate path is a missing import rather than a silent gap.
  */
+/**
+ * A user-authored text field as it should be STORED: the text, or NULL when there is nothing
+ * in it.
+ *
+ * Trimmed rather than length-checked, because the two sources disagree about empty. A plain
+ * input submits an empty string, while the markdown editor reserialises an emptied document
+ * with a trailing newline, which is not empty. Store both as NULL so `description IS NULL`
+ * means "not set" and no reader has to know about a second empty. See `changed` in
+ * event.server.ts, which normalises the same two shapes on the way into the feed.
+ */
+export const blank = (value: string): null | string => (value.trim().length === 0 ? null : value)
+
 export const boundedDegrees = (limit: number) =>
   z
     .number()

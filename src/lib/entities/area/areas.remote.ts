@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
-import { boundedDegrees, coordinate, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import { blank, boundedDegrees, coordinate, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
 import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
@@ -72,7 +72,10 @@ export const createArea = authedForm(areaActionSchema, async (value, { afterComm
     .insert(areas)
     .values({
       createdBy: user.id,
-      description: value.description,
+      // Empty stores as NULL, never '': "not set" gets one representation, so a later
+      // `description IS NULL` means what it says. Same as `routes` and `blocks`. Trimmed,
+      // because the editor reserialises an emptied document with a trailing newline.
+      description: blank(value.description),
       name: value.name,
       parentFk: value.parentFk,
       regionFk: value.regionFk,
@@ -126,7 +129,10 @@ export const updateArea = authedForm(
 
     // Explicit columns, not a spread: `areaActionSchema` is shared with `createArea` and also carries
     // `regionFk` and `parentFk`. See `no-drizzle-mass-assignment` in eslint.config.js.
-    await db.update(areas).set({ description: value.description, name: value.name }).where(eq(areas.id, area.id))
+    await db
+      .update(areas)
+      .set({ description: blank(value.description), name: value.name })
+      .where(eq(areas.id, area.id))
 
     await createUpdateEvent(db, {
       actorFk: user.id,

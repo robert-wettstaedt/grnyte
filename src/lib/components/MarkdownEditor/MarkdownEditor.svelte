@@ -243,6 +243,30 @@
     return () => editor.destroy()
   }
 
+  /**
+   * Tell the surrounding remote form what the editor holds.
+   *
+   * A remote form field learns a value from an `input` event on a named control, and a hidden
+   * input whose value is set programmatically fires none. Without this the tracked value stays at
+   * whatever the parent seeded, and any parent that UNMOUNTS this editor and mounts it again
+   * re-seeds it from that stale value: the block form's map-picker step does exactly that, so
+   * writing a description and then placing the pin used to save the old text back (or, on the add
+   * form, nothing at all). Attached rather than effected so it runs after the DOM value is written.
+   *
+   * `lastPublished` is what keeps this from feeding itself: the event updates the form's tracked
+   * value, which is where `value` comes from, so an unguarded dispatch re-triggers this attachment
+   * for as long as the two disagree by even a normalisation.
+   */
+  let lastPublished = String(initialValue)
+  const publish: Attachment<HTMLInputElement> = (node) => {
+    const markdown = String(value)
+    if (markdown === lastPublished) {
+      return
+    }
+    lastPublished = markdown
+    node.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+
   // Re-seed the document when `value` changes from outside the editor. This
   // component is reused across area navigations and the parent seeds the form
   // field in an effect that runs *after* mount, so `initialValue` is stale —
@@ -433,7 +457,7 @@
   <!-- Submitted value: the form reads FormData from the DOM, so the markdown
        needs a real named control. -->
   {#if name}
-    <input type="hidden" {name} value={String(value)} />
+    <input type="hidden" {name} value={String(value)} {@attach publish} />
   {/if}
 
   <!-- In-flow reference picker (per design — not a caret-floating popover) -->

@@ -65,7 +65,7 @@ export interface EventEntity {
   climberName?: string
   /** Breadcrumb path for the row, e.g. the parent area and block. */
   crumbs?: string[]
-  /** Secondary line for area rows. */
+  /** Secondary line for area and block rows. */
   description?: string
   /** Media the card renders full width above the rows. */
   files?: MediaFile[]

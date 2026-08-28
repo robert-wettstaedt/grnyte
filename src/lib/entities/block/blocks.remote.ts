@@ -1,6 +1,6 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
-import { boundedDegrees, formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
+import { blank, boundedDegrees, formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
 import { stringifyCoords } from '$lib/map/coords'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
@@ -12,10 +12,12 @@ import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
+import { notifyMentions } from '../notification/notification.server'
 import { canDeleteBlock, canEditBlock } from './permissions'
 
 const blockActionSchema = z.object({
   areaId: stringToInt,
+  description: z.string().optional().default(''),
   // Checkbox-style hidden input: "true" when the pin is a rough guess, absent otherwise.
   estimated: z
     .string()
@@ -32,163 +34,202 @@ export type BlockFormInput = z.input<typeof blockActionSchema>
 
 /** Create a block under a crag (or a still-untyped area, which a block turns into a crag).
  *  Location is optional — when given, a geolocation row is created and linked both ways. */
-export const createBlock = authedForm(blockActionSchema, async (value, { db, user, userRegions }, issue) => {
-  const area = await db.query.areas.findFirst({ where: eq(areas.id, value.areaId) })
+export const createBlock = authedForm(
+  blockActionSchema,
+  async (value, { afterCommit, db, user, userRegions }, issue) => {
+    const area = await db.query.areas.findFirst({ where: eq(areas.id, value.areaId) })
 
-  if (area == null) {
-    invalid(formError('areas_parentNotFound'))
-  }
+    if (area == null) {
+      invalid(formError('areas_parentNotFound'))
+    }
 
-  if (!canAddBlock(userRegions, area)) {
-    invalid(formError('form_noPermission'))
-  }
+    if (!canAddBlock(userRegions, area)) {
+      invalid(formError('form_noPermission'))
+    }
 
-  // Reject a duplicate name in the same area. Skip blank names: those render as
-  // "Block {order}" (see the mapper), so several unnamed blocks are fine.
-  const existingBlock =
-    value.name.length === 0
-      ? null
-      : await db.query.blocks.findFirst({
-          where: (table, { and, eq }) => and(eq(table.name, value.name), eq(table.areaFk, value.areaId)),
-        })
-
-  if (existingBlock != null) {
-    invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
-  }
-
-  // `order` is 0-based, so the next slot is the count of existing (non-deleted) blocks.
-  const [blocksCount] = await db
-    .select({ count: count() })
-    .from(blocks)
-    .where(and(eq(blocks.areaFk, value.areaId), isNull(blocks.deletedAt)))
-
-  // Optional location: a geolocation row the block points at via `geolocationFk`.
-  let geolocationFk: number | undefined
-  if (value.lat != null && value.long != null) {
-    const [geolocation] = await db
-      .insert(geolocations)
-      .values({ estimated: value.estimated, lat: value.lat, long: value.long, regionFk: area.regionFk })
-      .returning()
-    geolocationFk = geolocation.id
-  }
-
-  const [block] = await db
-    .insert(blocks)
-    .values({
-      areaFk: value.areaId,
-      createdBy: user.id,
-      geolocationFk,
-      name: value.name,
-      order: blocksCount.count,
-      regionFk: area.regionFk,
-    })
-    .returning()
-
-  if (geolocationFk != null) {
-    // Back-link the geolocation to its block (mirrors parking's areaFk link).
-    await db.update(geolocations).set({ blockFk: block.id }).where(eq(geolocations.id, geolocationFk))
-  }
-
-  await refreshAreaType(db, value.areaId)
-
-  // No name and no parent stored: a block soft-deletes, so `blocks.name` and `blocks.area_fk`
-  // stay readable through the object key when the card renders.
-  await insertEvent(db, {
-    actorFk: user.id,
-    object: { id: block.id, type: 'block' },
-    regionFk: block.regionFk,
-    verb: 'create',
-  })
-
-  return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
-})
-
-/** Edit a block's name and/or location. Reuses the create form (with `id` set). The location
- *  field is three-way: update the existing pin, attach a new one, or drop it entirely. */
-export const updateBlock = authedForm(blockActionSchema, async ({ id, ...value }, { db, user, userRegions }, issue) => {
-  const block = await requireRowForm(
-    () => (id == null ? Promise.resolve(undefined) : db.query.blocks.findFirst({ where: eq(blocks.id, id) })),
-    (row) => canEditBlock(userRegions, row),
-    formError('blocks_notFound'),
-  )
-
-  // Reject a duplicate name in the same area, excluding this block. Blank names are fine
-  // (they render as "Block {order}"), so skip the check when the name is cleared.
-  const existingBlock =
-    value.name.length === 0
-      ? null
-      : await db.query.blocks.findFirst({
-          where: (table, { and, eq, ne }) =>
-            and(eq(table.name, value.name), eq(table.areaFk, block.areaFk), ne(table.id, block.id)),
-        })
-
-  if (existingBlock != null) {
-    invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
-  }
-
-  // Sync the optional location: move the existing pin, attach a new one, or remove it. The two
-  // sides of the pin are collected rather than logged here, so one submit writes one diff below.
-  let geolocationFk = block.geolocationFk
-  let oldLocation: null | string = null
-  let newLocation: null | string = null
-  if (value.lat != null && value.long != null) {
-    const existing =
-      geolocationFk == null
+    // Reject a duplicate name in the same area. Skip blank names: those render as
+    // "Block {order}" (see the mapper), so several unnamed blocks are fine.
+    const existingBlock =
+      value.name.length === 0
         ? null
-        : await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+        : await db.query.blocks.findFirst({
+            where: (table, { and, eq }) => and(eq(table.name, value.name), eq(table.areaFk, value.areaId)),
+          })
 
-    oldLocation = existing == null ? null : stringifyCoords(existing, existing.estimated)
-    newLocation = stringifyCoords({ lat: value.lat, long: value.long }, value.estimated)
+    if (existingBlock != null) {
+      invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
+    }
 
-    if (existing == null) {
+    // `order` is 0-based, so the next slot is the count of existing (non-deleted) blocks.
+    const [blocksCount] = await db
+      .select({ count: count() })
+      .from(blocks)
+      .where(and(eq(blocks.areaFk, value.areaId), isNull(blocks.deletedAt)))
+
+    // Optional location: a geolocation row the block points at via `geolocationFk`.
+    let geolocationFk: number | undefined
+    if (value.lat != null && value.long != null) {
       const [geolocation] = await db
         .insert(geolocations)
-        .values({
-          blockFk: block.id,
-          estimated: value.estimated,
-          lat: value.lat,
-          long: value.long,
-          regionFk: block.regionFk,
-        })
+        .values({ estimated: value.estimated, lat: value.lat, long: value.long, regionFk: area.regionFk })
         .returning()
       geolocationFk = geolocation.id
-    } else {
-      await db
-        .update(geolocations)
-        .set({ estimated: value.estimated, lat: value.lat, long: value.long })
-        .where(eq(geolocations.id, existing.id))
     }
-  } else if (geolocationFk != null) {
-    // Read the pin before dropping it: `oldValue` is the only place the feed can learn where
-    // the block used to be, since the row it points at is about to be gone.
-    const removed = await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
-    oldLocation = removed == null ? null : stringifyCoords(removed, removed.estimated)
 
-    // Removed: break the block→geo link first so the row can be deleted.
-    await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
-    await db.delete(geolocations).where(eq(geolocations.id, geolocationFk))
-    geolocationFk = null
-  }
+    const [block] = await db
+      .insert(blocks)
+      .values({
+        areaFk: value.areaId,
+        createdBy: user.id,
+        // Empty stores as NULL, never '': "not set" gets one representation, so a later
+        // `description IS NULL` means what it says. Same as `routes`. Trimmed, because the
+        // editor reserialises an emptied document with a trailing newline (see `changed`).
+        description: blank(value.description),
+        geolocationFk,
+        name: value.name,
+        order: blocksCount.count,
+        regionFk: area.regionFk,
+      })
+      .returning()
 
-  await db.update(blocks).set({ geolocationFk, name: value.name }).where(eq(blocks.id, block.id))
+    if (geolocationFk != null) {
+      // Back-link the geolocation to its block (mirrors parking's areaFk link).
+      await db.update(geolocations).set({ blockFk: block.id }).where(eq(geolocations.id, geolocationFk))
+    }
 
-  // One call for the whole submit, the way `updateRoute` does it: both columns land on the same
-  // event anyway, and a call apiece pays for the open-event lookup and the readback twice.
-  //
-  // The form resubmits the current pin on every save, so a name-only edit arrives here with
-  // unchanged coordinates. `createUpdateEvent` compares before it writes, so that is a no-op
-  // rather than a lie in the feed, and a burst of nudges merges into one change row that keeps
-  // the original `oldValue`.
-  await createUpdateEvent(db, {
-    actorFk: user.id,
-    newEntity: { location: newLocation, name: value.name },
-    object: { id: block.id, type: 'block' },
-    oldEntity: { location: oldLocation, name: block.name },
-    regionFk: block.regionFk,
-  })
+    await refreshAreaType(db, value.areaId)
 
-  return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
-})
+    // No name and no parent stored: a block soft-deletes, so `blocks.name` and `blocks.area_fk`
+    // stay readable through the object key when the card renders.
+    await insertEvent(db, {
+      actorFk: user.id,
+      object: { id: block.id, type: 'block' },
+      regionFk: block.regionFk,
+      verb: 'create',
+    })
+
+    afterCommit(() =>
+      notifyMentions({
+        actorFk: user.id,
+        body: value.description,
+        object: { id: block.id, type: 'block' },
+        regionFk: block.regionFk,
+      }),
+    )
+
+    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
+  },
+)
+
+/** Edit a block's name, description and/or location. Reuses the create form (with `id` set).
+ *  Every one of the three is written on every submit, so a caller that omits a field CLEARS it
+ *  (`blockActionSchema` defaults description and name to ''); the form resubmits all three. The
+ *  location is three-way: update the existing pin, attach a new one, or drop it entirely. */
+export const updateBlock = authedForm(
+  blockActionSchema,
+  async ({ id, ...value }, { afterCommit, db, user, userRegions }, issue) => {
+    const block = await requireRowForm(
+      () => (id == null ? Promise.resolve(undefined) : db.query.blocks.findFirst({ where: eq(blocks.id, id) })),
+      (row) => canEditBlock(userRegions, row),
+      formError('blocks_notFound'),
+    )
+
+    // Reject a duplicate name in the same area, excluding this block. Blank names are fine
+    // (they render as "Block {order}"), so skip the check when the name is cleared.
+    const existingBlock =
+      value.name.length === 0
+        ? null
+        : await db.query.blocks.findFirst({
+            where: (table, { and, eq, ne }) =>
+              and(eq(table.name, value.name), eq(table.areaFk, block.areaFk), ne(table.id, block.id)),
+          })
+
+    if (existingBlock != null) {
+      invalid(issue.name(formError('blocks_nameExists', { name: existingBlock.name })))
+    }
+
+    // Sync the optional location: move the existing pin, attach a new one, or remove it. The two
+    // sides of the pin are collected rather than logged here, so one submit writes one diff below.
+    let geolocationFk = block.geolocationFk
+    let oldLocation: null | string = null
+    let newLocation: null | string = null
+    if (value.lat != null && value.long != null) {
+      const existing =
+        geolocationFk == null
+          ? null
+          : await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+
+      oldLocation = existing == null ? null : stringifyCoords(existing, existing.estimated)
+      newLocation = stringifyCoords({ lat: value.lat, long: value.long }, value.estimated)
+
+      if (existing == null) {
+        const [geolocation] = await db
+          .insert(geolocations)
+          .values({
+            blockFk: block.id,
+            estimated: value.estimated,
+            lat: value.lat,
+            long: value.long,
+            regionFk: block.regionFk,
+          })
+          .returning()
+        geolocationFk = geolocation.id
+      } else {
+        await db
+          .update(geolocations)
+          .set({ estimated: value.estimated, lat: value.lat, long: value.long })
+          .where(eq(geolocations.id, existing.id))
+      }
+    } else if (geolocationFk != null) {
+      // Read the pin before dropping it: `oldValue` is the only place the feed can learn where
+      // the block used to be, since the row it points at is about to be gone.
+      const removed = await db.query.geolocations.findFirst({ where: eq(geolocations.id, geolocationFk) })
+      oldLocation = removed == null ? null : stringifyCoords(removed, removed.estimated)
+
+      // Removed: break the block→geo link first so the row can be deleted.
+      await db.update(blocks).set({ geolocationFk: null }).where(eq(blocks.id, block.id))
+      await db.delete(geolocations).where(eq(geolocations.id, geolocationFk))
+      geolocationFk = null
+    }
+
+    await db
+      .update(blocks)
+      .set({
+        description: blank(value.description),
+        geolocationFk,
+        name: value.name,
+      })
+      .where(eq(blocks.id, block.id))
+
+    // One call for the whole submit, the way `updateRoute` does it: all three columns land on the
+    // same event anyway, and a call apiece pays for the open-event lookup and the readback twice.
+    //
+    // The form resubmits the current pin on every save, so a name-only edit arrives here with
+    // unchanged coordinates. `createUpdateEvent` compares before it writes, so that is a no-op
+    // rather than a lie in the feed, and a burst of nudges merges into one change row that keeps
+    // the original `oldValue`.
+    await createUpdateEvent(db, {
+      actorFk: user.id,
+      newEntity: { description: value.description, location: newLocation, name: value.name },
+      object: { id: block.id, type: 'block' },
+      oldEntity: { description: block.description, location: oldLocation, name: block.name },
+      regionFk: block.regionFk,
+    })
+
+    afterCommit(() =>
+      notifyMentions({
+        actorFk: user.id,
+        body: value.description,
+        object: { id: block.id, type: 'block' },
+        // Without this every save re-notifies everybody the description already named.
+        previousBody: block.description,
+        regionFk: block.regionFk,
+      }),
+    )
+
+    return { redirectTo: resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) }) }
+  },
+)
 
 /** Move-on-the-map shortcut: set the block's pin straight from the picker, skipping the
  *  edit form. Upserts the geolocation (and links it on first set), then returns to the block. */
@@ -276,7 +317,7 @@ export const estimateBlockLocationFromPhoto = authedCommand(
 type DeleteBlockSnapshot =
   | {
       areaFk: number
-      block: Pick<Block, 'name' | 'order' | 'regionFk'>
+      block: Pick<Block, 'description' | 'name' | 'order' | 'regionFk'>
       blockId: number
       geolocation: null | { estimated: boolean; lat: number; long: number }
       mode: 'hard'
@@ -301,7 +342,7 @@ async function hardDeleteBlock(db: Context['db'], block: Block): Promise<DeleteB
 
   return {
     areaFk: block.areaFk,
-    block: { name: block.name, order: block.order, regionFk: block.regionFk },
+    block: { description: block.description, name: block.name, order: block.order, regionFk: block.regionFk },
     blockId: block.id,
     geolocation:
       geolocation == null ? null : { estimated: geolocation.estimated, lat: geolocation.lat, long: geolocation.long },
@@ -411,7 +452,12 @@ export const deleteBlock = authedCommand(
 const restoreBlockSchema = z.discriminatedUnion('mode', [
   z.object({
     areaFk: z.number(),
-    block: z.object({ name: z.string(), order: z.number(), regionFk: z.number() }),
+    block: z.object({
+      description: z.string().nullable(),
+      name: z.string(),
+      order: z.number(),
+      regionFk: z.number(),
+    }),
     blockId: z.number(),
     // Bounded like every other coordinate this app accepts (`coordinate(90)` on the block form,
     // `estimateBlockLocationFromPhoto` on the command side). `geolocations` has no CHECK constraint,
@@ -441,6 +487,7 @@ async function hardRestoreBlock(
     .values({
       areaFk: area.id,
       createdBy,
+      description: snapshot.block.description,
       name: snapshot.block.name,
       order: snapshot.block.order,
       regionFk: area.regionFk,

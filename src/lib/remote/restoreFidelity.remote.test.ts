@@ -167,8 +167,9 @@ describe.skipIf(!reachable)('undo loses nothing', () => {
       values (${regionId}, 47.3, 8.4, true) returning id`
 
     const [block] = await sql<{ id: number }[]>`
-      insert into public.blocks (name, area_fk, region_fk, created_by, "order", geolocation_fk)
-      values ('__fidelity_block__', ${cragAreaId}, ${regionId}, ${maintainer.userId}, 7, ${geolocation.id})
+      insert into public.blocks (name, description, area_fk, region_fk, created_by, "order", geolocation_fk)
+      values ('__fidelity_block__', '__fidelity_approach__', ${cragAreaId}, ${regionId},
+              ${maintainer.userId}, 7, ${geolocation.id})
       returning id`
 
     const before = await rowByName('blocks', '__fidelity_block__')

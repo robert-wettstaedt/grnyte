@@ -273,6 +273,13 @@ export const VERBS = [
     verb: 'create',
   },
   {
+    columnName: 'description',
+    field: FIELD.description,
+    key: 'event_blockUpdatedDescription',
+    objectType: 'block',
+    verb: 'update',
+  },
+  {
     columnName: 'location',
     field: FIELD.location,
     key: 'event_blockUpdatedLocation',

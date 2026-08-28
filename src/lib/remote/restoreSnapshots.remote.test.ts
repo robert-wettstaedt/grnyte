@@ -218,7 +218,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
     await asRequest(maintainer.authId, () =>
       restoreBlock({
         areaFk: cragAreaId,
-        block: { name: '__restore_block__', order: 0, regionFk: homeRegionId },
+        block: { description: 'Flat landing.', name: '__restore_block__', order: 0, regionFk: homeRegionId },
         blockId: DEAD_ID,
         geolocation: { estimated: true, lat: 47.3, long: 8.4 },
         mode: 'hard',
@@ -229,6 +229,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
       {
         areaFk: number
         createdBy: number
+        description: null | string
         estimated: boolean
         geoAreaFk: null | number
         geoRegionFk: number
@@ -237,7 +238,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
         regionFk: number
       }[]
     >`
-      select b.area_fk as "areaFk", b.created_by as "createdBy", b."order" as "order",
+      select b.area_fk as "areaFk", b.created_by as "createdBy", b.description, b."order" as "order",
              b.region_fk as "regionFk", g.area_fk as "geoAreaFk", g.estimated,
              g.lat, g.region_fk as "geoRegionFk"
       from public.blocks b
@@ -247,6 +248,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
     expect(row).toMatchObject({
       areaFk: cragAreaId,
       createdBy: maintainer.userId,
+      description: 'Flat landing.',
       estimated: true,
       // Null, because a geolocation carrying an `areaFk` is a parking, and removing a parking takes
       // region DELETE while this pin belongs to a block any EDITor may move.
@@ -264,7 +266,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
       asRequest(maintainer.authId, () =>
         restoreBlock({
           areaFk: cragAreaId,
-          block: { name: '__restore_foreign_block__', order: 0, regionFk: otherRegionId },
+          block: { description: null, name: '__restore_foreign_block__', order: 0, regionFk: otherRegionId },
           blockId: DEAD_ID,
           geolocation: null,
           mode: 'hard',
@@ -284,7 +286,7 @@ describe.skipIf(!reachable)('restoreBlock (hard)', () => {
       asRequest(maintainer.authId, () =>
         restoreBlock({
           areaFk: cragAreaId,
-          block: { name: '__restore_offglobe_block__', order: 0, regionFk: homeRegionId },
+          block: { description: null, name: '__restore_offglobe_block__', order: 0, regionFk: homeRegionId },
           blockId: DEAD_ID,
           geolocation: { estimated: false, lat: 999, long: 8.4 },
           mode: 'hard',

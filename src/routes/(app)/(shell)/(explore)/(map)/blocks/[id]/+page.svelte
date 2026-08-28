@@ -8,6 +8,7 @@
   import ErrorState from '$lib/components/ErrorState/ErrorState.svelte'
   import EventMeta from '$lib/components/EventFeed/EventMeta.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
+  import CollapsibleMarkdown from '$lib/components/Markdown/CollapsibleMarkdown.svelte'
   import QueryState from '$lib/components/QueryState/QueryState.svelte'
   import ReferencedBy from '$lib/components/ReferencedBy/ReferencedBy.svelte'
   import { toSheetNav } from '$lib/components/SiblingNav/siblingNav'
@@ -114,6 +115,8 @@
           {m.topo_addTopos()}
         </a>
       {/if}
+
+      <CollapsibleMarkdown markdown={detail.description} />
 
       {#if orderedRoutes.length > 0}
         <section class="space-y-2">

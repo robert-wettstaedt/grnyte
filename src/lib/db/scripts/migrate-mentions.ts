@@ -4,9 +4,11 @@
  * grammar areas/blocks/routes already use), so no legacy `@username` is left
  * unresolved once `remark-mentions` is retired.
  *
- * Targets the user-authored markdown columns: `areas.description`,
- * `routes.description` and `ascents.notes` (blocks have no description;
- * external-resource descriptions aren't app mentions).
+ * Targets the user-authored markdown columns that can hold a legacy mention:
+ * `areas.description`, `routes.description` and `ascents.notes`. Not
+ * `blocks.description`, which was added after `remark-mentions` was retired and
+ * so can hold nothing to convert; not external-resource descriptions, which
+ * aren't app mentions.
  *
  * Runs as part of `npm run migrate` (via `migrate.ts`). Can also be run on its
  * own to preview:

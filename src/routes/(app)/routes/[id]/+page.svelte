@@ -233,6 +233,10 @@
           </div>
         {/if}
 
+        <!-- Not `CollapsibleMarkdown`, unlike the area and block pages: a route's description is
+             its beta, the thing the screen exists to show, and it sits in a labelled section rather
+             than as a lede. Clamping the one paragraph a reader came for behind "show more" would be
+             hiding the content under its own heading. -->
         {#if detail.description.trim() !== ''}
           <section class="flex flex-col gap-2.5">
             <h2 class="text-surface-600-400 text-xs font-bold tracking-wider uppercase">

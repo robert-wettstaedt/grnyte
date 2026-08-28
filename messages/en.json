@@ -618,6 +618,16 @@
       }
     }
   ],
+  "event_blockUpdatedDescription": [
+    {
+      "declarations": ["input actor", "input name", "input person"],
+      "selectors": ["person"],
+      "match": {
+        "person=self": "You edited the description of {name}",
+        "person=*": "{actor} edited the description of {name}"
+      }
+    }
+  ],
   "event_blockUpdatedLocation": [
     {
       "declarations": ["input actor", "input name", "input person"],

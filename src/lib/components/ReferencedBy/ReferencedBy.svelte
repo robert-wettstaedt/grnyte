@@ -3,6 +3,7 @@
   import Row from '$lib/components/EntityRow/Row.svelte'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { areaList } from '$lib/entities/area/resources.svelte'
+  import { blockList } from '$lib/entities/block/resources.svelte'
   import { routeList } from '$lib/entities/route/resources.svelte'
   import { m } from '$lib/paraglide/messages'
 
@@ -18,13 +19,14 @@
   // match exact (`!blocks:42!` ≠ `!blocks:421!`).
   const token = $derived(`!${type}:${id}!`)
 
-  // Backlink sources: any area or route description that mentions this entity. Routes have
-  // no detail page of their own, so they link to the block they belong to.
+  // Backlink sources: any area, block or route description that mentions this entity. Routes
+  // have no detail page of their own, so they link to the block they belong to.
   const areas = areaList(() => ({ references: token }))
+  const blocks = blockList(() => ({ references: token }))
   const routes = routeList(() => ({ references: token }))
   // TODO: ascents
 
-  const count = $derived(areas.data.length + routes.data.length)
+  const count = $derived(areas.data.length + blocks.data.length + routes.data.length)
 </script>
 
 {#if count > 0}
@@ -42,6 +44,16 @@
         </Row>
       {/each}
 
+      {#each blocks.data as block (block.id)}
+        <Row
+          title={block.name}
+          href={resolve('/(app)/(shell)/(explore)/(map)/blocks/[id]', { id: String(block.id) })}
+          {rightContent}
+        >
+          {@render iconTile('block')}
+        </Row>
+      {/each}
+
       {#each routes.data as route (route.id)}
         <Row
           title={route.name}
@@ -56,7 +68,7 @@
   </section>
 {/if}
 
-{#snippet iconTile(name: 'area' | 'route')}
+{#snippet iconTile(name: 'area' | 'block' | 'route')}
   <span class="bg-primary-500/15 text-primary-500 flex size-10 flex-none items-center justify-center rounded-xl">
     <Icon {name} size={18} />
   </span>
