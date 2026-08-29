@@ -28,6 +28,56 @@ export const APPROACH_COLOR = 'rgba(30, 64, 175, 0.7)'
 export const TILE_SIZE = 256
 const MAX_ZOOM = 19
 
+/**
+ * The tile server both renderers pull from.
+ *
+ * It lives here because the service worker's cache matcher keys on it (see `src/sw.ts`), and a
+ * matcher pointed at a host nothing requests never fires, which looks exactly like one that always
+ * misses. The image cache did precisely that, silently, for months.
+ *
+ * The interactive map does not build these URLs: it takes `ol/source/OSM`'s default, which is this
+ * same host. Moving that source elsewhere means moving this constant with it, or the map goes back
+ * to being online-only without anything failing.
+ */
+export const OSM_TILE_HOST = 'tile.openstreetmap.org'
+
+/** The tile image at `z/x/y`, as {@link StaticMap} asks for it. */
+export const osmTileUrl = (zoom: number, x: number, y: number): string =>
+  `https://${OSM_TILE_HOST}/${zoom}/${x}/${y}.png`
+
+/**
+ * Whether a tile response is a map, and so worth keeping (`src/sw.ts` caches these first-hand and
+ * with no expiry, so anything stored here is stored for good and a bad tile has no way back).
+ *
+ * Three ways a 200 is not a map:
+ *
+ * - An **opaque** response, from a `no-cors` request, cannot be read at all, so none of the checks
+ *   below mean anything, and browsers pad it to several MB against the origin's storage quota. The
+ *   map layer asks for tiles with `crossOrigin` and gets a readable response; {@link StaticMap}'s
+ *   thumbnails deliberately do not, and land here to be declined.
+ * - OSM answers a client it is rate limiting with a real 256px PNG saying access was denied. It is
+ *   marked `no-cache` where a map carries `max-age`, which is the only thing that separates them
+ *   without decoding the picture.
+ * - Anything the server told us not to reuse (`no-store` as well), because the one strategy that
+ *   would revalidate it is the one this cache deliberately does not use.
+ *
+ * Directives are case-insensitive per RFC 9111, so the header is lowercased before it is read: a
+ * guard that misses `No-Cache` fails silently, stores the denial, and serves it for that tile
+ * forever.
+ *
+ * It lives beside the URL builder rather than in the worker so it can be tested without standing up
+ * a `ServiceWorkerGlobalScope`.
+ */
+export const isStorableTile = (response: Response): boolean => {
+  const cacheControl = (response.headers.get('cache-control') ?? '').toLowerCase()
+  return (
+    response.status === 200 &&
+    response.type !== 'opaque' &&
+    !cacheControl.includes('no-cache') &&
+    !cacheControl.includes('no-store')
+  )
+}
+
 /** Where a lone pin lands. It has no span to fit, so {@link fitZoom} would always give it max
  *  zoom, which on OSM is a featureless patch with no road or place label to place it by. */
 const POINT_ZOOM = 16

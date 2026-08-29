@@ -39,7 +39,17 @@
   const mapAttachment: Attachment = (node) => {
     const instance = new OlMap({
       controls: defaultControls({ attribution: false, rotate: false, zoom: false }),
-      layers: [new TileLayer({ className: 'osm-layer', source: new OSM() })],
+      // Three settings the main map explains at length (`$lib/map/Map.svelte`): `crossOrigin` so the
+      // worker can read the response and cache it, and `preload` so a coarser parent is in memory
+      // to stretch over a tile that is missing offline. What an empty map looks like is in the
+      // style block below.
+      layers: [
+        new TileLayer({
+          className: 'osm-layer',
+          preload: 2,
+          source: new OSM({ crossOrigin: 'anonymous' }),
+        }),
+      ],
       target: node as HTMLElement,
       view: new View({ center: fromLonLat([2.6, 48.4]), constrainResolution: true, zoom: 4 }),
     })
@@ -141,9 +151,18 @@
 <div class="map h-full w-full" {@attach mapAttachment}></div>
 
 <style>
-  /* Quiet dark map: only the OSM raster is inverted, like the main map. */
-  :global(.dark) .map :global(.osm-layer) {
+  /* Quiet dark map, and an empty one that still reads as a map. Both exactly as the main map does
+     it (`$lib/map/Map.svelte`), including why the filter is on the canvas and not the container. */
+  :global(.dark) .map :global(.osm-layer canvas) {
     filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.9) contrast(0.95);
+  }
+
+  .map :global(.osm-layer) {
+    background-color: #f2efe9;
+  }
+
+  :global(.dark) .map :global(.osm-layer) {
+    background-color: var(--color-surface-800);
   }
 
   /* Numbered block pins live in OL's overlay container (outside this component's DOM),

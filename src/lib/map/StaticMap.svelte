@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { m } from '$lib/paraglide/messages'
-  import { APPROACH_COLOR, pointPx, TILE_SIZE, tileView } from './tiles'
+  import { APPROACH_COLOR, osmTileUrl, pointPx, TILE_SIZE, tileView } from './tiles'
 
   interface Props {
     class?: string
@@ -59,6 +59,13 @@
          the treatment the full map gives its OSM layer. -->
     <div class="tiles absolute inset-0">
       {#each view.tiles as tile (tile.key)}
+        <!-- Deliberately no `crossorigin`, so these stay `no-cors` and their responses opaque.
+             The worker will not store an opaque response (it cannot read one, so it cannot tell a
+             map from OSM's rate-limit tile, and browsers pad it to several MB against the origin's
+             quota), which costs these thumbnails nothing: a tile the map layer already cached is
+             served from there, and `onerror` below is fatal to the whole thumbnail, so a network
+             that strips `access-control-allow-origin` would take the pins and the attribution with
+             it. -->
         <img
           alt=""
           class="absolute max-w-none"
@@ -66,7 +73,7 @@
           height={TILE_SIZE}
           loading="lazy"
           onerror={() => (failed = true)}
-          src="https://tile.openstreetmap.org/{view.zoom}/{tile.x}/{tile.y}.png"
+          src={osmTileUrl(view.zoom, tile.x, tile.y)}
           style="left: {tile.left}px; top: {tile.top}px"
           width={TILE_SIZE}
         />

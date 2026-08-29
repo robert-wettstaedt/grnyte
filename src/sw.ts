@@ -10,6 +10,7 @@ import { registerRoute } from 'workbox-routing'
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { isPushPayload, type PushPayload } from './lib/entities/notification/push'
 import { isDerivativeRequest } from './lib/images/derivatives'
+import { isStorableTile, OSM_TILE_HOST } from './lib/map/tiles'
 import { CLAIM_CHECK } from './lib/state/serviceWorkerMessages'
 
 declare let self: ServiceWorkerGlobalScope
@@ -235,6 +236,58 @@ registerRoute(
   new CacheFirst({
     cacheName: 'images',
     plugins: [new ExpirationPlugin({ maxEntries: 1000 })],
+  }),
+)
+
+/**
+ * Map tiles, which is the one thing at a crag that a refresh could lose.
+ *
+ * The HTTP cache does not cover it, for two reasons that are easy to conflate. It is best-effort
+ * storage the browser may drop at any time, and its entries expire on OSM's schedule rather than
+ * ours: `max-age` measured 2026-08-29 ran from 3.2 hours to 147 across two samples, varying per
+ * tile rather than per zoom (a busy area is re-rendered more often), with
+ * `stale-while-revalidate=604800, stale-if-error=604800` behind it. So a reload at a crag may well
+ * be answered for days, and may not, and nothing in the app can tell which. That is the "sometimes
+ * you are lucky" a reader in a forest reports. Tiles are also the only thing the map needs that is
+ * not in Zero's replica, and the offline shell boots a map with no picture in it.
+ *
+ * CacheFirst rather than StaleWhileRevalidate on purpose. Revalidating puts a request on the wire
+ * for every tile of every view, and the tile usage policy asks the opposite of that. Serving the
+ * copy we have costs OSM nothing and is what makes the map survive a reload.
+ *
+ * **No `maxAgeSeconds`**, for the reason the images route above records: `Date` on a cached response
+ * never refreshes, so an age limit is an offline wall rather than a staleness policy, and it falls
+ * on exactly the day the map is needed. OSM does re-render tiles as the data changes, so a crag
+ * somebody keeps opening stays on the render that was cached first. A six-month-old forest road is
+ * worth more than a blank screen; if that ever stops being true, the fix is a manual "refresh this
+ * map" that deletes the cache, never an expiry.
+ *
+ * **No `purgeOnQuotaError`** either, though it is tempting on the biggest cache here.
+ * `registerQuotaErrorCallback` appends to one module-global `Set` and a quota error runs *every*
+ * callback in it (`workbox-core/models/quotaErrorCallbacks.js`), so opting in anywhere means one
+ * failed `cache.put` deletes the lot. At a 10.7 GB best-effort quota (measured, Firefox, the
+ * strictest of the three engines) against the tens of MB this origin stores, a `QuotaExceededError`
+ * means the device itself is full. Dropping the guidebook and the map will not fix that, and it
+ * happens at a crag.
+ *
+ * ponytail: 2000 entries. What that costs depends on where somebody climbs, and the two samples
+ * taken on 2026-08-29 disagree by more than double for good reason: a forest crag column averaged
+ * 14 KB a tile (3.7 to 27.2), while 88 tiles over dense central-European data and the world zooms a
+ * map pans through averaged 34 KB (up to 55.8). So the cap is worth 25 to 65 MB rather than one
+ * number, and it is set against the quota (10.7 GB best-effort on the strictest engine) rather than
+ * against a tile size. LRU on read, so the crags somebody keeps opening are the ones that stay. There
+ * is deliberately no prefetch of a bounding box: bulk downloading is against the OSM tile usage
+ * policy, and it is enforced (a 72-tile burst from here was answered with the rate-limit tile
+ * within two minutes). Warming an area needs a tile source we are allowed to bulk fetch.
+ */
+registerRoute(
+  ({ request, url }) => request.destination === 'image' && url.hostname === OSM_TILE_HOST,
+  new CacheFirst({
+    cacheName: 'tiles',
+    plugins: [
+      { cacheWillUpdate: async ({ response }) => (isStorableTile(response) ? response : null) },
+      new ExpirationPlugin({ maxEntries: 2000 }),
+    ],
   }),
 )
 

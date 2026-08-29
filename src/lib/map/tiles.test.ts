@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitZoom, pointPx, TILE_SIZE, tileView, worldPx } from './tiles'
+import { fitZoom, isStorableTile, osmTileUrl, pointPx, TILE_SIZE, tileView, worldPx } from './tiles'
 
 const BOX = { height: 135, width: 240 }
 
@@ -79,5 +79,43 @@ describe('tileView', () => {
       expect(tile.x).toBeGreaterThanOrEqual(0)
       expect(tile.x).toBeLessThan(2 ** zoom)
     }
+  })
+})
+
+describe('isStorableTile', () => {
+  // Header values as read out of the browser's cache on 2026-08-29, i.e. what OSM actually sent.
+  const tile = (init: ResponseInit) => new Response(new Blob(), init)
+
+  it('keeps a map', () => {
+    expect(
+      isStorableTile(
+        tile({
+          headers: { 'cache-control': 'max-age=96059, stale-while-revalidate=604800, stale-if-error=604800' },
+          status: 200,
+        }),
+      ),
+    ).toBe(true)
+  })
+
+  it('refuses the rate-limit tile, which is a 200 PNG saying access was denied', () => {
+    expect(isStorableTile(tile({ headers: { 'cache-control': 'no-cache' }, status: 200 }))).toBe(false)
+  })
+
+  // RFC 9111 directives are case-insensitive, and a guard that reads them as written would store the
+  // denial and serve it for that tile forever.
+  it.each(['No-Cache', 'NO-CACHE', 'no-store', 'private, no-store'])('refuses `%s`', (cacheControl) => {
+    expect(isStorableTile(tile({ headers: { 'cache-control': cacheControl }, status: 200 }))).toBe(false)
+  })
+
+  // An opaque response cannot be constructed here (only a `no-cors` fetch produces one), and it
+  // fails the same clause a network error does: a status this side cannot read.
+  it('refuses a response with no readable status', () => {
+    expect(isStorableTile(Response.error())).toBe(false)
+  })
+})
+
+describe('osmTileUrl', () => {
+  it('builds the slippy-map path the worker matches on', () => {
+    expect(osmTileUrl(14, 8632, 5595)).toBe('https://tile.openstreetmap.org/14/8632/5595.png')
   })
 })
