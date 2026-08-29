@@ -23,6 +23,16 @@
 
   const globalState = setGlobalState()
 
+  /**
+   * Whether this route has the app shell around it.
+   *
+   * A `(shell)` route paints its nav rail and tab bar before the store is warm and spins inside its
+   * own content area instead (see `(shell)/+layout.svelte`). Everything else under `(app)` is a
+   * chromeless editor or detail screen with nothing worth showing early, so it keeps the
+   * full-screen indicator below.
+   */
+  const isShellRoute = $derived(page.route.id?.includes('(shell)') ?? false)
+
   // Ask once per load that the browser keep our storage rather than treating it as disposable.
   // Covers the Zero replica and the service worker's topo cache together, which is also how the
   // browser evicts them: whole origin at a time, never in parts.
@@ -133,7 +143,14 @@
         : m.error_storeCold_bodyRestore()}
     />
   </div>
-{:else if globalState?.isLoading}
+{:else if globalState?.isLoading && !isShellRoute}
+  <!-- Chromeless routes only. None of the shell's chrome reads anything `isLoading` waits on:
+       `StatusBar` and `(shell)/+layout.svelte` touch no global state at all, and the rail and tab
+       bar read only `unreadNotifications`, which is already excluded from `isLoading` for exactly
+       this reason. So a shell route can paint its frame immediately and spin in its content area.
+       This does not make the app usable any sooner: the wait is `ZeroRep.init` replaying the
+       replica, which is O(rows) and unchanged. It is the difference between a bare spinner and a
+       page that is visibly loading, which on a 5000-route region lasts about 1.4 seconds. -->
   <LoadingIndicator class="fixed flex h-full w-full items-center justify-center" size={20} />
 {:else}
   <!-- Shared viewport frame. Nested layouts fill it: (shell) adds the nav rail and

@@ -23,6 +23,39 @@ import type { queries } from './queries'
  * Settled with the user; do not widen it without asking, the cost is not local. Each pinned row
  * costs roughly 510 bytes of CVR per client group on the server, so a fully preloaded user is about
  * 4.6 MB. Rows pinned is the expensive axis, not query count.
+ *
+ * A pinned row is also charged a SECOND time, on the client, once per document load. Zero rebuilds
+ * its in-memory state from IndexedDB at every boot: `ZeroRep.init` scans every `e/` key in the
+ * persisted store, turns each row into an `{op: 'add'}` diff and materialises the lot before the
+ * client is usable (`@rocicorp/zero/out/zero-client/src/client/zero-rep.js`). Nothing evicts a
+ * preloaded row, because eviction happens when a query de-registers and `preloadForOffline`
+ * deliberately never calls `cleanup()`. So whatever this table keeps is re-materialised on every
+ * cold start, forever.
+ *
+ * Measured on a production build at 4x CPU throttle (a mid-range phone), on /settings, whose own
+ * query returns one row, so this is the shared floor and not that screen's doing:
+ *
+ * | routes kept | replica | blocking | LCP     |
+ * | ----------- | ------- | -------- | ------- |
+ * | 3           | 0.13 MB | 206 ms   | 540 ms  |
+ * | 5142        | 3.39 MB | 1214 ms  | 1356 ms |
+ *
+ * That is ~0.2 ms of boot blocking per route kept, linear, on every authenticated route: 250 routes
+ * ~255 ms, 1000 ~400 ms, 2000 ~600 ms, 5000 ~1200 ms. Rocicorp's own Zero demo blocks for 167 ms in
+ * total, which is what this floor looks like with a small replica.
+ *
+ * A region with 5000+ routes is a real one, not a hypothetical, so a reader in it pays about a
+ * second of blank screen on every cold start of every route. Nothing in `@rocicorp/zero` fixes
+ * that: the scan has no lazy or incremental mode, nothing evicts a preloaded row, and there is no
+ * client-startup item on Rocicorp's roadmap. Splitting the guidebook into a second Zero client
+ * keyed by `storageKey` does NOT work either, however tempting it looks - `listEvents`,
+ * `listRouteAscents` and the notification inbox all `.related()` into routes, blocks and areas, and
+ * a Zero query cannot join across two clients, each of which builds its own IVM sources.
+ *
+ * So the only lever is this table: keep fewer rows. Bounding the guidebook to ~500 routes (the
+ * areas a reader actually chose, rather than `listRoutes({})`) puts a 5000-route region back at
+ * ~300 ms, which is where a small region already sits. That is a product decision about what
+ * "available offline" promises, which is why it is written here and not quietly changed.
  */
 
 /**

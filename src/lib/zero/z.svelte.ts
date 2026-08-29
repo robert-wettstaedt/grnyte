@@ -110,6 +110,74 @@ export function initZero(session: null | Session | undefined): Z<Schema> {
     // put ours in the same place. Both are worth having.
     Object.assign(window, {
       __grnyte: {
+        /**
+         * Time a registry query end to end on a COLD client: server execution, CVR build,
+         * transfer and local ingest, with nothing already in the replica.
+         *
+         * `await __grnyte.bench('listEvents', [{ limit: 50 }, { limit: 20 }, { limit: 10 }])`
+         *
+         * Each sample gets its own throwaway client and IndexedDB, because a warm replica answers
+         * locally and would time nothing. `listGrades` is measured the same way as a baseline: the
+         * same connect, auth and client-group setup with a query that costs nothing, so the
+         * difference is the query under test rather than the handshake in front of it.
+         */
+        bench: async (name: keyof typeof queries, argsList: unknown[] = [undefined], runs = 3) => {
+          if (session == null) {
+            return 'not signed in'
+          }
+
+          // Captured so the null check above narrows inside `once`, which is a nested closure.
+          const active = session
+          const keys: string[] = []
+
+          const once = async (queryName: keyof typeof queries, args: unknown) => {
+            const key = `bench-${keys.length}-${queryName}`
+            keys.push(key)
+            const cold = createColdZero(active, key)
+            const start = performance.now()
+            // The registry is a union of factories with unrelated argument types.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const rows = await cold.run((queries[queryName] as any)(args), { type: 'complete' })
+            const ms = performance.now() - start
+            cold.close()
+            return { ms, rows: Array.isArray(rows) ? rows.length : rows == null ? 0 : 1 }
+          }
+
+          const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
+
+          const table: Record<string, unknown>[] = []
+
+          for (const label of ['baseline', ...argsList.map((a) => JSON.stringify(a))]) {
+            const isBaseline = label === 'baseline'
+            const samples: number[] = []
+            let rows = 0
+
+            for (let i = 0; i < runs; i++) {
+              const r = isBaseline ? await once('listGrades', undefined) : await once(name, argsList[table.length - 1])
+              samples.push(r.ms)
+              rows = r.rows
+            }
+
+            table.push({
+              args: label,
+              median: Math.round(median(samples)),
+              rows,
+              samples: samples.map((ms) => Math.round(ms)),
+            })
+          }
+
+          // The throwaway replicas are real IndexedDB databases; left behind they accumulate one
+          // per sample and the next run measures a browser with a hundred dead stores.
+          const dbs = (await indexedDB.databases?.()) ?? []
+          for (const db of dbs) {
+            if (db.name != null && keys.some((key) => db.name?.includes(key))) {
+              indexedDB.deleteDatabase(db.name)
+            }
+          }
+
+          console.table(table)
+          return table
+        },
         get connectionState() {
           return z.connectionState
         },
