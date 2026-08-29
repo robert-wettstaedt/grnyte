@@ -6,6 +6,7 @@ import {
   REGION_PERMISSION_READ,
 } from '$lib/auth'
 import type { RegionSettings } from '$lib/entities/region/settings'
+import type * as z from '$lib/forms/zod'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm'
 import { relations, sql } from 'drizzle-orm'
@@ -32,7 +33,6 @@ import {
   type AnyPgColumn as AnyColumn,
 } from 'drizzle-orm/pg-core'
 import { authUsers } from 'drizzle-orm/supabase'
-import z from 'zod'
 import {
   createBasicTablePolicies,
   getAuthorizedInRegionPolicyConfig,

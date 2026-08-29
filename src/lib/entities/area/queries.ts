@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 export const areasQueryDefs = {
   area: defineQuery(
@@ -23,13 +23,13 @@ export const areasQueryDefs = {
   ),
   listAreas: defineQuery(
     z.object({
-      content: z.string().optional(),
-      id: z.union([z.number(), z.array(z.number())]).optional(),
-      limit: z.number().optional(),
-      parentFk: z.number().nullable().optional(),
-      references: z.string().optional(),
+      content: z.optional(z.string()),
+      id: z.optional(z.union([z.number(), z.array(z.number())])),
+      limit: z.optional(z.number()),
+      parentFk: z.optional(z.nullable(z.number())),
+      references: z.optional(z.string()),
       /** `createdAt` sorts newest first (the search flyout's "recently added"); default is by name. */
-      sort: z.enum(['createdAt', 'name']).optional(),
+      sort: z.optional(z.enum(['createdAt', 'name'])),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)

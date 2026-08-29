@@ -1,12 +1,12 @@
 import { command } from '$app/server'
 import { ascents, ascentTypeEnum, files, routes, users } from '$lib/db/schema'
 import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { authedForm, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, isNull } from 'drizzle-orm'
-import z from 'zod'
 import { canHardDelete, createUpdateEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletedAscent } from '../event/verbs'
 import { deleteFileRows, removeFileStorage } from '../file/cleanup.server'
@@ -18,16 +18,18 @@ import { canEditAscent, canLogAscent } from './permissions'
 const ascentActionSchema = z.object({
   dateTime: z.iso.date({ error: formError('form_required') }),
   gradeFk: stringToIntOptional,
-  humidity: stringToIntOptional.pipe(
-    z.int().min(0, formError('form_numInvalid')).max(100, formError('form_numInvalid')).optional(),
+  humidity: z.pipe(
+    stringToIntOptional,
+    z.optional(z.int().check(z.gte(0, formError('form_numInvalid')), z.lte(100, formError('form_numInvalid')))),
   ),
   id: stringToIntOptional,
-  notes: z.string().optional().default(''),
+  notes: z._default(z.optional(z.string()), ''),
   // 1–3 stars; the field is absent when unrated (same convention as the route form).
-  rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
+  rating: z.pipe(stringToIntOptional, z.optional(z.int().check(z.gte(1), z.lte(3)))),
   routeId: stringToInt,
-  temperature: stringToIntOptional.pipe(
-    z.int().min(-30, formError('form_numInvalid')).max(50, formError('form_numInvalid')).optional(),
+  temperature: z.pipe(
+    stringToIntOptional,
+    z.optional(z.int().check(z.gte(-30, formError('form_numInvalid')), z.lte(50, formError('form_numInvalid')))),
   ),
   type: z.enum(ascentTypeEnum, { error: formError('form_required') }),
 })

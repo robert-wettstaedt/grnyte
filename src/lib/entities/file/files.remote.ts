@@ -3,6 +3,8 @@ import * as schema from '$lib/db/schema'
 import { bunnyStreams, files, type BunnyStream, type File } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
 import { mediaWord } from '$lib/entities/file/dto'
+import { formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { DERIVATIVE_QUALITY, DERIVATIVE_SIZES, derivativePath, orientedDimensions } from '$lib/images/derivatives'
 import { getImageProvider } from '$lib/images/provider.server'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
@@ -14,7 +16,6 @@ import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
-import z from 'zod'
 import { deleteFileRows, removeFileStorage } from './cleanup.server'
 import { requireEditableFile, resolveAttachRegion } from './guards.server'
 import { fileParent } from './mapper'
@@ -26,7 +27,9 @@ import { extensionOf, fileEntityTypes, isHeic, isImageFileName, STAGING_BUCKET, 
  * and this value ends up in an `href`. The client gate lives in a component, so a direct command
  * call would otherwise walk straight past it.
  */
-const sourceUrl = z.url({ protocol: /^https?$/ }).max(500)
+const sourceUrl = z
+  .url({ error: formError('form_urlInvalid'), protocol: /^https?$/ })
+  .check(z.maxLength(500, { error: formError('form_charsMax', { count: 500 }) }))
 
 /** The FK column linking a `files` row to its target entity — mirrors the columns on `files`. */
 const entityFks = (type: FileEntityType, id: number) => ({
@@ -77,7 +80,7 @@ const finalizeImageSchema = z.object({
   entityId: z.number(),
   entityType: z.enum(fileEntityTypes),
   /** Path within the staging bucket the browser uploaded to (see `stagingPath`). */
-  stagingPath: z.string().min(1),
+  stagingPath: z.string().check(z.minLength(1)),
 })
 
 /**
@@ -229,7 +232,7 @@ export const createBunnyVideo = command(async () => {
  * doing nothing.
  */
 export const setFileVisibility = authedCommand(
-  z.object({ fileId: z.string().min(1), visibility: z.enum(['public', 'private']) }),
+  z.object({ fileId: z.string().check(z.minLength(1)), visibility: z.enum(['public', 'private']) }),
   async ({ fileId, visibility }, { db, user, userRegions }): Promise<MutationResult<File>> => {
     await requireEditableFile(db, userRegions, user.id, fileId)
 
@@ -251,7 +254,7 @@ export const setFileVisibility = authedCommand(
  * the credit is about, and what it hangs on is reachable through the file's own foreign keys.
  */
 export const setVideoSource = authedCommand(
-  z.object({ fileId: z.string().min(1), source: sourceUrl.nullable() }),
+  z.object({ fileId: z.string().check(z.minLength(1)), source: z.nullable(sourceUrl) }),
   async ({ fileId, source }, { db, user, userRegions }): Promise<MutationResult<BunnyStream>> => {
     const file = await requireEditableFile(db, userRegions, user.id, fileId)
     if (file.bunnyStreamFk == null) {
@@ -298,7 +301,7 @@ export const setVideoSource = authedCommand(
  * a real 403 instead of a phantom success.
  */
 export const deleteFile = command(
-  z.object({ id: z.string().min(1) }),
+  z.object({ id: z.string().check(z.minLength(1)) }),
   async ({ id }): Promise<MutationResult<{ id: string }>> => {
     const { rls, user, userRegions } = await authedRls()
 
@@ -358,7 +361,7 @@ const finalizeVideoSchema = z.object({
   entityId: z.number(),
   entityType: z.enum(fileEntityTypes),
   /** Where the clip was grabbed from (route uploads only), credited on the route page. */
-  source: sourceUrl.optional(),
+  source: z.optional(sourceUrl),
   /** Ownership proof minted by `createBunnyVideo` alongside the GUID. */
   token: z.string(),
   /** Bunny video GUID — doubles as the `bunnyStreams` row id. */

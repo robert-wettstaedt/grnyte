@@ -1,7 +1,7 @@
 import { form, getRequestEvent } from '$app/server'
 import { authError, formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { invalid } from '@sveltejs/kit'
-import { z } from 'zod'
 
 const forgotPasswordSchema = z.object({
   email: z.email({ error: formError('form_required') }),

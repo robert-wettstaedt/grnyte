@@ -1,5 +1,5 @@
 import { formError, nameSchema, stringToIntOptional, stringToNumberOptional } from '$lib/forms/schemas'
-import z from 'zod'
+import * as z from '$lib/forms/zod'
 import { DEFAULT_TAGS } from './tagVocabulary'
 
 /**
@@ -7,11 +7,11 @@ import { DEFAULT_TAGS } from './tagVocabulary'
  * `type` is a forward-compatibility marker for a second kind of overlay, nothing reads it yet.
  */
 const storedMapLayerSchema = z.object({
-  attributions: z.array(z.string()).nullish(),
-  minZoom: z.number().nullish(),
+  attributions: z.nullish(z.array(z.string())),
+  minZoom: z.nullish(z.number()),
   name: z.string(),
-  opacity: z.number().nullish(),
-  params: z.record(z.string(), z.string()).nullish(),
+  opacity: z.nullish(z.number()),
+  params: z.nullish(z.record(z.string(), z.string())),
   type: z.literal('wms'),
   url: z.string(),
 })
@@ -21,11 +21,11 @@ const storedMapLayerSchema = z.object({
  * the row enters the app (see `toRegionMembership`) rather than trusted.
  */
 export const regionSettingsSchema = z.object({
-  mapLayers: z.array(storedMapLayerSchema).default([]),
+  mapLayers: z._default(z.array(storedMapLayerSchema), []),
   // Deliberately `z.string()` rather than `tagNameSchema`: stored values were validated on the way
   // in, and re-validating on read would let one over-long tag fail the whole blob and take the
   // region's map layers down with it.
-  tags: z.array(z.string()).default(DEFAULT_TAGS),
+  tags: z._default(z.array(z.string()), DEFAULT_TAGS),
 })
 
 export type MapLayer = RegionSettings['mapLayers'][number]
@@ -104,30 +104,32 @@ export const wmsUrl = z.codec(
  * record's dynamic keys, and the URL an admin copies out of a capabilities document already carries
  * the parameters anyway.
  */
-export const mapLayerSchema = z
-  .object({
+export const mapLayerSchema = z.pipe(
+  z.object({
     // One credit per line rather than a repeatable field inside a repeatable field: a layer
     // routinely carries several (data owner, survey office, source list), and they are edited
     // together far more often than one at a time.
-    attributions: z.string().optional(),
-    minZoom: stringToIntOptional.pipe(
-      z
-        .int()
-        .min(0, { error: formError('form_numInvalid') })
-        .max(28, { error: formError('form_numInvalid') })
-        .optional(),
+    attributions: z.optional(z.string()),
+    minZoom: z.pipe(
+      stringToIntOptional,
+      z.optional(
+        z
+          .int()
+          .check(z.gte(0, { error: formError('form_numInvalid') }), z.lte(28, { error: formError('form_numInvalid') })),
+      ),
     ),
     name: nameSchema,
-    opacity: stringToNumberOptional.pipe(
-      z
-        .number()
-        .min(0, { error: formError('form_numInvalid') })
-        .max(1, { error: formError('form_numInvalid') })
-        .optional(),
+    opacity: z.pipe(
+      stringToNumberOptional,
+      z.optional(
+        z
+          .number()
+          .check(z.gte(0, { error: formError('form_numInvalid') }), z.lte(1, { error: formError('form_numInvalid') })),
+      ),
     ),
     url: wmsUrl,
-  })
-  .transform(({ attributions, minZoom, name, opacity, url }): MapLayer => {
+  }),
+  z.transform(({ attributions, minZoom, name, opacity, url }): MapLayer => {
     const credits = (attributions ?? '')
       .split('\n')
       .map((line) => line.trim())
@@ -142,7 +144,8 @@ export const mapLayerSchema = z
       type: 'wms',
       url: url.url,
     }
-  })
+  }),
+)
 
 /** The inverse of {@link mapLayerSchema}, to seed the form from a stored layer. An absent value is
  *  the empty string, which is what the field codecs decode back to absent. */

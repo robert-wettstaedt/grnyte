@@ -1,8 +1,8 @@
 import { relatedRouteTree } from '$lib/entities/event/queries'
+import * as z from '$lib/forms/zod'
 import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 /** Sync window when a caller doesn't pick one: one screenful of inbox, newest first. */
 const DEFAULT_LIMIT = 50
@@ -27,9 +27,9 @@ export const notificationsQueryDefs = {
    */
   listNotifications: defineQuery(
     z.object({
-      limit: z.number().optional(),
+      limit: z.optional(z.number()),
       /** The badge's query: what has not been opened yet. */
-      unreadOnly: z.boolean().optional(),
+      unreadOnly: z.optional(z.boolean()),
     }),
     // `authenticatedUserCan` rather than `regionMemberCan`, which is what every other own-rows
     // query uses: this callback dereferences `ctx.authUserId`, and only that wrapper refuses a

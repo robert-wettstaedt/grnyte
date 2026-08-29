@@ -1,5 +1,5 @@
+import * as z from '$lib/forms/zod'
 import type { AuthError } from '@supabase/supabase-js'
-import { z } from 'zod'
 
 type MessageKey = keyof Messages
 // Derive paraglide's per-message key + param types so server-side error payloads stay type-safe.
@@ -48,20 +48,21 @@ export function authError(error: AuthError): string {
  */
 export const usernameSchema = z
   .string({ error: formError('form_required') })
-  .trim()
-  .min(3, { error: formError('form_charsMin', { count: 3 }) })
-  .max(39, { error: formError('form_charsMax', { count: 39 }) })
-  .regex(/^[\da-zA-Z][-\da-zA-Z_]*$/, { error: formError('auth_usernameInvalid') })
+  .check(
+    z.trim(),
+    z.minLength(3, { error: formError('form_charsMin', { count: 3 }) }),
+    z.maxLength(39, { error: formError('form_charsMax', { count: 39 }) }),
+    z.regex(/^[\da-zA-Z][-\da-zA-Z_]*$/, { error: formError('auth_usernameInvalid') }),
+  )
 
 /** The display name of an entity a user creates (area, region, ...). Trimmed, and long enough
  *  to be recognisable in a list. */
 export const nameSchema = z
   .string({ error: formError('form_required') })
-  .trim()
-  .min(3, { error: formError('form_charsMin', { count: 3 }) })
+  .check(z.trim(), z.minLength(3, { error: formError('form_charsMin', { count: 3 }) }))
 
 export const stringToInt = z.codec(
-  z.string({ error: formError('form_required') }).regex(z.regexes.integer, formError('form_numInvalid')),
+  z.string({ error: formError('form_required') }).check(z.regex(z.regexes.integer, formError('form_numInvalid'))),
   z.int(),
   {
     decode: (str) => Number.parseInt(str, 10),
@@ -70,13 +71,13 @@ export const stringToInt = z.codec(
 )
 
 export const stringToIntOptional = z.codec(
-  z
-    .union([
+  z.optional(
+    z.union([
       z.literal(''),
-      z.string({ error: formError('form_required') }).regex(z.regexes.integer, formError('form_numInvalid')),
-    ])
-    .optional(),
-  z.int().optional(),
+      z.string({ error: formError('form_required') }).check(z.regex(z.regexes.integer, formError('form_numInvalid'))),
+    ]),
+  ),
+  z.optional(z.int()),
   {
     decode: (str) => (str == null || str === '' ? undefined : Number.parseInt(str, 10)),
     encode: (num) => (num == null ? '' : num.toString()),
@@ -84,7 +85,7 @@ export const stringToIntOptional = z.codec(
 )
 
 export const stringToNumber = z.codec(
-  z.string({ error: formError('form_required') }).regex(z.regexes.number, formError('form_numInvalid')),
+  z.string({ error: formError('form_required') }).check(z.regex(z.regexes.number, formError('form_numInvalid'))),
   z.number(),
   {
     decode: (str) => Number.parseFloat(str),
@@ -93,13 +94,13 @@ export const stringToNumber = z.codec(
 )
 
 export const stringToNumberOptional = z.codec(
-  z
-    .union([
+  z.optional(
+    z.union([
       z.literal(''),
-      z.string({ error: formError('form_required') }).regex(z.regexes.number, formError('form_numInvalid')),
-    ])
-    .optional(),
-  z.number().optional(),
+      z.string({ error: formError('form_required') }).check(z.regex(z.regexes.number, formError('form_numInvalid'))),
+    ]),
+  ),
+  z.optional(z.number()),
   {
     decode: (str) => (str == null || str === '' ? undefined : Number.parseFloat(str)),
     encode: (num) => (num == null ? '' : num.toString()),
@@ -130,11 +131,13 @@ export const blank = (value: string): null | string => (value.trim().length === 
 export const boundedDegrees = (limit: number) =>
   z
     .number()
-    .min(-limit, { error: formError('form_numInvalid') })
-    .max(limit, { error: formError('form_numInvalid') })
+    .check(
+      z.gte(-limit, { error: formError('form_numInvalid') }),
+      z.lte(limit, { error: formError('form_numInvalid') }),
+    )
 
 /** A required decimal-degree coordinate field. */
-export const coordinate = (limit: number) => stringToNumber.pipe(boundedDegrees(limit))
+export const coordinate = (limit: number) => z.pipe(stringToNumber, boundedDegrees(limit))
 
 /** Like `coordinate`, but the field may be omitted (empty string → undefined). */
-export const optionalCoordinate = (limit: number) => stringToNumberOptional.pipe(boundedDegrees(limit).optional())
+export const optionalCoordinate = (limit: number) => z.pipe(stringToNumberOptional, z.optional(boundedDegrees(limit)))

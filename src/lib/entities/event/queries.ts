@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 import { EVENT_OBJECT_COLUMNS, type EventObjectType } from './dto'
 
 const objectTypes = Object.keys(EVENT_OBJECT_COLUMNS) as [EventObjectType, ...EventObjectType[]]
@@ -153,19 +153,19 @@ export const eventsQueryDefs = {
    */
   listEvents: defineQuery(
     z.object({
-      actorFk: z.number().optional(),
+      actorFk: z.optional(z.number()),
       /** Only rows newer than this row, which is how the feed counts what queued while reading. */
-      after: cursor.optional(),
-      category: z.enum(['ascent', 'update']).optional(),
-      ids: z.array(z.number()).optional(),
-      limit: z.number().optional(),
-      regionFk: z.number().optional(),
+      after: z.optional(cursor),
+      category: z.optional(z.enum(['ascent', 'update'])),
+      ids: z.optional(z.array(z.number())),
+      limit: z.optional(z.number()),
+      regionFk: z.optional(z.number()),
       // One object rather than two loose fields: an id without its type would silently widen the
       // query back to the global feed. The id is a string for a `file`, which keys on a cuid, and
       // a number for the other five.
-      scope: z.object({ id: z.union([z.number(), z.string()]), type: z.enum(objectTypes) }).optional(),
+      scope: z.optional(z.object({ id: z.union([z.number(), z.string()]), type: z.enum(objectTypes) })),
       /** Only rows at or older than this row: the window the reader has acknowledged. */
-      upTo: cursor.optional(),
+      upTo: z.optional(cursor),
     }),
     regionMemberCan(({ args, ctx }) => {
       let q = withObject(ctx).orderBy('createdAt', 'desc').orderBy('id', 'desc')

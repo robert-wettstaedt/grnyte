@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 /**
  * How much of a thread arrives when it is opened. Newest first, so a long thread is truncated at
@@ -35,7 +35,7 @@ export const reactionsQueryDefs = {
     z.object({
       eventId: z.number(),
       /** Sync window. Defaults to 30; bump it to reach further back. */
-      limit: z.number().optional(),
+      limit: z.optional(z.number()),
     }),
     regionMemberCan(({ args, ctx }) => {
       // The same region check the top level gets, on every level below it, as every other related

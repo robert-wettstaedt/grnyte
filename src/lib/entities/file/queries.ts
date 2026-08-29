@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 export const filesQueryDefs = {
   // A route's own media (topo photos, beta videos). Ascent media hangs off

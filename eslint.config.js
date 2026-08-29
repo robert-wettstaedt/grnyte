@@ -99,6 +99,21 @@ export default defineConfig(
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              // Classic zod keeps every method on a prototype, so one `z.string()` pulls the whole
+              // library: 225 KB minified into the chunk every app route imports. And `zod/mini`
+              // direct is the subtler half of the same rule - it ships no locale, so a schema built
+              // from it says `Invalid input` and nothing else. `$lib/forms/zod` is the only spelling
+              // that is both small and legible. See the doc comment there.
+              message: "Import from '$lib/forms/zod'. Classic zod is not tree-shakeable.",
+              name: 'zod',
+            },
+            {
+              message: "Import from '$lib/forms/zod', which registers the locale `zod/mini` omits.",
+              name: 'zod/mini',
+            },
+          ],
           patterns: [
             {
               message: "Use the '$lib' alias instead of a relative path into the lib folder.",
@@ -111,6 +126,11 @@ export default defineConfig(
       // see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
       'no-undef': 'off',
     },
+  },
+  {
+    // The one file allowed to reach `zod/mini`: it is what the rule above points everybody else at.
+    files: ['src/lib/forms/zod.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
   {
     files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],

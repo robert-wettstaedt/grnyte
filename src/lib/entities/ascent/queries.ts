@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 /**
  * The enriched ascent tree behind `toUserAscentDetail`: author, media, and the route's name

@@ -1,11 +1,11 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 export const firstAscensionistsQueryDefs = {
   listFirstAscensionists: defineQuery(
-    z.object({ regionFk: z.number().optional() }).optional(),
+    z.optional(z.object({ regionFk: z.optional(z.number()) })),
     regionMemberCan(({ args }) => {
       // The linked user (for the "@username" subtitle), users aren't region-scoped.
       let q = zql.firstAscensionists.related('user').orderBy('name', 'asc')

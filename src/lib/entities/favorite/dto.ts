@@ -1,4 +1,4 @@
-import z from 'zod'
+import * as z from '$lib/forms/zod'
 
 export type FavoriteEntityType = 'area' | 'block' | 'route'
 
@@ -27,7 +27,7 @@ export const FAVORITE_TYPES = Object.keys(FAVORITE_KEY) as [FavoriteEntityType, 
  * `Number()` on it is how 'abc' became NaN and a query for `routeFk = null`.
  */
 export const favoriteEntityArgs = z.object({
-  entityId: z.number().int().positive(),
+  entityId: z.int().check(z.positive()),
   entityType: z.enum(FAVORITE_TYPES),
 })
 

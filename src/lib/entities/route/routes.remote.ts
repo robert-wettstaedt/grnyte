@@ -16,12 +16,12 @@ import {
   type Route,
 } from '$lib/db/schema'
 import { blank, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
-import z from 'zod'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notifyMentions } from '../notification/notification.server'
 import { regionTags } from '../region/tagVocabulary'
@@ -30,23 +30,26 @@ import { canAddRoute, canDeleteRoute, canEditRoute } from './permissions'
 import { recalcUserGradeAndRating } from './user-grade.server'
 
 const faClimberSchema = z.object({
-  name: z.string().trim().min(1),
+  name: z
+    .string({ error: formError('form_required') })
+    .check(z.trim(), z.minLength(1, { error: formError('form_required') })),
   userFk: stringToIntOptional,
 })
 
 const routeActionSchema = z.object({
   blockId: stringToInt,
-  description: z.string().optional().default(''),
-  firstAscensionists: z.array(faClimberSchema).optional().default([]),
-  firstAscentYear: stringToIntOptional.pipe(
-    z.int().min(1900, formError('form_numInvalid')).max(2100, formError('form_numInvalid')).optional(),
+  description: z._default(z.optional(z.string()), ''),
+  firstAscensionists: z._default(z.optional(z.array(faClimberSchema)), []),
+  firstAscentYear: z.pipe(
+    stringToIntOptional,
+    z.optional(z.int().check(z.gte(1900, formError('form_numInvalid')), z.lte(2100, formError('form_numInvalid')))),
   ),
   gradeFk: stringToIntOptional,
   id: stringToIntOptional,
-  name: z.string().trim().optional().default(''),
+  name: z._default(z.optional(z.string().check(z.trim())), ''),
   // 1–3 stars; the field is absent when unrated (0 stars → no rating, not "0 stars").
-  rating: stringToIntOptional.pipe(z.int().min(1).max(3).optional()),
-  tags: z.array(z.string()).optional().default([]),
+  rating: z.pipe(stringToIntOptional, z.optional(z.int().check(z.gte(1), z.lte(3)))),
+  tags: z._default(z.optional(z.array(z.string())), []),
 })
 
 /**
@@ -441,18 +444,18 @@ const restoreRouteSchema = z.discriminatedUnion('mode', [
     firstAscensionistFks: z.array(z.number()),
     mode: z.literal('hard'),
     route: z.object({
-      areaFks: z.array(z.number()).nullable(),
-      areaIds: z.string().nullable(),
+      areaFks: z.nullable(z.array(z.number())),
+      areaIds: z.nullable(z.string()),
       blockFk: z.number(),
       createdBy: z.number(),
-      description: z.string().nullable(),
+      description: z.nullable(z.string()),
       // Bounded exactly as `routeActionSchema` bounds them: the snapshot round-trips through the
       // client, `routes` has no CHECK on either column, and `rating` feeds `recalcUserGradeAndRating`.
-      firstAscentYear: z.int().min(1900).max(2100).nullable(),
-      gradeFk: z.number().nullable(),
+      firstAscentYear: z.nullable(z.int().check(z.gte(1900), z.lte(2100))),
+      gradeFk: z.nullable(z.number()),
       name: z.string(),
       // 1-3 stars, as on the form; unrated is null rather than 0.
-      rating: z.int().min(1).max(3).nullable(),
+      rating: z.nullable(z.int().check(z.gte(1), z.lte(3))),
       regionFk: z.number(),
     }),
     routeId: z.number(),

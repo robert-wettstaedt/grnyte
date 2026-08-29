@@ -1,15 +1,18 @@
 import { resolve } from '$app/paths'
 import { form, getRequestEvent } from '$app/server'
 import { isSameOriginPath } from '$lib/auth'
+import * as z from '$lib/forms/zod'
 import { redirect } from '@sveltejs/kit'
-import { z } from 'zod'
 
 /**
  * A same-origin path to come back to after signing out. Validated rather than trusted: this value
  * arrives in a form body, and an unchecked one turns this into an open redirect. See
  * {@link isSameOriginPath} for why that check is not a `startsWith`.
  */
-const returnPath = z.string().refine(isSameOriginPath, 'must be a same-origin path').default(resolve('/(landing)/auth'))
+const returnPath = z._default(
+  z.string().check(z.refine(isSameOriginPath, 'must be a same-origin path')),
+  resolve('/(landing)/auth'),
+)
 
 /**
  * Sign out and land on `redirectTo`.

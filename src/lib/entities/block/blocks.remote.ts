@@ -1,13 +1,13 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, topos, type Area, type Block } from '$lib/db/schema'
 import { blank, boundedDegrees, formError, optionalCoordinate, stringToInt } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow, requireRowForm } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, gt, gte, isNull, sql } from 'drizzle-orm'
-import z from 'zod'
 import { refreshAreaType } from '../area/area.server'
 import { canAddBlock } from '../area/permissions'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
@@ -17,16 +17,16 @@ import { canDeleteBlock, canEditBlock } from './permissions'
 
 const blockActionSchema = z.object({
   areaId: stringToInt,
-  description: z.string().optional().default(''),
+  description: z._default(z.optional(z.string()), ''),
   // Checkbox-style hidden input: "true" when the pin is a rough guess, absent otherwise.
-  estimated: z
-    .string()
-    .optional()
-    .transform((value) => value === 'true'),
-  id: stringToInt.optional(),
+  estimated: z.pipe(
+    z.optional(z.string()),
+    z.transform((value) => value === 'true'),
+  ),
+  id: z.optional(stringToInt),
   lat: optionalCoordinate(90),
   long: optionalCoordinate(180),
-  name: z.string().trim().optional().default(''),
+  name: z._default(z.optional(z.string().check(z.trim())), ''),
 })
 
 /** Field shape the shared add/edit-block form binds to — `id` is set only when editing. */
@@ -453,7 +453,7 @@ const restoreBlockSchema = z.discriminatedUnion('mode', [
   z.object({
     areaFk: z.number(),
     block: z.object({
-      description: z.string().nullable(),
+      description: z.nullable(z.string()),
       name: z.string(),
       order: z.number(),
       regionFk: z.number(),
@@ -462,7 +462,7 @@ const restoreBlockSchema = z.discriminatedUnion('mode', [
     // Bounded like every other coordinate this app accepts (`coordinate(90)` on the block form,
     // `estimateBlockLocationFromPhoto` on the command side). `geolocations` has no CHECK constraint,
     // so an unbounded snapshot was the one door that could park a block at lat 999.
-    geolocation: z.object({ estimated: z.boolean(), lat: boundedDegrees(90), long: boundedDegrees(180) }).nullable(),
+    geolocation: z.nullable(z.object({ estimated: z.boolean(), lat: boundedDegrees(90), long: boundedDegrees(180) })),
     mode: z.literal('hard'),
   }),
   // No `deletedAt` to accept: the restore reads it off the stored block.

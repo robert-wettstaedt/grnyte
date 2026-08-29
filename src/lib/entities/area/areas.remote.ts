@@ -1,6 +1,7 @@
 import { resolve } from '$app/paths'
 import { areas, blocks, files, geolocations, routes, type Area } from '$lib/db/schema'
 import { blank, boundedDegrees, coordinate, formError, stringToInt, stringToIntOptional } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { stringifyCoords } from '$lib/map/coords'
 import { decodePath } from '$lib/map/polyline'
 import { authedCommand, authedForm, type Context } from '$lib/remote/authed.server'
@@ -8,7 +9,6 @@ import type { MutationResult } from '$lib/remote/mutation'
 import { requireRow } from '$lib/remote/require.server'
 import { error, invalid } from '@sveltejs/kit'
 import { and, count, eq, inArray, isNull, not } from 'drizzle-orm'
-import z from 'zod'
 import { canHardDelete, createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { stringifyDeletionScale } from '../event/verbs'
 import { notifyMentions } from '../notification/notification.server'
@@ -17,16 +17,17 @@ import { loadParentArea, requireEditableArea } from './guards.server'
 import { canAddArea, canAddParking, canDeleteArea, canDeleteParking } from './permissions'
 
 const areaActionSchema = z.object({
-  description: z.string().optional().default(''),
-  id: stringToInt.optional(),
+  description: z._default(z.optional(z.string()), ''),
+  id: z.optional(stringToInt),
   name: z
     .string({ error: formError('form_required') })
-    .trim()
-    .min(3, { error: formError('form_charsMin', { count: 3 }) }),
-  // `stringToIntOptional`, not `stringToInt.optional()`: the latter admits `undefined` and nothing
-  // else, while a top-level area's hidden `parentFk` submits an EMPTY STRING. That was refused with
-  // `form_numInvalid` on a field the edit form does not render, so Save did nothing and said
-  // nothing. "No parent" and "field absent" are the same thing here, and both spell '' in a form.
+    .check(z.trim(), z.minLength(3, { error: formError('form_charsMin', { count: 3 }) })),
+  // For `parentFk`, `stringToIntOptional` and not `z.optional(stringToInt)`. The latter admits
+  // `undefined` and nothing else, while a top-level area's hidden `parentFk` submits an EMPTY
+  // STRING. That was refused with `form_numInvalid` on a field the edit form does not render, so
+  // Save did nothing and said nothing. "No parent" and "field absent" are the same thing here, and
+  // both spell '' in a form. `id` above is the other case and is fine as it stands: the form omits
+  // it entirely on a create rather than submitting it blank.
   parentFk: stringToIntOptional,
   regionFk: stringToInt,
 })
@@ -327,12 +328,12 @@ export const deleteArea = authedCommand(
 const restoreAreaSchema = z.discriminatedUnion('mode', [
   z.object({
     area: z.object({
-      description: z.string().nullable().optional(),
-      geoPaths: z.array(z.string()).nullable().optional(),
+      description: z.optional(z.nullable(z.string())),
+      geoPaths: z.optional(z.nullable(z.array(z.string()))),
       name: z.string(),
-      parentFk: z.number().nullable().optional(),
+      parentFk: z.optional(z.nullable(z.number())),
       regionFk: z.number(),
-      walkingPaths: z.array(z.string()).nullable().optional(),
+      walkingPaths: z.optional(z.nullable(z.array(z.string()))),
     }),
     areaId: z.number(),
     mode: z.literal('hard'),
@@ -511,7 +512,7 @@ async function createParking(
 /** Add a parking location (a geolocation row) to a crag-type area, optionally with
  *  an approach path (an encoded polyline appended to the area's `geoPaths`). */
 export const addParking = authedForm(
-  z.object({ areaId: stringToInt, lat: coordinate(90), long: coordinate(180), path: z.string().optional() }),
+  z.object({ areaId: stringToInt, lat: coordinate(90), long: coordinate(180), path: z.optional(z.string()) }),
   async ({ areaId, lat, long, path }, { db, user, userRegions }) => {
     const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 
@@ -604,7 +605,7 @@ export const deleteParking = authedCommand(z.object({ id: z.number() }), async (
 
 /** Undo a {@link deleteParking}: recreate the parking from the snapshot the delete returned. */
 export const restoreParking = authedCommand(
-  z.object({ areaId: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180), path: z.string().optional() }),
+  z.object({ areaId: z.number(), lat: boundedDegrees(90), long: boundedDegrees(180), path: z.optional(z.string()) }),
   async ({ areaId, lat, long, path }, { db, userRegions }) => {
     const area = await db.query.areas.findFirst({ where: eq(areas.id, areaId) })
 

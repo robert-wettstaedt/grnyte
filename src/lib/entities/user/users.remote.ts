@@ -1,10 +1,10 @@
 import { regionMembers, users } from '$lib/db/schema'
 import { formError, usernameSchema } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { locales } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm } from '$lib/remote/authed.server'
 import { invalid } from '@sveltejs/kit'
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
-import z from 'zod'
 import { createUpdateEvent } from '../event/event.server'
 import { writeUserSettings } from './settings.server'
 
@@ -77,17 +77,17 @@ export const updateUserSettings = authedCommand(
     // Written from EXPLICIT picks only (the settings language row), never from an auto-detected
     // browser language: one visit on a colleague's German laptop must not silently switch which
     // language we mail somebody in.
-    contactLocale: z.enum(locales).optional(),
-    gradingScale: z.enum(['FB', 'V']).optional(),
+    contactLocale: z.optional(z.enum(locales)),
+    gradingScale: z.optional(z.enum(['FB', 'V'])),
     // The six push switches. They govern push and nothing else: what lands in the inbox and what
     // lands in the feed is not affected by any of them.
-    notifyAscents: z.boolean().optional(),
-    notifyComments: z.boolean().optional(),
-    notifyCommunity: z.boolean().optional(),
-    notifyDirected: z.boolean().optional(),
-    notifyGuidebookEdits: z.boolean().optional(),
-    notifyReactions: z.boolean().optional(),
-    unitSystem: z.enum(['metric', 'imperial']).nullable().optional(),
+    notifyAscents: z.optional(z.boolean()),
+    notifyComments: z.optional(z.boolean()),
+    notifyCommunity: z.optional(z.boolean()),
+    notifyDirected: z.optional(z.boolean()),
+    notifyGuidebookEdits: z.optional(z.boolean()),
+    notifyReactions: z.optional(z.boolean()),
+    unitSystem: z.optional(z.nullable(z.enum(['metric', 'imperial']))),
   }),
   async (values, { db, user }) => {
     await writeUserSettings(db, user, values)

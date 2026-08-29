@@ -1185,6 +1185,7 @@
   "form_noPermission": "You don't have permission to do this.",
   "form_numInvalid": "Enter a valid number",
   "form_required": "This field is required",
+  "form_urlInvalid": "Enter a valid web address",
   "form_wmsUrlInvalid": "Enter the full request URL, including its LAYERS parameter",
   "install_body": "Full screen, quicker to open, and one tap from your home screen.",
   "install_cta": "Install",

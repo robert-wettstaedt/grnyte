@@ -94,10 +94,10 @@ describe('normalizeSource / isValidSource', () => {
    * The client rule, which is stricter than the server's and is NOT a restatement of it.
    *
    * The old name here claimed this mirrored `z.url()` on the server. It does not: against the
-   * installed zod 4.4.3, `z.url().safeParse('https://youtube')` and
-   * `z.url().safeParse('javascript:alert(1)')` both succeed, and the server field is a bare
-   * `z.url().max(500)` (files.remote.ts:247 and :354). So `isValidSource` requiring a dot in the
-   * hostname is an extra gate, and a reader who "synced the two" would be deleting it.
+   * installed zod 4.4.3, `z.url().safeParse('https://youtube')` succeeds, and the server field
+   * (`sourceUrl` in files.remote.ts) only adds a scheme filter and a length cap on top of that. So
+   * `isValidSource` requiring a dot in the hostname is an extra gate, and a reader who "synced the
+   * two" would be deleting it.
    */
   it('rejects a host with no dot, which parses as a URL but is never a real origin', () => {
     expect(isValidSource(normalizeSource('youtube'))).toBe(false)

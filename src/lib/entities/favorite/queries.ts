@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 import { favoriteEntityArgs as entityArgs, FAVORITE_KEY } from './dto'
 
 export const favoritesQueryDefs = {
@@ -21,7 +21,7 @@ export const favoritesQueryDefs = {
 
   // The current user's favorite for one specific entity — empty when not saved.
   listUserEntityFavorites: defineQuery(
-    entityArgs.extend({ userId: z.number() }),
+    z.extend(entityArgs, { userId: z.number() }),
     regionMemberCan(({ args }) =>
       zql.favorites.where('userFk', args.userId).where(FAVORITE_KEY[args.entityType], args.entityId),
     ),

@@ -2,12 +2,12 @@ import { command } from '$app/server'
 import * as schema from '$lib/db/schema'
 import { blocks, files, routes, topoRoutes, topoRouteTopTypeEnum, topos, type Topo } from '$lib/db/schema'
 import { createUpdateEvent, insertEvent } from '$lib/entities/event/event.server'
+import * as z from '$lib/forms/zod'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
 import { eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import z from 'zod'
 import { deleteFileRows, removeFileStorage, type FileStorageTarget } from '../file/cleanup.server'
 import { stringifyTopoChange, stringifyTopoLines, type TopoAction } from './change'
 import { canEditTopo } from './permissions'
@@ -104,7 +104,7 @@ const ownBlockImage = <T extends { blockFk: null | number }>(
  * into this command if the window ever bites.
  */
 export const createTopo = authedCommand(
-  z.object({ blockId: z.number(), fileId: z.string().min(1) }),
+  z.object({ blockId: z.number(), fileId: z.string().check(z.minLength(1)) }),
   async ({ blockId, fileId }, { db, user, userRegions }): Promise<MutationResult<Topo>> => {
     const block = await db.query.blocks.findFirst({ where: eq(blocks.id, blockId) })
     if (block == null) {
@@ -189,7 +189,7 @@ export const deleteTopo = command(
  * (0–1), so they stay proportional on the new photo. The old image is removed post-commit.
  */
 export const replaceTopoImage = command(
-  z.object({ fileId: z.string().min(1), topoId: z.number() }),
+  z.object({ fileId: z.string().check(z.minLength(1)), topoId: z.number() }),
   async ({ fileId, topoId }): Promise<MutationResult<{ id: number }>> => {
     const { rls, user, userRegions } = await authedRls()
 
@@ -276,7 +276,7 @@ const topoLineSchema = z.object({
   // `M x,y L x,y … Z`, and nothing else. The feed encodes a set of these into one string
   // and slices it back apart on the separators, so a path holding one would re-slice the
   // entry it sits in; `convertPathToPoints` reads no other notation either.
-  path: z.string().regex(/^[mlz0-9.,\- ]*$/i, 'Unsupported path notation'),
+  path: z.string().check(z.regex(/^[mlz0-9.,\- ]*$/i, 'Unsupported path notation')),
   routeFk: z.number(),
   topType: z.enum(topoRouteTopTypeEnum),
 })

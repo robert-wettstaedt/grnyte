@@ -1,8 +1,8 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import type { Schema } from '$lib/zero/zero-schema'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery, type Query } from '@rocicorp/zero'
-import z from 'zod'
 
 interface RouteFilterArgs {
   areaId?: null | number
@@ -96,21 +96,21 @@ function applyRouteFilters<Q extends RoutesQuery>(
 export const routesQueryDefs = {
   listRoutes: defineQuery(
     z.object({
-      areaId: z.number().nullish(),
-      content: z.string().optional(),
-      firstAscensionists: z.array(z.number()).optional(),
-      hasBeta: z.boolean().optional(),
-      hasTopo: z.boolean().optional(),
-      maxGrade: z.number().optional(),
-      minGrade: z.number().optional(),
-      minRating: z.number().optional(),
-      pageSize: z.number().optional(),
-      references: z.string().optional(),
-      regionFk: z.number().optional(),
-      routeId: z.union([z.number(), z.array(z.number())]).optional(),
-      sort: z.enum(['rating', 'grade', 'firstAscentYear', 'createdAt']).optional(),
-      sortOrder: z.enum(['asc', 'desc']).optional(),
-      tags: z.array(z.string()).optional(),
+      areaId: z.nullish(z.number()),
+      content: z.optional(z.string()),
+      firstAscensionists: z.optional(z.array(z.number())),
+      hasBeta: z.optional(z.boolean()),
+      hasTopo: z.optional(z.boolean()),
+      maxGrade: z.optional(z.number()),
+      minGrade: z.optional(z.number()),
+      minRating: z.optional(z.number()),
+      pageSize: z.optional(z.number()),
+      references: z.optional(z.string()),
+      regionFk: z.optional(z.number()),
+      routeId: z.optional(z.union([z.number(), z.array(z.number())])),
+      sort: z.optional(z.enum(['rating', 'grade', 'firstAscentYear', 'createdAt'])),
+      sortOrder: z.optional(z.enum(['asc', 'desc'])),
+      tags: z.optional(z.array(z.string())),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
@@ -166,18 +166,18 @@ export const routesQueryDefs = {
    */
   listRoutesForMap: defineQuery(
     z.object({
-      areaId: z.number().nullish(),
-      content: z.string().optional(),
-      firstAscensionists: z.array(z.number()).optional(),
-      hasBeta: z.boolean().optional(),
-      hasTopo: z.boolean().optional(),
-      maxGrade: z.number().optional(),
-      minGrade: z.number().optional(),
-      minRating: z.number().optional(),
-      pageSize: z.number().optional(),
-      references: z.string().optional(),
-      regionFk: z.number().optional(),
-      tags: z.array(z.string()).optional(),
+      areaId: z.nullish(z.number()),
+      content: z.optional(z.string()),
+      firstAscensionists: z.optional(z.array(z.number())),
+      hasBeta: z.optional(z.boolean()),
+      hasTopo: z.optional(z.boolean()),
+      maxGrade: z.optional(z.number()),
+      minGrade: z.optional(z.number()),
+      minRating: z.optional(z.number()),
+      pageSize: z.optional(z.number()),
+      references: z.optional(z.string()),
+      regionFk: z.optional(z.number()),
+      tags: z.optional(z.array(z.string())),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)

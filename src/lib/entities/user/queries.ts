@@ -1,7 +1,7 @@
+import * as z from '$lib/forms/zod'
 import { authenticatedUserCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 export const usersQueryDefs = {
   currentUser: defineQuery(
@@ -15,11 +15,11 @@ export const usersQueryDefs = {
 
   listUsers: defineQuery(
     z.object({
-      content: z.string().optional(),
+      content: z.optional(z.string()),
       // Narrow to specific users. Unlike `usersByIds` this stays inside the
       // region scope below, so it is safe to resolve an id that came off a URL.
-      ids: z.array(z.number()).optional(),
-      limit: z.number().optional(),
+      ids: z.optional(z.array(z.number())),
+      limit: z.optional(z.number()),
       // Users who are active members of any of these regions (a global search
       // spans every region the signed-in user belongs to). Empty = match none.
       regionFks: z.array(z.number()),

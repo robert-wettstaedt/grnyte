@@ -2,12 +2,12 @@ import { resolve } from '$app/paths'
 import { getRequestEvent, query } from '$app/server'
 import { regionInvitations, regionMembers, regions } from '$lib/db/schema'
 import { formError, nameSchema, stringToInt } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { getLocale } from '$lib/paraglide/runtime'
 import { authedCommand, authedForm, authedQuery, type Context } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error, invalid } from '@sveltejs/kit'
 import { and, eq, sql } from 'drizzle-orm'
-import z from 'zod'
 import { createUpdateEvent, deleteEvent, insertEvent } from '../event/event.server'
 import { notify, notifyOutOfBand, retractOutOfBand } from '../notification/notification.server'
 import { assignableRoles, type AssignableRole } from '../rolePermission/dto'
@@ -113,7 +113,7 @@ const mergeSettings = (db: Context['db'], id: number, patch: Partial<RegionSetti
 
 const regionMapLayersSchema = z.object({
   id: stringToInt,
-  mapLayers: z.array(mapLayerSchema).optional().default([]),
+  mapLayers: z._default(z.optional(z.array(mapLayerSchema)), []),
 })
 
 /** Replace a region's WMS map overlays. An empty list is a valid submission: it removes them all. */
@@ -521,7 +521,7 @@ export const removeRegionMember = authedCommand(
 /** Undo a {@link removeRegionMember}, and erase the event it logged. */
 export const restoreRegionMember = authedCommand(
   z.object({
-    invitedByFk: z.number().nullable(),
+    invitedByFk: z.nullable(z.number()),
     regionFk: z.number(),
     role: assignableRoleSchema,
     userFk: z.number(),

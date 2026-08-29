@@ -1,13 +1,13 @@
+import * as z from '$lib/forms/zod'
 import { regionMemberCan, relatedRegion } from '$lib/zero/permissions'
 import { zql } from '$lib/zero/zero-schema.gen'
 import { defineQuery } from '@rocicorp/zero'
-import z from 'zod'
 
 export const blocksQueryDefs = {
   block: defineQuery(
     z.object({
-      areaId: z.number().optional(),
-      blockId: z.number().optional(),
+      areaId: z.optional(z.number()),
+      blockId: z.optional(z.number()),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)
@@ -52,13 +52,13 @@ export const blocksQueryDefs = {
   ),
   listBlocks: defineQuery(
     z.object({
-      areaId: z.number().optional().nullable(),
-      blockId: z.union([z.number(), z.array(z.number())]).optional(),
-      content: z.string().optional(),
-      limit: z.number().optional(),
-      references: z.string().optional(),
+      areaId: z.nullish(z.number()),
+      blockId: z.optional(z.union([z.number(), z.array(z.number())])),
+      content: z.optional(z.string()),
+      limit: z.optional(z.number()),
+      references: z.optional(z.string()),
       /** `createdAt` sorts newest first (the search flyout's "recently added"); default is the block order. */
-      sort: z.enum(['createdAt', 'order']).optional(),
+      sort: z.optional(z.enum(['createdAt', 'order'])),
     }),
     regionMemberCan(({ args, ctx }) => {
       const r = relatedRegion(ctx)

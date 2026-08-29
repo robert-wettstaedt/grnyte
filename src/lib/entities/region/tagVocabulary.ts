@@ -1,5 +1,5 @@
 import { formError } from '$lib/forms/schemas'
-import z from 'zod'
+import * as z from '$lib/forms/zod'
 import type { RegionMembership } from './dto'
 
 /**
@@ -21,12 +21,12 @@ export const MAX_TAGS = 30
  * because the map filter encodes a selection as `?tags=a,b` and `parseRouteFilter` splits it back
  * apart. Not `nameSchema`: its minimum of 3 would reject the `SD` default.
  */
-export const tagNameSchema = z
-  .string({ error: formError('form_required') })
-  .trim()
-  .min(1, { error: formError('form_required') })
-  .max(30, { error: formError('form_charsMax', { count: 30 }) })
-  .refine((value) => !value.includes(','), { error: formError('region_tagComma') })
+export const tagNameSchema = z.string({ error: formError('form_required') }).check(
+  z.trim(),
+  z.minLength(1, { error: formError('form_required') }),
+  z.maxLength(30, { error: formError('form_charsMax', { count: 30 }) }),
+  z.refine((value) => !value.includes(','), { error: formError('region_tagComma') }),
+)
 
 /**
  * Every tag name the caller's memberships put in reach, as one sorted list. Deduped, and not only

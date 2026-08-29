@@ -2,9 +2,9 @@ import { command, getRequestEvent, query } from '$app/server'
 import { APP_PERMISSION_ADMIN } from '$lib/auth'
 import { db } from '$lib/db/db.server'
 import { clientErrorLogs } from '$lib/db/schema'
+import * as z from '$lib/forms/zod'
 import { error as httpError } from '@sveltejs/kit'
 import { desc, sql } from 'drizzle-orm'
-import z from 'zod'
 
 // Persists a client-side error. Deliberately not `authedCommand`: errors can happen
 // logged-out, and the table has RLS on with no insert policy — so we use the
@@ -12,9 +12,9 @@ import z from 'zod'
 // ponytail: open endpoint with a capped payload; add rate-limiting if it gets abused.
 export const logClientError = command(
   z.object({
-    error: z.string().max(10_000),
-    navigator: z.json().optional(),
-    pathname: z.string().max(2048).optional(),
+    error: z.string().check(z.maxLength(10_000)),
+    navigator: z.optional(z.json()),
+    pathname: z.optional(z.string().check(z.maxLength(2048))),
   }),
   async ({ error, navigator, pathname }) => {
     const { locals } = getRequestEvent()

@@ -3,13 +3,13 @@ import { db as baseDb } from '$lib/db/db.server'
 import { events, notifications, pushSubscriptions, userSettings } from '$lib/db/schema'
 import { writeUserSettings } from '$lib/entities/user/settings.server'
 import { formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { m } from '$lib/paraglide/messages'
 import { baseLocale, isLocale } from '$lib/paraglide/runtime'
 import { authedCommand, authedRls } from '$lib/remote/authed.server'
 import type { MutationResult } from '$lib/remote/mutation'
 import { error } from '@sveltejs/kit'
 import { and, eq, isNull, max, ne, sql } from 'drizzle-orm'
-import z from 'zod'
 import { DIGEST_TAG } from './push'
 import { sendPush } from './push.server'
 
@@ -42,7 +42,7 @@ export const markNotificationsRead = authedCommand(z.void(), async (_, { db, use
  * taken off a row compares exactly against the rows it is meant to cover.
  */
 export const markEventFeedSeen = authedCommand(
-  z.object({ seenAt: z.number().int().positive() }),
+  z.object({ seenAt: z.int().check(z.positive()) }),
   async ({ seenAt }, { db, user }) => {
     // Through the shared writer for the same reason: a plain UPDATE against an account with no
     // settings row affects nothing and reports success, and a watermark that never moves is a
@@ -55,10 +55,10 @@ export const markEventFeedSeen = authedCommand(
 
 /** What `PushManager.subscribe` hands back, narrowed to what a send needs. */
 const subscriptionSchema = z.object({
-  auth: z.string().min(1),
-  endpoint: z.string().min(1),
-  expirationTime: z.number().nullable().optional(),
-  p256dh: z.string().min(1),
+  auth: z.string().check(z.minLength(1)),
+  endpoint: z.string().check(z.minLength(1)),
+  expirationTime: z.optional(z.nullable(z.number())),
+  p256dh: z.string().check(z.minLength(1)),
 })
 
 /**
@@ -190,7 +190,7 @@ export const subscribeToPush = command(subscriptionSchema, async (subscription) 
 
 /** Forget this device. Scoped to the caller's own rows by RLS as well as by the predicate. */
 export const unsubscribeFromPush = authedCommand(
-  z.object({ endpoint: z.string().min(1) }),
+  z.object({ endpoint: z.string().check(z.minLength(1)) }),
   async ({ endpoint }, { db, user }) => {
     await db
       .delete(pushSubscriptions)
@@ -206,7 +206,7 @@ export const unsubscribeFromPush = authedCommand(
  * failure, unlike the cron, which is best effort: here the failure IS the answer.
  */
 export const sendTestPush = command(
-  z.object({ endpoint: z.string().min(1) }),
+  z.object({ endpoint: z.string().check(z.minLength(1)) }),
   async ({ endpoint }): Promise<MutationResult<{ delivered: boolean }>> => {
     // Not an authedCommand: `sendPush` follows a moved endpoint and deletes a dead one on the
     // privileged handle, so it needs a connection of its own, and taking one while an

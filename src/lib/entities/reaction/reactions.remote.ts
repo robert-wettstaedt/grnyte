@@ -1,8 +1,9 @@
 import { events, reactions } from '$lib/db/schema'
+import { formError } from '$lib/forms/schemas'
+import * as z from '$lib/forms/zod'
 import { authedCommand } from '$lib/remote/authed.server'
 import { requireRow } from '$lib/remote/require.server'
 import { and, eq, isNull } from 'drizzle-orm'
-import z from 'zod'
 import { COMMENT_MAX_LENGTH, isEmoji, normalizeEmoji } from './dto'
 import { dropComment, dropReactionNotification, notifyComment, notifyReaction, restoreReplies } from './reaction.server'
 
@@ -18,11 +19,11 @@ import { dropComment, dropReactionNotification, notifyComment, notifyReaction, r
 export const toggleReaction = authedCommand(
   z.object({
     /** A comment on that event, when the reaction is on what somebody SAID rather than on the card. */
-    commentId: z.number().int().positive().optional(),
+    commentId: z.optional(z.int().check(z.positive())),
     // Normalised BEFORE validating, because most of the picker's emoji arrive carrying a variation
     // selector the character does not need, which RGI does not match. See `normalizeEmoji`.
-    emoji: z.string().transform(normalizeEmoji).refine(isEmoji, 'not a single emoji'),
-    eventId: z.number().int().positive(),
+    emoji: z.pipe(z.string(), z.transform(normalizeEmoji)).check(z.refine(isEmoji, 'not a single emoji')),
+    eventId: z.int().check(z.positive()),
   }),
   async ({ commentId, emoji, eventId }, { afterCommit, db, user }) => {
     // Read under RLS, so an event in a region the reactor cannot open is simply not here and this
@@ -121,10 +122,16 @@ export const toggleReaction = authedCommand(
  */
 export const postComment = authedCommand(
   z.object({
-    body: z.string().trim().min(1).max(COMMENT_MAX_LENGTH),
-    eventId: z.number().int().positive(),
+    body: z
+      .string({ error: formError('form_required') })
+      .check(
+        z.trim(),
+        z.minLength(1, { error: formError('form_required') }),
+        z.maxLength(COMMENT_MAX_LENGTH, { error: formError('form_charsMax', { count: COMMENT_MAX_LENGTH }) }),
+      ),
+    eventId: z.int().check(z.positive()),
     /** The comment being answered. Absent for a new top-level comment. */
-    parentId: z.number().int().positive().optional(),
+    parentId: z.optional(z.int().check(z.positive())),
   }),
   async ({ body, eventId, parentId }, { afterCommit, db, user }) => {
     // Read under RLS, exactly as the toggle does: an event the commenter cannot open is not here,
@@ -191,7 +198,7 @@ export const postComment = authedCommand(
  * is answering, and the inbox row about it cascades on a hard delete only.
  */
 export const deleteComment = authedCommand(
-  z.object({ commentId: z.number().int().positive() }),
+  z.object({ commentId: z.int().check(z.positive()) }),
   async ({ commentId }, { afterCommit, db, user }) => {
     const comment = await requireRow(
       () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
@@ -225,7 +232,7 @@ export const deleteComment = authedCommand(
  * told about a moment ago is worse than the one lost notification of somebody who mis-tapped.
  */
 export const restoreComment = authedCommand(
-  z.object({ commentId: z.number().int().positive() }),
+  z.object({ commentId: z.int().check(z.positive()) }),
   async ({ commentId }, { afterCommit, db, user }) => {
     const comment = await requireRow(
       () => db.query.reactions.findFirst({ where: eq(reactions.id, commentId) }),
