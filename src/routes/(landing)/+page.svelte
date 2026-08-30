@@ -57,6 +57,13 @@
     const disposers: Array<() => void> = []
     let cancelled = false
 
+    // The hero's from-state is painted by CSS (see `data-motion` below) because GSAP only lands
+    // ~250ms after first paint. Clear it once GSAP owns the elements, and on a failsafe so a
+    // visitor whose JS never arrives is not left with an invisible hero.
+    const disarm = () => rootEl?.removeAttribute('data-motion')
+    const failsafe = setTimeout(disarm, 2500)
+    disposers.push(() => clearTimeout(failsafe))
+
     // GSAP — hero entrance, contour line-draw, scroll reveals, hero parallax.
     Promise.all([import('gsap'), import('gsap/ScrollTrigger')])
       .then(([{ gsap }, { ScrollTrigger }]) => {
@@ -74,13 +81,16 @@
           { autoAlpha: 1, delay: 0.1, duration: 0.85, ease: 'power3.out', stagger: 0.09, y: 0 },
         )
 
+        // Drawn in DOM order, which is why the paths are authored top of frame to bottom: any other
+        // order reads as five unrelated lines rather than one landscape resolving. The tail is kept
+        // close to the text stagger (last line lands ~2.2s) so the hero settles as one thing.
         root.querySelectorAll<SVGPathElement>('[data-contour]').forEach((p, i) => {
           const len = p.getTotalLength()
           p.style.strokeDasharray = String(len)
           gsap.fromTo(
             p,
             { strokeDashoffset: len },
-            { delay: 0.15 + i * 0.18, duration: 2.2, ease: 'power2.out', strokeDashoffset: 0 },
+            { delay: 0.1 + i * 0.12, duration: 1.6, ease: 'power2.out', strokeDashoffset: 0 },
           )
         })
 
@@ -119,6 +129,10 @@
         }
       })
       .catch(() => {})
+      .finally(() => {
+        clearTimeout(failsafe)
+        disarm()
+      })
 
     return () => {
       cancelled = true
@@ -130,9 +144,22 @@
 <svelte:head>
   <title>{PUBLIC_APPLICATION_NAME} · {m.landing_tagline()}</title>
   <meta name="description" content={m.landing_metaDescription()} />
+  <!-- `data-motion` hides the hero until GSAP takes over. Nothing clears it without JS, so undo it
+       here rather than serve an invisible hero to a visitor who has scripting off. -->
+  <noscript>
+    <style>
+      [data-motion='armed'] [data-fade] {
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+      [data-motion='armed'] [data-contour] {
+        stroke-dasharray: none !important;
+      }
+    </style>
+  </noscript>
 </svelte:head>
 
-<div bind:this={rootEl} class="text-surface-950-50 bg-surface-50-950 min-h-dvh overflow-x-clip">
+<div bind:this={rootEl} data-motion="armed" class="text-surface-950-50 bg-surface-50-950 min-h-dvh overflow-x-clip">
   <!-- ===== sticky nav ===== -->
   <header class="border-surface-200-800 bg-surface-50-950/80 sticky top-0 z-50 border-b backdrop-blur-lg">
     <div class="mx-auto flex h-15 max-w-300 items-center justify-between gap-4 px-5">
@@ -176,11 +203,13 @@
       aria-hidden="true"
     >
       <g fill="none" stroke-width="1.5" class="stroke-surface-200-800">
+        <!-- Ordered top of frame to bottom: the line-draw runs in DOM order, so this is the
+             choreography, not just markup tidiness. -->
+        <path data-contour d="M-100 130 C 260 60 500 170 840 100 C 1140 40 1320 130 1540 70" />
+        <path data-contour d="M-100 200 C 240 120 480 240 820 170 C 1120 110 1300 200 1540 140" />
+        <path data-contour d="M-100 460 C 300 380 560 520 900 440 C 1200 370 1360 460 1540 410" opacity="0.6" />
         <path data-contour d="M-100 720 C 200 640 380 760 720 690 C 1060 620 1240 730 1540 660" />
         <path data-contour d="M-100 780 C 240 700 420 820 760 750 C 1100 680 1280 790 1540 720" />
-        <path data-contour d="M-100 200 C 240 120 480 240 820 170 C 1120 110 1300 200 1540 140" />
-        <path data-contour d="M-100 130 C 260 60 500 170 840 100 C 1140 40 1320 130 1540 70" />
-        <path data-contour d="M-100 460 C 300 380 560 520 900 440 C 1200 370 1360 460 1540 410" opacity="0.6" />
       </g>
     </svg>
     <div
@@ -221,8 +250,9 @@
         </div>
       </div>
 
-      <!-- boulder (three.js): rocked side-to-side so the routed face stays toward the viewer -->
-      <div class="relative h-[clamp(300px,52vh,640px)] min-w-0">
+      <!-- boulder (three.js): rocked side-to-side so the routed face stays toward the viewer.
+           data-fade so the right column joins the same entrance instead of being there already. -->
+      <div data-fade class="relative h-[clamp(300px,52vh,640px)] min-w-0">
         <BoulderThree />
         <!-- caption chip -->
         <div
@@ -558,3 +588,29 @@
     </div>
   </footer>
 </div>
+
+<style>
+  /* GSAP arrives ~250ms after first paint, so without a from-state in CSS the hero renders
+     complete, snaps to invisible and fades back in. `data-motion` is cleared from the root the
+     moment GSAP takes over (or by the failsafe above). */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-motion='armed'] [data-hero] [data-fade] {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    /* ponytail: every contour path is ~1650 user units long, so one constant hides all of them
+       until GSAP measures the real length. */
+    [data-motion='armed'] [data-contour] {
+      stroke-dasharray: 2000;
+      stroke-dashoffset: 2000;
+    }
+  }
+
+  /* Skeleton's .chip carries `transition: all .15s`, which re-interpolates every per-frame value
+     GSAP writes: the badge is first in the stagger but lands last, ~300ms after the trust line
+     below it. Nothing carrying data-fade is interactive, so there is no hover feel to lose. */
+  [data-fade] {
+    transition: none;
+  }
+</style>

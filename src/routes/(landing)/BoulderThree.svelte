@@ -33,7 +33,6 @@
     renderer.setSize(w, h)
     renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;'
     wrap.appendChild(renderer.domElement)
-    showFallback = false
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 50)
@@ -155,7 +154,14 @@
       targetRY = ((e.clientX - r.left) / r.width - 0.5) * 0.5
       targetRX = ((e.clientY - r.top) / r.height - 0.5) * 0.25
     }
+    // Without this the tilt sticks after the pointer leaves and the sway keeps rocking around an
+    // offset centre for the rest of the visit.
+    const onLeave = () => {
+      targetRX = 0
+      targetRY = 0
+    }
     stage.addEventListener('pointermove', onMove)
+    stage.addEventListener('pointerleave', onLeave)
 
     const ro = new ResizeObserver(() => {
       const W = wrap.clientWidth
@@ -174,22 +180,33 @@
     } else {
       // Sway, don't spin: a full rotation would expose the bare (route-less) back.
       // Rock ±0.45rad around the front so the routed face always faces the viewer.
+      // Everything below is driven by elapsed time, not by frame count: the old per-frame
+      // increments rocked the boulder at double speed on a 120Hz display.
       let t = 0
-      const loop = () => {
-        t += 0.004
+      let prev = 0
+      // Per-frame lerp factor `f` tuned at 60Hz, held constant across refresh rates.
+      const damp = (f: number, dt: number) => 1 - Math.pow(1 - f, dt * 60)
+      const loop = (now = 0) => {
+        const dt = prev ? Math.min((now - prev) / 1000, 0.1) : 1 / 60
+        prev = now
+        t += dt * 0.24 // ~26s per full sway
         const sway = -0.35 + Math.sin(t) * 0.45
-        group.rotation.y += (sway + targetRY - group.rotation.y) * 0.06
-        group.rotation.x += (targetRX * 0.6 - group.rotation.x) * 0.05
+        group.rotation.y += (sway + targetRY - group.rotation.y) * damp(0.06, dt)
+        group.rotation.x += (targetRX * 0.6 - group.rotation.x) * damp(0.05, dt)
         renderer.render(scene, camera)
         raf = requestAnimationFrame(loop)
       }
       loop()
     }
+    // Only once something is actually on screen, so the fallback does not blink out over an
+    // unpainted canvas.
+    showFallback = false
 
     return () => {
       if (raf) cancelAnimationFrame(raf)
       ro.disconnect()
       stage.removeEventListener('pointermove', onMove)
+      stage.removeEventListener('pointerleave', onLeave)
       renderer.dispose()
       renderer.domElement.remove()
     }
