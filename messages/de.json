@@ -6,8 +6,13 @@
   "areas_allRoutes": "Alle Routen",
   "areas_allRoutesCount": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "Alle {count} Route ansehen",
         "countPlural=other": "Alle {count} Routen ansehen"
@@ -17,8 +22,13 @@
   "areas_allRoutesHint": "Durchsuchen, sortieren & filtern",
   "areas_count": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Gebiet",
         "countPlural=other": "{count} Gebiete"
@@ -37,8 +47,13 @@
   "areas_empty_title": "{name} aufbauen",
   "areas_gradedCount": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Route bewertet",
         "countPlural=other": "{count} Routen bewertet"
@@ -64,8 +79,13 @@
   "ascents_community": "Community",
   "ascents_count": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Begehung",
         "countPlural=other": "{count} Begehungen"
@@ -75,8 +95,14 @@
   "ascents_delete": "Begehung löschen",
   "ascents_deleteConfirm": [
     {
-      "declarations": ["input climber", "input name", "input owner"],
-      "selectors": ["owner"],
+      "declarations": [
+        "input climber",
+        "input name",
+        "input owner"
+      ],
+      "selectors": [
+        "owner"
+      ],
       "match": {
         "owner=self": "Deine Begehung von „{name}“ und ihre Grad- und Bewertungsmeinungen werden entfernt, ebenso alle angehängten Fotos und Videos. Das kann nicht rückgängig gemacht werden.",
         "owner=*": "{climber}s Begehung von „{name}“ und ihre Grad- und Bewertungsmeinungen werden entfernt, ebenso alle angehängten Fotos und Videos. Das kann nicht rückgängig gemacht werden."
@@ -228,8 +254,13 @@
   "comments_replyingTo": "Antwort an {name}",
   "comments_show": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Kommentar",
         "countPlural=*": "{count} Kommentare"
@@ -276,8 +307,13 @@
   "common_saved": "Gespeichert",
   "common_savedByOthers": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Speicherung",
         "countPlural=other": "{count} Speicherungen"
@@ -356,8 +392,16 @@
   "event_accoladeCommunity": "Beliebt in der Community",
   "event_accoladeProject": [
     {
-      "declarations": ["input days", "input name", "input sessions", "local daysPlural = days: plural"],
-      "selectors": ["days", "daysPlural"],
+      "declarations": [
+        "input days",
+        "input name",
+        "input sessions",
+        "local daysPlural = days: plural"
+      ],
+      "selectors": [
+        "days",
+        "daysPlural"
+      ],
       "match": {
         "days=0,daysPlural=*": "Projekt {name} durchgestiegen, {sessions} Sessions",
         "days=*,daysPlural=one": "Projekt {name} durchgestiegen, {sessions} Sessions über {days} Tag",
@@ -367,8 +411,14 @@
   ],
   "event_areaCreated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast das Gebiet {name} hinzugefügt",
         "person=*": "{actor} hat das Gebiet {name} hinzugefügt"
@@ -377,8 +427,14 @@
   ],
   "event_areaDeleted": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast das Gebiet {name} gelöscht",
         "person=*": "{actor} hat das Gebiet {name} gelöscht"
@@ -387,8 +443,16 @@
   ],
   "event_areaDeletedFile": [
     {
-      "declarations": ["input actor", "input media", "input name", "input person"],
-      "selectors": ["person", "media"],
+      "declarations": [
+        "input actor",
+        "input media",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "media"
+      ],
       "match": {
         "person=self,media=photo": "Du hast ein Foto von {name} entfernt",
         "person=self,media=video": "Du hast ein Video von {name} entfernt",
@@ -401,8 +465,14 @@
   ],
   "event_areaDeletedParkingLocation": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Parkplatz für {name} entfernt",
         "person=*": "{actor} hat den Parkplatz für {name} entfernt"
@@ -411,8 +481,14 @@
   ],
   "event_areaUpdated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast das Gebiet {name} bearbeitet",
         "person=*": "{actor} hat das Gebiet {name} bearbeitet"
@@ -421,8 +497,14 @@
   ],
   "event_areaUpdatedDescription": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Beschreibung von {name} bearbeitet",
         "person=*": "{actor} hat die Beschreibung von {name} bearbeitet"
@@ -431,8 +513,14 @@
   ],
   "event_areaUpdatedName": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} umbenannt",
         "person=*": "{actor} hat {name} umbenannt"
@@ -441,8 +529,14 @@
   ],
   "event_areaUpdatedParkingLocation": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Parkplatz für {name} gesetzt",
         "person=*": "{actor} hat den Parkplatz für {name} gesetzt"
@@ -451,8 +545,14 @@
   ],
   "event_ascentCreated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast eine Begehung von {name} eingetragen",
         "person=*": "{actor} hat eine Begehung von {name} eingetragen"
@@ -461,8 +561,14 @@
   ],
   "event_ascentCreatedAttempt": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} versucht",
         "person=*": "{actor} hat {name} versucht"
@@ -471,8 +577,14 @@
   ],
   "event_ascentCreatedFlash": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} geflasht",
         "person=*": "{actor} hat {name} geflasht"
@@ -481,8 +593,14 @@
   ],
   "event_ascentCreatedRedpoint": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} durchstiegen",
         "person=*": "{actor} hat {name} durchstiegen"
@@ -491,8 +609,14 @@
   ],
   "event_ascentCreatedRepeat": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} wiederholt",
         "person=*": "{actor} hat {name} wiederholt"
@@ -501,8 +625,17 @@
   ],
   "event_ascentDeleted": [
     {
-      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner"],
+      "declarations": [
+        "input actor",
+        "input climber",
+        "input name",
+        "input owner",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "owner"
+      ],
       "match": {
         "person=self,owner=self": "Du hast deine Begehung von {name} entfernt",
         "person=self,owner=none": "Du hast eine Begehung von {name} entfernt",
@@ -515,8 +648,19 @@
   ],
   "event_ascentDeletedFile": [
     {
-      "declarations": ["input actor", "input climber", "input media", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner", "media"],
+      "declarations": [
+        "input actor",
+        "input climber",
+        "input media",
+        "input name",
+        "input owner",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "owner",
+        "media"
+      ],
       "match": {
         "person=self,owner=self,media=photo": "Du hast ein Foto aus deiner Begehung von {name} entfernt",
         "person=self,owner=self,media=video": "Du hast ein Video aus deiner Begehung von {name} entfernt",
@@ -542,8 +686,17 @@
   "event_ascentOpinion": "Einschätzung",
   "event_ascentUpdated": [
     {
-      "declarations": ["input actor", "input climber", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner"],
+      "declarations": [
+        "input actor",
+        "input climber",
+        "input name",
+        "input owner",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "owner"
+      ],
       "match": {
         "person=self,owner=self": "Du hast deine Begehung von {name} bearbeitet",
         "person=self,owner=none": "Du hast eine Begehung von {name} bearbeitet",
@@ -556,8 +709,14 @@
   ],
   "event_blockCreated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Block {name} hinzugefügt",
         "person=*": "{actor} hat den Block {name} hinzugefügt"
@@ -566,8 +725,14 @@
   ],
   "event_blockDeleted": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Block {name} gelöscht",
         "person=*": "{actor} hat den Block {name} gelöscht"
@@ -576,8 +741,16 @@
   ],
   "event_blockDeletedFile": [
     {
-      "declarations": ["input actor", "input media", "input name", "input person"],
-      "selectors": ["person", "media"],
+      "declarations": [
+        "input actor",
+        "input media",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "media"
+      ],
       "match": {
         "person=self,media=photo": "Du hast ein Foto von {name} entfernt",
         "person=self,media=video": "Du hast ein Video von {name} entfernt",
@@ -590,8 +763,14 @@
   ],
   "event_blockDeletedLocation": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Standort von {name} entfernt",
         "person=*": "{actor} hat den Standort von {name} entfernt"
@@ -600,8 +779,14 @@
   ],
   "event_blockDeletedTopo": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast ein Topo-Foto von {name} entfernt",
         "person=*": "{actor} hat ein Topo-Foto von {name} entfernt"
@@ -610,8 +795,14 @@
   ],
   "event_blockUpdated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Block {name} bearbeitet",
         "person=*": "{actor} hat den Block {name} bearbeitet"
@@ -620,8 +811,14 @@
   ],
   "event_blockUpdatedDescription": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Beschreibung von {name} bearbeitet",
         "person=*": "{actor} hat die Beschreibung von {name} bearbeitet"
@@ -630,8 +827,14 @@
   ],
   "event_blockUpdatedLocation": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast den Standort von {name} aktualisiert",
         "person=*": "{actor} hat den Standort von {name} aktualisiert"
@@ -640,8 +843,14 @@
   ],
   "event_blockUpdatedName": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} umbenannt",
         "person=*": "{actor} hat {name} umbenannt"
@@ -650,8 +859,14 @@
   ],
   "event_blockUpdatedTopo": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast das Topo von {name} aktualisiert",
         "person=*": "{actor} hat das Topo von {name} aktualisiert"
@@ -660,8 +875,12 @@
   ],
   "event_changeFileRemoved": [
     {
-      "declarations": ["input media"],
-      "selectors": ["media"],
+      "declarations": [
+        "input media"
+      ],
+      "selectors": [
+        "media"
+      ],
       "match": {
         "media=photo": "Foto entfernt",
         "media=video": "Video entfernt",
@@ -687,8 +906,13 @@
   "event_changeTopoUpdated": "Topo neu gezeichnet",
   "event_compareCharacters": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "Vergleichen, {count} Zeichen",
         "countPlural=other": "Vergleichen, {count} Zeichen"
@@ -699,8 +923,12 @@
   "event_fieldDescription": "Beschreibung",
   "event_fieldFile": [
     {
-      "declarations": ["input media"],
-      "selectors": ["media"],
+      "declarations": [
+        "input media"
+      ],
+      "selectors": [
+        "media"
+      ],
       "match": {
         "media=photo": "Foto",
         "media=video": "Video",
@@ -727,8 +955,14 @@
   "event_fieldUsername": "Benutzername",
   "event_fileUpdatedSource": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Videoquelle bei {name} aktualisiert",
         "person=*": "{actor} hat die Videoquelle bei {name} aktualisiert"
@@ -737,8 +971,18 @@
   ],
   "event_fileUploaded": [
     {
-      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner", "media"],
+      "declarations": [
+        "input actor",
+        "input media",
+        "input name",
+        "input owner",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "owner",
+        "media"
+      ],
       "match": {
         "person=self,owner=self,media=photo": "Du hast ein Foto zu deiner Begehung von {name} hinzugefügt",
         "person=self,owner=self,media=video": "Du hast ein Video zu deiner Begehung von {name} hinzugefügt",
@@ -757,8 +1001,14 @@
   ],
   "event_genericChange": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} geändert",
         "person=*": "{actor} hat {name} geändert"
@@ -767,8 +1017,14 @@
   ],
   "event_groupEdits": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} bearbeitet",
         "person=*": "{actor} hat {name} bearbeitet"
@@ -777,8 +1033,15 @@
   ],
   "event_groupFilesRemoved": [
     {
-      "declarations": ["input actor", "input media", "input person"],
-      "selectors": ["person", "media"],
+      "declarations": [
+        "input actor",
+        "input media",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "media"
+      ],
       "match": {
         "person=self,media=photo": "Du hast Fotos entfernt",
         "person=self,media=video": "Du hast Videos entfernt",
@@ -791,8 +1054,13 @@
   ],
   "event_groupRemovals": [
     {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast Einträge gelöscht",
         "person=*": "{actor} hat Einträge gelöscht"
@@ -801,8 +1069,13 @@
   ],
   "event_groupSession": [
     {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast eine Session geloggt",
         "person=*": "{actor} hat eine Session geloggt"
@@ -811,8 +1084,18 @@
   ],
   "event_groupUploads": [
     {
-      "declarations": ["input actor", "input media", "input name", "input owner", "input person"],
-      "selectors": ["person", "owner", "media"],
+      "declarations": [
+        "input actor",
+        "input media",
+        "input name",
+        "input owner",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "owner",
+        "media"
+      ],
       "match": {
         "person=self,owner=self,media=photo": "Du hast Fotos zu deiner Begehung von {name} hinzugefügt",
         "person=self,owner=self,media=video": "Du hast Videos zu deiner Begehung von {name} hinzugefügt",
@@ -844,8 +1127,14 @@
   "event_notFoundBody": "Er wurde gelöscht, oder er gehört zu einer Community, in der du nicht bist.",
   "event_routeCreated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Route {name} hinzugefügt",
         "person=*": "{actor} hat die Route {name} hinzugefügt"
@@ -854,8 +1143,14 @@
   ],
   "event_routeDeleted": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Route {name} gelöscht",
         "person=*": "{actor} hat die Route {name} gelöscht"
@@ -864,8 +1159,16 @@
   ],
   "event_routeDeletedFile": [
     {
-      "declarations": ["input actor", "input media", "input name", "input person"],
-      "selectors": ["person", "media"],
+      "declarations": [
+        "input actor",
+        "input media",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person",
+        "media"
+      ],
       "match": {
         "person=self,media=photo": "Du hast ein Foto von {name} entfernt",
         "person=self,media=video": "Du hast ein Video von {name} entfernt",
@@ -878,8 +1181,14 @@
   ],
   "event_routeUpdated": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Route {name} bearbeitet",
         "person=*": "{actor} hat die Route {name} bearbeitet"
@@ -888,8 +1197,14 @@
   ],
   "event_routeUpdatedDescription": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Beschreibung von {name} bearbeitet",
         "person=*": "{actor} hat die Beschreibung von {name} bearbeitet"
@@ -898,8 +1213,14 @@
   ],
   "event_routeUpdatedFirstAscensionists": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Erstbegeher von {name} geändert",
         "person=*": "{actor} hat die Erstbegeher von {name} geändert"
@@ -908,8 +1229,14 @@
   ],
   "event_routeUpdatedFirstAscentYear": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast das Jahr der Erstbegehung von {name} geändert",
         "person=*": "{actor} hat das Jahr der Erstbegehung von {name} geändert"
@@ -918,8 +1245,14 @@
   ],
   "event_routeUpdatedGradeFk": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Schwierigkeit von {name} geändert",
         "person=*": "{actor} hat die Schwierigkeit von {name} geändert"
@@ -928,8 +1261,14 @@
   ],
   "event_routeUpdatedName": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} umbenannt",
         "person=*": "{actor} hat {name} umbenannt"
@@ -938,8 +1277,14 @@
   ],
   "event_routeUpdatedRating": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Bewertung von {name} geändert",
         "person=*": "{actor} hat die Bewertung von {name} geändert"
@@ -948,8 +1293,14 @@
   ],
   "event_routeUpdatedTags": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Tags von {name} geändert",
         "person=*": "{actor} hat die Tags von {name} geändert"
@@ -959,8 +1310,13 @@
   "event_showChanges": "Änderungen anzeigen",
   "event_summaryAreas": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Gebiet",
         "countPlural=other": "{count} Gebiete"
@@ -969,8 +1325,13 @@
   ],
   "event_summaryAscents": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Begehung",
         "countPlural=other": "{count} Begehungen"
@@ -979,8 +1340,13 @@
   ],
   "event_summaryBlocks": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Block",
         "countPlural=other": "{count} Blöcke"
@@ -990,8 +1356,13 @@
   "event_summaryClimbedOn": "Begangen am {date}",
   "event_summaryEdits": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Änderung",
         "countPlural=other": "{count} Änderungen"
@@ -1000,8 +1371,15 @@
   ],
   "event_summaryFiles": [
     {
-      "declarations": ["input count", "input media", "local countPlural = count: plural"],
-      "selectors": ["media", "countPlural"],
+      "declarations": [
+        "input count",
+        "input media",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "media",
+        "countPlural"
+      ],
       "match": {
         "media=photo,countPlural=one": "{count} Foto",
         "media=photo,countPlural=other": "{count} Fotos",
@@ -1014,8 +1392,13 @@
   ],
   "event_summaryRemovals": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Löschung",
         "countPlural=other": "{count} Löschungen"
@@ -1024,8 +1407,13 @@
   ],
   "event_summaryRoutes": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Route",
         "countPlural=other": "{count} Routen"
@@ -1034,8 +1422,14 @@
   ],
   "event_userCreatedInvitation": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} eingeladen",
         "person=*": "{actor} hat {name} eingeladen"
@@ -1044,8 +1438,14 @@
   ],
   "event_userDeletedInvitation": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Einladung für {name} zurückgezogen",
         "person=*": "{actor} hat die Einladung für {name} zurückgezogen"
@@ -1054,8 +1454,14 @@
   ],
   "event_userDeletedMembership": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Region verlassen",
         "person=*": "{actor} hat die Region verlassen"
@@ -1064,8 +1470,14 @@
   ],
   "event_userDeletedRole": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast {name} aus der Region entfernt",
         "person=*": "{actor} hat {name} aus der Region entfernt"
@@ -1074,8 +1486,14 @@
   ],
   "event_userUpdatedFirstAscensionist": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast dich mit dem Erstbegeher {name} verknüpft",
         "person=*": "{actor} hat sich mit dem Erstbegeher {name} verknüpft"
@@ -1084,8 +1502,13 @@
   ],
   "event_userUpdatedInvitation": [
     {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du bist beigetreten",
         "person=*": "{actor} ist beigetreten"
@@ -1094,8 +1517,14 @@
   ],
   "event_userUpdatedRole": [
     {
-      "declarations": ["input actor", "input name", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input name",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast die Rolle von {name} geändert",
         "person=*": "{actor} hat die Rolle von {name} geändert"
@@ -1104,8 +1533,13 @@
   ],
   "event_userUpdatedUsername": [
     {
-      "declarations": ["input actor", "input person"],
-      "selectors": ["person"],
+      "declarations": [
+        "input actor",
+        "input person"
+      ],
+      "selectors": [
+        "person"
+      ],
       "match": {
         "person=self": "Du hast deinen Namen geändert",
         "person=*": "{actor} hat den Namen geändert"
@@ -1131,8 +1565,13 @@
   "feed_loadOlder": "Ältere laden",
   "feed_newActivity": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} neue Aktivität",
         "countPlural=other": "{count} neue Aktivitäten"
@@ -1167,8 +1606,13 @@
   "filter_tags": "Tags",
   "form_charsMax": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "Darf höchstens {count} Zeichen lang sein",
         "countPlural=other": "Darf höchstens {count} Zeichen lang sein"
@@ -1177,8 +1621,13 @@
   ],
   "form_charsMin": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "Muss mindestens {count} Zeichen lang sein",
         "countPlural=other": "Muss mindestens {count} Zeichen lang sein"
@@ -1198,7 +1647,7 @@
   "install_manualTitle": "grnyte zum Home-Bildschirm hinzufügen",
   "install_menuAdd": "Wähle „App installieren“",
   "install_menuOpen": "Öffne das Browser-Menü",
-  "install_offlineBody": "Installiere die App, dann bleibt der Guide auf deinem Handy, bereit am Fels ohne Empfang.",
+  "install_offlineBody": "Installiere die App, dann bleibt der Kletterführer auf deinem Handy, bereit am Fels ohne Empfang.",
   "install_title": "App installieren",
   "invite_accept": "Beitreten",
   "invite_accepted": "Du bist {region} beigetreten.",
@@ -1217,27 +1666,24 @@
   "invite_signUpCta": "Konto erstellen",
   "invite_title": "Du bist eingeladen",
   "invite_wrongAccount": "Diese Einladung ist für {email}, du bist aber als {current} angemeldet.",
-  "landing_ctaBody": "Du führst deine Notizen noch in einer Tabelle? Schreib uns, wir helfen dir beim Umzug.",
+  "landing_ctaBody": "Kostenlos, keine Kreditkarte, keine Testphase. Lade genau die Leute ein, die dabei sein sollen.",
   "landing_ctaStar": "Star auf GitHub",
-  "landing_ctaTitle": "Deine Gebiete haben mehr als eine Tabelle verdient.",
-  "landing_exportBody": "Wenn ein Gebiet bereit für die Öffentlichkeit ist, exportierst du deine Daten jederzeit zu 8a.nu, The Topo oder theCrag. Keine Bindung, keine Verpflichtung. Die meisten Gebiete bleiben einfach deine.",
-  "landing_exportTitle": "Bereit für die Welt? Exportiere jederzeit.",
-  "landing_featureGuidebookBody": "Organisiere Gebiete, Blöcke und Boulder mit detaillierten Topos, Graden und Bedingungen.",
-  "landing_featureGuidebookTitle": "Ein vollständiger Guide",
-  "landing_featureLogbookBody": "Tracke deine Sessions und Begehungen, verfolge Projekte und Erstbegehungen und sieh zu, wie sich ein Gebiet entwickelt.",
+  "landing_ctaTitle": "Deine erste Region ist in etwa fünf Minuten eingerichtet.",
+  "landing_featureGuidebookBody": "Gebiete, Felsen, Blöcke und Routen mit Graden, Bedingungen und Beschreibungen. Strukturiert, nicht bloß eine Liste von Namen.",
+  "landing_featureGuidebookTitle": "Ein vollständiger Kletterführer",
+  "landing_featureLogbookBody": "Sessions, Begehungen, Projekte und Erstbegehungen. Die Geschichte des Gebiets entsteht daraus.",
   "landing_featureLogbookTitle": "Logbuch inklusive",
-  "landing_featureMapsBody": "Jeder Block und Parkplatz auf einer Karte, damit du den Weg wirklich findest. Auch an neuen Orten.",
-  "landing_featureMapsTitle": "Karten & Zustieg",
-  "landing_featureOfflineBody": "Installiere es wie eine App und nimm deinen Guide überallhin mit. Kein Empfang an den Bouldern? Es funktioniert trotzdem.",
+  "landing_featureMapsBody": "Jeder Boulder und jeder Parkplatz auf einer Karte, damit du dich beim Suchen nicht verläufst.",
+  "landing_featureMapsTitle": "Karte und Zustieg",
+  "landing_featureOfflineBody": "Installier es wie eine App. Kein Empfang an den Bouldern ist der Normalfall, nicht der Sonderfall.",
   "landing_featureOfflineTitle": "Funktioniert offline",
-  "landing_featurePrivateBody": "Deine Gebiete tauchen nie auf einer öffentlichen Karte oder in einer Suche auf. Nur Leute in deiner Region sehen sie.",
+  "landing_featurePrivateBody": "Eine Region ist unsichtbar, bis du eingeladen wirst. Keine öffentliche Karte, kein Suchtreffer, kein Crawler.",
   "landing_featurePrivateTitle": "Standardmäßig privat",
-  "landing_featureRegionBody": "Topos und Bedingungen aktualisieren sich sofort für alle in deiner Region. Keine E-Mail-Ketten, keine Versionskonflikte.",
-  "landing_featureRegionTitle": "Mit deiner Region geteilt",
-  "landing_featuresEyebrow": "Fürs Bouldern gemacht",
-  "landing_featuresTitle": "Gebietsverwaltung, Topos und ein Logbuch, ohne Kompromisse.",
+  "landing_featureTopoBody": "Zeichne die Linie direkt auf das Foto des Boulders. So viele Fotos und so viele Linien, wie der Boulder braucht.",
+  "landing_featureTopoTitle": "Topos auf dem echten Fels",
+  "landing_featuresTitle": "Alles, was du von einer Boulder-App erwartest.",
   "landing_footerCopyright": "© 2026 grnyte. Ohne kommerzielle Absicht.",
-  "landing_footerDesc": "Ein quelloffener, privater Guide und Logbuch fürs Bouldern. Ein Hobbyprojekt für die Community.",
+  "landing_footerDesc": "Ein quelloffener Kletterführer und ein Logbuch fürs Bouldern, nur per Einladung sichtbar. Ein Hobbyprojekt von Robert Wettstädt.",
   "landing_footerHelp": "Hilfe",
   "landing_footerLegal": "Rechtliches",
   "landing_footerMadeWith": "Mit <3 für Kletterer gemacht",
@@ -1245,10 +1691,9 @@
   "landing_getStarted": "Loslegen",
   "landing_heroBadge": "Open Source · selbst hostbar",
   "landing_heroCaption": "Deine Blöcke, deine Topos, deine Daten",
-  "landing_heroDemo": "Demo ausprobieren",
   "landing_heroSubtitle": "Vollständige Gebiets- und Topoverwaltung plus ein komplettes Logbuch, fürs Bouldern gemacht. Nur für die Leute in deiner Region sichtbar.",
   "landing_heroTrust": "Kostenlos · ohne kommerzielle Absicht · für Kletterer gemacht",
-  "landing_metaDescription": "grnyte ist ein quelloffener Guide und Logbuch fürs Bouldern: vollständige Gebiets- und Topoverwaltung plus Session-Tracking, privat gehalten und abseits der öffentlichen Karte.",
+  "landing_metaDescription": "grnyte ist ein quelloffener Kletterführer und ein Logbuch fürs Bouldern, nur per Einladung sichtbar: Gebiete, Topos, Karten und Begehungen, in der Datenbank abgesichert statt in der Oberfläche versteckt.",
   "landing_nameDefinitionEm": "Granit",
   "landing_nameDefinitionRest": "mit weggemeißelten Vokalen. Ein Zuhause für die Linien, die auf keiner öffentlichen Karte stehen.",
   "landing_nameEyebrow": "Was steckt im Namen",
@@ -1256,26 +1701,30 @@
   "landing_navSource": "Quellcode",
   "landing_navToApp": "Zur App",
   "landing_peekEyebrow": "Ein Blick hinein",
+  "landing_peekPlatform": "Kein App Store. grnyte ist eine Progressive Web App: im Browser öffnen und zum Startbildschirm hinzufügen.",
   "landing_peekPreviewSoon": "Vorschau folgt bald",
   "landing_peekTitle": "Für dein Handy gemacht, direkt an den Bouldern.",
-  "landing_personaCommunitiesBody": "Klettergruppen, deren Spots besser nicht auf der öffentlichen Karte stehen.",
-  "landing_personaCommunitiesTitle": "Lokale Communitys",
-  "landing_personaDevelopersBody": "Erstbegeher, die Projekte verwalten, die noch nicht öffentlich werden sollen.",
-  "landing_personaDevelopersTitle": "Gebietsentwickler",
-  "landing_personaRegionsBody": "Alle, die ihre eigene Region starten. In Minuten eingerichtet und genau die einladen, die du willst.",
-  "landing_personaRegionsTitle": "Neue Regionen",
-  "landing_personasTitle": "Perfekt für",
   "landing_shotLogbookCaption": "Deine Sessions und Begehungen im Zeitverlauf.",
   "landing_shotLogbookLabel": "Logbuch",
-  "landing_shotMapCaption": "Jeder Block und der Parkplatz, auf einer Karte.",
+  "landing_shotMapCaption": "Jeder Boulder und der Parkplatz, auf einer Karte.",
   "landing_shotMapLabel": "Karte",
   "landing_shotTopoCaption": "Linien direkt auf dem Boulder eingezeichnet.",
   "landing_shotTopoLabel": "Topo",
-  "landing_tagline": "Private topos for private crags",
-  "landing_whyBody1": "Die meisten Guides und Logbücher sind standardmäßig öffentlich. Das passt nicht immer. Sensible Spots, laufende Projekte oder Gebiete, die privat bleiben müssen, damit der Zugang erhalten bleibt.",
-  "landing_whyBody2": "Gebiete, Topos und Session-Logs leben in deiner eigenen Region, strukturiert wie ein echter Guide. Ein vollständiges Änderungsprotokoll zeigt, wer was geändert hat, und alles bleibt nur für die Leute sichtbar, die du einlädst. Starte eine Region kostenlos oder tritt einer bestehenden per Einladung bei.",
-  "landing_whyEyebrow": "Warum privat",
-  "landing_whyTitle": "Manche Gebiete gehören nicht auf die öffentliche Karte. Einen richtigen Guide verdienen sie trotzdem.",
+  "landing_stewardBody": "Vereine, DAV-Sektionen und die Gruppen, die den Zugang aushandeln. Eine größere Gruppe braucht mehr als ein Anmeldeformular.",
+  "landing_stewardCta": "Sagt mir, was eure Region braucht, und wir finden gemeinsam eine Lösung.",
+  "landing_stewardCtaLabel": "Schreibt mir",
+  "landing_stewardEyebrow": "Für Vereine und Zugangsgruppen",
+  "landing_stewardTitle": "Ich richte eure Region gemeinsam mit euch ein.",
+  "landing_tagline": "Private Topos für nicht veröffentlichte Gebiete",
+  "landing_whyAccessBody": "Der Zugang hält, solange der Ort schwer zu finden bleibt.",
+  "landing_whyAccessTitle": "Die Geduld des Eigentümers",
+  "landing_whyClose": "grnyte ist ein Kletterführer und ein Logbuch, die nie etwas veröffentlichen. Gebiete, Topos, Karten und Begehungen, sichtbar nur für die Leute, die du einlädst.",
+  "landing_whyEyebrow": "Warum grnyte",
+  "landing_whyFragileBody": "Schon der Andrang kann es schließen, ganz ohne dass jemand etwas beschädigt.",
+  "landing_whyFragileTitle": "Sensibler Boden",
+  "landing_whyProjectBody": "Projekte, an denen noch gearbeitet wird und die noch niemand sehen soll.",
+  "landing_whyProjectTitle": "Unfertige Linien",
+  "landing_whyTitle": "Wenn ein Gebiet nicht öffentlich werden kann, verdient es trotzdem einen ordentlichen Kletterführer.",
   "legal_cookies_metaDescription": "Cookie-Richtlinie für {name} – Erfahre, welche Cookies wir verwenden und wie du deine Einstellungen verwaltest.",
   "legal_cookies_title": "Cookie-Richtlinie",
   "legal_disclaimer_metaDescription": "Wichtige Haftungsausschlüsse und Sicherheitshinweise für Nutzer von {name}.",
@@ -1340,8 +1789,6 @@
   "notifications_roleChangedPlain": "{actor} hat deine Rolle geändert",
   "notifications_title": "Benachrichtigungen",
   "notifications_unread": "{count} ungelesen",
-  "onboarding_demoBody": "demo.grnyte.rocks öffnet in einem neuen Tab. Beispieldaten, Zugangsdaten schon ausgefüllt.",
-  "onboarding_demoTitle": "Eine fertige Region ansehen",
   "onboarding_inviteBody": "Einladungen erreichen nur genau die Adresse, an die sie geschickt wurden. Wenn deine Community eine andere Adresse eingeladen hat, ändere deine passend.",
   "onboarding_inviteCta": "E-Mail-Adresse ändern",
   "onboarding_inviteSignedInAs": "Angemeldet als {email}",
@@ -1375,8 +1822,13 @@
   "profile_allSends": "Alle Begehungen",
   "profile_climbsCount": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Begehung",
         "countPlural=other": "{count} Begehungen"
@@ -1401,8 +1853,13 @@
   "profile_removeAll": "Alle entfernen",
   "profile_removeAllConfirm": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "Deinen {count} Favoriten entfernen? Das kann nicht rückgängig gemacht werden.",
         "countPlural=other": "Alle {count} Favoriten entfernen? Das kann nicht rückgängig gemacht werden."
@@ -1413,8 +1870,13 @@
   "profile_sends": "Begehungen",
   "profile_sessionsCount": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Session",
         "countPlural=other": "{count} Sessions"
@@ -1517,8 +1979,13 @@
   "region_tagRemove": "Tag entfernen",
   "region_tagRemoveConfirm": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "\"{name}\" entfernen? Es verschwindet von {count} Route, und das lässt sich nicht rückgängig machen.",
         "countPlural=other": "\"{name}\" entfernen? Es verschwindet von {count} Routen, und das lässt sich nicht rückgängig machen."
@@ -1530,8 +1997,13 @@
   "region_tagRename": "Umbenennen",
   "region_tagRenameHint": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "Bleibt auf {count} Route erhalten.",
         "countPlural=other": "Bleibt auf allen {count} Routen erhalten."
@@ -1598,8 +2070,13 @@
   "routes_gradeOpinions": "Grad-Meinungen",
   "routes_gradeVotes": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Stimme",
         "countPlural=other": "{count} Stimmen"
@@ -1614,8 +2091,13 @@
   "routes_originalGrade": "Ursprünglicher Grad",
   "routes_routesCount": [
     {
-      "declarations": ["input count", "local countPlural = count: plural"],
-      "selectors": ["countPlural"],
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
       "match": {
         "countPlural=one": "{count} Route",
         "countPlural=other": "{count} Routen"

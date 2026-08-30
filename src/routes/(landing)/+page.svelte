@@ -1,10 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
   import { PUBLIC_APPLICATION_NAME } from '$env/static/public'
-  import iconTheTopo from '$lib/assets/27crags-logo.png'
-  import icon8a from '$lib/assets/8a-logo.png'
   import Logo from '$lib/assets/logo.svg'
-  import iconTheCrag from '$lib/assets/thecrag-logo.png'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
@@ -16,34 +13,30 @@
   const signedIn = $derived(data.signedIn)
 
   const github = 'https://github.com/robert-wettstaedt/grnyte'
-  const demo = 'https://demo.grnyte.rocks/auth/signin'
+  const contact = 'mailto:info@grnyte.rocks'
+
+  // The three situations an area cannot be published in. A qualification section, not a
+  // status-quo one: the reader self-selects instead of being told what their setup is.
+  const reasons: { body: string; icon: IconName; title: string }[] = [
+    { body: m.landing_whyFragileBody(), icon: 'alert-triangle', title: m.landing_whyFragileTitle() },
+    { body: m.landing_whyProjectBody(), icon: 'pickaxe', title: m.landing_whyProjectTitle() },
+    { body: m.landing_whyAccessBody(), icon: 'eye-off', title: m.landing_whyAccessTitle() },
+  ]
 
   const features: { body: string; icon: IconName; title: string }[] = [
     { body: m.landing_featurePrivateBody(), icon: 'lock', title: m.landing_featurePrivateTitle() },
     { body: m.landing_featureGuidebookBody(), icon: 'map', title: m.landing_featureGuidebookTitle() },
+    { body: m.landing_featureTopoBody(), icon: 'route', title: m.landing_featureTopoTitle() },
     { body: m.landing_featureMapsBody(), icon: 'map-pin', title: m.landing_featureMapsTitle() },
     { body: m.landing_featureOfflineBody(), icon: 'smartphone', title: m.landing_featureOfflineTitle() },
     { body: m.landing_featureLogbookBody(), icon: 'trending-up', title: m.landing_featureLogbookTitle() },
-    { body: m.landing_featureRegionBody(), icon: 'users', title: m.landing_featureRegionTitle() },
   ]
 
-  const personas: { body: string; icon: IconName; title: string }[] = [
-    { body: m.landing_personaDevelopersBody(), icon: 'pickaxe', title: m.landing_personaDevelopersTitle() },
-    { body: m.landing_personaCommunitiesBody(), icon: 'users-round', title: m.landing_personaCommunitiesTitle() },
-    { body: m.landing_personaRegionsBody(), icon: 'tent-tree', title: m.landing_personaRegionsTitle() },
-  ]
 
-  // Public platforms to export to once an area goes public.
-  const platforms = [
-    { icon: icon8a, name: '8a.nu' },
-    { icon: iconTheTopo, name: 'The Topo' },
-    { icon: iconTheCrag, name: 'theCrag' },
-  ]
-
-  // "A look inside" phone mockups. Placeholder frames for now — drop a real <img> into
-  // each .lp-screen once the 2.0 UI is ready. Real shots MUST use demo/dummy data,
-  // never a live private region (that's the whole point of the product).
-  const shots = [
+  // "A look inside". `src`/`poster` are empty until the screencasts land (see DEMO-TEARDOWN-PLAN.md):
+  // drop `static/shot-*.mp4` and `static/shot-*.jpg` in and fill them here, nothing else changes.
+  // Real shots MUST use the dummy fixture, never a live private region: that is the whole product.
+  const shots: { caption: string; label: string; poster?: string; src?: string }[] = [
     { caption: m.landing_shotMapCaption(), label: m.landing_shotMapLabel() },
     { caption: m.landing_shotTopoCaption(), label: m.landing_shotTopoLabel() },
     { caption: m.landing_shotLogbookCaption(), label: m.landing_shotLogbookLabel() },
@@ -51,9 +44,12 @@
 
   // ===== scroll motion (GSAP): heavy + browser-only, loaded via dynamic import in onMount =====
   let rootEl: HTMLDivElement
+  // Poster only, no playback, when the visitor asked for less motion.
+  let reducedMotion = $state(false)
 
   onMount(() => {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    reducedMotion = reduced
     const disposers: Array<() => void> = []
     let cancelled = false
 
@@ -159,7 +155,14 @@
   </noscript>
 </svelte:head>
 
-<div bind:this={rootEl} data-motion="armed" class="text-surface-950-50 bg-surface-50-950 min-h-dvh overflow-x-clip">
+<!-- Section striping is automatic: `nth-of-type` counts only sibling <section>s, so the header
+     and footer never shift it, and adding or removing a section re-flows the stripes on its
+     own. Do not hardcode a background on a section. -->
+<div
+  bind:this={rootEl}
+  data-motion="armed"
+  class="text-surface-950-50 bg-surface-50-950 min-h-dvh overflow-x-clip [&>section:nth-of-type(even)]:bg-surface-100-900"
+>
   <!-- ===== sticky nav ===== -->
   <header class="border-surface-200-800 bg-surface-50-950/80 sticky top-0 z-50 border-b backdrop-blur-lg">
     <div class="mx-auto flex h-15 max-w-300 items-center justify-between gap-4 px-5">
@@ -234,14 +237,13 @@
         </p>
         <div data-fade class="mt-1.5 flex flex-wrap gap-3">
           <a
-            href={resolve('/auth/signin')}
+            href={resolve('/auth/signup')}
             class="btn preset-filled-primary-500 h-12.5 px-6 font-semibold shadow-[0_10px_28px_-10px_var(--color-primary-500)]"
           >
             {m.landing_getStarted()}
           </a>
-          <a href={demo} target="_blank" rel="noopener" class="btn preset-tonal h-12.5 gap-2.5 px-6 font-semibold">
-            <Icon name="play" size={16} fill="currentColor" strokeWidth={0} />
-            {m.landing_heroDemo()}
+          <a href={resolve('/auth/signin')} class="btn preset-tonal h-12.5 px-6 font-semibold">
+            {m.auth_signIn()}
           </a>
         </div>
         <div data-fade class="text-surface-500 flex items-center gap-2.5 text-[13px]">
@@ -267,18 +269,38 @@
     </div>
   </section>
 
-  <!-- ===== narrative (problem) ===== -->
+  <!-- ===== why grnyte: the three situations an area cannot be published in ===== -->
   <section class="border-surface-200-800 border-t">
-    <div data-reveal class="mx-auto flex max-w-190 flex-col gap-6 px-5 py-[clamp(64px,10vh,110px)]">
-      <div class="text-primary-600-400 text-[12.5px] font-bold tracking-widest uppercase">{m.landing_whyEyebrow()}</div>
-      <h2 class="text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold tracking-tight text-balance">
-        {m.landing_whyTitle()}
-      </h2>
-      <p class="text-surface-600-400 text-[clamp(15.5px,1.5vw,18px)] leading-relaxed text-pretty">
-        {m.landing_whyBody1()}
-      </p>
-      <p class="text-surface-600-400 text-[clamp(15.5px,1.5vw,18px)] leading-relaxed text-pretty">
-        {m.landing_whyBody2()}
+    <div class="mx-auto max-w-300 px-5 py-[clamp(64px,10vh,110px)]">
+      <div data-reveal class="mx-auto flex max-w-190 flex-col gap-6">
+        <div class="text-primary-600-400 text-[12.5px] font-bold tracking-widest uppercase">
+          {m.landing_whyEyebrow()}
+        </div>
+        <h2 class="text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold tracking-tight text-balance">
+          {m.landing_whyTitle()}
+        </h2>
+      </div>
+
+      <div
+        data-stagger
+        class="mx-auto mt-11 grid max-w-250 grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3.5"
+      >
+        {#each reasons as s (s.title)}
+          <div class="border-surface-200-800 flex flex-col gap-2.5 rounded-2xl border border-dashed p-6">
+            <span class="text-surface-500 flex h-9 w-9 items-center justify-center">
+              <Icon name={s.icon} size={21} strokeWidth={1.9} />
+            </span>
+            <h3 class="text-surface-600-400 text-[16px] font-bold tracking-tight">{s.title}</h3>
+            <p class="text-surface-500 text-[14.5px] leading-relaxed text-pretty">{s.body}</p>
+          </div>
+        {/each}
+      </div>
+
+      <p
+        data-reveal
+        class="mx-auto mt-11 max-w-[46ch] text-center text-[clamp(17px,2vw,21px)] leading-snug font-semibold text-balance"
+      >
+        {m.landing_whyClose()}
       </p>
     </div>
   </section>
@@ -293,6 +315,7 @@
         <h2 class="text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold tracking-tight text-balance">
           {m.landing_peekTitle()}
         </h2>
+        <p class="text-surface-600-400 text-[14.5px] leading-relaxed text-pretty">{m.landing_peekPlatform()}</p>
       </div>
 
       <!-- Mobile: horizontal scroll-snap row (swipe, neighbours peek). md+: centered staggered row. -->
@@ -306,47 +329,64 @@
               ? 'z-10 w-[min(256px,80vw)] md:mb-[clamp(0px,5vw,52px)]'
               : 'w-[min(224px,72vw)]'}"
           >
-            <!-- phone bezel. When the real shots land, add the screenshot as the first child of
-                 .lp-screen and delete the placeholder markup below:
-                 <img src={s.src} alt={s.caption} class="absolute inset-0 h-full w-full object-cover"
-                      loading={i === 0 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : 'auto'} /> -->
             <div
               class="border-surface-200-800 bg-surface-950 aspect-9/19.5 w-full rounded-4xl border p-2.25 shadow-[0_44px_80px_-36px_black,inset_0_0_0_1px_oklch(0.28_0.01_305)]"
             >
               <div class="lp-screen bg-surface-100-900 relative h-full w-full overflow-hidden rounded-[23px]">
-                <!-- faux contour motif so the placeholder reads as 'app screen', not 'broken image' -->
-                <svg
-                  viewBox="0 0 240 520"
-                  preserveAspectRatio="xMidYMid slice"
-                  class="absolute inset-0 h-full w-full opacity-50"
-                  aria-hidden="true"
-                >
-                  <g fill="none" stroke-width="1.4" class="stroke-surface-200-800">
-                    <path d="M-20 150 C 60 120 120 180 260 140" />
-                    <path d="M-20 220 C 70 190 130 250 260 210" />
-                    <path d="M-20 360 C 60 330 120 390 260 350" />
-                    <path d="M-20 430 C 70 400 130 460 260 420" />
-                  </g>
-                </svg>
-                <!-- faux top bar -->
-                <div class="bg-primary-500/15 absolute top-0 right-0 left-0 flex h-11.5 items-center gap-1.5 px-3.5">
-                  <span class="bg-primary-500 h-2.25 w-2.25 rounded-full"></span>
-                  <span class="bg-surface-400-600 h-1.75 w-13.5 rounded-full"></span>
-                </div>
-                <!-- faux content rows so the frame reads as a populated screen, not an empty one -->
-                <div class="absolute top-16 right-0 left-0 flex flex-col gap-2.5 px-4" aria-hidden="true">
-                  <span class="bg-surface-300-700 h-2 w-2/3 rounded-full"></span>
-                  <span class="bg-surface-200-800 h-2 w-5/6 rounded-full"></span>
-                  <span class="bg-surface-200-800 h-2 w-3/4 rounded-full"></span>
-                  <span class="bg-surface-300-700 mt-3 h-2 w-1/2 rounded-full"></span>
-                  <span class="bg-surface-200-800 h-2 w-4/5 rounded-full"></span>
-                </div>
-                <!-- screen label -->
-                <div class="absolute right-0 bottom-4 left-0 flex justify-center">
-                  <span class="chip preset-tonal-surface font-mono text-[13px] font-semibold">
-                    {s.label}
-                  </span>
-                </div>
+                {#if s.src != null && !reducedMotion}
+                  <!-- svelte-ignore a11y_media_has_caption -- muted loop, no audio track -->
+                  <video
+                    src={s.src}
+                    poster={s.poster}
+                    preload="none"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    class="absolute inset-0 h-full w-full object-cover"
+                  ></video>
+                {:else if s.poster != null}
+                  <img
+                    src={s.poster}
+                    alt={s.caption}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : 'auto'}
+                    class="absolute inset-0 h-full w-full object-cover"
+                  />
+                {:else}
+                  <!-- faux contour motif so the placeholder reads as 'app screen', not 'broken image' -->
+                  <svg
+                    viewBox="0 0 240 520"
+                    preserveAspectRatio="xMidYMid slice"
+                    class="absolute inset-0 h-full w-full opacity-50"
+                    aria-hidden="true"
+                  >
+                    <g fill="none" stroke-width="1.4" class="stroke-surface-200-800">
+                      <path d="M-20 150 C 60 120 120 180 260 140" />
+                      <path d="M-20 220 C 70 190 130 250 260 210" />
+                      <path d="M-20 360 C 60 330 120 390 260 350" />
+                      <path d="M-20 430 C 70 400 130 460 260 420" />
+                    </g>
+                  </svg>
+                  <!-- faux top bar -->
+                  <div class="bg-primary-500/15 absolute top-0 right-0 left-0 flex h-11.5 items-center gap-1.5 px-3.5">
+                    <span class="bg-primary-500 h-2.25 w-2.25 rounded-full"></span>
+                    <span class="bg-surface-400-600 h-1.75 w-13.5 rounded-full"></span>
+                  </div>
+                  <!-- faux content rows so the frame reads as a populated screen, not an empty one -->
+                  <div class="absolute top-16 right-0 left-0 flex flex-col gap-2.5 px-4" aria-hidden="true">
+                    <span class="bg-surface-300-700 h-2 w-2/3 rounded-full"></span>
+                    <span class="bg-surface-200-800 h-2 w-5/6 rounded-full"></span>
+                    <span class="bg-surface-200-800 h-2 w-3/4 rounded-full"></span>
+                    <span class="bg-surface-300-700 mt-3 h-2 w-1/2 rounded-full"></span>
+                    <span class="bg-surface-200-800 h-2 w-4/5 rounded-full"></span>
+                  </div>
+                  <div class="absolute right-0 bottom-4 left-0 flex justify-center">
+                    <span class="chip preset-tonal-surface font-mono text-[12px] font-semibold">
+                      {m.landing_peekPreviewSoon()}
+                    </span>
+                  </div>
+                {/if}
               </div>
             </div>
             <figcaption class="flex flex-col gap-0.75 text-center">
@@ -360,12 +400,9 @@
   </section>
 
   <!-- ===== features ===== -->
-  <section class="border-surface-200-800 bg-surface-100-900 border-t">
+  <section class="border-surface-200-800 border-t">
     <div class="mx-auto max-w-300 px-5 py-[clamp(64px,10vh,110px)]">
       <div data-reveal class="mb-11 flex max-w-160 flex-col gap-3.5">
-        <div class="text-primary-600-400 text-[12.5px] font-bold tracking-widest uppercase">
-          {m.landing_featuresEyebrow()}
-        </div>
         <h2 class="text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold tracking-tight text-balance">
           {m.landing_featuresTitle()}
         </h2>
@@ -388,47 +425,26 @@
     </div>
   </section>
 
-  <!-- ===== personas ===== -->
+  <!-- ===== for communities, clubs and access groups ===== -->
   <section class="border-surface-200-800 border-t">
-    <div class="mx-auto max-w-300 px-5 py-[clamp(64px,10vh,110px)]">
-      <h2 data-reveal class="mb-10 text-center text-[clamp(26px,3.4vw,38px)] font-bold tracking-tight text-balance">
-        {m.landing_personasTitle()}
-      </h2>
-      <div data-stagger class="mx-auto grid max-w-250 grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-3.5">
-        {#each personas as p (p.title)}
-          <div class="flex flex-col items-center gap-3 px-6 py-7.5 text-center">
-            <span
-              class="text-primary-600-400 border-surface-200-800 bg-surface-100-900 flex h-12.5 w-12.5 items-center justify-center rounded-[15px] border"
-            >
-              <Icon name={p.icon} size={21} strokeWidth={1.9} />
-            </span>
-            <h3 class="text-[17px] font-bold">{p.title}</h3>
-            <p class="text-surface-600-400 max-w-[34ch] text-[14.5px] leading-relaxed">{p.body}</p>
-          </div>
-        {/each}
+    <div data-reveal class="mx-auto flex max-w-190 flex-col gap-6 px-5 py-[clamp(64px,10vh,110px)]">
+      <div class="text-primary-600-400 text-[12.5px] font-bold tracking-widest uppercase">
+        {m.landing_stewardEyebrow()}
       </div>
-    </div>
-  </section>
-
-  <!-- ===== go public ===== -->
-  <section class="border-surface-200-800 bg-surface-100-900 border-t">
-    <div
-      data-reveal
-      class="mx-auto flex max-w-190 flex-col items-center gap-4.5 px-5 py-[clamp(56px,9vh,96px)] text-center"
-    >
-      <h2 class="text-[clamp(24px,3vw,34px)] font-bold tracking-tight text-balance">
-        {m.landing_exportTitle()}
+      <h2 class="text-[clamp(26px,3.4vw,38px)] leading-[1.15] font-bold tracking-tight text-balance">
+        {m.landing_stewardTitle()}
       </h2>
-      <p class="text-surface-600-400 max-w-[52ch] text-[clamp(15px,1.5vw,17px)] leading-relaxed">
-        {m.landing_exportBody()}
+      <p class="text-surface-600-400 text-[clamp(15.5px,1.5vw,18px)] leading-relaxed text-pretty">
+        {m.landing_stewardBody()}
       </p>
-      <div class="mt-2 flex flex-wrap justify-center gap-2.5">
-        {#each platforms as p (p.name)}
-          <span class="chip preset-outlined-surface-200-800 gap-2 pr-4.5 pl-3.5 font-mono text-[14px] font-semibold">
-            <img src={p.icon} alt="" width="18" height="18" loading="lazy" class="block h-4.5 w-4.5 rounded" />
-            {p.name}
-          </span>
-        {/each}
+      <div
+        class="border-surface-200-800 mt-2 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5.5"
+      >
+        <p class="max-w-[46ch] text-[15px] leading-relaxed font-semibold text-pretty">{m.landing_stewardCta()}</p>
+        <a href={contact} class="btn preset-tonal-primary h-11 gap-2 px-5 font-semibold">
+          <Icon name="at-sign" size={16} strokeWidth={2.1} />
+          {m.landing_stewardCtaLabel()}
+        </a>
       </div>
     </div>
   </section>
@@ -460,7 +476,7 @@
             </p>
           </div>
           <div class="flex flex-wrap gap-3">
-            <a href={resolve('/auth/signin')} class="btn preset-filled-surface-50-950 h-12.5 px-6 font-semibold">
+            <a href={resolve('/auth/signup')} class="btn preset-filled-surface-50-950 h-12.5 px-6 font-semibold">
               {m.landing_getStarted()}
             </a>
             <a
@@ -483,7 +499,7 @@
   </section>
 
   <!-- ===== name explainer (brand flavor) ===== -->
-  <section class="border-surface-200-800 bg-surface-50-950 border-t">
+  <section class="border-surface-200-800 border-t">
     <div data-reveal class="mx-auto flex max-w-190 flex-col gap-5 px-5 py-[clamp(44px,7vh,72px)]">
       <div class="text-primary-600-400 text-[12.5px] font-bold tracking-widest uppercase">
         {m.landing_nameEyebrow()}
