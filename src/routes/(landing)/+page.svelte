@@ -500,6 +500,16 @@
         </div>
         <div class="flex flex-wrap gap-16">
           <div class="flex flex-col gap-2.5">
+            <div class="text-surface-950-50 text-[13px] font-bold">{m.landing_footerHelp()}</div>
+            <a
+              href={resolve('/faq')}
+              class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
+            >
+              {m.faq_title()}
+            </a>
+          </div>
+
+          <div class="flex flex-col gap-2.5">
             <div class="text-surface-950-50 text-[13px] font-bold">{m.landing_footerLegal()}</div>
             <a
               href={resolve('/legal/privacy')}

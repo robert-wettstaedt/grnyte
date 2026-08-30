@@ -5,6 +5,7 @@ import {
   REGION_PERMISSION_EDIT,
   REGION_PERMISSION_READ,
 } from '$lib/auth'
+import { DEFAULT_MAX_MEMBERS } from '$lib/entities/region/dto'
 import type { RegionSettings } from '$lib/entities/region/settings'
 import type * as z from '$lib/forms/zod'
 import { createId as createCuid2 } from '@paralleldrive/cuid2'
@@ -318,7 +319,7 @@ export const regions = table(
   {
     ...baseFields,
     createdBy: baseContentFields.createdBy,
-    maxMembers: integer('max_members').notNull().default(10),
+    maxMembers: integer('max_members').notNull().default(DEFAULT_MAX_MEMBERS),
     name: baseContentFields.name,
     settings: jsonb('settings').$type<RegionSettings>(),
   },

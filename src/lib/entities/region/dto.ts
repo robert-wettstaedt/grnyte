@@ -11,6 +11,12 @@ const INVITE_ACCEPT_PATH: Pathname = '/invite/accept'
  *  `regions.created_by`, which does not shrink when the founder leaves. */
 export const MAX_OWNED_REGIONS = 3
 
+/** The seat cap a new region starts with, and the `regions.max_members` column default. Per region,
+ *  so it is raised for one region without moving anybody else. Lives here rather than as a literal
+ *  in `schema.ts` because /faq publishes it: a number that drifts from the column is a public lie,
+ *  not a typo. */
+export const DEFAULT_MAX_MEMBERS = 10
+
 /**
  * Where a user with no region is bounced from: the post-sign-in landing page and the map, the two
  * places the app puts somebody who has nowhere to go.

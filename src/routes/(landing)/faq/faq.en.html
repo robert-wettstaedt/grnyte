@@ -1,0 +1,176 @@
+<h1>Frequently asked questions</h1>
+
+<h2>What is {name}?</h2>
+
+<p>A climbing guidebook and logbook that nobody can read unless you invite them.</p>
+
+<p>
+  You start a region, put your crags in it, and invite the people you climb with. Everything you add lives in that
+  region: topos, GPS, photos, ascents. There is no public side of {name} for any of it to leak into, so there's nothing
+  for a search engine to index and nothing for a stranger to stumble onto.
+</p>
+
+<h2>Who can see my region?</h2>
+
+<p>The people you invited. Not other {name} users, and not anyone holding a link.</p>
+
+<p>
+  However, {name} isn't end-to-end encrypted. Your region is walled off from every other account down at the database
+  level, but the server stores it in a form I could read, the same as almost every app on your phone. If a crag is
+  sensitive enough that this matters to you, be careful what you type into a description field. It shouldn't stop you
+  using {name}.
+</p>
+
+<h2>Is there a public mode?</h2>
+
+<p>No. There's no button for it and I'm not planning one.</p>
+
+<p>
+  The public guidebook sites have to answer a much harder version of this question: once a crag is out, can it ever go
+  back? Mostly they say no, and they're right to, because deleting the crag would delete everyone's logbook entries
+  along with it. I never have to answer that one. There is nowhere here for a region to go public to.
+</p>
+
+<h2>How many people fit in a region?</h2>
+
+<p>{maxMembers} people. Ask and I'll raise it.</p>
+
+<p>
+  Ten is about the size of a group that actually climbs together, and a region that quietly drifts up to two hundred
+  isn't private any more whatever the settings say. The other half of it is money. Fifty people syncing one region is
+  real traffic, and that's the one place where {name} could get expensive enough that I'd have to ask someone to help
+  pay for it. Nobody is anywhere near that yet. Ask me and we'll sort it out.
+</p>
+
+<h2>How many regions can I start?</h2>
+
+<p>{maxRegions} of your own. Joining somebody else's doesn't count, and there's no limit on those.</p>
+
+<p>
+  Anyone with an account can start a region, which without a cap is an open door for whatever scripts find the signup
+  form. Three covers every real case I can think of. If you're the exception, ask.
+</p>
+
+<h2>Is it free, and will that change?</h2>
+
+<p>Free, but I cannot promise that forever.</p>
+
+<p>
+  {name} isn't a business and I don't want it to become one. I pay for the hosting. If that ever gets past what I can
+  comfortably cover I'll say so and ask for help with it, rather than quietly switching something off. What I won't do
+  is take a feature you already use and put a price on it.
+</p>
+
+<h2>How do I get my data out?</h2>
+
+<p>Ask me and I'll get an export out for you.</p>
+
+<p>
+  Every site keeps routes and grades and ascents in its own shape, so a generic export gives you a file the next app
+  can't read, and you've gained nothing. Tell me where you're going and I'll write the export to land there. If you only
+  want a copy on your own disk, I'll zip your region and send it over.
+</p>
+
+<h2>How do I import what I already have?</h2>
+
+<p>
+  Same answer, ask me. Importing has the same problem as exporting: every app keeps its data in its own shape, so
+  anything claiming to import all of them falls over on the first real file.
+</p>
+
+<p>
+  Send me what you have. A spreadsheet, a database dump, whatever another app produced when you hit export. I'll look at
+  it and tell you honestly whether I can turn it into a region.
+</p>
+
+<h2>How do I delete my account or my region?</h2>
+
+<p>Ask me and it's done. There's no delete button in the app yet.</p>
+
+<h2>What happens if you stop working on it?</h2>
+
+<p>I can't promise you forever. One person can't honestly promise that, so here's what I can say instead.</p>
+
+<p>
+  You'd hear from me long before anything switched off, and you'd get your region out in whatever form was useful to
+  you. The code is on GitHub under the MIT license, so a group that wanted to keep running its own copy could already
+  start today, without asking me. The thing I'm ruling out is {name} going quiet with your guidebook still inside it.
+</p>
+
+<h2>Why not just use theCrag or The Topo?</h2>
+
+<p>Use them. For most climbing they're the better answer and they always will be.</p>
+
+<p>
+  A public database wants every route findable by every climber and kept there forever. That's the whole idea, and it's
+  the right idea for the overwhelming majority of rock. Same goes for the public logbooks and their rankings.
+</p>
+
+<p>
+  {name} is for the handful of cases where being findable is the problem. A crag on private land where a crowd would end
+  the access. A project you haven't finished. An area the locals have quietly agreed not to write up. The other apps
+  can't serve those.
+</p>
+
+<h2>Does it work offline?</h2>
+
+<p>Browsing, yes. Editing, no.</p>
+
+<p>
+  Install it to your home screen and whatever you've already opened stays readable with no signal, which is the
+  situation at most of the boulders worth walking to. Logging an ascent or editing a route needs a connection. Do that
+  on the drive home.
+</p>
+
+<!--
+  ACCESS COMPLAINTS, how the answer below gets honoured. Decided here so it is not improvised when a
+  solicitor's letter arrives. OGH 7 Ob 80/17s (upmove) was lost for refusing to act on a specific
+  objection and citing the site's own terms as cover, not for lacking a process document.
+
+  Default action: delete the specific crag. `deletedAt` is the only retreat that exists, because
+  `areas.visibility` was dropped in drizzle/0072_odd_marvex.sql. Never promise to "restrict" or to
+  "limit who can see" a crag unless that column comes back.
+
+  Credible enough to act on: anything specific enough to identify a crag or a parcel, from anyone
+  claiming an interest in the land. Do not demand proof of title. Deleting one entry is cheap, and
+  arguing about standing is precisely what upmove lost on.
+
+  The log is the report@ mailbox itself. It is a catch-all, so every objection and every reply is
+  already threaded and dated. Nothing separate to maintain.
+
+  Deliberately absent, do not add without deciding again: a response window, any claim that ownership
+  gets checked, and anything about compelled disclosure (nobody has researched German production
+  orders, see LEGAL-GAPS.md).
+
+  Editing this answer: never name the landowner as the party kept in the dark, and never frame the
+  app as a way to climb where permission is absent. That framing, in the operator's own voice, is the
+  one risk entirely inside our control.
+-->
+<h2>What if a crag here is on your land?</h2>
+
+<p>
+  Write to me at
+  <a href="mailto:{reportEmail}">{reportEmail}</a>
+  and I'll take it down.
+</p>
+
+<p>
+  That answer is for landowners. Let me be plain about the rest of the page while I'm here: {name} is a guidebook for
+  places people already have permission to climb, and it doesn't check who owns the ground under a crag, because it
+  can't.
+</p>
+
+<p>
+  Tell me which crag or which parcel, and what your interest in it is. I'd rather take an entry down than argue about
+  it. There's no public copy of it anywhere else to chase afterwards.
+</p>
+
+<h2>Does anyone outside my region see my ascents?</h2>
+
+<p>No. There's no public log for one to appear in.</p>
+
+<p>
+  Your ascents show up for the members of the region you logged them in, and in no public list, feed, ranking or profile
+  anywhere. That isn't a privacy setting you have to find and switch on, and it isn't something I could forget to apply
+  when I build something new, because {name} has no public side for anything to leak into.
+</p>
