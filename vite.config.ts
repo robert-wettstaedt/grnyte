@@ -134,7 +134,6 @@ export default defineConfig({
       base: '/',
       devOptions: {
         enabled: true,
-        navigateFallback: '/',
         suppressWarnings: process.env.SUPPRESS_WARNING === 'true',
         type: 'module',
       },
