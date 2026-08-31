@@ -44,6 +44,23 @@
 
   // ===== scroll motion (GSAP): heavy + browser-only, loaded via dynamic import in onMount =====
   let rootEl: HTMLDivElement
+  // Never re-hide something the visitor can already see. If the CSS failsafe (the `data-motion`
+  // rules in the stylesheet at the foot of this file) revealed a section before GSAP got here, it
+  // has been read and must stay put. Anything below the fold is still safe to animate however late
+  // GSAP is, so whether the scroll reveals run never depends on how loaded the machine was at boot.
+  // (Do not write the style tag's name in a comment here: svelte2tsx scans raw text for block tags
+  // and reads one in a comment as a real element, failing `npm run check` with "script left open".)
+  // Opacity, not just visibility: the failsafe's own first keyframe is `opacity: 0; visibility:
+  // visible`, so during its 0.4s fade an element is nominally visible while still unreadable. On
+  // visibility alone that counts as read, the entrance is skipped, and `disarm()` then removes the
+  // half-played failsafe, snapping the section to full opacity in one frame. Exactly the pop this
+  // guard exists to avoid.
+  const alreadyRead = (el: Element) => {
+    const r = el.getBoundingClientRect()
+    if (r.top >= window.innerHeight || r.bottom <= 0) return false
+    const s = getComputedStyle(el)
+    return s.visibility !== 'hidden' && Number(s.opacity) > 0.5
+  }
   // Poster only, no playback, when the visitor asked for less motion.
   let reducedMotion = $state(false)
 
@@ -53,14 +70,12 @@
     const disposers: Array<() => void> = []
     let cancelled = false
 
-    // The hero's from-state is painted by CSS (see `data-motion` below) because GSAP only lands
-    // ~250ms after first paint. Clear it once GSAP owns the elements, and on a failsafe so a
-    // visitor whose JS never arrives is not left with an invisible hero.
+    // The scroll reveals' from-state is painted by CSS (`data-motion` below) because GSAP lands
+    // well after first paint and would otherwise hide a section the visitor is already reading.
+    // Clear it once GSAP owns them.
     const disarm = () => rootEl?.removeAttribute('data-motion')
-    const failsafe = setTimeout(disarm, 2500)
-    disposers.push(() => clearTimeout(failsafe))
 
-    // GSAP — hero entrance, contour line-draw, scroll reveals, hero parallax.
+    // GSAP: scroll reveals and the hero parallax. The hero entrance is CSS, see the stylesheet.
     Promise.all([import('gsap'), import('gsap/ScrollTrigger')])
       .then(([{ gsap }, { ScrollTrigger }]) => {
         if (cancelled) return
@@ -71,48 +86,38 @@
         const root = rootEl
         gsap.ticker.lagSmoothing(0)
 
-        gsap.fromTo(
-          root.querySelectorAll('[data-hero] [data-fade]'),
-          { autoAlpha: 0, y: 26 },
-          { autoAlpha: 1, delay: 0.1, duration: 0.85, ease: 'power3.out', stagger: 0.09, y: 0 },
-        )
+        // The hero entrance is not here: it is a load animation, so it is pure CSS at the foot of
+        // this file. GSAP only owns what depends on scrolling.
 
-        // Drawn in DOM order, which is why the paths are authored top of frame to bottom: any other
-        // order reads as five unrelated lines rather than one landscape resolving. The tail is kept
-        // close to the text stagger (last line lands ~2.2s) so the hero settles as one thing.
-        root.querySelectorAll<SVGPathElement>('[data-contour]').forEach((p, i) => {
-          const len = p.getTotalLength()
-          p.style.strokeDasharray = String(len)
+        // One entrance for every scroll reveal. The transition juggling is the point: Tailwind's
+        // `transition` utility (on the feature cards and the phone figures, for their hover lift)
+        // puts opacity AND transform on a 150ms CSS transition, which re-interpolates every
+        // per-frame value GSAP writes. Left alone those cards smear and land ~250ms late, late
+        // enough that the section below starts revealing while this one is still blank. Suspend
+        // it for the entrance and hand it back afterwards, so the hover lift still works.
+        const enter = (trigger: HTMLElement, targets: ArrayLike<Element>, duration: number, stagger = 0) => {
+          const els = Array.from(targets) as HTMLElement[]
+          if (els.some(alreadyRead)) return
+          els.forEach((el) => (el.style.transition = 'none'))
           gsap.fromTo(
-            p,
-            { strokeDashoffset: len },
-            { delay: 0.1 + i * 0.12, duration: 1.6, ease: 'power2.out', strokeDashoffset: 0 },
-          )
-        })
-
-        root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
-          const target = el.children.length === 1 ? el.children[0] : el
-          gsap.fromTo(
-            target,
-            { autoAlpha: 0, y: 32 },
-            { autoAlpha: 1, duration: 0.8, ease: 'power3.out', scrollTrigger: { start: 'top 82%', trigger: el }, y: 0 },
-          )
-        })
-
-        root.querySelectorAll<HTMLElement>('[data-stagger]').forEach((grid) => {
-          gsap.fromTo(
-            grid.children,
+            els,
             { autoAlpha: 0, y: 28 },
             {
               autoAlpha: 1,
-              duration: 0.7,
+              duration,
               ease: 'power3.out',
-              scrollTrigger: { start: 'top 82%', trigger: grid },
-              stagger: 0.08,
+              onComplete: () => els.forEach((el) => (el.style.transition = '')),
+              scrollTrigger: { start: 'top 82%', trigger },
+              stagger,
               y: 0,
             },
           )
-        })
+        }
+
+        // The element itself, never a child: which one it used to pick depended on an incidental
+        // child count, and the CSS from-state below has to be able to name the animated set.
+        root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => enter(el, [el], 0.8))
+        root.querySelectorAll<HTMLElement>('[data-stagger]').forEach((grid) => enter(grid, grid.children, 0.7, 0.08))
 
         const hero = root.querySelector('[data-hero]')
         const heroSvg = root.querySelector('[data-hero] > svg')
@@ -125,10 +130,7 @@
         }
       })
       .catch(() => {})
-      .finally(() => {
-        clearTimeout(failsafe)
-        disarm()
-      })
+      .finally(disarm)
 
     return () => {
       cancelled = true
@@ -140,19 +142,6 @@
 <svelte:head>
   <title>{PUBLIC_APPLICATION_NAME} · {m.landing_tagline()}</title>
   <meta name="description" content={m.landing_metaDescription()} />
-  <!-- `data-motion` hides the hero until GSAP takes over. Nothing clears it without JS, so undo it
-       here rather than serve an invisible hero to a visitor who has scripting off. -->
-  <noscript>
-    <style>
-      [data-motion='armed'] [data-fade] {
-        opacity: 1 !important;
-        visibility: visible !important;
-      }
-      [data-motion='armed'] [data-contour] {
-        stroke-dasharray: none !important;
-      }
-    </style>
-  </noscript>
 </svelte:head>
 
 <!-- Section striping is automatic: `nth-of-type` counts only sibling <section>s, so the header
@@ -208,11 +197,16 @@
       <g fill="none" stroke-width="1.5" class="stroke-surface-200-800">
         <!-- Ordered top of frame to bottom: the line-draw runs in DOM order, so this is the
              choreography, not just markup tidiness. -->
-        <path data-contour d="M-100 130 C 260 60 500 170 840 100 C 1140 40 1320 130 1540 70" />
-        <path data-contour d="M-100 200 C 240 120 480 240 820 170 C 1120 110 1300 200 1540 140" />
-        <path data-contour d="M-100 460 C 300 380 560 520 900 440 C 1200 370 1360 460 1540 410" opacity="0.6" />
-        <path data-contour d="M-100 720 C 200 640 380 760 720 690 C 1060 620 1240 730 1540 660" />
-        <path data-contour d="M-100 780 C 240 700 420 820 760 750 C 1100 680 1280 790 1540 720" />
+        <path data-contour style="--i: 0" d="M-100 130 C 260 60 500 170 840 100 C 1140 40 1320 130 1540 70" />
+        <path data-contour style="--i: 1" d="M-100 200 C 240 120 480 240 820 170 C 1120 110 1300 200 1540 140" />
+        <path
+          data-contour
+          style="--i: 2"
+          d="M-100 460 C 300 380 560 520 900 440 C 1200 370 1360 460 1540 410"
+          opacity="0.6"
+        />
+        <path data-contour style="--i: 3" d="M-100 720 C 200 640 380 760 720 690 C 1060 620 1240 730 1540 660" />
+        <path data-contour style="--i: 4" d="M-100 780 C 240 700 420 820 760 750 C 1100 680 1280 790 1540 720" />
       </g>
     </svg>
     <div
@@ -221,21 +215,27 @@
       <div class="flex max-w-140 flex-col gap-5.5">
         <div
           data-fade
+          style="--i: 0"
           class="chip bg-primary-500/15 text-primary-600-400 gap-2 self-start text-[12.5px] font-bold tracking-wide"
         >
           <Icon name="code" size={13} strokeWidth={2.4} />
           {m.landing_heroBadge()}
         </div>
-        <h1 data-fade class="text-[clamp(36px,5.6vw,62px)] leading-[1.04] font-bold tracking-[-0.03em] text-balance">
+        <h1
+          data-fade
+          style="--i: 1"
+          class="text-[clamp(36px,5.6vw,62px)] leading-[1.04] font-bold tracking-[-0.03em] text-balance"
+        >
           {m.landing_tagline()}
         </h1>
         <p
           data-fade
+          style="--i: 2"
           class="text-surface-600-400 max-w-[52ch] text-[clamp(16px,1.6vw,19px)] leading-relaxed text-pretty"
         >
           {m.landing_heroSubtitle()}
         </p>
-        <div data-fade class="mt-1.5 flex flex-wrap gap-3">
+        <div data-fade style="--i: 3" class="mt-1.5 flex flex-wrap gap-3">
           <a
             href={resolve('/auth/signup')}
             class="btn preset-filled-primary-500 h-12.5 px-6 font-semibold shadow-[0_10px_28px_-10px_var(--color-primary-500)]"
@@ -246,7 +246,7 @@
             {m.auth_signIn()}
           </a>
         </div>
-        <div data-fade class="text-surface-500 flex items-center gap-2.5 text-[13px]">
+        <div data-fade style="--i: 4" class="text-surface-500 flex items-center gap-2.5 text-[13px]">
           <Icon name="check" size={14} strokeWidth={2.2} />
           {m.landing_heroTrust()}
         </div>
@@ -254,11 +254,11 @@
 
       <!-- boulder (three.js): rocked side-to-side so the routed face stays toward the viewer.
            data-fade so the right column joins the same entrance instead of being there already. -->
-      <div data-fade class="relative h-[clamp(300px,52vh,640px)] min-w-0">
+      <div data-fade style="--i: 5" class="relative h-[clamp(300px,52vh,640px)] min-w-0">
         <BoulderThree />
         <!-- caption chip -->
         <div
-          class="chip border-surface-200-800 bg-surface-100-900/85 absolute bottom-1.5 left-1/2 -translate-x-1/2 gap-1.5 border text-[12px] whitespace-nowrap backdrop-blur-[10px]"
+          class="chip border-surface-200-800 bg-surface-100-900/85 pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 gap-1.5 border text-[12px] whitespace-nowrap backdrop-blur-[10px]"
         >
           <span class="h-2 w-2 rounded-full bg-[oklch(0.69_0.18_52)]"></span>
           <span class="-ml-0.75 h-2 w-2 rounded-full bg-[oklch(0.72_0.15_150)]"></span>
@@ -606,20 +606,70 @@
 </div>
 
 <style>
-  /* GSAP arrives ~250ms after first paint, so without a from-state in CSS the hero renders
-     complete, snaps to invisible and fades back in. `data-motion` is cleared from the root the
-     moment GSAP takes over (or by the failsafe above). */
   @media (prefers-reduced-motion: no-preference) {
-    [data-motion='armed'] [data-hero] [data-fade] {
+    /* The hero entrance runs on load, not on scroll, so it needs nothing from JS and is done here.
+       That is the whole point: GSAP is a dynamic import behind hydration, and on a busy machine or
+       in a dev server serving a few hundred unbundled modules it can resolve a second or more in,
+       by which time the hero has been on screen long enough that starting an entrance would be
+       worse than skipping one. CSS has no such race, so the hero always animates, in every
+       browser, with no from-state to hand over and nothing to flash.
+       `--i` is the position in the entrance, set per element in the markup because the six of them
+       are not siblings. Timings match what GSAP used to run: power3.out is easeOutQuart and
+       power2.out is easeOutCubic. */
+    [data-hero] [data-fade] {
+      animation: hero-rise 0.85s cubic-bezier(0.165, 0.84, 0.44, 1) calc(100ms + var(--i, 0) * 90ms) backwards;
+    }
+
+    /* ponytail: every contour path is ~1650 user units long, so one constant over-long dash hides
+       any of them, and no path needs measuring. Drawn top of frame to bottom (see the markup) so
+       the five lines read as one landscape resolving rather than five unrelated strokes. */
+    [data-contour] {
+      animation: contour-draw 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) calc(100ms + var(--i, 0) * 120ms) backwards;
+      stroke-dasharray: 2000;
+    }
+
+    /* The scroll reveals do need GSAP, so they keep a from-state that GSAP takes over from, and a
+       failsafe in case it never arrives. It has to be CSS as well: a timer in onMount cannot help a
+       visitor whose JS is only slow, because onMount has not run either, and a noscript block only
+       covers scripting being switched off. A CSS animation outranks inline styles while it is
+       filling, which is what lets it override GSAP, and is why `disarm()` removes the attribute
+       rather than leaving the rule matching. */
+    [data-motion='armed'] [data-reveal],
+    [data-motion='armed'] [data-stagger] > * {
+      animation: motion-failsafe 0.4s ease-out 1.2s forwards;
       opacity: 0;
       visibility: hidden;
     }
+  }
 
-    /* ponytail: every contour path is ~1650 user units long, so one constant hides all of them
-       until GSAP measures the real length. */
-    [data-motion='armed'] [data-contour] {
-      stroke-dasharray: 2000;
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(26px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes contour-draw {
+    from {
       stroke-dashoffset: 2000;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes motion-failsafe {
+    from {
+      opacity: 0;
+      visibility: visible;
+    }
+    to {
+      opacity: 1;
+      visibility: visible;
     }
   }
 

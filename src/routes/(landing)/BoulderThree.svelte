@@ -187,7 +187,7 @@
       // Per-frame lerp factor `f` tuned at 60Hz, held constant across refresh rates.
       const damp = (f: number, dt: number) => 1 - Math.pow(1 - f, dt * 60)
       const loop = (now = 0) => {
-        const dt = prev ? Math.min((now - prev) / 1000, 0.1) : 1 / 60
+        const dt = prev > 0 ? Math.min((now - prev) / 1000, 0.1) : 1 / 60
         prev = now
         t += dt * 0.24 // ~26s per full sway
         const sway = -0.35 + Math.sin(t) * 0.45
