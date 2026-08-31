@@ -1,15 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { MediaQuery } from 'svelte/reactivity'
   import type { Vector3 } from 'three'
 
   let stageEl: HTMLDivElement
   let wrapEl: HTMLDivElement
   let showFallback = $state(true)
 
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
+
   const ROUTES: Array<{ color: number; theta: number }> = [
-    { color: 0xe8893f, theta: 0.95 }, // grade-4 orange
-    { color: 0x4fc3d4, theta: 1.55 }, // grade-2 cyan
-    { color: 0xe0533b, theta: 2.15 }, // grade-5 red
+    { color: 0xe8893f, theta: 1.25 }, // grade-4 orange
+    { color: 0x4fc3d4, theta: 1.75 }, // grade-2 cyan
+    { color: 0xe0533b, theta: 2.25 }, // grade-5 red
   ]
 
   function boot(
@@ -44,7 +47,9 @@
       let f = 0
       let amp = 0.5
       let freq = 1
-      for (let o = 0; o < 3; o++) {
+      // Five octaves, not three. The first three shape the silhouette; the last two land far
+      // below the old vertex spacing and only became visible once the mesh was subdivided.
+      for (let o = 0; o < 5; o++) {
         f += amp * simplex.noise3d(x * freq, y * freq, z * freq)
         amp *= 0.5
         freq *= 2.1
@@ -67,7 +72,10 @@
       return out
     }
 
-    let geo: import('three').BufferGeometry = new THREE.IcosahedronGeometry(1.3, 2)
+    // Detail 4 (5,120 triangles), not 2 (320). Flat shading is right for granite, which is
+    // crystalline, but at 320 facets it reads as polygon art. The cost is a one-off generate
+    // plus 75 raycasts for the route lines; nothing per frame.
+    let geo: import('three').BufferGeometry = new THREE.IcosahedronGeometry(1.3, 4)
     geo = geo.toNonIndexed()
     const pos = geo.attributes.position as import('three').BufferAttribute
     const tmp = new THREE.Vector3()
@@ -76,11 +84,28 @@
       const d = shape(tmp)
       pos.setXYZ(i, d.x, d.y, d.z)
     }
-    // per-facet grey speckle
+    // Normals first: the colour of a facet depends on which way it faces.
+    geo.computeVertexNormals()
+    const nrm = geo.attributes.normal as import('three').BufferAttribute
+
+    // Per-facet shading, three terms multiplied. Speckle alone (the old version) reads as noise
+    // on a smooth solid; what makes a surface look like rock is that crevices are darker than
+    // ridges and downward faces are darker than upward ones.
     const colors = new Float32Array(pos.count * 3)
     const base = new THREE.Color(0x6f6e66)
+    const a = new THREE.Vector3()
     for (let i = 0; i < pos.count; i += 3) {
-      const s = 0.82 + Math.random() * 0.32
+      // sky occlusion: an upward facet catches the hemisphere, a downward one does not
+      const sky = 0.74 + 0.26 * (nrm.getY(i) * 0.5 + 0.5)
+      // cavity: mean radius of the facet against the base radius, so hollows darken
+      let rSum = 0
+      for (let k = 0; k < 3; k++) {
+        a.fromBufferAttribute(pos, i + k)
+        rSum += a.length()
+      }
+      const cavity = Math.min(1.1, Math.max(0.82, 0.72 + (rSum / 3 / 1.3) * 0.3))
+      const speckle = 0.9 + Math.random() * 0.2
+      const s = sky * cavity * speckle
       for (let k = 0; k < 3; k++) {
         colors[(i + k) * 3] = base.r * s
         colors[(i + k) * 3 + 1] = base.g * s
@@ -88,7 +113,6 @@
       }
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-    geo.computeVertexNormals()
 
     const boulder = new THREE.Mesh(
       geo,
@@ -133,7 +157,7 @@
       group.add(anchor)
     }
 
-    group.rotation.y = -0.35
+    group.rotation.y = -0.05
     group.position.y = 0.1
     scene.add(group)
 
@@ -146,6 +170,9 @@
     const rim = new THREE.DirectionalLight(0x9fb8d8, 1.1)
     rim.position.set(-3.5, 1.5, -2.5)
     scene.add(rim)
+    const fill = new THREE.DirectionalLight(0xd8d2c4, 0.85)
+    fill.position.set(-0.5, 0.6, 4)
+    scene.add(fill)
 
     let targetRX = 0
     let targetRY = 0
@@ -170,16 +197,17 @@
       renderer.setSize(W, H)
       camera.aspect = W / H
       camera.updateProjectionMatrix()
-      if (reduced) renderer.render(scene, camera)
+      // Repaint on resize whenever the loop is not running: reduced motion, or paused off screen.
+      if (!raf) renderer.render(scene, camera)
     })
     ro.observe(wrap)
 
     let raf = 0
-    if (reduced) {
-      renderer.render(scene, camera)
-    } else {
+    let io: IntersectionObserver | undefined
+    if (!reduced) {
       // Sway, don't spin: a full rotation would expose the bare (route-less) back.
-      // Rock ±0.45rad around the front so the routed face always faces the viewer.
+      // ±0.22rad around a -0.05 base, not ±0.45 around -0.35: the old swing reached -0.8, far
+      // enough that the leftmost route rotated past the silhouette for part of every cycle.
       // Everything below is driven by elapsed time, not by frame count: the old per-frame
       // increments rocked the boulder at double speed on a 120Hz display.
       let t = 0
@@ -190,30 +218,59 @@
         const dt = prev > 0 ? Math.min((now - prev) / 1000, 0.1) : 1 / 60
         prev = now
         t += dt * 0.24 // ~26s per full sway
-        const sway = -0.35 + Math.sin(t) * 0.45
+        const sway = -0.05 + Math.sin(t) * 0.22
         group.rotation.y += (sway + targetRY - group.rotation.y) * damp(0.06, dt)
         group.rotation.x += (targetRX * 0.6 - group.rotation.x) * damp(0.05, dt)
         renderer.render(scene, camera)
         raf = requestAnimationFrame(loop)
       }
-      loop()
+
+      // The hero scrolls away in the first screenful of a long page. Left running, this redraws a
+      // WebGL scene nobody can see for the rest of the visit, 120 times a second on a ProMotion
+      // phone. Run only while the canvas is actually on screen.
+      io = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          // prev = 0 so the paused gap is not handed to the loop as one enormous delta.
+          if (!raf) {
+            prev = 0
+            loop()
+          }
+        } else if (raf) {
+          cancelAnimationFrame(raf)
+          raf = 0
+        }
+      })
+      io.observe(wrap)
     }
-    // Only once something is actually on screen, so the fallback does not blink out over an
-    // unpainted canvas.
+
+    // One synchronous frame so the fallback is swapped for something already painted; the loop
+    // takes over from the first IntersectionObserver callback.
+    renderer.render(scene, camera)
     showFallback = false
 
     return () => {
       if (raf) cancelAnimationFrame(raf)
+      io?.disconnect()
       ro.disconnect()
       stage.removeEventListener('pointermove', onMove)
       stage.removeEventListener('pointerleave', onLeave)
+      // `renderer.dispose()` frees the context, not the buffers uploaded through it. Without this
+      // every SPA round trip back to `/` leaks a boulder's worth of GPU memory.
+      scene.traverse((obj) => {
+        const mesh = obj as import('three').Mesh
+        mesh.geometry?.dispose()
+        const mat = mesh.material
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose())
+        else mat?.dispose()
+      })
       renderer.dispose()
       renderer.domElement.remove()
     }
   }
 
   onMount(() => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    // Snapshot on purpose: the scene is built once, and reduced motion decides how it is built.
+    const reduced = still.current
     let cancelled = false
     let dispose: (() => void) | undefined
 
@@ -243,6 +300,12 @@
 </script>
 
 <div bind:this={stageEl} class="absolute inset-0">
+  <!-- Contact shadow. Painted in CSS behind the transparent canvas rather than as a second mesh
+       and a texture upload: nothing about it needs to move with the sway. -->
+  <div
+    class="pointer-events-none absolute inset-x-[24%] bottom-[13%] h-[7%] rounded-[50%] blur-[10px]"
+    style="background: radial-gradient(ellipse at center, oklch(0 0 0 / 0.6) 0%, transparent 72%)"
+  ></div>
   <div bind:this={wrapEl} class="absolute inset-0"></div>
   {#if showFallback}
     <svg viewBox="0 0 520 420" class="absolute inset-0 h-full w-full" aria-hidden="true">

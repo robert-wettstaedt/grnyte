@@ -6,6 +6,7 @@
   import type { IconName } from '$lib/components/Icon/icons'
   import { m } from '$lib/paraglide/messages'
   import { onMount } from 'svelte'
+  import { MediaQuery } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
 
   const { data } = $props()
@@ -61,12 +62,14 @@
     const s = getComputedStyle(el)
     return s.visibility !== 'hidden' && Number(s.opacity) > 0.5
   }
-  // Poster only, no playback, when the visitor asked for less motion.
-  let reducedMotion = $state(false)
+  // Poster only, no playback, when the visitor asked for less motion. Reactive (the repo's
+  // convention, see MarkdownEditor) rather than a snapshot, so turning Reduce Motion on mid-visit
+  // stops the screencasts instead of leaving them playing until a reload.
+  const still = new MediaQuery('(prefers-reduced-motion: reduce)')
 
   onMount(() => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-    reducedMotion = reduced
+    // The entrance is decided once, so this one is a snapshot on purpose.
+    const reduced = still.current
     const disposers: Array<() => void> = []
     let cancelled = false
 
@@ -195,18 +198,41 @@
       aria-hidden="true"
     >
       <g fill="none" stroke-width="1.5" class="stroke-surface-200-800">
-        <!-- Ordered top of frame to bottom: the line-draw runs in DOM order, so this is the
-             choreography, not just markup tidiness. -->
-        <path data-contour style="--i: 0" d="M-100 130 C 260 60 500 170 840 100 C 1140 40 1320 130 1540 70" />
-        <path data-contour style="--i: 1" d="M-100 200 C 240 120 480 240 820 170 C 1120 110 1300 200 1540 140" />
+        <!-- Ordered top of frame to bottom so the five lines read as one landscape resolving.
+             `--i` is what actually sequences the draw, not DOM order, so a sixth path needs its
+             own `--i`: without one it falls back to 0 and draws under the first line. Same for the
+             hero's `--i: 0..5` below. -->
         <path
           data-contour
+          pathLength="1"
+          style="--i: 0"
+          d="M-100 130 C 260 60 500 170 840 100 C 1140 40 1320 130 1540 70"
+        />
+        <path
+          data-contour
+          pathLength="1"
+          style="--i: 1"
+          d="M-100 200 C 240 120 480 240 820 170 C 1120 110 1300 200 1540 140"
+        />
+        <path
+          data-contour
+          pathLength="1"
           style="--i: 2"
           d="M-100 460 C 300 380 560 520 900 440 C 1200 370 1360 460 1540 410"
           opacity="0.6"
         />
-        <path data-contour style="--i: 3" d="M-100 720 C 200 640 380 760 720 690 C 1060 620 1240 730 1540 660" />
-        <path data-contour style="--i: 4" d="M-100 780 C 240 700 420 820 760 750 C 1100 680 1280 790 1540 720" />
+        <path
+          data-contour
+          pathLength="1"
+          style="--i: 3"
+          d="M-100 720 C 200 640 380 760 720 690 C 1060 620 1240 730 1540 660"
+        />
+        <path
+          data-contour
+          pathLength="1"
+          style="--i: 4"
+          d="M-100 780 C 240 700 420 820 760 750 C 1100 680 1280 790 1540 720"
+        />
       </g>
     </svg>
     <div
@@ -333,7 +359,7 @@
               class="border-surface-200-800 bg-surface-950 aspect-9/19.5 w-full rounded-4xl border p-2.25 shadow-[0_44px_80px_-36px_black,inset_0_0_0_1px_oklch(0.28_0.01_305)]"
             >
               <div class="lp-screen bg-surface-100-900 relative h-full w-full overflow-hidden rounded-[23px]">
-                {#if s.src != null && !reducedMotion}
+                {#if s.src != null && !still.current}
                   <!-- svelte-ignore a11y_media_has_caption -- muted loop, no audio track -->
                   <video
                     src={s.src}
@@ -620,12 +646,12 @@
       animation: hero-rise 0.85s cubic-bezier(0.165, 0.84, 0.44, 1) calc(100ms + var(--i, 0) * 90ms) backwards;
     }
 
-    /* ponytail: every contour path is ~1650 user units long, so one constant over-long dash hides
-       any of them, and no path needs measuring. Drawn top of frame to bottom (see the markup) so
-       the five lines read as one landscape resolving rather than five unrelated strokes. */
+    /* `pathLength="1"` in the markup renormalises each path to a unit length, so one dash of 1
+       covers any of them exactly. No constant to outgrow, nothing to measure, and the draw stays
+       correct if a path is ever redrawn or the viewBox widened. */
     [data-contour] {
       animation: contour-draw 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) calc(100ms + var(--i, 0) * 120ms) backwards;
-      stroke-dasharray: 2000;
+      stroke-dasharray: 1;
     }
 
     /* The scroll reveals do need GSAP, so they keep a from-state that GSAP takes over from, and a
@@ -655,7 +681,7 @@
 
   @keyframes contour-draw {
     from {
-      stroke-dashoffset: 2000;
+      stroke-dashoffset: 1;
     }
     to {
       stroke-dashoffset: 0;
@@ -671,12 +697,5 @@
       opacity: 1;
       visibility: visible;
     }
-  }
-
-  /* Skeleton's .chip carries `transition: all .15s`, which re-interpolates every per-frame value
-     GSAP writes: the badge is first in the stagger but lands last, ~300ms after the trust line
-     below it. Nothing carrying data-fade is interactive, so there is no hover feel to lose. */
-  [data-fade] {
-    transition: none;
   }
 </style>
