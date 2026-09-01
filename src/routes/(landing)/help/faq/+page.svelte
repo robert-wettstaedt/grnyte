@@ -1,21 +1,18 @@
 <script lang="ts">
-  import { PUBLIC_APPLICATION_NAME as name, PUBLIC_REPORT_EMAIL as reportEmail } from '$env/static/public'
+  import { PUBLIC_APPLICATION_NAME as name } from '$env/static/public'
   import ProsePage from '$lib/components/ProsePage/ProsePage.svelte'
-  import { DEFAULT_MAX_MEMBERS, MAX_OWNED_REGIONS } from '$lib/entities/region/dto'
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
-  import { legalLinks } from '../legal/links'
+  import { legalLinks, renderLegal } from '../../legal/links'
   import de from './faq.de.html?raw'
   import en from './faq.en.html?raw'
 
-  // Long-form copy lives in the per-locale .html files, same as the legal pages. The two caps are
-  // tokens rather than literals so the answers cannot drift from the code that enforces them: an
-  // FAQ that publishes the wrong number is a public lie, not a typo.
-  const body = (getLocale() === 'de' ? de : en)
-    .replaceAll('{name}', name)
-    .replaceAll('{maxMembers}', String(DEFAULT_MAX_MEMBERS))
-    .replaceAll('{maxRegions}', String(MAX_OWNED_REGIONS))
-    .replaceAll('{reportEmail}', reportEmail)
+  // Long-form copy lives in the per-locale .html files, same as the legal pages, and goes through the
+  // same renderer. The caps are tokens rather than literals so the answers cannot drift from the code
+  // that enforces them: an FAQ that publishes the wrong number is a public lie, not a typo. Sharing
+  // renderLegal also means the answers can link the legal pages by token, and a token added there
+  // works here on the same day.
+  const body = renderLegal(getLocale() === 'de' ? de : en)
 
   /** Anchor id for a question, stable enough to share and readable in the address bar. */
   function slug(text: string): string {

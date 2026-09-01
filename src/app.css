@@ -1,3 +1,10 @@
+/* Space Grotesk, self-hosted. It used to come from fonts.googleapis.com in app.html, which sent
+   every visitor's IP to Google before a page rendered, including the legal pages, and made the
+   privacy notice's "no third-party trackers of any kind" untrue. Only the two weights
+   `--heading-font-family` uses are imported. */
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';

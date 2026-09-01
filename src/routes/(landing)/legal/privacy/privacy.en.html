@@ -1,255 +1,584 @@
-<h1>Privacy Policy</h1>
+<h1>Privacy policy</h1>
 
 <p>
-  <strong>Effective Date:</strong>
-  January 1, 2025
-</p>
-<p>
-  <strong>Last Updated:</strong>
-  January 1, 2025
+  <strong>Last updated:</strong>
+  31 August 2026
 </p>
 
-<h2>1. Introduction</h2>
 <p>
-  Welcome to {name}, a secure boulder topo and session tracker. This Privacy Policy explains how we collect, use, store,
-  and protect your personal information when you use our application.
-</p>
-<p>
-  This is a hobby project, not a commercial service. However, we take your privacy seriously and comply with applicable
-  data protection laws including the General Data Protection Regulation (GDPR) and California Consumer Privacy Act
-  (CCPA).
+  This page explains what personal data {name} holds about you, why I hold it, who else sees it, and how you get a copy
+  of it or get it deleted.
 </p>
 
-<h2>2. Contact Information</h2>
+<h2>1. Who is responsible</h2>
+
 <p>
-  <strong>Data Controller:</strong>
-  grnyte Development Team
-  <br />
+  I run {name} on my own. It is a free, open source, invite-only climbing guidebook and logbook, operated by one private
+  individual resident in Germany. There is no company and there are no employees.
+</p>
+
+<p>
+  I am the controller for the data described here, under Article 4(7) of the General Data Protection Regulation (GDPR).
+  My name and a postal address are published in the
+  <a href="{imprintHref}">imprint</a>
+  together with the other contact details. Section 14 gives the address to write to about your data.
+</p>
+
+<p>
+  I have not appointed a data protection officer. Neither Article 37 GDPR nor section 38 of the Bundesdatenschutzgesetz
+  (BDSG) requires one from an operation this size.
+</p>
+
+<p>
+  The source code is public and MIT licensed. Read what it does with your data in
+  <a href="{repoUrl}" target="_blank" rel="noopener">the source repository</a>
+  rather than taking this page on trust.
+</p>
+
+<h3>1.1 Region admins</h3>
+
+<!-- Must keep matching terms clause 15: sole controllership primary, Article 26 as a fallback that
+     bites only if an admin is held to be a joint controller. The clause number is written out, so renumbering
+     the terms breaks it silently, with no build or type error. Both locales of both pages carry this note. -->
+<p>
+  A region admin decides who to invite and what their region collects, and does that as a private person for their own
+  purposes. Where that is a purely personal activity, Article 2(2)(c) GDPR places no controller duties on them, and
+  section 1 above holds unchanged: I am the controller. Where an admin is nonetheless held to be a joint controller for
+  that decision, clause 15 of the
+  <a href="{termsHref}">terms</a>
+  is the arrangement between us under Article 26 GDPR, and this is its essence: I answer for the service and for
+  everything the software does with your data, the admin answers for the invite list and for what the region collects,
+  and you can exercise your rights against either of us. I answer your requests either way, because I am the one who can
+  reach the data, and section 8 says how.
+</p>
+
+<h2>2. What I collect</h2>
+
+<p>
+  Most of it comes from you, because {name} stores what you and the other members of your region write into it. The
+  categories below cover what I hold.
+</p>
+
+<h3>2.1 Account data</h3>
+<p>An account holds:</p>
+<ul>
+  <li>your email address, used to sign you in and to reach you</li>
+  <li>your display name, shown to the other members of your regions</li>
+  <li>the credentials and session records the authentication provider needs to sign you in</li>
+</ul>
+
+<p>
+  Those three are required, not optional: they are what the agreement between us needs to exist at all, so without them
+  I cannot open an account and you cannot use {name}. No law obliges you to give them to me. Everything else on this
+  page you provide because you chose to.
+</p>
+
+<h3>2.2 Region membership and roles</h3>
+<p>A region is a closed container, and your membership of one is data about you:</p>
+<ul>
+  <li>which regions you belong to</li>
+  <li>the role you hold in each region, which decides what you can edit there</li>
+</ul>
+
+<h3>2.3 Climbing content</h3>
+<p>This is the material the app exists to hold:</p>
+<ul>
+  <li>crag, block and route names, grades and descriptions</li>
+  <li>topo lines you draw over a photograph</li>
+  <li>Global Positioning System (GPS) coordinates you set for a crag or a block</li>
+  <li>ascent logs: the date, the route, how you climbed it, your notes and the conditions you record</li>
+  <li>comments, and the @-mentions of other members inside them</li>
+</ul>
+
+<h3>2.4 Photos and videos</h3>
+<p>
+  This category holds the files you upload and the metadata inside them, including the Exchangeable Image File Format
+  (EXIF) block a camera writes into a photo. Section 3 covers that metadata on its own, because it carries a risk the
+  picture does not.
+</p>
+
+<h3>2.5 Push notifications</h3>
+<p>
+  If you turn notifications on, your browser hands me a subscription: an address to deliver to, and the keys that
+  encrypt the message. {name} uses the Web Push protocol with Voluntary Application Server Identification (VAPID) keys.
+  Your browser, not {name}, picks the push service that relays the message: Apple for Safari and iOS, Google for Chrome,
+  Mozilla for Firefox. The payload is encrypted against keys only your browser installation holds, so the push service
+  cannot read the content, but it does see that a message was sent to your subscription and when. For Apple and Google
+  devices, that means the message passes through a company in the United States, which section 6 covers. If you never
+  turn notifications on, this data does not exist for you.
+</p>
+
+<h3>2.6 Server logs</h3>
+<p>Running a web service produces logs, and they are needed to keep it running and secure:</p>
+<ul>
+  <li>your Internet Protocol (IP) address</li>
+  <li>the time of a request and the address requested</li>
+  <li>your browser and operating system version</li>
+  <li>error reports when something fails</li>
+</ul>
+<p>These sit with the hosting, database and email providers. I read them to find faults and to spot abuse.</p>
+
+<h3>2.7 Data about you that somebody else wrote</h3>
+<p>Article 14 GDPR covers data I did not get from you, and {name} holds some:</p>
+<ul>
+  <li>a comment or an ascent note that names you</li>
+  <li>an @-mention that links to your profile</li>
+  <li>a photo or a video another member uploaded that you appear in</li>
+</ul>
+<p>
+  The member who wrote it decided to write it. Nothing in {name} is reviewed, verified or approved by me, before or
+  after it appears. Article 14 GDPR would have me tell you directly that I hold it; somebody who is not a member, and
+  whose name I have only because another member typed it, is somebody I have no way to reach, so Article 14(5)(b) GDPR
+  applies and this notice is the public information instead. If something about you should not be there, section 14 says
+  how to reach me.
+</p>
+
+<h3>2.8 Reports and moderation records</h3>
+<p>Reporting content creates a record, and so does a complaint about a decision I made. The record holds:</p>
+<ul>
+  <li>what arrived and when</li>
+  <li>who sent it, including the contact details given in the report</li>
+  <li>the evidence attached to it, such as links, screenshots or a description of the content</li>
+  <li>what I decided, on what ground, and when I acted</li>
+</ul>
+<p>
+  A record like this holds data about the person reporting and about the person reported. The
+  <a href="{reportHref}">reporting page</a>
+  describes the same record from the reporting side. Section 5 says who receives it and section 7 says how long it
+  lives.
+</p>
+
+<h2>3. Photos, videos and EXIF metadata</h2>
+
+<p>A photograph carries more than the picture. This section covers the metadata inside an uploaded file.</p>
+
+<p>
+  Cameras and phones write EXIF metadata into a file: the capture time, the device, the exposure settings and, when
+  location services are on, the GPS coordinates of the spot you stood on.
+</p>
+
+<p>
+  The stored original keeps it. Your file is saved as you uploaded it, EXIF included, and nothing removes that metadata
+  afterwards.
+</p>
+
+<p>
+  The smaller copies do not. Every resized version the app generates is re-encoded, which drops the metadata and keeps
+  only the orientation, baked into the image itself. So a thumbnail carries no coordinates, and the original does.
+</p>
+
+<p>
+  One exception runs the other way. An iPhone photo arrives in Apple’s HEIC format, which cannot be displayed in a
+  browser, so the app converts it to a high-quality JPEG and shows you that. The conversion carries no metadata across,
+  so the JPEG holds no coordinates. Your HEIC file is kept unchanged beside it, EXIF included, so what your phone wrote
+  into the photo is still stored.
+</p>
+
+<p>
+  Treat an uploaded file as carrying whatever metadata your camera or phone wrote into it: the exact coordinates, the
+  time and the device. Anyone who can see the photo can read that metadata out of it, because it travels inside the
+  file. A picture of an anonymous-looking boulder can still carry the coordinates of a crag you want kept quiet, and the
+  person who uploaded it may not know that. If a crag’s location matters to you, check what your camera or phone writes
+  into a photo before you upload it. This is a limit to know about, not a setting you can toggle. Strip the metadata
+  yourself before you upload, or turn location tagging off in your camera app. If a file is already uploaded, ask me and
+  I will delete it.
+</p>
+
+<h2>4. Why I process your data, and the legal basis</h2>
+
+<p>Every purpose below is tied to one legal basis in Article 6(1) GDPR.</p>
+
+<div class="overflow-x-auto">
+  <table>
+    <thead>
+      <tr>
+        <th>Purpose</th>
+        <th>Data</th>
+        <th>Legal basis</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Running your account and the service you signed up for</td>
+        <td>Account data, region membership, climbing content, photos and videos, ascent logs, comments</td>
+        <td>Article 6(1)(b) GDPR, performance of a contract</td>
+      </tr>
+      <tr>
+        <td>Sending sign-up, password reset and invitation mail</td>
+        <td>Your email address</td>
+        <td>Article 6(1)(b) GDPR, performance of a contract</td>
+      </tr>
+      <tr>
+        <td>Keeping the service available and secure, and stopping abuse</td>
+        <td>Server logs, IP addresses, authentication records</td>
+        <td>Article 6(1)(f) GDPR, legitimate interest</td>
+      </tr>
+      <tr>
+        <td>Sending push notifications to your device</td>
+        <td>The push subscription your browser issues</td>
+        <td>Article 6(1)(a) GDPR, consent</td>
+      </tr>
+      <tr>
+        <td>Handling reports and complaints, and running the notice and action channel the DSA requires</td>
+        <td>Report and moderation records: the report, the contact details in it, the evidence and the decision</td>
+        <td>
+          Article 6(1)(c) GDPR for the duties the DSA places on me, and Article 6(1)(f) GDPR, legitimate interest, for
+          keeping the record
+        </td>
+      </tr>
+      <tr>
+        <td>Answering a request you make under Articles 15 to 21</td>
+        <td>Your email address and the content of your message</td>
+        <td>Article 6(1)(c) GDPR, legal obligation</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<p>
+  The legitimate interest in the third row is my interest in keeping the service reachable, finding faults, and stopping
+  somebody from reaching a region they were not invited to. The legitimate interest in the report row is my interest in
+  being able to show later what was reported, what I decided and why. You can object to either under Article 21 GDPR.
+</p>
+
+<p>
+  Push notifications run on consent, and Article 7(3) GDPR lets you withdraw consent at any time. Turn notifications off
+  in the app settings or in your browser. Withdrawal does not undo processing that already happened.
+</p>
+
+<h2>5. Who receives your data</h2>
+
+<p>Article 13(1)(e) GDPR asks for the recipients or the categories of recipients, so the categories come first:</p>
+<ul>
+  <li>hosting and serverless execution, which serves the app and runs its server code</li>
+  <li>database and authentication, which stores your account, your sign-in records and the content you write</li>
+  <li>photo storage, which holds the pictures you upload and the smaller copies made from them</li>
+  <li>video storage and delivery, which holds uploaded videos and streams them back</li>
+  <li>transactional email, which sends sign-up, password reset and invitation mail</li>
+  <li>the sync server, which keeps a working copy of the database so the app loads and searches quickly</li>
+</ul>
+
+<p>
+  The categories above are the recipients, and these are the providers behind them: Vercel for hosting and serverless
+  execution, Supabase for database and authentication, Bunny for video storage and delivery, Resend for transactional
+  email, and Hetzner for photo storage, for the sync server and for the database backups. Some of them process data
+  outside the European Union,
+  which section 6 covers. Your browser talks to Supabase, Bunny and the sync server directly rather than through my
+  server, so your IP address reaches those three from your device.
+</p>
+
+<p>
+  Each of the five is bound by a processing agreement under Article 28(3) GDPR. With Vercel, Supabase and Resend the
+  agreement comes with the terms and takes effect on accepting them, which happened when I opened each account. With
+  Hetzner and Bunny it had to be concluded separately, and both were concluded on 1 September 2026.
+</p>
+
+<p>
+  Two of the categories above sit at Hetzner Online GmbH, and they hold more than the rest. Your photos live on a
+  Nextcloud instance Hetzner operates, and the sync server is a Hetzner machine I run myself which keeps a working copy
+  of the database, so it holds the same content the database does. Both are in Falkenstein in Germany, so neither leaves
+  the European Union.
+</p>
+
+<p>
+  One recipient is not a processor of mine at all, and it is the one to know about. The maps are drawn with tiles from
+  OpenStreetMap, which your browser fetches directly from the OpenStreetMap Foundation as you pan and zoom. I do not
+  send that request, your device does, so the Foundation sees your IP address and which tiles you asked for. Tile
+  coordinates are locations: they say which part of the map you were looking at, which on this service means which crag.
+  The Foundation is its own controller for what it does with that, under its own privacy policy, and no agreement of
+  mine covers it. I keep it because a map without tiles is not a map, and the alternative is a commercial tile provider,
+  which would be worse for you rather than better. If this matters to you, the map is the one screen to avoid: nothing
+  else on the service loads anything from a third party.
+</p>
+
+<p>
+  The other recipients are people rather than companies: the members of your region see what you write there. That is
+  what the product is for. Nobody outside a region sees its content, a region cannot be published or listed, and there
+  is no public mode.
+</p>
+
+<p>
+  A report brings one further recipient. When you report content, I forward the substance of your report to the member
+  who posted it, so they can respond before I decide. The
+  <a href="{reportHref}">reporting page</a>
+  describes that step. Your identity as the reporter is a separate question from the substance of the report, and it is
+  withheld from the reported member by default. It goes with the report only where who is objecting is part of the
+  claim, such as a personality-rights objection from the person shown in a photo or a landowner’s complaint about a
+  location, which is the “strictly necessary” test in Article 17(3)(b) DSA.
+</p>
+
+<p>
+  I do not sell your data. I do not pass it to advertisers. I run no analytics, and there is no revenue here that could
+  make any of that attractive later.
+</p>
+
+<h2>6. Transfers outside the European Union</h2>
+
+<p>
+  Two of the providers in section 5 are in the United States and one contracts from Singapore, so some of your data
+  leaves the European Union. Your photos, your videos and the sync server stay inside it.
+</p>
+
+<p>
+  The European Commission adopted an adequacy decision for the EU-US Data Privacy Framework, Commission Implementing
+  Decision (EU) 2023/1795. A transfer to a US organisation holding a current certification under that framework rests on
+  Article 45 GDPR and needs no further safeguard. Where a provider is not certified, or sits in a country with no
+  adequacy decision of its own, the transfer needs standard contractual clauses under Article 46(2)(c) GDPR instead.
+  Singapore has no adequacy decision. I will not claim a certification I have not checked.
+</p>
+
+<p>
+  I checked the Data Privacy Framework list on 1 September 2026. Vercel Inc. holds a current certification under the
+  EU-US Data Privacy Framework. Resend is listed as active with a re-certification under review, so its certification
+  stands while the renewal is examined; it contracts as Plus Five Five, Inc. Supabase is not on the list
+  and does not need to be: it contracts through Supabase Pte. Ltd. in Singapore, and its agreement carries the standard
+  contractual clauses, which accepting the agreement has the same effect as signing. Bunny is not on the list either,
+  because it is a European company, BunnyWay d.o.o. in Ljubljana.
+</p>
+
+<p>
+  None of this rests on the framework alone. Resend’s data processing addendum incorporates the standard contractual
+  clauses and defines the transfers they cover as those no adequacy decision reaches, so they take over by their own
+  terms if the framework falls. Vercel’s incorporates them as well and does not mention the framework at all; that
+  document is written for an enterprise agreement and reaches an account like mine through the clause in Vercel’s
+  general terms that incorporates it by reference. Both transfers therefore have a second basis under Article 46(2)(c)
+  GDPR.
+</p>
+
+<p>
+  These are the regions each provider is set to, read from its console rather than estimated. The database is in Central
+  EU, Frankfurt. Videos are stored in Frankfurt and replicated to Stockholm. Photos and the sync server are in
+  Falkenstein. Bunny’s delivery network is restricted to European Union locations, which its processing agreement treats
+  as my standing instruction not to route data outside the Union. One exception is worth naming: if the player in the
+  app fails on a video, it falls back to Bunny’s own embedded player, which is served from Bunny’s shared domain rather
+  than from the restricted zone.
+</p>
+
+<h2>7. How long I keep your data</h2>
+
+<p>Your data lives as long as your account does: delete the account and the account data goes with it.</p>
+
+<p>These are the periods, by kind of data:</p>
+
+<ul>
+  <li>
+    account and profile data: I carry out a deletion request within one month. Article 12(3) GDPR already sets one month
+    for answering any rights request, so this is the same clock, not a second one. There is no grace period and no
+    cooling-off window.
+  </li>
+  <li>
+    climbing content you contributed: crag, block and route entries stay in the region under an anonymous author. While
+    an entry is still linked to you, keeping it rests on Article 6(1)(f) GDPR, the legitimate interest being that other
+    members’ logbooks keep their meaning, since their ascents are logged against those entries. Once I sever the author
+    link, the entry is no longer personal data, and retention stops being a data protection question at all. Clause 19
+    of the
+    <a href="{termsHref}">terms of service</a>
+    sets out the detail per content type.
+  </li>
+  <li>
+    photos and videos: deleting the record a file belongs to deletes the file from storage at the same time. A cleanup
+    task removes an upload that was started but never attached to anything, within 30 days at the latest.
+  </li>
+  <li>
+    reports and moderation records: three years. That is the regular limitation period under section 195 of the
+    Bürgerliches Gesetzbuch (BGB), so I keep a decision record for as long as somebody could still bring a claim about
+    that decision.
+  </li>
+  <li>
+    server logs: I run no log pipeline of my own. The hosting, database and email providers hold their own logs under
+    their own retention, and I read them to find faults and to spot abuse. Section 5 lists those providers; I do not set
+    their retention and will not publish a figure I do not control.
+  </li>
+  <li>
+    backups: a daily copy of the database, kept for 30 days on the Hetzner server in Falkenstein that section 5 names.
+    Deleting something takes it out of the live database at once and out of the backups within 30 days, and those 30
+    days are the outside limit on how long anything you delete survives anywhere. The backups exist to bring the
+    service back after a failure, not to reverse a deletion: I do not open one to recover something that was deleted.
+  </li>
+</ul>
+
+<h2>8. Your rights</h2>
+
+<p>The GDPR gives you rights against me, and you exercise them by writing one email:</p>
+
+<ul>
+  <li>
+    <strong>Access, Article 15:</strong>
+    a copy of the data I hold about you
+  </li>
+  <li>
+    <strong>Rectification, Article 16:</strong>
+    correction of data that is wrong or incomplete
+  </li>
+  <li>
+    <strong>Erasure, Article 17:</strong>
+    deletion of your data, the “right to be forgotten”
+  </li>
+  <li>
+    <strong>Restriction, Article 18:</strong>
+    a halt on processing while a dispute over it is open
+  </li>
+  <li>
+    <strong>Portability, Article 20:</strong>
+    your data in a machine-readable file you can take elsewhere
+  </li>
+  <li>
+    <strong>Objection, Article 21:</strong>
+    an objection to processing that rests on legitimate interest
+  </li>
+</ul>
+
+<p>
+  Send your request to the email address in section 14, and a person reads it and answers it, because there is no
+  self-serve button for this, including for deleting your account. Article 17 gives you erasure regardless of whether
+  the app offers a delete button. Article 12(3) GDPR sets the period at one month, extendable by two further months for
+  a complex request, and it requires me to tell you inside the first month if I need that extension. I may ask you to
+  confirm who you are before I act on a request about an account.
+</p>
+
+<p>
+  One limit is worth stating plainly. For content, the remedy I can carry out is deletion. There is no visibility
+  setting on a crag, a block or a route, so I cannot hide an entry and leave it in place. I can remove it.
+</p>
+
+<p>
+  You can also complain to a supervisory authority under Article 77 GDPR: in the country you live in, the country you
+  work in, or the country where you believe the infringement happened. The authority responsible for me is the
+  Bayerisches Landesamt für Datenschutzaufsicht, Promenade 18, 91522 Ansbach, at
+  <a href="https://www.lda.bayern.de" target="_blank" rel="noopener">lda.bayern.de</a>
+  . It supervises the non-public sector in Bavaria, which is where I live.
+</p>
+
+<h2>9. What is stored on your device</h2>
+
+<p>{name} stores four things in your browser, and each one exists to make the app work:</p>
+
+<ul>
+  <li>an authentication session, so you stay signed in between visits</li>
+  <li>your preferences, such as language, units and display choices</li>
+  <li>a service worker, the code that lets the app run without a connection</li>
+  <li>an offline cache, holding the content you have already opened</li>
+</ul>
+
+<p>
+  All four are strictly necessary to deliver the service you asked for. Section 25(2) Nr. 2 of the
+  Telekommunikation-Digitale-Dienste-Datenschutz-Gesetz (TDDDG) exempts that storage from consent, which is why you see
+  no cookie banner here. There is nothing to consent to.
+</p>
+
+<p>
+  There are no analytics cookies, no advertising cookies and no third-party trackers of any kind. Nothing here follows
+  you to another site. The fonts are served from this service rather than from a font provider, so opening a page tells
+  nobody but me that you opened it. The map tiles in section 5 go to somebody who is not one of my processors, and they
+  are tiles, not a tracker.
+</p>
+
+<p>
+  The offline cache puts crag data on your device, coordinates and photos included. Clearing the site data in your
+  browser removes it.
+</p>
+
+<h2>10. What I can see</h2>
+
+<p>
+  {name} is not end-to-end encrypted. I can technically read every region, and you should decide what to upload knowing
+  that.
+</p>
+
+<p>
+  Content is stored readable in the database. Access between members is enforced by Postgres row-level security (RLS):
+  the database refuses to return rows from a region you were not invited to. That control governs the application and
+  its users. It does not govern the person who administers the database, which is me.
+</p>
+
+<p>What I do with that access is a choice, and here is the choice:</p>
+<ul>
+  <li>I do not sell region data</li>
+  <li>I do not publish it, and a region cannot be made public</li>
+  <li>I do not open a region to anyone the region did not invite</li>
+  <li>I look at region content only where operating the service or answering a report requires it</li>
+</ul>
+
+<p>
+  What I cannot promise is what a court or an authority can require of me. I hold no professional privilege: I am not a
+  lawyer, a doctor or a journalist, so nothing stored here is protected from seizure the way their records are. Reaching
+  the content of a region generally takes a seizure order, which as a rule a judge has to sign. Reaching your name and
+  your email address takes less than that: section 100j of the Strafprozessordnung lets a prosecutor require them
+  without a judge, and being free and non-commercial does not put this service outside it. Do not store anything here on
+  the assumption that it sits beyond legal reach.
+</p>
+
+<p>
+  If an order does arrive, I tell you about it, unless I am forbidden to. For an order to hand over information about
+  you under Article 10 of the Digital Services Act, telling you is not a choice I make: the regulation requires it, at
+  the latest when I act on the order.
+</p>
+
+<h2>11. No automated decision-making</h2>
+
+<p>
+  Article 22 GDPR does not come into play here. No decision with legal or similarly significant effect is taken about
+  you by automated means. The app does compute statistics from your own logbook and shows them to you, and it uses none
+  of that to evaluate you for any decision.
+</p>
+
+<p>
+  There is no scoring of members, no ranking of people and no advertising profile. The activity feed shows what
+  happened, in the order it happened.
+</p>
+
+<h2>12. Age</h2>
+
+<p>You need to be at least 18 to use {name}.</p>
+
+<p>
+  German law gives a person under 18 only limited capacity to enter a contract: it needs a guardian’s agreement unless
+  it is purely to the minor’s legal advantage. A free account is not that, because these terms put obligations on you,
+  such as the warranties in clause 6 of the
+  <a href="{termsHref}">terms of service</a>
+  . An 18 year floor keeps the agreement on solid ground rather than leaving it to depend on an approval nobody asked
+  for.
+</p>
+
+<p>
+  Where processing rests on your consent, and here that is push notifications alone, Article 8 GDPR sets the age at 16
+  in Germany. Your account itself rests on Article 6(1)(b) GDPR, a contract, as the table in section 4 sets out. The
+  floor above is higher than either.
+</p>
+
+<p>
+  Sign-up does not ask you to prove your age and I do not verify it. People arrive here by invitation from somebody who
+  knows them, which catches more than a date field would.
+</p>
+
+<p>
+  I do not knowingly hold data about anybody under 18. Tell me about an account belonging to a minor and I will delete
+  it.
+</p>
+
+<h2>13. Changes to this notice</h2>
+
+<p>I update this page when what I do with your data changes. The date at the top records the last change.</p>
+
+<p>
+  Where a change matters to you, I email you about it. I do not hold a change back for a notice period first: keeping
+  this page accurate is the point of it, so a change goes live and you hear about it. Wording fixes and clarifications
+  that do not change what I do with your data go in without an email.
+</p>
+
+<h2>14. How to reach me</h2>
+
+<p>One address covers all of it: privacy questions, rights requests, takedown requests and complaints.</p>
+
+<p>
   <strong>Email:</strong>
-  info@grnyte.rocks
-  <br />
-  <strong>Contact for Privacy Matters:</strong>
-  grnyte Development Team
+  <a href="mailto:{contactEmail}">{contactEmail}</a>
 </p>
 
-<h2>3. Information We Collect</h2>
-
-<h3>3.1 Account Information</h3>
-<ul>
-  <li>Email address (for account creation and authentication)</li>
-  <li>Username (for identification within the app)</li>
-  <li>Password (encrypted and stored securely)</li>
-</ul>
-
-<h3>3.2 Climbing Data</h3>
-<ul>
-  <li>Climbing ascents and session logs</li>
-  <li>Notes about climbing routes and areas</li>
-  <li>Photos and videos you upload</li>
-  <li>Location data for climbing areas (when provided by you)</li>
-  <li>Route grades and difficulty ratings</li>
-</ul>
-
-<h3>3.3 Technical Information</h3>
-<ul>
-  <li>IP address</li>
-  <li>Browser type and version</li>
-  <li>Device information</li>
-  <li>Usage patterns and app interactions</li>
-  <li>Log files and error reports</li>
-</ul>
-
-<h2>4. How We Use Your Information</h2>
-<ul>
-  <li>
-    <strong>Service Provision:</strong>
-    To provide and maintain the climbing tracker functionality
-  </li>
-  <li>
-    <strong>Authentication:</strong>
-    To verify your identity and secure your account
-  </li>
-  <li>
-    <strong>Data Storage:</strong>
-    To save your climbing progress and statistics
-  </li>
-  <li>
-    <strong>Communication:</strong>
-    To respond to your inquiries and provide support
-  </li>
-  <li>
-    <strong>Technical Maintenance:</strong>
-    To troubleshoot issues and improve app performance
-  </li>
-  <li>
-    <strong>Security:</strong>
-    To protect against unauthorized access and maintain data integrity
-  </li>
-</ul>
-
-<h2>5. Legal Basis for Processing (GDPR)</h2>
-<ul>
-  <li>
-    <strong>Consent:</strong>
-    You have given clear consent for us to process your personal data for the specified purposes
-  </li>
-  <li>
-    <strong>Legitimate Interest:</strong>
-    Processing is necessary for our legitimate interests in providing the service
-  </li>
-  <li>
-    <strong>Contract Performance:</strong>
-    Processing is necessary to provide the services you've requested
-  </li>
-</ul>
-
-<h2>6. Data Sharing and Third Parties</h2>
-
-<h3>6.1 Service Providers</h3>
-<p>We use the following third-party services:</p>
-<ul>
-  <li>
-    <strong>Supabase:</strong>
-    Database hosting and authentication — see the
-    <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase Privacy Policy</a>
-  </li>
-  <li>
-    <strong>Nextcloud:</strong>
-    File storage for photos and videos (if configured)
-  </li>
-  <li>
-    <strong>Vercel:</strong>
-    Application hosting and delivery
-  </li>
-</ul>
-
-<h3>6.2 External Integrations</h3>
-<p>The app may link to external climbing platforms:</p>
-<ul>
-  <li>8a.nu</li>
-  <li>27crags</li>
-  <li>theCrag</li>
-</ul>
 <p>
-  These links are provided for convenience. We do not share your data with these platforms unless you explicitly choose
-  to do so.
+  <strong>Post:</strong>
+  the address published in the
+  <a href="{imprintHref}">imprint</a>
 </p>
 
-<h3>6.3 No Sale of Data</h3>
-<p>We do not sell, rent, or trade your personal information to third parties for marketing purposes.</p>
-
-<h2>7. Data Storage and Security</h2>
-<ul>
-  <li>
-    <strong>Encryption:</strong>
-    All data is transmitted using HTTPS encryption
-  </li>
-  <li>
-    <strong>Access Controls:</strong>
-    Only authorized users can access your personal climbing data
-  </li>
-  <li>
-    <strong>Database Security:</strong>
-    Supabase provides enterprise-grade security for data storage
-  </li>
-  <li>
-    <strong>Regular Backups:</strong>
-    Data is regularly backed up to prevent loss
-  </li>
-</ul>
-
-<h2>8. Data Retention</h2>
-<p>
-  We retain your personal data for as long as your account is active or as needed to provide services. You can request
-  deletion of your account and all associated data at any time.
-</p>
-<ul>
-  <li>
-    <strong>Account Data:</strong>
-    Retained until account deletion
-  </li>
-  <li>
-    <strong>Climbing Logs:</strong>
-    Retained until account deletion
-  </li>
-  <li>
-    <strong>Log Files:</strong>
-    Automatically deleted after 30 days
-  </li>
-</ul>
-
-<h2>9. Your Rights</h2>
-<p>Under GDPR and other privacy laws, you have the following rights:</p>
-
-<h3>9.1 Access (Article 15 GDPR)</h3>
-<p>Request a copy of all personal data we hold about you.</p>
-
-<h3>9.2 Rectification (Article 16 GDPR)</h3>
-<p>Request correction of inaccurate or incomplete data.</p>
-
-<h3>9.3 Erasure (Article 17 GDPR)</h3>
-<p>Request deletion of your personal data ("right to be forgotten").</p>
-
-<h3>9.4 Portability (Article 20 GDPR)</h3>
-<p>Request a copy of your data in a machine-readable format.</p>
-
-<h3>9.5 Objection (Article 21 GDPR)</h3>
-<p>Object to processing based on legitimate interests.</p>
-
-<h3>9.6 California Rights (CCPA)</h3>
-<p>
-  California residents have additional rights under the CCPA, including the right to opt-out of the sale of personal
-  information (though we don't sell data).
-</p>
-
-<h2>10. Cookies and Tracking</h2>
-<p>
-  We use essential cookies for authentication and app functionality. We do not use tracking cookies for advertising or
-  analytics without your consent. See our
-  <a href="/legal/cookies">Cookie Policy</a>
-  for more details.
-</p>
-
-<h2>11. International Data Transfers</h2>
-<p>
-  Your data may be transferred to and processed in countries outside your residence, including the United States. We
-  ensure appropriate safeguards are in place for international transfers as required by applicable data protection laws.
-</p>
-
-<h2>12. Children's Privacy</h2>
-<p>
-  This service is not intended for children under 16 years of age. We do not knowingly collect personal information from
-  children under 16. If you believe we have collected information from a child under 16, please contact us immediately.
-</p>
-
-<h2>13. Changes to This Policy</h2>
-<p>
-  We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new
-  Privacy Policy on this page and updating the "Last Updated" date.
-</p>
-
-<h2>14. Contact Us</h2>
-<p>If you have any questions about this Privacy Policy or wish to exercise your rights, please contact us:</p>
-<ul>
-  <li>
-    <strong>Email:</strong>
-    info@grnyte.rocks
-  </li>
-  <li>
-    <strong>Subject:</strong>
-    Privacy Policy Inquiry
-  </li>
-</ul>
-
-<h2>15. Supervisory Authority</h2>
-<p>
-  If you believe we have not addressed your privacy concerns adequately, you have the right to lodge a complaint with
-  your local data protection supervisory authority.
-</p>
-
-<hr class="my-8" />
-
-<p class="text-sm opacity-75">
-  This Privacy Policy is part of our commitment to transparency and data protection. As a hobby project, we strive to
-  maintain the highest standards of privacy and security for our users.
-</p>
+<p>A person reads that inbox. There is no ticket system, no automated reply and no support queue.</p>

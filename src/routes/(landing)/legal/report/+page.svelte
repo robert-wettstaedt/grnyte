@@ -3,8 +3,8 @@
   import { m } from '$lib/paraglide/messages'
   import { getLocale } from '$lib/paraglide/runtime'
   import { renderLegal } from '../links'
-  import de from './disclaimer.de.html?raw'
-  import en from './disclaimer.en.html?raw'
+  import de from './report.de.html?raw'
+  import en from './report.en.html?raw'
 
   // Long-form legal copy lives in the per-locale .html files. `renderLegal` fills every token in it,
   // including the cross-page links, which go through `resolve()` so a moved route breaks the build.
@@ -12,8 +12,8 @@
 </script>
 
 <svelte:head>
-  <title>{m.legal_disclaimer_title()} - {name}</title>
-  <meta name="description" content={m.legal_disclaimer_metaDescription({ name })} />
+  <title>{m.legal_report_title()} - {name}</title>
+  <meta name="description" content={m.legal_report_metaDescription({ name })} />
 </svelte:head>
 
 <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted in-repo legal copy -->

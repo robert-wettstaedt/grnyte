@@ -7,6 +7,10 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 // for information about these interfaces
 // and what to do when importing types
 declare global {
+  /** The repository URL from package.json, inlined at build time (see `define` in vite.config.ts).
+   *  Every link to the source goes through this, so the URL lives in one place. */
+  const __APP_REPO__: string
+
   namespace App {
     // interface Error {}
     interface Locals extends SafeSession {

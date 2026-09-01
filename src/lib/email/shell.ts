@@ -250,7 +250,7 @@ const footerLine = (text: string) =>
  * on the desk. No unsubscribe link and no List-Unsubscribe header, deliberately: RFC 8058
  * scopes those to promotional mail, and an unsubscribe control on a password reset gets
  * people to opt out of security mail. No postal address either, since grnyte declares no
- * commercial intent (see legal_layout_004). Add both the day an email here becomes
+ * commercial intent (see legal_noCommercialIntent). Add both the day an email here becomes
  * preference-driven rather than strictly transactional.
  */
 const footer = (locale: EmailLocale, reason: NonNullable<EmailContent['footerReason']>) => {

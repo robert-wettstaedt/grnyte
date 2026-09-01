@@ -186,8 +186,21 @@ const EMAILED_LINK_PATHS: Pathname[] = ['/auth/confirm', '/auth/error', '/auth/r
 /** Prefixes rather than pathnames, deliberately: each stands for a whole subtree (`/f/abc`,
  *  `/image/a/b/c`, every `/api` endpoint), which is not a thing `Pathname` can express. '/invite'
  *  is public because the emailed link is opened by somebody who may have no account yet, and
- *  bouncing them to /auth would drop the token. */
-const PUBLIC_PREFIXES = ['/legal', AUTH_PATH, '/f/', '/image/', '/api/', '/invite', '/offline']
+ *  bouncing them to /auth would drop the token. '/help' answers questions somebody asks before
+ *  they have an account, and '/robots.txt' and '/sitemap.xml' are read by crawlers that never
+ *  have one: bouncing any of them to /auth is the same bug in three places. */
+const PUBLIC_PREFIXES = [
+  '/legal',
+  AUTH_PATH,
+  '/f/',
+  '/help',
+  '/image/',
+  '/api/',
+  '/invite',
+  '/offline',
+  '/robots.txt',
+  '/sitemap.xml',
+]
 
 /**
  * The zero-cache callbacks, which authenticate off their own Authorization header.

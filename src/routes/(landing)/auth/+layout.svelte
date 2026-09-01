@@ -4,6 +4,7 @@
   import Logo from '$lib/assets/logo.svg'
   import Icon from '$lib/components/Icon/Icon.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { legalLinks } from '../legal/links'
   import type { Snippet } from 'svelte'
 
   const { children }: { children: Snippet } = $props()
@@ -71,6 +72,21 @@
       >
         {m.landing_footerStatus()}
       </a>
+
+      <!-- Section 5 DDG wants the imprint "leicht erkennbar, unmittelbar erreichbar und ständig
+           verfügbar", and these are the pages a signed-out visitor actually lands on. The whole
+           legalLinks() row rather than the imprint alone, so this surface cannot drift from the
+           others when a page is added. -->
+      <nav class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 self-center">
+        {#each legalLinks() as link (link.href)}
+          <a
+            href={link.href}
+            class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
+          >
+            {link.label}
+          </a>
+        {/each}
+      </nav>
     </div>
   </div>
 </div>

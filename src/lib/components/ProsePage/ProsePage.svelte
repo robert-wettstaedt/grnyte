@@ -43,7 +43,7 @@
       </nav>
       <p class="text-surface-500 text-xs">
         © {new Date().getFullYear()}
-        {PUBLIC_APPLICATION_NAME}. {m.legal_layout_004()}
+        {PUBLIC_APPLICATION_NAME}. {m.legal_noCommercialIntent()}
       </p>
     </div>
   </footer>

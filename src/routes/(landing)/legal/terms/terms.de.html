@@ -1,240 +1,745 @@
 <h1>Nutzungsbedingungen</h1>
 
 <p>
-  <strong>Gültig ab:</strong>
-  1. Januar 2025
-</p>
-<p>
   <strong>Zuletzt aktualisiert:</strong>
-  1. Januar 2025
-</p>
-
-<h2>1. Annahme der Bedingungen</h2>
-<p>
-  Mit dem Zugriff auf und der Nutzung von {name} („die Anwendung“, „der Dienst“) akzeptierst du die Bedingungen dieser
-  Vereinbarung und erklärst dich damit einverstanden, an sie gebunden zu sein. Wenn du den oben genannten Bedingungen
-  nicht zustimmst, nutze diesen Dienst bitte nicht.
+  31. August 2026
 </p>
 
 <p>
-  <strong>Zustimmung bei der Registrierung:</strong>
-  Bei der Erstellung eines Kontos musst du diesen Nutzungsbedingungen und unserer Datenschutzerklärung ausdrücklich
-  zustimmen, indem du das erforderliche Kontrollkästchen aktivierst. Dies gilt als deine elektronische Unterschrift und
-  Zustimmung, an diese Bedingungen gebunden zu sein.
+  Diese Seite ist die Vereinbarung zwischen dir und mir über deine Nutzung von {name}. Sie beschreibt, was der Dienst
+  ist, was du einstellen darfst, was nach einer Meldung geschieht und wer welche Haftung trägt.
 </p>
 
-<h2>2. Beschreibung des Dienstes</h2>
-<p>{name} ist ein sicherer Boulder-Topo- und Session-Tracker, der Kletterern dabei helfen soll:</p>
+<h2>1. Geltungsbereich, Annahme und Mindestalter</h2>
+
+<p>Diese Bedingungen regeln deine Nutzung von {name}, und du nimmst sie mit der Erstellung eines Kontos an.</p>
+
+<p>
+  Ich betreibe {name} allein, als Privatperson mit Wohnsitz in Deutschland. Es steht kein Unternehmen dahinter. Wo unten
+  ein förmlicher Begriff besser passt, nenne ich mich den Betreiber, und gemeint ist dieselbe Person.
+</p>
+
+<p>
+  Du nimmst diese Bedingungen an, indem du ein Konto erstellst und den Dienst weiter nutzt. Die Seiten zum Registrieren
+  und Anmelden sagen das unter dem Button und verlinken von dort auf diese Seite und auf die
+  <a href="{privacyHref}">Datenschutzerklärung</a>
+  . Stimmst du ihnen nicht zu, erstelle kein Konto.
+</p>
+
+<p>
+  Du musst mindestens 18 Jahre alt sein. Nach deutschem Recht hat eine Person unter 18 Jahren nur eine beschränkte
+  Geschäftsfähigkeit, und diese Bedingungen legen dir Pflichten auf, es ist also eine Vereinbarung, die nur ein
+  Erwachsener schließen kann. Abschnitt 12 der Datenschutzerklärung führt das aus. Bei der Anmeldung wird dein Alter
+  nicht abgefragt, und ich prüfe es nicht nach.
+</p>
+
+<p>
+  Die
+  <a href="{privacyHref}">Datenschutzerklärung</a>
+  steht neben diesen Bedingungen und erklärt, welche personenbezogenen Daten ich speichere und warum. Lies sie zusammen
+  mit dieser Seite.
+</p>
+
+<h2>2. Was {name} ist</h2>
+
+<p>
+  {name} ist ein kostenloser Kletterführer und ein Logbuch, sichtbar nur per Einladung, und einen öffentlichen Teil gibt
+  es nicht.
+</p>
+
+<p>
+  Du legst eine Region an, trägst darin Felsen, Blöcke und Routen ein, zeichnest Topo-Linien über deine Fotos,
+  protokollierst deine Begehungen und lädst die Leute ein, mit denen du kletterst. Eine Region ist ein geschlossener
+  Raum. Die Grenze setzt die Zugriffskontrolle auf Zeilenebene in Postgres durch (row-level security, RLS): Die
+  Datenbank gibt keine Zeilen aus einer Region heraus, in die du nicht eingeladen wurdest.
+</p>
+
+<p>
+  Eine Region lässt sich nicht veröffentlichen, nicht listen und nicht für das offene Web öffnen. Es gibt keinen
+  öffentlichen Modus, und es wird keinen geben. Eine Einladungsliste kann wachsen und mehr Leute aufnehmen, und die
+  Region wird trotzdem nie öffentlich.
+</p>
+
+<p>
+  {name} ist kostenlos. Es gibt keine Werbung, keine Analyse, kein Tracking, keinen Verkauf von Daten und keine
+  Einnahmen. Der Quellcode ist quelloffen und steht unter der MIT-Lizenz, das Repository liegt auf
+  <a href="{repoUrl}" target="_blank" rel="noopener">GitHub</a>
+  und jeder kann es lesen. Diese Lizenz deckt den Code. Sie gibt niemandem ein Recht an den Inhalten, die Leute hier
+  einstellen, dazu Abschnitt 5.
+</p>
+
+<p>
+  Ich schulde dir keine bestimmte Verfügbarkeit. Ich betreibe das in meiner eigenen Zeit, ich ändere Funktionen, und
+  Teile des Dienstes können offline sein. Stelle ich den Dienst ein, sage ich es dir mindestens 30 Tage vorher, per
+  E-Mail an die Adresse deines Kontos, und in diesen 30 Tagen bleibt er lesbar, du kannst also herausholen, was dir
+  wichtig ist. Einen Export-Knopf gibt es nicht. Willst du deine Daten als Datei, frag mich in dieser Zeit, Abschnitt 8
+  der
+  <a href="{privacyHref}">Datenschutzerklärung</a>
+  sagt, wie. Schließt der Admin einer Region seine eigene Region, ist das seine Entscheidung und nicht meine, diese
+  Frist kann ich dafür also nicht zusagen.
+</p>
+
+<p>
+  Eine Region fasst standardmäßig bis zu {maxMembers} Mitglieder, und ein Konto kann bis zu {maxRegions} Regionen
+  besitzen. Beides sind betriebliche Grenzen, die ich setze und ändern kann, keine Zusagen an dich, und beide Zahlen
+  stammen aus denselben Werten, die die App durchsetzt.
+</p>
+
+<h2>3. Dein Konto</h2>
+
+<p>Ein Konto ist persönlich, und für sich genommen gibt es dir Zugang zu keiner Region.</p>
+
+<p>Mit der Registrierung verpflichtest du dich:</p>
 <ul>
-  <li>Bouldergebiete, Felsen und Routen zu erstellen und zu verwalten</li>
-  <li>Begehungen zu protokollieren und den Fortschritt zu verfolgen</li>
-  <li>Fotos und Videos von Klettergebieten zu speichern</li>
-  <li>Kletterinformationen mit autorisierten Nutzern zu teilen</li>
-  <li>Detaillierte Topos von Bouldergebieten zu erstellen</li>
-</ul>
-<p>Dies ist ein Hobbyprojekt, das kostenlos und ohne kommerzielle Absicht bereitgestellt wird.</p>
-
-<h2>3. Registrierung und Konto</h2>
-<p>Um die Anwendung zu nutzen, musst du:</p>
-<ul>
-  <li>Mindestens 16 Jahre alt sein</li>
-  <li>Richtige und vollständige Registrierungsdaten angeben</li>
-  <li>Die Sicherheit deiner Zugangsdaten gewährleisten</li>
-  <li>Die Verantwortung für alle Aktivitäten unter deinem Konto übernehmen</li>
-  <li>Uns unverzüglich über jede unbefugte Nutzung informieren</li>
-</ul>
-
-<p>
-  <strong>Kontoteilung:</strong>
-  Dein Konto ist persönlich und nicht übertragbar. Du darfst nicht:
-</p>
-<ul>
-  <li>Deine Zugangsdaten an andere weitergeben</li>
-  <li>Anderen erlauben, über dein Konto auf die Anwendung zuzugreifen</li>
-  <li>Konten im Namen anderer Personen erstellen</li>
-  <li>Mehrere Konten nutzen, um regionale Zugangskontrollen zu umgehen</li>
-</ul>
-<p>
-  Jeder Nutzer muss ein eigenes, individuelles Konto führen. Ein Verstoß gegen diese Richtlinie kann zur Sperrung oder
-  Kündigung des Kontos führen.
-</p>
-
-<h2>4. Zulässige Nutzung</h2>
-
-<h3>4.1 Erlaubte Nutzung</h3>
-<p>Du darfst die Anwendung nutzen, um:</p>
-<ul>
-  <li>Deine persönlichen Kletteraktivitäten zu verfolgen</li>
-  <li>Kletterinformationen mit anderen autorisierten Nutzern zu teilen</li>
-  <li>Topos und Routenbeschreibungen zu erstellen</li>
-  <li>Fotos und Videos rund ums Klettern hochzuladen</li>
-</ul>
-
-<h3>4.2 Verbotene Nutzung</h3>
-<p>Du verpflichtest dich, die Anwendung NICHT zu nutzen, um:</p>
-<ul>
-  <li>Falsche, irreführende oder unangemessene Inhalte hochzuladen</li>
-  <li>Gegen örtliche, nationale oder internationale Gesetze zu verstoßen</li>
-  <li>Geistige Eigentumsrechte zu verletzen</li>
-  <li>Zu versuchen, die Anwendung zu hacken, zu stören oder zu beschädigen</li>
-  <li>Daten anderer Nutzer ohne Erlaubnis weiterzugeben</li>
-  <li>Den Dienst ohne Erlaubnis für kommerzielle Zwecke zu nutzen</li>
-  <li>Schadcode oder schädliche Dateien hochzuladen</li>
-  <li>Andere Nutzer oder Organisationen zu imitieren</li>
-</ul>
-
-<h2>5. Inhalte und geistiges Eigentum</h2>
-
-<h3>5.1 Deine Inhalte</h3>
-<p>
-  Du behältst das Eigentum an allen von dir hochgeladenen Inhalten, einschließlich Fotos, Videos, Routenbeschreibungen
-  und Kletterprotokollen. Durch das Hochladen von Inhalten gewährst du uns eine nicht-exklusive Lizenz, deine Inhalte
-  innerhalb der Anwendung zu speichern, anzuzeigen und zu teilen, soweit dies zur Bereitstellung des Dienstes
-  erforderlich ist.
-</p>
-
-<h3>5.2 Inhalte der Anwendung</h3>
-<p>
-  Der Code, das Design und die Funktionalität der Anwendung sind durch das Urheberrecht und andere Gesetze zum Schutz
-  geistigen Eigentums geschützt. Du darfst die Anwendung ohne Erlaubnis nicht kopieren, verändern oder weiterverbreiten.
-</p>
-
-<h3>5.3 Inhalte Dritter</h3>
-<p>
-  Du bist dafür verantwortlich, sicherzustellen, dass du das Recht hast, Inhalte hochzuladen, die geistiges Eigentum
-  Dritter enthalten, einschließlich Fotos von Klettergebieten, die sich auf Privatgelände befinden können.
-</p>
-
-<h2>6. Datenschutz</h2>
-<p>
-  Dein Datenschutz ist uns wichtig. In unserer
-  <a href="/legal/privacy">Datenschutzerklärung</a>
-  erfährst du, wie wir deine personenbezogenen Daten erheben, verwenden und schützen.
-</p>
-
-<h2>7. Haftungsausschluss zur Klettersicherheit</h2>
-
-<div class="card preset-filled-warning-500 my-4 p-4">
-  <h4 class="h4 mt-0 mb-2">⚠️ Wichtiger Sicherheitshinweis</h4>
-  <p class="mb-0">
-    <strong>Klettern ist von Natur aus gefährlich und kann zu schweren Verletzungen oder zum Tod führen.</strong>
-    Die in dieser Anwendung bereitgestellten Informationen dienen nur als Referenz und sollten nicht deine einzige
-    Quelle für Kletterinformationen sein.
-  </p>
-</div>
-
-<p>Du erkennst an, dass:</p>
-<ul>
-  <li>Schwierigkeitsgrade und Beschreibungen ungenau oder veraltet sein können</li>
-  <li>Sich die Felsbedingungen ändern und gefährlich werden können</li>
-  <li>Der Zugang zu Klettergebieten eingeschränkt oder verboten sein kann</li>
-  <li>Du auf eigene Gefahr kletterst und für deine Sicherheit verantwortlich bist</li>
-  <li>Du alle Informationen eigenständig überprüfen solltest</li>
-  <li>Du örtliche Zugangsbeschränkungen und Privateigentum respektieren solltest</li>
+  <li>richtige Registrierungsdaten anzugeben und sie aktuell zu halten</li>
+  <li>dein Passwort und dein Gerät zu sichern</li>
+  <li>die Verantwortung für das zu übernehmen, was unter deinem Konto geschieht</li>
+  <li>mir unverzüglich zu sagen, wenn jemand anderes es benutzt hat</li>
 </ul>
 
-<h2>8. Gewährleistungsausschluss</h2>
-<p>
-  Die Anwendung wird „WIE BESEHEN“ und „WIE VERFÜGBAR“ ohne jegliche ausdrückliche oder stillschweigende Gewährleistung
-  bereitgestellt, einschließlich, aber nicht beschränkt auf:
-</p>
+<p>Du darfst nicht:</p>
 <ul>
-  <li>Marktgängigkeit oder Eignung für einen bestimmten Zweck</li>
-  <li>Richtigkeit oder Vollständigkeit von Informationen</li>
-  <li>Unterbrechungsfreien oder fehlerfreien Betrieb</li>
-  <li>Sicherheit der Datenübertragung oder -speicherung</li>
-</ul>
-
-<h2>9. Haftungsbeschränkung</h2>
-<p>
-  <strong>
-    Im größtmöglichen gesetzlich zulässigen Umfang haften wir nicht für direkte, indirekte, beiläufige, Folge- oder
-    Strafschäden
-  </strong>
-  , die sich ergeben aus oder in Zusammenhang stehen mit:
-</p>
-<ul>
-  <li>Deiner Nutzung der Anwendung</li>
-  <li>Kletteraktivitäten oder Entscheidungen auf Grundlage von Informationen aus der Anwendung</li>
-  <li>Datenverlust oder Dienstunterbrechungen</li>
-  <li>Fehlern oder Ungenauigkeiten in Routeninformationen</li>
-  <li>Unbefugtem Zugriff auf dein Konto oder deine Daten</li>
-</ul>
-
-<h2>10. Freistellung</h2>
-<p>
-  Du verpflichtest dich, den Eigentümer/Betreiber der Anwendung von allen Ansprüchen, Schäden oder Aufwendungen
-  freizustellen und schadlos zu halten, die entstehen aus:
-</p>
-<ul>
-  <li>Deiner Nutzung der Anwendung</li>
-  <li>Deinem Verstoß gegen diese Bedingungen</li>
-  <li>Deiner Verletzung von Rechten Dritter</li>
-  <li>Inhalten, die du hochlädst oder teilst</li>
-</ul>
-
-<h2>11. Kontokündigung</h2>
-<p>Wir behalten uns das Recht vor, dein Konto zu sperren oder zu kündigen, wenn du:</p>
-<ul>
-  <li>Gegen diese Nutzungsbedingungen verstößt</li>
-  <li>Dich missbräuchlich oder schädigend verhältst</li>
-  <li>Unangemessene oder illegale Inhalte hochlädst</li>
-  <li>Versuchst, die Sicherheit der Anwendung zu gefährden</li>
-</ul>
-<p>Du kannst dein Konto jederzeit über die Einstellungen der Anwendung löschen.</p>
-
-<h2>12. Aufbewahrung und Löschung von Daten</h2>
-<p>
-  Bei der Löschung deines Kontos entfernen wir deine personenbezogenen Daten gemäß unserer Datenschutzerklärung.
-  Bestimmte Informationen können aus rechtlichen oder technischen Gründen aufbewahrt werden, wie in unserer
-  Datenschutzerklärung beschrieben.
-</p>
-
-<h2>13. Verfügbarkeit des Dienstes</h2>
-<p>Als Hobbyprojekt können wir nicht garantieren:</p>
-<ul>
-  <li>Durchgehende Verfügbarkeit des Dienstes</li>
-  <li>Regelmäßige Updates oder Wartung</li>
-  <li>Reaktionszeiten des technischen Supports</li>
-  <li>Langfristige Verfügbarkeit des Dienstes</li>
-</ul>
-
-<h2>14. Änderungen der Bedingungen</h2>
-<p>
-  Wir können diese Nutzungsbedingungen von Zeit zu Zeit aktualisieren. Über wesentliche Änderungen informieren wir die
-  Nutzer, indem wir das Datum „Zuletzt aktualisiert“ anpassen und einen Hinweis in der Anwendung veröffentlichen. Die
-  fortgesetzte Nutzung der Anwendung nach Änderungen gilt als Annahme der neuen Bedingungen.
-</p>
-
-<h2>15. Anwendbares Recht</h2>
-<p>
-  Diese Bedingungen unterliegen dem Recht von [Gerichtsstand] und werden in Übereinstimmung damit ausgelegt. Alle
-  Streitigkeiten werden vor den Gerichten von [Gerichtsstand] beigelegt.
-</p>
-
-<h2>16. Salvatorische Klausel</h2>
-<p>
-  Sollte sich eine Bestimmung dieser Bedingungen als undurchsetzbar erweisen, bleiben die übrigen Bestimmungen in vollem
-  Umfang gültig und wirksam.
-</p>
-
-<h2>17. Kontaktinformationen</h2>
-<p>Wenn du Fragen zu diesen Nutzungsbedingungen hast, kontaktiere uns bitte:</p>
-<ul>
+  <li>deine Zugangsdaten weitergeben oder eine andere Person dein Konto nutzen lassen</li>
+  <li>ein Konto im Namen einer anderen Person anlegen</li>
   <li>
-    <strong>E-Mail:</strong>
-    info@grnyte.rocks
-  </li>
-  <li>
-    <strong>Betreff:</strong>
-    Anfrage zu den Nutzungsbedingungen
+    ein zweites Konto führen, um den Ausschluss aus einer Region oder die Beendigung eines Kontos nach Abschnitt 11 zu
+    umgehen
   </li>
 </ul>
 
-<hr class="my-8" />
+<p>
+  Ein Konto zu erstellen öffnet dir keine Region. Du siehst eine Region, wenn ihr Admin dich einlädt oder wenn du selbst
+  eine anlegst. Abschnitt 15 behandelt, was der Admin einer Region entscheidet.
+</p>
 
-<p class="text-sm opacity-75">
-  Diese Nutzungsbedingungen sollen sowohl die Nutzer als auch die Anwendung schützen und tragen den inhärenten Risiken
-  von Kletteraktivitäten Rechnung. Durch die Nutzung der Anwendung erkennst du an, dass du diese Bedingungen verstehst
-  und akzeptierst.
+<p>
+  In der App gibt es noch keine Schaltfläche zum Löschen. Sag mir Bescheid, dann schließe ich dein Konto. Das schwächt
+  dein Recht nicht: Artikel 17 DSGVO gibt dir die Löschung unabhängig davon, ob es dafür eine Oberfläche gibt. Abschnitt
+  19 behandelt, was die Löschung mit dem macht, was du eingestellt hast. Ich kann ein Konto nach Abschnitt 11 sperren
+  oder beenden, und ich sage dir nach Abschnitt 12, warum.
+</p>
+
+<h2>4. Deine Inhalte bleiben deine</h2>
+
+<p>Was du einstellst, gehört dir, und nichts in diesen Bedingungen ändert daran etwas.</p>
+
+<p>
+  Fotos, Videos, Topo-Linien, Routennamen, Schwierigkeitsgrade, Beschreibungen, Begehungen, Kommentare und Erwähnungen
+  anderer Nutzer sind deine. Ich beanspruche daran kein Eigentum und erwerbe keine ausschließlichen Rechte. Nach
+  Paragraph 29 Abs. 1 des Urheberrechtsgesetzes (UrhG) ist das Urheberrecht ohnehin nicht übertragbar: Was du mir
+  einräumst, ist ein einfaches Nutzungsrecht. Abschnitt 5 zählt es Punkt für Punkt auf, es reicht so weit, wie der
+  Betrieb des Dienstes es braucht, und keinen Schritt weiter.
+</p>
+
+<p>
+  Ein Foto oder ein Video kann Metadaten im Exchangeable Image File Format (EXIF) enthalten, darunter die Koordinaten
+  der Aufnahme. Wer die Datei einstellt, stellt diese Metadaten mit ein. Abschnitt 3 der
+  <a href="{privacyHref}">Datenschutzerklärung</a>
+  behandelt, was damit geschieht.
+</p>
+
+<h2>5. Das Nutzungsrecht, das du mir einräumst</h2>
+
+<p>
+  Du räumst mir ein eng begrenztes Nutzungsrecht ein, Punkt für Punkt aufgezählt, und es dauert nur so lange wie deine
+  Inhalte.
+</p>
+
+<p>
+  Lädst du Fotos, Topo-Zeichnungen, Routennamen, Schwierigkeitsgrade, Beschreibungen oder andere Inhalte hoch
+  („Nutzerinhalte“), behältst du daran alle Rechte. Du räumst mir die folgenden Rechte ein, und nur diese, solange deine
+  Nutzerinhalte auf dem Dienst liegen:
+</p>
+<ul>
+  <li>
+    (a) die Nutzerinhalte auf meinen Servern und denen meiner Auftragsverarbeiter für Hosting, Speicherung und
+    Auslieferung zu vervielfältigen, die Abschnitt 5 der
+    <a href="{privacyHref}">Datenschutzerklärung</a>
+    nennt
+  </li>
+  <li>
+    (b) die Nutzerinhalte den anderen Mitgliedern der privaten Region zugänglich zu machen, in der du sie eingestellt
+    hast
+  </li>
+  <li>
+    (c) technische Anpassungen vorzunehmen, die der Betrieb des Dienstes vernünftigerweise erfordert: Größenänderung,
+    Formatumwandlung, Erzeugung von Vorschaubildern und die Darstellung deiner gezeichneten Topo-Linien als Überlagerung
+    auf dem zugehörigen Bild
+  </li>
+  <li>
+    (d) die Rechte (a) bis (c) an die oben genannten Auftragsverarbeiter unterzulizenzieren, und nur diese Rechte,
+    ausschließlich zum Betrieb des Dienstes
+  </li>
+</ul>
+
+<p>
+  Recht (b) reicht nur bis zu den Mitgliedern der Region, in der du eingestellt hast, denn die RLS hält diese Grenze.
+  Nichts an diesem Nutzungsrecht erlaubt mir, deine Inhalte ins offene Web zu stellen. Abschnitt 2 sagt, warum: Einen
+  öffentlichen Modus gibt es nicht, und es wird keinen geben.
+</p>
+
+<p>
+  Dieses Nutzungsrecht endet, wenn du den einzelnen Inhalt oder dein Konto löschst. Ausgenommen sind Routen- und
+  Topodaten, auf die sich andere Nutzer mit einer Begehung gestützt haben: Sie können als gemeinsame Routeninformation
+  verfügbar bleiben, wie Abschnitt 19 beschreibt.
+</p>
+
+<p>
+  Jede Nutzung deiner Nutzerinhalte in meinem eigenen Marketing oder in Werbematerial braucht deine gesonderte, auf den
+  Einzelfall bezogene und widerrufliche Einwilligung, erteilt zu dem Zeitpunkt, zu dem diese Nutzung vorgeschlagen wird.
+</p>
+
+<h2>6. Was du zusicherst, wenn du etwas einstellst</h2>
+
+<p>Alles, was du einstellst, muss dir zustehen, und dieser Abschnitt ist das, was du dabei jedes Mal zusicherst.</p>
+
+<p>Für jeden Nutzerinhalt, den du einstellst, sicherst du zu:</p>
+<ul>
+  <li>dass du ihn selbst geschaffen hast oder die Rechte hältst, ihn hier einzustellen</li>
+  <li>
+    dass er niemandes Urheberrecht, Markenrecht, Persönlichkeitsrecht oder Datenschutzrechte verletzt, auch nicht die
+    Rechte einer Person, die auf einem Foto oder in einem Video zu sehen ist
+  </li>
+  <li>
+    dass du das Foto selbst aufgenommen hast oder die Erlaubnis des Fotografen hast, es hier einzustellen und
+    Topo-Linien darüber zeichnen zu lassen
+  </li>
+  <li>
+    dass du den gezeigten Ort rechtmäßig betreten hast und dass die Erfassung seiner Lage, seines Zustiegs und seiner
+    Fotos gegen keine Zugangsvereinbarung, keine Schutzauflage und kein dir bekanntes Recht eines Grundstückseigentümers
+    verstößt
+  </li>
+  <li>
+    dass du ihn nicht aus einem veröffentlichten Kletterführer, einem gedruckten Topo, einer Website oder einer anderen
+    App übernommen hast, weder durch Scannen noch durch Abfotografieren, Abpausen oder Abtippen
+  </li>
+</ul>
+
+<p>
+  Eine Topo-Linie über einem Foto ist eine Bearbeitung dieses Fotos nach Paragraph 23 UrhG, über ein fremdes Foto zu
+  zeichnen braucht deshalb die Einwilligung des Fotografen. Jedes Foto ist nach Paragraph 72 UrhG als Lichtbild
+  geschützt, unabhängig von seiner künstlerischen Höhe. Die Aufnahme eines Felsens, die ein anderes Mitglied hochgeladen
+  hat, ist damit kein freies Material, das du überzeichnen oder weiterverwenden darfst. Frag die Person, die sie gemacht
+  hat.
+</p>
+
+<p>
+  Eine private Region ändert an der urheberrechtlichen Lage nichts. Paragraph 15 Abs. 3 UrhG stellt darauf ab, ob die
+  Personen, die ein Werk empfangen, persönlich miteinander verbunden sind, nicht darauf, wer die Zugangskontrolle hält.
+  Eine Region von Kletterern, die ein Sport verbindet, aber keine persönliche Beziehung, ist in diesem Sinne
+  wahrscheinlich eine Öffentlichkeit. Gescannte oder abgetippte Führerseiten gehören nicht hierher, und eine
+  Einladungsliste macht sie nicht zulässig.
+</p>
+
+<p>
+  Ruht der Zugang zu einem Fels auf einer Vereinbarung mit einem Eigentümer, einer Gemeinde oder einer
+  Naturschutzbehörde, dann bist du die Person, die weiß, was darin steht. Halte die Einschränkung am Felsen fest, damit
+  die Leute, mit denen du kletterst, sie vor der Fahrt lesen. Abschnitt 14 ist der Weg für alle, die mit dem Grundstück
+  zu tun haben und einem Eintrag widersprechen.
+</p>
+
+<p>Bist du dir nicht sicher, ob du etwas einstellen darfst, dann stelle es nicht ein.</p>
+
+<h2>7. Inhalte, die du nicht einstellen darfst</h2>
+
+<p>Manche Inhalte sind ausnahmslos verboten. Die Liste unten ist meine eigene Regel und kein Zitat eines Gesetzes.</p>
+
+<p>Du darfst Folgendes nicht einstellen, hochladen oder verlinken:</p>
+<ul>
+  <li>
+    Darstellungen des sexuellen Missbrauchs von Kindern und jeden Inhalt, der ein Kind sexuell ausbeutet oder
+    missbraucht
+  </li>
+  <li>Morddrohungen, Belästigung, Nachstellung und Inhalte, die eine Person in Furcht vor Gewalt versetzen</li>
+  <li>
+    Inhalte, die zu Gewalt aufrufen oder zu Hass aus rassistischen Gründen oder wegen Religion, sexueller
+    Orientierung, Behinderung oder Transidentität aufstacheln
+  </li>
+  <li>
+    Inhalte, die eine erwachsene Person sexuell ausbeuten, extreme Pornografie und intime Aufnahmen, die ohne
+    Einwilligung der gezeigten Person veröffentlicht werden
+  </li>
+  <li>Inhalte, die zum Suizid oder zu schwerer Selbstverletzung aufrufen oder dabei helfen</li>
+  <li>alle sonstigen rechtswidrigen Inhalte</li>
+</ul>
+
+<p>Über die genannten Kategorien hinaus darfst du nicht:</p>
+<ul>
+  <li>
+    personenbezogene Daten einer anderen Person ohne deren Einverständnis einstellen, auch kein Foto, dem sie nicht
+    zugestimmt hat
+  </li>
+  <li>dich als eine andere Person ausgeben oder eine fremde Begehung als deine ausgeben, um zu täuschen</li>
+  <li>Werbung, Spam oder Massenbeiträge einstellen</li>
+  <li>den Dienst, seine Datenbank oder ein anderes Konto angreifen oder die Zugangskontrolle der Regionen umgehen</li>
+  <li>
+    eine Region, in die du eingeladen wurdest, im Ganzen exportieren oder auslesen, um sie außerhalb dieser Region zu
+    nutzen
+  </li>
+</ul>
+
+<h2>8. Was ich prüfe und was nicht</h2>
+
+<p>
+  Nichts hier wird vor dem Erscheinen geprüft, und ein freiwilliges Eingreifen bei einem Inhalt sagt nichts über einen
+  anderen.
+</p>
+
+<p>
+  Ich prüfe Nutzerinhalte nicht vor der Veröffentlichung, und nach Artikel 8 DSA darf mir keine allgemeine
+  Überwachungspflicht auferlegt werden. Nicht hinzusehen ist zugleich das, was mir das Haftungsprivileg für Hosting aus
+  Artikel 6 Abs. 1 DSA erhält, denn das hängt an der tatsächlichen Kenntnis. Ich behalte mir das Recht
+  vor, ohne dazu verpflichtet zu sein, Nutzerinhalte zu entfernen, einzuschränken oder anders gegen sie vorzugehen, wenn
+  sie gegen diese Bedingungen oder gegen geltendes Recht verstoßen, sei es auf eine Meldung nach Abschnitt 9 hin oder
+  von mir aus, auch durch automatische Erkennung eindeutig rechtswidrigen Materials wie Spam oder Darstellungen des
+  sexuellen Missbrauchs von Kindern.
+</p>
+
+<p>
+  Ein solches freiwilliges Eingreifen heißt nicht, dass ich andere Inhalte auf dem Dienst geprüft, gebilligt, bestätigt
+  oder mir zu eigen gemacht habe. Ich kennzeichne keinen Nutzerinhalt als geprüft, bestätigt, kontrolliert oder sicher
+  und stelle ihn auch sonst nicht so dar.
+</p>
+
+<p>
+  Dieser Vorbehalt nennt ein Recht, kein Mittel, das ich heute liefern kann. Die Software hat keinen
+  Sichtbarkeitsschalter an einem Gebiet, einem Block oder einer Route, der einzige Weg, einen Eintrag aus einer Region
+  zu nehmen, ist deshalb die Löschung. Text zu einem Eintrag hinzufügen kann ich, so kommt ein Warnhinweis dorthin,
+  verbergen und behalten kann ich ihn nicht. Abschnitt 19 führt das aus.
+</p>
+
+<h2>9. Rechtswidrige Inhalte melden</h2>
+
+<p>Jeder kann Inhalte melden, und dieser Abschnitt sagt, was ich mit einer Meldung mache.</p>
+
+<p>
+  Die
+  <a href="{reportHref}">Meldeseite</a>
+  nimmt eine Meldung über Inhalte entgegen, die du für rechtswidrig hältst, auch über eine Verletzung deines
+  Urheberrechts, eine Verletzung deines Persönlichkeitsrechts oder die Veröffentlichung eines Ortes ohne Erlaubnis des
+  Grundstückseigentümers. Sie sagt auch, was in eine Meldung gehört.
+</p>
+
+<p>
+  Erhalte ich eine hinreichend genaue Meldung, leite ich sie an die für den Inhalt verantwortliche Person weiter und
+  gebe ihr eine angemessene Gelegenheit zur Stellungnahme, deren Frist in der Weiterleitung steht. Sie hat sieben Tage
+  Zeit zu antworten, gerechnet ab dem Tag, an dem ich die Weiterleitung verschicke. Die Frist läuft gegen die Person,
+  die den Inhalt eingestellt hat, nicht gegen mich, und gilt deshalb unabhängig davon, ob ich gerade am Schreibtisch
+  sitze. Antwortet sie bis zum genannten Termin nicht, behandle ich die Meldung als begründet und lösche den Inhalt.
+  Antwortet sie, wäge ich beide Darstellungen ab, samt den Nachweisen, die ich vernünftigerweise anfordere, bevor ich
+  entscheide.
+</p>
+
+<p>
+  Die Löschung ist das Ergebnis, das ich zusagen kann, und darüber hinaus sage ich nichts zu, aus dem Grund, den
+  Abschnitt 8 nennt. Lösche ich einen Inhalt, teile ich der betroffenen Person die Entscheidung mit, ihre Begründung und
+  den Weg zur Beschwerde, wie Abschnitt 12 ausführt.
+</p>
+
+<p>
+  Artikel 16 des Gesetzes über digitale Dienste (Digital Services Act, DSA) verlangt diesen Kanal, und das ist der
+  Kanal, den ich betreibe. Wiederholte, für begründet befundene Meldungen über Urheberrechtsverletzungen gegen dasselbe
+  Konto beenden dieses Konto, nach Abschnitt 11.
+</p>
+
+<h2>10. Einer Meldung über deine Inhalte widersprechen</h2>
+
+<p>
+  Handle ich auf eine Meldung über deine Inhalte hin und war die Meldung falsch, sag es mir, und ich sehe es mir erneut
+  an.
+</p>
+
+<p>Schreib an die Adresse in Abschnitt 22 und gib an:</p>
+<ul>
+  <li>welchen Inhalt ich gelöscht habe und wo er stand</li>
+  <li>warum die Meldung falsch war, etwa welche Rechte du hältst oder welche Erlaubnis du hast</li>
+  <li>deine Kontaktdaten</li>
+  <li>eine nach bestem Wissen abgegebene Erklärung, dass deine Angaben richtig sind</li>
+</ul>
+
+<p>
+  Ich beantworte einen Widerspruch innerhalb von vierzehn Tagen, oder ich sage dir innerhalb dieser Frist, warum es
+  länger dauert. Zeigt der Widerspruch, dass die Löschung falsch war, stelle ich den Inhalt wieder her, soweit das
+  technisch möglich ist. Die Sicherungen hinter dem Dienst sind dafür da, ihn nach einem Ausfall zurückzuholen, nicht
+  dafür, eine einzelne Löschung rückgängig zu machen; ein einzelnes Stück wiederherzustellen kann deshalb auch
+  innerhalb der Aufbewahrungsfrist unmöglich sein.
+</p>
+
+<p>
+  Bleiben du und die meldende Person bei euren Standpunkten, ist der Streit einer zwischen euch beiden. Ich entscheide,
+  was auf dem Dienst bleibt, und entscheide nichts darüber, wem was gehört. Keiner von euch verliert den Weg zum
+  Gericht.
+</p>
+
+<h2>11. Konten, die wiederholt Rechte verletzen</h2>
+
+<p>Ein Konto, das wiederholt rechtsverletzende Inhalte einstellt, verliert den Zugang.</p>
+
+<p>
+  Wiederholte, für begründet befundene Meldungen über rechtswidrige Urheberrechtsverletzungen gegen dasselbe Konto
+  führen zur Beendigung dieses Kontos, entschieden von Fall zu Fall statt anhand einer festen Zahl. Für begründet
+  befunden heißt, dass ich die Meldung nach dem Verfahren aus Abschnitt 9 als berechtigt entschieden habe, und es heißt
+  nichts anderes:
+</p>
+<ul>
+  <li>eine Meldung, die ich zurückgewiesen habe, zählt nicht</li>
+  <li>eine Meldung, die die meldende Person zurückgezogen hat, zählt nicht</li>
+  <li>eine Entscheidung, die ich nach Abschnitt 10 oder Abschnitt 13 aufgehoben habe, zählt nicht</li>
+</ul>
+
+<p>
+  Section 512(i) des Digital Millennium Copyright Act (DMCA) der Vereinigten Staaten verlangt von einem Dienst eine
+  Richtlinie dieser Art und dass er seine Nutzer darüber unterrichtet. Dieser Abschnitt ist diese Richtlinie, auch wenn
+  ich beim United States Copyright Office keinen designated agent registriert habe und mich nicht auf den Safe Harbour
+  nach Section 512(c) berufe. Ich beende auch ein Konto, das wiederholt Inhalte aus den Kategorien in Abschnitt 7
+  einstellt.
+</p>
+
+<h2>12. Die Begründung, die du bekommst</h2>
+
+<p>Gehe ich gegen deinen Inhalt oder dein Konto vor, bekommst du eine Begründung.</p>
+
+<p>Artikel 17 DSA verlangt sie. Sie nennt:</p>
+<ul>
+  <li>was ich getan habe, für welchen Inhalt oder welches Konto es gilt, wo es gilt und wie lange</li>
+  <li>
+    die Tatsachen und Umstände, auf die ich mich gestützt habe, und ob eine Meldung oder meine eigene Erkennung die
+    Entscheidung ausgelöst hat
+  </li>
+  <li>ob ich automatisierte Mittel eingesetzt habe, um den Inhalt zu erkennen oder die Entscheidung zu treffen</li>
+  <li>die Rechtsgrundlage, wenn der Inhalt rechtswidrig war</li>
+  <li>
+    die vertragliche Grundlage, wenn er gegen diese Vereinbarung verstoßen hat, und zwar unter Nennung der Bestimmung,
+    die ich angewendet habe
+  </li>
+  <li>wie du gegen die Entscheidung Beschwerde einlegst, nach Abschnitt 13</li>
+</ul>
+
+<p>
+  Artikel 17 Abs. 3 lit. f DSA nennt ein internes Beschwerdemanagement als einen Weg der Abhilfe. Eine Beschwerde nach
+  Abschnitt 13 biete ich aus eigener Entscheidung an, nicht weil das Gesetz mich dazu verpflichtet, deshalb steht im
+  Artikel „soweit anwendbar“.
+</p>
+
+<p>
+  Auch ein Admin einer Region kann Inhalte löschen, die ein anderes Mitglied eingestellt hat, nach den Rechten, die
+  Abschnitt 15 beschreibt. Auch das ist eine Beschränkung, und auch dafür ist dieselbe Begründung geschuldet.
+</p>
+
+<p>
+  Eine Einschränkung solltest du heute kennen. Dieser zweite Weg benachrichtigt dich nicht von selbst: die App hält
+  fest, dass gelöscht wurde, aber nicht, wen es betrifft, dich erreicht also nichts automatisch. Ist etwas von dir weg
+  und niemand hat dir gesagt warum, schreib mir, dann sage ich dir, was passiert ist und wer es war.
+</p>
+
+<h2>13. Beschwerde gegen eine Entscheidung</h2>
+
+<p>
+  Du kannst gegen eine Entscheidung von mir Beschwerde einlegen, und ich biete das an, weil es fair ist, nicht weil ein
+  Gesetz mich dazu verpflichtet.
+</p>
+
+<p>
+  Schick die Beschwerde an die Adresse in Abschnitt 22. Benenne die Entscheidung, gegen die du dich wendest, und sag,
+  warum sie falsch war. Die Beschwerde muss innerhalb eines Monats nach der Entscheidung bei mir eingehen, und ich
+  beantworte sie innerhalb von vierzehn Tagen, oder ich sage dir innerhalb dieser Frist, warum es länger dauert.
+</p>
+
+<p>
+  Ich sehe mir die Entscheidung selbst noch einmal an. Ein eigenes Moderationsteam gibt es hier nicht, und ich tue nicht
+  so, als gäbe es eines. Zeigt die Beschwerde, dass ich falsch lag, hebe ich die Entscheidung auf und stelle wieder her,
+  was ich entfernt habe, soweit das technisch möglich ist.
+</p>
+
+<p>
+  Artikel 20 DSA, die Pflicht zu einem internen Beschwerdemanagement, trifft Anbieter von Online-Plattformen. {name}
+  ist keine. Eine Online-Plattform verbreitet Informationen öffentlich, was die Artikel 3 lit. i und lit. k DSA als das
+  Zugänglichmachen für eine potenziell unbegrenzte Zahl Dritter bestimmen, und Erwägungsgrund 14 klärt den Fall eines
+  Dienstes wie diesem: Sind Informationen erst nach Aufnahme in eine Gruppe zugänglich, gelten sie nur dann als
+  öffentlich verbreitet, wenn die Aufnahme automatisch erfolgt, ohne dass ein Mensch über den Zugang entscheidet. Der
+  Admin einer Region wählt jedes Mitglied selbst aus, die Artikel 19 bis 24 erreichen diesen Dienst also gar nicht. Die
+  Ausnahme in Artikel 19 für Kleinstunternehmen und kleine Unternehmen wäre eine zweite Antwort, und ich brauche sie
+  nicht. Dieser Kanal ist eine Produktentscheidung, und ihn anzubieten macht daraus keine Rechtspflicht. Dein Weg zum
+  Gericht bleibt so oder so unberührt.
+</p>
+
+<h2>14. Einwände zu Grundstück, Zugang und Eigentum</h2>
+
+<p>
+  Hältst oder verwaltest du Rechte an Grund und Boden, der in {name} auftaucht, bekommst du einen eigenen benannten
+  Kanal, getrennt von Abschnitt 9.
+</p>
+
+<p>
+  Ein konkreter, glaubwürdiger Einwand einer Person mit Bezug zum Grundstück ist ein Grund zu handeln, und ich handle
+  darauf hin. Ich antworte darauf nicht mit einem Verweis auf diese Bedingungen: Allgemeine Bedingungen ersetzen nicht
+  den Umgang mit einem konkreten Einwand. Richtet sich der Einwand gegen den Eintrag selbst, ist das Mittel, das die
+  Software hat, die Löschung, und ich lösche den Eintrag. Willst du lieber, dass Kletterer die Einschränkung lesen,
+  statt dass der Fels verschwindet, sag es mir, und ich schreibe sie stattdessen in den Eintrag.
+</p>
+
+<p>
+  Die
+  <a href="{reportHref}">Meldeseite</a>
+  sagt, was du schicken sollst, was ich damit mache und wie lange ich brauche.
+</p>
+
+<h2>15. Private Regionen und die Leute, die sie führen</h2>
+
+<p>Jede Region hat Admins und Maintainer, und was sie entscheiden, regelt, wer darin was sieht.</p>
+
+<p>Der Admin einer Region:</p>
+<ul>
+  <li>lädt Mitglieder ein, entfernt sie und entscheidet, wer welche Rolle hat</li>
+  <li>entscheidet, was die Region sammelt und wie sie geordnet ist</li>
+  <li>trägt die Verantwortung dafür, dass auf der Einladungsliste nur die Leute stehen, die dorthin gehören</li>
+  <li>
+    kann jeden Fels, jeden Block, jede Route und jedes Topo der Region bearbeiten und löschen, gleich wer den Eintrag
+    angelegt hat
+  </li>
+</ul>
+
+<p>
+  Ein Maintainer kann diese Einträge überall in der Region anlegen und bearbeiten. Einen Fels, einen Block oder eine
+  Route kann er nur löschen, wenn er sie selbst angelegt hat; ein Topo kann er löschen, gleich wer es gezeichnet hat.
+</p>
+
+<p>
+  Deine Begehungen stehen außerhalb der Rolle des Maintainers: Löschen kannst du sie und der Admin der Region, sonst
+  niemand. Für die Fotos und Videos an einer Begehung gilt dasselbe.
+</p>
+
+<p>
+  Die RLS setzt die Grenze zwischen Regionen durch, und sie regelt die Anwendung und ihre Nutzer. Mich regelt sie nicht.
+  {name} ist nicht Ende-zu-Ende-verschlüsselt, und ich kann technisch jede Region lesen. Abschnitt 10 der
+  <a href="{privacyHref}">Datenschutzerklärung</a>
+  sagt, was ich mit diesem Zugriff tue und was nicht, und benennt die Grenze dessen, was ich zu einer rechtmäßigen
+  Anordnung zusagen kann.
+</p>
+
+<!-- Sole controllership is the primary position; the SECOND paragraph is a fallback Article 26 GDPR
+     arrangement that bites only if a region admin is held to be a joint controller after all. Keeping it costs
+     three lines and keeps Article 26(2) met without designating users as controllers who cannot perform the
+     duties: there is no separate signed document, admins accept these terms and the terms are public.
+     Section 1.1 of the privacy notice mirrors this and cites it as "clause 15" BY NUMBER, in both locales.
+     Renumbering the sections here breaks that reference silently, with no build or type error. -->
+<p>
+  Verantwortlicher im Sinne des Artikels 4 Nr. 7 DSGVO für alles auf diesem Dienst bin ich. Der Admin einer Region
+  entscheidet, wen er einlädt und was seine Region sammelt, und tut das als Privatperson zu eigenen Zwecken. Soweit das
+  eine ausschließlich persönliche Tätigkeit ist, treffen ihn nach Artikel 2 Abs. 2 lit. c DSGVO keine Pflichten als
+  Verantwortlicher.
+</p>
+
+<p>
+  Gilt ein Admin dennoch als gemeinsam Verantwortlicher für die Entscheidung über die Aufnahme, ist dieser Absatz die
+  Vereinbarung zwischen uns nach Artikel 26 DSGVO: Ich verantworte den Dienst, die gespeicherten Daten und alles, was
+  die Software damit tut, Löschungen durch den Admin einer Region eingeschlossen; der Admin verantwortet die
+  Einladungsliste und das, was seine Region sammelt. Deine Anträge nach Kapitel III DSGVO beantworte ich in beiden
+  Fällen, weil ich derjenige bin, der an die Daten kommt, und du kannst deine Datenschutzrechte gegenüber dem Admin der
+  Region oder gegenüber mir geltend machen.
+</p>
+
+<p>
+  Verlässt du eine Region oder entfernt ein Admin dich, verlierst du den Zugang zu ihren Inhalten. Für das, was du dort
+  eingestellt hast, gilt Abschnitt 19.
+</p>
+
+<h2>16. Hinweise zur Sicherheit</h2>
+
+<p>
+  Klettern, Bouldern und verwandte Tätigkeiten sind ihrer Natur nach gefährlich. Die Angaben zu Routen, Graden und
+  Gefahren auf diesem Dienst stellen die Nutzer ein. Ich prüfe, bestätige und kontrolliere sie nicht, weder vor noch
+  nach der Veröffentlichung. Sie können unvollständig, veraltet oder falsch sein, und hier wird nichts geprüft.
+</p>
+
+<p>
+  Der
+  <a href="{disclaimerHref}">Haftungsausschluss</a>
+  behandelt, woher diese Angaben kommen, was sie dir nicht sagen können und was ein Warnhinweis bedeutet und was nicht.
+  Lies ihn, bevor du hier etwas für die Planung eines Tages am Fels nutzt.
+</p>
+
+<h2>17. Haftung</h2>
+
+<p>Meine Haftung staffelt sich danach, was ich falsch gemacht habe, und für Personenschäden ist sie nie begrenzt.</p>
+
+<p>Unbeschränkt hafte ich:</p>
+<ul>
+  <li>für die Verletzung von Leben, Körper und Gesundheit, die auf einer Pflichtverletzung von mir beruht</li>
+  <li>für Schäden, die ich vorsätzlich oder grob fahrlässig verursacht habe</li>
+  <li>
+    nach dem deutschen Produkthaftungsrecht in seiner jeweils geltenden Fassung, soweit es anwendbar ist, und im Rahmen
+    einer von mir übernommenen Garantie
+  </li>
+</ul>
+
+<p>
+  Für alle übrigen Schäden hafte ich nur bei Vorsatz und grober Fahrlässigkeit. {name} kostet nichts, und Paragraph 521
+  des Bürgerlichen Gesetzbuchs (BGB) setzt diesen Maßstab für den, der etwas verschenkt.
+</p>
+
+<p>
+  Diese Grenze hat eine Ausnahme. Verletze ich eine wesentliche Vertragspflicht, eine Kardinalpflicht also, deren
+  Erfüllung die Durchführung dieser Vereinbarung überhaupt erst möglich macht und auf deren Einhaltung du regelmäßig
+  vertraust, hafte ich auch für einfache Fahrlässigkeit. In diesem Fall ist meine Haftung auf den vorhersehbaren,
+  vertragstypischen Schaden begrenzt. Deine Daten so zu speichern, dass sie abrufbar bleiben, und Regionen voneinander
+  getrennt zu halten, sind wesentliche Pflichten in diesem Sinne.
+</p>
+
+<p>
+  Nichts in diesen Bedingungen schließt eine Haftung aus, die auszuschließen mir das Gesetz nicht erlaubt. Es gibt hier
+  keine Klausel, nach der du {name} auf eigenes Risiko nutzt, und es wird keine geben: Eine solche Klausel ist nach
+  Paragraph 309 Nr. 7 BGB unwirksam, und das deutsche Recht kennt keine geltungserhaltende Reduktion, die eine zu weit
+  gefasste Klausel auf den zulässigen Teil zurückschneiden würde.
+</p>
+
+<h2>18. Wann du mich von einem Anspruch freistellst</h2>
+
+<p>
+  Du stellst mich von einem Anspruch eines Dritten nur frei, wenn du eine der Zusicherungen aus Abschnitt 6 verletzt
+  hast und diese Verletzung den Anspruch verursacht hat.
+</p>
+
+<p>
+  In diesem Fall erstattest du mir meine angemessenen Rechtsverfolgungskosten und einen zugesprochenen Schadensersatz,
+  soweit deine Verletzung den Anspruch verursacht hat. Diese Grenzen sind der Kern dieses Abschnitts:
+</p>
+<ul>
+  <li>er gilt für die Verletzung einer Zusicherung aus Abschnitt 6 und für nichts sonst</li>
+  <li>er reicht nur so weit, wie deine Verletzung den Anspruch verursacht hat</li>
+  <li>er gilt nicht, wenn dich an der Verletzung kein Verschulden trifft</li>
+  <li>er gilt nicht für einen Anspruch, den mein eigenes Verhalten verursacht hat</li>
+</ul>
+
+<p>
+  Ich unterrichte dich unverzüglich über den Anspruch, gebe dir, was du zu seiner Abwehr brauchst, und schließe keinen
+  Vergleich ohne dein Einverständnis, wenn ich mich auf diesen Abschnitt berufe.
+</p>
+
+<h2>19. Was die Löschung mit dem Nutzungsrecht macht</h2>
+
+<p>
+  Die Löschung eines Inhalts beendet das Nutzungsrecht daran, mit einer Ausnahme für Routendaten, gegen die andere Leute
+  eine Begehung eingetragen haben.
+</p>
+
+<p>
+  Löschst du ein Foto, ein Video oder einen Kommentar, endet das Nutzungsrecht aus Abschnitt 5 für dieses Stück. Löschst
+  du dein Konto, endet es für alles, was es umfasst hat.
+</p>
+
+<p>
+  Die Ausnahme sind Routen- und Topodaten. Haben andere Mitglieder eine Begehung an einer von dir angelegten Route
+  eingetragen, bleibt der Routeneintrag als gemeinsame Routeninformation in der Region, damit ihre Logbücher ihre
+  Bedeutung behalten. Das betrifft den Eintrag selbst: seinen Namen, seinen Grad, seine Lage und die Topo-Linien auf dem
+  Bild. Es betrifft nicht deine Fotos, deine Videos und deine Kommentare.
+</p>
+
+<p>
+  Die Schließung eines Kontos läuft so, getrennt nach Art des Inhalts. Konto und Profil gehen: die E-Mail-Adresse, der
+  Anzeigename, die Anmeldedaten. Deine Begehungen, deine Kommentare und die Fotos und Videos, die du hochgeladen hast,
+  gehen mit. Einträge zu Felsen, Blöcken und Routen, die du angelegt hast, bleiben in der Region unter einer anonymen
+  Urheberschaft, denn sie sind der Kletterführer, den die anderen Mitglieder weiter nutzen, und an ihnen hängen deren
+  Begehungen. Ist die Verbindung zum Urheber getrennt, ist der Eintrag kein personenbezogenes Datum über dich mehr, dein
+  Löschanspruch aus Artikel 17 DSGVO ist damit vollständig erfüllt.
+</p>
+
+<p>
+  Die Löschung ist der einzige Weg, einen Eintrag aus einer Region zu nehmen. Es gibt keine Sichtbarkeitseinstellung für
+  ein Gebiet, einen Block oder eine Route, ich kann einen Eintrag also nicht verbergen und behalten: Ich lösche ihn oder
+  ich lasse ihn stehen. Text zu einem Eintrag hinzuzufügen ist möglich, und genau das ist ein Warnhinweis. Abschnitt 7
+  der
+  <a href="{privacyHref}">Datenschutzerklärung</a>
+  behandelt Aufbewahrungsfristen und Sicherungen.
+</p>
+
+<h2>20. Anwendbares Recht und Gerichtsstand</h2>
+
+<p>Für diese Vereinbarung gilt deutsches Recht, und deine örtlichen Verbraucherschutzrechte überstehen diese Wahl.</p>
+
+<p>
+  Bist du Verbraucher im Sinne des Paragraphen 13 BGB, nimmt dir diese Rechtswahl nicht den Schutz der zwingenden
+  Verbraucherschutzvorschriften des Staates, in dem du deinen gewöhnlichen Aufenthalt hast. Artikel 6 Abs. 2 der
+  Rom-I-Verordnung, Verordnung (EG) Nr. 593/2008, erhält sie. Wohnst du außerhalb der Europäischen Union, können auch
+  dort zwingende Verbraucherschutzvorschriften für dich gelten, und ich behaupte nichts anderes.
+</p>
+
+<p>
+  Du kannst mich an dem Gericht deines eigenen Wohnsitzes verklagen. Ich kann dich als Verbraucher nur an dem Gericht
+  deines Wohnsitzes verklagen. Für Verbraucher in der Europäischen Union folgt das aus den Artikeln 17 bis 19 der
+  Brüssel-Ia-Verordnung, Verordnung (EU) Nr. 1215/2012.
+</p>
+
+<p>
+  Bist du kein Verbraucher, ist der Gerichtsstand mein allgemeiner Gerichtsstand nach deutschem Recht, also mein
+  Wohnsitz und nicht die im Impressum veröffentlichte Anschrift. Diese Anschrift ist eine gemietete Zustellanschrift und
+  verlegt meinen Wohnsitz nicht. Das
+  <a href="{imprintHref}">Impressum</a>
+  nennt meine Haltung zur Verbraucherschlichtung.
+</p>
+
+<h2>21. Änderungen dieser Bedingungen</h2>
+
+<p>
+  Ich aktualisiere diese Bedingungen, wenn sich der Dienst ändert oder das Recht, und das Datum oben hält die letzte
+  Änderung fest.
+</p>
+
+<p>
+  Betrifft eine Änderung deine Rechte oder deine Pflichten, schreibe ich dir eine E-Mail. Es gilt die Fassung auf dieser
+  Seite, und ich halte eine Änderung dafür nicht vorher zurück. Artikel 14 Abs. 2 DSA verlangt, dass ich dich über eine
+  wesentliche Änderung unterrichte, und genau das ist das hier. Nutzt du {name} weiter, nachdem ich dir Bescheid gesagt
+  habe, nimmst du die neue Fassung damit an.
+</p>
+
+<p>
+  Nichts davon wirkt zurück. Eine Änderung bindet dich ab dem Zeitpunkt, zu dem ich dir davon schreibe, nie für etwas,
+  das du vorher getan hast. Willst du sie nicht annehmen, schließe dein Konto: Der Dienst ist kostenlos und hat keine
+  Mindestlaufzeit, das Gehen kostet dich also nichts. Sprachliche Korrekturen und Klarstellungen, die weder deine Rechte
+  noch deine Pflichten berühren, kommen ohne E-Mail hinein.
+</p>
+
+<p>
+  Du kannst diese Vereinbarung jederzeit beenden, indem du dein Konto löschst. Schweigen werte ich nicht als Zustimmung
+  zu einer Änderung, die dich schlechter stellt. Braucht eine Änderung deine Zustimmung, frage ich dich danach.
+</p>
+
+<h2>22. Wer {name} betreibt und wohin du schreibst</h2>
+
+<p>
+  Eine Privatperson mit Wohnsitz in Deutschland betreibt {name}. Es gibt kein Unternehmen, keine Angestellten und keine
+  Einnahmen.
+</p>
+
+<p>
+  Das
+  <a href="{imprintHref}">Impressum</a>
+  nennt meinen Namen, meine Anschrift und die Kontaktstellen, die das Digitale-Dienste-Gesetz (DDG) und der
+  DSA verlangen.
+</p>
+
+<p>
+  <strong>Mitteilungen nach diesen Bedingungen:</strong>
+  Meldungen nach Abschnitt 9, Widersprüche nach Abschnitt 10, Beschwerden nach Abschnitt 13 und Einwände zu Grundstücken
+  nach Abschnitt 14 gehen an
+  <a href="mailto:{reportEmail}">{reportEmail}</a>
+  . Die
+  <a href="{reportHref}">Meldeseite</a>
+  nimmt dieselben Mitteilungen entgegen.
+</p>
+
+<p>
+  Ein Mensch liest dieses Postfach. Es gibt kein Ticketsystem, keine automatische Antwort und keine Supportschlange.
+</p>
+
+<h2>23. Wenn ein Teil davon unwirksam ist</h2>
+
+<p>
+  Hält ein Gericht einen Teil dieser Bedingungen für unwirksam, bleibt der Rest in Kraft. An die Stelle des unwirksamen
+  Teils tritt, was das Gesetz dafür vorsieht, und keine von mir umgeschriebene Fassung.
+</p>
+
+<p>
+  Diese Bedingungen erscheinen auf Deutsch und auf Englisch. Weichen die Fassungen voneinander ab, gilt die deutsche,
+  wobei sie dir keinen Schutz nimmt, den die Fassung in deiner eigenen Sprache dir gibt.
 </p>

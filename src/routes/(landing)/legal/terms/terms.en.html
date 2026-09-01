@@ -1,235 +1,661 @@
-<h1>Terms of Service</h1>
+<h1>Terms of service</h1>
 
 <p>
-  <strong>Effective Date:</strong>
-  January 1, 2025
-</p>
-<p>
-  <strong>Last Updated:</strong>
-  January 1, 2025
-</p>
-
-<h2>1. Acceptance of Terms</h2>
-<p>
-  By accessing and using {name} ("the Application", "the Service"), you accept and agree to be bound by the terms and
-  provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+  <strong>Last updated:</strong>
+  31 August 2026
 </p>
 
 <p>
-  <strong>Registration Acceptance:</strong>
-  When creating an account, you must explicitly agree to these Terms of Service and our Privacy Policy by checking the
-  required acceptance checkbox. This constitutes your electronic signature and agreement to be bound by these terms.
+  This page is the agreement between you and me about your use of {name}. It covers what the service is, what you may
+  post, what happens when somebody reports content, and who carries which liability.
 </p>
 
-<h2>2. Description of Service</h2>
-<p>{name} is a secure boulder topo and session tracker designed to help climbers:</p>
+<h2>1. Scope, acceptance and eligibility</h2>
+
+<p>These terms govern your use of {name}, and you accept them by creating an account.</p>
+
+<p>
+  I run {name} on my own, as a private individual resident in Germany. There is no company behind it. Where a formal
+  term reads better below, I call myself the operator, and it means the same person.
+</p>
+
+<p>
+  You accept these terms by creating an account and by continuing to use the service. The sign-up and sign-in screens
+  say so under the button, and link to this page and to the
+  <a href="{privacyHref}">privacy policy</a>
+  from there. If you do not accept them, do not create an account.
+</p>
+
+<p>
+  You need to be at least 18 years old. German law gives a person under 18 only limited capacity to enter a contract,
+  and these terms put obligations on you, so this is an agreement only an adult can enter. Section 12 of the privacy
+  policy sets out the reasoning. Sign-up does not ask you to prove your age and I do not verify it.
+</p>
+
+<p>
+  The
+  <a href="{privacyHref}">privacy policy</a>
+  sits alongside these terms and explains what personal data I hold and why. Read it together with this page.
+</p>
+
+<h2>2. What {name} is</h2>
+
+<p>{name} is a free, invite-only climbing guidebook and logbook, and it has no public side.</p>
+
+<p>
+  You start a region, record crags, blocks and routes in it, draw topo lines over your photographs, log your ascents,
+  and invite the people you climb with. A region is a closed container. Postgres row-level security (RLS) enforces the
+  boundary: the database refuses to return rows from a region you were not invited to.
+</p>
+
+<p>
+  A region cannot be published, listed or opened to the open web. There is no public mode and there will not be one. An
+  invite list can grow to hold more people, and the region still never becomes public.
+</p>
+
+<p>
+  {name} is free. There are no ads, no analytics, no tracking, no sale of data and no revenue. The source code is open
+  under the MIT licence, and the repository is on
+  <a href="{repoUrl}" target="_blank" rel="noopener">GitHub</a>
+  for anybody to read. That licence covers the code. It gives nobody a licence to the content people post here, which
+  clause 5 handles.
+</p>
+
+<p>
+  I owe you no particular availability. I run this on my own time, I change features, and parts of the service can be
+  offline. If I shut the service down, I tell you at least 30 days before it happens, by email to the address on your
+  account, and it stays readable for those 30 days so you can take out what matters to you. There is no export button.
+  If you want your data as a file, ask me inside that window and section 8 of the
+  <a href="{privacyHref}">privacy policy</a>
+  says how. A region admin closing their own region is their decision, not mine, so that notice is not mine to give.
+</p>
+
+<p>
+  A region holds up to {maxMembers} members by default, and an account can own up to {maxRegions} regions. Both are
+  operational limits I set and can change, not promises I make to you, and both numbers come from the same values the
+  app enforces.
+</p>
+
+<h2>3. Your account</h2>
+
+<p>An account is personal, and holding one gives you access to no region on its own.</p>
+
+<p>When you register, you agree to:</p>
 <ul>
-  <li>Create and manage bouldering areas, crags, and routes</li>
-  <li>Log climbing ascents and track progress</li>
-  <li>Store photos and videos of climbing areas</li>
-  <li>Share climbing information with authorized users</li>
-  <li>Create detailed topos of bouldering areas</li>
-</ul>
-<p>This is a hobby project provided free of charge with no commercial intent.</p>
-
-<h2>3. User Registration and Account</h2>
-<p>To use the Application, you must:</p>
-<ul>
-  <li>Be at least 16 years of age</li>
-  <li>Provide accurate and complete registration information</li>
-  <li>Maintain the security of your account credentials</li>
-  <li>Accept responsibility for all activities under your account</li>
-  <li>Promptly notify us of any unauthorized use</li>
-</ul>
-
-<p>
-  <strong>Account Sharing:</strong>
-  Your account is personal and non-transferable. You may not:
-</p>
-<ul>
-  <li>Share your login credentials with others</li>
-  <li>Allow others to access the Application using your account</li>
-  <li>Create accounts on behalf of other individuals</li>
-  <li>Use multiple accounts to circumvent regional access controls</li>
-</ul>
-<p>
-  Each user must maintain their own individual account. Violation of this policy may result in account suspension or
-  termination.
-</p>
-
-<h2>4. Acceptable Use</h2>
-
-<h3>4.1 Permitted Uses</h3>
-<p>You may use the Application to:</p>
-<ul>
-  <li>Track your personal climbing activities</li>
-  <li>Share climbing information with other authorized users</li>
-  <li>Create topos and route descriptions</li>
-  <li>Upload photos and videos related to climbing</li>
-</ul>
-
-<h3>4.2 Prohibited Uses</h3>
-<p>You agree NOT to use the Application to:</p>
-<ul>
-  <li>Upload false, misleading, or inappropriate content</li>
-  <li>Violate any local, state, or international laws</li>
-  <li>Infringe on intellectual property rights</li>
-  <li>Attempt to hack, disrupt, or damage the Application</li>
-  <li>Share other users' data without permission</li>
-  <li>Use the service for commercial purposes without permission</li>
-  <li>Upload malicious code or files</li>
-  <li>Impersonate other users or entities</li>
-</ul>
-
-<h2>5. Content and Intellectual Property</h2>
-
-<h3>5.1 Your Content</h3>
-<p>
-  You retain ownership of all content you upload, including photos, videos, route descriptions, and climbing logs. By
-  uploading content, you grant us a non-exclusive license to store, display, and share your content within the
-  Application as necessary to provide the service.
-</p>
-
-<h3>5.2 Application Content</h3>
-<p>
-  The Application's code, design, and functionality are protected by copyright and other intellectual property laws. You
-  may not copy, modify, or redistribute the Application without permission.
-</p>
-
-<h3>5.3 Third-Party Content</h3>
-<p>
-  You are responsible for ensuring you have the right to upload any content that includes third-party intellectual
-  property, including photos of climbing areas that may be on private land.
-</p>
-
-<h2>6. Privacy and Data Protection</h2>
-<p>
-  Your privacy is important to us. Please review our
-  <a href="/legal/privacy">Privacy Policy</a>
-  to understand how we collect, use, and protect your personal information.
-</p>
-
-<h2>7. Climbing Safety Disclaimer</h2>
-
-<div class="card preset-filled-warning-500 my-4 p-4">
-  <h4 class="h4 mt-0 mb-2">⚠️ Important Safety Notice</h4>
-  <p class="mb-0">
-    <strong>Climbing is inherently dangerous and can result in serious injury or death.</strong>
-    The information provided in this Application is for reference only and should not be your sole source of climbing
-    information.
-  </p>
-</div>
-
-<p>You acknowledge that:</p>
-<ul>
-  <li>Route grades and descriptions may be inaccurate or outdated</li>
-  <li>Rock conditions can change and become dangerous</li>
-  <li>Access to climbing areas may be restricted or prohibited</li>
-  <li>You climb at your own risk and are responsible for your safety</li>
-  <li>You should verify all information independently</li>
-  <li>You should respect local access restrictions and private property</li>
+  <li>give accurate registration details and keep them current</li>
+  <li>keep your password and your device secure</li>
+  <li>accept responsibility for what happens under your account</li>
+  <li>tell me without delay if somebody else used it</li>
 </ul>
 
-<h2>8. Disclaimer of Warranties</h2>
-<p>
-  The Application is provided "AS IS" and "AS AVAILABLE" without any warranties of any kind, either express or implied,
-  including but not limited to:
-</p>
+<p>You must not:</p>
 <ul>
-  <li>Merchantability or fitness for a particular purpose</li>
-  <li>Accuracy or completeness of information</li>
-  <li>Uninterrupted or error-free service</li>
-  <li>Security of data transmission or storage</li>
+  <li>share your credentials or let another person use your account</li>
+  <li>register an account in somebody else’s name</li>
+  <li>hold a second account to get around removal from a region or the end of an account under clause 11</li>
 </ul>
 
-<h2>9. Limitation of Liability</h2>
 <p>
-  <strong>
-    To the maximum extent permitted by law, we shall not be liable for any direct, indirect, incidental, consequential,
-    or punitive damages
-  </strong>
-  arising out of or relating to:
-</p>
-<ul>
-  <li>Your use of the Application</li>
-  <li>Any climbing activities or decisions based on information from the Application</li>
-  <li>Loss of data or service interruptions</li>
-  <li>Errors or inaccuracies in route information</li>
-  <li>Unauthorized access to your account or data</li>
-</ul>
-
-<h2>10. Indemnification</h2>
-<p>
-  You agree to indemnify and hold harmless the Application owner/operator from any claims, damages, or expenses arising
-  from:
-</p>
-<ul>
-  <li>Your use of the Application</li>
-  <li>Your violation of these Terms</li>
-  <li>Your infringement of any third-party rights</li>
-  <li>Content you upload or share</li>
-</ul>
-
-<h2>11. Account Termination</h2>
-<p>We reserve the right to suspend or terminate your account if you:</p>
-<ul>
-  <li>Violate these Terms of Service</li>
-  <li>Engage in abusive or harmful behavior</li>
-  <li>Upload inappropriate or illegal content</li>
-  <li>Attempt to compromise the security of the Application</li>
-</ul>
-<p>You may delete your account at any time through the Application settings.</p>
-
-<h2>12. Data Retention and Deletion</h2>
-<p>
-  Upon account deletion, we will remove your personal data in accordance with our Privacy Policy. Some information may
-  be retained for legal or technical reasons as described in our Privacy Policy.
+  Creating an account opens no region to you. You see a region when its admin invites you, or when you create one
+  yourself. Clause 15 covers what a region admin decides.
 </p>
 
-<h2>13. Service Availability</h2>
-<p>As a hobby project, we cannot guarantee:</p>
-<ul>
-  <li>Continuous availability of the service</li>
-  <li>Regular updates or maintenance</li>
-  <li>Technical support response times</li>
-  <li>Long-term availability of the service</li>
-</ul>
-
-<h2>14. Changes to Terms</h2>
 <p>
-  We may update these Terms of Service from time to time. We will notify users of significant changes by updating the
-  "Last Updated" date and posting a notice in the Application. Continued use of the Application after changes
-  constitutes acceptance of the new terms.
+  There is no delete button in the app yet. Ask me and I will close your account. That does not weaken the right:
+  Article 17 GDPR gives you erasure whether or not an interface exists for it. Clause 19 covers what deletion does to
+  what you posted. I can suspend or end an account under clause 11, and I tell you why under clause 12.
 </p>
 
-<h2>15. Governing Law</h2>
+<h2>4. Your content stays yours</h2>
+
+<p>You own what you post, and nothing in these terms moves that ownership to me.</p>
+
 <p>
-  These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction]. Any disputes shall
-  be resolved in the courts of [Your Jurisdiction].
+  Photographs, videos, topo lines, route names, grades, descriptions, ascent logs, comments and mentions of other users
+  are yours. I claim no ownership in them and I acquire no exclusive rights. Under section 29(1) of the
+  Urheberrechtsgesetz (UrhG), copyright itself cannot be transferred at all: what you grant me is a non-exclusive right
+  of use, an einfaches Nutzungsrecht in German law. Clause 5 lists it item by item, it reaches as far as running the
+  service needs, and no further.
 </p>
 
-<h2>16. Severability</h2>
 <p>
-  If any provision of these Terms is found to be unenforceable, the remaining provisions shall remain in full force and
-  effect.
+  A photograph or a video can carry Exchangeable image file format (EXIF) metadata, including the coordinates where it
+  was taken. Posting the file posts that metadata with it. Section 3 of the
+  <a href="{privacyHref}">privacy policy</a>
+  covers what happens to it.
 </p>
 
-<h2>17. Contact Information</h2>
-<p>If you have questions about these Terms of Service, please contact us:</p>
+<h2>5. The licence you grant me</h2>
+
+<p>You grant me a narrow licence, listed item by item, and it lasts only as long as your content does.</p>
+
+<p>
+  You retain all ownership rights in the photographs, topo line drawings, route names, grades, descriptions and other
+  content you upload or submit (“User Content”). You grant me the following rights, and only the following rights, for
+  as long as your User Content remains on the service:
+</p>
 <ul>
   <li>
-    <strong>Email:</strong>
-    info@grnyte.rocks
+    (a) to reproduce the User Content on my servers and those of my hosting, storage and content delivery subprocessors,
+    named in section 5 of the
+    <a href="{privacyHref}">privacy policy</a>
+  </li>
+  <li>(b) to make the User Content available to the other members of the private region in which you posted it</li>
+  <li>
+    (c) to create technical adaptations reasonably necessary to operate the service, including resizing, format
+    conversion, thumbnail generation, and rendering your drawn topo lines as an overlay on the associated image
   </li>
   <li>
-    <strong>Subject:</strong>
-    Terms of Service Inquiry
+    (d) to sublicense rights (a) through (c), and only those rights, to the subprocessors named above, strictly for the
+    purpose of operating the service
   </li>
 </ul>
 
-<hr class="my-8" />
+<p>
+  Right (b) reaches only the members of the region you posted in, because RLS holds that boundary. Nothing in this
+  licence lets me put your content on the open web. Clause 2 says why: there is no public mode and there will not be
+  one.
+</p>
 
-<p class="text-sm opacity-75">
-  These Terms of Service are designed to protect both users and the Application while acknowledging the inherent risks
-  of climbing activities. By using the Application, you acknowledge that you understand and accept these terms.
+<p>
+  This licence ends when you delete the specific content or your account, except that route and topo data which other
+  users have relied on by logging an ascent against it may remain available as shared route information, as described in
+  clause 19.
+</p>
+
+<p>
+  Any use of your User Content in my own marketing or promotional materials requires your separate, specific and
+  revocable consent, given at the time such use is proposed.
+</p>
+
+<h2>6. What you promise when you post</h2>
+
+<p>Everything you post has to be yours to post, and this clause is what you warrant each time you post it.</p>
+
+<p>For every piece of User Content you submit, you warrant:</p>
+<ul>
+  <li>that you created it, or hold the rights needed to post it here</li>
+  <li>
+    that posting it infringes nobody’s copyright, trade mark, personality or data protection rights, including the
+    rights of a person who appears in a photograph or a video
+  </li>
+  <li>
+    that you took the photograph yourself, or hold the photographer’s permission both to post it here and to have topo
+    lines drawn over it
+  </li>
+  <li>
+    that you had lawful access to the place shown, and that recording its location, its approach and its photographs
+    breaches no access agreement, no protection rule and no landowner’s rights known to you
+  </li>
+  <li>
+    that you did not copy it from a published guidebook, a printed topo, a website or another app, whether by scanning,
+    photographing, tracing or retyping
+  </li>
+</ul>
+
+<p>
+  A topo line drawn over a photograph is an adaptation of that photograph under section 23 UrhG, so drawing over
+  somebody else’s photograph needs the photographer’s consent. Every photograph is protected under section 72 UrhG
+  whatever its artistic merit, so a snapshot of a crag that another member uploaded is not free material for you to
+  redraw or to reuse. Ask the person who took it.
+</p>
+
+<p>
+  A private region does not change the copyright position. Section 15(3) UrhG turns on a personal connection between the
+  people who receive a work, not on who holds the access control. A region of climbers who share a sport but no personal
+  relationship is likely to be a public communication in that sense. Scanned or retyped guidebook pages do not belong
+  here, and an invite list does not make them acceptable.
+</p>
+
+<p>
+  Where access to a crag rests on an agreement with a landowner, a municipality or a conservation authority, you are the
+  person who knows what that agreement says. Record the restriction with the crag so the people you climb with read it
+  before they go. Clause 14 is the channel for anyone connected to the land who objects to an entry.
+</p>
+
+<p>If you are unsure whether you may post something, do not post it.</p>
+
+<h2>7. Content you must not post</h2>
+
+<p>Some content is barred outright. The list below is my own rule rather than a quotation of any statute.</p>
+
+<p>You must not post, upload or link to:</p>
+<ul>
+  <li>child sexual abuse material, or any content sexually exploiting or abusing a child</li>
+  <li>threats to kill, harassment, stalking, or content putting a person in fear of violence</li>
+  <li>
+    content inciting violence, or stirring up hatred on grounds of race, religion, sexual orientation, disability or
+    transgender identity
+  </li>
+  <li>
+    content sexually exploiting an adult, extreme pornography, or an intimate image published without the consent of the
+    person shown
+  </li>
+  <li>content encouraging or assisting suicide or serious self-harm</li>
+  <li>any other content that is unlawful</li>
+</ul>
+
+<p>Beyond the categories above, you must not:</p>
+<ul>
+  <li>post another person’s personal data without their agreement, including a photograph they did not agree to</li>
+  <li>impersonate another person or claim an ascent that is not yours in order to deceive</li>
+  <li>post advertising, spam or bulk content</li>
+  <li>attack the service, its database or another account, or work around the region access controls</li>
+  <li>bulk-export or scrape a region you were invited to, for use outside that region</li>
+</ul>
+
+<h2>8. What I check, and what I do not</h2>
+
+<p>Nothing here is reviewed before it appears, and voluntary action against one item says nothing about any other.</p>
+
+<p>
+  I do not review User Content before it is published, and Article 8 DSA means no general monitoring obligation may be
+  imposed on me. Not looking is also what preserves the hosting exemption in Article 6(1) DSA, which turns on actual
+  knowledge. I reserve the right, but not
+  the obligation, to remove, restrict, or take other action against User Content that violates these terms or applicable
+  law, whether in response to a report under clause 9 or on my own initiative, including through automated detection of
+  clearly unlawful material such as spam or content depicting child sexual abuse.
+</p>
+
+<p>
+  Taking such voluntary action does not mean I have reviewed, endorsed, verified, or adopted responsibility for any
+  other content on the service. I do not label, mark, or otherwise represent any User Content as reviewed, verified,
+  checked, or safe.
+</p>
+
+<p>
+  That reservation states a right, not a remedy I can deliver today. The software has no visibility switch on an area, a
+  block or a route, so the only way to take an entry out of a region is to delete it. I can add text to an entry, which
+  is how a hazard warning gets there, but I cannot hide one and keep it. Clause 19 sets that out.
+</p>
+
+<h2>9. Reporting unlawful content</h2>
+
+<p>Anyone can report content, and this clause says what I do with a report.</p>
+
+<p>
+  The
+  <a href="{reportHref}">reporting page</a>
+  takes a report about content you believe is unlawful, including an infringement of your copyright, a violation of your
+  personality rights, or publication of a location without the landowner’s authorisation. It also sets out what a
+  report needs to contain.
+</p>
+
+<p>
+  On receiving a sufficiently specific report, I forward it to the person responsible for the content and give them a
+  reasonable opportunity to respond, stated in that message. They have seven days to answer, counted from the day I send
+  that message. The clock runs against the person who posted, not against me, so it holds whether or not I am at a desk.
+  If they do not answer by the stated deadline, I treat the report as justified and delete the content. If they answer,
+  I weigh both accounts, and any evidence I reasonably request, before deciding.
+</p>
+
+<p>
+  Deletion is the outcome I can promise, and I promise nothing beyond it, for the reason clause 8 gives. Where I delete
+  content, I inform the affected user of the decision, the reason for it, and how to appeal it, as clause 12 sets out.
+</p>
+
+<p>
+  Article 16 of the Digital Services Act (DSA) requires this channel, and it is the channel I run. Repeated, upheld
+  reports of copyright infringement against the same account end that account, under clause 11.
+</p>
+
+<h2>10. Challenging a report about your content</h2>
+
+<p>If I act on a report about your content and the report was wrong, tell me and I look at it again.</p>
+
+<p>Write to the address in clause 22 and include:</p>
+<ul>
+  <li>which content I deleted, and where it was</li>
+  <li>why the report was wrong, such as the rights you hold or the permission you have</li>
+  <li>your contact information</li>
+  <li>a statement, made in good faith, that what you provide is accurate</li>
+</ul>
+
+<p>
+  I answer a counter-notice within fourteen days, or tell you inside that window why it will take longer. Where the
+  counter-notice shows the deletion was wrong, I restore the content if restoring it is technically possible. The
+  backups behind the service are there to bring it back after a failure, not to undo a single deletion, so restoring
+  one item may not be possible even inside the backup window.
+</p>
+
+<p>
+  If you and the reporter both hold your positions, the dispute is between the two of you. I decide what stays on the
+  service, and I decide nothing about who owns what. Neither of you loses the right to go to court.
+</p>
+
+<h2>11. Accounts that keep infringing</h2>
+
+<p>An account that repeatedly posts infringing content loses access.</p>
+
+<p>
+  Repeated, upheld reports of unlawful copyright infringement against the same account result in termination of that
+  account, decided case by case rather than at a fixed count. Upheld means I decided the report was justified after the
+  procedure in clause 9, and it means nothing else:
+</p>
+<ul>
+  <li>a report I rejected does not count</li>
+  <li>a report the reporter withdrew does not count</li>
+  <li>a decision I reversed under clause 10 or clause 13 does not count</li>
+</ul>
+
+<p>
+  Section 512(i) of the United States Digital Millennium Copyright Act (DMCA) asks a service to adopt a policy of this
+  kind and to tell its users about it. This clause is that policy, though I have not registered a designated agent and
+  do not claim the section 512(c) safe harbour. I also end an account that repeatedly posts content in the categories
+  listed in clause 7.
+</p>
+
+<h2>12. Telling you why</h2>
+
+<p>When I act against your content or your account, you get a statement of reasons.</p>
+
+<p>Article 17 DSA requires it. It states:</p>
+<ul>
+  <li>what I did, which content or account it applies to, where it applies and for how long</li>
+  <li>the facts and circumstances I relied on, and whether a report or my own detection triggered the decision</li>
+  <li>whether I used automated means to detect the content or to take the decision</li>
+  <li>the legal ground, where the content was unlawful</li>
+  <li>the contractual ground, where it broke this agreement, naming the term I applied</li>
+  <li>how to challenge the decision, under clause 13</li>
+</ul>
+
+<p>
+  Article 17(3)(f) names internal complaint handling as one route to redress. I offer an appeal under clause 13 as a
+  choice, not because the law obliges me to run one, which is why the article says “where applicable”.
+</p>
+
+<p>
+  A region admin can also delete content another member posted, under the permissions clause 15 describes. That is a
+  restriction too, and the same statement of reasons is owed for it.
+</p>
+
+<p>
+  Be aware of one limit today. That second path does not notify you on its own: the app records that a deletion
+  happened, but not who it happened to, so nothing reaches you automatically. If something of yours has gone and nobody
+  told you why, write to me and I will tell you what happened and who did it.
+</p>
+
+<h2>13. Appealing a decision</h2>
+
+<p>You can appeal a decision I made, and I offer this because it is fair, not because a law obliges me to.</p>
+
+<p>
+  Send the appeal to the address in clause 22. Name the decision you are appealing and say why it was wrong. The appeal
+  has to reach me within one month of the decision, and I answer it within fourteen days, or tell you inside that
+  window why it will take longer.
+</p>
+
+<p>
+  I look at the decision again myself. There is no separate moderation team here and I will not pretend there is. Where
+  the appeal shows I got it wrong, I reverse the decision and restore what I removed, if restoring it is technically
+  possible.
+</p>
+
+<p>
+  Article 20 DSA, the internal complaint handling duty, binds providers of online platforms. {name} is not one. An
+  online platform disseminates information to the public, which Articles 3(i) and 3(k) DSA define as making it available
+  to a potentially unlimited number of third parties, and recital 14 settles the case of a service like this one:
+  information behind an admittance list counts as public only where people are admitted automatically, without a human
+  deciding who gets in. A region admin picks every member by hand, so Articles 19 to 24 do not reach this service at
+  all. The exemption in Article 19 for micro and small enterprises would be a second answer, and I do not need it. This
+  channel is a product choice, and offering it does not turn it into a legal duty. Your right to go to court is
+  untouched either way.
+</p>
+
+<h2>14. Land, access and property complaints</h2>
+
+<p>
+  If you hold or manage rights over land shown on {name}, you get a named channel of your own, separate from clause 9.
+</p>
+
+<p>
+  A specific, credible objection from a person connected to the land is a reason to act, and I act on it. I do not
+  answer it by pointing at these terms: generic terms are no substitute for dealing with a concrete objection. Where
+  such an objection is to the entry itself, the remedy the software has is deletion, and I delete the entry. Where you
+  would rather climbers read the restriction than have the crag disappear, tell me and I record it in the entry instead.
+</p>
+
+<p>
+  The
+  <a href="{reportHref}">reporting page</a>
+  sets out what to send, what I do with it and how long I take.
+</p>
+
+<h2>15. Private regions and the people who run them</h2>
+
+<p>Each region has admins and maintainers, and what they decide governs who sees what inside it.</p>
+
+<p>A region admin:</p>
+<ul>
+  <li>invites members and removes them, and decides who holds which role</li>
+  <li>decides what the region collects and how it is organised</li>
+  <li>carries responsibility for keeping the invite list to the people who belong on it</li>
+  <li>can edit or delete any crag, block, route or topo in the region, whoever created it</li>
+</ul>
+
+<p>
+  A maintainer can add and edit those entries anywhere in the region. They can delete a crag, a block or a route only
+  where they created it themselves, and can delete a topo whoever drew it.
+</p>
+
+<p>
+  Your ascent logs sit outside the maintainer role: you can delete one, a region admin can, and nobody else can. The
+  photographs and videos attached to an ascent work the same way.
+</p>
+
+<p>
+  RLS enforces the boundary between regions, and it governs the application and its users. It does not govern me. {name}
+  is not end-to-end encrypted and I can technically read every region. Section 10 of the
+  <a href="{privacyHref}">privacy policy</a>
+  states what I do and do not do with that access, and states the limit of what I can promise about a lawful order.
+</p>
+
+<!-- Sole controllership is the primary position; the SECOND paragraph is a fallback Article 26 GDPR
+     arrangement that bites only if a region admin is held to be a joint controller after all. Keeping it costs
+     three lines and keeps Article 26(2) met without designating users as controllers who cannot perform the
+     duties: there is no separate signed document, admins accept these terms and the terms are public.
+     Section 1.1 of the privacy notice mirrors this and cites it as "clause 15" BY NUMBER, in both locales.
+     Renumbering the sections here breaks that reference silently, with no build or type error. -->
+<p>
+  I am the controller for everything on this service, within the meaning of Article 4(7) GDPR. A region admin decides
+  who to invite and what their region collects, and does that as a private person for their own purposes. Where that is
+  a purely personal activity, Article 2(2)(c) GDPR places no controller duties on them.
+</p>
+
+<p>
+  Where an admin is nonetheless held to be a joint controller for deciding who joins, this paragraph is the arrangement
+  between us under Article 26 GDPR: I answer for the service, for the data it stores and for everything the software
+  does with it, deletions by a region admin included; the admin answers for the invite list and for what their region
+  collects. I answer your requests under Chapter III GDPR either way, because I am the one who can reach the data, and
+  you can exercise your data protection rights against the region admin or against me.
+</p>
+
+<p>
+  If you leave a region or an admin removes you, you lose access to its content. What you posted there stays subject to
+  clause 19.
+</p>
+
+<h2>16. Safety information</h2>
+
+<p>
+  Climbing, bouldering, and related activities are inherently dangerous. Users submit the route, grade and hazard
+  information on this service. I do not review, verify or check it, before or after publication. It may be incomplete,
+  outdated, or wrong, and nothing here is inspected.
+</p>
+
+<p>
+  The
+  <a href="{disclaimerHref}">disclaimer</a>
+  covers where that information comes from, what it cannot tell you, and what a hazard warning does and does not mean.
+  Read it before you use anything here to plan a day out.
+</p>
+
+<h2>17. Liability</h2>
+
+<p>My liability is graduated by what I did wrong, and for personal injury it is never limited.</p>
+
+<p>I am liable without limitation:</p>
+<ul>
+  <li>for death, personal injury or damage to health caused by a breach of duty on my part</li>
+  <li>for damage caused intentionally or by gross negligence</li>
+  <li>
+    under German product liability law as it stands from time to time, to the extent it applies, and under any guarantee
+    I give
+  </li>
+</ul>
+
+<p>
+  For all other damage, I am liable only where I acted intentionally or with gross negligence. {name} costs nothing, and
+  section 521 of the Bürgerliches Gesetzbuch (BGB) sets that standard for someone who gives something away.
+</p>
+
+<p>
+  That limit has one exception. Where I breach an essential contractual duty, meaning a duty whose fulfilment makes
+  performing this agreement possible at all and on whose fulfilment you regularly rely, I am liable for slight
+  negligence as well. In that case my liability is capped at the damage that is foreseeable and typical for an agreement
+  of this kind. Storing your data so it can be retrieved, and keeping regions separate from one another, are essential
+  duties in that sense.
+</p>
+
+<p>
+  Nothing in these terms excludes liability that the law does not allow me to exclude. There is no clause here saying
+  you use {name} at your own risk, and there will not be one: such a clause is void under section 309 number 7 BGB, and
+  German law does not read an overbroad clause down to the part that would have been allowed.
+</p>
+
+<h2>18. When you cover a claim against me</h2>
+
+<p>
+  You cover a third-party claim only where you broke one of the warranties in clause 6 and that breach caused the claim.
+</p>
+
+<p>
+  In that case you reimburse my reasonable legal costs and any damages awarded, to the extent your breach caused the
+  claim. Those limits are the substance of this clause:
+</p>
+<ul>
+  <li>it applies to a breach of a warranty in clause 6, and to nothing else</li>
+  <li>it reaches only the part of the claim your breach caused</li>
+  <li>it does not apply where you are not at fault for the breach</li>
+  <li>it does not apply to a claim caused by my own conduct</li>
+</ul>
+
+<p>
+  I tell you about the claim without undue delay, give you what you need to answer it, and settle nothing without your
+  agreement where I invoke this clause.
+</p>
+
+<h2>19. What deletion does to the licence</h2>
+
+<p>Deleting content ends the licence for it, with one carve-out for route data other people logged ascents against.</p>
+
+<p>
+  Delete a photograph, a video or a comment and the licence in clause 5 ends for that item. Delete your account and the
+  licence ends for everything it covered.
+</p>
+
+<p>
+  The carve-out is route and topo data. Where other members logged an ascent against a route you created, the route
+  entry stays in the region as shared route information, so their logbooks keep their meaning. That covers the entry
+  itself: its name, its grade, its position and the topo lines drawn on the image. It does not cover your photographs,
+  your videos or your comments.
+</p>
+
+<p>
+  Closing an account works like this, per kind of content. Your account and profile go: the email address, the display
+  name, the sign-in records. Your ascent logs, your comments and the photographs and videos you uploaded go with them.
+  Crag, block and route entries you created stay in the region under an anonymous author, because they are the guidebook
+  other members are still using and their ascents hang off them. Once the author link is severed the entry is no longer
+  personal data about you, so your erasure right under Article 17 GDPR is satisfied in full.
+</p>
+
+<p>
+  Deletion is the only way to take an entry out of a region. There is no visibility flag on an area, a block or a route,
+  so I cannot hide one and keep it: I delete it or I leave it in place. Adding text to an entry is possible, and that is
+  what a hazard warning is. Section 7 of the
+  <a href="{privacyHref}">privacy policy</a>
+  covers retention periods and backups.
+</p>
+
+<h2>20. Governing law and where you can sue</h2>
+
+<p>German law governs this agreement, and your local consumer protections survive that choice.</p>
+
+<p>
+  If you are a consumer within the meaning of section 13 BGB, this choice of law does not take away the protection of
+  the mandatory consumer rules of the country where you have your habitual residence. Article 6(2) of the Rome I
+  Regulation, Regulation (EC) 593/2008, preserves them. If you live outside the European Union, mandatory consumer rules
+  where you live may apply to you as well, and I do not claim otherwise.
+</p>
+
+<p>
+  You can bring proceedings against me at the court for your own domicile. I can bring proceedings against you as a
+  consumer only at the court for your domicile. For consumers in the European Union this follows from Articles 17 to 19
+  of the Brussels Ia Regulation, Regulation (EU) 1215/2012.
+</p>
+
+<p>
+  If you are not a consumer, the venue is my general place of jurisdiction under German law, which is where I live
+  rather than the address published in the imprint. That address is a rented one for receiving mail, and it does not
+  move my residence. The
+  <a href="{imprintHref}">imprint</a>
+  states my position on consumer arbitration boards.
+</p>
+
+<h2>21. Changes to these terms</h2>
+
+<p>
+  I update these terms when the service changes or when the law does, and the date at the top records the last change.
+</p>
+
+<p>
+  Where a change affects your rights or your duties, I email you about it. The version on this page is the one that
+  applies, and I do not hold a change back for a notice period first. Article 14(2) DSA asks me to inform you of a
+  significant change, and that is what this is. Using {name} after I have told you is how you accept the new version.
+</p>
+
+<p>
+  Nothing here reaches backwards. A change binds you from when I tell you about it, never for something you did before
+  that. If you would rather not accept it, close your account: this service is free and has no minimum term, so leaving
+  costs you nothing. Wording fixes and clarifications that change neither your rights nor your duties go in without an
+  email.
+</p>
+
+<p>
+  You can end this agreement at any time by deleting your account. I do not treat silence as agreement to a change that
+  leaves you worse off; where a change needs your agreement, I ask you for it.
+</p>
+
+<h2>22. Who runs {name}, and where to write</h2>
+
+<p>One private individual resident in Germany runs {name}. There is no company, no employees and no revenue.</p>
+
+<p>
+  The
+  <a href="{imprintHref}">imprint</a>
+  carries my name, my postal address, and the contact points required by the Digitale-Dienste-Gesetz (DDG) and the DSA.
+</p>
+
+<p>
+  <strong>Notices under these terms:</strong>
+  reports under clause 9, counter-notices under clause 10, appeals under clause 13 and land complaints under clause 14
+  go to
+  <a href="mailto:{reportEmail}">{reportEmail}</a>
+  . The
+  <a href="{reportHref}">reporting page</a>
+  takes the same notices.
+</p>
+
+<p>A person reads that inbox. There is no ticket system, no automated reply and no support queue.</p>
+
+<h2>23. If part of this fails</h2>
+
+<p>
+  If a court finds one part of these terms invalid, the rest stays in force. What replaces the failed part is whatever
+  the law provides for it, not a rewritten version of my own.
+</p>
+
+<p>
+  These terms are published in German and in English. Where the two differ, the German version governs, except that it
+  takes away no protection the version in your own language gives you.
 </p>

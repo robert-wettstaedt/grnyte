@@ -8,12 +8,13 @@
   import { onMount } from 'svelte'
   import { MediaQuery } from 'svelte/reactivity'
   import BoulderThree from './BoulderThree.svelte'
+  import { legalLinks } from './legal/links'
 
   const { data } = $props()
   // SSR-resolved (see +page.server.ts) so the header CTA renders correctly without a flash.
   const signedIn = $derived(data.signedIn)
 
-  const github = 'https://github.com/robert-wettstaedt/grnyte'
+  const github = __APP_REPO__
   const contact = 'mailto:info@grnyte.rocks'
 
   // The three situations an area cannot be published in. A qualification section, not a
@@ -32,7 +33,6 @@
     { body: m.landing_featureOfflineBody(), icon: 'smartphone', title: m.landing_featureOfflineTitle() },
     { body: m.landing_featureLogbookBody(), icon: 'trending-up', title: m.landing_featureLogbookTitle() },
   ]
-
 
   // "A look inside". `src`/`poster` are empty until the screencasts land (see DEMO-TEARDOWN-PLAN.md):
   // drop `static/shot-*.mp4` and `static/shot-*.jpg` in and fill them here, nothing else changes.
@@ -153,7 +153,7 @@
 <div
   bind:this={rootEl}
   data-motion="armed"
-  class="text-surface-950-50 bg-surface-50-950 min-h-dvh overflow-x-clip [&>section:nth-of-type(even)]:bg-surface-100-900"
+  class="text-surface-950-50 bg-surface-50-950 [&>section:nth-of-type(even)]:bg-surface-100-900 min-h-dvh overflow-x-clip"
 >
   <!-- ===== sticky nav ===== -->
   <header class="border-surface-200-800 bg-surface-50-950/80 sticky top-0 z-50 border-b backdrop-blur-lg">
@@ -574,7 +574,7 @@
           <div class="flex flex-col gap-2.5">
             <div class="text-surface-950-50 text-[13px] font-bold">{m.landing_footerHelp()}</div>
             <a
-              href={resolve('/faq')}
+              href={resolve('/help/faq')}
               class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
             >
               {m.faq_title()}
@@ -583,30 +583,14 @@
 
           <div class="flex flex-col gap-2.5">
             <div class="text-surface-950-50 text-[13px] font-bold">{m.landing_footerLegal()}</div>
-            <a
-              href={resolve('/legal/privacy')}
-              class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
-            >
-              {m.legal_layout_001()}
-            </a>
-            <a
-              href={resolve('/legal/terms')}
-              class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
-            >
-              {m.legal_layout_002()}
-            </a>
-            <a
-              href={resolve('/legal/cookies')}
-              class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
-            >
-              {m.legal_layout_003()}
-            </a>
-            <a
-              href={resolve('/legal/disclaimer')}
-              class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
-            >
-              {m.legal_disclaimer_title()}
-            </a>
+            {#each legalLinks() as link (link.href)}
+              <a
+                href={link.href}
+                class="text-surface-500 hover:text-surface-950-50 text-[13px] no-underline transition-colors"
+              >
+                {link.label}
+              </a>
+            {/each}
           </div>
         </div>
       </div>
