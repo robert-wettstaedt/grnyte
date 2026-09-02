@@ -77,7 +77,13 @@
   // forever). Invalidation re-runs the layout load (`depends('supabase:auth')`),
   // and initZero hands the fresh token to the existing client.
   $effect(() => {
-    const { data: auth } = data.supabase.auth.onAuthStateChange((_, newSession) => {
+    const supabase = data?.supabase
+
+    if (supabase == null) {
+      return
+    }
+
+    const { data: auth } = supabase.auth.onAuthStateChange((_, newSession) => {
       if (newSession?.access_token !== data.session?.access_token) {
         void invalidate('supabase:auth')
       }
