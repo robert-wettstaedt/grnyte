@@ -152,3 +152,8 @@ docker compose -f docker-compose.zero.yml down -v --remove-orphans
 docker volume rm deployment_zero_data_prod deployment_zero_data_demo deployment_certbot_conf deployment_certbot_www
 docker network prune -f
 ```
+
+## Database backups
+
+The prod database is dumped nightly to this VPS by `.github/workflows/backup-db.yml`, thirty days
+deep under `~/backups/grnyte`. Restoring one is [RESTORE.md](RESTORE.md).
